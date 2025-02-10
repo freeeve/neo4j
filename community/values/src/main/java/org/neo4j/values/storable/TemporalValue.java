@@ -269,7 +269,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
                     return Values.longValue(zdt.toInstant().toEpochMilli());
                 }
             } else {
-                throw new UnsupportedTemporalUnitException("Epoch not supported.");
+                throw UnsupportedTemporalUnitException.epochNotSupported(fieldName, String.valueOf(temp));
             }
         }
         if (field == TemporalFields.timezone) {

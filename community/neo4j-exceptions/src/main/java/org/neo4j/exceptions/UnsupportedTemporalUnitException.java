@@ -109,4 +109,9 @@ public class UnsupportedTemporalUnitException extends CypherTypeException {
         var gql = GqlHelper.getGql22G05_22N15(fieldName, fieldType);
         return new UnsupportedTemporalUnitException(gql, String.format("No such field: %s", fieldName));
     }
+
+    public static UnsupportedTemporalUnitException epochNotSupported(String component, String temporal) {
+        var gql = GqlHelper.getGql22G05_22N15(component, temporal);
+        return new UnsupportedTemporalUnitException(gql, "Epoch not supported.");
+    }
 }
