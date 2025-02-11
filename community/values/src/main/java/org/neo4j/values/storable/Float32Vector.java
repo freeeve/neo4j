@@ -19,6 +19,8 @@
  */
 package org.neo4j.values.storable;
 
+import static java.lang.String.format;
+
 import java.util.Arrays;
 import org.neo4j.hashing.HashFunction;
 import org.neo4j.memory.HeapEstimator;
@@ -87,5 +89,10 @@ public final class Float32Vector extends FloatingPointVector {
     @Override
     public long estimatedHeapUsage() {
         return SHALLOW_SIZE + HeapEstimator.sizeOf(coordinates);
+    }
+
+    @Override
+    public String toString() {
+        return format("%s%s", getTypeName(), Arrays.toString(coordinates));
     }
 }

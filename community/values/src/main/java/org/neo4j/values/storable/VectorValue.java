@@ -19,6 +19,7 @@
  */
 package org.neo4j.values.storable;
 
+import org.neo4j.values.Comparison;
 import org.neo4j.values.utils.PrettyPrinter;
 
 public abstract sealed class VectorValue extends HashMemoizingScalarValue implements Vector
@@ -36,5 +37,16 @@ public abstract sealed class VectorValue extends HashMemoizingScalarValue implem
         final var pp = new PrettyPrinter();
         writeTo(pp);
         return pp.toString();
+    }
+
+    @Override
+    public Comparison unsafeTernaryCompareTo(Value otherValue) {
+        // Vector values are not comparable under Comparability semantics,
+        // unless they are equal.
+        if (equals(otherValue)) {
+            return Comparison.EQUAL;
+        } else {
+            return Comparison.UNDEFINED;
+        }
     }
 }

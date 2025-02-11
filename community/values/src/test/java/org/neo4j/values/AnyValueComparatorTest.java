@@ -35,6 +35,12 @@ import static org.neo4j.values.storable.LocalDateTimeValue.localDateTime;
 import static org.neo4j.values.storable.LocalTimeValue.localTime;
 import static org.neo4j.values.storable.TimeValue.time;
 import static org.neo4j.values.storable.Values.NO_VALUE;
+import static org.neo4j.values.storable.Values.float32Vector;
+import static org.neo4j.values.storable.Values.float64Vector;
+import static org.neo4j.values.storable.Values.int16Vector;
+import static org.neo4j.values.storable.Values.int32Vector;
+import static org.neo4j.values.storable.Values.int64Vector;
+import static org.neo4j.values.storable.Values.int8Vector;
 import static org.neo4j.values.storable.Values.intValue;
 import static org.neo4j.values.storable.Values.pointValue;
 import static org.neo4j.values.storable.Values.stringArray;
@@ -325,6 +331,32 @@ class AnyValueComparatorTest {
         assertTernaryCompare(duration, duration(0, 0, 0, 0), EQUAL);
         assertTernaryCompare(duration, duration(1, 0, 0, 0), UNDEFINED);
         assertTernaryCompare(duration, localTime(0, 0, 0, 1), UNDEFINED);
+    }
+
+    @Test
+    void equalVectorsShouldBeEqualAccordingToTernaryComparison() {
+        assertTernaryCompare(int8Vector(), int8Vector(), EQUAL);
+        assertTernaryCompare(int16Vector(), int16Vector(), EQUAL);
+        assertTernaryCompare(int32Vector(), int32Vector(), EQUAL);
+        assertTernaryCompare(int64Vector(), int64Vector(), EQUAL);
+        assertTernaryCompare(float32Vector(), float32Vector(), EQUAL);
+        assertTernaryCompare(float64Vector(), float64Vector(), EQUAL);
+
+        assertTernaryCompare(int8Vector((byte) 1, (byte) 2, (byte) 3), int8Vector((byte) 1, (byte) 2, (byte) 3), EQUAL);
+        assertTernaryCompare(
+                int16Vector((short) 1, (short) 2, (short) 3), int16Vector((short) 1, (short) 2, (short) 3), EQUAL);
+        assertTernaryCompare(int32Vector(1, 2, 3), int32Vector(1, 2, 3), EQUAL);
+        assertTernaryCompare(int64Vector(1, 2, 3), int64Vector(1, 2, 3), EQUAL);
+        assertTernaryCompare(float32Vector(1, 2, 3), float32Vector(1, 2, 3), EQUAL);
+        assertTernaryCompare(float64Vector(1, 2, 3), float64Vector(1, 2, 3), EQUAL);
+    }
+
+    @Test
+    void nonEqualVectorsShouldBeUndefinedAccordingToTernaryComparison() {
+        assertTernaryCompare(int8Vector(), int8Vector((byte) 1), UNDEFINED);
+        assertTernaryCompare(int8Vector(), int16Vector(), UNDEFINED);
+        assertTernaryCompare(int32Vector(1, 2), int32Vector(2, 1), UNDEFINED);
+        assertTernaryCompare(int64Vector(1), float64Vector(1), UNDEFINED);
     }
 
     private void assertTernaryCompare(AnyValue a, AnyValue b, Comparison expected) {
