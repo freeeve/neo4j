@@ -19,9 +19,8 @@
  */
 package org.neo4j.memory;
 
-import org.neo4j.util.VisibleForTesting;
-
 import java.util.Arrays;
+import org.neo4j.util.VisibleForTesting;
 
 public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorCache {
     public static final int MAX_CACHE_HITS = 1_000_000;
