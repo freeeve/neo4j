@@ -66,5 +66,4 @@ public abstract class TextArray extends ArrayValue {
     public ValueRepresentation valueRepresentation() {
         return ValueRepresentation.TEXT_ARRAY;
     }
-
 }

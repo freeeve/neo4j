@@ -130,7 +130,7 @@ public class ValueEqualityTest {
                 of(shouldNotMatch(int32Vector(1), float32Vector(1.0f))),
                 of(shouldNotMatch(int32Vector(1), int64Vector(1))),
                 of(shouldNotMatch(int32Vector(1), int32Vector(1, 2))),
-                of(shouldMatch(int32Vector(1,2), int32Vector(1, 2))));
+                of(shouldMatch(int32Vector(1, 2), int32Vector(1, 2))));
     }
 
     @ParameterizedTest

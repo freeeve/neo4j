@@ -19,11 +19,10 @@
  */
 package org.neo4j.values.storable;
 
+import java.util.Arrays;
 import org.neo4j.hashing.HashFunction;
 import org.neo4j.memory.HeapEstimator;
 import org.neo4j.values.ValueMapper;
-
-import java.util.Arrays;
 
 public final class Int8Vector extends IntegralVector {
     private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(Int8Vector.class);
@@ -47,11 +46,6 @@ public final class Int8Vector extends IntegralVector {
     @Override
     public ValueRepresentation valueRepresentation() {
         return ValueRepresentation.INT8_VECTOR;
-    }
-
-    @Override
-    public Object asObjectCopy() {
-        return null;
     }
 
     @Override

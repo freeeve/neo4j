@@ -37,7 +37,13 @@ class ValueAsObjectCopyTest {
             shouldGivePublic(Values.doubleValue(6.0), 6.0),
             shouldGivePublic(Values.booleanValue(false), false),
             shouldGivePublic(Values.charValue('a'), 'a'),
-            shouldGivePublic(Values.stringValue("b"), "b"));
+            shouldGivePublic(Values.stringValue("b"), "b"),
+            shouldGivePublic(Values.int8Vector((byte) 1, (byte) 2), Values.int8Vector((byte) 1, (byte) 2)),
+            shouldGivePublic(Values.int16Vector((short) 1, (short) 2), Values.int16Vector((short) 1, (short) 2)),
+            shouldGivePublic(Values.int32Vector(1, 2, 3), Values.int32Vector(1, 2, 3)),
+            shouldGivePublic(Values.int64Vector(1, 2, 3), Values.int64Vector(1, 2, 3)),
+            shouldGivePublic(Values.float32Vector(1, 2, 3), Values.float32Vector(1, 2, 3)),
+            shouldGivePublic(Values.float64Vector(1, 2, 3), Values.float64Vector(1, 2, 3)));
 
     @Test
     void shouldProvideScalarValueAsPublic() {

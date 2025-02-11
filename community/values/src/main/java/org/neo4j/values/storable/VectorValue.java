@@ -23,9 +23,12 @@ import org.neo4j.values.utils.PrettyPrinter;
 
 public abstract sealed class VectorValue extends HashMemoizingScalarValue implements Vector
         permits IntegralVector, FloatingPointVector {
+
     @Override
-    public NumberType numberType() {
-        return NumberType.NO_NUMBER;
+    public Object asObjectCopy() {
+        // Similar to PointValue, all VectorValues implement the public interface Vector,
+        // which is the Java representation.
+        return this;
     }
 
     @Override
