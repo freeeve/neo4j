@@ -468,7 +468,7 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
                 .map(v -> v.compareTo(supportsCypherVersionPrefix) >= 0)
                 .orElse(false);
         final var prefixedQuery = supportsPrefix ? "CYPHER 5 " + cypher : cypher;
-        runCypher(prefixedQuery, queryParams, type);
+        return runCypher(prefixedQuery, queryParams, type);
     }
 
     private Optional<BoltResult> runCypher(String cypher, Map<String, Value> queryParams, TransactionConfig config)
