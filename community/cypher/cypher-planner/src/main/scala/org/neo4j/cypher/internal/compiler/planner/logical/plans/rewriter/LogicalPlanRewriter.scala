@@ -100,6 +100,7 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
         providedOrders,
         context.logicalPlanIdGen
       )),
+      Option.when(isShardedDatabase)(RemoveUnusedVariablesFromOption),
       Some(RemoveUnusedGroupVariablesRewriter),
       Option.when(context.config.gpmShortestToLegacyShortestEnabled())(
         StatefulShortestToFindShortestRewriter(

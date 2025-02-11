@@ -153,7 +153,7 @@ class RemoteBatchPropertiesWithFilterPlanningIntegrationTest extends CypherFunSu
       .apply()
       .|.nodeIndexOperator(
         "a:L0(prop = 42)",
-        argumentIds = Set("n0", "n1", "r1"),
+        argumentIds = Set("n0", "n1"),
         getValue = Map("prop" -> GetValue)
       )
       .optional()
@@ -218,12 +218,12 @@ class RemoteBatchPropertiesWithFilterPlanningIntegrationTest extends CypherFunSu
           "cacheN[friend.lastName] AS friendLastName"
         )
         .apply()
-        .|.optional("person", "knows", "friend")
+        .|.optional("friend")
         .|.remoteBatchPropertiesWithFilter("cacheNFromStore[message.creationDate]", "cacheNFromStore[message.id]")(
           "cacheN[message.creationDate] IS NOT NULL"
         )
         .|.expandAll("(friend)<-[has_creator:POST_HAS_CREATOR|COMMENT_HAS_CREATOR]-(message)")
-        .|.argument("friend", "person", "knows")
+        .|.argument("friend")
         .filter("cacheN[person.firstName] = cacheN[friend.firstName]")
         .remoteBatchProperties(
           "cacheNFromStore[friend.firstName]",
