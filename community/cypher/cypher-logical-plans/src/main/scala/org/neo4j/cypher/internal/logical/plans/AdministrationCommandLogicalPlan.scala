@@ -630,8 +630,12 @@ case class EnsureNameIsNotAmbiguous(
   isComposite: Boolean
 )(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
 
-case class AssertNotShardTarget(source: PrivilegePlan, name: DatabaseName, action: String, actionVerb: String)(implicit
-  idGen: IdGen)
+case class AssertNotShardTarget(
+  source: AdministrationCommandLogicalPlan,
+  name: DatabaseName,
+  action: String,
+  actionVerb: String
+)(implicit idGen: IdGen)
     extends SecurityAdministrationLogicalPlan(Some(source))
 
 case class EnableServer(
