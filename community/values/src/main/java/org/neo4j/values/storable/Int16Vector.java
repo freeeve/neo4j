@@ -77,7 +77,12 @@ public final class Int16Vector extends IntegralVector {
 
     @Override
     public long updateHash(HashFunction hashFunction, long hash) {
-        return 0;
+        int len = dimensions();
+        hash = hashFunction.update(hash, len);
+        for (int i = 0; i < len; i++) {
+            hash = hashFunction.update(hash, coordinates[i]);
+        }
+        return hash;
     }
 
     @Override

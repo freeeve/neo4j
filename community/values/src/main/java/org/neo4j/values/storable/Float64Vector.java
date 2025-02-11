@@ -77,7 +77,12 @@ public final class Float64Vector extends FloatingPointVector {
 
     @Override
     public long updateHash(HashFunction hashFunction, long hash) {
-        return 0;
+        int len = dimensions();
+        hash = hashFunction.update(hash, len);
+        for (int i = 0; i < len; i++) {
+            hash = hashFunction.update(hash, Double.doubleToLongBits(coordinates[i]));
+        }
+        return hash;
     }
 
     @Override
