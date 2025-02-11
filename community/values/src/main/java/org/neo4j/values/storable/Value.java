@@ -221,12 +221,6 @@ public abstract class Value extends AnyValue {
         return getClass() == value.getClass();
     }
 
-    public final long hashCode64() {
-        HashFunction xxh64 = HashFunction.incrementalXXH64();
-        long seed = 1; // Arbitrary seed, but it must always be the same or hash values will change.
-        return xxh64.finalise(updateHash(xxh64, xxh64.initialise(seed)));
-    }
-
     public abstract long updateHash(HashFunction hashFunction, long hash);
 
     /**
