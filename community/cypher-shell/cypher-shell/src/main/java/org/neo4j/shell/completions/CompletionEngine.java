@@ -42,8 +42,8 @@ import org.antlr.v4.runtime.tree.ParseTreeListener;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.neo4j.cypher.internal.ast.factory.neo4j.completion.CodeCompletionCore;
 import org.neo4j.cypher.internal.parser.AstRuleCtx;
-import org.neo4j.cypher.internal.parser.v5.Cypher5Lexer;
-import org.neo4j.cypher.internal.parser.v5.Cypher5Parser;
+import org.neo4j.cypher.internal.parser.v25.Cypher25Lexer;
+import org.neo4j.cypher.internal.parser.v25.Cypher25Parser;
 
 public class CompletionEngine {
     public enum ParameterType {
@@ -78,14 +78,14 @@ public class CompletionEngine {
 
         @Override
         public void exitEveryRule(ParserRuleContext ctx) {
-            if (ctx.getRuleIndex() == Cypher5Parser.RULE_variable) {
-                var c = (Cypher5Parser.VariableContext) ctx;
+            if (ctx.getRuleIndex() == Cypher25Parser.RULE_variable) {
+                var c = (Cypher25Parser.VariableContext) ctx;
                 // To avoid suggesting the variable that is currently being typed
                 // For example RETURN a| <- we don't want to suggest "a" as a variable
                 // We check if the variable is in the end of the statement
                 var tokenIndex = c.stop.getTokenIndex();
                 var nextTokenIsEOF =
-                        tokenIndex != -1 && tokens.get(tokenIndex + 1).getType() == Cypher5Lexer.EOF;
+                        tokenIndex != -1 && tokens.get(tokenIndex + 1).getType() == Cypher25Lexer.EOF;
 
                 var definesVariable = c.getParent() != null
                         && rulesDefiningOrUsingVariables.contains(c.getParent().getRuleIndex());
@@ -96,10 +96,10 @@ public class CompletionEngine {
                     var variable = c.symbolicVariableNameString().getText();
                     this.variables.add(variable);
                 }
-            } else if (ctx.getRuleIndex() == Cypher5Parser.RULE_procedureResultItem) {
-                var c = (Cypher5Parser.ProcedureResultItemContext) ctx;
-                if (c.symbolicNameString() != null && c.symbolicNameString().getText() != null) {
-                    var variable = c.symbolicNameString().getText();
+            } else if (ctx.getRuleIndex() == Cypher25Parser.RULE_procedureResultItem) {
+                var c = (Cypher25Parser.ProcedureResultItemContext) ctx;
+                if (c.yieldItemName != null && c.yieldItemName.getText() != null) {
+                    var variable = c.yieldItemName.getText();
                     this.variables.add(variable);
                 }
             }
@@ -109,50 +109,50 @@ public class CompletionEngine {
     public CompletionEngine(DbInfo dbInfo) {
         this.dbInfo = dbInfo;
         this.customTokenDisplayNames = Map.of(
-                Cypher5Parser.ALL_SHORTEST_PATHS, "allShortestPaths", Cypher5Parser.SHORTEST_PATH, "shortestPath");
-        this.vocabulary = Cypher5Lexer.VOCABULARY;
+                Cypher25Parser.ALL_SHORTEST_PATHS, "allShortestPaths", Cypher25Parser.SHORTEST_PATH, "shortestPath");
+        this.vocabulary = Cypher25Lexer.VOCABULARY;
         var ignoreFromLexer = Set.of(
-                Cypher5Lexer.DECIMAL_DOUBLE,
-                Cypher5Lexer.UNSIGNED_DECIMAL_INTEGER,
-                Cypher5Lexer.UNSIGNED_HEX_INTEGER,
-                Cypher5Lexer.UNSIGNED_OCTAL_INTEGER,
-                Cypher5Lexer.STRING_LITERAL1,
-                Cypher5Lexer.STRING_LITERAL2,
-                Cypher5Lexer.ErrorChar,
-                Cypher5Lexer.EOF,
-                Cypher5Lexer.SPACE,
-                Cypher5Lexer.IDENTIFIER,
-                Cypher5Lexer.ESCAPED_SYMBOLIC_NAME,
-                Cypher5Lexer.MULTI_LINE_COMMENT,
-                Cypher5Lexer.SINGLE_LINE_COMMENT);
+                Cypher25Lexer.DECIMAL_DOUBLE,
+                Cypher25Lexer.UNSIGNED_DECIMAL_INTEGER,
+                Cypher25Lexer.UNSIGNED_HEX_INTEGER,
+                Cypher25Lexer.UNSIGNED_OCTAL_INTEGER,
+                Cypher25Lexer.STRING_LITERAL1,
+                Cypher25Lexer.STRING_LITERAL2,
+                Cypher25Lexer.ErrorChar,
+                Cypher25Lexer.EOF,
+                Cypher25Lexer.SPACE,
+                Cypher25Lexer.IDENTIFIER,
+                Cypher25Lexer.ESCAPED_SYMBOLIC_NAME,
+                Cypher25Lexer.MULTI_LINE_COMMENT,
+                Cypher25Lexer.SINGLE_LINE_COMMENT);
         this.lexerKeywords = new HashSet<>();
-        for (int i = 0; i < Cypher5Lexer.VOCABULARY.getMaxTokenType(); ++i) {
+        for (int i = 0; i < Cypher25Lexer.VOCABULARY.getMaxTokenType(); ++i) {
             if (vocabulary.getLiteralName(i) == null && !ignoreFromLexer.contains(i)) {
                 this.lexerKeywords.add(i);
             }
         }
 
         rulesDefiningVariables = Set.of(
-                Cypher5Parser.RULE_returnItem,
-                Cypher5Parser.RULE_unwindClause,
-                Cypher5Parser.RULE_subqueryInTransactionsReportParameters,
-                Cypher5Parser.RULE_procedureResultItem,
-                Cypher5Parser.RULE_foreachClause,
-                Cypher5Parser.RULE_loadCSVClause,
-                Cypher5Parser.RULE_reduceExpression,
-                Cypher5Parser.RULE_listItemsPredicate,
-                Cypher5Parser.RULE_listComprehension);
+                Cypher25Parser.RULE_returnItem,
+                Cypher25Parser.RULE_unwindClause,
+                Cypher25Parser.RULE_subqueryInTransactionsReportParameters,
+                Cypher25Parser.RULE_procedureResultItem,
+                Cypher25Parser.RULE_foreachClause,
+                Cypher25Parser.RULE_loadCSVClause,
+                Cypher25Parser.RULE_reduceExpression,
+                Cypher25Parser.RULE_listItemsPredicate,
+                Cypher25Parser.RULE_listComprehension);
 
         rulesDefiningOrUsingVariables = new HashSet(rulesDefiningVariables);
         rulesDefiningOrUsingVariables.addAll(List.of(
-                Cypher5Parser.RULE_pattern, Cypher5Parser.RULE_nodePattern, Cypher5Parser.RULE_relationshipPattern));
+                Cypher25Parser.RULE_pattern, Cypher25Parser.RULE_nodePattern, Cypher25Parser.RULE_relationshipPattern));
     }
 
     public List<Suggestion> completeQuery(String incompleteQuery) throws IOException {
-        var lexer = org.neo4j.cypher.internal.parser.v5.ast.factory.Cypher5AstLexer.fromString(incompleteQuery, true);
+        var lexer = org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstLexer.fromString(incompleteQuery, true);
         var tokenStream = new CommonTokenStream(lexer);
-        var parser = new Cypher5Parser(tokenStream);
-        var vocabulary = Cypher5Lexer.VOCABULARY;
+        var parser = new Cypher25Parser(tokenStream);
+        var vocabulary = Cypher25Lexer.VOCABULARY;
         var variableCollector = new VariableCollector(tokenStream);
         parser.addParseListener(variableCollector);
 
@@ -168,27 +168,27 @@ public class CompletionEngine {
         var previousToken = tokens.size() > 1 ? tokens.get(caretIndex - 1) : null;
 
         if (previousToken != null
-                && (previousToken.getType() == Cypher5Lexer.IDENTIFIER
+                && (previousToken.getType() == Cypher25Lexer.IDENTIFIER
                         || lexerKeywords.contains(previousToken.getType()))) {
             caretIndex--;
         }
 
         Set<Integer> preferredRules = Set.of(
-                Cypher5Parser.RULE_functionName,
-                Cypher5Parser.RULE_procedureName,
-                Cypher5Parser.RULE_labelExpression1,
-                Cypher5Parser.RULE_symbolicAliasName,
-                Cypher5Parser.RULE_parameter,
-                Cypher5Parser.RULE_propertyKeyName,
-                Cypher5Parser.RULE_variable,
-                Cypher5Parser.RULE_leftArrow,
+                Cypher25Parser.RULE_functionName,
+                Cypher25Parser.RULE_procedureName,
+                Cypher25Parser.RULE_labelExpression1,
+                Cypher25Parser.RULE_symbolicAliasName,
+                Cypher25Parser.RULE_parameter,
+                Cypher25Parser.RULE_propertyKeyName,
+                Cypher25Parser.RULE_variable,
+                Cypher25Parser.RULE_leftArrow,
                 // this rule is used for usernames and roles.
-                Cypher5Parser.RULE_commandNameExpression,
-                Cypher5Parser.RULE_symbolicNameString,
-                Cypher5Parser.RULE_procedureResultItem);
+                Cypher25Parser.RULE_commandNameExpression,
+                Cypher25Parser.RULE_symbolicNameString,
+                Cypher25Parser.RULE_procedureResultItem);
         Set<Integer> ignoredTokens = new HashSet<>();
 
-        for (int i = Cypher5Lexer.EOF; i <= vocabulary.getMaxTokenType(); ++i) {
+        for (int i = Cypher25Lexer.EOF; i <= vocabulary.getMaxTokenType(); ++i) {
             if (!lexerKeywords.contains(i)) {
                 ignoredTokens.add(i);
             }
@@ -249,7 +249,7 @@ public class CompletionEngine {
                 .map(property -> Suggestion.property(backtickIfNeeded(property), property));
     }
 
-    private ParserRuleContext findStopNode(Cypher5Parser.StatementsContext root) {
+    private ParserRuleContext findStopNode(Cypher25Parser.StatementsContext root) {
         var children = root.children;
         ParserRuleContext current = root;
 
@@ -287,7 +287,7 @@ public class CompletionEngine {
         boolean test(ParserRuleContext ctx);
     }
 
-    private String getMethodName(Cypher5Parser.ProcedureNameContext nameCtx) {
+    private String getMethodName(Cypher25Parser.ProcedureNameContext nameCtx) {
         var namespaces = nameCtx.namespace().symbolicNameString();
         var methodName = nameCtx.symbolicNameString();
         var nameChunks = new ArrayList<>(namespaces);
@@ -297,7 +297,7 @@ public class CompletionEngine {
         return normalizedName;
     }
 
-    private String getNamespaceString(Cypher5Parser.SymbolicNameStringContext nameCtx) {
+    private String getNamespaceString(Cypher25Parser.SymbolicNameStringContext nameCtx) {
         var text = nameCtx.getText();
         var isEscaped = nameCtx.escapedSymbolicNameString() != null;
         var hasDot = text.contains(".");
@@ -320,10 +320,10 @@ public class CompletionEngine {
                     var candidateRule = entry.getValue();
                     var startTokenIndex = candidateRule.startTokenIndex();
                     var ruleList = candidateRule.ruleList();
-                    if (ruleNumber == Cypher5Parser.RULE_procedureResultItem) {
-                        var callClause = getParent(stopNode, (x) -> x instanceof Cypher5Parser.CallClauseContext);
+                    if (ruleNumber == Cypher25Parser.RULE_procedureResultItem) {
+                        var callClause = getParent(stopNode, (x) -> x instanceof Cypher25Parser.CallClauseContext);
                         if (callClause.isPresent()) {
-                            var call = (Cypher5Parser.CallClauseContext) callClause.get();
+                            var call = (Cypher25Parser.CallClauseContext) callClause.get();
                             var procName = getMethodName(call.procedureName());
                             var existingItemNames = call.procedureResultItem().stream()
                                     .map(AstRuleCtx::getText)
@@ -331,16 +331,16 @@ public class CompletionEngine {
                             return procedureReturnCompletions(procName)
                                     .filter(a -> !existingItemNames.contains(a.value()));
                         }
-                    } else if (ruleNumber == Cypher5Parser.RULE_functionName) {
+                    } else if (ruleNumber == Cypher25Parser.RULE_functionName) {
                         return functionNameCompletions(startTokenIndex, tokens);
-                    } else if (ruleNumber == Cypher5Parser.RULE_procedureName) {
+                    } else if (ruleNumber == Cypher25Parser.RULE_procedureName) {
                         return procedureNameCompletions(startTokenIndex, tokens);
-                    } else if (ruleNumber == Cypher5Parser.RULE_parameter) {
+                    } else if (ruleNumber == Cypher25Parser.RULE_parameter) {
                         return parameterCompletions(inferExpectedParameterTypeFromContext(candidateRule));
-                    } else if (ruleNumber == Cypher5Parser.RULE_propertyKeyName) {
+                    } else if (ruleNumber == Cypher25Parser.RULE_propertyKeyName) {
                         var parentRule = ruleList.get(ruleList.size() - 1);
                         var grandParentRule = ruleList.get(ruleList.size() - 2);
-                        if (parentRule == Cypher5Parser.RULE_map && grandParentRule == Cypher5Parser.RULE_literal) {
+                        if (parentRule == Cypher25Parser.RULE_map && grandParentRule == Cypher25Parser.RULE_literal) {
                             return Stream.empty();
                         }
 
@@ -350,12 +350,12 @@ public class CompletionEngine {
                         // keys if the expr is a simple variable that is defined.
                         // We still don't know the type of the variable we're completing without a symbol table
                         // but it is likely to be a node/relationship
-                        if (parentRule == Cypher5Parser.RULE_property
-                                && grandParentRule == Cypher5Parser.RULE_postFix
-                                && greatGrandParentRule == Cypher5Parser.RULE_expression2) {
+                        if (parentRule == Cypher25Parser.RULE_property
+                                && grandParentRule == Cypher25Parser.RULE_postFix
+                                && greatGrandParentRule == Cypher25Parser.RULE_expression2) {
                             var expr2 = stopNode.getParent().getParent().getParent();
-                            if (expr2 instanceof Cypher5Parser.Expression2Context) {
-                                var variableName = ((Cypher5Parser.Expression2Context) expr2)
+                            if (expr2 instanceof Cypher25Parser.Expression2Context) {
+                                var variableName = ((Cypher25Parser.Expression2Context) expr2)
                                         .expression1()
                                         .variable()
                                         .getText();
@@ -366,7 +366,7 @@ public class CompletionEngine {
                         }
 
                         return propertyKeyCompletions();
-                    } else if (ruleNumber == Cypher5Parser.RULE_variable) {
+                    } else if (ruleNumber == Cypher25Parser.RULE_variable) {
                         if (!ruleList.isEmpty()) {
                             var parentRule = ruleList.get(ruleList.size() - 1);
 
@@ -374,24 +374,24 @@ public class CompletionEngine {
                                 return collectedVariables.stream().map(Suggestion::identifier);
                             }
                         }
-                    } else if (ruleNumber == Cypher5Parser.RULE_labelExpression1) {
-                        var topExprIndex = ruleList.indexOf(Cypher5Parser.RULE_labelExpression);
+                    } else if (ruleNumber == Cypher25Parser.RULE_labelExpression1) {
+                        var topExprIndex = ruleList.indexOf(Cypher25Parser.RULE_labelExpression);
 
                         if (topExprIndex > 0) {
                             var topExprParent = ruleList.get(topExprIndex - 1);
-                            if (topExprParent == Cypher5Parser.RULE_nodePattern) {
+                            if (topExprParent == Cypher25Parser.RULE_nodePattern) {
                                 return labelCompletions();
                             }
 
-                            if (topExprParent == Cypher5Parser.RULE_relationshipPattern) {
+                            if (topExprParent == Cypher25Parser.RULE_relationshipPattern) {
                                 return relTypeCompletions();
                             }
 
                             return Stream.concat(labelCompletions(), relTypeCompletions());
                         }
-                    } else if (ruleNumber == Cypher5Parser.RULE_symbolicAliasName) {
+                    } else if (ruleNumber == Cypher25Parser.RULE_symbolicAliasName) {
                         return completeAliasName(tokens, candidateRule, startTokenIndex);
-                    } else if (ruleNumber == Cypher5Parser.RULE_commandNameExpression) {
+                    } else if (ruleNumber == Cypher25Parser.RULE_commandNameExpression) {
                         return completeSymbolicName(candidateRule, tokens, startTokenIndex);
                     }
 
@@ -406,24 +406,24 @@ public class CompletionEngine {
         var parentRule = ruleList.get(ruleList.size() - 1);
 
         if (Set.of(
-                        Cypher5Parser.RULE_stringOrParameter,
-                        Cypher5Parser.RULE_commandNameExpression,
-                        Cypher5Parser.RULE_symbolicNameOrStringParameter,
-                        Cypher5Parser.RULE_symbolicNameOrStringParameterList,
-                        Cypher5Parser.RULE_symbolicAliasNameOrParameter,
-                        Cypher5Parser.RULE_passwordExpression,
-                        Cypher5Parser.RULE_createUser,
-                        Cypher5Parser.RULE_dropUser,
-                        Cypher5Parser.RULE_alterUser,
-                        Cypher5Parser.RULE_renameUser,
-                        Cypher5Parser.RULE_createRole,
-                        Cypher5Parser.RULE_dropRole,
-                        Cypher5Parser.RULE_userNames,
-                        Cypher5Parser.RULE_roleNames,
-                        Cypher5Parser.RULE_renameRole)
+                        Cypher25Parser.RULE_stringOrParameter,
+                        Cypher25Parser.RULE_commandNameExpression,
+                        Cypher25Parser.RULE_symbolicNameOrStringParameter,
+                        Cypher25Parser.RULE_symbolicNameOrStringParameterList,
+                        Cypher25Parser.RULE_symbolicAliasNameOrParameter,
+                        Cypher25Parser.RULE_passwordExpression,
+                        Cypher25Parser.RULE_createUser,
+                        Cypher25Parser.RULE_dropUser,
+                        Cypher25Parser.RULE_alterUser,
+                        Cypher25Parser.RULE_renameUser,
+                        Cypher25Parser.RULE_createRole,
+                        Cypher25Parser.RULE_dropRole,
+                        Cypher25Parser.RULE_userNames,
+                        Cypher25Parser.RULE_roleNames,
+                        Cypher25Parser.RULE_renameRole)
                 .contains(parentRule)) {
             return CompletionEngine.ParameterType.STRING;
-        } else if (Set.of(Cypher5Parser.RULE_properties, Cypher5Parser.RULE_mapOrParameter)
+        } else if (Set.of(Cypher25Parser.RULE_properties, Cypher25Parser.RULE_mapOrParameter)
                 .contains(parentRule)) {
             return CompletionEngine.ParameterType.MAP;
         } else {
@@ -436,7 +436,7 @@ public class CompletionEngine {
         while (i > 0) {
             var token = tokens.get(--i);
 
-            if (token.getType() != Cypher5Parser.SPACE) {
+            if (token.getType() != Cypher25Parser.SPACE) {
                 return Optional.of(token);
             }
         }
@@ -450,10 +450,10 @@ public class CompletionEngine {
         var parameterSuggestions = parameterCompletions(inferExpectedParameterTypeFromContext(candidateRule));
         var ruleList = candidateRule.ruleList();
 
-        var rulesCreatingNewUserOrRole = List.of(Cypher5Parser.RULE_createUser, Cypher5Parser.RULE_createRole);
+        var rulesCreatingNewUserOrRole = List.of(Cypher25Parser.RULE_createUser, Cypher25Parser.RULE_createRole);
 
         var previousToken = findPreviousNonSpace(tokens, ruleStartTokenIndex);
-        var afterToToken = previousToken.stream().anyMatch(t -> t.getType() == Cypher5Parser.TO);
+        var afterToToken = previousToken.stream().anyMatch(t -> t.getType() == Cypher25Parser.TO);
 
         // avoid suggesting existing user names or role names when creating a new one
         if (rulesCreatingNewUserOrRole.stream().anyMatch(ruleList::contains)
@@ -461,22 +461,22 @@ public class CompletionEngine {
                 // We are suggesting an user as target for the renaming
                 //      RENAME USER existing TO target
                 // so target should be non-existent
-                (candidateRule.ruleList().contains(Cypher5Parser.RULE_renameUser) && afterToToken)) {
+                (candidateRule.ruleList().contains(Cypher25Parser.RULE_renameUser) && afterToToken)) {
             return parameterSuggestions;
         }
 
         var rulesThatAcceptExistingUsers = List.of(
-                Cypher5Parser.RULE_dropUser,
-                Cypher5Parser.RULE_renameUser,
-                Cypher5Parser.RULE_alterUser,
-                Cypher5Parser.RULE_userNames);
+                Cypher25Parser.RULE_dropUser,
+                Cypher25Parser.RULE_renameUser,
+                Cypher25Parser.RULE_alterUser,
+                Cypher25Parser.RULE_userNames);
 
         if (rulesThatAcceptExistingUsers.stream().anyMatch(ruleList::contains)) {
             return Stream.concat(parameterSuggestions, dbInfo.userNames.stream().map(Suggestion::value));
         }
 
         var rulesThatAcceptExistingRoles =
-                List.of(Cypher5Parser.RULE_roleNames, Cypher5Parser.RULE_dropRole, Cypher5Parser.RULE_renameRole);
+                List.of(Cypher25Parser.RULE_roleNames, Cypher25Parser.RULE_dropRole, Cypher25Parser.RULE_renameRole);
 
         if (rulesThatAcceptExistingRoles.stream().anyMatch(ruleList::contains)) {
             return Stream.concat(parameterSuggestions, dbInfo.roleNames.stream().map(Suggestion::value));
@@ -499,13 +499,14 @@ public class CompletionEngine {
         // if so we have a false positive and we return null to ignore the rule
         // symbolicAliasName: (symbolicNameString (DOT symbolicNameString)* | parameter);
         if (ruleStartTokenIndex + 1 < tokens.size()
-                && tokens.get(ruleStartTokenIndex + 1).getType() == Cypher5Lexer.SPACE) {
+                && tokens.get(ruleStartTokenIndex + 1).getType() == Cypher25Lexer.SPACE) {
             return Stream.empty();
         }
 
         // parameters are valid values in all cases of symbolicAliasName
         var parameterSuggestions = parameterCompletions(CompletionEngine.ParameterType.STRING);
-        var rulesCreatingNewDb = List.of(Cypher5Parser.RULE_createDatabase, Cypher5Parser.RULE_createCompositeDatabase);
+        var rulesCreatingNewDb =
+                List.of(Cypher25Parser.RULE_createDatabase, Cypher25Parser.RULE_createCompositeDatabase);
 
         // avoid suggesting existing database names when creating a new database
         if (rulesCreatingNewDb.stream().anyMatch(ruleList::contains)) {
@@ -515,12 +516,12 @@ public class CompletionEngine {
         // For `CREATE ALIAS aliasName FOR DATABASE databaseName`
         // Should not suggest existing aliases for aliasName but should suggest existing databases for databaseName
         // so we return base suggestions if we're at the `aliasName` rule
-        if (ruleList.contains(Cypher5Parser.RULE_createAlias) && ruleList.contains(Cypher5Parser.RULE_aliasName)) {
+        if (ruleList.contains(Cypher25Parser.RULE_createAlias) && ruleList.contains(Cypher25Parser.RULE_aliasName)) {
             return parameterSuggestions;
         }
 
         var rulesThatOnlyAcceptAlias =
-                List.of(Cypher5Parser.RULE_dropAlias, Cypher5Parser.RULE_alterAlias, Cypher5Parser.RULE_showAliases);
+                List.of(Cypher25Parser.RULE_dropAlias, Cypher25Parser.RULE_alterAlias, Cypher25Parser.RULE_showAliases);
 
         if (rulesThatOnlyAcceptAlias.stream().anyMatch(ruleList::contains)) {
             return Stream.concat(
@@ -541,17 +542,17 @@ public class CompletionEngine {
         var lastNonEOFToken = ruleTokens.size() >= 2 ? ruleTokens.get(ruleTokens.size() - 2) : null;
 
         var nonSpaceTokens = new ArrayList<>(ruleTokens.stream()
-                .filter((token) -> token.getType() != Cypher5Lexer.SPACE && token.getType() != Cypher5Lexer.EOF)
+                .filter((token) -> token.getType() != Cypher25Lexer.SPACE && token.getType() != Cypher25Lexer.EOF)
                 .toList());
 
         var lastNonSpaceIsDot = !nonSpaceTokens.isEmpty()
-                && nonSpaceTokens.get(nonSpaceTokens.size() - 1).getType() == Cypher5Lexer.DOT;
+                && nonSpaceTokens.get(nonSpaceTokens.size() - 1).getType() == Cypher25Lexer.DOT;
 
         // `gds version` is invalid but `gds .version` and `gds. version` are valid
         // so if the last token is a space and the last non-space token
         // is anything but a dot return empty completions to avoid
         // creating invalid suggestions (db ping)
-        if (lastNonEOFToken != null && lastNonEOFToken.getType() == Cypher5Lexer.SPACE && !lastNonSpaceIsDot) {
+        if (lastNonEOFToken != null && lastNonEOFToken.getType() == Cypher25Lexer.SPACE && !lastNonSpaceIsDot) {
             return null;
         }
 
@@ -669,7 +670,7 @@ public class CompletionEngine {
     }
 
     private List<Suggestion> getTokenCompletions(
-            CodeCompletionCore.CandidatesCollection candidates, Set<Integer> ignoredTokens, Cypher5Lexer cypherLexer) {
+            CodeCompletionCore.CandidatesCollection candidates, Set<Integer> ignoredTokens, Cypher25Lexer cypherLexer) {
         var tokenEntries = candidates.tokens.entrySet();
         Stream<String> completions = tokenEntries.stream().flatMap((value) -> {
             var tokenNumber = value.getKey();
