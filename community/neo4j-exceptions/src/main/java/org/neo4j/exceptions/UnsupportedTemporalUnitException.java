@@ -124,4 +124,24 @@ public class UnsupportedTemporalUnitException extends CypherTypeException {
         var gql = GqlHelper.getGql22G05_22N40(component, valueType);
         return new UnsupportedTemporalUnitException(gql, "Cannot assign time zone if also assigning other fields.");
     }
+
+    public static UnsupportedTemporalUnitException cannotAssignToCalendarDate(String component) {
+        var gql = GqlHelper.getGql22G05_22N40(component, "calendar date");
+        return new UnsupportedTemporalUnitException(gql, "Cannot assign " + component + " to calendar date.");
+    }
+
+    public static UnsupportedTemporalUnitException cannotAssignToWeekDate(String component) {
+        var gql = GqlHelper.getGql22G05_22N40(component, "week date");
+        return new UnsupportedTemporalUnitException(gql, "Cannot assign " + component + " to week date.");
+    }
+
+    public static UnsupportedTemporalUnitException cannotAssignToQuarterDate(String component) {
+        var gql = GqlHelper.getGql22G05_22N40(component, "quarter date");
+        return new UnsupportedTemporalUnitException(gql, "Cannot assign " + component + " to quarter date.");
+    }
+
+    public static UnsupportedTemporalUnitException cannotAssignToOrdinalDate(String component) {
+        var gql = GqlHelper.getGql22G05_22N40(component, "ordinal date");
+        return new UnsupportedTemporalUnitException(gql, "Cannot assign " + component + " to ordinal date.");
+    }
 }

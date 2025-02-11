@@ -969,7 +969,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
                     date = assignment(field, date, value);
                     return this;
                 default:
-                    throw new UnsupportedTemporalUnitException("Cannot assign " + field + " to calendar date.");
+                    throw UnsupportedTemporalUnitException.cannotAssignToCalendarDate(String.valueOf(field));
             }
         }
 
@@ -1014,7 +1014,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
                     date = assignment(field, date, value);
                     return this;
                 default:
-                    throw new UnsupportedTemporalUnitException("Cannot assign " + field + " to week date.");
+                    throw UnsupportedTemporalUnitException.cannotAssignToWeekDate(String.valueOf(field));
             }
         }
 
@@ -1059,7 +1059,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
                     date = assignment(field, date, value);
                     return this;
                 default:
-                    throw new UnsupportedTemporalUnitException("Cannot assign " + field + " to quarter date.");
+                    throw UnsupportedTemporalUnitException.cannotAssignToQuarterDate(String.valueOf(field));
             }
         }
 
@@ -1102,7 +1102,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
                     date = assignment(field, date, value);
                     return this;
                 default:
-                    throw new UnsupportedTemporalUnitException("Cannot assign " + field + " to ordinal date.");
+                    throw UnsupportedTemporalUnitException.cannotAssignToOrdinalDate(String.valueOf(field));
             }
         }
 
