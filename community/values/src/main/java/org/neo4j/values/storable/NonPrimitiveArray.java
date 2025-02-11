@@ -70,11 +70,6 @@ public abstract class NonPrimitiveArray<T extends Comparable<? super T>> extends
         return false;
     }
 
-    @Override
-    public final NumberType numberType() {
-        return NumberType.NO_NUMBER;
-    }
-
     final int compareToNonPrimitiveArray(NonPrimitiveArray<T> other) {
         int compare = 0;
         int length = Math.min(this.intSize(), other.intSize());

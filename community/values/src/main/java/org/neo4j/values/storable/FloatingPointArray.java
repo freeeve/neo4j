@@ -40,11 +40,6 @@ public abstract class FloatingPointArray extends NumberArray {
     }
 
     @Override
-    public NumberType numberType() {
-        return NumberType.FLOATING_POINT;
-    }
-
-    @Override
     public long updateHash(HashFunction hashFunction, long hash) {
         int len = intSize();
         hash = hashFunction.update(hash, len);

@@ -105,11 +105,6 @@ public abstract class TextValue extends HashMemoizingScalarValue {
     }
 
     @Override
-    public NumberType numberType() {
-        return NumberType.NO_NUMBER;
-    }
-
-    @Override
     public <T> T map(ValueMapper<T> mapper) {
         return mapper.mapText(this);
     }

@@ -46,11 +46,6 @@ public abstract class BooleanValue extends ScalarValue {
     public abstract boolean booleanValue();
 
     @Override
-    public NumberType numberType() {
-        return NumberType.NO_NUMBER;
-    }
-
-    @Override
     public long updateHash(HashFunction hashFunction, long hash) {
         return hashFunction.update(hash, hashCode());
     }

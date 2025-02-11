@@ -144,11 +144,6 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
     }
 
     @Override
-    public NumberType numberType() {
-        return NumberType.NO_NUMBER;
-    }
-
-    @Override
     public boolean equals(Value other) {
         if (other instanceof PointValue pv) {
             return Arrays.equals(this.coordinate, pv.coordinate)

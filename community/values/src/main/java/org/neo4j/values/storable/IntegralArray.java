@@ -38,11 +38,6 @@ public abstract class IntegralArray extends NumberArray {
     }
 
     @Override
-    public NumberType numberType() {
-        return NumberType.INTEGRAL;
-    }
-
-    @Override
     public long updateHash(HashFunction hashFunction, long hash) {
         int len = intSize();
         hash = hashFunction.update(hash, len);

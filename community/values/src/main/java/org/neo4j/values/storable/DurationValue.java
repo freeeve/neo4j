@@ -32,7 +32,6 @@ import static java.time.temporal.ChronoUnit.SECONDS;
 import static java.util.Objects.requireNonNull;
 import static java.util.regex.Pattern.CASE_INSENSITIVE;
 import static org.neo4j.memory.HeapEstimator.shallowSizeOfInstance;
-import static org.neo4j.values.storable.NumberType.NO_NUMBER;
 import static org.neo4j.values.storable.NumberValue.castToLong;
 import static org.neo4j.values.storable.NumberValue.safeCastFloatingPoint;
 import static org.neo4j.values.utils.TemporalUtil.AVG_NANOS_PER_MONTH;
@@ -643,11 +642,6 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
     @Override
     public ValueRepresentation valueRepresentation() {
         return ValueRepresentation.DURATION;
-    }
-
-    @Override
-    public NumberType numberType() {
-        return NO_NUMBER;
     }
 
     @Override

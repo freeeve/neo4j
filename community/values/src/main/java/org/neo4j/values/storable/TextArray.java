@@ -67,8 +67,4 @@ public abstract class TextArray extends ArrayValue {
         return ValueRepresentation.TEXT_ARRAY;
     }
 
-    @Override
-    public NumberType numberType() {
-        return NumberType.NO_NUMBER;
-    }
 }

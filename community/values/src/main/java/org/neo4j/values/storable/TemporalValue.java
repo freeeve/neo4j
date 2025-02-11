@@ -23,7 +23,6 @@ import static org.neo4j.values.storable.DateTimeValue.datetime;
 import static org.neo4j.values.storable.DateTimeValue.parseZoneName;
 import static org.neo4j.values.storable.IntegralValue.safeCastIntegral;
 import static org.neo4j.values.storable.LocalDateTimeValue.localDateTime;
-import static org.neo4j.values.storable.NumberType.NO_NUMBER;
 import static org.neo4j.values.storable.TimeValue.time;
 
 import java.time.DateTimeException;
@@ -303,11 +302,6 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
     @Override
     public final long getLong(TemporalField field) {
         return temporal().getLong(field);
-    }
-
-    @Override
-    public final NumberType numberType() {
-        return NO_NUMBER;
     }
 
     @Override

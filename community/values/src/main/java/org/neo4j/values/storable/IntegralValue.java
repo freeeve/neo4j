@@ -93,11 +93,6 @@ public abstract class IntegralValue extends NumberValue {
     }
 
     @Override
-    public NumberType numberType() {
-        return NumberType.INTEGRAL;
-    }
-
-    @Override
     public LongValue minus(long b) {
         return ValueMath.subtract(longValue(), b);
     }

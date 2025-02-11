@@ -65,11 +65,6 @@ public abstract class FloatingPointValue extends NumberValue {
     }
 
     @Override
-    public NumberType numberType() {
-        return NumberType.FLOATING_POINT;
-    }
-
-    @Override
     public int compareTo(IntegralValue other) {
         return NumberValues.compareDoubleAgainstLong(doubleValue(), other.longValue());
     }

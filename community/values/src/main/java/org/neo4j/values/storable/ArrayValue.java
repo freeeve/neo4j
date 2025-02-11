@@ -71,11 +71,6 @@ public abstract class ArrayValue extends HashMemoizingValue implements SequenceV
     }
 
     @Override
-    public NumberType numberType() {
-        return null;
-    }
-
-    @Override
     public long updateHash(HashFunction hashFunction, long hash) {
         return 0;
     }

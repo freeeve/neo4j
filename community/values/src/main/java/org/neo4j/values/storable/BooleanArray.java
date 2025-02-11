@@ -107,11 +107,6 @@ public final class BooleanArray extends ArrayValue {
     }
 
     @Override
-    public NumberType numberType() {
-        return NumberType.NO_NUMBER;
-    }
-
-    @Override
     public String prettyPrint() {
         return Arrays.toString(value);
     }

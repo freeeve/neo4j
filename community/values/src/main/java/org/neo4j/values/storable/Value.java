@@ -209,8 +209,6 @@ public abstract class Value extends AnyValue {
         return valueRepresentation().valueGroup();
     }
 
-    public abstract NumberType numberType();
-
     /**
      * Returns whether or not the type of this value is the same as the type of the given value. Value type is more specific than
      * what {@link #valueGroup()} returns, but less granular than, say specific class. For example there are specific classes for

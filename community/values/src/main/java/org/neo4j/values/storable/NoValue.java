@@ -101,11 +101,6 @@ public final class NoValue extends Value {
     }
 
     @Override
-    public NumberType numberType() {
-        return NumberType.NO_NUMBER;
-    }
-
-    @Override
     protected int unsafeCompareTo(Value other) {
         return 0;
     }
