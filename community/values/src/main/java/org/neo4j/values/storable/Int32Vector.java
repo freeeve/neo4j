@@ -82,7 +82,7 @@ public final class Int32Vector extends IntegralVector {
 
     @Override
     protected int computeHashToMemoize() {
-        return 0;
+        return NumberValues.hash(coordinates);
     }
 
     @Override

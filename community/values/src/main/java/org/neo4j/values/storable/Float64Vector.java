@@ -82,7 +82,7 @@ public final class Float64Vector extends FloatingPointVector {
 
     @Override
     protected int computeHashToMemoize() {
-        return 0;
+        return NumberValues.hash(coordinates);
     }
 
     @Override
