@@ -381,11 +381,11 @@ public final class Values {
         return new Int8Vector(coordinates);
     }
 
-    public static Float64Vector int64Vector(double... coordinates) {
+    public static Float64Vector float64Vector(double... coordinates) {
         return new Float64Vector(coordinates);
     }
 
-    public static Float32Vector int32Vector(float... coordinates) {
+    public static Float32Vector float32Vector(float... coordinates) {
         return new Float32Vector(coordinates);
     }
 

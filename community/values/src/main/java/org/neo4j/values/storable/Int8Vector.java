@@ -23,6 +23,8 @@ import org.neo4j.hashing.HashFunction;
 import org.neo4j.memory.HeapEstimator;
 import org.neo4j.values.ValueMapper;
 
+import java.util.Arrays;
+
 public final class Int8Vector extends IntegralVector {
     private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(Int8Vector.class);
 
@@ -54,6 +56,9 @@ public final class Int8Vector extends IntegralVector {
 
     @Override
     public boolean equals(Value other) {
+        if (other instanceof Int8Vector v) {
+            return Arrays.equals(this.coordinates, v.coordinates);
+        }
         return false;
     }
 

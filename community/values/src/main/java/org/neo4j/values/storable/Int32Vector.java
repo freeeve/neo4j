@@ -23,6 +23,8 @@ import org.neo4j.hashing.HashFunction;
 import org.neo4j.memory.HeapEstimator;
 import org.neo4j.values.ValueMapper;
 
+import java.util.Arrays;
+
 public final class Int32Vector extends IntegralVector {
     private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(Int32Vector.class);
 
@@ -54,6 +56,9 @@ public final class Int32Vector extends IntegralVector {
 
     @Override
     public boolean equals(Value other) {
+        if (other instanceof Int32Vector v) {
+            return Arrays.equals(this.coordinates, v.coordinates);
+        }
         return false;
     }
 

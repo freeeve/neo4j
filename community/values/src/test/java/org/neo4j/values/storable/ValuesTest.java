@@ -35,8 +35,14 @@ import static org.neo4j.values.storable.Values.charArray;
 import static org.neo4j.values.storable.Values.charValue;
 import static org.neo4j.values.storable.Values.doubleArray;
 import static org.neo4j.values.storable.Values.doubleValue;
+import static org.neo4j.values.storable.Values.float32Vector;
+import static org.neo4j.values.storable.Values.float64Vector;
 import static org.neo4j.values.storable.Values.floatArray;
 import static org.neo4j.values.storable.Values.floatValue;
+import static org.neo4j.values.storable.Values.int16Vector;
+import static org.neo4j.values.storable.Values.int32Vector;
+import static org.neo4j.values.storable.Values.int64Vector;
+import static org.neo4j.values.storable.Values.int8Vector;
 import static org.neo4j.values.storable.Values.intArray;
 import static org.neo4j.values.storable.Values.intValue;
 import static org.neo4j.values.storable.Values.longArray;
@@ -97,6 +103,20 @@ class ValuesTest {
         assertEqual(doubleArray(new double[] {1.0}), doubleArray(new double[] {1.0}));
         assertEqual(charArray(new char[] {'x'}), charArray(new char[] {'x'}));
         assertEqual(stringArray("hi"), stringArray("hi"));
+
+        assertEqual(int8Vector(), int8Vector());
+        assertEqual(int16Vector(), int16Vector());
+        assertEqual(int32Vector(), int32Vector());
+        assertEqual(int64Vector(), int64Vector());
+        assertEqual(float32Vector(), float32Vector());
+        assertEqual(float64Vector(), float64Vector());
+
+        assertEqual(int8Vector((byte) 1, (byte) 2, (byte) 3), int8Vector((byte) 1, (byte) 2, (byte) 3));
+        assertEqual(int16Vector((short) 1, (short) 2, (short) 3), int16Vector((short) 1, (short) 2, (short) 3));
+        assertEqual(int32Vector(1, 2, 3), int32Vector(1, 2, 3));
+        assertEqual(int64Vector(1, 2, 3), int64Vector(1, 2, 3));
+        assertEqual(float32Vector(1, 2, 3), float32Vector(1, 2, 3));
+        assertEqual(float64Vector(1, 2, 3), float64Vector(1, 2, 3));
     }
 
     @Test
@@ -138,7 +158,10 @@ class ValuesTest {
                 localTime(14, 0, 0, 0),
                 duration(0, 0, 0, 1_000_000_000),
                 byteArray(new byte[] {}),
-                charArray(new char[] {'x'}));
+                charArray(new char[] {'x'}),
+                int16Vector(),
+                int32Vector(),
+                float64Vector(2.5, 3.2));
         for (int i = 0; i < items.size(); i++) {
             for (int j = 0; j < items.size(); j++) {
                 if (i != j) {

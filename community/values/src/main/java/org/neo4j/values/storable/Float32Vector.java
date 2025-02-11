@@ -23,6 +23,8 @@ import org.neo4j.hashing.HashFunction;
 import org.neo4j.memory.HeapEstimator;
 import org.neo4j.values.ValueMapper;
 
+import java.util.Arrays;
+
 public final class Float32Vector extends FloatingPointVector {
     private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(Float32Vector.class);
 
@@ -54,6 +56,9 @@ public final class Float32Vector extends FloatingPointVector {
 
     @Override
     public boolean equals(Value other) {
+        if (other instanceof Float32Vector v) {
+            return Arrays.equals(this.coordinates, v.coordinates);
+        }
         return false;
     }
 

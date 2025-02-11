@@ -20,6 +20,11 @@
 package org.neo4j.values.storable;
 
 import static org.junit.jupiter.params.provider.Arguments.of;
+import static org.neo4j.values.storable.Values.float32Vector;
+import static org.neo4j.values.storable.Values.float64Vector;
+import static org.neo4j.values.storable.Values.int16Vector;
+import static org.neo4j.values.storable.Values.int32Vector;
+import static org.neo4j.values.storable.Values.int64Vector;
 import static org.neo4j.values.utils.AnyValueTestUtil.assertEqual;
 import static org.neo4j.values.utils.AnyValueTestUtil.assertNotEqual;
 
@@ -116,13 +121,30 @@ public class ValueEqualityTest {
                 of(shouldMatch(new char[] {'A', 'B', 'C'}, new String[] {"A", "B", "C"})),
                 of(shouldNotMatch(false, new boolean[] {false})),
                 of(shouldNotMatch(1, new int[] {1})),
-                of(shouldNotMatch("apa", new String[] {"apa"})));
+                of(shouldNotMatch("apa", new String[] {"apa"})),
+                of(shouldMatch(float64Vector(1.0), float64Vector(1.0))),
+                of(shouldNotMatch(float64Vector(1.0), float32Vector(1.0f))),
+                of(shouldNotMatch(float32Vector(1.0f), float64Vector(1.0))),
+                of(shouldNotMatch(float64Vector(1.0f), float64Vector(1.0, 1.1))),
+                of(shouldNotMatch(int16Vector((short) 1), float64Vector(1.0))),
+                of(shouldNotMatch(int32Vector(1), float32Vector(1.0f))),
+                of(shouldNotMatch(int32Vector(1), int64Vector(1))),
+                of(shouldNotMatch(int32Vector(1), int32Vector(1, 2))),
+                of(shouldMatch(int32Vector(1,2), int32Vector(1, 2))));
     }
 
     @ParameterizedTest
     @MethodSource("parameters")
     void runTest(Testcase testcase) {
         testcase.checkAssertion();
+    }
+
+    private static Testcase shouldMatch(Value propertyValue, Value value) {
+        return new Testcase(propertyValue, value, true);
+    }
+
+    private static Testcase shouldNotMatch(Value propertyValue, Value value) {
+        return new Testcase(propertyValue, value, false);
     }
 
     private static Testcase shouldMatch(boolean propertyValue, Object value) {
