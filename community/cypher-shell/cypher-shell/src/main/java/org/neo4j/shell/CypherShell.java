@@ -256,6 +256,12 @@ public class CypherShell implements StatementExecuter, Connector, TransactionHan
         return boltStateHandler.runCypher(cypher, queryParams, type);
     }
 
+    @Override
+    public Optional<BoltResult> runCypher5(String cypher, Map<String, Value> queryParams, TransactionType type)
+            throws CommandException {
+        return boltStateHandler.runCypher5(cypher, queryParams, type);
+    }
+
     public void setCommandHelper(CommandHelper commandHelper) {
         this.commandHelper = commandHelper;
     }

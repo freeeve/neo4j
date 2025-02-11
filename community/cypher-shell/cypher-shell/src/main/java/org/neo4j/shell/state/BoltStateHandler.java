@@ -61,6 +61,8 @@ import org.neo4j.shell.build.Build;
 import org.neo4j.shell.exception.CommandException;
 import org.neo4j.shell.exception.ThrowingAction;
 import org.neo4j.shell.log.Logger;
+import org.neo4j.shell.util.Version;
+import org.neo4j.shell.util.Versions;
 import org.neo4j.util.VisibleForTesting;
 
 /**
@@ -69,6 +71,7 @@ import org.neo4j.util.VisibleForTesting;
 public class BoltStateHandler implements TransactionHandler, Connector, DatabaseManager {
     private static final Logger log = Logger.create();
     private static final String USER_AGENT = "neo4j-cypher-shell/v" + Build.version();
+    private static final Version supportsCypherVersionPrefix = new Version(5, 26, 0);
     private static final TransactionConfig USER_DIRECT_TX_CONF = txConfig(TransactionType.USER_DIRECT);
     private static final TransactionConfig SYSTEM_TX_CONF = txConfig(TransactionType.SYSTEM);
     private final TriFunction<URI, AuthToken, Config, Driver> driverProvider;
@@ -398,6 +401,14 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
         }
     }
 
+    private Optional<Version> getServerVersionParsed() {
+        try {
+            return Optional.of(Versions.version(getServerVersion()));
+        } catch (Versions.FailedToParseException e) {
+            return Optional.empty();
+        }
+    }
+
     @Override
     public String getProtocolVersion() {
         if (isConnected()) {
@@ -448,6 +459,16 @@ public class BoltStateHandler implements TransactionHandler, Connector, Database
     public Optional<BoltResult> runCypher(String cypher, Map<String, Value> queryParams, TransactionType type)
             throws CommandException {
         return runCypher(cypher, queryParams, txConfig(type));
+    }
+
+    @Override
+    public Optional<BoltResult> runCypher5(String cypher, Map<String, Value> queryParams, TransactionType type)
+            throws CommandException {
+        final var supportsPrefix = getServerVersionParsed()
+                .map(v -> v.compareTo(supportsCypherVersionPrefix) >= 0)
+                .orElse(false);
+        final var prefixedQuery = supportsPrefix ? "CYPHER 5 " + cypher : cypher;
+        runCypher(prefixedQuery, queryParams, type);
     }
 
     private Optional<BoltResult> runCypher(String cypher, Map<String, Value> queryParams, TransactionConfig config)

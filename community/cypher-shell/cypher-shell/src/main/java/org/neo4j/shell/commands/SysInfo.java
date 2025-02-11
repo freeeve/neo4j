@@ -90,7 +90,7 @@ public class SysInfo implements Command {
         final var dbName = shell.getActualDatabaseAsReportedByServer();
         final var query = "SHOW DATABASES WHERE name = $db";
 
-        final var result = shell.runCypher(query, Map.of("db", Values.value(dbName)), USER_ACTION);
+        final var result = shell.runCypher5(query, Map.of("db", Values.value(dbName)), USER_ACTION);
         if (result.isPresent()) {
             for (final var record : result.get().getRecords()) {
                 final var dbType = record.get("type").asString("");
@@ -105,7 +105,8 @@ public class SysInfo implements Command {
     }
 
     private ClientConfig clientConfig() throws CommandException {
-        final var clientConfigMap = shell.runCypher("CALL dbms.clientConfig() yield name, value", Map.of(), USER_ACTION)
+        final var clientConfigMap = shell.runCypher5(
+                        "CALL dbms.clientConfig() yield name, value", Map.of(), USER_ACTION)
                 .map(result -> result.getRecords().stream()
                         .collect(toMap(r -> r.get("name").asString(), r -> r.get("value")
                                 .asString())))
@@ -130,7 +131,7 @@ public class SysInfo implements Command {
                   role AS Role,
                   currentStatus AS Status,
                   default AS Default""";
-        shell.runCypher(query, Map.of(), USER_ACTION).ifPresent(result -> {
+        shell.runCypher5(query, Map.of(), USER_ACTION).ifPresent(result -> {
             printer.printOut("");
             tableFormatter.formatWithHeading(result, printer, "Databases");
         });
@@ -149,7 +150,7 @@ public class SysInfo implements Command {
                 .map(m -> Map.of("name", m.fullName(config, database), "displayName", m.displayName()))
                 .toList();
         final var params = Map.of("metrics", Values.value(metricNamesParam));
-        shell.runCypher(query, params, USER_ACTION).ifPresent(result -> {
+        shell.runCypher5(query, params, USER_ACTION).ifPresent(result -> {
             printer.printOut("");
             tableFormatter.formatWithHeading(result, printer, group.name());
         });

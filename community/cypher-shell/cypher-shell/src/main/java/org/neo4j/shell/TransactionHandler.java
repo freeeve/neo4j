@@ -60,6 +60,10 @@ public interface TransactionHandler {
     Optional<BoltResult> runCypher(String cypher, Map<String, Value> queryParams, TransactionType type)
             throws CommandException;
 
+    /** Prefix and run query with `CYPHER 5` if supported, or else without prefix. */
+    Optional<BoltResult> runCypher5(String cypher, Map<String, Value> queryParams, TransactionType type)
+            throws CommandException;
+
     enum TransactionType {
         SYSTEM("system"),
         USER_DIRECT("user-direct"),

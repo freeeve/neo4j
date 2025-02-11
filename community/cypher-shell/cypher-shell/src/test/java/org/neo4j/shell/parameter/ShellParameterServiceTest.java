@@ -80,7 +80,7 @@ class ShellParameterServiceTest {
         when(mockRecord.get("result")).thenReturn(result);
         var mockBoltResult = mock(BoltResult.class);
         when(mockBoltResult.iterate()).thenReturn(List.of(mockRecord).iterator());
-        when(transactionHandler.runCypher(eq("RETURN {hello:1 + 2 + 3} AS `result`"), any(), eq(USER_TRANSPILED)))
+        when(transactionHandler.runCypher5(eq("RETURN {hello:1 + 2 + 3} AS `result`"), any(), eq(USER_TRANSPILED)))
                 .thenReturn(Optional.of(mockBoltResult));
 
         assertEvaluate("1 + 2 + 3", new IntegerValue(6L));

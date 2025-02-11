@@ -312,7 +312,7 @@ class ShellParameterService implements ParameterService {
                 // Feels very wrong to execute user data unescaped...
                 final var query = "RETURN " + expression + " AS `result`";
 
-                return db.runCypher(query, parameters(), USER_TRANSPILED)
+                return db.runCypher5(query, parameters(), USER_TRANSPILED)
                         .map(r -> r.iterate().next().get("result"))
                         .orElseThrow();
             } catch (Exception e) {
