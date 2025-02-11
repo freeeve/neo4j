@@ -21,11 +21,14 @@ package org.neo4j.kernel.impl.transaction.log.reverse;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.common.Subject.ANONYMOUS;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.latest_kernel_version;
 import static org.neo4j.kernel.impl.transaction.log.GivenCommandBatchCursor.exhaust;
 import static org.neo4j.kernel.impl.transaction.log.TestLogEntryReader.logEntryReader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
@@ -33,12 +36,15 @@ import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_I
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -56,6 +62,8 @@ import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
+import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
+import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
@@ -83,6 +91,7 @@ import org.neo4j.test.extension.RandomExtension;
 @ExtendWith({RandomExtension.class, LifeExtension.class})
 class ReversedEnvelopedCommandBatchCursorTest {
     private static final KernelVersion kernelVersion = KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+    public static final long ROTATION_THRESHOLD = ByteUnit.mebiBytes(10);
     private final InternalLogProvider logProvider = new AssertableLogProvider(true);
     private final ReverseTransactionCursorLoggingMonitor monitor =
             new ReverseTransactionCursorLoggingMonitor(logProvider.getLog(ReversedEnvelopedCommandBatchCursor.class));
@@ -133,7 +142,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
         config = Config.defaults(latest_kernel_version, kernelVersion.version());
         LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, () -> kernelVersion)
-                .withRotationThreshold(ByteUnit.mebiBytes(10))
+                .withRotationThreshold(ROTATION_THRESHOLD)
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
@@ -242,6 +251,151 @@ class ReversedEnvelopedCommandBatchCursorTest {
                 .hasMessageContaining("Unreadable bytes are encountered after last readable position");
     }
 
+    private void validateReversedRead(int totalTransactions, boolean expectLastTxToBeReadable, boolean isCorrupted)
+            throws IOException {
+        CommittedCommandBatchRepresentation[] committedTransactionRepresentations;
+        if (!isCorrupted) {
+            // We expect no corrupted data encountered
+            committedTransactionRepresentations = readAllFromReversedCursorFailOnCorrupted();
+        } else {
+            assertThrows(Exception.class, this::readAllFromReversedCursorFailOnCorrupted);
+            // We know we can't read the final transaction for some reason in subsequent file
+            // so don't throw to fully exercise the code paths in the next method
+            committedTransactionRepresentations = readAllFromReversedCursor();
+        }
+        // Confirm we have the reverse ordered list possibly including the final transaction
+        int expectedTransactionCount = expectLastTxToBeReadable ? totalTransactions : totalTransactions - 1;
+        assertEquals(expectedTransactionCount, committedTransactionRepresentations.length);
+        List<Long> txIds = Arrays.stream(committedTransactionRepresentations)
+                .map(CommittedCommandBatchRepresentation::txId)
+                .toList();
+        long expectedHighestTxId = expectLastTxToBeReadable ? txId : txId - 1L;
+        assertEquals(expectedHighestTxId, txIds.getFirst());
+        assertEquals(TransactionIdStore.BASE_TX_ID + 1L, txIds.getLast());
+    }
+
+    @Test
+    void readWhenPreAllocatedFile() throws IOException {
+        int readableTransactions = 100;
+        try (PhysicalLogVersionedStoreChannel channel = logFile.createLogChannelForVersion(
+                0L, () -> 1L, () -> KernelVersion.GLORIOUS_FUTURE, BASE_TX_CHECKSUM)) {
+            var zeros = ByteBuffer.allocate(DEFAULT_LOG_SEGMENT_SIZE);
+            for (int i = 0; i < ROTATION_THRESHOLD / DEFAULT_LOG_SEGMENT_SIZE; i++) {
+                channel.writeAll(zeros);
+                zeros.position(0);
+            }
+            channel.flush();
+        }
+        writeTransactions(readableTransactions, 1, 1);
+        // confirm all in one file
+        assertEquals(0L, logFile.getLowestLogVersion());
+        // read back reversed
+        validateReversedRead(readableTransactions, true, false);
+    }
+
+    @Test
+    void readWhenLastTransactionIsRolled() throws IOException {
+        int readableTransactions = 100;
+        writeTransactions(readableTransactions, 1, 1);
+        // Write large enough to bridge into next file
+        writeTransactions(1, 200000, 200000);
+        // Validate we rolled
+        assertNotEquals(logFile.getLowestLogVersion(), logFile.getHighestLogVersion());
+        // read back reversed
+        validateReversedRead(readableTransactions + 1, true, false);
+    }
+
+    @Test
+    void readWhenLastTransactionIsRolledButNextFileMissing() throws IOException {
+        int readableTransactions = 100;
+        writeTransactions(readableTransactions, 1, 1);
+        // Write large enough to bridge into next file
+        writeTransactions(1, 200000, 200000);
+        // Validate we rolled
+        assertNotEquals(logFile.getLowestLogVersion(), logFile.getHighestLogVersion());
+        // remove all except first file
+        for (long version = logFile.getHighestLogVersion(); version > logFile.getLowestLogVersion(); version--) {
+            logFile.delete(version);
+        }
+        // read back reversed
+        validateReversedRead(readableTransactions + 1, false, false);
+    }
+
+    @Test
+    void readWhenLastTransactionIsRolledButNextFileCorrupted() throws IOException {
+        int readableTransactions = 100;
+        writeTransactions(readableTransactions, 1, 1);
+        // Write large enough to bridge into next file
+        writeTransactions(1, 200000, 200000);
+        // Validate we rolled
+        assertNotEquals(logFile.getLowestLogVersion(), logFile.getHighestLogVersion());
+        // corrupt all except first file
+        for (long version = logFile.getHighestLogVersion(); version > logFile.getLowestLogVersion(); version--) {
+            try (var channel = logFile.createLogChannelForExistingVersion(version)) {
+                // Skip header
+                channel.position(DEFAULT_LOG_SEGMENT_SIZE);
+                // trash first real segment
+                byte[] data = new byte[DEFAULT_LOG_SEGMENT_SIZE];
+                Arrays.fill(data, (byte) 0xFF);
+                channel.writeAll(ByteBuffer.wrap(data));
+                channel.flush();
+            }
+        }
+        // read back reversed
+        validateReversedRead(readableTransactions + 1, false, true);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void readWhenLastTransactionIsRolledAndCutShortInNextFile(boolean truncateToSegmentBoundary) throws IOException {
+        int readableTransactions = 100;
+        writeTransactions(readableTransactions, 1, 1);
+        // Write large enough to bridge into next file
+        writeTransactions(1, 200000, 200000);
+        // Validate we rolled
+        assertNotEquals(logFile.getLowestLogVersion(), logFile.getHighestLogVersion());
+        // truncate the rollover file
+        try (var channel = logFile.createLogChannelForExistingVersion(logFile.getLowestLogVersion() + 1L)) {
+            if (truncateToSegmentBoundary) {
+                // truncate to header plus one segment
+                channel.truncate(2L * DEFAULT_LOG_SEGMENT_SIZE);
+            } else {
+                // truncate to header plus an unaligned amount
+                channel.truncate(DEFAULT_LOG_SEGMENT_SIZE + (DEFAULT_LOG_SEGMENT_SIZE / 3L));
+            }
+            channel.flush();
+        }
+        // read back reversed
+        validateReversedRead(readableTransactions + 1, false, false);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void readWhenLastTransactionIsRolledAndNextFileTruncatedAfterIt(boolean truncateExactlyToTxEnd) throws IOException {
+        int readableTransactions = 100;
+        writeTransactions(readableTransactions, 1, 1);
+        // Write large enough to bridge into next file
+        writeTransactions(1, 200000, 200000);
+        // Validate we rolled
+        assertNotEquals(logFile.getLowestLogVersion(), logFile.getHighestLogVersion());
+        // Locate end of final transaction
+        TransactionLogWriter writer = logFile.getTransactionLogWriter();
+        LogPosition txEnd = writer.getCurrentPosition();
+        // truncate the rollover file
+        try (var channel = logFile.createLogChannelForExistingVersion(txEnd.getLogVersion())) {
+            if (truncateExactlyToTxEnd) {
+                // clip neatly to end of transaction
+                channel.truncate(txEnd.getByteOffset());
+            } else {
+                // leave some ragged space after transaction
+                channel.truncate(txEnd.getByteOffset() + DEFAULT_LOG_SEGMENT_SIZE);
+            }
+            channel.flush();
+        }
+        // read back reversed
+        validateReversedRead(readableTransactions + 1, true, false);
+    }
+
     private CommittedCommandBatchRepresentation[] readAllFromReversedCursor() throws IOException {
         try (ReversedEnvelopedCommandBatchCursor cursor = txCursor(false)) {
             return exhaust(cursor);
@@ -256,7 +410,8 @@ class ReversedEnvelopedCommandBatchCursorTest {
 
     private ReversedEnvelopedCommandBatchCursor txCursor(boolean failOnCorruptedLogFiles) throws IOException {
         LogPosition startPosition = logFile.extractHeader(0).getStartPosition();
-        ReadableLogChannel fileReader = logFile.getReader(startPosition);
+        // get unbridged channel
+        ReadableLogChannel fileReader = logFile.getReader(startPosition, LogVersionBridge.NO_MORE_CHANNELS);
         ReadableLogChannel fileReaderBridged =
                 logFile.getReader(startPosition, ReaderLogVersionBridge.forFile(logFile));
         try {

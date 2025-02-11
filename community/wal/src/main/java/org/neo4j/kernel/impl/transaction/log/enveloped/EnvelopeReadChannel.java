@@ -902,6 +902,12 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         int length = dst.remaining();
         try {
             var bytesRead = 0;
+            // We don't know what envelopes we are reading over
+            // and we need to avoid throwing
+            // InvalidEndOfFileReadException in goToNextFileOrThrow
+            // when we hit the log end,
+            // so we clear the payloadType to Zero
+            payloadType = EnvelopeType.ZERO;
             while (bytesRead < length) {
                 if (buffer.position() == buffer.limit()) {
                     nextSegment();

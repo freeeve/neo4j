@@ -117,15 +117,13 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
 
         // If a tx split over several files was read, a new cursor starting on the correct file is needed.
         if (commandBatchCursor.position().getLogVersion() != logVersion) {
-            commandBatchCursor.close();
-            currentChannel = unbridgedChannel;
-            unbridgedChannel = null;
-            commandBatchCursor = new CommittedCommandBatchCursor(currentChannel, logEntryReader);
+            resetToUnbridgedBatchCursor();
         }
         long next = offsets.next();
-        currentChannel.setPositionUnsafe(next);
         try {
+            currentChannel.setPositionUnsafe(next);
             if (!commandBatchCursor.next()) {
+                resetToUnbridgedBatchCursor();
                 // For a last broken entry it could have gotten the offset but then later found incomplete envelopes.
                 // Need to continue to the previous one
                 return next();
@@ -138,10 +136,20 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
             if (failOnCorruptedLogFiles) {
                 throw e;
             }
+            resetToUnbridgedBatchCursor();
             return next();
         }
         currentCommandBatch = commandBatchCursor.get();
         return true;
+    }
+
+    private void resetToUnbridgedBatchCursor() throws IOException {
+        if (unbridgedChannel != null) {
+            commandBatchCursor.close();
+            currentChannel = unbridgedChannel;
+            unbridgedChannel = null;
+            commandBatchCursor = new CommittedCommandBatchCursor(currentChannel, logEntryReader);
+        }
     }
 
     @Override
