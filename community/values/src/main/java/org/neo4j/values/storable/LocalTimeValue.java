@@ -122,7 +122,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
             LocalTime.of(TemporalFields.hour.defaultValue, TemporalFields.minute.defaultValue);
 
     private static TimeValue.TimeBuilder<LocalTimeValue> builder(Supplier<ZoneId> defaultZone) {
-        return new TimeValue.TimeBuilder<>(defaultZone) {
+        return new TimeValue.TimeBuilder<>(defaultZone, "LOCAL TIME") {
             @Override
             protected boolean supportsTimeZone() {
                 return false;

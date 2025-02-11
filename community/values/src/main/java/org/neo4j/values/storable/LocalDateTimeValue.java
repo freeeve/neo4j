@@ -150,7 +150,7 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
             TemporalFields.minute.defaultValue);
 
     private static DateTimeValue.DateTimeBuilder<LocalDateTimeValue> builder(Supplier<ZoneId> defaultZone) {
-        return new DateTimeValue.DateTimeBuilder<>(defaultZone) {
+        return new DateTimeValue.DateTimeBuilder<>(defaultZone, "LOCAL DATETIME") {
             @Override
             protected boolean supportsTimeZone() {
                 return false;

@@ -461,7 +461,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
         }
 
         DateBuilder(Supplier<ZoneId> defaultZone) {
-            super(defaultZone);
+            super(defaultZone, "DATE");
         }
 
         @Override

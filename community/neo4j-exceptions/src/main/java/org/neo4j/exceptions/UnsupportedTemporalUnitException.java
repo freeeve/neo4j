@@ -114,4 +114,14 @@ public class UnsupportedTemporalUnitException extends CypherTypeException {
         var gql = GqlHelper.getGql22G05_22N15(component, temporal);
         return new UnsupportedTemporalUnitException(gql, "Epoch not supported.");
     }
+
+    public static UnsupportedTemporalUnitException notSupported(String component, String valueType) {
+        var gql = GqlHelper.getGql22G05_22N40(component, valueType);
+        return new UnsupportedTemporalUnitException(gql, "Not supported: " + component);
+    }
+
+    public static UnsupportedTemporalUnitException cannotAssignTimezone(String component, String valueType) {
+        var gql = GqlHelper.getGql22G05_22N40(component, valueType);
+        return new UnsupportedTemporalUnitException(gql, "Cannot assign time zone if also assigning other fields.");
+    }
 }

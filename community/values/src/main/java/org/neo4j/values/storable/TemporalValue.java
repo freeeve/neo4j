@@ -404,12 +404,14 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
     abstract static class Builder<Result> implements StructureBuilder<AnyValue, Result> {
         private final Supplier<ZoneId> defaultZone;
         private DateTimeBuilder state;
+        private final String valueType;
         protected AnyValue timezone;
 
         protected Map<TemporalFields, AnyValue> fields = new EnumMap<>(TemporalFields.class);
 
-        Builder(Supplier<ZoneId> defaultZone) {
+        Builder(Supplier<ZoneId> defaultZone, String valueType) {
             this.defaultZone = defaultZone;
+            this.valueType = valueType;
         }
 
         @Override
@@ -465,7 +467,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
                 throw InvalidArgumentException.noSuchTemporalField(fieldName);
             }
             // Change state
-            field.assign(this, value);
+            field.assign(this, value, valueType);
 
             // Set field for this builder
             fields.put(field, value);
@@ -534,32 +536,32 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         { // </pre>
 
             @Override
-            void assign(Builder<?> builder, AnyValue value) {
-                throw new UnsupportedTemporalUnitException("Not supported: " + name());
+            void assign(Builder<?> builder, AnyValue value, String valueType) {
+                throw UnsupportedTemporalUnitException.notSupported(name(), valueType);
             }
         },
         offset // <pre>
         { // </pre>
 
             @Override
-            void assign(Builder<?> builder, AnyValue value) {
-                throw new UnsupportedTemporalUnitException("Not supported: " + name());
+            void assign(Builder<?> builder, AnyValue value, String valueType) {
+                throw UnsupportedTemporalUnitException.notSupported(name(), valueType);
             }
         },
         offsetMinutes // <pre>
         { // </pre>
 
             @Override
-            void assign(Builder<?> builder, AnyValue value) {
-                throw new UnsupportedTemporalUnitException("Not supported: " + name());
+            void assign(Builder<?> builder, AnyValue value, String valueType) {
+                throw UnsupportedTemporalUnitException.notSupported(name(), valueType);
             }
         },
         offsetSeconds // <pre>
         { // </pre>
 
             @Override
-            void assign(Builder<?> builder, AnyValue value) {
-                throw new UnsupportedTemporalUnitException("Not supported: " + name());
+            void assign(Builder<?> builder, AnyValue value, String valueType) {
+                throw UnsupportedTemporalUnitException.notSupported(name(), valueType);
             }
         },
         // time zone
@@ -567,10 +569,9 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         { // </pre>
 
             @Override
-            void assign(Builder<?> builder, AnyValue value) {
+            void assign(Builder<?> builder, AnyValue value, String valueType) {
                 if (!builder.supportsTimeZone()) {
-                    throw new UnsupportedTemporalUnitException(
-                            "Cannot assign time zone if also assigning other fields.");
+                    throw UnsupportedTemporalUnitException.cannotAssignTimezone(name(), valueType);
                 }
                 if (builder.timezone != null) {
                     throw InvalidArgumentException.assignTimezoneTwice(builder.timezone.prettyPrint());
@@ -583,9 +584,9 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         { // </pre>
 
             @Override
-            void assign(Builder<?> builder, AnyValue value) {
+            void assign(Builder<?> builder, AnyValue value, String valueType) {
                 if (!builder.supportsDate()) {
-                    throw new UnsupportedTemporalUnitException("Not supported: " + name());
+                    throw UnsupportedTemporalUnitException.notSupported(name(), valueType);
                 }
                 if (builder.state == null) {
                     builder.state = new DateTimeBuilder();
@@ -602,9 +603,9 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         { // </pre>
 
             @Override
-            void assign(Builder<?> builder, AnyValue value) {
+            void assign(Builder<?> builder, AnyValue value, String valueType) {
                 if (!builder.supportsTime()) {
-                    throw new UnsupportedTemporalUnitException("Not supported: " + name());
+                    throw UnsupportedTemporalUnitException.notSupported(name(), valueType);
                 }
                 if (builder.state == null) {
                     builder.state = new DateTimeBuilder();
@@ -621,9 +622,9 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         { // </pre>
 
             @Override
-            void assign(Builder<?> builder, AnyValue value) {
+            void assign(Builder<?> builder, AnyValue value, String valueType) {
                 if (!builder.supportsDate() || !builder.supportsTime()) {
-                    throw new UnsupportedTemporalUnitException("Not supported: " + name());
+                    throw UnsupportedTemporalUnitException.notSupported(name(), valueType);
                 }
                 if (builder.state == null) {
                     builder.state = new DateTimeBuilder();
@@ -640,9 +641,9 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         { // <pre>
 
             @Override
-            void assign(Builder<?> builder, AnyValue value) {
+            void assign(Builder<?> builder, AnyValue value, String valueType) {
                 if (!builder.supportsEpoch()) {
-                    throw new UnsupportedTemporalUnitException("Not supported: " + name());
+                    throw UnsupportedTemporalUnitException.notSupported(name(), valueType);
                 }
                 if (builder.state == null) {
                     builder.state = new DateTimeBuilder();
@@ -659,9 +660,9 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         { // <pre>
 
             @Override
-            void assign(Builder<?> builder, AnyValue value) {
+            void assign(Builder<?> builder, AnyValue value, String valueType) {
                 if (!builder.supportsEpoch()) {
-                    throw new UnsupportedTemporalUnitException("Not supported: " + name());
+                    throw UnsupportedTemporalUnitException.notSupported(name(), valueType);
                 }
                 if (builder.state == null) {
                     builder.state = new DateTimeBuilder();
@@ -702,10 +703,10 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
             return false;
         }
 
-        void assign(Builder<?> builder, AnyValue value) {
+        void assign(Builder<?> builder, AnyValue value, String valueType) {
             assert field != null : "method should have been overridden";
             if (!builder.supports(field)) {
-                throw new UnsupportedTemporalUnitException("Not supported: " + name());
+                throw UnsupportedTemporalUnitException.notSupported(name(), valueType);
             }
             if (builder.state == null) {
                 builder.state = new DateTimeBuilder();

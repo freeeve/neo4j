@@ -173,7 +173,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
     }
 
     private static TimeBuilder<TimeValue> builder(Supplier<ZoneId> defaultZone) {
-        return new TimeBuilder<>(defaultZone) {
+        return new TimeBuilder<>(defaultZone, "ZONED TIME") {
             @Override
             protected boolean supportsTimeZone() {
                 return true;
@@ -385,8 +385,8 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
     }
 
     abstract static class TimeBuilder<Result> extends Builder<Result> {
-        TimeBuilder(Supplier<ZoneId> defaultZone) {
-            super(defaultZone);
+        TimeBuilder(Supplier<ZoneId> defaultZone, String valueType) {
+            super(defaultZone, valueType);
         }
 
         @Override

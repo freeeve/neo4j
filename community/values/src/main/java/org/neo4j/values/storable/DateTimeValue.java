@@ -217,7 +217,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
     }
 
     static DateTimeBuilder<DateTimeValue> builder(Supplier<ZoneId> defaultZone) {
-        return new DateTimeBuilder<>(defaultZone) {
+        return new DateTimeBuilder<>(defaultZone, "ZONED DATETIME") {
             @Override
             protected boolean supportsTimeZone() {
                 return true;
@@ -577,8 +577,8 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
     }
 
     abstract static class DateTimeBuilder<Result> extends Builder<Result> {
-        DateTimeBuilder(Supplier<ZoneId> defaultZone) {
-            super(defaultZone);
+        DateTimeBuilder(Supplier<ZoneId> defaultZone, String valueType) {
+            super(defaultZone, valueType);
         }
 
         @Override
