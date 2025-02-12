@@ -123,6 +123,7 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
                 transactionInfo.loginContext(),
                 transactionInfo.clientInfo(),
                 routingInfo,
+                transactionInfo.bookmarks(),
                 transactionInfo.txTimeout().toMillis(),
                 TimeUnit.MILLISECONDS,
                 terminationCallback,

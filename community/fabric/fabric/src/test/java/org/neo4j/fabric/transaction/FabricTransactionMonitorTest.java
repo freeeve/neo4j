@@ -31,6 +31,7 @@ import static org.mockito.Mockito.when;
 import static org.neo4j.configuration.GraphDatabaseSettings.transaction_timeout;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -187,6 +188,7 @@ class FabricTransactionMonitorTest {
                 timeout,
                 emptyMap(),
                 new RoutingContext(true, emptyMap()),
-                QueryExecutionConfiguration.DEFAULT_CONFIG);
+                QueryExecutionConfiguration.DEFAULT_CONFIG,
+                List.of());
     }
 }

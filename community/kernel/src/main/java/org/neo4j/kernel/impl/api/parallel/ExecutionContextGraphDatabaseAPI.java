@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.api.parallel;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -149,6 +150,7 @@ public class ExecutionContextGraphDatabaseAPI implements GraphDatabaseAPI {
             LoginContext loginContext,
             ClientConnectionInfo clientInfo,
             RoutingInfo routingInfo,
+            List<String> bookmarks,
             long timeout,
             TimeUnit unit,
             Consumer<Status> terminationCallback,

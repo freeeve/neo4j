@@ -21,6 +21,8 @@ package org.neo4j.kernel.impl.api.parallel;
 
 import static org.neo4j.kernel.impl.api.parallel.ExecutionContextProcedureKernelTransaction.failure;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -297,6 +299,15 @@ public class ExecutionContextProcedureTransaction extends DataLookup implements 
     @Override
     public RoutingInfo routingInfo() {
         return routingInfo;
+    }
+
+    @Override
+    public List<String> bookmarks() {
+        InternalTransaction internalTransaction = ktx.internalTransaction();
+        if (internalTransaction != null) {
+            return internalTransaction.bookmarks();
+        }
+        return Collections.emptyList();
     }
 
     @Override

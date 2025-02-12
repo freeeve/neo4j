@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.coreapi;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,6 +53,8 @@ public interface InternalTransaction extends Transaction, TransactionalEntityFac
      * Routing information provided by the client or {@code null} if not available.
      */
     RoutingInfo routingInfo();
+
+    List<String> bookmarks();
 
     KernelTransaction.Revertable overrideWith(SecurityContext context);
 

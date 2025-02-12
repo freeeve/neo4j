@@ -23,6 +23,8 @@ import static java.util.Collections.emptyMap;
 import static org.neo4j.kernel.api.exceptions.Status.Transaction.Terminated;
 import static org.neo4j.kernel.impl.coreapi.DefaultTransactionExceptionMapper.mapStatusException;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -103,6 +105,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
     private final Consumer<Status> terminationCallback;
     private final TransactionExceptionMapper exceptionMapper;
     private final ElementIdMapper elementIdMapper;
+    private final List<String> bookmarks;
     private final Log log;
     /**
      * Tracker of resources in use by the Core API.
@@ -140,6 +143,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
                 null,
                 elementIdMapper,
                 null,
+                Collections.emptyList(),
                 NullLogProvider.getInstance());
     }
 
@@ -154,6 +158,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
             TransactionExceptionMapper exceptionMapper,
             ElementIdMapper elementIdMapper,
             RoutingInfo routingInfo,
+            List<String> bookmarks,
             LogProvider logProvider) {
         this.tokenHolders = tokenHolders;
         this.contextFactory = contextFactory;
@@ -164,6 +169,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
         this.exceptionMapper = exceptionMapper;
         this.elementIdMapper = elementIdMapper;
         this.routingInfo = routingInfo;
+        this.bookmarks = bookmarks;
         this.log = logProvider.getLog(getClass());
         setTransaction(transaction);
     }
@@ -396,6 +402,11 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
     @Override
     public RoutingInfo routingInfo() {
         return routingInfo;
+    }
+
+    @Override
+    public List<String> bookmarks() {
+        return bookmarks;
     }
 
     @Override

@@ -22,6 +22,8 @@ package org.neo4j.kernel.impl.factory;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.kernel.impl.coreapi.DefaultTransactionExceptionMapper.INSTANCE;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.neo4j.common.DependencyResolver;
@@ -90,7 +92,8 @@ public class GraphDatabaseFacade extends GraphDatabaseTransactions implements Gr
     @Override
     public InternalTransaction beginTransaction(
             Type type, LoginContext loginContext, ClientConnectionInfo clientInfo, long timeout, TimeUnit unit) {
-        return beginTransactionInternal(type, loginContext, clientInfo, null, unit.toMillis(timeout), null, INSTANCE);
+        return beginTransactionInternal(
+                type, loginContext, clientInfo, null, Collections.emptyList(), unit.toMillis(timeout), null, INSTANCE);
     }
 
     @Override
@@ -99,6 +102,7 @@ public class GraphDatabaseFacade extends GraphDatabaseTransactions implements Gr
             LoginContext loginContext,
             ClientConnectionInfo clientInfo,
             RoutingInfo routingInfo,
+            List<String> bookmarks,
             long timeout,
             TimeUnit unit,
             Consumer<Status> terminationCallback,
@@ -108,6 +112,7 @@ public class GraphDatabaseFacade extends GraphDatabaseTransactions implements Gr
                 loginContext,
                 clientInfo,
                 routingInfo,
+                bookmarks,
                 unit.toMillis(timeout),
                 terminationCallback,
                 transactionExceptionMapper);
@@ -118,6 +123,7 @@ public class GraphDatabaseFacade extends GraphDatabaseTransactions implements Gr
             LoginContext loginContext,
             ClientConnectionInfo connectionInfo,
             RoutingInfo routingInfo,
+            List<String> bookmarks,
             long timeoutMillis,
             Consumer<Status> terminationCallback,
             TransactionExceptionMapper transactionExceptionMapper) {
@@ -133,6 +139,7 @@ public class GraphDatabaseFacade extends GraphDatabaseTransactions implements Gr
                 transactionExceptionMapper,
                 database.getElementIdMapper(),
                 routingInfo,
+                bookmarks,
                 database.getInternalLogProvider());
     }
 

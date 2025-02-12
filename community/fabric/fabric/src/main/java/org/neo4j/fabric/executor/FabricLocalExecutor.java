@@ -197,6 +197,7 @@ public class FabricLocalExecutor {
                     transactionInfo.getLoginContext(),
                     transactionInfo.getClientConnectionInfo(),
                     routingInfo,
+                    transactionInfo.getBookmarks(),
                     transactionInfo.getTxTimeout().toMillis(),
                     TimeUnit.MILLISECONDS,
                     this::reportTermination,

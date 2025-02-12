@@ -21,6 +21,7 @@ package org.neo4j.procedure.impl;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -112,6 +113,7 @@ public class ProcedureGraphDatabaseAPI extends GraphDatabaseTransactions impleme
             LoginContext loginContext,
             ClientConnectionInfo clientInfo,
             RoutingInfo routingInfo,
+            List<String> bookmarks,
             long timeout,
             TimeUnit unit,
             Consumer<Status> terminationCallback,

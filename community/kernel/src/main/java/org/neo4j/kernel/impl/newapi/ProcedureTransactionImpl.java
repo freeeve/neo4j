@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -292,6 +293,11 @@ public class ProcedureTransactionImpl implements InternalTransaction {
     @Override
     public RoutingInfo routingInfo() {
         return transaction.routingInfo();
+    }
+
+    @Override
+    public List<String> bookmarks() {
+        return transaction.bookmarks();
     }
 
     @Override

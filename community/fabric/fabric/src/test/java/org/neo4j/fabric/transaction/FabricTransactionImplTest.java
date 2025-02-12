@@ -33,6 +33,7 @@ import static org.neo4j.kernel.api.exceptions.Status.Transaction.Terminated;
 import static org.neo4j.kernel.api.exceptions.Status.Transaction.TransactionTimedOut;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -198,7 +199,8 @@ public class FabricTransactionImplTest {
                 var graphDatabaseApi = mock(GraphDatabaseAPI.class, RETURNS_MOCKS);
                 when(graphDatabaseApi.databaseId())
                         .thenReturn(DatabaseIdFactory.from(loc.getDatabaseName(), loc.getUuid()));
-                when(graphDatabaseApi.beginTransaction(any(), any(), any(), any(), anyLong(), any(), any(), any()))
+                when(graphDatabaseApi.beginTransaction(
+                                any(), any(), any(), any(), any(), anyLong(), any(), any(), any()))
                         .thenReturn(itx);
                 when(fabricDatabaseManager.getDatabaseFacade(eq(loc.getDatabaseName())))
                         .thenReturn(graphDatabaseApi);
@@ -246,6 +248,7 @@ public class FabricTransactionImplTest {
                 Duration.ZERO,
                 emptyMap(),
                 new RoutingContext(true, emptyMap()),
-                QueryExecutionConfiguration.DEFAULT_CONFIG);
+                QueryExecutionConfiguration.DEFAULT_CONFIG,
+                List.of());
     }
 }

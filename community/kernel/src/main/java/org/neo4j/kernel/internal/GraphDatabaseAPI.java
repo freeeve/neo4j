@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.internal;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import org.neo4j.common.DependencyResolver;
@@ -99,6 +100,7 @@ public interface GraphDatabaseAPI extends GraphDatabaseService {
      * @param loginContext transaction login context
      * @param clientInfo transaction client info
      * @param routingInfo routing information provided by the client
+     * @param bookmarks bookmarks provided to the client
      * @param timeout transaction timeout
      * @param unit time unit of timeout argument
      * @param terminationCallback termination callback
@@ -110,6 +112,7 @@ public interface GraphDatabaseAPI extends GraphDatabaseService {
             LoginContext loginContext,
             ClientConnectionInfo clientInfo,
             RoutingInfo routingInfo,
+            List<String> bookmarks,
             long timeout,
             TimeUnit unit,
             Consumer<Status> terminationCallback,

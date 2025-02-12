@@ -36,6 +36,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -361,6 +362,7 @@ class TransactionImplTest {
                 DefaultTransactionExceptionMapper.INSTANCE,
                 mock(ElementIdMapper.class),
                 null,
+                List.of(),
                 NullLogProvider.getInstance());
     }
 }

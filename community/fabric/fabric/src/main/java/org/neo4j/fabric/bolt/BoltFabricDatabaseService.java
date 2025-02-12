@@ -103,7 +103,8 @@ public class BoltFabricDatabaseService implements BoltGraphDatabaseServiceSPI {
                 txTimeout,
                 txMetadata,
                 TestOverrides.routingContext(routingContext),
-                queryExecutionConfiguration);
+                queryExecutionConfiguration,
+                bookmarks);
 
         var parsedBookmarks = BookmarkFormat.parse(bookmarks);
         var transactionBookmarkManager = new TransactionBookmarkManagerImpl(parsedBookmarks);
