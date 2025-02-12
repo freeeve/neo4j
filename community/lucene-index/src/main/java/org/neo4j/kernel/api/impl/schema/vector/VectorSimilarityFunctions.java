@@ -63,7 +63,7 @@ public class VectorSimilarityFunctions {
 
             final var vector = new float[dimensions];
             for (int i = 0; i < dimensions; i++) {
-                final var element = candidate.floatElement(i);
+                final var element = candidate.floatValue(i);
                 if (!Float.isFinite(element)) {
                     return null;
                 }
@@ -109,7 +109,7 @@ public class VectorSimilarityFunctions {
             float square = 0.f;
             final var vector = new float[dimensions];
             for (int i = 0; i < dimensions; i++) {
-                final var element = candidate.floatElement(i);
+                final var element = candidate.floatValue(i);
                 if (!Float.isFinite(element)) {
                     return null;
                 }
@@ -162,7 +162,7 @@ public class VectorSimilarityFunctions {
 
             double square = 0.0;
             for (int i = 0; i < dimensions; i++) {
-                final var element = candidate.doubleElement(i);
+                final var element = candidate.doubleValue(i);
                 if (!Double.isFinite(element)) {
                     return null;
                 }
@@ -176,7 +176,7 @@ public class VectorSimilarityFunctions {
 
             final var vector = new float[dimensions];
             for (int i = 0; i < dimensions; i++) {
-                final var element = (float) (candidate.doubleElement(i) * scale);
+                final var element = (float) (candidate.doubleValue(i) * scale);
                 if (!Float.isFinite(element)) {
                     return null;
                 }

@@ -27,9 +27,9 @@ import org.neo4j.values.storable.NumberArray;
 import org.neo4j.values.storable.NumberValue;
 
 public interface VectorCandidate {
-    float floatElement(int index);
+    float floatValue(int index);
 
-    double doubleElement(int index);
+    double doubleValue(int index);
 
     int dimensions();
 
@@ -63,12 +63,12 @@ public interface VectorCandidate {
     record FloatingPointArrayVectorCandidate(FloatingPointArray array) implements VectorCandidate {
 
         @Override
-        public float floatElement(int index) {
+        public float floatValue(int index) {
             return array.floatValue(index);
         }
 
         @Override
-        public double doubleElement(int index) {
+        public double doubleValue(int index) {
             return array.doubleValue(index);
         }
 
@@ -81,12 +81,12 @@ public interface VectorCandidate {
     record NumberArrayVectorCandidate(NumberArray array) implements VectorCandidate {
 
         @Override
-        public float floatElement(int index) {
+        public float floatValue(int index) {
             return array.value(index).floatValue();
         }
 
         @Override
-        public double doubleElement(int index) {
+        public double doubleValue(int index) {
             return array.value(index).doubleValue();
         }
 
@@ -99,12 +99,12 @@ public interface VectorCandidate {
     record SequenceValueVectorCandidate(SequenceValue sequence) implements VectorCandidate {
 
         @Override
-        public float floatElement(int index) {
+        public float floatValue(int index) {
             return sequence.value(index) instanceof final NumberValue number ? number.floatValue() : Float.NaN;
         }
 
         @Override
-        public double doubleElement(int index) {
+        public double doubleValue(int index) {
             return sequence.value(index) instanceof final NumberValue number ? number.doubleValue() : Double.NaN;
         }
 
