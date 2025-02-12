@@ -75,13 +75,13 @@ import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.kernel.api.security.SecurityModule;
 import org.neo4j.kernel.api.security.provider.NoAuthSecurityProvider;
 import org.neo4j.kernel.api.security.provider.SecurityProvider;
+import org.neo4j.kernel.database.CommunitySystemReferenceRepository;
 import org.neo4j.kernel.database.DatabaseId;
 import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.database.DatabaseReferenceRepository;
 import org.neo4j.kernel.database.MapCachingDatabaseIdRepository;
 import org.neo4j.kernel.database.MapCachingDatabaseReferenceRepository;
 import org.neo4j.kernel.database.SystemGraphDatabaseIdRepository;
-import org.neo4j.kernel.database.SystemGraphDatabaseReferenceRepository;
 import org.neo4j.kernel.impl.api.TransactionalProcessFactory;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.factory.DefaultTransactionalProcessFactory;
@@ -173,7 +173,7 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
         var rootDatabaseReferenceRepository = AbstractEditionModule.tryResolveOrCreate(
                 DatabaseReferenceRepository.class,
                 globalModule.getExternalDependencyResolver(),
-                () -> new SystemGraphDatabaseReferenceRepository(databaseRepository::getSystemDatabaseContext));
+                () -> new CommunitySystemReferenceRepository(databaseRepository::getSystemDatabaseContext));
         databaseIdRepo.setDelegate(rootDatabaseIdRepository);
         databaseReferenceRepo.setDelegate(rootDatabaseReferenceRepository);
         var databaseIdCacheCleaner = new DatabaseReferenceCacheClearingListener(databaseIdRepo, databaseReferenceRepo);

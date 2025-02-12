@@ -466,7 +466,8 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
                     + alias + ", namespace="
                     + namespace + ", namedDatabaseId="
                     + namedDatabaseId + ", primary="
-                    + primary + '}';
+                    + primary + ", owningDatabaseName="
+                    + owningDatabaseName + '}';
         }
     }
 }
