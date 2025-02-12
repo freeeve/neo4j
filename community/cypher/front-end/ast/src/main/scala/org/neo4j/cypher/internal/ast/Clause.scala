@@ -372,10 +372,8 @@ sealed trait Clause extends ASTNode with SemanticCheckable with SemanticAnalysis
 
     when(hasPathSelectorOrMatchMode) {
       legacyShortest.foldSemanticCheck { legacyVarLengthRelationship =>
-        error(
-          "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
-          legacyVarLengthRelationship.position
-        )
+        val fun = if (legacyVarLengthRelationship.single) "shortestPath" else "allShortestPaths"
+        error(SemanticError.invalidUseOfShortestPath(fun, legacyVarLengthRelationship.position))
       }
     }
   }

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.gqlstatus.GqlHelper
 
@@ -214,32 +215,42 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
   // Mixing selective selectors with shortestPath/allShortestPaths is not allowed
   allSelectiveSelectors.foreach { selector =>
     test(s"MATCH $selector shortestPath((a)-->(b)) RETURN *") {
-      run().hasErrorMessages(
-        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+      run().hasError(
+        GqlHelper.getGql42001_42I39("shortestPath", 7 + selector.length, 1, 8 + selector.length),
+        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+        p(7 + selector.length, 1, 8 + selector.length)
       )
     }
 
     test(s"MATCH $selector allShortestPaths((a)-->(b)) RETURN *") {
-      run().hasErrorMessages(
-        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+      run().hasError(
+        GqlHelper.getGql42001_42I39("allShortestPaths", 7 + selector.length, 1, 8 + selector.length),
+        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+        p(7 + selector.length, 1, 8 + selector.length)
       )
     }
 
     test(s"MATCH $selector (a)-->(b) WHERE shortestPath((a)-->(b)) IS NOT NULL RETURN *") {
-      run().hasErrorMessages(
-        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+      run().hasError(
+        GqlHelper.getGql42001_42I39("shortestPath", 23 + selector.length, 1, 24 + selector.length),
+        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+        p(23 + selector.length, 1, 24 + selector.length)
       )
     }
 
     test(s"MATCH $selector (a)-->(b) WHERE EXISTS { MATCH shortestPath((a)-->(b)) } RETURN *") {
-      run().hasErrorMessages(
-        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+      run().hasError(
+        GqlHelper.getGql42001_42I39("shortestPath", 38 + selector.length, 1, 39 + selector.length),
+        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+        p(38 + selector.length, 1, 39 + selector.length)
       )
     }
 
     test(s"CALL { MATCH $selector (a)-->(b) MATCH shortestPath((c)-->(d)) RETURN * } RETURN *") {
-      run().hasErrorMessages(
-        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+      run().hasError(
+        GqlHelper.getGql42001_42I39("shortestPath", 30 + selector.length, 1, 31 + selector.length),
+        "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+        p(30 + selector.length, 1, 31 + selector.length)
       )
     }
 

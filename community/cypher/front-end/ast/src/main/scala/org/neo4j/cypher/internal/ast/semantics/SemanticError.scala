@@ -1314,6 +1314,15 @@ object SemanticError {
       position
     )
   }
+
+  def invalidUseOfShortestPath(fun: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I39(fun, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

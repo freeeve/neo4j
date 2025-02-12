@@ -171,39 +171,51 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
     runWith(MatchModes).hasNoErrors
   }
 
-  test(s"REPEATABLE ELEMENTS shortestPath((a)-->(b))") {
-    runWith(MatchModes).hasErrorMessages(
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+  test("REPEATABLE ELEMENTS shortestPath((a)-->(b))") {
+    runWith(MatchModes).hasError(
+      GqlHelper.getGql42001_42I39("shortestPath", 26, 1, 27),
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      p(26, 1, 27)
     )
   }
 
-  test(s"DIFFERENT RELATIONSHIPS shortestPath((a)-->(b))") {
-    runWith(MatchModes).hasErrorMessages(
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+  test("DIFFERENT RELATIONSHIPS shortestPath((a)-->(b))") {
+    runWith(MatchModes).hasError(
+      GqlHelper.getGql42001_42I39("shortestPath", 30, 1, 31),
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      p(30, 1, 31)
     )
   }
 
-  test(s"REPEATABLE ELEMENTS allShortestPaths((a)-->(b))") {
-    runWith(MatchModes).hasErrorMessages(
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+  test("REPEATABLE ELEMENTS allShortestPaths((a)-->(b))") {
+    runWith(MatchModes).hasError(
+      GqlHelper.getGql42001_42I39("allShortestPaths", 26, 1, 27),
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      p(26, 1, 27)
     )
   }
 
-  test(s"REPEATABLE ELEMENTS (a)-->(b) WHERE shortestPath((a)-->(b)) IS NOT NULL") {
-    runWith(MatchModes).hasErrorMessages(
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+  test("REPEATABLE ELEMENTS (a)-->(b) WHERE shortestPath((a)-->(b)) IS NOT NULL") {
+    runWith(MatchModes).hasError(
+      GqlHelper.getGql42001_42I39("shortestPath", 42, 1, 43),
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      p(42, 1, 43)
     )
   }
 
-  test(s"REPEATABLE ELEMENTS (a)-->(b) WHERE EXISTS { MATCH shortestPath((a)-->(b)) }") {
-    runWith(MatchModes).hasErrorMessages(
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+  test("REPEATABLE ELEMENTS (a)-->(b) WHERE EXISTS { MATCH shortestPath((a)-->(b)) }") {
+    runWith(MatchModes).hasError(
+      GqlHelper.getGql42001_42I39("shortestPath", 57, 1, 58),
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      p(57, 1, 58)
     )
   }
 
-  test(s"CALL { MATCH REPEATABLE ELEMENTS (a)-->(b) MATCH shortestPath((c)-->(d)) RETURN * } RETURN *") {
-    run(testName, pipelineWithSemanticFeatures(MatchModes)).hasErrorMessages(
-      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed."
+  test("CALL { MATCH REPEATABLE ELEMENTS (a)-->(b) MATCH shortestPath((c)-->(d)) RETURN * } RETURN *") {
+    run(testName, pipelineWithSemanticFeatures(MatchModes)).hasError(
+      GqlHelper.getGql42001_42I39("shortestPath", 49, 1, 50),
+      "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
+      p(49, 1, 50)
     )
   }
 
