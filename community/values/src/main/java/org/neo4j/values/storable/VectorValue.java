@@ -21,9 +21,10 @@ package org.neo4j.values.storable;
 
 import org.neo4j.hashing.HashFunction;
 import org.neo4j.values.Comparison;
+import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.utils.PrettyPrinter;
 
-public abstract sealed class VectorValue extends HashMemoizingScalarValue implements Vector
+public abstract sealed class VectorValue extends HashMemoizingScalarValue implements Vector, VectorCandidate
         permits IntegralVector, FloatingPointVector {
 
     @Override

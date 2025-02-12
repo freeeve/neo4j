@@ -35,6 +35,16 @@ public final class Float64Vector extends FloatingPointVector {
     }
 
     @Override
+    public float floatValue(int index) {
+        return (float) coordinates[index];
+    }
+
+    @Override
+    public double doubleValue(int index) {
+        return coordinates[index];
+    }
+
+    @Override
     public int dimensions() {
         return coordinates.length;
     }

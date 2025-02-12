@@ -35,6 +35,16 @@ public final class Int64Vector extends IntegralVector {
     }
 
     @Override
+    public float floatValue(int index) {
+        return coordinates[index];
+    }
+
+    @Override
+    public double doubleValue(int index) {
+        return coordinates[index];
+    }
+
+    @Override
     public int dimensions() {
         return coordinates.length;
     }

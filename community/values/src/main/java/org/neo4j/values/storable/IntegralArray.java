@@ -46,4 +46,14 @@ public abstract class IntegralArray extends NumberArray {
         }
         return hash;
     }
+
+    @Override
+    public float floatValue(int index) {
+        return value(index).floatValue();
+    }
+
+    @Override
+    public double doubleValue(int index) {
+        return value(index).doubleValue();
+    }
 }

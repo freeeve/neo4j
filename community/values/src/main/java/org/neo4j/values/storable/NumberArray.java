@@ -25,8 +25,9 @@ import java.time.LocalTime;
 import java.time.OffsetTime;
 import java.time.ZonedDateTime;
 import org.neo4j.graphdb.spatial.Geometry;
+import org.neo4j.values.VectorCandidate;
 
-public abstract class NumberArray extends ArrayValue {
+public abstract class NumberArray extends ArrayValue implements VectorCandidate {
     abstract int compareTo(IntegralArray other);
 
     abstract int compareTo(FloatingPointArray other);
@@ -93,5 +94,10 @@ public abstract class NumberArray extends ArrayValue {
     @Override
     public final boolean equals(OffsetTime[] x) {
         return false;
+    }
+
+    @Override
+    public int dimensions() {
+        return intSize();
     }
 }

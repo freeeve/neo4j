@@ -22,8 +22,6 @@ package org.neo4j.values;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Objects;
-import org.neo4j.values.storable.FloatingPointArray;
-import org.neo4j.values.storable.NumberArray;
 import org.neo4j.values.storable.NumberValue;
 
 public interface VectorCandidate {
@@ -38,17 +36,11 @@ public interface VectorCandidate {
             return null;
         }
 
-        if (candidate instanceof final FloatingPointArray floatingPointArray) {
-            return new FloatingPointArrayVectorCandidate(floatingPointArray);
-        }
-        if (candidate instanceof final NumberArray numberArray) {
-            return new NumberArrayVectorCandidate(numberArray);
-        }
-        if (candidate instanceof final SequenceValue sequenceValue) {
-            return new SequenceValueVectorCandidate(sequenceValue);
-        }
-
-        return null;
+        return switch (candidate) {
+            case final VectorCandidate vectorCandidate -> vectorCandidate;
+            case final SequenceValue sequenceValue -> new SequenceValueVectorCandidate(sequenceValue);
+            default -> null;
+        };
     }
 
     static VectorCandidate from(AnyValue candidate) {
@@ -58,42 +50,6 @@ public interface VectorCandidate {
             throw new IllegalArgumentException("Value is not a valid vector candidate. Provided: " + candidate);
         }
         return vectorCandidate;
-    }
-
-    record FloatingPointArrayVectorCandidate(FloatingPointArray array) implements VectorCandidate {
-
-        @Override
-        public float floatValue(int index) {
-            return array.floatValue(index);
-        }
-
-        @Override
-        public double doubleValue(int index) {
-            return array.doubleValue(index);
-        }
-
-        @Override
-        public int dimensions() {
-            return array.intSize();
-        }
-    }
-
-    record NumberArrayVectorCandidate(NumberArray array) implements VectorCandidate {
-
-        @Override
-        public float floatValue(int index) {
-            return array.value(index).floatValue();
-        }
-
-        @Override
-        public double doubleValue(int index) {
-            return array.value(index).doubleValue();
-        }
-
-        @Override
-        public int dimensions() {
-            return array.intSize();
-        }
     }
 
     record SequenceValueVectorCandidate(SequenceValue sequence) implements VectorCandidate {
