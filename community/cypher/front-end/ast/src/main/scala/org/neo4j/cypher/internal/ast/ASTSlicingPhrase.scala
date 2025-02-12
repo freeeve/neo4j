@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithG
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
+import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.Expression
@@ -99,10 +100,7 @@ object ASTSlicingPhrase extends SemanticAnalysisTooling {
     val deps = expression.dependencies
     if (deps.nonEmpty) {
       val id = deps.toSeq.minBy(_.position)
-      error(
-        s"It is not allowed to refer to variables in $name, so that the value for $name can be statically calculated.",
-        id.position
-      )
+      error(SemanticError.notStaticallyInferrableVariable(name, id.position))
     } else SemanticCheck.success
   }
 
@@ -113,10 +111,7 @@ object ASTSlicingPhrase extends SemanticAnalysisTooling {
         true
     }
     when(badExpressionFound) {
-      error(
-        s"It is not allowed to use patterns in the expression for $name, so that the value for $name can be statically calculated.",
-        expression.position
-      )
+      error(SemanticError.notStaticallyInferrablePattern(name, expression.position))
     }
   }
 

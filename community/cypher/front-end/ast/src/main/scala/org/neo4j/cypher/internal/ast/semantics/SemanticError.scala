@@ -1296,6 +1296,24 @@ object SemanticError {
     val gql = GqlHelper.getGql42001_42N34(position.offset, position.line, position.column)
     SemanticError(gql, "Assigning a path in a quantified path pattern is not yet supported.", position)
   }
+
+  def notStaticallyInferrableVariable(name: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N28(name, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      s"It is not allowed to refer to variables in $name, so that the value for $name can be statically calculated.",
+      position
+    )
+  }
+
+  def notStaticallyInferrablePattern(name: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N28(name, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      s"It is not allowed to use patterns in the expression for $name, so that the value for $name can be statically calculated.",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

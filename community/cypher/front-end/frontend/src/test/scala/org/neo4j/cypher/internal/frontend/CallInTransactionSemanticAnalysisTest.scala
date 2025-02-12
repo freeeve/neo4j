@@ -324,6 +324,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |} IN TRANSACTIONS OF b ROWS
          |""".stripMargin
     run(query).hasError(
+      GqlHelper.getGql42001_42N28("OF ... ROWS", 52, 4, 22),
       "It is not allowed to refer to variables in OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
       p(52, 4, 22)
     )
@@ -336,6 +337,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |} IN TRANSACTIONS OF size(()--()) ROWS
          |""".stripMargin
     run(query).hasError(
+      GqlHelper.getGql42001_42N28("OF ... ROWS", 40, 3, 22),
       "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
       p(40, 3, 22)
     )
@@ -349,6 +351,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |""".stripMargin
     run(query).hasErrors(
       SemanticError(
+        GqlHelper.getGql42001_42N28("OF ... ROWS", 40, 3, 22),
         "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
         p(40, 3, 22)
       ),
@@ -368,6 +371,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |} IN TRANSACTIONS OF COUNT { ()--() } ROWS
          |""".stripMargin
     run(query).hasError(
+      GqlHelper.getGql42001_42N28("OF ... ROWS", 40, 3, 22),
       "It is not allowed to use patterns in the expression for OF ... ROWS, so that the value for OF ... ROWS can be statically calculated.",
       p(40, 3, 22)
     )
@@ -507,6 +511,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |} IN b CONCURRENT TRANSACTIONS
          |""".stripMargin
     run(query).hasError(
+      GqlHelper.getGql42001_42N28("IN ... CONCURRENT", 36, 4, 6),
       "It is not allowed to refer to variables in IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
       p(36, 4, 6)
     )
@@ -519,6 +524,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |} IN size(()--()) CONCURRENT TRANSACTIONS
          |""".stripMargin
     run(query).hasError(
+      GqlHelper.getGql42001_42N28("IN ... CONCURRENT", 24, 3, 6),
       "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
       p(24, 3, 6)
     )
@@ -532,6 +538,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |""".stripMargin
     run(query).hasErrors(
       SemanticError(
+        GqlHelper.getGql42001_42N28("IN ... CONCURRENT", 24, 3, 6),
         "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
         p(24, 3, 6)
       ),
@@ -551,6 +558,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
          |} IN COUNT { ()--() } CONCURRENT TRANSACTIONS
          |""".stripMargin
     run(query).hasError(
+      GqlHelper.getGql42001_42N28("IN ... CONCURRENT", 24, 3, 6),
       "It is not allowed to use patterns in the expression for IN ... CONCURRENT, so that the value for IN ... CONCURRENT can be statically calculated.",
       p(24, 3, 6)
     )

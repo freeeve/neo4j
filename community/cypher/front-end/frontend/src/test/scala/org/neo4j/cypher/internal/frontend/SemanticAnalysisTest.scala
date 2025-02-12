@@ -1309,12 +1309,14 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   Seq("SKIP", "LIMIT").foreach { phrase =>
     test(s"$phrase with variables should complain") {
       run(s"MATCH (a) RETURN * $phrase a.prop").hasError(
+        GqlHelper.getGql42001_42N28(phrase, 20 + phrase.length, 1, 21 + phrase.length),
         s"It is not allowed to refer to variables in $phrase, so that the value for $phrase can be statically calculated.",
         p(20 + phrase.length, 1, 21 + phrase.length)
       )
     }
     test(s"$phrase with PatternComprehension should complain") {
       run(s"RETURN 1 $phrase size([(a)-->(b) | a.prop])").hasError(
+        GqlHelper.getGql42001_42N28(phrase, 10 + phrase.length, 1, 11 + phrase.length),
         s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
         p(10 + phrase.length, 1, 11 + phrase.length)
       )
@@ -1322,6 +1324,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
     test(s"$phrase with PatternExpression should complain") {
       run(s"RETURN 1 $phrase size(()-->())").hasError(
+        GqlHelper.getGql42001_42N28(phrase, 10 + phrase.length, 1, 11 + phrase.length),
         s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
         p(10 + phrase.length, 1, 11 + phrase.length)
       )
@@ -1329,6 +1332,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
     test(s"$phrase with CountExpression should complain") {
       run(s"RETURN 1 $phrase COUNT { ()--() }").hasError(
+        GqlHelper.getGql42001_42N28(phrase, 10 + phrase.length, 1, 11 + phrase.length),
         s"It is not allowed to use patterns in the expression for $phrase, so that the value for $phrase can be statically calculated.",
         p(10 + phrase.length, 1, 11 + phrase.length)
       )
