@@ -301,9 +301,13 @@ class DiagnosticsReportCommandIT {
 
     @Test
     void includeLog4jConfigs() throws IOException {
+        String customLogPath = homeDir.resolve("customLogDir/name.xml")
+                .toAbsolutePath()
+                .toString()
+                // handle windows back-slashes
+                .replace(homeDir.getFileSystem().getSeparator(), "/");
         // Special location for one of the logging configuration files.
-        String neo4jConfContents = GraphDatabaseSettings.server_logging_config_path.name() + "="
-                + homeDir.resolve("customLogDir/name.xml").toAbsolutePath();
+        String neo4jConfContents = GraphDatabaseSettings.server_logging_config_path.name() + "=" + customLogPath;
         Files.write(configDir.resolve("neo4j.conf"), singletonList(neo4jConfContents));
         Files.createDirectories(homeDir.resolve("customLogDir"));
         Files.write(homeDir.resolve("customLogDir/name.xml"), singletonList("Config1"));
