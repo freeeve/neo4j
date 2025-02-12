@@ -84,6 +84,10 @@ object CoerceTo {
     case _: StringType          => Neo4jTypes.NTString
     case _: ZonedDateTimeType   => Neo4jTypes.NTDateTime
     case _: ZonedTimeType       => Neo4jTypes.NTTime
-    case _ => throw new CypherTypeException(s"Wrong argument type: Can't coerce to $typ (${typ.getClass})")
+    case _ => throw CypherTypeException.invalidCoercion(
+        "",
+        typ.toCypherTypeString,
+        s"Wrong argument type: Can't coerce to $typ (${typ.getClass})"
+      )
   }
 }

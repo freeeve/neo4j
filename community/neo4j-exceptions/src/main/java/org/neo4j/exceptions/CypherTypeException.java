@@ -21,8 +21,10 @@ package org.neo4j.exceptions;
 
 import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class CypherTypeException extends Neo4jException {
@@ -483,6 +485,17 @@ public class CypherTypeException extends Neo4jException {
     public static CypherTypeException onlyNumberValuesAllowedButDurationFound(String function) {
         var gql = GqlHelper.getGql22N38_22NB1(function, List.of("NUMERIC"), "DURATION");
         return new CypherTypeException(gql, String.format("%s cannot mix number and duration", function));
+    }
+
+    public static CypherTypeException invalidCoercion(String value, String expectedType, String legacyMessage) {
+        return new CypherTypeException(
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22G03)
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N37)
+                                .withParam(GqlParams.StringParam.value, value)
+                                .withParam(GqlParams.StringParam.valueType, expectedType)
+                                .build())
+                        .build(),
+                legacyMessage);
     }
 
     @Override

@@ -299,7 +299,8 @@ public final class CypherCoercions {
     }
 
     static CypherTypeException cantCoerce(AnyValue value, String type) {
-        return new CypherTypeException(format("Can't coerce `%s` to %s", value, type));
+        return CypherTypeException.invalidCoercion(
+                value.toString(), type, format("Can't coerce `%s` to %s", value, type));
     }
 
     public static Coercer coercerFromType(Neo4jTypes.AnyType type) {
@@ -309,7 +310,7 @@ public final class CypherCoercions {
         } else if (type instanceof Neo4jTypes.ListType listType) {
             return new ListCoercer(listType.innerType());
         }
-        throw new CypherTypeException(format("Can't coerce to type %s", type));
+        throw CypherTypeException.invalidCoercion("", type.toString(), format("Can't coerce to type %s", type));
     }
 
     private static final Map<Class<? extends Neo4jTypes.AnyType>, CypherCoercions.Coercer> STATIC_CONVERTERS =
