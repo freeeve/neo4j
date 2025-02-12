@@ -244,7 +244,15 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
     @ParameterizedTest
     @EnumSource(
             mode = EXCLUDE,
-            names = {"NO_VALUE", "VECTOR"}) // todo: remove VECTOR when implemented
+            names = {
+                "NO_VALUE",
+                "INT8VECTOR",
+                "INT16VECTOR",
+                "INT32VECTOR",
+                "INT64VECTOR",
+                "FLOAT32VECTOR",
+                "FLOAT64VECTOR"
+            }) // todo: remove VECTOR when implemented
     void copyShouldCopyExtremeValues(ValueGroup valueGroup) {
         // Given
         KEY extreme = newKeyState();
