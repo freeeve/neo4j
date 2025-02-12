@@ -22,6 +22,7 @@ package org.neo4j.common;
 /**
  * Able to satisfy dependencies, later needed to be resolved by for example a {@link DependencyResolver}.
  */
+@FunctionalInterface
 public interface DependencySatisfier {
     <T> T satisfyDependency(T dependency);
 }
