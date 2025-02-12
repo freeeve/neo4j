@@ -70,14 +70,15 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
         this.epochSecondsInUTC = this.value.toEpochSecond(UTC);
     }
 
+    // Only used in tests
     public static LocalDateTimeValue localDateTime(DateValue date, LocalTimeValue time) {
         return new LocalDateTimeValue(LocalDateTime.of(date.temporal(), time.temporal()));
     }
 
+    // Only used in tests
     public static LocalDateTimeValue localDateTime(
             int year, int month, int day, int hour, int minute, int second, int nanoOfSecond) {
-        return new LocalDateTimeValue(
-                assertValidArgument(() -> LocalDateTime.of(year, month, day, hour, minute, second, nanoOfSecond)));
+        return new LocalDateTimeValue(LocalDateTime.of(year, month, day, hour, minute, second, nanoOfSecond));
     }
 
     public static LocalDateTimeValue localDateTime(LocalDateTime value) {

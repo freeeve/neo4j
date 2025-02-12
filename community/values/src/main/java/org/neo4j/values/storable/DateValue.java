@@ -66,20 +66,24 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
         return new DateValue(requireNonNull(value, "LocalDate"));
     }
 
+    // Only used in tests
     public static DateValue date(int year, int month, int day) {
-        return new DateValue(assertValidArgument(() -> LocalDate.of(year, month, day)));
+        return new DateValue(LocalDate.of(year, month, day));
     }
 
+    // Only used in tests
     public static DateValue weekDate(int year, int week, int dayOfWeek) {
-        return new DateValue(assertValidArgument(() -> localWeekDate(year, week, dayOfWeek)));
+        return new DateValue(localWeekDate(year, week, dayOfWeek));
     }
 
+    // Only used in tests
     public static DateValue quarterDate(int year, int quarter, int dayOfQuarter) {
-        return new DateValue(assertValidArgument(() -> localQuarterDate(year, quarter, dayOfQuarter)));
+        return new DateValue(localQuarterDate(year, quarter, dayOfQuarter));
     }
 
+    // Only used in tests
     public static DateValue ordinalDate(int year, int dayOfYear) {
-        return new DateValue(assertValidArgument(() -> LocalDate.ofYearDay(year, dayOfYear)));
+        return new DateValue(LocalDate.ofYearDay(year, dayOfYear));
     }
 
     public static DateValue epochDate(long epochDay) {

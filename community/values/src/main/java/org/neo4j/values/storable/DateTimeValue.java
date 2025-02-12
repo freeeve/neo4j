@@ -98,15 +98,16 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
         return new DateTimeValue(ZonedDateTime.of(date.temporal(), t.toLocalTime(), t.getOffset()));
     }
 
+    // Only used in tests
     public static DateTimeValue datetime(
             int year, int month, int day, int hour, int minute, int second, int nanoOfSecond, String zone) {
         return datetime(year, month, day, hour, minute, second, nanoOfSecond, parseZoneName(zone));
     }
 
+    // Only used in tests (and in the method above)
     public static DateTimeValue datetime(
             int year, int month, int day, int hour, int minute, int second, int nanoOfSecond, ZoneId zone) {
-        return new DateTimeValue(assertValidArgument(
-                () -> ZonedDateTime.of(year, month, day, hour, minute, second, nanoOfSecond, zone)));
+        return new DateTimeValue(ZonedDateTime.of(year, month, day, hour, minute, second, nanoOfSecond, zone));
     }
 
     public static DateTimeValue datetime(long epochSecond, long nano, ZoneOffset zoneOffset) {

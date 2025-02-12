@@ -69,13 +69,14 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
         return new TimeValue(requireNonNull(time, "OffsetTime"));
     }
 
+    // Only used in tests
     public static TimeValue time(int hour, int minute, int second, int nanosOfSecond, String offset) {
         return time(hour, minute, second, nanosOfSecond, parseOffset(offset));
     }
 
+    // Only used in tests (and in the method above)
     public static TimeValue time(int hour, int minute, int second, int nanosOfSecond, ZoneOffset offset) {
-        return new TimeValue(
-                OffsetTime.of(assertValidArgument(() -> LocalTime.of(hour, minute, second, nanosOfSecond)), offset));
+        return new TimeValue(OffsetTime.of(LocalTime.of(hour, minute, second, nanosOfSecond), offset));
     }
 
     public static TimeValue time(long nanosOfDayUTC, ZoneOffset offset) {

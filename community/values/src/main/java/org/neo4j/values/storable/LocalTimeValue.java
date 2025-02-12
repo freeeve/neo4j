@@ -61,8 +61,9 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
         return new LocalTimeValue(requireNonNull(value, "LocalTime"));
     }
 
+    // Only used in tests
     public static LocalTimeValue localTime(int hour, int minute, int second, int nanosOfSecond) {
-        return new LocalTimeValue(assertValidArgument(() -> LocalTime.of(hour, minute, second, nanosOfSecond)));
+        return new LocalTimeValue(LocalTime.of(hour, minute, second, nanosOfSecond));
     }
 
     public static LocalTimeValue localTime(long nanoOfDay) {
