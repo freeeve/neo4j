@@ -39,6 +39,7 @@ import org.neo4j.values.AnyValueWriter;
 import org.neo4j.values.Comparison;
 import org.neo4j.values.Equality;
 import org.neo4j.values.SequenceValue;
+import org.neo4j.values.TernaryComparator;
 
 public abstract class Value extends AnyValue {
     private static final Pattern MAP_PATTERN = Pattern.compile("\\{(.*)}");
@@ -157,11 +158,20 @@ public abstract class Value extends AnyValue {
         return Equality.FALSE;
     }
 
+    /**
+     * See {@link java.util.Comparator#compare(Object, Object)}
+     *
+     * @param other the implementations can assume that {@code other} is in the same {@link ValueGroup} as this value.
+     * @return a negative integer, zero, or a positive integer as the first argument is less than, equal to, or greater
+     * than the second.
+     */
     protected abstract int unsafeCompareTo(Value other);
 
     /**
-     * Should return {@code Comparison.UNDEFINED} for values that cannot be compared
-     * under Comparability semantics.
+     * See {@link TernaryComparator#ternaryCompare(Object, Object)}
+     *
+     * @param other the implementations can assume that {@code other} is in the same {@link ValueGroup} as this value.
+     * @return {@code Comparison.UNDEFINED} for values that cannot be compared under Comparability semantics.
      */
     Comparison unsafeTernaryCompareTo(Value other) {
         if (ternaryUndefined() || other.ternaryUndefined()) {
