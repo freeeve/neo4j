@@ -64,7 +64,6 @@ import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
 import org.neo4j.kernel.api.procedure.QueryLanguageScope;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
-import org.neo4j.kernel.api.vector.VectorCandidate;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.procedure.Context;
@@ -74,6 +73,7 @@ import org.neo4j.procedure.Procedure;
 import org.neo4j.util.FeatureToggles;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.AnyValue;
+import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.storable.Values;
 
 @SuppressWarnings("unused")

@@ -17,13 +17,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.vector;
+package org.neo4j.values;
 
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Objects;
-import org.neo4j.values.AnyValue;
-import org.neo4j.values.SequenceValue;
 import org.neo4j.values.storable.FloatingPointArray;
 import org.neo4j.values.storable.NumberArray;
 import org.neo4j.values.storable.NumberValue;

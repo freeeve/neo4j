@@ -20,6 +20,7 @@
 package org.neo4j.kernel.api.vector;
 
 import org.neo4j.values.AnyValue;
+import org.neo4j.values.VectorCandidate;
 
 public interface VectorSimilarityFunction {
     String name();

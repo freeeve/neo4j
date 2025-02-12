@@ -21,8 +21,8 @@ package org.neo4j.kernel.api.impl.schema.vector;
 
 import static java.lang.Math.clamp;
 
-import org.neo4j.kernel.api.vector.VectorCandidate;
 import org.neo4j.kernel.api.vector.VectorSimilarityFunction;
+import org.neo4j.values.VectorCandidate;
 
 public class VectorSimilarityFunctions {
     // TODO VECTOR: perhaps some unrolling and/or vector api (when available) could be used here

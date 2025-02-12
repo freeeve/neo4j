@@ -27,7 +27,7 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.Term;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;
-import org.neo4j.kernel.api.vector.VectorCandidate;
+import org.neo4j.values.VectorCandidate;
 
 abstract class VectorDocumentStructure {
     static final String ENTITY_ID_KEY = "id";
