@@ -21,6 +21,7 @@ package org.neo4j.codegen.source;
 
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Consumer;
 import org.apache.commons.text.StringEscapeUtils;
 import org.neo4j.codegen.Expression;
@@ -184,6 +185,30 @@ class JavaSourceMethodWriter implements MethodWriter, ExpressionVisitor {
         indent().append("else {\n");
         levels.push(LEVEL);
         onFalse.accept(block);
+        levels.pop();
+        indent().append("}\n");
+    }
+
+    @Override
+    public <T> void tableSwitch(Expression test, int startIndex, T block, List<Consumer<T>> consumers) {
+        indent().append("switch ( ");
+        test.accept(this);
+        append(" )\n");
+        indent().append("{\n");
+        levels.push(LEVEL);
+        int i = startIndex;
+        for (Consumer<T> consumer : consumers) {
+            indent().append("case ").append(i).append(":\n");
+            levels.push(LEVEL);
+            consumer.accept(block);
+            indent().append("break;\n");
+            levels.pop();
+            i++;
+        }
+        indent().append("default:\n");
+        levels.push(LEVEL);
+        indent().append("throw new IllegalStateException(\"Illegal switch state.\");\n");
+        levels.pop();
         levels.pop();
         indent().append("}\n");
     }

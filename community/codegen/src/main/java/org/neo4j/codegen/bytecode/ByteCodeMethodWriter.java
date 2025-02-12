@@ -32,19 +32,23 @@ import static org.objectweb.asm.Opcodes.ASTORE;
 import static org.objectweb.asm.Opcodes.ATHROW;
 import static org.objectweb.asm.Opcodes.DRETURN;
 import static org.objectweb.asm.Opcodes.DSTORE;
+import static org.objectweb.asm.Opcodes.DUP;
 import static org.objectweb.asm.Opcodes.FRETURN;
 import static org.objectweb.asm.Opcodes.FSTORE;
 import static org.objectweb.asm.Opcodes.GOTO;
+import static org.objectweb.asm.Opcodes.INVOKESPECIAL;
 import static org.objectweb.asm.Opcodes.IRETURN;
 import static org.objectweb.asm.Opcodes.ISTORE;
 import static org.objectweb.asm.Opcodes.LRETURN;
 import static org.objectweb.asm.Opcodes.LSTORE;
+import static org.objectweb.asm.Opcodes.NEW;
 import static org.objectweb.asm.Opcodes.PUTFIELD;
 import static org.objectweb.asm.Opcodes.PUTSTATIC;
 import static org.objectweb.asm.Opcodes.RETURN;
 
 import java.util.Deque;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Consumer;
 import org.neo4j.codegen.Expression;
 import org.neo4j.codegen.ExpressionVisitor;
@@ -226,6 +230,33 @@ class ByteCodeMethodWriter implements MethodWriter {
 
         // goto here when onTrue body is done
         methodVisitor.visitLabel(doneLabel);
+    }
+
+    @Override
+    public <T> void tableSwitch(Expression test, int startIndex, T block, List<Consumer<T>> consumers) {
+        int numberOfCases = consumers.size();
+        Label[] labels = new Label[numberOfCases];
+        for (int i = 0; i < numberOfCases; i++) {
+            labels[i] = new Label();
+        }
+        Label defaultLabel = new Label();
+        Label breakToLabel = new Label();
+        test.accept(expressionVisitor);
+        methodVisitor.visitTableSwitchInsn(startIndex, startIndex + numberOfCases - 1, defaultLabel, labels);
+        for (int i = 0; i < numberOfCases; i++) {
+            methodVisitor.visitLabel(labels[i]);
+            consumers.get(i).accept(block);
+            methodVisitor.visitJumpInsn(GOTO, breakToLabel);
+        }
+        // default: throw new IllegalStateException("Illegal switch state.");
+        methodVisitor.visitLabel(defaultLabel);
+        methodVisitor.visitTypeInsn(NEW, "java/lang/IllegalStateException");
+        methodVisitor.visitInsn(DUP);
+        methodVisitor.visitLdcInsn("Illegal switch state.");
+        methodVisitor.visitMethodInsn(
+                INVOKESPECIAL, "java/lang/IllegalStateException", "<init>", "(Ljava/lang/String;)V", false);
+        methodVisitor.visitInsn(ATHROW);
+        methodVisitor.visitLabel(breakToLabel);
     }
 
     @Override

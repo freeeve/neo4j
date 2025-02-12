@@ -24,6 +24,7 @@ import static org.neo4j.codegen.MethodReference.methodReference;
 import static org.neo4j.codegen.TypeReference.typeReference;
 
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -194,6 +195,10 @@ public class CodeBlock implements AutoCloseable {
 
     public void returns(Expression value) {
         writer.returns(value);
+    }
+
+    public void tableSwitch(Expression test, int startIndex, List<Consumer<CodeBlock>> consumers) {
+        writer.tableSwitch(test, startIndex, this, consumers);
     }
 
     public void continueIfPossible() {

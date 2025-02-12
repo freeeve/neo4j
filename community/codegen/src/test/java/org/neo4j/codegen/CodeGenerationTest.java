@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.doThrow;
@@ -2546,6 +2547,77 @@ public abstract class CodeGenerationTest {
         assertArrayEquals(
                 new long[] {42L, 42L, 42L}, (long[]) instanceMethod(handle.newInstance(), "get", int.class, long.class)
                         .invoke(3, 42L));
+    }
+
+    @Test
+    void shouldDoTableSwitch() throws Throwable {
+        ClassHandle handle;
+        try (ClassGenerator simple = generateClass("TableSwitch1")) {
+            try (CodeBlock body = simple.generateMethod(int.class, "tableSwitch", param(int.class, "i"))) {
+                var local = body.declare(typeReference(int.class), "res");
+                body.assign(local, constant(0));
+                body.tableSwitch(
+                        body.load("i"),
+                        0,
+                        List.of(
+                                block -> block.assign(local, constant(1000)),
+                                block -> block.assign(local, constant(2000)),
+                                block -> block.assign(local, constant(3000)),
+                                block -> block.assign(local, constant(4000))));
+                body.returns(body.load("res"));
+            }
+            handle = simple.handle();
+        }
+
+        MethodHandle tableSwitch = instanceMethod(handle.newInstance(), "tableSwitch", int.class);
+        assertThat(tableSwitch.invoke(0)).isEqualTo(1000);
+        assertThat(tableSwitch.invoke(1)).isEqualTo(2000);
+        assertThat(tableSwitch.invoke(2)).isEqualTo(3000);
+        assertThat(tableSwitch.invoke(3)).isEqualTo(4000);
+    }
+
+    @Test
+    void shouldThrowIfInputIsOutOfRangeForTableSwitch() throws Throwable {
+        ClassHandle handle;
+        try (ClassGenerator simple = generateClass("TableSwitch2")) {
+            try (CodeBlock body = simple.generateMethod(int.class, "tableSwitch", param(int.class, "i"))) {
+                var local = body.declare(typeReference(int.class), "res");
+                body.assign(local, constant(0));
+                body.tableSwitch(body.load("i"), 0, List.of(block -> block.assign(local, constant(1))));
+                body.returns(body.load("res"));
+            }
+            handle = simple.handle();
+        }
+
+        MethodHandle tableSwitch = instanceMethod(handle.newInstance(), "tableSwitch", int.class);
+        assertThat(tableSwitch.invoke(0)).isEqualTo(1);
+        assertThrows(IllegalStateException.class, () -> tableSwitch.invoke(1));
+        assertThrows(IllegalStateException.class, () -> tableSwitch.invoke(10000));
+        assertThrows(IllegalStateException.class, () -> tableSwitch.invoke(-1));
+    }
+
+    @Test
+    void tableSwitchShouldHandleNonZeroStartingValue() throws Throwable {
+        ClassHandle handle;
+        try (ClassGenerator simple = generateClass("TableSwitch3")) {
+            try (CodeBlock body = simple.generateMethod(int.class, "tableSwitch", param(int.class, "i"))) {
+                var local = body.declare(typeReference(int.class), "res");
+                body.assign(local, constant(0));
+                body.tableSwitch(
+                        body.load("i"),
+                        17,
+                        List.of(block -> block.assign(local, constant(1)), block -> block.assign(local, constant(2))));
+                body.returns(body.load("res"));
+            }
+            handle = simple.handle();
+        }
+
+        MethodHandle tableSwitch = instanceMethod(handle.newInstance(), "tableSwitch", int.class);
+        assertThat(tableSwitch.invoke(17)).isEqualTo(1);
+        assertThat(tableSwitch.invoke(18)).isEqualTo(2);
+        assertThrows(IllegalStateException.class, () -> tableSwitch.invoke(0));
+        assertThrows(IllegalStateException.class, () -> tableSwitch.invoke(16));
+        assertThrows(IllegalStateException.class, () -> tableSwitch.invoke(19));
     }
 
     private <T, U> void assertArrayLoad(Class<T> returnType, Class<U> arrayType, U array, int index, T expected)

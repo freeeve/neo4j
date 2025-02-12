@@ -19,6 +19,7 @@
  */
 package org.neo4j.codegen;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 class InvalidState implements MethodWriter {
@@ -118,6 +119,11 @@ class InvalidState implements MethodWriter {
 
     @Override
     public <T> void ifElseStatement(Expression test, Consumer<T> onTrue, Consumer<T> onFalse, T block) {
+        throw new IllegalStateException(reason);
+    }
+
+    @Override
+    public <T> void tableSwitch(Expression test, int startIndex, T block, List<Consumer<T>> consumers) {
         throw new IllegalStateException(reason);
     }
 

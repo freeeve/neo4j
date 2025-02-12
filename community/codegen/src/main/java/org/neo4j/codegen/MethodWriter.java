@@ -19,6 +19,7 @@
  */
 package org.neo4j.codegen;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 /**
@@ -58,6 +59,8 @@ public interface MethodWriter {
     void endBlock();
 
     <T> void ifElseStatement(Expression test, Consumer<T> onTrue, Consumer<T> onFalse, T block);
+
+    <T> void tableSwitch(Expression test, int startIndex, T block, List<Consumer<T>> consumers);
 
     void throwException(Expression exception);
 
