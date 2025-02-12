@@ -60,22 +60,12 @@ public final class Int64Vector extends IntegralVector {
 
     @Override
     protected int unsafeCompareTo(Value other) {
-        Int64Vector v = (Int64Vector) other;
-        if (this.coordinates.length > v.coordinates.length) {
-            return 1;
-        } else if (this.coordinates.length < v.coordinates.length) {
-            return -1;
+        final var that = (Int64Vector) other;
+        int comparison = Integer.compare(this.dimensions(), that.dimensions());
+        if (comparison != 0) {
+            return comparison;
         }
-
-        var x = 0;
-        for (int i = 0; i < this.coordinates.length; i++) {
-            x = Long.compare(this.coordinates[i], v.coordinates[i]);
-            if (x != 0) {
-                return x;
-            }
-        }
-
-        return 0;
+        return Arrays.compare(this.coordinates, that.coordinates);
     }
 
     @Override
