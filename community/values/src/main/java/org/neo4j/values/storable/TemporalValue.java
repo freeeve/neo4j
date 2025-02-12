@@ -420,29 +420,27 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
                 throw new InvalidArgumentException("Builder state empty");
             }
             state.checkAssignments(this.supportsDate());
-            try {
-                return buildInternal();
-            } catch (DateTimeException e) {
-                throw new InvalidArgumentException(e.getMessage(), e);
-            }
+            return buildInternal();
         }
 
         <Temp extends Temporal> Temp assignAllFields(Temp temp) {
             Temp result = temp;
             for (Map.Entry<TemporalFields, AnyValue> entry : fields.entrySet()) {
                 TemporalFields f = entry.getKey();
+                var tmpResult = result;
                 if (f == TemporalFields.year && fields.containsKey(TemporalFields.week)) {
                     // Year can mean week-based year, if a week is specified.
-                    result = (Temp) result.with(
-                            IsoFields.WEEK_BASED_YEAR, safeCastIntegral(f.name(), entry.getValue(), f.defaultValue));
+                    result = assertValidArgument(f.toString(), () -> (Temp) tmpResult.with(
+                            IsoFields.WEEK_BASED_YEAR, safeCastIntegral(f.name(), entry.getValue(), f.defaultValue)));
                 } else if (!f.isGroupSelector()
                         && f != TemporalFields.timezone
                         && f != TemporalFields.millisecond
                         && f != TemporalFields.microsecond
                         && f != TemporalFields.nanosecond) {
                     TemporalField temporalField = f.field;
-                    result = (Temp)
-                            result.with(temporalField, safeCastIntegral(f.name(), entry.getValue(), f.defaultValue));
+
+                    result = assertValidArgument(f.toString(), () -> (Temp) tmpResult.with(
+                            temporalField, safeCastIntegral(f.name(), entry.getValue(), f.defaultValue)));
                 }
             }
             // Assign all sub-second parts in one step
@@ -1209,11 +1207,11 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         }
     }
 
-    static <TEMP extends Temporal> TEMP assertValidArgument(Supplier<TEMP> func) {
+    static <TEMP extends Temporal> TEMP assertValidArgument(String argument, Supplier<TEMP> func) {
         try {
             return func.get();
         } catch (DateTimeException e) {
-            throw new InvalidArgumentException(e.getMessage(), e);
+            throw InvalidArgumentException.cannotProcessTemporal(argument, e);
         }
     }
 
@@ -1230,7 +1228,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         try {
             return func.get();
         } catch (DateTimeException e) {
-            throw new InvalidArgumentException(e.getMessage(), e);
+            throw InvalidArgumentException.cannotProcessTemporal("timezone", e);
         }
     }
 

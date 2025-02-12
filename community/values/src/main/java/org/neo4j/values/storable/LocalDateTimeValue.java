@@ -90,7 +90,7 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
     }
 
     public static LocalDateTime localDateTimeRaw(long epochSecond, long nano) {
-        return assertValidArgument(() -> ofInstant(ofEpochSecond(epochSecond, nano), UTC));
+        return assertValidArgument("epochSecond", () -> ofInstant(ofEpochSecond(epochSecond, nano), UTC));
     }
 
     public static LocalDateTimeValue parse(CharSequence text) {
@@ -211,14 +211,16 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
                 if (fields.containsKey(TemporalFields.week) && !selectingDate && !selectingDateTime) {
                     // Be sure to be in the start of the week based year (which can be later than 1st Jan)
-                    result = result.with(
+                    var tempResult = result;
+                    result = assertValidArgument("year", () -> tempResult
+                            .with(
                                     IsoFields.WEEK_BASED_YEAR,
                                     safeCastIntegral(
                                             TemporalFields.year.name(),
                                             fields.get(TemporalFields.year),
                                             TemporalFields.year.defaultValue))
                             .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, 1)
-                            .with(ChronoField.DAY_OF_WEEK, 1);
+                            .with(ChronoField.DAY_OF_WEEK, 1));
                 }
 
                 result = assignAllFields(result);
@@ -277,7 +279,8 @@ public final class LocalDateTimeValue extends TemporalValue<LocalDateTime, Local
 
     @Override
     OffsetTime getTimePart(Supplier<ZoneId> defaultZone) {
-        ZoneOffset currentOffset = assertValidArgument(() -> ZonedDateTime.ofInstant(Instant.now(), defaultZone.get()))
+        ZoneOffset currentOffset = assertValidArgument(
+                        "time", () -> ZonedDateTime.ofInstant(Instant.now(), defaultZone.get()))
                 .getOffset();
         return OffsetTime.of(value.toLocalTime(), currentOffset);
     }

@@ -915,4 +915,13 @@ public class InvalidArgumentException extends Neo4jException {
                 .build();
         return new InvalidArgumentException(gql, "At least one temporal unit must be specified.");
     }
+
+    public static InvalidArgumentException cannotProcessTemporal(String input, Throwable e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N11)
+                        .withParam(GqlParams.StringParam.input, input)
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, e.getMessage(), e);
+    }
 }

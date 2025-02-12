@@ -71,7 +71,7 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
     }
 
     public static LocalTime localTimeRaw(long nanoOfDay) {
-        return assertValidArgument(() -> LocalTime.ofNanoOfDay(nanoOfDay));
+        return assertValidArgument("nanoOfDay", () -> LocalTime.ofNanoOfDay(nanoOfDay));
     }
 
     public static LocalTimeValue parse(CharSequence text) {
@@ -190,7 +190,8 @@ public final class LocalTimeValue extends TemporalValue<LocalTime, LocalTimeValu
 
     @Override
     OffsetTime getTimePart(Supplier<ZoneId> defaultZone) {
-        ZoneOffset currentOffset = assertValidArgument(() -> ZonedDateTime.ofInstant(Instant.now(), defaultZone.get()))
+        ZoneOffset currentOffset = assertValidArgument(
+                        "time", () -> ZonedDateTime.ofInstant(Instant.now(), defaultZone.get()))
                 .getOffset();
         return OffsetTime.of(value, currentOffset);
     }

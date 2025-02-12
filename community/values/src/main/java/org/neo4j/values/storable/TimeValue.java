@@ -84,7 +84,8 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
     }
 
     public static OffsetTime timeRaw(long nanosOfDayUTC, ZoneOffset offset) {
-        return OffsetTime.ofInstant(assertValidArgument(() -> Instant.ofEpochSecond(0, nanosOfDayUTC)), offset);
+        return OffsetTime.ofInstant(
+                assertValidArgument("nanosOfDayUTC", () -> Instant.ofEpochSecond(0, nanosOfDayUTC)), offset);
     }
 
     @Override
@@ -148,8 +149,8 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
             // local time
             AnyValue timezone = fields.get("timezone");
             if (timezone != NO_VALUE) {
-                ZonedDateTime currentDT =
-                        assertValidArgument(() -> ZonedDateTime.ofInstant(Instant.now(), timezoneOf(timezone)));
+                ZonedDateTime currentDT = assertValidArgument(
+                        "timezone", () -> ZonedDateTime.ofInstant(Instant.now(), timezoneOf(timezone)));
                 ZoneOffset currentOffset = currentDT.getOffset();
                 truncatedOT = truncatedOT.withOffsetSameLocal(currentOffset);
             }
@@ -196,7 +197,8 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
                 } else {
                     ZoneId timezone = timezone();
                     if (!(timezone instanceof ZoneOffset)) {
-                        timezone = assertValidArgument(() -> ZonedDateTime.ofInstant(Instant.now(), timezone()))
+                        timezone = assertValidArgument(
+                                        "timezone", () -> ZonedDateTime.ofInstant(Instant.now(), timezone()))
                                 .getOffset();
                     }
 
@@ -207,7 +209,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
                 result = assignAllFields(result);
                 if (timezone != null) {
                     ZoneOffset currentOffset = assertValidArgument(
-                                    () -> ZonedDateTime.ofInstant(Instant.now(), timezone()))
+                                    "timezone", () -> ZonedDateTime.ofInstant(Instant.now(), timezone()))
                             .getOffset();
                     if (selectingTime && selectingTimeZone) {
                         result = result.withOffsetSameInstant(currentOffset);
@@ -231,7 +233,7 @@ public final class TimeValue extends TemporalValue<OffsetTime, TimeValue> {
                 OffsetTime time = v.getTimePart(defaultZone);
                 if (timezone != null) {
                     ZoneOffset currentOffset = assertValidArgument(
-                                    () -> ZonedDateTime.ofInstant(Instant.now(), timezone()))
+                                    "timezone", () -> ZonedDateTime.ofInstant(Instant.now(), timezone()))
                             .getOffset();
                     time = time.withOffsetSameInstant(currentOffset);
                 }

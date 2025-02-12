@@ -36,6 +36,7 @@ import static org.neo4j.values.storable.TimeValue.parseOffset;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.time.Clock;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -131,7 +132,7 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
     }
 
     public static ZonedDateTime datetimeRaw(long epochSecondUTC, long nano, ZoneId zone) {
-        return assertValidArgument(() -> ofInstant(ofEpochSecond(epochSecondUTC, nano), zone));
+        return assertValidArgument("epochSecond", () -> ofInstant(ofEpochSecond(epochSecondUTC, nano), zone));
     }
 
     public static DateTimeValue ofEpoch(IntegralValue epochSecondUTC, IntegralValue nano) {
@@ -144,7 +145,8 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
     }
 
     public static DateTimeValue ofEpochMillis(IntegralValue millisUTC) {
-        return new DateTimeValue(assertValidArgument(() -> ofInstant(ofEpochMilli(millisUTC.longValue()), UTC)));
+        return new DateTimeValue(
+                assertValidArgument("epochMillis", () -> ofInstant(ofEpochMilli(millisUTC.longValue()), UTC)));
     }
 
     public static DateTimeValue parse(
@@ -264,8 +266,10 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
                             throw InvalidArgumentException.cannotConstructTemporal(
                                     "date time", String.valueOf(epochField), prettyVal);
                         }
-                        result = assertValidArgument(() -> ZonedDateTime.ofInstant(
-                                Instant.ofEpochMilli(epochSeconds.longValue() * 1000), timezone()));
+                        result = assertValidArgument(
+                                "epochSeconds",
+                                () -> ZonedDateTime.ofInstant(
+                                        Instant.ofEpochMilli(epochSeconds.longValue() * 1000), timezone()));
                     } else {
                         AnyValue epochField = fields.get(TemporalFields.epochMillis);
                         if (!(epochField instanceof IntegralValue epochMillis)) {
@@ -274,8 +278,10 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
                             throw InvalidArgumentException.cannotConstructTemporal(
                                     "date time", String.valueOf(epochField), prettyVal);
                         }
-                        result = assertValidArgument(() ->
-                                ZonedDateTime.ofInstant(Instant.ofEpochMilli(epochMillis.longValue()), timezone()));
+                        result = assertValidArgument(
+                                "epochMillis",
+                                () -> ZonedDateTime.ofInstant(
+                                        Instant.ofEpochMilli(epochMillis.longValue()), timezone()));
                     }
                     selectingTimeZone = false;
                 } else if (selectingTime || selectingDate) {
@@ -322,14 +328,16 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
                         && !selectingDateTime
                         && !selectingEpoch) {
                     // Be sure to be in the start of the week based year (which can be later than 1st Jan)
-                    result = result.with(
+                    var tmpResult = result;
+                    result = assertValidArgument("year", () -> tmpResult
+                            .with(
                                     IsoFields.WEEK_BASED_YEAR,
                                     safeCastIntegral(
                                             TemporalFields.year.name(),
                                             fields.get(TemporalFields.year),
                                             TemporalFields.year.defaultValue))
                             .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, 1)
-                            .with(ChronoField.DAY_OF_WEEK, 1);
+                            .with(ChronoField.DAY_OF_WEEK, 1));
                 }
 
                 result = assignAllFields(result);
@@ -341,7 +349,11 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
                             throw TemporalParseException.failedToProcessDateTime(timezone.prettyPrint(), e);
                         }
                     } else {
-                        result = result.withZoneSameLocal(timezone());
+                        try {
+                            result = result.withZoneSameLocal(timezone());
+                        } catch (DateTimeException e) {
+                            throw InvalidArgumentException.cannotProcessTemporal("x", e);
+                        }
                     }
                 }
                 return datetime(result);

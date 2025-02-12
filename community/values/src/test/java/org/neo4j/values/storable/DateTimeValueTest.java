@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.values.storable.AssertingStructureBuilder.asserting;
 import static org.neo4j.values.storable.DateTimeValue.builder;
 import static org.neo4j.values.storable.DateTimeValue.datetime;
+import static org.neo4j.values.storable.DateTimeValue.datetimeRaw;
 import static org.neo4j.values.storable.DateTimeValue.parse;
 import static org.neo4j.values.storable.DateValue.date;
 import static org.neo4j.values.storable.FrozenClock.assertEqualTemporal;
@@ -53,6 +54,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.TemporalParseException;
 import org.neo4j.exceptions.UnsupportedTemporalUnitException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 class DateTimeValueTest {
     private FrozenClock clock = new FrozenClock("UTC");
@@ -436,6 +439,19 @@ class DateTimeValueTest {
                 .add("second", 5)
                 .add("picosecond", 12)
                 .assertThrows(InvalidArgumentException.class, "No such field: picosecond");
+    }
+
+    @Test
+    void shouldFailOnInvalidRawValue() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> datetimeRaw(31556889864403200L, 0, UTC))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Instant exceeds minimum or maximum instant")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22007)
+                .hasStatusDescription("error: data exception - invalid date, time, or datetime format")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N11)
+                .hasStatusDescription(
+                        "error: data exception - invalid argument. Invalid argument: cannot process 'epochSecond'.");
     }
 
     @Test

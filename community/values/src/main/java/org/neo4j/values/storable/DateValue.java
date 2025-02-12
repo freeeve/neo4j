@@ -91,7 +91,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
     }
 
     public static LocalDate epochDateRaw(long epochDay) {
-        return assertValidArgument(() -> LocalDate.ofEpochDay(epochDay));
+        return assertValidArgument("epochDay", () -> LocalDate.ofEpochDay(epochDay));
     }
 
     public static DateValue parse(CharSequence text) {
@@ -493,7 +493,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
                 result = getDateOf(fields.get(TemporalFields.date));
             } else if (fields.containsKey(TemporalFields.week)) {
                 // Be sure to be in the start of the week based year (which can be later than 1st Jan)
-                result = DEFAULT_CALENDER_DATE
+                result = assertValidArgument("year", () -> DEFAULT_CALENDER_DATE
                         .with(
                                 IsoFields.WEEK_BASED_YEAR,
                                 safeCastIntegral(
@@ -501,7 +501,7 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
                                         fields.get(TemporalFields.year),
                                         TemporalFields.year.defaultValue))
                         .with(IsoFields.WEEK_OF_WEEK_BASED_YEAR, 1)
-                        .with(ChronoField.DAY_OF_WEEK, 1);
+                        .with(ChronoField.DAY_OF_WEEK, 1));
             } else {
                 result = DEFAULT_CALENDER_DATE;
             }

@@ -23,6 +23,7 @@ import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.values.storable.DateValue.date;
 import static org.neo4j.values.storable.LocalDateTimeValue.localDateTime;
+import static org.neo4j.values.storable.LocalDateTimeValue.localDateTimeRaw;
 import static org.neo4j.values.storable.LocalDateTimeValue.parse;
 import static org.neo4j.values.storable.LocalTimeValue.localTime;
 import static org.neo4j.values.utils.AnyValueTestUtil.assertEqual;
@@ -32,6 +33,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 class LocalDateTimeValueTest {
     @Test
@@ -66,6 +70,19 @@ class LocalDateTimeValueTest {
             // then
             assertEquals(singletonList(value), values);
         }
+    }
+
+    @Test
+    void shouldFailOnInvalidRawValue() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> localDateTimeRaw(31556889864403200L, 0))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Instant exceeds minimum or maximum instant")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22007)
+                .hasStatusDescription("error: data exception - invalid date, time, or datetime format")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N11)
+                .hasStatusDescription(
+                        "error: data exception - invalid argument. Invalid argument: cannot process 'epochSecond'.");
     }
 
     @Test

@@ -32,10 +32,8 @@ public interface ErrorGqlStatusObjectAssertDelegate<SELF extends ErrorGqlStatusO
     ErrorGqlStatusObjectAssert<?> gqlStatusObject();
 
     @Override
-    default SELF gqlCause() {
-        gqlStatusObject().gqlCause();
-        //noinspection unchecked
-        return (SELF) this;
+    default ErrorGqlStatusObjectAssert<?> gqlCause() {
+        return gqlStatusObject().gqlCause();
     }
 
     @Override

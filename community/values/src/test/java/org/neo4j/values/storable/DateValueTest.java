@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.neo4j.values.storable.DateValue.date;
+import static org.neo4j.values.storable.DateValue.epochDateRaw;
 import static org.neo4j.values.storable.DateValue.ordinalDate;
 import static org.neo4j.values.storable.DateValue.parse;
 import static org.neo4j.values.storable.DateValue.quarterDate;
@@ -41,7 +42,9 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.TemporalParseException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 class DateValueTest {
     @Test
@@ -137,6 +140,19 @@ class DateValueTest {
     void shouldNotParseInvalidDates() {
         assertCannotParse("2015W54"); // no year should have more than 53 weeks (2015 had 53 weeks)
         assertThrows(InvalidArgumentException.class, () -> parse("2017W53")); // 2017 only has 52 weeks
+    }
+
+    @Test
+    void shouldFailOnInvalidRawValue() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> epochDateRaw(31556889864403200L))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Invalid value for EpochDay (valid values -365243219162 - 365241780471): 31556889864403200")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22007)
+                .hasStatusDescription("error: data exception - invalid date, time, or datetime format")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N11)
+                .hasStatusDescription(
+                        "error: data exception - invalid argument. Invalid argument: cannot process 'epochDay'.");
     }
 
     @Test
