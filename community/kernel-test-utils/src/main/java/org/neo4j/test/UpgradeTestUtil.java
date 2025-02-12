@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.function.Consumer;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.SystemGraphComponents;
@@ -37,9 +38,14 @@ import org.neo4j.kernel.impl.transaction.CompleteBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.log.CommandBatchCursor;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.StorageCommand;
 
 public class UpgradeTestUtil {
+
+    private static final Consumer<Iterable<? extends StorageCommand>> ASSERT_DEFAULT_UPGRADE_TRANSACTION =
+            c -> assertThat(c).hasSize(1).first().isInstanceOf(StorageCommand.VersionUpgradeCommand.class);
+
     public static void upgradeDatabase(
             DatabaseManagementService dbms,
             GraphDatabaseAPI db,
@@ -81,8 +87,19 @@ public class UpgradeTestUtil {
 
     public static void assertUpgradeTransactionInOrder(
             KernelVersion from, KernelVersion to, long fromTxId, GraphDatabaseAPI db) throws Exception {
+        assertUpgradeTransactionInOrder(from, to, fromTxId, db, ASSERT_DEFAULT_UPGRADE_TRANSACTION);
+    }
+
+    public static void assertUpgradeTransactionInOrder(
+            KernelVersion from,
+            KernelVersion to,
+            long fromTxId,
+            GraphDatabaseAPI db,
+            Consumer<Iterable<? extends StorageCommand>> upgradeTransactionRequirement)
+            throws Exception {
         LogicalTransactionStore lts = db.getDependencyResolver().resolveDependency(LogicalTransactionStore.class);
-        assertUpgradeTransactionInOrder(from, to, fromTxId, () -> lts.getCommandBatches(fromTxId + 1));
+        assertUpgradeTransactionInOrder(
+                from, to, fromTxId, () -> lts.getCommandBatches(fromTxId + 1), upgradeTransactionRequirement);
     }
 
     public static void assertUpgradeTransactionInOrder(
@@ -90,6 +107,17 @@ public class UpgradeTestUtil {
             KernelVersion to,
             long fromTxId,
             ThrowingSupplier<CommandBatchCursor, IOException> commandBatchCursorSupplier)
+            throws Exception {
+        assertUpgradeTransactionInOrder(
+                from, to, fromTxId, commandBatchCursorSupplier, ASSERT_DEFAULT_UPGRADE_TRANSACTION);
+    }
+
+    public static void assertUpgradeTransactionInOrder(
+            KernelVersion from,
+            KernelVersion to,
+            long fromTxId,
+            ThrowingSupplier<CommandBatchCursor, IOException> commandBatchCursorSupplier,
+            Consumer<Iterable<? extends StorageCommand>> upgradeTransactionRequirement)
             throws Exception {
         ArrayList<KernelVersion> transactionVersions = new ArrayList<>();
         ArrayList<CommittedCommandBatchRepresentation> transactions = new ArrayList<>();
@@ -107,16 +135,14 @@ public class UpgradeTestUtil {
         assertThat(transactionVersions)
                 .isSortedAccordingTo(
                         Comparator.comparingInt(KernelVersion::version)); // Sorted means everything is in order
-        assertThat(transactionVersions.get(0)).isEqualTo(from); // First should be "from" version
-        assertThat(transactionVersions.get(transactionVersions.size() - 1)).isEqualTo(to); // And last the "to" version
+        assertThat(transactionVersions.getFirst()).isEqualTo(from); // First should be "from" version
+        assertThat(transactionVersions.getLast()).isEqualTo(to); // And last the "to" version
 
         int indexFirstOnNew = transactionVersions.indexOf(to);
         // Upgrade should be last on old version
         CommittedCommandBatchRepresentation upgradeTransaction = transactions.get(indexFirstOnNew - 1);
-        var commands = upgradeTransaction.commandBatch();
-        for (StorageCommand command : commands) {
-            assertThat(command).isInstanceOf(StorageCommand.VersionUpgradeCommand.class);
-        }
+        CommandBatch commands = upgradeTransaction.commandBatch();
+        assertThat(commands).satisfies(upgradeTransactionRequirement);
     }
 
     public static void manuallyUpgrade(GraphDatabaseService systemDb) throws Exception {
