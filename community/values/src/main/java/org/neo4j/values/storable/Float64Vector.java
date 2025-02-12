@@ -60,6 +60,21 @@ public final class Float64Vector extends FloatingPointVector {
 
     @Override
     protected int unsafeCompareTo(Value other) {
+        Float64Vector v = (Float64Vector) other;
+        if (this.coordinates.length > v.coordinates.length) {
+            return 1;
+        } else if (this.coordinates.length < v.coordinates.length) {
+            return -1;
+        }
+
+        var x = 0;
+        for (int i = 0; i < this.coordinates.length; i++) {
+            x = Double.compare(this.coordinates[i], v.coordinates[i]);
+            if (x != 0) {
+                return x;
+            }
+        }
+
         return 0;
     }
 

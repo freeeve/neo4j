@@ -333,12 +333,12 @@ public enum ValueRepresentation {
             };
         }
     },
-    INT64_VECTOR(ValueGroup.VECTOR, false),
-    INT32_VECTOR(ValueGroup.VECTOR, false),
-    INT16_VECTOR(ValueGroup.VECTOR, false),
-    INT8_VECTOR(ValueGroup.VECTOR, false),
-    FLOAT64_VECTOR(ValueGroup.VECTOR, false),
-    FLOAT32_VECTOR(ValueGroup.VECTOR, false),
+    INT8_VECTOR(ValueGroup.INT8VECTOR, false),
+    INT16_VECTOR(ValueGroup.INT16VECTOR, false),
+    INT32_VECTOR(ValueGroup.INT32VECTOR, false),
+    INT64_VECTOR(ValueGroup.INT64VECTOR, false),
+    FLOAT32_VECTOR(ValueGroup.FLOAT32VECTOR, false),
+    FLOAT64_VECTOR(ValueGroup.FLOAT64VECTOR, false),
     NO_VALUE(ValueGroup.NO_VALUE, false);
 
     private final ValueGroup group;

@@ -42,6 +42,12 @@ public enum ValueGroup {
     TEXT_ARRAY(ValueCategory.TEXT_ARRAY),
     BOOLEAN_ARRAY(ValueCategory.BOOLEAN_ARRAY),
     NUMBER_ARRAY(ValueCategory.NUMBER_ARRAY),
+    INT8VECTOR(ValueCategory.VECTOR),
+    INT16VECTOR(ValueCategory.VECTOR),
+    INT32VECTOR(ValueCategory.VECTOR),
+    INT64VECTOR(ValueCategory.VECTOR),
+    FLOAT32VECTOR(ValueCategory.VECTOR),
+    FLOAT64VECTOR(ValueCategory.VECTOR),
     GEOMETRY(ValueCategory.GEOMETRY),
     ZONED_DATE_TIME(ValueCategory.TEMPORAL),
     LOCAL_DATE_TIME(ValueCategory.TEMPORAL),
@@ -52,7 +58,6 @@ public enum ValueGroup {
     TEXT(ValueCategory.TEXT),
     BOOLEAN(ValueCategory.BOOLEAN),
     NUMBER(ValueCategory.NUMBER),
-    VECTOR(ValueCategory.VECTOR),
     NO_VALUE(ValueCategory.NO_CATEGORY);
 
     private final ValueCategory category;
