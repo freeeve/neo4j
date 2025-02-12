@@ -1282,6 +1282,16 @@ object SemanticError {
     )
   }
 
+  def cannotYieldFromVoidProcedure(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I42)
+        .atPosition(position.offset, position.line, position.column)
+        .build())
+      .build()
+    SemanticError(gql, "Cannot yield value from void procedure.", position)
+  }
+
   def pathBoundInQPP(position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42N34(position.offset, position.line, position.column)
     SemanticError(gql, "Assigning a path in a quantified path pattern is not yet supported.", position)

@@ -153,6 +153,14 @@ public class SyntaxException extends Neo4jException {
         return new SyntaxException(gql, QUOTE_MISMATCH_ERROR_MESSAGE);
     }
 
+    public static SyntaxException cannotYieldFromVoidProcedure() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I42)
+                        .build())
+                .build();
+        return new SyntaxException(gql, "Cannot yield value from void procedure.");
+    }
+
     @Override
     public Status status() {
         return Status.Statement.SyntaxError;

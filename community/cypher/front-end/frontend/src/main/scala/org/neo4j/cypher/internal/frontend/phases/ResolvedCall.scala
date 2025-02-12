@@ -153,7 +153,7 @@ case class ResolvedCall(
 
   def callResultTypes: Seq[(String, CypherType)] = {
     if (signature.outputSignature.isEmpty && (callResults.nonEmpty || yieldAll)) {
-      throw new SyntaxException("Cannot yield value from void procedure.")
+      throw SyntaxException.cannotYieldFromVoidProcedure()
     }
     val outputTypes = callOutputTypes
     callResults.map(result => result.variable.name -> outputTypes(result.outputName))
@@ -228,7 +228,7 @@ case class ResolvedCall(
     // CALL of VOID procedure => No need to name arguments, even in query
     // CALL of empty procedure => No need to name arguments, even in query
     if (signature.outputFields.isEmpty && (callResults.nonEmpty || yieldAll)) {
-      error("Cannot yield value from void procedure.", position)
+      error(SemanticError.cannotYieldFromVoidProcedure(position))
     } else if (signature.outputFields.isEmpty) {
       success
     } // CALL ... YIELD ... => Check named outputs
