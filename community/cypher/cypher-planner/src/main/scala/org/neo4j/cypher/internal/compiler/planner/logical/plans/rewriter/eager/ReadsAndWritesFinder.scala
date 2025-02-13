@@ -225,7 +225,7 @@ object ReadsAndWritesFinder {
       val compositeExpression = mergePlan match {
         case _: Union | _: OrderedUnion =>
           // Union expresses OR
-          Ors(Seq(lhs.expression, rhs.expression))(InputPosition.NONE)
+          Ors.of2(lhs.expression, rhs.expression)
         case _: NodeHashJoin | _: ValueHashJoin | _: AssertSameNode | _: AssertSameRelationship =>
           // Joins express AND
           // Let's use withAddedExpression to avoid nesting Ands

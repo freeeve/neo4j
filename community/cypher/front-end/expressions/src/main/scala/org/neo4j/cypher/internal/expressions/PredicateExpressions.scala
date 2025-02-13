@@ -100,6 +100,30 @@ object Ors {
   }
 
   /**
+   * The disjunction of two expressions.
+   * It wraps them into a new [[Ors]] if necessary only.
+   */
+  def of2(left: Expression, right: Expression): Expression =
+    (left, right) match {
+      case (left, Ors(rightSet)) if rightSet.isEmpty => left
+      case (Ors(leftSet), right) if leftSet.isEmpty  => right
+      case (Ors(leftSet), Ors(rightSet)) =>
+        Ors(ListSet.newBuilder.addAll(leftSet).addAll(rightSet).result())(InputPosition.NONE)
+      case (Ors(leftSet), right) =>
+        if (leftSet.contains(right))
+          left
+        else
+          Ors(ListSet.newBuilder.addAll(leftSet).addOne(right).result())(InputPosition.NONE)
+      case (left, Ors(rightSet)) =>
+        if (rightSet.contains(left))
+          right
+        else
+          Ors(ListSet.newBuilder.addOne(left).addAll(rightSet).result())(InputPosition.NONE)
+      case (left, right) =>
+        Ors(ListSet.newBuilder.addOne(left).addOne(right).result())(InputPosition.NONE)
+    }
+
+  /**
    * unwrap content of potential `Ors`
    */
   def unwrap(expr: Expression): Iterable[Expression] = expr match {
