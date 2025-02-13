@@ -583,7 +583,7 @@ case class CypherPlanner(
               )
             case Some(_: AdministrationCommandLogicalPlan) =>
               val name = logicalPlanState.statement() match {
-                case s: AdministrationCommand => s.name
+                case s: AdministrationCommand => s.commandDescription
                 case s: Statement             => s.getClass.getSimpleName
               }
               throw SecurityAdministrationException.unsupportedInCommunity(logicalPlanState.queryText, name)

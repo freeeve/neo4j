@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.makeRenameExecutio
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.runtimeStringValue
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.administration.AlterUserExecutionPlanner
+import org.neo4j.cypher.internal.administration.CommunityAlterDatabaseExecutionPlanner
 import org.neo4j.cypher.internal.administration.CreateUserExecutionPlanner
 import org.neo4j.cypher.internal.administration.DoNothingExecutionPlanner
 import org.neo4j.cypher.internal.administration.DropUserExecutionPlanner
@@ -36,14 +37,17 @@ import org.neo4j.cypher.internal.administration.ShowUsersExecutionPlanner
 import org.neo4j.cypher.internal.administration.SystemProcedureCallPlanner
 import org.neo4j.cypher.internal.ast.AdministrationAction
 import org.neo4j.cypher.internal.ast.DbmsAction
+import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.StartDatabaseAction
 import org.neo4j.cypher.internal.ast.StopDatabaseAction
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.logical.plans.AllowedNonAdministrationCommands
+import org.neo4j.cypher.internal.logical.plans.AlterDatabase
 import org.neo4j.cypher.internal.logical.plans.AlterUser
 import org.neo4j.cypher.internal.logical.plans.AssertAllowedDatabaseAction
 import org.neo4j.cypher.internal.logical.plans.AssertAllowedDbmsActions
 import org.neo4j.cypher.internal.logical.plans.AssertAllowedDbmsActionsOrSelf
+import org.neo4j.cypher.internal.logical.plans.AssertManagementActionNotBlocked
 import org.neo4j.cypher.internal.logical.plans.AssertNotCurrentUser
 import org.neo4j.cypher.internal.logical.plans.CheckNativeAuthentication
 import org.neo4j.cypher.internal.logical.plans.CreateUser
@@ -328,6 +332,26 @@ case class CommunityAdministrationCommandRuntime(
           newPassword,
           currentPassword,
           sourcePlan
+        )
+
+    // ALTER DATABASE SET DEFAULT LANGUAGE
+    case AlterDatabase(source, databaseName, None, None, NoOptions, Some(defaultLanguageVersion), optionsToRemove)
+      if optionsToRemove.isEmpty =>
+      context => {
+        val sourcePlan: Option[ExecutionPlan] =
+          Some(fullLogicalToExecutable.applyOrElse(source, throwCantCompile).apply(context))
+        CommunityAlterDatabaseExecutionPlanner(
+          normalExecutionEngine,
+          securityAuthorizationHandler
+        ).planAlterDatabase(databaseName, defaultLanguageVersion, sourcePlan, context)
+      }
+
+    // This is no-op in community
+    case AssertManagementActionNotBlocked(_) => _ =>
+        PredicateExecutionPlan(
+          (_, _) => true,
+          None,
+          onViolation = (_, _, _) => new RuntimeException()
         )
 
     // SHOW DATABASES | SHOW DEFAULT DATABASE | SHOW HOME DATABASE | SHOW DATABASE foo

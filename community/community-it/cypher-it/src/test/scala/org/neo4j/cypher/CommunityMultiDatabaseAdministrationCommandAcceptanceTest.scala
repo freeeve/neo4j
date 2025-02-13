@@ -20,6 +20,7 @@
 package org.neo4j.cypher
 
 import org.neo4j.configuration.Config
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.cypher_hints_error
@@ -36,6 +37,7 @@ import org.neo4j.dbms.systemgraph.CommunityTopologyGraphComponent
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.graphdb.config.Setting
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog
 import org.neo4j.kernel.internal.GraphDatabaseAPI
 import org.neo4j.logging.NullLogProvider
@@ -50,6 +52,8 @@ import java.lang.Boolean.TRUE
 import java.nio.file.Path
 import java.time.Clock
 import java.time.ZonedDateTime
+
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends CommunityAdministrationCommandAcceptanceTestBase
     with OptionValues {
@@ -633,6 +637,75 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     exceptionRole.getMessage should include("(line 1, column 43 (offset: 42))")
   }
 
+  // Test for default language
+
+  test("should alter default database to a specific cypher version") {
+    setup(Config.defaults(Map[
+      Setting[_],
+      Object
+    ](GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE).asJava))
+
+    // WHEN
+    execute(
+      s"ALTER DATABASE $DEFAULT_DATABASE_NAME SET DEFAULT LANGUAGE CYPHER 25"
+    ).queryStatistics().systemUpdates shouldBe 1
+
+    // THEN
+    assertDefaultCypherVersion(DEFAULT_DATABASE_NAME, CypherVersion.Cypher25)
+
+    // WHEN
+    execute(
+      s"ALTER DATABASE $DEFAULT_DATABASE_NAME SET DEFAULT LANGUAGE CYPHER 5"
+    ).queryStatistics().systemUpdates shouldBe 1
+
+    // THEN
+    assertDefaultCypherVersion(DEFAULT_DATABASE_NAME, CypherVersion.Cypher5)
+
+  }
+
+  test("should alter system database to a specific cypher version") {
+    setup(Config.defaults(Map[
+      Setting[_],
+      Object
+    ](GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE).asJava))
+
+    // WHEN
+    execute(
+      s"ALTER DATABASE $SYSTEM_DATABASE_NAME SET DEFAULT LANGUAGE CYPHER 25"
+    ).queryStatistics().systemUpdates shouldBe 1
+
+    // THEN
+    assertDefaultCypherVersion(SYSTEM_DATABASE_NAME, CypherVersion.Cypher25)
+
+    // WHEN
+    execute(
+      s"ALTER DATABASE $SYSTEM_DATABASE_NAME SET DEFAULT LANGUAGE CYPHER 5"
+    ).queryStatistics().systemUpdates shouldBe 1
+
+    // THEN
+    assertDefaultCypherVersion(SYSTEM_DATABASE_NAME, CypherVersion.Cypher5)
+  }
+
+  test("should alter default database to a specific cypher version if it exists") {
+    setup(Config.defaults(Map[
+      Setting[_],
+      Object
+    ](GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE).asJava))
+
+    // WHEN
+    execute(
+      s"ALTER DATABASE $DEFAULT_DATABASE_NAME IF EXISTS SET DEFAULT LANGUAGE CYPHER 25"
+    ).queryStatistics().systemUpdates shouldBe 1
+
+    // THEN
+    assertDefaultCypherVersion(DEFAULT_DATABASE_NAME, CypherVersion.Cypher25)
+
+    // WHEN database does not exist, no effect
+    execute(
+      s"ALTER DATABASE doesNotExist IF EXISTS SET DEFAULT LANGUAGE CYPHER 5"
+    ).queryStatistics().systemUpdates shouldBe 0
+  }
+
   // Test for non-valid community commands
 
   test("should fail on creating database from community") {
@@ -728,15 +801,51 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
       "ALTER DATABASE foo SET ACCESS READ ONLY",
       "Unsupported administration command: ALTER DATABASE foo SET ACCESS READ ONLY",
       GqlStatusInfoCodes.STATUS_51N27,
-      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE' is not supported in community edition."
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE SET ACCESS' is not supported in community edition."
     )
 
     assertFailureWithGQLStatus(
       s"ALTER DATABASE $DEFAULT_DATABASE_NAME SET ACCESS READ WRITE",
       s"Unsupported administration command: ALTER DATABASE $DEFAULT_DATABASE_NAME SET ACCESS READ WRITE",
       GqlStatusInfoCodes.STATUS_51N27,
-      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE' is not supported in community edition."
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE SET ACCESS' is not supported in community edition."
     )
+
+    assertFailureWithGQLStatus(
+      s"ALTER DATABASE $SYSTEM_DATABASE_NAME SET DEFAULT LANGUAGE CYPHER 5 WAIT",
+      s"Unsupported administration command: ALTER DATABASE $SYSTEM_DATABASE_NAME SET DEFAULT LANGUAGE CYPHER 5 WAIT",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE SET DEFAULT LANGUAGE WAIT' is not supported in community edition."
+    )
+
+    assertFailureWithGQLStatus(
+      s"ALTER DATABASE $SYSTEM_DATABASE_NAME SET DEFAULT LANGUAGE CYPHER 5 SET ACCESS READ ONLY",
+      s"Unsupported administration command: ALTER DATABASE $SYSTEM_DATABASE_NAME SET DEFAULT LANGUAGE CYPHER 5 SET ACCESS READ ONLY",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE SET ACCESS SET DEFAULT LANGUAGE' is not supported in community edition."
+    )
+
+    assertFailureWithGQLStatus(
+      s"ALTER DATABASE $SYSTEM_DATABASE_NAME SET DEFAULT LANGUAGE CYPHER 5 SET OPTION txLogEnrichment null",
+      s"Unsupported administration command: ALTER DATABASE $SYSTEM_DATABASE_NAME SET DEFAULT LANGUAGE CYPHER 5 SET OPTION txLogEnrichment null",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE SET DEFAULT LANGUAGE SET OPTION' is not supported in community edition."
+    )
+
+    assertFailureWithGQLStatus(
+      s"ALTER DATABASE $DEFAULT_DATABASE_NAME SET TOPOLOGY 1 PRIMARY SET DEFAULT LANGUAGE CYPHER 5",
+      s"Unsupported administration command: ALTER DATABASE $DEFAULT_DATABASE_NAME SET TOPOLOGY 1 PRIMARY SET DEFAULT LANGUAGE CYPHER 5",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE SET TOPOLOGY SET DEFAULT LANGUAGE' is not supported in community edition."
+    )
+
+    assertFailureWithGQLStatus(
+      s"ALTER DATABASE $DEFAULT_DATABASE_NAME REMOVE OPTION txLogEnrichment",
+      s"Unsupported administration command: ALTER DATABASE $DEFAULT_DATABASE_NAME REMOVE OPTION txLogEnrichment",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'ALTER DATABASE REMOVE OPTION' is not supported in community edition."
+    )
+
   }
 
   test("should fail on starting database from community") {
@@ -934,6 +1043,13 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
       "statusMessage" -> "",
       "constituents" -> List()
     )
+
+  private def assertDefaultCypherVersion(dbName: String, version: CypherVersion) = {
+    execute(s"SHOW DATABASE $dbName YIELD name, defaultLanguage RETURN *").toList shouldBe List(Map(
+      "name" -> dbName,
+      "defaultLanguage" -> version.description
+    ))
+  }
 
   // Disable normal database creation because we need different settings on each test
   override protected def beforeEach(): Unit = {}

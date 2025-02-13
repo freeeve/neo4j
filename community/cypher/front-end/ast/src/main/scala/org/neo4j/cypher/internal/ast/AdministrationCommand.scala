@@ -82,6 +82,8 @@ sealed trait AdministrationCommand extends StatementWithGraph with SemanticAnaly
 
   def name: String
 
+  def commandDescription: String = name
+
   // We parse USE to give a nice error message, but it's not considered to be a part of the AST
   private var useGraphVar: Option[UseGraph] = None
   def useGraph: Option[UseGraph] = useGraphVar
@@ -1509,7 +1511,7 @@ final case class CreateDatabase(
   options: Options,
   waitUntilComplete: WaitUntilComplete,
   topology: Option[Topology],
-  defaultVersion: Option[CypherVersion]
+  defaultLanguage: Option[CypherVersion]
 )(val position: InputPosition)
     extends WaitableAdministrationCommand {
 
@@ -1527,7 +1529,7 @@ final case class CreateDatabase(
         SemanticState.recordCurrentScope(this)
   })
     .chain(topologyCheck(topology, name))
-    .chain(defaultLanguageVersionCheck(defaultVersion, name))
+    .chain(defaultLanguageVersionCheck(defaultLanguage, name))
 }
 
 case class Topology(primaries: Option[Either[Int, Parameter]], secondaries: Option[Either[Int, Parameter]])
@@ -1537,7 +1539,7 @@ final case class CreateCompositeDatabase(
   ifExistsDo: IfExistsDo,
   options: Options,
   waitUntilComplete: WaitUntilComplete,
-  defaultVersion: Option[CypherVersion]
+  defaultLanguage: Option[CypherVersion]
 )(
   val position: InputPosition
 ) extends WaitableAdministrationCommand {
@@ -1590,18 +1592,29 @@ final case class AlterDatabase(
   options: Options,
   optionsToRemove: Set[String],
   waitUntilComplete: WaitUntilComplete,
-  defaultVersion: Option[CypherVersion]
+  defaultLanguage: Option[CypherVersion]
 )(
   val position: InputPosition
 ) extends WaitableAdministrationCommand {
 
   override def name = "ALTER DATABASE"
 
+  override def commandDescription: String =
+    Seq(
+      Some(name),
+      access.map(_ => "SET ACCESS"),
+      topology.map(_ => "SET TOPOLOGY"),
+      defaultLanguage.map(_ => "SET DEFAULT LANGUAGE"),
+      if (options != NoOptions) Some("SET OPTION") else None,
+      if (optionsToRemove.nonEmpty) Some("REMOVE OPTION") else None,
+      if (waitUntilComplete != NoWait) Some("WAIT") else None
+    ).flatten.mkString(" ")
+
   override def semanticCheck: SemanticCheck =
     super.semanticCheck chain
       SemanticState.recordCurrentScope(this) chain
       topologyCheck(topology, name) chain
-      defaultLanguageVersionCheck(defaultVersion, name)
+      defaultLanguageVersionCheck(defaultLanguage, name)
 }
 
 final case class StartDatabase(dbName: DatabaseName, waitUntilComplete: WaitUntilComplete)(
