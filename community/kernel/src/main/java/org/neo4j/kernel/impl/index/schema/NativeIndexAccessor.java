@@ -32,14 +32,12 @@ import java.nio.file.OpenOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.function.LongPredicate;
 import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.common.Subject;
 import org.neo4j.index.internal.gbptree.Seeker;
 import org.neo4j.index.internal.gbptree.TreeInconsistencyException;
-import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
@@ -166,15 +164,7 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                             return null;
                         }));
             }
-
-            try {
-                JobHandles.getAllResults(handles);
-            } catch (ExecutionException e) {
-                var cause = e.getCause();
-                Exceptions.throwIfInstanceOf(cause, IndexEntryConflictException.class);
-                Exceptions.throwIfUnchecked(cause);
-                throw new RuntimeException(e);
-            }
+            JobHandles.getAllResults(handles, IndexEntryConflictException.class, RuntimeException::new);
         } finally {
             IOUtils.closeAllUnchecked(readers);
         }
@@ -222,14 +212,7 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
                             return null;
                         }));
             }
-
-            try {
-                JobHandles.getAllResults(handles);
-            } catch (ExecutionException e) {
-                var cause = e.getCause();
-                Exceptions.throwIfUnchecked(cause);
-                throw new RuntimeException(e);
-            }
+            JobHandles.getAllResults(handles, RuntimeException.class, RuntimeException::new);
         } finally {
             IOUtils.closeAllUnchecked(readers);
         }

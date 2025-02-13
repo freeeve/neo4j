@@ -25,7 +25,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongPredicate;
 import java.util.function.ToLongFunction;
@@ -35,7 +34,6 @@ import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 import org.neo4j.annotations.documented.ReporterFactory;
 import org.neo4j.common.Subject;
 import org.neo4j.graphdb.ResourceIterator;
-import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.helpers.progress.ProgressMonitorFactory;
@@ -137,14 +135,7 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
                                 }
                                 return null;
                             }));
-
-                    try {
-                        JobHandles.getAllResults(handles);
-                    } catch (ExecutionException e) {
-                        var cause = e.getCause();
-                        Exceptions.throwIfUnchecked(cause);
-                        throw new RuntimeException(cause);
-                    }
+                    JobHandles.getAllResults(handles, RuntimeException.class, RuntimeException::new);
                 }
             } finally {
                 IOUtils.closeAllUnchecked(partitions);

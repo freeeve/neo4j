@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import org.neo4j.index.internal.gbptree.Layout;
 import org.neo4j.kernel.api.index.IndexPopulator.PopulationWorkScheduler;
 import org.neo4j.scheduler.JobHandle;
@@ -106,12 +105,7 @@ class PartMerger<KEY, VALUE> implements AutoCloseable {
     public void close() throws IOException {
         allMergers.forEach(BlockEntryStreamMerger::halt);
         try {
-            JobHandles.getAllResults(mergeHandles);
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            }
-            throw new IOException(e.getCause());
+            JobHandles.getAllResults(mergeHandles, IOException.class, IOException::new);
         } finally {
             closeAll(() -> closeAll(allMergers), () -> closeAll(parts));
         }
