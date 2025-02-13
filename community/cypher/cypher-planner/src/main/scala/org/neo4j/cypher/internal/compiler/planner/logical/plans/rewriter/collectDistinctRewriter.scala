@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionName
+import org.neo4j.cypher.internal.expressions.In
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.logical.plans.Aggregation
@@ -42,29 +43,40 @@ case object collectDistinctRewriter extends Rewriter {
 
   override def apply(input: AnyRef): AnyRef = input match {
     case plan: LogicalPlan =>
-      val unsafeVariables = randomAccessVariables(plan)
-      bottomUp(innerRewriter(unsafeVariables)).apply(plan)
+      val (unsafeVariables, onlyIn) = randomAccessVariables(plan)
+      bottomUp(innerRewriter(unsafeVariables, onlyIn)).apply(plan)
     case o => o
   }
 
   private def rewriteAggregations(
     unsafeVariables: Set[LogicalVariable],
+    onlyIn: Set[LogicalVariable],
     aggregationExpressions: Map[LogicalVariable, Expression]
   ) =
     aggregationExpressions.map {
       case (v, f @ FunctionInvocation(FunctionName(_, name), true, IndexedSeq(in), _, _))
         if name.equalsIgnoreCase(Collect.name) && !unsafeVariables(v) =>
         v -> CollectDistinct(in, f.isOrdered)(f.position)
+
+      case (v, f @ FunctionInvocation(FunctionName(_, name), false, IndexedSeq(in), _, _))
+        if name.equalsIgnoreCase(Collect.name) && onlyIn(v) =>
+        v -> CollectDistinct(in, f.isOrdered)(f.position)
+
       case (v, e) => v -> e
     }
 
-  private def innerRewriter(unsafeVariables: Set[LogicalVariable]): Rewriter = Rewriter.lift {
-    case a @ Aggregation(_, _, aggregationExpressions) =>
-      a.copy(aggregationExpressions = rewriteAggregations(unsafeVariables, aggregationExpressions))(SameId(a.id))
+  private def innerRewriter(unsafeVariables: Set[LogicalVariable], onlyIn: Set[LogicalVariable]): Rewriter =
+    Rewriter.lift {
+      case a @ Aggregation(_, _, aggregationExpressions) =>
+        a.copy(aggregationExpressions = rewriteAggregations(unsafeVariables, onlyIn, aggregationExpressions))(
+          SameId(a.id)
+        )
 
-    case a @ OrderedAggregation(_, _, aggregationExpressions, _) =>
-      a.copy(aggregationExpressions = rewriteAggregations(unsafeVariables, aggregationExpressions))(SameId(a.id))
-  }
+      case a @ OrderedAggregation(_, _, aggregationExpressions, _) =>
+        a.copy(aggregationExpressions = rewriteAggregations(unsafeVariables, onlyIn, aggregationExpressions))(
+          SameId(a.id)
+        )
+    }
 
   private def randomAccessVariables(originalPlan: LogicalPlan) = {
     val res = originalPlan.folder.treeFold(Acc()) {
@@ -74,7 +86,11 @@ case object collectDistinctRewriter extends Rewriter {
         }
         acc => TraverseChildren(acc.withAliases(aliases))
 
-      case ContainerIndex(v: LogicalVariable, _) => acc => TraverseChildren(acc + v)
+      case ContainerIndex(v: LogicalVariable, _) => acc => TraverseChildren(acc.addUnsafe(v))
+
+      case In(_, list: LogicalVariable) => acc => SkipChildren(acc.addIn(list))
+
+      case v: LogicalVariable => acc => TraverseChildren(acc.add(v))
     }
 
     res.build
@@ -82,9 +98,20 @@ case object collectDistinctRewriter extends Rewriter {
 
   private case class Acc(
     unsafe: Set[LogicalVariable] = Set.empty,
+    in: Set[LogicalVariable] = Set.empty,
+    all: Map[LogicalVariable, Int] = Map.empty,
     aliases: Map[LogicalVariable, LogicalVariable] = Map.empty
   ) {
-    def +(v: LogicalVariable): Acc = copy(unsafe = unsafe + v)
+    def addUnsafe(v: LogicalVariable): Acc = copy(unsafe = unsafe + v)
+
+    def addIn(v: LogicalVariable): Acc = copy(in = in + v)
+
+    def add(v: LogicalVariable): Acc = {
+      copy(all = all.updatedWith(v) {
+        case None    => Some(1)
+        case Some(n) => Some(n + 1)
+      })
+    }
 
     @tailrec
     private def flattenAliases(
@@ -97,9 +124,12 @@ case object collectDistinctRewriter extends Rewriter {
       }
     }
 
-    def build: Set[LogicalVariable] = {
+    def build: (Set[LogicalVariable], Set[LogicalVariable]) = {
       val variables = unsafe.flatMap(v => flattenAliases(v))
-      unsafe ++ variables
+      // is only safe to rewrite non-DISTINCT collected list if its only usage is where it was introduced (aggregation)
+      // if variable is used anywhere else we assume it is not safe to rewrite
+      val onlyIn = in -- all.filter { case (_, n) => n > 1 }.keySet
+      (unsafe ++ variables, onlyIn)
     }
 
     def withAliases(newAliases: Map[LogicalVariable, LogicalVariable]): Acc = {

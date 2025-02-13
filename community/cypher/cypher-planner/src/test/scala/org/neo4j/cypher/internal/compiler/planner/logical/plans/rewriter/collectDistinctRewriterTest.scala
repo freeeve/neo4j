@@ -45,6 +45,48 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
     rewrite(before) should equal(after)
   }
 
+  test("should rewrite collect non-distinct when IN") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("'foo' AS result")
+      .filter("'foo' IN set")
+      .aggregation(Seq.empty, Seq("collect(a.prop) AS set"))
+      .allNodeScan("a")
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("'foo' AS result")
+      .filter("'foo' IN set")
+      .aggregation(Map.empty[String, Expression], Map("set" -> collectDistinct(prop("a", "prop"))))
+      .allNodeScan("a")
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
+  test("should rewrite collect non-distinct when multiple IN") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("'foo' AS result")
+      .filter("'foo' IN set")
+      .filter("'foo' IN set")
+      .aggregation(Seq.empty, Seq("collect(a.prop) AS set"))
+      .allNodeScan("a")
+      .build()
+
+    val after = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("'foo' AS result")
+      .filter("'foo' IN set")
+      .filter("'foo' IN set")
+      .aggregation(Map.empty[String, Expression], Map("set" -> collectDistinct(prop("a", "prop"))))
+      .allNodeScan("a")
+      .build()
+
+    rewrite(before) should equal(after)
+  }
+
   test("should rewrite collect distinct for ordered aggregations") {
     val before = new LogicalPlanBuilder()
       .produceResults("set")
@@ -59,6 +101,19 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
       .build()
 
     rewrite(before) should equal(after)
+  }
+
+  test("should not rewrite collect non-distinct when IN if there are other usages") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("result")
+      .projection("'foo' AS result")
+      .projection("set AS anotherSet")
+      .filter("'foo' IN set")
+      .aggregation(Seq.empty, Seq("collect(a.prop) AS set"))
+      .allNodeScan("a")
+      .build()
+
+    assertNotRewritten(before)
   }
 
   test("should not rewrite collect when not distinct") {
@@ -147,6 +202,18 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
       .produceResults("third")
       .projection("sneaky[3] AS third")
       .projection("set AS sneaky")
+      .aggregation(Seq.empty, Seq("collect(distinct a.prop) AS set"))
+      .allNodeScan("a")
+      .build()
+
+    assertNotRewritten(before)
+  }
+
+  test("should not rewrite if random access after being aliased by distinct") {
+    val before = new LogicalPlanBuilder()
+      .produceResults("third")
+      .projection("sneaky[3] AS third")
+      .distinct("set AS sneaky")
       .aggregation(Seq.empty, Seq("collect(distinct a.prop) AS set"))
       .allNodeScan("a")
       .build()
