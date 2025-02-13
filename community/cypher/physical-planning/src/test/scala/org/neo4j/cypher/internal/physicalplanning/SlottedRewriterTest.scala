@@ -41,7 +41,6 @@ import org.neo4j.cypher.internal.logical.plans.ValueHashJoin
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.SlotConfigurations
 import org.neo4j.cypher.internal.physicalplanning.PhysicalPlanningAttributes.TrailPlans
 import org.neo4j.cypher.internal.physicalplanning.SlottedRewriterTest.runtimeVarFor
-import org.neo4j.cypher.internal.physicalplanning.ast.IdFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.IsPrimitiveNull
 import org.neo4j.cypher.internal.physicalplanning.ast.NodeFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.NodeProperty

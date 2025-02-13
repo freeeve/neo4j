@@ -121,7 +121,7 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     HasDegreePrimitive(0, None, OUTGOING, literalInt(1)),
     HasTypesFromSlot(0, Seq(1), Seq()),
     HasDegreeGreaterThanOrEqualPrimitive(0, None, OUTGOING, literalInt(1)),
-    PrimitiveEquals(literalInt(1), literalInt(2)),
+    PrimitiveEquals(0, 1),
     IsPrimitiveNull(1),
     HasAnyLabelFromSlot(1, Seq(1), Seq()),
     HasALabelFromSlot(1),
