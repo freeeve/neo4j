@@ -22,6 +22,7 @@ package org.neo4j.logging.log4j;
 import static org.neo4j.logging.log4j.LogUtils.newLoggerBuilder;
 import static org.neo4j.logging.log4j.LogUtils.newTemporaryXmlConfigBuilder;
 import static org.neo4j.logging.log4j.LoggerTarget.ROOT_LOGGER;
+import static org.neo4j.util.FeatureToggles.getString;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -66,8 +67,10 @@ public final class LogConfig {
     public static final String SERVER_LOGS_XML = "server-logs.xml";
     public static final String USER_LOGS_XML = "user-logs.xml";
     private static final Map<Path, String> KNOWN_DEFAULTS = Map.of(
-            Path.of(SERVER_LOGS_XML), "default-server-logs.xml", //
-            Path.of(USER_LOGS_XML), "default-user-logs.xml");
+            Path.of(SERVER_LOGS_XML),
+            getString(LogConfig.class, "DEFAULT_SERVER_LOG", "default-server-logs.xml"),
+            Path.of(USER_LOGS_XML),
+            "default-user-logs.xml");
 
     private LogConfig() {}
 
