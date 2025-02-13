@@ -19,6 +19,7 @@
  */
 package org.neo4j.values.storable;
 
+import org.neo4j.hashing.HashFunction;
 import org.neo4j.values.Comparison;
 import org.neo4j.values.utils.PrettyPrinter;
 
@@ -48,5 +49,23 @@ public abstract sealed class VectorValue extends HashMemoizingScalarValue implem
         } else {
             return Comparison.UNDEFINED;
         }
+    }
+
+    /**
+     * In order to facilitate implementing {@link #updateHash(HashFunction, long)}.
+     *
+     * @param i the index of the coordinate
+     * @return the long bit representation of the coordinate.
+     */
+    protected abstract long longBits(int i);
+
+    @Override
+    public long updateHash(HashFunction hashFunction, long hash) {
+        int len = dimensions();
+        hash = hashFunction.update(hash, len);
+        for (int i = 0; i < len; i++) {
+            hash = hashFunction.update(hash, longBits(i));
+        }
+        return hash;
     }
 }

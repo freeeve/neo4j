@@ -127,6 +127,7 @@ public class ValueEqualityTest {
                 of(shouldNotMatch(float32Vector(1.0f), float64Vector(1.0))),
                 of(shouldNotMatch(float64Vector(1.0f), float64Vector(1.0, 1.1))),
                 of(shouldNotMatch(int16Vector((short) 1), float64Vector(1.0))),
+                of(shouldNotMatch(int16Vector((short) 1), int32Vector(1))),
                 of(shouldNotMatch(int32Vector(1), float32Vector(1.0f))),
                 of(shouldNotMatch(int32Vector(1), int64Vector(1))),
                 of(shouldNotMatch(int32Vector(1), int32Vector(1, 2))),

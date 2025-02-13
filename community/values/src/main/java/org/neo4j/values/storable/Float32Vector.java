@@ -22,7 +22,6 @@ package org.neo4j.values.storable;
 import static java.lang.String.format;
 
 import java.util.Arrays;
-import org.neo4j.hashing.HashFunction;
 import org.neo4j.memory.HeapEstimator;
 import org.neo4j.values.ValueMapper;
 
@@ -77,13 +76,8 @@ public final class Float32Vector extends FloatingPointVector {
     }
 
     @Override
-    public long updateHash(HashFunction hashFunction, long hash) {
-        int len = dimensions();
-        hash = hashFunction.update(hash, len);
-        for (int i = 0; i < len; i++) {
-            hash = hashFunction.update(hash, Double.doubleToLongBits(coordinates[i]));
-        }
-        return hash;
+    protected long longBits(int i) {
+        return Double.doubleToLongBits(coordinates[i]);
     }
 
     @Override
