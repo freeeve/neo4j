@@ -29,7 +29,8 @@ import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.logical.plans.Aggregation
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.OrderedAggregation
-import org.neo4j.cypher.internal.logical.plans.Projection
+import org.neo4j.cypher.internal.logical.plans.ProjectingPlan
+import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.attribution.SameId
@@ -67,8 +68,8 @@ case object collectDistinctRewriter extends Rewriter {
 
   private def randomAccessVariables(originalPlan: LogicalPlan) = {
     val res = originalPlan.folder.treeFold(Acc()) {
-      case Projection(_, projections) =>
-        val aliases = projections.collect {
+      case p: ProjectingPlan =>
+        val aliases = p.projectExpressions.collect {
           case (newVar, oldVar: LogicalVariable) => newVar -> oldVar
         }
         acc => TraverseChildren(acc.withAliases(aliases))
