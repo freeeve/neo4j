@@ -34,17 +34,8 @@ public interface AdmissionControlService {
     AdmissionControlToken requestToken(Tenant tenant);
 
     /**
-     * Await the release of a token, tokens that are already completed will return immediately, otherwise the
-     * caller will be blocked until the token is released.
-     * @param token The token to await the release of.
-     * @return The response of the token release, this can be interpreted by the caller to decide appropriate
-     * response.
+     * Removes the tenant from this admission control services tracking.
+     * @param tenant tenant to be removed.
      */
-    AdmissionControlResponse awaitRelease(AdmissionControlToken token);
-
-    /**
-     * When not enabled tokens must not be requested or awaited.
-     * @return Whether admission control is enabled.
-     */
-    boolean enabled();
+    void removeTenant(Tenant tenant);
 }

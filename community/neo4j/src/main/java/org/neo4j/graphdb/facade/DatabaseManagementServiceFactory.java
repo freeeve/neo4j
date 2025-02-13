@@ -51,8 +51,6 @@ import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.configuration.connectors.HttpConnector;
 import org.neo4j.configuration.connectors.HttpsConnector;
 import org.neo4j.dbms.DatabaseStateService;
-import org.neo4j.dbms.admissioncontrol.AdmissionControlService;
-import org.neo4j.dbms.admissioncontrol.NoopAdmissionControlService;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
@@ -206,20 +204,12 @@ public class DatabaseManagementServiceFactory {
                 new TransactionManagerImpl(boltGraphDatabaseManagementServiceSPI, globalModule.getGlobalClock());
         globalDependencies.satisfyDependency(transactionManager);
 
-        var acs =
-                tryResolveOrCreate(AdmissionControlService.class, globalDependencies, NoopAdmissionControlService::new);
         var connectionTenantResolverFactory = tryResolveOrCreate(
                 ConnectionAdmissionControlTrackerFactory.class,
                 globalDependencies,
                 ConnectionAdmissionControlTrackerFactory::noop);
         var boltServer = createBoltServer(
-                globalModule,
-                edition,
-                transactionManager,
-                routingService,
-                config,
-                acs,
-                connectionTenantResolverFactory);
+                globalModule, edition, transactionManager, routingService, config, connectionTenantResolverFactory);
 
         globalLife.add(boltServer);
         globalDependencies.satisfyDependency(boltServer);
@@ -449,7 +439,6 @@ public class DatabaseManagementServiceFactory {
             TransactionManager transactionManager,
             RoutingService routingService,
             Config config,
-            AdmissionControlService admissionControlService,
             ConnectionAdmissionControlTrackerFactory connectionTenantResolverFactory) {
 
         // Must be called before loading any Netty classes in order to override the factory
@@ -479,7 +468,6 @@ public class DatabaseManagementServiceFactory {
                 globalModule.getMemoryPools(),
                 routingService,
                 edition.getDefaultDatabaseResolver(),
-                admissionControlService,
                 connectionTenantResolverFactory);
     }
 

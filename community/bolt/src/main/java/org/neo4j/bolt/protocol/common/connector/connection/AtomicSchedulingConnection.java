@@ -55,7 +55,6 @@ import org.neo4j.bolt.protocol.error.BoltNetworkException;
 import org.neo4j.bolt.tx.Transaction;
 import org.neo4j.bolt.tx.TransactionType;
 import org.neo4j.bolt.tx.error.TransactionException;
-import org.neo4j.dbms.admissioncontrol.AdmissionControlService;
 import org.neo4j.dbms.admissioncontrol.AdmissionControlToken;
 import org.neo4j.graphdb.security.AuthorizationExpiredException;
 import org.neo4j.kernel.impl.query.NotificationConfiguration;
@@ -102,9 +101,8 @@ public class AtomicSchedulingConnection extends AbstractConnection {
             LogService logService,
             ExecutorService executor,
             Clock clock,
-            AdmissionControlService admissionControlService,
             ConnectionAdmissionControlTracker admissionControlTracker) {
-        super(connector, id, channel, connectedAt, memoryTracker, logService, admissionControlService);
+        super(connector, id, channel, connectedAt, memoryTracker, logService);
         this.executor = executor;
         this.clock = clock;
         this.admissionControlTracker = admissionControlTracker;
@@ -123,12 +121,6 @@ public class AtomicSchedulingConnection extends AbstractConnection {
     @Override
     public void submit(RequestMessage message) {
         this.notifyListeners(listener -> listener.onRequestReceived(message));
-
-        if (!this.admissionControl.enabled()) {
-            this.submit(new ProcessJob(this, this.clock.millis(), message, null));
-            return;
-        }
-
         var token = this.admissionControlTracker.onMessage(message);
         this.submit(new ProcessJob(this, this.clock.millis(), message, token));
     }
@@ -646,19 +638,16 @@ public class AtomicSchedulingConnection extends AbstractConnection {
         private final ExecutorService executor;
         private final Clock clock;
         private final LogService logService;
-        private final AdmissionControlService admissionControl;
         private final ConnectionAdmissionControlTrackerFactory connectionAdmissionControlTrackerFactory;
 
         public Factory(
                 ExecutorService executor,
                 Clock clock,
                 LogService logService,
-                AdmissionControlService admissionControl,
                 ConnectionAdmissionControlTrackerFactory connectionAdmissionControlTrackerFactory) {
             this.executor = executor;
             this.clock = clock;
             this.logService = logService;
-            this.admissionControl = admissionControl;
             this.connectionAdmissionControlTrackerFactory = connectionAdmissionControlTrackerFactory;
         }
 
@@ -677,7 +666,6 @@ public class AtomicSchedulingConnection extends AbstractConnection {
                     this.logService,
                     this.executor,
                     this.clock,
-                    this.admissionControl,
                     this.connectionAdmissionControlTrackerFactory.createNewTracker());
         }
     }

@@ -92,7 +92,6 @@ import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.configuration.connectors.CommonConnectorConfig;
 import org.neo4j.configuration.connectors.ConnectorPortRegister;
 import org.neo4j.configuration.connectors.ConnectorType;
-import org.neo4j.dbms.admissioncontrol.AdmissionControlService;
 import org.neo4j.dbms.routing.RoutingService;
 import org.neo4j.function.Suppliers;
 import org.neo4j.kernel.api.net.NetworkConnectionTracker;
@@ -144,7 +143,6 @@ public class BoltServer extends LifecycleAdapter {
 
     private final List<Connector> connectors = new ArrayList<>();
     private final LifeSupport connectorLife = new LifeSupport();
-    private final AdmissionControlService admissionControl;
     private BoltMemoryPool memoryPool;
     private EventLoopGroup bossEventLoopGroup;
     private EventLoopGroup workerEventLoopGroup;
@@ -169,7 +167,6 @@ public class BoltServer extends LifecycleAdapter {
             MemoryPools memoryPools,
             RoutingService routingService,
             DefaultDatabaseResolver defaultDatabaseResolver,
-            AdmissionControlService admissionControl,
             ConnectionAdmissionControlTrackerFactory admissionControlTrackerFactory) {
         this.dbmsInfo = dbmsInfo;
         this.jobScheduler = jobScheduler;
@@ -185,7 +182,6 @@ public class BoltServer extends LifecycleAdapter {
         this.loopbackAuthManager = loopbackAuthManager;
         this.memoryPools = memoryPools;
         this.defaultDatabaseResolver = defaultDatabaseResolver;
-        this.admissionControl = admissionControl;
         this.connectionHintRegistry = ConnectionHintRegistry.newBuilder()
                 .withProvider(new KeepAliveConnectionHintProvider(config))
                 .withProvider(new TelemetryConnectionHintProvider(config))
@@ -520,7 +516,7 @@ public class BoltServer extends LifecycleAdapter {
 
     private Connection.Factory createConnectionFactory() {
         return new AtomicSchedulingConnection.Factory(
-                executorService, clock, logService, admissionControl, admissionControlTrackerFactory);
+                executorService, clock, logService, admissionControlTrackerFactory);
     }
 
     private static Authentication createAuthentication(AuthManager authManager) {

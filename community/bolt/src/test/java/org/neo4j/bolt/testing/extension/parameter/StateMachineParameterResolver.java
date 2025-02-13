@@ -30,7 +30,6 @@ import org.neo4j.bolt.testing.extension.dependency.StateMachineDependencyProvide
 import org.neo4j.bolt.testing.extension.initializer.StateMachineInitializer;
 import org.neo4j.bolt.testing.extension.provider.StateMachineConnectionRegistry;
 import org.neo4j.bolt.testing.fsm.StateMachineProvider;
-import org.neo4j.dbms.admissioncontrol.NoopAdmissionControlService;
 import org.neo4j.logging.internal.NullLogService;
 
 public class StateMachineParameterResolver implements ParameterResolver {
@@ -60,8 +59,7 @@ public class StateMachineParameterResolver implements ParameterResolver {
         var protocol = this.fsmProvider.protocol();
         var connection = this.dependencyProvider.connection(extensionContext);
 
-        var fsm = protocol.stateMachine()
-                .createInstance(connection, NullLogService.getInstance(), new NoopAdmissionControlService());
+        var fsm = protocol.stateMachine().createInstance(connection, NullLogService.getInstance());
         Mockito.doReturn(fsm).when(connection).fsm();
         this.connectionRegistry.register(fsm, connection);
 

@@ -27,6 +27,8 @@ public final class AdmissionControlToken {
             new AdmissionControlToken(AdmissionControlResponse.ADMISSION_CONTROL_PROCESS_STOPPED);
     public static final AdmissionControlToken UNABLE_TO_QUEUE_NEW_TOKEN =
             new AdmissionControlToken(AdmissionControlResponse.UNABLE_TO_ALLOCATE_NEW_TOKEN);
+    public static final AdmissionControlToken NO_TENANT_CREDIT =
+            new AdmissionControlToken(AdmissionControlResponse.NO_TENANT_CREDIT);
     public static final AdmissionControlToken RELEASED = new AdmissionControlToken(AdmissionControlResponse.RELEASED);
 
     private final BinaryLatch latch = new BinaryLatch();
@@ -62,8 +64,10 @@ public final class AdmissionControlToken {
     }
 
     /**
-     * Awaits the release of the underlying control mechanism.
-     * @return The response from the admission controller that created this token.
+     * Await the release of a token, tokens that are already completed will return immediately, otherwise the
+     * caller will be blocked until the token is released.
+     * @return The response of the token release, this can be interpreted by the caller to decide appropriate
+     * response.
      */
     public AdmissionControlResponse await() {
         latch.await();

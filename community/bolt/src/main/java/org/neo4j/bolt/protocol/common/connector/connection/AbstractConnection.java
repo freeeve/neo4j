@@ -51,7 +51,6 @@ import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.protocol.io.pipeline.PipelineContext;
 import org.neo4j.bolt.protocol.io.pipeline.WriterPipeline;
 import org.neo4j.bolt.security.error.AuthenticationException;
-import org.neo4j.dbms.admissioncontrol.AdmissionControlService;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.kernel.impl.query.clientconnection.BoltConnectionInfo;
@@ -77,7 +76,6 @@ public abstract class AbstractConnection implements ConnectionHandle {
     protected final LogService logService;
     protected final InternalLog log;
     protected final Log userLog;
-    protected final AdmissionControlService admissionControl;
 
     private final Lock listenerLock = new ReentrantLock();
     private final List<ConnectionListener> listeners = new CopyOnWriteArrayList<>();
@@ -110,14 +108,12 @@ public abstract class AbstractConnection implements ConnectionHandle {
             Channel channel,
             long connectedAt,
             MemoryTracker memoryTracker,
-            LogService logService,
-            AdmissionControlService admissionControl) {
+            LogService logService) {
         this.connector = connector;
         this.id = id;
         this.channel = channel;
         this.connectedAt = connectedAt;
         this.memoryTracker = memoryTracker;
-        this.admissionControl = admissionControl;
 
         this.logService = logService;
         this.log = logService.getInternalLog(this.getClass());
@@ -302,7 +298,7 @@ public abstract class AbstractConnection implements ConnectionHandle {
         this.features.set(Collections.unmodifiableSet(protocol.features()));
 
         // allocate a new state machine for the desired protocol version to prepare the connection for handling requests
-        var fsm = protocol.stateMachine().createInstance(this, this.logService, this.admissionControl);
+        var fsm = protocol.stateMachine().createInstance(this, this.logService);
         this.fsm = fsm;
 
         // notify the protocol in order to register legacy compliance listeners

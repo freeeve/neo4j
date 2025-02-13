@@ -34,7 +34,6 @@ import org.neo4j.bolt.protocol.common.connector.connection.ConnectionHandle;
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.common.message.Error;
 import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
-import org.neo4j.dbms.admissioncontrol.AdmissionControlService;
 import org.neo4j.dbms.admissioncontrol.AdmissionControlToken;
 import org.neo4j.logging.Log;
 import org.neo4j.logging.internal.LogService;
@@ -48,7 +47,6 @@ final class StateMachineImpl implements StateMachine, Context {
 
     private State defaultState;
     private State currentState;
-    private final AdmissionControlService admissionControlService;
 
     private boolean failed;
     private volatile boolean interrupted;
@@ -57,8 +55,7 @@ final class StateMachineImpl implements StateMachine, Context {
             ConnectionHandle connection,
             StateMachineConfiguration configuration,
             LogService logging,
-            State initialState,
-            AdmissionControlService admissionControlService) {
+            State initialState) {
         this.connection = connection;
         this.configuration = configuration;
 
@@ -66,7 +63,6 @@ final class StateMachineImpl implements StateMachine, Context {
         this.internalLog = logging.getInternalLog(StateMachineImpl.class);
 
         this.currentState = this.defaultState = initialState;
-        this.admissionControlService = admissionControlService;
     }
 
     @Override
@@ -197,12 +193,13 @@ final class StateMachineImpl implements StateMachine, Context {
     private void awaitAdmissionControlToken(AdmissionControlToken admissionControlToken)
             throws AdmissionControlException {
         if (admissionControlToken != null) {
-            var response = admissionControlService.awaitRelease(admissionControlToken);
+            var response = admissionControlToken.await();
             // Convert the admission control response in to a state machine friendly error.
             switch (response) {
                 case RELEASED -> {}
                 case UNABLE_TO_ALLOCATE_NEW_TOKEN,
-                        ADMISSION_CONTROL_PROCESS_STOPPED -> throw new AdmissionControlException();
+                        ADMISSION_CONTROL_PROCESS_STOPPED,
+                        NO_TENANT_CREDIT -> throw new AdmissionControlException();
             }
         }
     }

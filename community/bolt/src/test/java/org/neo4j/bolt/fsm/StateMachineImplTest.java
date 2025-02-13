@@ -19,9 +19,12 @@
  */
 package org.neo4j.bolt.fsm;
 
+import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.neo4j.bolt.fsm.error.ConnectionTerminating;
@@ -41,7 +44,6 @@ import org.neo4j.bolt.testing.assertions.StateMachineAssertions;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
 import org.neo4j.bolt.testing.mock.StateMockFactory;
 import org.neo4j.dbms.admissioncontrol.AdmissionControlResponse;
-import org.neo4j.dbms.admissioncontrol.AdmissionControlService;
 import org.neo4j.dbms.admissioncontrol.AdmissionControlToken;
 import org.neo4j.kernel.api.exceptions.HasQuery;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -67,13 +69,11 @@ class StateMachineImplTest {
 
     private AssertableLogProvider userLog;
     private AssertableLogProvider internalLog;
-    private AdmissionControlService admissionControlService;
 
     @BeforeEach
     void prepare() throws StateMachineException {
         this.connection = ConnectionMockFactory.newInstance();
         this.configuration = Mockito.mock(StateMachineConfiguration.class);
-        this.admissionControlService = Mockito.mock(AdmissionControlService.class);
         this.initialState = StateMockFactory.newFactory(INITIAL_REFERENCE)
                 .withResult(INITIAL_REFERENCE)
                 .attachTo(this.configuration);
@@ -85,8 +85,7 @@ class StateMachineImplTest {
                 this.connection,
                 this.configuration,
                 new SimpleLogService(this.userLog, this.internalLog),
-                this.initialState,
-                this.admissionControlService);
+                this.initialState);
     }
 
     @Test
@@ -490,41 +489,27 @@ class StateMachineImplTest {
         var responseHandler = Mockito.mock(ResponseHandler.class);
         var token = Mockito.mock(AdmissionControlToken.class);
 
-        Mockito.doReturn(AdmissionControlResponse.RELEASED)
-                .when(admissionControlService)
-                .awaitRelease(token);
+        Mockito.doReturn(AdmissionControlResponse.RELEASED).when(token).await();
 
         this.fsm.process(request, responseHandler, token);
 
-        Mockito.verify(admissionControlService, Mockito.times(1)).awaitRelease(token);
+        Mockito.verify(token, Mockito.times(1)).await();
         Mockito.verify(responseHandler, Mockito.times(1)).onSuccess();
     }
 
-    @Test
-    @SuppressWarnings("removal")
-    void shouldNotAwaitAdmissionControlWhenNull() throws StateMachineException {
-        var request = Mockito.mock(RequestMessage.class);
-        var responseHandler = Mockito.mock(ResponseHandler.class);
-
-        this.fsm.process(request, responseHandler, null);
-
-        Mockito.verify(admissionControlService, Mockito.times(0)).awaitRelease(Mockito.any());
-        Mockito.verify(responseHandler, Mockito.times(1)).onSuccess();
-    }
-
-    @Test
-    void shouldFailWhenAdmissionControlReturnsQueueFull() throws StateMachineException {
+    @ParameterizedTest
+    @MethodSource("responses")
+    void shouldFailWhenAdmissionControlResponseImpliesFailure(AdmissionControlResponse response)
+            throws StateMachineException {
         var request = Mockito.mock(RequestMessage.class);
         var responseHandler = Mockito.mock(ResponseHandler.class);
         var token = Mockito.mock(AdmissionControlToken.class);
 
-        Mockito.doReturn(AdmissionControlResponse.UNABLE_TO_ALLOCATE_NEW_TOKEN)
-                .when(admissionControlService)
-                .awaitRelease(token);
+        Mockito.doReturn(response).when(token).await();
 
         this.fsm.process(request, responseHandler, token);
 
-        Mockito.verify(admissionControlService, Mockito.times(1)).awaitRelease(Mockito.any());
+        Mockito.verify(token, Mockito.times(1)).await();
 
         var captor = ArgumentCaptor.forClass(Error.class);
         Mockito.verify(responseHandler, Mockito.times(1)).onFailure(captor.capture());
@@ -532,24 +517,11 @@ class StateMachineImplTest {
         ErrorAssertions.assertThat(captor.getValue()).hasStatus(Request.ResourceExhaustion);
     }
 
-    @Test
-    void shouldFailWhenAdmissionControlProcessStopped() throws StateMachineException {
-        var request = Mockito.mock(RequestMessage.class);
-        var responseHandler = Mockito.mock(ResponseHandler.class);
-        var token = Mockito.mock(AdmissionControlToken.class);
-
-        Mockito.doReturn(AdmissionControlResponse.ADMISSION_CONTROL_PROCESS_STOPPED)
-                .when(admissionControlService)
-                .awaitRelease(token);
-
-        this.fsm.process(request, responseHandler, token);
-
-        Mockito.verify(admissionControlService, Mockito.times(1)).awaitRelease(Mockito.any());
-
-        var captor = ArgumentCaptor.forClass(Error.class);
-        Mockito.verify(responseHandler, Mockito.times(1)).onFailure(captor.capture());
-
-        ErrorAssertions.assertThat(captor.getValue()).hasStatus(Request.ResourceExhaustion);
+    public static Stream<AdmissionControlResponse> responses() {
+        return Stream.of(
+                AdmissionControlResponse.ADMISSION_CONTROL_PROCESS_STOPPED,
+                AdmissionControlResponse.UNABLE_TO_ALLOCATE_NEW_TOKEN,
+                AdmissionControlResponse.NO_TENANT_CREDIT);
     }
 
     private class MockDatabaseException extends StateMachineException implements HasStatus {

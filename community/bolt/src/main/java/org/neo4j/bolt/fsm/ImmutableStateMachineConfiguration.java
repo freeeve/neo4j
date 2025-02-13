@@ -24,7 +24,6 @@ import org.neo4j.bolt.fsm.error.NoSuchStateException;
 import org.neo4j.bolt.fsm.state.State;
 import org.neo4j.bolt.fsm.state.StateReference;
 import org.neo4j.bolt.protocol.common.connector.connection.ConnectionHandle;
-import org.neo4j.dbms.admissioncontrol.AdmissionControlService;
 import org.neo4j.logging.internal.LogService;
 
 final class ImmutableStateMachineConfiguration implements StateMachineConfiguration {
@@ -65,8 +64,7 @@ final class ImmutableStateMachineConfiguration implements StateMachineConfigurat
     }
 
     @Override
-    public StateMachine createInstance(
-            ConnectionHandle connection, LogService logService, AdmissionControlService admissionControlService) {
-        return new StateMachineImpl(connection, this, logService, this.initialState, admissionControlService);
+    public StateMachine createInstance(ConnectionHandle connection, LogService logService) {
+        return new StateMachineImpl(connection, this, logService, this.initialState);
     }
 }

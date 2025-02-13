@@ -22,5 +22,6 @@ package org.neo4j.dbms.admissioncontrol;
 public enum AdmissionControlResponse {
     RELEASED,
     UNABLE_TO_ALLOCATE_NEW_TOKEN,
+    NO_TENANT_CREDIT,
     ADMISSION_CONTROL_PROCESS_STOPPED
 }
