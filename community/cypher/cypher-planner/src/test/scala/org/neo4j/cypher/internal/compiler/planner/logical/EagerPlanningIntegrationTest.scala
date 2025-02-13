@@ -54,6 +54,9 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanAstConstructionTestSupport
 import org.neo4j.cypher.internal.logical.plans.NFA
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Trail
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Walk
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
@@ -600,7 +603,8 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     selector: StatefulShortestPath.Selector,
     nfa: NFA,
     minLength: Int,
-    maybeMaxLength: Option[Int]
+    maybeMaxLength: Option[Int],
+    matchMode: TraversalMatchMode = Trail
   )
 
   implicit class SSPLogicalPlanBuilder(builder: LogicalPlanBuilder) {
@@ -621,7 +625,8 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           ExpandAll,
           false,
           parameters.minLength,
-          parameters.maybeMaxLength
+          parameters.maybeMaxLength,
+          parameters.matchMode
         )
   }
 
@@ -638,7 +643,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .setFinalState(1)
         .build(),
       1,
-      Some(1)
+      Some(1),
+      // because it is only a single fixed-length relationship, we can apply walk semantics here
+      Walk
     )
 
   val `((start)((a{prop: 5})-[r:R]->(b))+(end))`: ShortestPathParameters =
@@ -692,7 +699,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .setFinalState(1)
         .build(),
       1,
-      Some(1)
+      Some(1),
+      // because it is only a single fixed-length relationship, we can apply walk semantics here
+      Walk
     )
 
   test("Shortest match produces an eager when there is a relationship overlap") {
@@ -776,7 +785,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           ExpandAll,
           false,
           1,
-          Some(1)
+          Some(1),
+          // because it is only a single fixed-length relationship, we can apply walk semantics here
+          Walk
         )
         .filter("start.prop = 1")
         .apply()
@@ -819,7 +830,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           ExpandAll,
           false,
           1,
-          Some(1)
+          Some(1),
+          // because it is only a single fixed-length relationship, we can apply walk semantics here
+          Walk
         )
         .filter("start.prop = 1")
         .apply()
@@ -969,7 +982,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           ExpandAll,
           false,
           1,
-          Some(1)
+          Some(1),
+          // because it is only a single fixed-length relationship, we can apply walk semantics here
+          Walk
         )
         .filter("start.prop = 1")
         .allNodeScan("start")
@@ -1015,7 +1030,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           ExpandAll,
           false,
           1,
-          Some(1)
+          Some(1),
+          // because it is only a single fixed-length relationship, we can apply walk semantics here
+          Walk
         )
         .filter("start.prop = 1")
         .allNodeScan("start")

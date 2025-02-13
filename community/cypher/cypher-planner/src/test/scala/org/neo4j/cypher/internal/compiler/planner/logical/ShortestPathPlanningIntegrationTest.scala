@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.CypherVersion.Cypher25
 import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
@@ -59,6 +60,8 @@ import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
 import org.neo4j.cypher.internal.logical.plans.NestedPlanGetByNameExpression
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Walk
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
@@ -340,7 +343,10 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
           ExpandAll,
           false,
           1,
-          Some(5)
+          Some(5),
+          // We have the non-inlinable prefilter "`  next@0` = next", which requires relationship uniqueness along the path
+          // as `next` already has relationship uniqueness
+          TraversalMatchMode.Walk
         )
         // Yup, not pretty, we could drop these predicates.
         // But currently they are inserted quite early in ASTRewriter,
@@ -2402,7 +2408,9 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         ExpandAll,
         false,
         1,
-        Some(1)
+        Some(1),
+        // because it is only a single fixed-length relationship, we can apply walk semantics here
+        matchMode = TraversalMatchMode.Walk
       )
       .nodeByLabelScan("a", "User")
       .build()
@@ -3029,7 +3037,9 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
           ExpandAll,
           false,
           1,
-          Some(1)
+          Some(1),
+          // because it is only a single fixed-length relationship, we can apply walk semantics here
+          matchMode = TraversalMatchMode.Walk
         )
         .apply()
         .|.nodeByLabelScan("a", "User", "n")
@@ -4998,6 +5008,120 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       )
       .filter("leftOuter.id = 1")
       .allNodeScan("leftOuter")
+      .build()
+  }
+
+  test("Should plan selective path pattern using Walk under repeatable elements semantics") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setRelationshipCardinality("()-[:R]->()", 500)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    val query =
+      """
+        |MATCH REPEATABLE ELEMENTS ALL SHORTEST (a)((n1)-[r1]->(n2)){1,5}(b)
+        |RETURN a, b
+        """.stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner.planBuilder()
+      .produceResults("a", "b")
+      .statefulShortestPath(
+        "a",
+        "b",
+        "SHORTEST 1 GROUPS (a) ((`n1`)-[`r1`]->(`n2`)){1, 5} (b)",
+        None,
+        Set(),
+        Set(),
+        Set(("b", "b")),
+        Set(),
+        StatefulShortestPath.Selector.ShortestGroups(CountInteger(1)),
+        new TestNFABuilder(0, "a")
+          .addTransition(0, 1, "(a) (n1)")
+          .addTransition(1, 2, "(n1)-[r1]->(n2)")
+          .addTransition(2, 3, "(n2) (n1)")
+          .addTransition(2, 11, "(n2) (b)")
+          .addTransition(3, 4, "(n1)-[r1]->(n2)")
+          .addTransition(4, 5, "(n2) (n1)")
+          .addTransition(4, 11, "(n2) (b)")
+          .addTransition(5, 6, "(n1)-[r1]->(n2)")
+          .addTransition(6, 7, "(n2) (n1)")
+          .addTransition(6, 11, "(n2) (b)")
+          .addTransition(7, 8, "(n1)-[r1]->(n2)")
+          .addTransition(8, 9, "(n2) (n1)")
+          .addTransition(8, 11, "(n2) (b)")
+          .addTransition(9, 10, "(n1)-[r1]->(n2)")
+          .addTransition(10, 11, "(n2) (b)")
+          .setFinalState(11)
+          .build(),
+        ExpandAll,
+        false,
+        1,
+        Some(5),
+        Walk
+      )
+      .allNodeScan("a")
+      .build()
+  }
+
+  test(
+    "Should plan selective path pattern using Walk along non-selective path pattern under repeatable elements semantics"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setRelationshipCardinality("()-[:R]->()", 500)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    val query =
+      """
+        |MATCH REPEATABLE ELEMENTS
+        |   ALL SHORTEST (a)((n1)-[r1]->(n2)){1,5}(b),
+        |   (b)-[r2]->(c)
+        |RETURN a, b, c
+        """.stripMargin
+
+    val plan = planner.plan(query)
+
+    plan shouldEqual planner.planBuilder()
+      .produceResults("a", "b", "c")
+      .statefulShortestPath(
+        "b",
+        "a",
+        "SHORTEST 1 GROUPS (a) ((`n1`)-[`r1`]->(`n2`)){1, 5} (b)",
+        None,
+        Set(),
+        Set(),
+        Set(("a", "a")),
+        Set(),
+        StatefulShortestPath.Selector.ShortestGroups(CountInteger(1)),
+        new TestNFABuilder(0, "b")
+          .addTransition(0, 1, "(b) (n2)")
+          .addTransition(1, 2, "(n2)<-[r1]-(n1)")
+          .addTransition(2, 3, "(n1) (n2)")
+          .addTransition(2, 11, "(n1) (a)")
+          .addTransition(3, 4, "(n2)<-[r1]-(n1)")
+          .addTransition(4, 5, "(n1) (n2)")
+          .addTransition(4, 11, "(n1) (a)")
+          .addTransition(5, 6, "(n2)<-[r1]-(n1)")
+          .addTransition(6, 7, "(n1) (n2)")
+          .addTransition(6, 11, "(n1) (a)")
+          .addTransition(7, 8, "(n2)<-[r1]-(n1)")
+          .addTransition(8, 9, "(n1) (n2)")
+          .addTransition(8, 11, "(n1) (a)")
+          .addTransition(9, 10, "(n2)<-[r1]-(n1)")
+          .addTransition(10, 11, "(n1) (a)")
+          .setFinalState(11)
+          .build(),
+        ExpandAll,
+        true,
+        1,
+        Some(5),
+        Walk
+      )
+      .allRelationshipsScan("(b)-[r2]->(c)")
       .build()
   }
 }

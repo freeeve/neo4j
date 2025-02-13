@@ -63,7 +63,6 @@ import org.neo4j.cypher.internal.logical.plans.NFA.PathLength
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
 import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Trail
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
 import org.neo4j.cypher.internal.util.Cardinality
@@ -422,7 +421,7 @@ object expandSolverStep {
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
       reverseGroupVariableProjections = !fromLeft,
-      matchMode == Trail
+      matchMode
     )
 
     val bothEndpointsBoundInSourcePlan =
@@ -618,7 +617,7 @@ object expandSolverStep {
     val fromLeft = startNode == spp.left
     val endNode = if (fromLeft) spp.right else spp.left
 
-    val (mode, matchingHints) = if (availableSymbols.contains(endNode)) {
+    val (expandMode, matchingHints) = if (availableSymbols.contains(endNode)) {
       val matchingHints = queryGraph.statefulShortestPathIntoHints
         .filter(_.variables.toIndexedSeq == spp.pathVariables.map(_.variable))
       (ExpandInto, matchingHints)
@@ -628,7 +627,7 @@ object expandSolverStep {
       (ExpandAll, matchingHints)
     }
 
-    if (!fromLeft && mode == ExpandInto) {
+    if (!fromLeft && expandMode == ExpandInto) {
       // ExpandInto is symmetrical.
       // So there is no point considering it both from left and from right.
       // When coming from right, we stop here.
@@ -649,7 +648,7 @@ object expandSolverStep {
       spp.allQuantifiedPathPatterns.flatMap(_.groupVariables) ++
         spp.varLengthRelationships +
         startNode ++
-        Option.when(mode == ExpandInto)(endNode)
+        Option.when(expandMode == ExpandInto)(endNode)
 
     val singletonNodeVariables = Set.newBuilder[Mapping]
     val singletonRelVariables = Set.newBuilder[Mapping]
@@ -706,6 +705,8 @@ object expandSolverStep {
         Ands.create(nonInlinedSelectionsWithoutUniqPreds.flatPredicates.to(ListSet))
       )
 
+    val matchMode = TraversalMatchMode.getFromPredicates(originalSpp.selections.predicates.map(_.expr))
+
     Some(
       heuristicForStatefulShortestInto(
         context.staticComponents.logicalPlanProducer.planStatefulShortest(
@@ -713,7 +714,7 @@ object expandSolverStep {
           startNode,
           endNode,
           rewrittenNfa,
-          mode,
+          expandMode,
           nonInlinedPreFilters,
           nodeVariableGroupings,
           relationshipVariableGroupings,
@@ -726,7 +727,8 @@ object expandSolverStep {
           reverseGroupVariableProjections = !fromLeft,
           matchingHints,
           context,
-          pathLength
+          pathLength,
+          matchMode
         ),
         context
       )

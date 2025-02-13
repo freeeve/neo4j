@@ -19,13 +19,16 @@ package org.neo4j.cypher.internal.frontend
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
+import org.neo4j.cypher.internal.frontend.helpers.ShortestSyntax
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 import org.neo4j.gqlstatus.GqlHelper
 
-class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysisTestSuiteWithDefaultQuery
-    with TestName {
+class MatchModesSemanticAnalysisTest extends CypherFunSuite
+    with SemanticAnalysisTestSuiteWithDefaultQuery
+    with TestName
+    with ShortestSyntax {
 
   override def defaultQuery: String = s"MATCH $testName RETURN *"
 
@@ -167,6 +170,118 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
     )
   }
 
+  private def invalidEquijoinErrorMsg(varName: String) = s"Variable `$varName` already declared"
+
+  // Under REPEATABLE ELEMENTS, we allow mixing selective path patterns alongside other path patterns
+  allSelectiveSelectors.foreach { selector =>
+    allSelectors.foreach { otherSelector =>
+      test(
+        s"""MATCH REPEATABLE ELEMENTS
+           |   p1 = $selector (a)-->{1, 32}(b)-->(c),
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasNoErrors
+      }
+      test(
+        s"""MATCH REPEATABLE ELEMENTS
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z),
+           |   p1 = $selector (a)-->{1, 32}(b)-->(c)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasNoErrors
+      }
+
+      // Newly introduced strict interior nodes of selective path patterns may not be reused in the same MATCH clause
+      test(
+        s"""MATCH REPEATABLE ELEMENTS
+           |   p1 = $selector (a)-->{1, 32}(x)-->(c),
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasErrorMessages(invalidEquijoinErrorMsg("x"))
+      }
+      test(
+        s"""MATCH REPEATABLE ELEMENTS
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z),
+           |   p1 = $selector (a)-->{1, 32}(x)-->(c)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasErrorMessages(invalidEquijoinErrorMsg("x"))
+      }
+      // when the variable is already bound in the previous match clause
+      test(
+        s"""MATCH (x)
+           |MATCH REPEATABLE ELEMENTS
+           |   p1 = $selector (a)-->{1, 32}(x)-->(c),
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasNoErrors
+      }
+      test(
+        s"""MATCH (x)
+           |MATCH REPEATABLE ELEMENTS
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z),
+           |   p1 = $selector (a)-->{1, 32}(x)-->(c)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasNoErrors
+      }
+    }
+    allSelectiveSelectors.foreach { otherSelector =>
+      // overlap between strict interior nodes of different SPPs is not okay either
+      test(
+        s"""MATCH REPEATABLE ELEMENTS
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z),
+           |   p1 = $selector (a)-->{1, 32}(y)-->(c)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasErrorMessages(invalidEquijoinErrorMsg("y"))
+      }
+
+      test(
+        s"""MATCH REPEATABLE ELEMENTS
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z),
+           |   p1 = $selector (a)-->{1, 32}(y)-->(y)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasErrorMessages(invalidEquijoinErrorMsg("y"))
+      }
+
+      // but it is if the nodes are boundary nodes as well
+      test(
+        s"""MATCH REPEATABLE ELEMENTS
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(y),
+           |   p1 = $selector (a)-->{1, 32}(y)-->(y)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasNoErrors
+      }
+
+      // Or if they are previously bound
+      test(
+        s"""MATCH (y)
+           |MATCH REPEATABLE ELEMENTS
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z),
+           |   p1 = $selector (a)-->{1, 32}(y)-->(c)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasNoErrors
+      }
+      test(
+        s"""MATCH (y)
+           |MATCH REPEATABLE ELEMENTS
+           |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z),
+           |   p1 = $selector (a)-->{1, 32}(y)-->(y)
+           |RETURN count(*)""".stripMargin
+      ) {
+        runWith(testName, MatchModes).hasNoErrors
+      }
+
+    }
+  }
+
   test("(a)-[:REL]->(b), ALL PATHS (c)-[:REL]->(d)") {
     runWith(MatchModes).hasNoErrors
   }
@@ -228,6 +343,92 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
   }
 
   test(s"DIFFERENT RELATIONSHIPS (a)-->(b) MATCH shortestPath((c)-->(d))") {
+    runWith(MatchModes).hasNoErrors
+  }
+
+  test(
+    "REPEATABLE ELEMENTS ALL SHORTEST (a)((n1)-[r1]->(n2)){1,5}(b), ALL SHORTEST (b)-[r2]->{2,3}(c)"
+  ) {
+    runWith(MatchModes).hasNoErrors
+  }
+
+  test(
+    "REPEATABLE ELEMENTS ALL SHORTEST (a)((n1)-[r1:R1]->(n2)){1,5}(b)-[r2:R2]->{2,3}(c)"
+  ) {
+    runWith(MatchModes).hasNoErrors
+  }
+
+  test(
+    "REPEATABLE ELEMENTS (b)-[r3:R1]->(c),  ALL SHORTEST (a)((n1)-[r1:R1]->(n2)){1,5}(b)-[r2:R2]->{2,3}(b)"
+  ) {
+    // b is a strict interior node, but also a boundary node. Therefore, it can be used in other path-patterns.
+    runWith(MatchModes).hasNoErrors
+  }
+
+  test(
+    "REPEATABLE ELEMENTS ALL SHORTEST (a)((n1)-[r1:R1]->(n2)){1,2}(i)-[r2:R2]->{2,3}(b), (b)-[r3:R1]->(c), SHORTEST 1 (c)-[:R2]->{2,3}(d)"
+  ) {
+    runWith(MatchModes).hasNoErrors
+  }
+
+  test(
+    "REPEATABLE ELEMENTS (a)--(b), ALL SHORTEST ((b)-[r2]->{2,3}(c) WHERE b.p=a.p)"
+  ) {
+    // selective path pattern has a predicate referring to another path pattern in the same graph pattern - reference to variable in earlier path pattern
+    runWith(MatchModes).hasError(
+      GqlHelper.getGql42001_42I21(
+        java.util.List.of("a"),
+        "ALL SHORTEST PATHS ((b) (()-[r2]->()){2, 3} (c) WHERE b.p = a.p)",
+        79,
+        1,
+        80
+      ),
+      """From within a selective path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+        |In this case, `a` is defined in the same `MATCH` clause as ALL SHORTEST PATHS ((b) (()-[r2]->()){2, 3} (c) WHERE b.p = a.p).""".stripMargin,
+      p(79, 1, 80)
+    )
+  }
+
+  test(
+    "REPEATABLE ELEMENTS ALL SHORTEST ((b)-[r2]->{2,3}(c) WHERE b.p=a.p), (a)--{,2}(b)"
+  ) {
+    // selective path pattern has a predicate referring to another path pattern in the same graph pattern - reference to variable in later path pattern
+    runWith(MatchModes).hasError(
+      GqlHelper.getGql42001_42I21(
+        java.util.List.of("a"),
+        "ALL SHORTEST PATHS ((b) (()-[r2]->()){2, 3} (c) WHERE b.p = a.p)",
+        69,
+        1,
+        70
+      ),
+      """From within a selective path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+        |In this case, `a` is defined in the same `MATCH` clause as ALL SHORTEST PATHS ((b) (()-[r2]->()){2, 3} (c) WHERE b.p = a.p).""".stripMargin,
+      p(69, 1, 70)
+    )
+  }
+
+  test(
+    "(a)--(b) MATCH REPEATABLE ELEMENTS ALL SHORTEST ((b)-[r2]->{2,3}(c) WHERE a.p=c.p)"
+  ) {
+    runWith(MatchModes).hasNoErrors
+  }
+
+  test(
+    "ALL SHORTEST (x)--{,2}(y)--{,2}(z) MATCH REPEATABLE ELEMENTS ALL SHORTEST ((b)-[r2]->{2,3}(c) WHERE b.p=y.p)"
+  ) {
+    runWith(MatchModes).hasNoErrors
+  }
+
+  test(
+    "(a)-[:R]->(e) MATCH REPEATABLE ELEMENTS (a)--(b), ALL SHORTEST ((b)--{2,3}(c)--{,2}(d) WHERE c.p=a.p)"
+  ) {
+    // a is already bound in a previous clause, therefore c.p=a.p is allowed here
+    runWith(MatchModes).hasNoErrors
+  }
+
+  test(
+    "(a)-[:R]->(e) MATCH REPEATABLE ELEMENTS (a)--(b), ALL SHORTEST ((b)--{2,3}(c) WHERE c.p=a.p)"
+  ) {
     runWith(MatchModes).hasNoErrors
   }
 }

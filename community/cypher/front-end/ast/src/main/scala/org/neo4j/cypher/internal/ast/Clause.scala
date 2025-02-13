@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.error
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticState.ScopeLocation
+import org.neo4j.cypher.internal.ast.semantics.SymbolUse
 import org.neo4j.cypher.internal.ast.semantics.TypeGenerator
 import org.neo4j.cypher.internal.ast.semantics.iterableOnceSemanticChecking
 import org.neo4j.cypher.internal.ast.semantics.optionSemanticChecking
@@ -880,15 +881,123 @@ case class Match(
   }
 
   /**
-   * Under the match mode repeatable elements, StatefulShortestPath can go into infinite
+   * Under the match mode REPEATABLE ELEMENTS, StatefulShortestPath can go into infinite
    * loops if there is a path pattern with unbounded quantifiers. As a result, we consider patterns
-   * with unbounded quantifiers — with or without selective path search — to be unsafe under repeatable elements.
+   * with unbounded quantifiers — with or without selective path search — to be unsafe under REPEATABLE ELEMENTS.
    */
   private def checkRepeatableElements(state: SemanticState): SemanticCheckResult = {
-    val errors = pattern.patternParts.collect {
+    val unboundedQuantifiersErrors = pattern.patternParts.collect {
       case part if !part.isBounded => SemanticError.unsafeUsageOfRepeatableElements(part.position)
     }
-    semantics.SemanticCheckResult(state, errors)
+
+    val interiorVariableErrors = checkStrictInteriorVariableOverlap(state)
+    val selectivePathPatternPredicateErrors =
+      checkSelectivePathPatternPredicates(state)
+
+    semantics.SemanticCheckResult(
+      state,
+      unboundedQuantifiersErrors ++ interiorVariableErrors ++ selectivePathPatternPredicateErrors
+    )
+  }
+
+  /**
+   * a strict interior variable of a shortest path pattern may not overlap with any other part of the pattern.
+   */
+  private def checkStrictInteriorVariableOverlap(state: SemanticState)
+    : Seq[SemanticError] = {
+    val symbolDefinitions = state.currentScope.availableSymbolDefinitions
+    val variablesInPattern = pattern.patternParts.flatMap(_.allVariables).toSet
+    val variablesInPatternDeclaredInPreviousClause =
+      variablesInPattern.filterNot(symbolDefinitions contains SymbolUse(_))
+
+    /**
+     * keeping track of which variables were found and which of these were interior.
+     */
+    case class VariablesAndErrors(
+      // these are only the strict interior nodes from selective path patterns
+      strictInteriorVariables: Set[LogicalVariable] = Set.empty,
+      otherVariables: Set[LogicalVariable] = Set.empty,
+      errors: Seq[SemanticError] = Seq.empty
+    ) {
+      def addVariables(
+        newStrictInteriorVariables: Set[LogicalVariable],
+        newOtherVariables: Set[LogicalVariable]
+      ): VariablesAndErrors =
+        evaluateVariables(newStrictInteriorVariables, newOtherVariables)
+          .copy(
+            strictInteriorVariables = strictInteriorVariables ++ newStrictInteriorVariables,
+            otherVariables = otherVariables ++ newOtherVariables
+          )
+
+      private def evaluateVariables(
+        newInteriorVariables: Set[LogicalVariable],
+        newOtherVariables: Set[LogicalVariable]
+      ): VariablesAndErrors = {
+        // variables that are strict interior to an SPP (interior except the boundary nodes) and overlap with some other part of the pattern and were not defined already
+        val overlap =
+          (
+            (newOtherVariables intersect strictInteriorVariables) union
+              (newInteriorVariables intersect otherVariables) union
+              (newInteriorVariables intersect strictInteriorVariables)
+          ) -- variablesInPatternDeclaredInPreviousClause
+
+        val newErrors = overlap.map { variable =>
+          SemanticError.variableAlreadyDeclared(variable.name, variable.position)
+        }
+
+        copy(errors = errors ++ newErrors)
+      }
+    }
+
+    pattern
+      .patternParts
+      .foldLeft(VariablesAndErrors()) {
+        case (acc, patternPart) if patternPart.isSelective && !patternPart.element.isInstanceOf[QuantifiedPath] =>
+          acc.addVariables(patternPart.strictInteriorVariables, patternPart.boundaryNodes)
+        case (acc, patternPart) =>
+          acc.addVariables(Set.empty, patternPart.allVariables)
+      }
+      .errors
+  }
+
+  private val expressionStringifier = ExpressionStringifier(preferSingleQuotes = true)
+  private val patternStringifier = PatternStringifier(expressionStringifier)
+
+  /**
+   * A selective path pattern is not allowed to have predicates referencing element variables that are declared in another path pattern in the same graph pattern.
+   * It is allowed when the referenced variable is already bound by a previous clause.
+   */
+  private def checkSelectivePathPatternPredicates(
+    state: SemanticState
+  ): Seq[SemanticError] = {
+    case class selectorWithInvalidReferences(patternString: String, invalidReferences: Set[LogicalVariable])
+
+    val symbolDefinitions = state.currentScope.availableSymbolDefinitions
+    val variablesInPattern = pattern.patternParts.flatMap(_.allVariables).toSet
+
+    val variablesDefinedInPreviousClauses = symbolDefinitions.filterNot(variablesInPattern.map(SymbolUse(_)))
+    val selectivePatternPartWithInvalidReferences = pattern.patternParts.collect {
+      case patternPart if patternPart.selector.isSelective =>
+        selectorWithInvalidReferences(
+          patternStringifier(patternPart),
+          patternPart.dependencies
+            -- patternPart.allVariables // allowed: references to current pattern variables are allowed
+            -- variablesDefinedInPreviousClauses.map(
+              _.asVariable
+            ) // allowed: references to previously bounded variables
+        )
+    }
+
+    selectivePatternPartWithInvalidReferences.filter(_.invalidReferences.nonEmpty).map(errorDetails => {
+      val invalidVars = errorDetails.invalidReferences.map(_.name)
+      SemanticError.invalidReferenceInParenthesizedPathPatternPredicate(
+        errorDetails.patternString,
+        invalidVars,
+        errorDetails.invalidReferences.head.position,
+        s"""From within a selective path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+           |In this case, `${invalidVars.head}` is defined in the same `MATCH` clause as ${errorDetails.patternString}.""".stripMargin
+      )
+    })
   }
 
   /**

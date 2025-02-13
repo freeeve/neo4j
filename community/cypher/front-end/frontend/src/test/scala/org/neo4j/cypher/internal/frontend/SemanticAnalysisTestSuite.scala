@@ -288,10 +288,13 @@ trait SemanticAnalysisTestSuiteWithDefaultQuery extends SemanticAnalysisTestSuit
 
   def defaultQuery: String
 
-  def run(): AnalysisAssertions = run(defaultQuery)
+  def run(): AnalysisAssertions = runWith()
 
   def runWith(features: SemanticFeature*): AnalysisAssertions =
-    run(defaultQuery, pipelineWithSemanticFeatures(features: _*))
+    runWith(defaultQuery, features: _*)
+
+  def runWith(query: String, features: SemanticFeature*): AnalysisAssertions =
+    run(query, pipelineWithSemanticFeatures(features: _*))
 }
 
 trait NameBasedSemanticAnalysisTestSuite extends SemanticAnalysisTestSuiteWithDefaultQuery with TestName {

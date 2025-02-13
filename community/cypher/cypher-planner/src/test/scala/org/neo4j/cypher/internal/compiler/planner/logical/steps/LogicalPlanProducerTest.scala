@@ -79,6 +79,7 @@ import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Selector.Shortest
 import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Trail
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
@@ -1531,7 +1532,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        trail = true
+        TraversalMatchMode.Trail
       ) should have message "The provided inner plan doesn't conform with the quantified path pattern being planned"
     }
   }
@@ -2085,7 +2086,8 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         reverseGroupVariableProjections = false,
         hints = Set.empty,
         context = ctx.context,
-        pathLength = PathLength.none
+        pathLength = PathLength.none,
+        Trail
       )
     )
   }

@@ -17,26 +17,11 @@
 package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.ast.Ast.p
+import org.neo4j.cypher.internal.frontend.helpers.ShortestSyntax
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.gqlstatus.GqlHelper
 
-class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite {
-
-  case class SelectorSyntax(
-    syntax: String,
-    selective: Boolean,
-    shortest: Boolean
-  )
-
-  private val selectors = Seq(
-    SelectorSyntax("ALL", selective = false, shortest = false),
-    SelectorSyntax("ANY 2 PATHS", selective = true, shortest = false),
-    SelectorSyntax("SHORTEST 2 PATHS", selective = true, shortest = true),
-    SelectorSyntax("ALL SHORTEST PATHS", selective = true, shortest = true),
-    SelectorSyntax("SHORTEST 1 PATH GROUPS", selective = true, shortest = true)
-  )
-
-  private val allSelectiveSelectors = selectors.filter(_.selective).map(_.syntax)
+class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite with ShortestSyntax {
 
   test(s"MATCH path = ((a)-->(b))+ RETURN count(*)") {
     run().hasNoErrors
@@ -56,22 +41,28 @@ class PathSelectorsSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSui
   }
 
   // A path pattern with a selective selector may not have path patterns beside it in the same graph pattern.
-  allSelectiveSelectors.foreach { selector =>
-    test(s"""MATCH
-            |   p1 = $selector (a)-->*(c)-->(c),
-            |   p2 = (x)-->*(c)-->(z)
-            |RETURN count(*)""".stripMargin) {
-      run().hasErrorMessages(
-        "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
-      )
-    }
-    test(s"""MATCH
-            |   p2 = (x)-->*(c)-->(z),
-            |   p1 = $selector (a)-->*(c)-->(c)
-            |RETURN count(*)""".stripMargin) {
-      run().hasErrorMessages(
-        "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
-      )
+  allSelectiveSelectors.foreach { selectiveSelector =>
+    allSelectors.foreach { otherSelector =>
+      test(
+        s"""MATCH
+           |   p1 = $selectiveSelector (a)-->*(b)-->(c),
+           |   p2 = $otherSelector (x)-->*(y)-->(z)
+           |RETURN count(*)""".stripMargin
+      ) {
+        run().hasErrorMessages(
+          "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
+        )
+      }
+      test(
+        s"""MATCH
+           |   p2 = $otherSelector (x)-->*(y)-->(z),
+           |   p1 = $selectiveSelector (a)-->*(b)-->(c)
+           |RETURN count(*)""".stripMargin
+      ) {
+        run().hasErrorMessages(
+          "Multiple path patterns cannot be used in the same clause in combination with a selective path selector."
+        )
+      }
     }
   }
 

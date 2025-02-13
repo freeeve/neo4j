@@ -1301,7 +1301,7 @@ case class LogicalPlanProducer(
     previouslyBoundRelationships: Set[LogicalVariable],
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
     reverseGroupVariableProjections: Boolean,
-    trail: Boolean
+    matchMode: TraversalMatchMode
   ): LogicalPlan = {
     // Ensure that innerPlan does conform with the pattern contained inside the quantified path pattern before we mark it as solved
     try {
@@ -1324,35 +1324,37 @@ case class LogicalPlanProducer(
       .addPredicates(predicates: _*))
 
     val providedOrderRule = ProvidedOrder.Left
-    val repeatPlan = if (trail) {
-      RepeatTrail(
-        left = source,
-        right = innerPlan,
-        repetition = pattern.repetition,
-        start = startBinding.outer,
-        end = endBinding.outer,
-        innerStart = startBinding.inner,
-        innerEnd = endBinding.inner,
-        nodeVariableGroupings = pattern.nodeVariableGroupings,
-        relationshipVariableGroupings = pattern.relationshipVariableGroupings,
-        innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet,
-        previouslyBoundRelationships = previouslyBoundRelationships,
-        previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
-        reverseGroupVariableProjections = reverseGroupVariableProjections
-      )
-    } else {
-      RepeatWalk(
-        left = source,
-        right = innerPlan,
-        repetition = pattern.repetition,
-        start = startBinding.outer,
-        end = endBinding.outer,
-        innerStart = startBinding.inner,
-        innerEnd = endBinding.inner,
-        nodeVariableGroupings = pattern.nodeVariableGroupings,
-        relationshipVariableGroupings = pattern.relationshipVariableGroupings,
-        reverseGroupVariableProjections = reverseGroupVariableProjections
-      )
+    val repeatPlan = matchMode match {
+      case TraversalMatchMode.Trail =>
+        RepeatTrail(
+          left = source,
+          right = innerPlan,
+          repetition = pattern.repetition,
+          start = startBinding.outer,
+          end = endBinding.outer,
+          innerStart = startBinding.inner,
+          innerEnd = endBinding.inner,
+          nodeVariableGroupings = pattern.nodeVariableGroupings,
+          relationshipVariableGroupings = pattern.relationshipVariableGroupings,
+          innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet,
+          previouslyBoundRelationships = previouslyBoundRelationships,
+          previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
+          reverseGroupVariableProjections = reverseGroupVariableProjections
+        )
+      case TraversalMatchMode.Walk =>
+        RepeatWalk(
+          left = source,
+          right = innerPlan,
+          repetition = pattern.repetition,
+          start = startBinding.outer,
+          end = endBinding.outer,
+          innerStart = startBinding.inner,
+          innerEnd = endBinding.inner,
+          nodeVariableGroupings = pattern.nodeVariableGroupings,
+          relationshipVariableGroupings = pattern.relationshipVariableGroupings,
+          reverseGroupVariableProjections = reverseGroupVariableProjections
+        )
+      case _ => throw new IllegalStateException(s"Unknown match mode: $matchMode")
     }
     annotate(
       repeatPlan,
@@ -2912,7 +2914,8 @@ case class LogicalPlanProducer(
     reverseGroupVariableProjections: Boolean,
     hints: Set[UsingStatefulShortestPathHint],
     context: LogicalPlanningContext,
-    pathLength: PathLength
+    pathLength: PathLength,
+    matchMode: TraversalMatchMode
   ): StatefulShortestPath = {
     val solved = solveds.get(inner.id).asSinglePlannerQuery.amendQueryGraph(
       _.addSelectivePathPattern(solvedSpp)
@@ -2943,7 +2946,7 @@ case class LogicalPlanProducer(
       solvedExpressionAsString,
       reverseGroupVariableProjections,
       LengthBounds(pathLength.min, pathLength.maybeMax),
-      TraversalMatchMode.Trail
+      matchMode
     )
     annotate(plan, solved, ProvidedOrder.Left, cachedPropertiesPerPlan.get(inner.id), context)
   }
