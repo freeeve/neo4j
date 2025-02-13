@@ -91,7 +91,7 @@ object TestConf {
 
     final override val conf: TestConf = TestConf(
       neo4jConf = Map(
-        "db.query.default_language" -> "cypher_25",
+        "internal.db.query.default_language" -> "cypher_25",
         "internal.dbms.cypher.enable_experimental_versions" -> "true"
       ),
       tagContext = Set("cypher-25")
@@ -105,7 +105,7 @@ object TestConf {
     final override val conf: TestConf = TestConf(
       neo4jConf = Map(
         "server.bolt.enabled" -> "true",
-        "db.query.default_language" -> "cypher_25",
+        "internal.db.query.default_language" -> "cypher_25",
         "internal.dbms.cypher.enable_experimental_versions" -> "true"
       ),
       useBolt = true,

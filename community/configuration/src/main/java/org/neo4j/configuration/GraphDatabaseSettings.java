@@ -371,11 +371,13 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
     @Description("The default language of a database determines which language is used to evaluate queries "
             + "that do not explicitly select a language. This setting determines the default language used for "
             + "new (and initial) databases where not specified as part of CREATE or ALTER database.")
+    // internal for now since otherwise the validValues generator exposes internal values
     public static final Setting<CypherVersion> default_language = newBuilder(
-                    "db.query.default_language",
+                    "internal.db.query.default_language",
                     ofEnum(GraphDatabaseSettings.CypherVersion.class),
                     CypherVersion.Cypher5)
             .addConstraint(valueDependency(List.of(CypherVersion.Cypher25), enable_experimental_cypher_versions))
+            .internal()
             .build();
 
     @Description("Determines if Cypher will allow using file URLs when loading data using `LOAD CSV`. Setting this "
