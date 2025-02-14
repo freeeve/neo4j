@@ -246,7 +246,7 @@ trait GqlExceptionMatchers {
               Matcher { ex =>
                 MatchResult(
                   ex.getMessage.equals(legacyMsg),
-                  s"Message '${ex.getMessage}' did not equals '$legacyMsg'",
+                  s"Message '${ex.getMessage}' did not equal '$legacyMsg'",
                   s"Message equals '$legacyMsg'"
                 )
               }
