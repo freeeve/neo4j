@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.ReturnItems.ReturnVariables
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.Scope
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithGqlInfo
@@ -281,19 +282,25 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     }
 
   private def checkIllegalImportWith: SemanticCheck = leadingNonImportingWith.foldSemanticCheck { wth =>
-    def err(msg: String): SemanticCheck =
-      error(s"Importing WITH should consist only of simple references to outside variables. $msg.", wth.position)
+    def err(keyword: String): SemanticCheck =
+      error(SemanticError.invalidImportingWithKeyword(keyword, wth.position))
 
     def checkReturnItems: SemanticCheck = {
-      val hasAliases = wth.returnItems.items.exists(!_.isPassThrough)
-      when(hasAliases) { err("Aliasing or expressions are not supported") }
+      val invalidValues = wth.returnItems.items.find(!_.isPassThrough)
+      when(invalidValues.nonEmpty) {
+        val value = invalidValues.head
+        val aliasString = if (value.alias.nonEmpty) s" AS ${value.alias.get.name}" else ""
+        val expression = ExpressionStringifier.apply().apply(value.expression)
+        val input = expression + aliasString
+        error(SemanticError.invalidImportingWithAlisOrExpression(input, wth.position))
+      }
     }
 
-    def checkDistinct: SemanticCheck = when(wth.distinct) { err("DISTINCT is not allowed") }
-    def checkOrderBy: SemanticCheck = wth.orderBy.foldSemanticCheck(_ => err("ORDER BY is not allowed"))
-    def checkWhere: SemanticCheck = wth.where.foldSemanticCheck(_ => err("WHERE is not allowed"))
-    def checkSkip: SemanticCheck = wth.skip.foldSemanticCheck(_ => err("SKIP is not allowed"))
-    def checkLimit: SemanticCheck = wth.limit.foldSemanticCheck(_ => err("LIMIT is not allowed"))
+    def checkDistinct: SemanticCheck = when(wth.distinct) { err("DISTINCT") }
+    def checkOrderBy: SemanticCheck = wth.orderBy.foldSemanticCheck(_ => err("ORDER BY"))
+    def checkWhere: SemanticCheck = wth.where.foldSemanticCheck(_ => err("WHERE"))
+    def checkSkip: SemanticCheck = wth.skip.foldSemanticCheck(_ => err("SKIP"))
+    def checkLimit: SemanticCheck = wth.limit.foldSemanticCheck(_ => err("LIMIT"))
 
     fromState { state =>
       val resultState = wth.returnItems.items.foldSemanticCheck(_.semanticCheck)
@@ -346,7 +353,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
           case uc: UnresolvedCall => uc.yieldAll
           case _                  => false
         }.map(c =>
-          error("Cannot use `YIELD *` outside standalone call", c.position)
+          error(SemanticError.invalidYieldStar(c.position))
         )
           .getOrElse(success)
       case _ =>

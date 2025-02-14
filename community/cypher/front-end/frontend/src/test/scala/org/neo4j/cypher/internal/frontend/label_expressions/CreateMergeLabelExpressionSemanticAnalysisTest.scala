@@ -17,7 +17,9 @@
 package org.neo4j.cypher.internal.frontend.label_expressions
 
 import org.neo4j.cypher.internal.frontend.SemanticAnalysisTestSuiteWithDefaultQuery
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.TestName
+import org.neo4j.gqlstatus.GqlHelper
 import org.scalatest.LoneElement
 
 abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(statement: UpdateStatement)
@@ -26,6 +28,9 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
     with TestName {
 
   override def defaultQuery: String = s"$statement $testName"
+
+  // Length of the query before the test name
+  private val offset = statement.asPrettyString.length + 1
 
   private val labelExprErrorMessage =
     s"Label expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause and in expressions"
@@ -124,23 +129,38 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
   }
 
   test("()-[:Rel1&Rel2]->()") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42I35(offset + 9, 1, offset + 10),
       s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause",
-      s"A single relationship type must be specified for $statement"
+      InputPosition(offset + 9, 1, offset + 10), // Position of the rel type expression
+      // Not ported yet
+      null,
+      s"A single relationship type must be specified for $statement",
+      InputPosition(offset + 2, 1, offset + 3) // Position of the relationship
     )
   }
 
   test("()-[:Rel1&!Rel2]->()") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42I35(offset + 9, 1, offset + 10),
       s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause",
-      s"A single relationship type must be specified for $statement"
+      InputPosition(offset + 9, 1, offset + 10), // Position of the rel type expression
+      // Not ported yet
+      null,
+      s"A single relationship type must be specified for $statement",
+      InputPosition(offset + 2, 1, offset + 3) // Position of the relationship
     )
   }
 
   test("()-[:!Rel1]->()") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      // Not ported yet
+      null,
       s"A single plain relationship type like `:Rel1` must be specified for $statement",
-      s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause"
+      InputPosition(offset + 2, 1, offset + 3), // Position of the relationship,
+      GqlHelper.getGql42001_42I35(offset + 5, 1, offset + 6),
+      s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause",
+      InputPosition(offset + 5, 1, offset + 6) // Position of the rel type expression
     )
   }
 
@@ -176,9 +196,14 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
   }
 
   test("()-[IS !Rel1]->()") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      // Not ported yet
+      null,
       s"A single plain relationship type like `:Rel1` must be specified for $statement",
-      s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause"
+      InputPosition(offset + 2, 1, offset + 3), // Position of the relationship
+      GqlHelper.getGql42001_42I35(offset + 7, 1, offset + 8),
+      s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause",
+      InputPosition(offset + 7, 1, offset + 8) // Position of the rel type expression
     )
   }
 

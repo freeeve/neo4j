@@ -573,10 +573,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
         when(
           (ctx == SemanticContext.Merge || ctx == SemanticContext.Create) && labelExpression.containsGpmSpecificRelTypeExpression
         ) {
-          error(
-            s"Relationship type expressions in patterns are not allowed in ${ctx.description}, but only in a MATCH clause",
-            labelExpression.position
-          )
+          error(SemanticError.invalidRelTypeExpression(ctx.description, labelExpression.position))
         } chain
           unsatisfiableRelTypeExpression(labelExpression) chain
           SemanticExpressionCheck.checkLabelExpression(Some(RELATIONSHIP_TYPE), labelExpression)

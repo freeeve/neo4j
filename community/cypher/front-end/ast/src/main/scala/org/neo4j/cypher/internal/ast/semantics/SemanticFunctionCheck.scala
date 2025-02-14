@@ -79,7 +79,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
         }
 
       case Reduce =>
-        error(s"${Reduce.name}(...) requires '| expression' (an accumulation expression)", invocation.position)
+        error(SemanticError.invalidReduceAccumulator(invocation.position))
 
       case _: Function
         if invocation.name.equalsIgnoreCase("graph.names") || invocation.name.equalsIgnoreCase(
@@ -101,7 +101,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
 
       case _: Function =>
         when(invocation.distinct) {
-          error(s"Invalid use of DISTINCT with function '${invocation.functionName.name}'", invocation.position)
+          error(SemanticError.invalidDistinct(invocation.functionName.name, invocation.position))
         } chain SemanticExpressionCheck.check(ctx, invocation.arguments) chain semanticCheck(
           ctx,
           invocation
@@ -356,10 +356,7 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
         SemanticCheck.success
 
       case map: MapExpression => error(
-          s"A map with keys ${map.items.map(a => s"'${a._1.name}'").mkString(", ")} is not describing a valid point, " +
-            s"a point is described either by using cartesian coordinates e.g. {x: 2.3, y: 4.5, crs: 'cartesian'} or using " +
-            s"geographic coordinates e.g. {latitude: 12.78, longitude: 56.7, crs: 'WGS-84'}.",
-          map.position
+          SemanticError.invalidPoint(map.items.map(a => a._1.name), map.position)
         )
 
       // if using variable or parameter we can't introspect the map here

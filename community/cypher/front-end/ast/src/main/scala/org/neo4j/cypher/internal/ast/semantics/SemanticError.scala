@@ -1323,6 +1323,122 @@ object SemanticError {
       position
     )
   }
+
+  def invalidReportStatus(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I36(position.offset, position.line, position.column),
+      "REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK",
+      position
+    )
+  }
+
+  def matchModesNotSupported(matchMode: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N54(matchMode, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      s"Match modes such as `$matchMode` are not supported yet.",
+      position
+    )
+  }
+
+  def invalidImportingWithKeyword(keyword: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I28(keyword, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      s"Importing WITH should consist only of simple references to outside variables. $keyword is not allowed.",
+      position
+    )
+  }
+
+  def invalidImportingWithAlisOrExpression(input: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I28(input, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      "Importing WITH should consist only of simple references to outside variables. Aliasing or expressions are not supported.",
+      position
+    )
+  }
+
+  def invalidYieldStar(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I43)
+          .atPosition(position.offset, position.line, position.column)
+          .build()
+      )
+      .build()
+
+    SemanticError(gql, "Cannot use `YIELD *` outside standalone call", position)
+  }
+
+  def unsupportedNestingCIT(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N58(position.offset, position.line, position.column),
+      "Nested CALL { ... } IN TRANSACTIONS is not supported",
+      position
+    )
+  }
+
+  def unsupportedNestingCITInCall(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N58(position.offset, position.line, position.column),
+      "CALL { ... } IN TRANSACTIONS nested in a regular CALL is not supported",
+      position
+    )
+  }
+
+  def invalidReduceAccumulator(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N41)
+          .atPosition(position.offset, position.line, position.column)
+          .build()
+      )
+      .build()
+    SemanticError(gql, "reduce(...) requires '| expression' (an accumulation expression)", position)
+  }
+
+  def invalidDistinct(fun: String, position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I27)
+          .atPosition(position.offset, position.line, position.column)
+          .withParam(GqlParams.StringParam.fun, fun)
+          .build()
+      )
+      .build()
+    SemanticError(gql, s"Invalid use of DISTINCT with function '$fun'", position)
+  }
+
+  def invalidPoint(keys: Seq[String], position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I16)
+          .atPosition(position.offset, position.line, position.column)
+          .withParam(GqlParams.ListParam.mapKeyList, keys.asJava)
+          .build()
+      )
+      .build()
+
+    val legacyMessage =
+      s"A map with keys ${keys.map(key => s"'$key'").mkString(", ")} is not describing a valid point, " +
+        s"a point is described either by using cartesian coordinates e.g. {x: 2.3, y: 4.5, crs: 'cartesian'} or using " +
+        s"geographic coordinates e.g. {latitude: 12.78, longitude: 56.7, crs: 'WGS-84'}."
+
+    SemanticError(gql, legacyMessage, position)
+  }
+
+  def invalidRelTypeExpression(clause: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I35(position.offset, position.line, position.column),
+      s"Relationship type expressions in patterns are not allowed in $clause, but only in a MATCH clause",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

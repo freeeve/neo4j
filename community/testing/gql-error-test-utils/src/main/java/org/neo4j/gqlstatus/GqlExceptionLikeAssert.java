@@ -20,19 +20,22 @@
 package org.neo4j.gqlstatus;
 
 import org.assertj.core.api.ThrowableAssert;
+import org.neo4j.driver.exceptions.Neo4jException;
 
 /**
- * Provides assertions against ErrorGqlStatusObject for Throwables that implement ErrorGqlStatusObject.
+ * Provides assertions against ErrorGqlStatusObject for Throwables
+ * that implement ErrorGqlStatusObject and driver Neo4jException.
  * There are multiple exceptions extending ErrorGqlStatusObject, thus this is not implemented directly
  * against GqlException, and thus the generics on many methods.
  */
 public class GqlExceptionLikeAssert extends ThrowableWithPotentialGqlCauseAssert<GqlExceptionLikeAssert>
         implements ErrorGqlStatusObjectAssertDelegate<GqlExceptionLikeAssert> {
 
-    protected <T extends Throwable & ErrorGqlStatusObject> GqlExceptionLikeAssert(T t) {
+    protected <T extends Throwable> GqlExceptionLikeAssert(T t) {
         super(t, GqlExceptionLikeAssert.class);
         if (actual == null) {
-            failWithMessage("Expecting code to raise a Throwable that implements ErrorGqlStatusObject.");
+            failWithMessage(
+                    "Expecting code to raise a Throwable that implements ErrorGqlStatusObject or Neo4jException.");
         }
     }
 
@@ -49,13 +52,25 @@ public class GqlExceptionLikeAssert extends ThrowableWithPotentialGqlCauseAssert
     }
 
     /**
-     * Catch a Throwable that also implements ErrorGqlStatusObject and return it.
+     * Cast a Throwable that extends Neo4jException to the correct type.
+     * Return null otherwise.
+     */
+    static Neo4jException asDriverException(Throwable t) {
+        if (t instanceof Neo4jException driverException) {
+            return driverException;
+        }
+        return null;
+    }
+
+    /**
+     * Catch a Throwable that also implements ErrorGqlStatusObject or Driver Neo4jException and return it.
      * Return null if no such Throwable is thrown.
      */
-    public static <T extends Throwable & ErrorGqlStatusObject> T catchGqlException(
-            ThrowableAssert.ThrowingCallable shouldRaiseGqlException) {
+    public static Throwable catchGqlException(ThrowableAssert.ThrowingCallable shouldRaiseGqlException) {
         try {
             shouldRaiseGqlException.call();
+        } catch (Neo4jException e) {
+            return asDriverException(e);
         } catch (Throwable t) {
             return asT(t);
         }
@@ -72,6 +87,9 @@ public class GqlExceptionLikeAssert extends ThrowableWithPotentialGqlCauseAssert
 
     @Override
     public ErrorGqlStatusObjectAssert<?> gqlStatusObject() {
+        if (actual instanceof Neo4jException) {
+            return new DriverExceptionAssertImplementation(asDriverException(actual));
+        }
         return new ErrorGqlStatusObjectAssertImplementation(asT(actual).gqlStatusObject());
     }
 }

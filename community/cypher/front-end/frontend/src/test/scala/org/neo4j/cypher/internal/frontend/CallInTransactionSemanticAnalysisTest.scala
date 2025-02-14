@@ -27,7 +27,11 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("nested CALL { ... } IN TRANSACTIONS") {
     val query = "CALL { CALL { CREATE (x) } IN TRANSACTIONS } IN TRANSACTIONS RETURN 1 AS result"
-    run(query).hasError("Nested CALL { ... } IN TRANSACTIONS is not supported", p(7, 1, 8))
+    run(query).hasError(
+      GqlHelper.getGql42001_42N58(7, 1, 8),
+      "Nested CALL { ... } IN TRANSACTIONS is not supported",
+      p(7, 1, 8)
+    )
   }
 
   test("regular CALL nested in CALL { ... } IN TRANSACTIONS") {
@@ -37,14 +41,26 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("CALL { ... } IN TRANSACTIONS nested in a regular CALL") {
     val query = "CALL { CALL { CREATE (x) } IN TRANSACTIONS } RETURN 1 AS result"
-    run(query).hasError("CALL { ... } IN TRANSACTIONS nested in a regular CALL is not supported", p(7, 1, 8))
+    run(query).hasError(
+      GqlHelper.getGql42001_42N58(7, 1, 8),
+      "CALL { ... } IN TRANSACTIONS nested in a regular CALL is not supported",
+      p(7, 1, 8)
+    )
   }
 
   test("CALL { ... } IN TRANSACTIONS nested in a regular CALL and nested CALL { ... } IN TRANSACTIONS") {
     val query = "CALL { CALL { CALL { CREATE (x) } IN TRANSACTIONS } IN TRANSACTIONS } RETURN 1 AS result"
     run(query).hasErrors(
-      SemanticError("Nested CALL { ... } IN TRANSACTIONS is not supported", p(14, 1, 15)),
-      SemanticError("CALL { ... } IN TRANSACTIONS nested in a regular CALL is not supported", p(7, 1, 8))
+      SemanticError(
+        GqlHelper.getGql42001_42N58(14, 1, 15),
+        "Nested CALL { ... } IN TRANSACTIONS is not supported",
+        p(14, 1, 15)
+      ),
+      SemanticError(
+        GqlHelper.getGql42001_42N58(7, 1, 8),
+        "CALL { ... } IN TRANSACTIONS nested in a regular CALL is not supported",
+        p(7, 1, 8)
+      )
     )
   }
 
@@ -651,6 +667,7 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  RETURN v, status
         |""".stripMargin
     run(query).hasError(
+      GqlHelper.getGql42001_42I36(43, 4, 3),
       "REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK",
       p(43, 4, 3)
     )
@@ -666,6 +683,10 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  RETURN v, status
         |""".stripMargin
     run(query)
-      .hasError("REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK", p(59, 5, 3))
+      .hasError(
+        GqlHelper.getGql42001_42I36(59, 5, 3),
+        "REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK",
+        p(59, 5, 3)
+      )
   }
 }

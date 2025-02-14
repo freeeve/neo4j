@@ -110,7 +110,17 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
     )
     nonAggregateFunctions.foreach { case (func, params) =>
       run(s"RETURN $func(DISTINCT $params)")
-        .hasError(s"Invalid use of DISTINCT with function '$func'", p(7, 1, 8))
+        .hasError(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+            .atPosition(7, 1, 8)
+            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I27)
+              .atPosition(7, 1, 8)
+              .withParam(GqlParams.StringParam.fun, func)
+              .build())
+            .build(),
+          s"Invalid use of DISTINCT with function '$func'",
+          p(7, 1, 8)
+        )
     }
   }
 

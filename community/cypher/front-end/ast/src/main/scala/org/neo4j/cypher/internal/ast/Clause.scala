@@ -872,7 +872,7 @@ case class Match(
     whenState(!_.features.contains(SemanticFeature.MatchModes)) {
       matchMode match {
         case mode: DifferentRelationships if mode.implicitlyCreated => SemanticCheckResult.success(_)
-        case _ => error(s"Match modes such as `${matchMode.prettified}` are not supported yet.", matchMode.position)
+        case _ => error(SemanticError.matchModesNotSupported(matchMode.prettified, matchMode.position))
       }
     } ifOkChain {
       matchMode match {
@@ -1914,15 +1914,9 @@ object SubqueryCall {
 
       val checkErrorReportCombination: SemanticCheck = (errorParams, reportParams) match {
         case (None, Some(reportParams)) =>
-          error(
-            "REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK",
-            reportParams.position
-          )
+          error(SemanticError.invalidReportStatus(reportParams.position))
         case (Some(InTransactionsErrorParameters(OnErrorFail, None)), Some(reportParams)) =>
-          error(
-            "REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK",
-            reportParams.position
-          )
+          error(SemanticError.invalidReportStatus(reportParams.position))
         case _ => SemanticCheck.success
       }
 
@@ -2013,7 +2007,7 @@ sealed trait SubqueryCall extends HorizonClause with SemanticAnalysisTooling {
   private def checkNoNestedCallInTransactions: SemanticCheck = {
     val nestedCallInTransactions = SubqueryCall.findTransactionalSubquery(innerQuery)
     nestedCallInTransactions.foldSemanticCheck { nestedCallInTransactions =>
-      error("Nested CALL { ... } IN TRANSACTIONS is not supported", nestedCallInTransactions.position)
+      error(SemanticError.unsupportedNestingCIT(nestedCallInTransactions.position))
     }
   }
 
@@ -2025,7 +2019,7 @@ sealed trait SubqueryCall extends HorizonClause with SemanticAnalysisTooling {
         None
 
     nestedCallInTransactions.foldSemanticCheck { nestedCallInTransactions =>
-      error("CALL { ... } IN TRANSACTIONS nested in a regular CALL is not supported", nestedCallInTransactions.position)
+      error(SemanticError.unsupportedNestingCITInCall(nestedCallInTransactions.position))
     }
   }
 }

@@ -32,6 +32,15 @@ Apache Software License, Version 2.0
   Jackson-annotations
   Jackson-core
   jackson-databind
+  Neo4j Java Driver
+  Netty/Buffer
+  Netty/Codec
+  Netty/Common
+  Netty/Handler
+  Netty/Resolver
+  Netty/Transport
+  Netty/Transport/Native/Unix/Common
+  Non-Blocking Reactive Foundation for the JVM
 
 Eclipse Distribution License - v 1.0
   Eclipse Collections API
@@ -40,6 +49,9 @@ Eclipse Distribution License - v 1.0
 Eclipse Public License - v 1.0
   Eclipse Collections API
   Eclipse Collections Main Library
+
+MIT No Attribution License
+  reactive-streams
 
 Dependencies with multiple licenses
 -----------------------------------

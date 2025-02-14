@@ -55,8 +55,10 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
 
   test("DIFFERENT RELATIONSHIPS (a)") {
     // running without semantic feature should fail
-    run().hasErrorMessages(
-      "Match modes such as `DIFFERENT RELATIONSHIPS` are not supported yet."
+    run().hasError(
+      GqlHelper.getGql42001_42N54("DIFFERENT RELATIONSHIPS", 6, 1, 7),
+      "Match modes such as `DIFFERENT RELATIONSHIPS` are not supported yet.",
+      p(6, 1, 7)
     )
   }
 
@@ -67,8 +69,10 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite with SemanticAnalysi
 
   test("REPEATABLE ELEMENTS (a)") {
     // running without semantic feature should fail
-    run().hasErrorMessages(
-      "Match modes such as `REPEATABLE ELEMENTS` are not supported yet."
+    run().hasError(
+      GqlHelper.getGql42001_42N54("REPEATABLE ELEMENTS", 6, 1, 7),
+      "Match modes such as `REPEATABLE ELEMENTS` are not supported yet.",
+      p(6, 1, 7)
     )
   }
 
