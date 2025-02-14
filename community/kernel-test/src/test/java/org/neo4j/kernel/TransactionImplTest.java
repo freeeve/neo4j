@@ -53,7 +53,7 @@ import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.kernel.api.KernelTransaction.KernelTransactionMonitor;
+import org.neo4j.kernel.api.KernelTransaction.Monitor;
 import org.neo4j.kernel.api.ResourceTracker;
 import org.neo4j.kernel.api.exceptions.ResourceCloseFailureException;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -311,19 +311,18 @@ class TransactionImplTest {
         // GIVEN
         // Mock that forward commit calls to the given monitor
         KernelTransaction kernelTransaction = mock(KernelTransaction.class);
-        when(kernelTransaction.commit(any(KernelTransactionMonitor.class)))
-                .thenAnswer((Answer<Long>) invocationOnMock -> {
-                    var monitor = (KernelTransactionMonitor) invocationOnMock.getArgument(0);
-                    monitor.beforeApply();
-                    return -1L;
-                });
+        when(kernelTransaction.commit(any(Monitor.class))).thenAnswer((Answer<Long>) invocationOnMock -> {
+            var monitor = (Monitor) invocationOnMock.getArgument(0);
+            monitor.beforeApply();
+            return -1L;
+        });
 
         // a TransactionImpl
         TransactionImpl transaction = createTransaction(kernelTransaction);
 
         // and a monitor that simulates a tx-failure + rollback inside of commit
         var monitorCalled = new MutableBoolean();
-        var monitor = KernelTransactionMonitor.withBeforeApply(() -> {
+        var monitor = Monitor.withBeforeApply(() -> {
             monitorCalled.setTrue();
             transaction.rollback();
         });

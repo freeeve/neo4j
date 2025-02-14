@@ -184,8 +184,8 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
     }
 
     @Override
-    public void commit(KernelTransaction.KernelTransactionMonitor kernelTransactionMonitor) {
-        safeTerminalOperation(transaction -> transaction.commit(kernelTransactionMonitor));
+    public void commit(KernelTransaction.Monitor monitor) {
+        safeTerminalOperation(transaction -> transaction.commit(monitor));
     }
 
     @Override

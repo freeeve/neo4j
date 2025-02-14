@@ -63,7 +63,7 @@ public class ProcedureTransactionImpl implements InternalTransaction {
     }
 
     @Override
-    public void commit(KernelTransaction.KernelTransactionMonitor monitor) {
+    public void commit(KernelTransaction.Monitor monitor) {
         commit();
     }
 

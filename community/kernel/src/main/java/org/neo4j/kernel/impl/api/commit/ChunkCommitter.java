@@ -122,7 +122,7 @@ public final class ChunkCommitter implements TransactionCommitter {
             LeaseClient leaseClient,
             CursorContext cursorContext,
             MemoryTracker memoryTracker,
-            KernelTransaction.KernelTransactionMonitor kernelTransactionMonitor,
+            KernelTransaction.Monitor monitor,
             LockTracer lockTracer,
             long commitTime,
             long startTimeMillis,

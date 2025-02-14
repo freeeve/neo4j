@@ -289,7 +289,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
      */
     private final Lock terminationReleaseLock = new ReentrantLock();
 
-    private KernelTransactionMonitor kernelTransactionMonitor;
+    private Monitor monitor;
     private final StoreCursors transactionalCursors;
     protected final DefaultPooledCursors cursorFactory;
 
@@ -517,7 +517,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         CURSOR_CONTEXT_HANDLE.setRelease(this, contextFactory.create(TRANSACTION_TAG));
         this.transactionalCursors.reset(cursorContext);
         this.accessCapability = accessCapabilityFactory.newAccessCapability(readOnlyDatabaseChecker);
-        this.kernelTransactionMonitor = KernelTransaction.NO_MONITOR;
+        this.monitor = KernelTransaction.NO_MONITOR;
         this.type = type;
         this.leaseClient = leaseService.newClient();
         this.lockClient.initialize(leaseClient, transactionSequenceNumber, memoryTracker, config);
@@ -983,9 +983,9 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     }
 
     @Override
-    public long commit(KernelTransactionMonitor kernelTransactionMonitor) throws TransactionFailureException {
+    public long commit(Monitor monitor) throws TransactionFailureException {
         commit = true;
-        this.kernelTransactionMonitor = kernelTransactionMonitor;
+        this.monitor = monitor;
         return closeTransaction();
     }
 
@@ -1130,7 +1130,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                         leaseClient,
                         cursorContext,
                         memoryTracker,
-                        kernelTransactionMonitor,
+                        monitor,
                         lockTracer(),
                         timeCommitted,
                         startTimeMillis,
@@ -1353,7 +1353,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         try {
             markAsClosed();
             transactionEventListeners.afterCommit();
-            kernelTransactionMonitor.afterCommit(this);
+            monitor.afterCommit(this);
         } finally {
             transactionMonitor.transactionFinished(true, hasTxState());
             transactionExecutionMonitor.commit(this);

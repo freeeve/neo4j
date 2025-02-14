@@ -81,7 +81,7 @@ public class ExecutionContextProcedureKernelTransaction implements KernelTransac
     }
 
     @Override
-    public long commit(KernelTransactionMonitor kernelTransactionMonitor) throws TransactionFailureException {
+    public long commit(Monitor monitor) throws TransactionFailureException {
         throw new UnsupportedOperationException(
                 "Committing ongoing transaction inside of a procedure or a function is unsupported.");
     }

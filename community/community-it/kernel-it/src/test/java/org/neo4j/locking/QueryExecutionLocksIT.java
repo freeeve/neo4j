@@ -768,8 +768,8 @@ class QueryExecutionLocksIT {
         }
 
         @Override
-        public long commit(KernelTransactionMonitor kernelTransactionMonitor) throws TransactionFailureException {
-            return internal.commit(kernelTransactionMonitor);
+        public long commit(Monitor monitor) throws TransactionFailureException {
+            return internal.commit(monitor);
         }
 
         @Override

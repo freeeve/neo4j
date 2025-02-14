@@ -200,8 +200,8 @@ public class Neo4jTransactionalContext implements TransactionalContext {
         }
     }
 
-    private KernelTransaction.KernelTransactionMonitor statisticsMonitor() {
-        return KernelTransaction.KernelTransactionMonitor.withAfterCommit(
+    private KernelTransaction.Monitor statisticsMonitor() {
+        return KernelTransaction.Monitor.withAfterCommit(
                 statistics -> executingQuery.recordStatisticsOfClosedTransaction(
                         statistics.pageHits(),
                         statistics.pageFaults(),

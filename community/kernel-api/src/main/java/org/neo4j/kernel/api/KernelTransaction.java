@@ -106,7 +106,7 @@ public interface KernelTransaction extends AssertOpen, AutoCloseable {
      */
     long READ_ONLY_ID = 0;
 
-    KernelTransactionMonitor NO_MONITOR = new KernelTransactionMonitor() {
+    Monitor NO_MONITOR = new Monitor() {
         @Override
         public void beforeApply() {}
 
@@ -120,16 +120,16 @@ public interface KernelTransaction extends AssertOpen, AutoCloseable {
      *
      * When {@code commit()} is completed, all resources are released and no more changes are possible in this transaction.
      *
-     * @param kernelTransactionMonitor monitor for advanced interaction with commit process.
+     * @param monitor monitor for advanced interaction with commit process.
      * @return id of the committed transaction or {@link #ROLLBACK_ID} if transaction was rolled back or
      * {@link #READ_ONLY_ID} if transaction was read-only.
      */
-    long commit(KernelTransactionMonitor kernelTransactionMonitor) throws TransactionFailureException;
+    long commit(Monitor monitor) throws TransactionFailureException;
 
     /**
-     * Commit without a {@link KernelTransactionMonitor}.
+     * Commit without a {@link Monitor}.
      *
-     * @see #commit(KernelTransactionMonitor)
+     * @see #commit(Monitor)
      */
     default long commit() throws TransactionFailureException {
         return commit(NO_MONITOR);
@@ -528,7 +528,7 @@ public interface KernelTransaction extends AssertOpen, AutoCloseable {
 
     InnerTransactionHandler getInnerTransactionHandler();
 
-    interface KernelTransactionMonitor {
+    interface Monitor {
         /**
          * Called during commit after all logical transaction state have been converted into storage commands,
          * but before the commands have been applied to the transaction log and store.
@@ -540,8 +540,8 @@ public interface KernelTransaction extends AssertOpen, AutoCloseable {
          */
         void afterCommit(ExecutionStatistics statistics);
 
-        static KernelTransactionMonitor withBeforeApply(Runnable beforeApply) {
-            return new KernelTransactionMonitor() {
+        static Monitor withBeforeApply(Runnable beforeApply) {
+            return new Monitor() {
 
                 @Override
                 public void beforeApply() {
@@ -553,8 +553,8 @@ public interface KernelTransaction extends AssertOpen, AutoCloseable {
             };
         }
 
-        static KernelTransactionMonitor withAfterCommit(Consumer<ExecutionStatistics> onFinalStatistics) {
-            return new KernelTransactionMonitor() {
+        static Monitor withAfterCommit(Consumer<ExecutionStatistics> onFinalStatistics) {
+            return new Monitor() {
 
                 @Override
                 public void beforeApply() {}

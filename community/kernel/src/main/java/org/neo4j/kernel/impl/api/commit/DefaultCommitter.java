@@ -70,7 +70,7 @@ public final class DefaultCommitter implements TransactionCommitter {
             LeaseClient leaseClient,
             CursorContext cursorContext,
             MemoryTracker memoryTracker,
-            KernelTransaction.KernelTransactionMonitor kernelTransactionMonitor,
+            KernelTransaction.Monitor monitor,
             LockTracer lockTracer,
             long commitTime,
             long startTimeMillis,
@@ -111,7 +111,7 @@ public final class DefaultCommitter implements TransactionCommitter {
                     commitmentFactory.newCommitment(),
                     transactionIdGenerator);
 
-            kernelTransactionMonitor.beforeApply();
+            monitor.beforeApply();
             // TODO:misha in default mode append index is the same as transaction id, until log merge will happen.
             // Transaction id will need to be extracted from result object when that is available to work regardless
             // mode and log merge progress

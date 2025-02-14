@@ -353,7 +353,7 @@ public class ExecutionContextProcedureTransaction extends DataLookup implements 
     }
 
     @Override
-    public void commit(KernelTransaction.KernelTransactionMonitor monitor) {
+    public void commit(KernelTransaction.Monitor monitor) {
         commit();
     }
 

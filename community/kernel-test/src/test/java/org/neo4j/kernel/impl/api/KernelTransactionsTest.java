@@ -707,7 +707,7 @@ class KernelTransactionsTest {
             assertThat(ktxs.startTimeOfOldestExecutingTransaction()).isNotEqualTo(Long.MAX_VALUE);
 
             ktx.dataWrite().nodeCreate(); // Make it a write TX
-            ktx.commit(KernelTransaction.KernelTransactionMonitor.withBeforeApply(() ->
+            ktx.commit(KernelTransaction.Monitor.withBeforeApply(() ->
                     assertThat(ktxs.startTimeOfOldestExecutingTransaction()).isNotEqualTo(Long.MAX_VALUE)));
         }
     }

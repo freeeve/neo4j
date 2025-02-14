@@ -108,7 +108,7 @@ class RelationshipGroupStoreIT {
             Future<Object> t2Future = t2.executeDontWait(() -> {
                 try (TransactionImpl tx = (TransactionImpl) db.beginTx()) {
                     tx.getNodeById(nodeId).createRelationshipTo(tx.createNode(), typeB);
-                    tx.commit(KernelTransaction.KernelTransactionMonitor.withBeforeApply(barrier::reached));
+                    tx.commit(KernelTransaction.Monitor.withBeforeApply(barrier::reached));
                 }
                 return null;
             });
@@ -162,7 +162,7 @@ class RelationshipGroupStoreIT {
             Future<Object> t2Future = t2.executeDontWait(() -> {
                 try (TransactionImpl tx = (TransactionImpl) db.beginTx()) {
                     tx.getNodeById(nodeId).createRelationshipTo(tx.createNode(), typeA);
-                    tx.commit(KernelTransaction.KernelTransactionMonitor.withBeforeApply(barrier::reached));
+                    tx.commit(KernelTransaction.Monitor.withBeforeApply(barrier::reached));
                 }
                 return null;
             });

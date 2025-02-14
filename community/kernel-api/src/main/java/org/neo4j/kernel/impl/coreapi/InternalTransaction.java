@@ -73,5 +73,5 @@ public interface InternalTransaction extends Transaction, TransactionalEntityFac
 
     ElementIdMapper elementIdMapper();
 
-    void commit(KernelTransaction.KernelTransactionMonitor monitor);
+    void commit(KernelTransaction.Monitor monitor);
 }
