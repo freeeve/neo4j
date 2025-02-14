@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.TraverseAction
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.exceptions.SyntaxException
 
 class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -117,14 +118,17 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
                     s"$verb$immutableString TRAVERSE ON $graphKeyword * $nodeKeyword * (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
-                          List(ast.LabelAllQualifier() _),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
+                              List(ast.LabelAllQualifier() _),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
                     s"$verb$immutableString TRAVERSE ON $graphKeyword * $nodeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
@@ -135,14 +139,17 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
                     s"$verb$immutableString TRAVERSE ON $graphKeyword * $nodeKeyword A (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
-                          List(labelQualifierA),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
+                              List(labelQualifierA),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
                     s"$verb$immutableString TRAVERSE ON $graphKeyword `*` $nodeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
@@ -162,14 +169,17 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
                     s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword * (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
-                          List(ast.LabelAllQualifier() _),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
+                              List(ast.LabelAllQualifier() _),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
                     s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
@@ -180,15 +190,18 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
                     s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword A (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
-                          List(labelQualifierA),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword A (*) $preposition role1, $$role2" should
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
+                              List(labelQualifierA),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword A $preposition role1, $$role2" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -197,7 +210,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword `2foo` $nodeKeyword A (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword `2foo` $nodeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, ast.NamedGraphsScope(Seq(literal("2foo"))) _)(pos),
@@ -206,7 +219,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword A (*) $preposition `r:ole`" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword A $preposition `r:ole`" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -215,7 +228,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword `A B` (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword `A B` $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -224,7 +237,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword A, B (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword A, B $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -233,7 +246,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword A, B (*) $preposition role1, role2" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $nodeKeyword A, B $preposition role1, role2" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -242,7 +255,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo, baz $nodeKeyword A (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo, baz $nodeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFooBaz)(pos),
@@ -290,14 +303,17 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                       )
 
                     s"$verb$immutableString TRAVERSE ON $graphKeyword * $relTypeKeyword * (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
-                          List(ast.RelationshipAllQualifier() _),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
+                              List(ast.RelationshipAllQualifier() _),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
 
                     s"$verb$immutableString TRAVERSE ON $graphKeyword * $relTypeKeyword A $preposition role" should
                       parseTo[Statements](
@@ -310,14 +326,17 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                       )
 
                     s"$verb$immutableString TRAVERSE ON $graphKeyword * $relTypeKeyword A (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
-                          List(relQualifierA),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
+                              List(relQualifierA),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
 
                     s"$verb$immutableString TRAVERSE ON $graphKeyword `*` $relTypeKeyword A $preposition role" should
                       parseTo[Statements](
@@ -340,14 +359,17 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                       )
 
                     s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword * (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
-                          List(ast.RelationshipAllQualifier() _),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
+                              List(ast.RelationshipAllQualifier() _),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
 
                     s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword A $preposition role" should
                       parseTo[Statements](
@@ -360,16 +382,19 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                       )
 
                     s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword A (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
-                          List(relQualifierA),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
+                              List(relQualifierA),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
 
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword A (*) $preposition $$role1, role2" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword A $preposition $$role1, role2" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -379,7 +404,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
 
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword `2foo` $relTypeKeyword A (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword `2foo` $relTypeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, ast.NamedGraphsScope(Seq(literal("2foo"))) _)(pos),
@@ -389,7 +414,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
 
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword A (*) $preposition `r:ole`" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword A $preposition `r:ole`" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -399,7 +424,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
 
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword `A B` (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword `A B` $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -409,7 +434,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
 
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword A, B (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword A, B $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -419,7 +444,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
 
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword A, B (*) $preposition role1, role2" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $relTypeKeyword A, B $preposition role1, role2" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -429,7 +454,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
 
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo, baz $relTypeKeyword A (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo, baz $relTypeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFooBaz)(pos),
@@ -487,14 +512,17 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
                     s"$verb$immutableString TRAVERSE ON $graphKeyword * $elementKeyword * (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
-                          List(ElementsAllQualifier() _),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
+                              List(ElementsAllQualifier() _),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
                     s"$verb$immutableString TRAVERSE ON $graphKeyword * $elementKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
@@ -505,14 +533,17 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
                     s"$verb$immutableString TRAVERSE ON $graphKeyword * $elementKeyword A (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
-                          List(elemQualifierA),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, ast.AllGraphsScope() _)(pos),
+                              List(elemQualifierA),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
                     s"$verb$immutableString TRAVERSE ON $graphKeyword `*` $elementKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
@@ -532,14 +563,17 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
                     s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword * (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
-                          List(ElementsAllQualifier() _),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
+                              List(ElementsAllQualifier() _),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
                     s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
@@ -550,15 +584,18 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                         )(pos)
                       )
                     s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword A (*) $preposition role" should
-                      parseTo[Statements](
-                        func(
-                          GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
-                          List(elemQualifierA),
-                          Seq(literalRole),
-                          immutable
-                        )(pos)
-                      )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword A (*) $preposition role1, role2" should
+                      parseIn[Statements] {
+                        case Cypher5 => _.toAst(Statements(Seq(
+                            func(
+                              GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
+                              List(elemQualifierA),
+                              Seq(literalRole),
+                              immutable
+                            )(pos)
+                          )))
+                        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                      }
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword A $preposition role1, role2" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -567,7 +604,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword `2foo` $elementKeyword A (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword `2foo` $elementKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, ast.NamedGraphsScope(Seq(literal("2foo"))) _)(pos),
@@ -576,7 +613,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword A (*) $preposition `r:ole`" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword A $preposition `r:ole`" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -585,7 +622,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword `A B` (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword `A B` $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -594,7 +631,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword A, B (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword A, B $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -603,7 +640,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword A, B (*) $preposition $$role1, $$role2" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo $elementKeyword A, B $preposition $$role1, $$role2" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFoo)(pos),
@@ -612,7 +649,7 @@ class TraversePrivilegeAdministrationCommandParserTest extends AdministrationAnd
                           immutable
                         )(pos)
                       )
-                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo, baz $elementKeyword A (*) $preposition role" should
+                    s"$verb$immutableString TRAVERSE ON $graphKeyword foo, baz $elementKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(TraverseAction, graphScopeFooBaz)(pos),

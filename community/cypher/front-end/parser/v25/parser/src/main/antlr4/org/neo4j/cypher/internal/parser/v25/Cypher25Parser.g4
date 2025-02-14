@@ -1464,7 +1464,7 @@ globPart
    ;
 
 qualifiedGraphPrivilegesWithProperty
-   : (TRAVERSE | (READ | MATCH) propertiesResource) ON graphScope graphQualifier (LPAREN TIMES RPAREN)?
+   : (TRAVERSE | (READ | MATCH) propertiesResource) ON graphScope graphQualifier
    ;
 
 qualifiedGraphPrivileges

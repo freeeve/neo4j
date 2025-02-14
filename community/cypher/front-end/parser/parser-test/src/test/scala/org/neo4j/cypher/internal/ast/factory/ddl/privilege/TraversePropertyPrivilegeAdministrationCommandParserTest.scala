@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TraverseAction
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.expressions.BooleanExpression
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
@@ -45,6 +46,7 @@ import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
+import org.neo4j.exceptions.SyntaxException
 import org.scalacheck.Arbitrary
 import org.scalacheck.Gen
 import org.scalacheck.Shrink
@@ -321,19 +323,22 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
     }
   }
 
-  test("Allow trailing star") {
-    s"GRANT TRAVERSE ON GRAPH * FOR (n) WHERE n.prop1 = 1 (*) TO role" should parseTo[Statements](
-      grantGraphPrivilege(
-        GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
-        List(PatternQualifier(
-          Seq(LabelAllQualifier() _),
-          Some(varFor("n")),
-          equals(prop(varFor("n"), "prop1"), literalInt(1))
-        )),
-        Seq(literalRole),
-        i = false
-      )(pos)
-    )
+  test("Allow trailing star in Cypher 5 but not in later versions") {
+    s"GRANT TRAVERSE ON GRAPH * FOR (n) WHERE n.prop1 = 1 (*) TO role" should
+      parseIn[Statements] {
+        case Cypher5 =>
+          _.toAst(statementToStatements(grantGraphPrivilege(
+            GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
+            List(PatternQualifier(
+              Seq(LabelAllQualifier() _),
+              Some(varFor("n")),
+              equals(prop(varFor("n"), "prop1"), literalInt(1))
+            )),
+            Seq(literalRole),
+            i = false
+          )(pos)))
+        case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+      }
   }
 
   test(

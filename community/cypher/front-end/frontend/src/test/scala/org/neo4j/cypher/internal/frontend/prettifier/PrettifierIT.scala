@@ -16,16 +16,16 @@
  */
 package org.neo4j.cypher.internal.frontend.prettifier
 
-import PrettifierTestSupport.ChangedBetween5And25
-import PrettifierTestSupport.FailsInCypher5
-import PrettifierTestSupport.SameAcrossVersions
-import PrettifierTestSupport.Test
-import PrettifierTestSupport.TestConverter
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.ChangedBetween5And25
 import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.FailsInCypher25AndLater
+import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.FailsInCypher5
+import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.SameAcrossVersions
+import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.Test
+import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.TestConverter
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -2639,24 +2639,30 @@ class PrettifierIT extends CypherFunSuite {
             s"$action TRAVERSE ON GRAPH * ELEMENTS * $preposition role",
           s"$action traverse on graph * nodes * $preposition role" ->
             s"$action TRAVERSE ON GRAPH * NODES * $preposition role",
-          s"$action traverse on graph * nodes * (*) $preposition role" ->
-            s"$action TRAVERSE ON GRAPH * NODES * $preposition role",
-          s"$action traverse on graph foo nodes * (*) $preposition role" ->
+          FailsInCypher25AndLater(
+            s"$action traverse on graph * nodes * (*) $preposition role",
+            s"$action TRAVERSE ON GRAPH * NODES * $preposition role"
+          ),
+          s"$action traverse on graph foo nodes * $preposition role" ->
             s"$action TRAVERSE ON GRAPH foo NODES * $preposition role",
-          s"$action traverse on graph $$foo nodes * (*) $preposition $$role" ->
+          s"$action traverse on graph $$foo nodes * $preposition $$role" ->
             s"$action TRAVERSE ON GRAPH $$foo NODES * $preposition $$role",
-          s"$action traverse on graph FoO nodes A (*) $preposition role" ->
+          s"$action traverse on graph FoO nodes A $preposition role" ->
             s"$action TRAVERSE ON GRAPH FoO NODE A $preposition role",
-          s"$action traverse on graph `#%¤` nodes `()/&` (*) $preposition role" ->
+          s"$action traverse on graph `#%¤` nodes `()/&` $preposition role" ->
             s"$action TRAVERSE ON GRAPH `#%¤` NODE `()/&` $preposition role",
-          s"$action traverse on graph foo nodes A,B,C (*) $preposition x,y,z" ->
+          s"$action traverse on graph foo nodes A,B,C $preposition x,y,z" ->
             s"$action TRAVERSE ON GRAPH foo NODES A, B, C $preposition x, y, z",
+          s"""$action traverse on graph * for (a) where a.b = duration("5 min") $preposition role""" ->
+            s"""$action TRAVERSE ON GRAPH * FOR (a) WHERE a.b = duration("5 min") $preposition role""",
+          FailsInCypher25AndLater(
+            s"""$action traverse on graph * for (a) where a.b = duration("5 min") (*) $preposition role""",
+            s"""$action TRAVERSE ON GRAPH * FOR (a) WHERE a.b = duration("5 min") $preposition role"""
+          ),
           s"""$action traverse on graph * for (a) where a.b=time("14:42:30") $preposition role""" ->
             s"""$action TRAVERSE ON GRAPH * FOR (a) WHERE a.b = time("14:42:30") $preposition role""",
           s"$action traverse on graph * for (a) where not a.b=1 $preposition role" ->
             s"$action TRAVERSE ON GRAPH * FOR (a) WHERE NOT a.b = 1 $preposition role",
-          s"""$action traverse on graph * for (a) where a.b = duration("5 min") (*) $preposition role""" ->
-            s"""$action TRAVERSE ON GRAPH * FOR (a) WHERE a.b = duration("5 min") $preposition role""",
           s"$action traverse on graph foo for (n) where n.a=true $preposition role" ->
             s"$action TRAVERSE ON GRAPH foo FOR (n) WHERE n.a = true $preposition role",
           s"$action traverse on graph $$foo for (:A {a:$$foo}) $preposition $$role" ->
@@ -2707,39 +2713,43 @@ class PrettifierIT extends CypherFunSuite {
             s"$action TRAVERSE ON GRAPH FoO FOR (Bar) WHERE NOT Bar.fOO <= $$foo $preposition role",
           s"$action traverse on graph * relationships * $preposition role" ->
             s"$action TRAVERSE ON GRAPH * RELATIONSHIPS * $preposition role",
-          s"$action traverse on graph * relationships * (*) $preposition role" ->
-            s"$action TRAVERSE ON GRAPH * RELATIONSHIPS * $preposition role",
-          s"$action traverse on graph foo relationships * (*) $preposition role" ->
+          FailsInCypher25AndLater(
+            s"$action traverse on graph * relationships * (*) $preposition role",
+            s"$action TRAVERSE ON GRAPH * RELATIONSHIPS * $preposition role"
+          ),
+          s"$action traverse on graph foo relationships * $preposition role" ->
             s"$action TRAVERSE ON GRAPH foo RELATIONSHIPS * $preposition role",
-          s"$action traverse on graph FoO relationships A (*) $preposition role" ->
+          s"$action traverse on graph FoO relationships A $preposition role" ->
             s"$action TRAVERSE ON GRAPH FoO RELATIONSHIP A $preposition role",
-          s"$action traverse on graph `#%¤` relationships `()/&` (*) $preposition role" ->
+          s"$action traverse on graph `#%¤` relationships `()/&` $preposition role" ->
             s"$action TRAVERSE ON GRAPH `#%¤` RELATIONSHIP `()/&` $preposition role",
-          s"$action traverse on graph foo relationships A,B,C (*) $preposition x,y,z" ->
+          s"$action traverse on graph foo relationships A,B,C $preposition x,y,z" ->
             s"$action TRAVERSE ON GRAPH foo RELATIONSHIPS A, B, C $preposition x, y, z",
-          s"$action traverse on graphs $$foo, $$bar nodes * (*) $preposition $$role" ->
+          s"$action traverse on graphs $$foo, $$bar nodes * $preposition $$role" ->
             s"$action TRAVERSE ON GRAPHS $$foo, $$bar NODES * $preposition $$role",
-          s"$action traverse on graph * elements A (*) $preposition role" ->
+          s"$action traverse on graph * elements A $preposition role" ->
             s"$action TRAVERSE ON GRAPH * ELEMENTS A $preposition role",
-          s"$action traverse on home graph elements A (*) $preposition role" ->
+          s"$action traverse on home graph elements A $preposition role" ->
             s"$action TRAVERSE ON HOME GRAPH ELEMENTS A $preposition role",
           s"$action read {*} on graph * $preposition role" ->
             s"$action READ {*} ON GRAPH * ELEMENTS * $preposition role",
           s"$action read {*} on graph * nodes * $preposition role" ->
             s"$action READ {*} ON GRAPH * NODES * $preposition role",
-          s"$action read {*} on graph * nodes * (*) $preposition role" ->
-            s"$action READ {*} ON GRAPH * NODES * $preposition role",
-          s"$action read {*} on graph foo node * (*) $preposition role" ->
+          FailsInCypher25AndLater(
+            s"$action read {*} on graph * nodes * (*) $preposition role",
+            s"$action READ {*} ON GRAPH * NODES * $preposition role"
+          ),
+          s"$action read {*} on graph foo node * $preposition role" ->
             s"$action READ {*} ON GRAPH foo NODES * $preposition role",
-          s"$action read {*} on graph foo nodes A (*) $preposition role" ->
+          s"$action read {*} on graph foo nodes A $preposition role" ->
             s"$action READ {*} ON GRAPH foo NODE A $preposition role",
-          s"$action read {bar} on graph FoO nodes A (*) $preposition role" ->
+          s"$action read {bar} on graph FoO nodes A $preposition role" ->
             s"$action READ {bar} ON GRAPH FoO NODE A $preposition role",
           s"$action READ {`x\u0885y`} on graph `x\u0885y` nodes `x\u0885y` $preposition `x\u0885y`" ->
             s"$action READ {`x\u0885y`} ON GRAPH `x\u0885y` NODE `x\u0885y` $preposition `x\u0885y`",
-          s"$action read { `&bar` } on graph `#%¤` nodes `()/&` (*) $preposition role" ->
+          s"$action read { `&bar` } on graph `#%¤` nodes `()/&` $preposition role" ->
             s"$action READ {`&bar`} ON GRAPH `#%¤` NODE `()/&` $preposition role",
-          s"$action read {foo,bar} on graph foo nodes A,B,C (*) $preposition x,y,$$z" ->
+          s"$action read {foo,bar} on graph foo nodes A,B,C $preposition x,y,$$z" ->
             s"$action READ {foo, bar} ON GRAPH foo NODES A, B, C $preposition x, y, $$z",
           s"$action read {*} on graph * for (n:A) where n.prop = 1 $preposition role" ->
             s"$action READ {*} ON GRAPH * FOR (n:A) WHERE n.prop = 1 $preposition role",
@@ -2795,35 +2805,45 @@ class PrettifierIT extends CypherFunSuite {
             s"$action READ {*} ON GRAPH FoO FOR (Bar) WHERE 1.0 <= Bar.fOO $preposition role",
           s"$action read {*} on graph FoO FOR (Bar) WHERE not Bar.fOO <= $$foo $preposition role" ->
             s"$action READ {*} ON GRAPH FoO FOR (Bar) WHERE NOT Bar.fOO <= $$foo $preposition role",
-          s"$action read {*} on graph $$foo relationships * (*) $preposition role" ->
+          s"$action read {*} on graph $$foo relationships * $preposition role" ->
             s"$action READ {*} ON GRAPH $$foo RELATIONSHIPS * $preposition role",
-          s"$action read {*} on graph foo, bar relationships * (*) $preposition role" ->
+          FailsInCypher25AndLater(
+            s"$action read {*} on graph $$foo relationships * (*) $preposition role",
+            s"$action READ {*} ON GRAPH $$foo RELATIONSHIPS * $preposition role"
+          ),
+          s"$action read {*} on graph foo, bar relationships * $preposition role" ->
             s"$action READ {*} ON GRAPHS foo, bar RELATIONSHIPS * $preposition role",
-          s"$action read {*} on graph * elements A (*) $preposition role" ->
+          s"$action read {*} on graph * elements A $preposition role" ->
             s"$action READ {*} ON GRAPH * ELEMENTS A $preposition role",
-          s"$action read {*} on home graph elements A (*) $preposition role" ->
+          s"$action read {*} on home graph elements A $preposition role" ->
             s"$action READ {*} ON HOME GRAPH ELEMENTS A $preposition role",
           s"$action match {*} on graph * $preposition role" ->
             s"$action MATCH {*} ON GRAPH * ELEMENTS * $preposition role",
           s"$action match {*} on graph * node * $preposition role" ->
             s"$action MATCH {*} ON GRAPH * NODES * $preposition role",
-          s"$action match {*} on graph * nodes * (*) $preposition role" ->
-            s"$action MATCH {*} ON GRAPH * NODES * $preposition role",
-          s"$action match {*} on graph foo nodes * (*) $preposition role" ->
+          FailsInCypher25AndLater(
+            s"$action match {*} on graph * nodes * (*) $preposition role",
+            s"$action MATCH {*} ON GRAPH * NODES * $preposition role"
+          ),
+          s"$action match {*} on graph foo nodes * $preposition role" ->
             s"$action MATCH {*} ON GRAPH foo NODES * $preposition role",
-          s"$action match {*} on graph foo nodes A (*) $preposition role" ->
+          s"$action match {*} on graph foo nodes A $preposition role" ->
             s"$action MATCH {*} ON GRAPH foo NODE A $preposition role",
-          s"$action match {bar} on graph foo nodes A (*) $preposition role" ->
+          s"$action match {bar} on graph foo nodes A $preposition role" ->
             s"$action MATCH {bar} ON GRAPH foo NODE A $preposition role",
-          s"$action match { `&bar` } on graph `#%¤` nodes `()/&` (*) $preposition role" ->
+          s"$action match { `&bar` } on graph `#%¤` nodes `()/&` $preposition role" ->
             s"$action MATCH {`&bar`} ON GRAPH `#%¤` NODE `()/&` $preposition role",
-          s"$action match {foo,bar} on graph foo nodes A,B,C (*) $preposition x,$$y,z" ->
+          s"$action match {foo,bar} on graph foo nodes A,B,C $preposition x,$$y,z" ->
             s"$action MATCH {foo, bar} ON GRAPH foo NODES A, B, C $preposition x, $$y, z",
           s"$action match {*} on graph * for (n) where n.prop = $$foo $preposition role" ->
             s"$action MATCH {*} ON GRAPH * FOR (n) WHERE n.prop = $$foo $preposition role",
+          FailsInCypher25AndLater(
+            s"$action match {*} on graph * for (n) where n.prop = $$foo (*) $preposition role",
+            s"$action MATCH {*} ON GRAPH * FOR (n) WHERE n.prop = $$foo $preposition role"
+          ),
           s"$action match {*} on graph * for (n) where not n.prop = true $preposition role" ->
             s"$action MATCH {*} ON GRAPH * FOR (n) WHERE NOT n.prop = true $preposition role",
-          s"$action match {*} on graph * for (n:A) WHERE n.prop is not NULL (*) $preposition role" ->
+          s"$action match {*} on graph * for (n:A) WHERE n.prop is not NULL $preposition role" ->
             s"$action MATCH {*} ON GRAPH * FOR (n:A) WHERE n.prop IS NOT NULL $preposition role",
           s"$action match {*} on graph foo for (:A{prop:true}) $preposition role" ->
             s"$action MATCH {*} ON GRAPH foo FOR (n:A) WHERE n.prop = true $preposition role",
@@ -2869,14 +2889,30 @@ class PrettifierIT extends CypherFunSuite {
             s"$action MATCH {*} ON GRAPH FoO FOR (Bar) WHERE Bar.fOO <= 1.0 $preposition role",
           s"$action match {*} on graph FoO FOR (Bar) WHERE not Bar.fOO <= $$foo $preposition role" ->
             s"$action MATCH {*} ON GRAPH FoO FOR (Bar) WHERE NOT Bar.fOO <= $$foo $preposition role",
-          s"$action match {foo,bar} on graph $$foo relationship A,B,C (*) $preposition x,y,z" ->
+          s"$action match {foo,bar} on graph $$foo relationship A,B,C $preposition x,y,z" ->
             s"$action MATCH {foo, bar} ON GRAPH $$foo RELATIONSHIPS A, B, C $preposition x, y, z",
-          s"$action match {*} on graph $$foo, bar nodes * (*) $preposition role" ->
+          FailsInCypher25AndLater(
+            s"$action match {foo,bar} on graph $$foo relationship A,B,C (*) $preposition x,y,z",
+            s"$action MATCH {foo, bar} ON GRAPH $$foo RELATIONSHIPS A, B, C $preposition x, y, z"
+          ),
+          s"$action match {*} on graph $$foo, bar nodes * $preposition role" ->
             s"$action MATCH {*} ON GRAPHS $$foo, bar NODES * $preposition role",
-          s"$action match {*} on graph * elements A (*) $preposition role" ->
+          FailsInCypher25AndLater(
+            s"$action match {*} on graph $$foo, bar nodes * (*) $preposition role",
+            s"$action MATCH {*} ON GRAPHS $$foo, bar NODES * $preposition role"
+          ),
+          s"$action match {*} on graph * elements A $preposition role" ->
             s"$action MATCH {*} ON GRAPH * ELEMENTS A $preposition role",
-          s"$action match {*} on home graph nodes * (*) $preposition role" ->
+          FailsInCypher25AndLater(
+            s"$action match {*} on graph * elements A (*) $preposition role",
+            s"$action MATCH {*} ON GRAPH * ELEMENTS A $preposition role"
+          ),
+          s"$action match {*} on home graph nodes * $preposition role" ->
             s"$action MATCH {*} ON HOME GRAPH NODES * $preposition role",
+          FailsInCypher25AndLater(
+            s"$action match {*} on home graph nodes * (*) $preposition role",
+            s"$action MATCH {*} ON HOME GRAPH NODES * $preposition role"
+          ),
           s"$action write on graph * $preposition role" ->
             s"$action WRITE ON GRAPH * $preposition role",
           s"$action write on graph foo $preposition role" ->

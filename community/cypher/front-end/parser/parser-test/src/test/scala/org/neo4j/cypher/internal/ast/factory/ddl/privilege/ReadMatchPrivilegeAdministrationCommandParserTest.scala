@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.exceptions.SyntaxException
 
 class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
   // Granting/denying/revoking read and match to/from role
@@ -110,15 +111,18 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                           )
 
                         s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $nodeKeyword * (*) $preposition role" should
-                          parseTo[Statements](
-                            func(
-                              GraphPrivilege(action, graphScope)(pos),
-                              resource,
-                              List(LabelAllQualifier() _),
-                              Seq(literalRole),
-                              immutable
-                            )(pos)
-                          )
+                          parseIn[Statements] {
+                            case Cypher5 => _.toAst(Statements(Seq(
+                                func(
+                                  GraphPrivilege(action, graphScope)(pos),
+                                  resource,
+                                  List(LabelAllQualifier() _),
+                                  Seq(literalRole),
+                                  immutable
+                                )(pos)
+                              )))
+                            case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                          }
                         s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $nodeKeyword A $preposition role" should
                           parseTo[Statements](
                             func(
@@ -131,17 +135,20 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                           )
 
                         s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $nodeKeyword A (*) $preposition role" should
-                          parseTo[Statements](
-                            func(
-                              GraphPrivilege(action, graphScope)(pos),
-                              resource,
-                              List(labelQualifierA),
-                              Seq(literalRole),
-                              immutable
-                            )(pos)
-                          )
+                          parseIn[Statements] {
+                            case Cypher5 => _.toAst(Statements(Seq(
+                                func(
+                                  GraphPrivilege(action, graphScope)(pos),
+                                  resource,
+                                  List(labelQualifierA),
+                                  Seq(literalRole),
+                                  immutable
+                                )(pos)
+                              )))
+                            case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                          }
 
-                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $nodeKeyword `A B` (*) $preposition role" should
+                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $nodeKeyword `A B` $preposition role" should
                           parseTo[Statements](
                             func(
                               GraphPrivilege(action, graphScope)(pos),
@@ -152,7 +159,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                             )(pos)
                           )
 
-                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $nodeKeyword A, B (*) $preposition role1, $$role2" should
+                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $nodeKeyword A, B $preposition role1, $$role2" should
                           parseTo[Statements](
                             func(
                               GraphPrivilege(action, graphScope)(pos),
@@ -174,7 +181,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                             )(pos)
                           )
 
-                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $nodeKeyword `:A` (*) $preposition role" should
+                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $nodeKeyword `:A` $preposition role" should
                           parseTo[Statements](
                             func(
                               GraphPrivilege(action, graphScope)(pos),
@@ -247,7 +254,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                         )(pos)
                       )
 
-                    s"$verb$immutableString ${action.name} {*} ON $graphKeyword foo, baz $nodeKeyword A (*) $preposition role" should
+                    s"$verb$immutableString ${action.name} {*} ON $graphKeyword foo, baz $nodeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(action, graphScopeFooBaz)(pos),
@@ -258,7 +265,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                         )(pos)
                       )
 
-                    s"$verb$immutableString ${action.name} {bar} ON $graphKeyword foo, baz $nodeKeyword A (*) $preposition role" should
+                    s"$verb$immutableString ${action.name} {bar} ON $graphKeyword foo, baz $nodeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(action, graphScopeFooBaz)(pos),
@@ -406,15 +413,18 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                           )
 
                         s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $relTypeKeyword * (*) $preposition $$role" should
-                          parseTo[Statements](
-                            func(
-                              GraphPrivilege(action, graphScope)(pos),
-                              resource,
-                              List(RelationshipAllQualifier() _),
-                              Seq(paramRole),
-                              immutable
-                            )(pos)
-                          )
+                          parseIn[Statements] {
+                            case Cypher5 => _.toAst(Statements(Seq(
+                                func(
+                                  GraphPrivilege(action, graphScope)(pos),
+                                  resource,
+                                  List(RelationshipAllQualifier() _),
+                                  Seq(paramRole),
+                                  immutable
+                                )(pos)
+                              )))
+                            case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                          }
 
                         s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $relTypeKeyword A $preposition role" should
                           parseTo[Statements](
@@ -428,17 +438,20 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                           )
 
                         s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $relTypeKeyword A (*) $preposition role" should
-                          parseTo[Statements](
-                            func(
-                              GraphPrivilege(action, graphScope)(pos),
-                              resource,
-                              List(relQualifierA),
-                              Seq(literalRole),
-                              immutable
-                            )(pos)
-                          )
+                          parseIn[Statements] {
+                            case Cypher5 => _.toAst(Statements(Seq(
+                                func(
+                                  GraphPrivilege(action, graphScope)(pos),
+                                  resource,
+                                  List(relQualifierA),
+                                  Seq(literalRole),
+                                  immutable
+                                )(pos)
+                              )))
+                            case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                          }
 
-                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $relTypeKeyword `A B` (*) $preposition role" should
+                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $relTypeKeyword `A B` $preposition role" should
                           parseTo[Statements](
                             func(
                               GraphPrivilege(action, graphScope)(pos),
@@ -449,7 +462,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                             )(pos)
                           )
 
-                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $relTypeKeyword A, B (*) $preposition $$role1, role2" should
+                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $relTypeKeyword A, B $preposition $$role1, role2" should
                           parseTo[Statements](
                             func(
                               GraphPrivilege(action, graphScope)(pos),
@@ -471,7 +484,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                             )(pos)
                           )
 
-                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $relTypeKeyword `:A` (*) $preposition role" should
+                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $relTypeKeyword `:A` $preposition role" should
                           parseTo[Statements](
                             func(
                               GraphPrivilege(action, graphScope)(pos),
@@ -544,7 +557,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                         )(pos)
                       )
 
-                    s"$verb$immutableString ${action.name} {*} ON $graphKeyword foo, baz $relTypeKeyword A (*) $preposition role" should
+                    s"$verb$immutableString ${action.name} {*} ON $graphKeyword foo, baz $relTypeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(action, graphScopeFooBaz)(pos),
@@ -555,7 +568,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                         )(pos)
                       )
 
-                    s"$verb$immutableString ${action.name} {bar} ON $graphKeyword foo, baz $relTypeKeyword A (*) $preposition role" should
+                    s"$verb$immutableString ${action.name} {bar} ON $graphKeyword foo, baz $relTypeKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(action, graphScopeFooBaz)(pos),
@@ -695,15 +708,18 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                           )
 
                         s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $elementKeyword * (*) $preposition role" should
-                          parseTo[Statements](
-                            func(
-                              GraphPrivilege(action, graphScope)(pos),
-                              resource,
-                              List(ElementsAllQualifier() _),
-                              Seq(literalRole),
-                              immutable
-                            )(pos)
-                          )
+                          parseIn[Statements] {
+                            case Cypher5 => _.toAst(Statements(Seq(
+                                func(
+                                  GraphPrivilege(action, graphScope)(pos),
+                                  resource,
+                                  List(ElementsAllQualifier() _),
+                                  Seq(literalRole),
+                                  immutable
+                                )(pos)
+                              )))
+                            case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                          }
 
                         s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $elementKeyword A $preposition $$role" should
                           parseTo[Statements](
@@ -717,17 +733,20 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                           )
 
                         s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $elementKeyword A (*) $preposition role" should
-                          parseTo[Statements](
-                            func(
-                              GraphPrivilege(action, graphScope)(pos),
-                              resource,
-                              List(elemQualifierA),
-                              Seq(literalRole),
-                              immutable
-                            )(pos)
-                          )
+                          parseIn[Statements] {
+                            case Cypher5 => _.toAst(Statements(Seq(
+                                func(
+                                  GraphPrivilege(action, graphScope)(pos),
+                                  resource,
+                                  List(elemQualifierA),
+                                  Seq(literalRole),
+                                  immutable
+                                )(pos)
+                              )))
+                            case _ => _.throws[SyntaxException].withMessageContaining("Invalid input")
+                          }
 
-                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $elementKeyword `A B` (*) $preposition role" should
+                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $elementKeyword `A B` $preposition role" should
                           parseTo[Statements](
                             func(
                               GraphPrivilege(action, graphScope)(pos),
@@ -738,7 +757,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                             )(pos)
                           )
 
-                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $elementKeyword A, B (*) $preposition $$role1, $$role2" should
+                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $elementKeyword A, B $preposition $$role1, $$role2" should
                           parseTo[Statements](
                             func(
                               GraphPrivilege(action, graphScope)(pos),
@@ -760,7 +779,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                             )(pos)
                           )
 
-                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $elementKeyword `:A` (*) $preposition role" should
+                        s"$verb$immutableString ${action.name} {$properties} ON $graphKeyword $graphName $elementKeyword `:A` $preposition role" should
                           parseTo[Statements](
                             func(
                               GraphPrivilege(action, graphScope)(pos),
@@ -833,7 +852,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                         )(pos)
                       )
 
-                    s"$verb$immutableString ${action.name} {*} ON $graphKeyword foo, baz $elementKeyword A (*) $preposition role" should
+                    s"$verb$immutableString ${action.name} {*} ON $graphKeyword foo, baz $elementKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(action, graphScopeFooBaz)(pos),
@@ -844,7 +863,7 @@ class ReadMatchPrivilegeAdministrationCommandParserTest extends AdministrationAn
                         )(pos)
                       )
 
-                    s"$verb$immutableString ${action.name} {bar} ON $graphKeyword foo, baz $elementKeyword A (*) $preposition role" should
+                    s"$verb$immutableString ${action.name} {bar} ON $graphKeyword foo, baz $elementKeyword A $preposition role" should
                       parseTo[Statements](
                         func(
                           GraphPrivilege(action, graphScopeFooBaz)(pos),

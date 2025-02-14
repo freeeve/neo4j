@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast.factory.expression
 
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
 
@@ -60,10 +61,17 @@ class FunctionInvocationParserTest extends AstParsingTestBase {
   }
 
   test("function parameters with invalid start comma should not parse") {
-    "return foo(, 'test', 42)" should notParse[Statements].withSyntaxError(
-      """Invalid input '(': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
-        |"return foo(, 'test', 42)"
-        |           ^""".stripMargin
-    )
+    "return foo(, 'test', 42)" should parseIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '(': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+            |"return foo(, 'test', 42)"
+            |           ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input ',': expected an expression, ')', 'ALL' or 'DISTINCT' (line 1, column 12 (offset: 11))
+            |"return foo(, 'test', 42)"
+            |            ^""".stripMargin
+        )
+    }
   }
 }
