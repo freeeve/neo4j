@@ -144,7 +144,7 @@ class RecordStoreMigratorTest {
                 false);
     }
 
-    private static class MyProcessListener implements ProgressListener {
+    private static class MyProcessListener extends ProgressListener.Adapter {
         public boolean added;
 
         MyProcessListener() {
@@ -154,20 +154,6 @@ class RecordStoreMigratorTest {
         @Override
         public void add(long progress) {
             added = true;
-        }
-
-        @Override
-        public void mark(char mark) {}
-
-        @Override
-        public void close() {}
-
-        @Override
-        public void failed(Throwable e) {}
-
-        @Override
-        public ProgressListener threadLocalReporter(int threshold) {
-            return null;
         }
     }
 }

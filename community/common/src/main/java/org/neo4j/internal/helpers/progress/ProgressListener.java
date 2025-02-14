@@ -24,21 +24,51 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * A Progress object is an object through which a process can report its progress.
  * <p>
- * Progress objects are not thread safe, and are to be used by a single thread only. Each Progress object from a {@link
- * ProgressMonitorFactory.MultiPartBuilder} can be used from different threads.
+ * Progress objects are thread safe, and can be used by multiple threads. For best performance tho,
+ * each thread advancing progress should do so in its own {@link #threadLocalReporter()}.
  */
 public interface ProgressListener extends AutoCloseable {
+    /**
+     * @param progress amount of progress to advance this listener. It's a delta value such that the total
+     * progress is the sum of all these calls.
+     */
     void add(long progress);
 
+    /**
+     * Place a mark in this progress output such that the next progress "dot" being written will be
+     * this mark character instead of the usual dot.
+     * @param mark the character replacing the dot for the next progress "dot" to write.
+     */
     void mark(char mark);
 
+    /**
+     * Advances the progress to the end and closes any resources attached to it.
+     */
     @Override
     void close();
 
+    /**
+     * Lets the given error be printed into the progress output.
+     * @param e the error to print.
+     */
     void failed(Throwable e);
 
-    ProgressListener threadLocalReporter(int threshold);
+    /**
+     * @param threshold the interval at which progress is reported to the parent listener.
+     * @return a {@link ProgressListener} which should only be used by the same thread calling this method.
+     * It works just as the "parent" listener, but has a local counter and only reports to the parent listener
+     * at a certain threshold value, e.g. for a threshold of 1000 then at least 1000 worth of progress
+     * will be gathered in the thread-local listener and reported back to parent in one call once the
+     * threshold is reached, where its local value will be reset to accept more local progress.
+     */
+    default ProgressListener threadLocalReporter(int threshold) {
+        return new ThreadLocalReporter(threshold, this);
+    }
 
+    /**
+     * @return a thread-local {@link ProgressListener} with threshold 1000.
+     * @see #threadLocalReporter(int)
+     */
     default ProgressListener threadLocalReporter() {
         return threadLocalReporter(1_000);
     }
@@ -64,7 +94,7 @@ public interface ProgressListener extends AutoCloseable {
 
     ProgressListener NONE = new Adapter();
 
-    class ThreadLocalReporter extends Adapter {
+    class ThreadLocalReporter implements ProgressListener {
         private final int threshold;
         private final ProgressListener parent;
         private int localUnreportedProgress;
@@ -113,12 +143,33 @@ public interface ProgressListener extends AutoCloseable {
         }
     }
 
-    class SinglePartProgressListener extends Adapter {
-        private final Aggregator aggregator;
+    abstract class AggregatorProgressListener implements ProgressListener {
+        protected final Aggregator aggregator;
 
+        AggregatorProgressListener(Aggregator aggregator) {
+            this.aggregator = aggregator;
+        }
+
+        @Override
+        public void mark(char mark) {
+            aggregator.mark(mark);
+        }
+
+        @Override
+        public void failed(Throwable e) {
+            aggregator.signalFailure(e);
+        }
+
+        @Override
+        public int reportResolution() {
+            return aggregator.reportResolution();
+        }
+    }
+
+    class SinglePartProgressListener extends AggregatorProgressListener {
         SinglePartProgressListener(
                 Indicator indicator, long totalCount, ProgressMonitorFactory.IndicatorListener listener) {
-            this.aggregator = new Aggregator(indicator, listener);
+            super(new Aggregator(indicator, listener));
             aggregator.add(new Adapter() {}, totalCount);
             aggregator.initialize();
         }
@@ -129,31 +180,20 @@ public interface ProgressListener extends AutoCloseable {
         }
 
         @Override
-        public void mark(char mark) {
-            aggregator.mark(mark);
-        }
-
-        @Override
         public void close() {
             aggregator.updateRemaining();
             aggregator.done();
         }
-
-        @Override
-        public void failed(Throwable e) {
-            aggregator.signalFailure(e);
-        }
     }
 
-    final class MultiPartProgressListener extends Adapter {
+    final class MultiPartProgressListener extends AggregatorProgressListener {
         public final String part;
         public final long totalCount;
 
-        private final Aggregator aggregator;
         private final AtomicLong progress = new AtomicLong();
 
         MultiPartProgressListener(Aggregator aggregator, String part, long totalCount) {
-            this.aggregator = aggregator;
+            super(aggregator);
             this.part = part;
             this.totalCount = totalCount;
             aggregator.start(this);
@@ -172,11 +212,6 @@ public interface ProgressListener extends AutoCloseable {
         }
 
         @Override
-        public void mark(char mark) {
-            aggregator.mark(mark);
-        }
-
-        @Override
         public synchronized void close() {
             long delta = totalCount - progress.get();
             if (delta > 0) {
@@ -185,11 +220,6 @@ public interface ProgressListener extends AutoCloseable {
 
             // Idempotent call
             aggregator.complete(this);
-        }
-
-        @Override
-        public void failed(Throwable e) {
-            aggregator.signalFailure(e);
         }
     }
 }
