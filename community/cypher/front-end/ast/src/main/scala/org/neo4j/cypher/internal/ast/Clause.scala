@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.ASTSlicingPhrase.checkExpressionIsStaticNum
 import org.neo4j.cypher.internal.ast.Match.hintPrettifier
 import org.neo4j.cypher.internal.ast.ReturnItems.ReturnVariables
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.connectedComponents.RichConnectedComponent
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.PatternStringifier
@@ -1916,7 +1917,7 @@ object SubqueryCall {
       val checkErrorReportCombination: SemanticCheck = (errorParams, reportParams) match {
         case (None, Some(reportParams)) =>
           error(SemanticError.invalidReportStatus(reportParams.position))
-        case (Some(InTransactionsErrorParameters(OnErrorFail, None)), Some(reportParams)) =>
+        case (Some(InTransactionsErrorParameters(OnErrorFail | OnErrorRetryThenFail, None)), Some(reportParams)) =>
           error(SemanticError.invalidReportStatus(reportParams.position))
         case _ => SemanticCheck.success
       }

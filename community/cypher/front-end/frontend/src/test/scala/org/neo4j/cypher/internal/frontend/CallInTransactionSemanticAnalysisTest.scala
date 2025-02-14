@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.gqlstatus.GqlHelper
@@ -605,6 +606,31 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
     )
   }
 
+  test("CALL IN TRANSACTIONS ON ERROR RETRY should pass semantic check") {
+    val query =
+      """CALL () {
+        |  RETURN 1 AS v
+        |} IN TRANSACTIONS
+        |  ON ERROR RETRY
+        |  RETURN v
+        |""".stripMargin
+    run(query, disabledVersions = Set(Cypher5)).hasNoErrors
+  }
+
+  test("CALL IN TRANSACTIONS ON ERROR RETRY with inner return and no outer return should fail semantic check") {
+    val query =
+      """CALL () {
+        |  RETURN 1 AS v
+        |} IN TRANSACTIONS
+        |  ON ERROR RETRY
+        |""".stripMargin
+    run(query, disabledVersions = Set(Cypher5)).hasError(
+      getGql42001_42N71(0, 1, 1),
+      "Query cannot conclude with CALL (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
+      p(0, 1, 1)
+    )
+  }
+
   test("CALL IN TRANSACTIONS ON ERROR CONTINUE REPORT STATUS AS status should pass semantic check") {
     val query =
       """CALL {
@@ -615,6 +641,18 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |  RETURN v, status
         |""".stripMargin
     run(query).hasNoErrors
+  }
+
+  test("CALL IN TRANSACTIONS ON ERROR RETRY THEN CONTINUE REPORT STATUS AS status should pass semantic check") {
+    val query =
+      """CALL () {
+        |  RETURN 1 AS v
+        |} IN TRANSACTIONS
+        |  ON ERROR RETRY THEN CONTINUE
+        |  REPORT STATUS AS status
+        |  RETURN v, status
+        |""".stripMargin
+    run(query, disabledVersions = Set(Cypher5)).hasNoErrors
   }
 
   test("CALL IN TRANSACTIONS ON ERROR CONTINUE REPORT STATUS without outer RETURN should fail semantic check") {
@@ -687,6 +725,23 @@ class CallInTransactionSemanticAnalysisTest extends SemanticAnalysisTestSuite {
         GqlHelper.getGql42001_42I36(59, 5, 3),
         "REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK",
         p(59, 5, 3)
+      )
+  }
+
+  test("CALL IN TRANSACTIONS ON ERROR RETRY REPORT STATUS should fail semantic check") {
+    val query =
+      """CALL () {
+        |  RETURN 1 AS v
+        |} IN TRANSACTIONS
+        |  ON ERROR RETRY
+        |  REPORT STATUS AS status
+        |  RETURN v, status
+        |""".stripMargin
+    run(query, disabledVersions = Set(Cypher5))
+      .hasError(
+        GqlHelper.getGql42001_42I36(63, 5, 3),
+        "REPORT STATUS can only be used when specifying ON ERROR CONTINUE or ON ERROR BREAK",
+        p(63, 5, 3)
       )
   }
 }

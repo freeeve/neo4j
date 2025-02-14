@@ -87,6 +87,8 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
                     (Cypher25Parser.SubqueryInTransactionsBatchParametersContext) ctx);
             case Cypher25Parser.RULE_subqueryInTransactionsErrorParameters -> exitSubqueryInTransactionsErrorParameters(
                     (Cypher25Parser.SubqueryInTransactionsErrorParametersContext) ctx);
+            case Cypher25Parser.RULE_subqueryInTransactionsRetryParameters -> exitSubqueryInTransactionsRetryParameters(
+                    (Cypher25Parser.SubqueryInTransactionsRetryParametersContext) ctx);
             case Cypher25Parser
                     .RULE_subqueryInTransactionsReportParameters -> exitSubqueryInTransactionsReportParameters(
                     (Cypher25Parser.SubqueryInTransactionsReportParametersContext) ctx);

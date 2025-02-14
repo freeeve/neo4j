@@ -23,19 +23,19 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class TransactionRetryAbortedException extends Neo4jException {
-    public TransactionRetryAbortedException(String message, Throwable cause) {
+    private TransactionRetryAbortedException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public TransactionRetryAbortedException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    private TransactionRetryAbortedException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
     }
 
-    public TransactionRetryAbortedException(String message) {
+    private TransactionRetryAbortedException(String message) {
         super(message);
     }
 
-    public TransactionRetryAbortedException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private TransactionRetryAbortedException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 

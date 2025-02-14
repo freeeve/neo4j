@@ -307,8 +307,12 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
 import org.neo4j.cypher.internal.ast.TerminateTransactionAction
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
 import org.neo4j.cypher.internal.ast.TextIndexes
@@ -1647,12 +1651,27 @@ class AstGenerator(
     for {
       batchSize <- option(_expression)
       concurrency <- option(option(_expression))
-      onErrorBehaviour <- option(oneOf[InTransactionsOnErrorBehaviour](OnErrorContinue, OnErrorBreak, OnErrorFail))
+      onErrorBehaviour <- option(oneOf[InTransactionsOnErrorBehaviour](
+        OnErrorContinue,
+        OnErrorBreak,
+        OnErrorFail,
+        OnErrorRetryThenContinue,
+        OnErrorRetryThenBreak,
+        OnErrorRetryThenFail
+      ))
+      retryParams <- option(_expression)
       reportAs <- option(string)
     } yield InTransactionsParameters(
       batchSize.map(InTransactionsBatchParameters(_)(pos)),
       concurrency.map(InTransactionsConcurrencyParameters(_)(pos)),
-      onErrorBehaviour.map(InTransactionsErrorParameters(_, None)(pos)),
+      onErrorBehaviour.map {
+        case eb @ (OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail) =>
+          InTransactionsErrorParameters(
+            eb,
+            retryParameters = retryParams.map(t => InTransactionsRetryParameters(Some(t))(pos))
+          )(pos)
+        case eb => InTransactionsErrorParameters(eb, None)(pos)
+      },
       reportAs.map(v => InTransactionsReportParameters(Variable(s"`$v`")(pos, Variable.isIsolatedDefault))(pos))
     )(pos)
 

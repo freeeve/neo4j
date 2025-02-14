@@ -69,6 +69,9 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsConcurrencyParam
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
+import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.ast.TopLevelBraces
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
 import org.neo4j.cypher.internal.ast.UnionAll
@@ -602,11 +605,33 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.SubqueryInTransactionsErrorParametersContext
   ): Unit = {
     val behaviour = nodeChild(ctx, 2).getSymbol.getType match {
+      case Cypher25Parser.RETRY =>
+        if (ctx.THEN() != null) {
+          if (ctx.CONTINUE() != null) {
+            OnErrorRetryThenContinue
+          } else if (ctx.BREAK() != null) {
+            OnErrorRetryThenBreak
+          } else {
+            OnErrorRetryThenFail
+          }
+        } else {
+          OnErrorRetryThenFail
+        }
       case Cypher25Parser.CONTINUE => OnErrorContinue
       case Cypher25Parser.BREAK    => OnErrorBreak
       case Cypher25Parser.FAIL     => OnErrorFail
     }
-    ctx.ast = SubqueryCall.InTransactionsErrorParameters(behaviour, None)(pos(ctx))
+
+    ctx.ast = SubqueryCall.InTransactionsErrorParameters(
+      behaviour,
+      astOpt(ctx.subqueryInTransactionsRetryParameters())
+    )(pos(ctx))
+  }
+
+  final override def exitSubqueryInTransactionsRetryParameters(
+    ctx: Cypher25Parser.SubqueryInTransactionsRetryParametersContext
+  ): Unit = {
+    ctx.ast = SubqueryCall.InTransactionsRetryParameters(astOpt(ctx.expression()))(pos(ctx))
   }
 
   final override def exitSubqueryInTransactionsReportParameters(
