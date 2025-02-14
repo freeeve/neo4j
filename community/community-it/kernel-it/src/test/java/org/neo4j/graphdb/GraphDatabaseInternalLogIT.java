@@ -33,11 +33,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.stream.Stream;
+import org.apache.logging.log4j.status.StatusData;
+import org.apache.logging.log4j.status.StatusLogger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -218,6 +222,37 @@ class GraphDatabaseInternalLogIT {
         assertThat(rollingLogFile).isRegularFile();
         assertThat(suppressOutput.getOutputVoice().isEmpty()).isTrue();
         assertThat(suppressOutput.getErrorVoice().isEmpty()).isTrue();
+    }
+
+    @Test
+    void shouldHandleDebugLogRotationTriggeredDirectlyAtStartUp() throws IOException {
+        Path log4jXmlConfig = testDir.homePath().resolve(SERVER_LOGS_XML);
+        Files.createDirectories(log4jXmlConfig.getParent());
+        writeResourceToFile("testConfigSmallRotation.xml", log4jXmlConfig);
+
+        // Create debug log slightly larger than the log file rotation size to force rotation during
+        // setup of the log service (before the diagnostics manager is up).
+        Path logs = testDir.homePath().resolve("logs/debug.log");
+        testDir.getFileSystem().mkdir(logs.getParent());
+        try (var file = new RandomAccessFile(logs.toFile(), "rw")) {
+            file.setLength(210);
+        }
+        assertThat(testDir.getFileSystem().getFileSize(logs)).isGreaterThan(200);
+
+        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
+                .setConfig(GraphDatabaseSettings.server_logging_config_path, log4jXmlConfig)
+                .build();
+
+        try {
+            // Should not have gotten errors because of the diagnostics manager not being setup at
+            // the time of writing the header for the rotated log
+            List<StatusData> statusData = StatusLogger.getLogger().getStatusData();
+            for (StatusData statusDatum : statusData) {
+                assertThat(statusDatum.getFormattedStatus()).doesNotContain("ERROR");
+            }
+        } finally {
+            managementService.shutdown();
+        }
     }
 
     private static void assertEventuallyContains(Callable<Long> instances) {

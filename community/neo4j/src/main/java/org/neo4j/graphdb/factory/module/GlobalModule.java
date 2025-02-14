@@ -352,8 +352,14 @@ public class GlobalModule {
                     allowDefaultXmlConfig,
                     daemonMode,
                     globalConfig::configStringLookup,
-                    log -> dbmsDiagnosticsManager.dumpAll(
-                            log), // dbmsDiagnosticsManager is null here, but will be assigned later
+                    log -> {
+                        // dbmsDiagnosticsManager is null when setting up here, but will be assigned later
+                        // In the unlikely case that the below log message triggers a rotation (because the previous
+                        // log file was at rotation size on start up) it will not have been initialized yet though
+                        if (dbmsDiagnosticsManager != null) {
+                            dbmsDiagnosticsManager.dumpAll(log);
+                        }
+                    },
                     DiagnosticsManager.class.getCanonicalName());
 
             loggerContext.getLogger(getClass()).info("Logging config in use: " + loggerContext.getConfigSourceInfo());
