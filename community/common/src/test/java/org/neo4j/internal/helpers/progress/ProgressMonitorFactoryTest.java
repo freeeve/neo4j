@@ -56,6 +56,37 @@ class ProgressMonitorFactoryTest {
     }
 
     @Test
+    void shouldMapSubProgressesWithFractionsToAnother() {
+        // given
+        var targetProgression = new MutableLong();
+        int totalResolution = 1_000;
+        var target = new ProgressListener.Adapter() {
+            @Override
+            public void add(long progress) {
+                targetProgression.add(progress);
+            }
+
+            @Override
+            public int reportResolution() {
+                return totalResolution;
+            }
+        };
+
+        // when advancing 10% of the way (the "internal" total of the sub progress shouldn't matter at all)
+        progressThrough(ProgressMonitorFactory.mappedFraction(target, 0.1f).singlePart("first", 1234));
+        long progressionAfterFirst = targetProgression.longValue();
+        progressThrough(ProgressMonitorFactory.mappedFraction(target, 0.5f).singlePart("second", 34783));
+        long progressionAfterSecond = targetProgression.longValue();
+        progressThrough(ProgressMonitorFactory.mappedFraction(target, 0.4f).singlePart("third", 289));
+        long progressionAfterThird = targetProgression.longValue();
+
+        // then
+        assertThat(progressionAfterFirst).isEqualTo(100); // 10% of total
+        assertThat(progressionAfterSecond).isEqualTo(600); // 10% + 50% (=60%) of total
+        assertThat(progressionAfterThird).isEqualTo(totalResolution); // 10% + 50% + 40% (=100%) of total
+    }
+
+    @Test
     void shouldCallIndicatorListenerSinglePart() {
         // given
         var factory = ProgressMonitorFactory.textual(OutputStream.nullOutputStream(), false, 10, 1, 10); // 100 "dots"
@@ -99,6 +130,15 @@ class ProgressMonitorFactoryTest {
 
         // then
         assertThat(listener.seenProgress).isEqualTo(total);
+    }
+
+    private void progressThrough(ProgressListener listener) {
+        try (listener) {
+            // just progress some and let it be completed in its close() call, doesn't quite matter
+            for (int i = 0; i < 10; i++) {
+                listener.add(1);
+            }
+        }
     }
 
     private static class ExternalListener implements ProgressMonitorFactory.IndicatorListener {

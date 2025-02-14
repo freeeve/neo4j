@@ -73,6 +73,11 @@ public interface ProgressListener extends AutoCloseable {
         return threadLocalReporter(1_000);
     }
 
+    /**
+     * @return the resolution of this progress, i.e. how many "dots" in total it prints.
+     */
+    int reportResolution();
+
     class Adapter implements ProgressListener {
         @Override
         public void add(long progress) {}
@@ -87,8 +92,8 @@ public interface ProgressListener extends AutoCloseable {
         public void failed(Throwable e) {}
 
         @Override
-        public ProgressListener threadLocalReporter(int threshold) {
-            return new ThreadLocalReporter(threshold, this);
+        public int reportResolution() {
+            return 0;
         }
     }
 
@@ -138,8 +143,8 @@ public interface ProgressListener extends AutoCloseable {
         }
 
         @Override
-        public ProgressListener threadLocalReporter(int threshold) {
-            return new ThreadLocalReporter(threshold, this);
+        public int reportResolution() {
+            return parent.reportResolution();
         }
     }
 

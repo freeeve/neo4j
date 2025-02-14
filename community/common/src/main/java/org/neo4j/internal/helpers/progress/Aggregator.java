@@ -109,6 +109,10 @@ final class Aggregator {
         indicator.mark(mark);
     }
 
+    int reportResolution() {
+        return indicator.reportResolution();
+    }
+
     enum State {
         INIT,
         LIVE

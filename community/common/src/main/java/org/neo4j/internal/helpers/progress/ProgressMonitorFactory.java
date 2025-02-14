@@ -214,6 +214,23 @@ public abstract class ProgressMonitorFactory {
     }
 
     /**
+     * A way to map one or more other disparate progresses to one combined progress where each of the
+     * "sub" progresses can advance the combined progress a specified fraction of the way.
+     *
+     * @param target the combined {@link ProgressListener}.
+     * @param resolutionFraction the fraction (between 0..1) of the progress a {@link ProgressListener}
+     * produced by the returned {@link ProgressMonitorFactory} will advance the combined progress {@code target}.
+     * @return a {@link ProgressMonitorFactory} that can create a {@link ProgressListener} capable of
+     * advancing the {@code target} progress the given {@code resolutionFraction} of the way.
+     */
+    public static ProgressMonitorFactory mappedFraction(ProgressListener target, float resolutionFraction) {
+        Preconditions.checkArgument(
+                resolutionFraction > 0 && resolutionFraction <= 1, "Require 0 < progressFraction <= 1");
+        int resolution = (int) (target.reportResolution() * resolutionFraction);
+        return mapped(target, resolution);
+    }
+
+    /**
      * Creates a {@link ProgressListener} that can create multiple parts which together constitutes the entire progress,
      * with a known total to progress towards.
      * @param process description of the operation to track progress for.
