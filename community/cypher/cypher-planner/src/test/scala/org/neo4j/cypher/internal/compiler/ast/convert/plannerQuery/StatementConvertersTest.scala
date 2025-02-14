@@ -836,8 +836,6 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     query.queryGraph.selections should equal(Selections.from(Seq(
       unique(v"r1"),
       unique(v"r2"),
-      varLengthLowerLimitPredicate("r1", 0),
-      varLengthLowerLimitPredicate("r2", 0),
       varLengthUpperLimitPredicate("r1", 1),
       varLengthUpperLimitPredicate("r2", 1)
     )))

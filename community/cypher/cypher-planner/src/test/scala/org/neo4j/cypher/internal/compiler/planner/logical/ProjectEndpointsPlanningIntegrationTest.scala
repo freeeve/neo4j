@@ -145,7 +145,7 @@ class ProjectEndpointsPlanningIntegrationTest extends CypherFunSuite
       planner.subPlanBuilder()
         .filter("rs = anon_0")
         .expandAll(s"(a2)-[anon_0*0..10]-(b2)")
-        .filter("all(anon_1 IN rs WHERE single(anon_2 IN rs WHERE anon_1 = anon_2))", "size(rs) >= 0", "size(rs) <= 10")
+        .filter("all(anon_1 IN rs WHERE single(anon_2 IN rs WHERE anon_1 = anon_2))", "size(rs) <= 10")
         .apply()
         .|.allNodeScan("a2", "rs")
         .limit(1)

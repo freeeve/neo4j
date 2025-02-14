@@ -29,8 +29,8 @@ class AddVarLengthPredicatesTest extends CypherFunSuite with RewriteTest with As
 
   test("should add predicates for simple var-length") {
     assertRewrite(
-      "MATCH (a)-[r1:T*0..2]->(b) RETURN *",
-      "MATCH (a)-[r1:T*0..2]->(b) WHERE size(r1) >= 0 AND size(r1) <= 2 RETURN *"
+      "MATCH (a)-[r1:T*1..2]->(b) RETURN *",
+      "MATCH (a)-[r1:T*1..2]->(b) WHERE size(r1) >= 1 AND size(r1) <= 2 RETURN *"
     )
   }
 
@@ -38,6 +38,12 @@ class AddVarLengthPredicatesTest extends CypherFunSuite with RewriteTest with As
     assertRewrite(
       "MATCH (a)-[r1*]->(b) RETURN *",
       "MATCH (a)-[r1*]->(b) WHERE size(r1) >= 1 RETURN *"
+    )
+  }
+
+  test("should not add lower bound predicates for lower bound of 0") {
+    assertIsNotRewritten(
+      "MATCH (a)-[r1*0..]->(b) RETURN *"
     )
   }
 
