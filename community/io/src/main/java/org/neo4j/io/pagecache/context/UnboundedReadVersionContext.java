@@ -21,21 +21,26 @@ package org.neo4j.io.pagecache.context;
 
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
 
-public class FixedVersionContext implements VersionContext {
+/**
+ * Version context that allows reading everything and support dynamic committing trsansaction id
+ */
+public class UnboundedReadVersionContext implements VersionContext {
     private static final long INVALID_TRANSACTION_ID = 0;
-    public static final VersionContext EMPTY_VERSION_CONTEXT = new FixedVersionContext(INVALID_TRANSACTION_ID);
+    private long committingTransactionId = INVALID_TRANSACTION_ID;
+    private long committingAppendIndex = INVALID_TRANSACTION_ID;
 
-    private final long committingTransactionId;
-
-    public FixedVersionContext(long committingTransactionId) {
+    public UnboundedReadVersionContext(long committingTransactionId, long committingAppendIndex) {
         this.committingTransactionId = committingTransactionId;
+        this.committingAppendIndex = committingAppendIndex;
     }
 
     @Override
     public void initRead() {}
 
     @Override
-    public void initWrite(long committingTransactionId) {}
+    public void initWrite(long committingTransactionId) {
+        this.committingTransactionId = committingTransactionId;
+    }
 
     @Override
     public long committingTransactionId() {
@@ -43,11 +48,13 @@ public class FixedVersionContext implements VersionContext {
     }
 
     @Override
-    public void initAppendIndex(long committingAppendIndex) {}
+    public void initAppendIndex(long committingAppendIndex) {
+        this.committingAppendIndex = committingAppendIndex;
+    }
 
     @Override
     public long committingAppendIndex() {
-        return committingTransactionId;
+        return committingAppendIndex;
     }
 
     @Override
@@ -117,6 +124,8 @@ public class FixedVersionContext implements VersionContext {
 
     @Override
     public String toString() {
-        return "FixedVersionContext{" + "transactionId=" + committingTransactionId + '}';
+        return "UnboundedReadVersionContext{" + "transactionId="
+                + committingTransactionId + ", appendIndex="
+                + committingAppendIndex + '}';
     }
 }

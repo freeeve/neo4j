@@ -44,6 +44,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.io.pagecache.PageCacheOpenOptions;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
@@ -104,8 +105,19 @@ public class TokenIndexProvider extends IndexProvider {
             throw new UnsupportedOperationException("Can't create populator for read only index");
         }
 
-        return new WorkSyncedIndexPopulator(new TokenIndexPopulator(
-                databaseIndexContext, indexFiles(descriptor), descriptor, openOptions, indexingBehaviour));
+        return new WorkSyncedIndexPopulator(createPopulator(descriptor, openOptions, indexingBehaviour));
+    }
+
+    private IndexPopulator createPopulator(
+            IndexDescriptor descriptor,
+            ImmutableSet<OpenOption> openOptions,
+            StorageEngineIndexingBehaviour indexingBehaviour) {
+        if (openOptions.contains(PageCacheOpenOptions.MULTI_VERSIONED)) {
+            return new MultiVersionTokenIndexPopulator(
+                    databaseIndexContext, indexFiles(descriptor), descriptor, openOptions, indexingBehaviour);
+        }
+        return new TokenIndexPopulator(
+                databaseIndexContext, indexFiles(descriptor), descriptor, openOptions, indexingBehaviour);
     }
 
     @Override

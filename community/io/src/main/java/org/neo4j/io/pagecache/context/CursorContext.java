@@ -62,6 +62,16 @@ public class CursorContext implements AutoCloseable {
         return contextFactory.create(tag, versionContext.createRelatedContext());
     }
 
+    /**
+     * Create CursorContext with VersionContext that provides unlimited visibility and also can be used to commit different versions
+     */
+    public CursorContext createUnboundedReadRelatedContext(String tag) {
+        return contextFactory.create(
+                tag,
+                new UnboundedReadVersionContext(
+                        versionContext.committingTransactionId(), versionContext.committingAppendIndex()));
+    }
+
     public CursorContext createUnboundedRelatedContext() {
         return new CursorContext(contextFactory, cursorTracer, EMPTY_VERSION_CONTEXT);
     }

@@ -187,14 +187,16 @@ class TokenIndexUpdater implements IndexUpdater {
         }
     }
 
-    private void flushPendingChanges(long lastVersion) {
+    private void flushPendingChanges(long version) {
         if (pendingUpdatesCursor == 0) {
             return;
         }
-        if (lastVersion >= BASE_TX_ID) {
+        if (version >= BASE_TX_ID) {
             // this updater can be called from popuplating thread with no version context, this is expected, and we
             // don't need to reset writer version in this case
-            writerCursorContext.getVersionContext().initWrite(lastVersion);
+            writerCursorContext.getVersionContext().initWrite(version);
+        } else {
+            assert !writerCursorContext.getVersionContext().initializedForWrite();
         }
         Arrays.sort(pendingUpdates, 0, pendingUpdatesCursor);
         int currentTokenId = lowestTokenId;

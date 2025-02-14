@@ -52,7 +52,7 @@ public class TokenIndexEntryUpdate extends IndexEntryUpdate {
 
     @Override
     public long roughSizeOfUpdate() {
-        return HeapEstimator.sizeOf(values) + (updateMode() == UpdateMode.CHANGED ? HeapEstimator.sizeOf(before) : 0);
+        return HeapEstimator.sizeOf(values) + HeapEstimator.sizeOf(before);
     }
 
     @Override

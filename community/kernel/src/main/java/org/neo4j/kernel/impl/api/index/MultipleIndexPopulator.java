@@ -454,7 +454,12 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
             return;
         }
 
-        try (var populatorContext = cursorContext.createRelatedContext(EXTERNAL_UPDATES_QUEUE_TAG);
+        // index updates for the entry are guaranted to come from transactions that observe exact previous version of
+        // the entry
+        // in concurrent updates queue we only preserve comitting transaction id and use unbounded visibility here,
+        // so index updater can correctly process entries and merge them if needed.
+        // this is especially important for token indexes where one tree entry represents multiple entities
+        try (var populatorContext = cursorContext.createUnboundedReadRelatedContext(EXTERNAL_UPDATES_QUEUE_TAG);
                 var updater = newPopulatingUpdater(cursorContext, populatorContext)) {
             long updateByteSizeDrained = 0;
             do {
@@ -815,8 +820,9 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
 
                 @Override
                 public void process() {
-                    try {
-                        population.populator.add(updates, cursorContext);
+                    try (var populationContext =
+                            cursorContext.createUnboundedReadRelatedContext(MULTIPLE_INDEX_POPULATOR_TAG)) {
+                        population.populator.add(updates, populationContext);
                     } catch (Throwable e) {
                         cancel(population, e, cursorContext);
                     }

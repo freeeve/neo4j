@@ -336,7 +336,7 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     private void writeExternalUpdatesToTree(
             RecordingConflictDetector<KEY> recordingConflictDetector, CursorContext cursorContext)
             throws IOException, IndexEntryConflictException {
-        try (var localContext = cursorContext.createRelatedContext(POPULATION_EXTERNAL_UPDATES_TAG);
+        try (var localContext = cursorContext.createUnboundedReadRelatedContext(POPULATION_EXTERNAL_UPDATES_TAG);
                 var writer = tree.writer(W_BATCHED_SINGLE_THREADED, localContext);
                 var updates = externalUpdates.reader()) {
             while (updates.next() && !cancellation.cancelled()) {

@@ -47,6 +47,8 @@ public interface IndexMonitor {
 
     default void concurrentUpdatesQueueDrained(long updateByteSizeDrained) {}
 
+    default void indexPopulationScanStartingAfterVisibilityUpdate(IndexDescriptor[] indexDescriptors) {}
+
     class MonitorAdapter implements IndexMonitor {
         @Override
         public void initialState(

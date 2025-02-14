@@ -36,6 +36,10 @@ import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.memory.UnsafeDirectByteBufferAllocator;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
+import org.neo4j.io.pagecache.context.FixedVersionContextSupplier;
+import org.neo4j.io.pagecache.context.VersionContext;
+import org.neo4j.io.pagecache.tracing.PageCacheTracer;
+import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.memory.ThreadSafePeakMemoryTracker;
@@ -152,7 +156,8 @@ public class IndexPopulationJob implements Runnable {
 
                 monitor.indexPopulationScanStarting(indexDescriptors);
                 multiPopulator.resetVisibility(cursorContext);
-                indexAllEntities(contextFactory);
+                monitor.indexPopulationScanStartingAfterVisibilityUpdate(indexDescriptors);
+                indexAllEntities(new FixedCursorContextFactory(cursorContext));
                 monitor.indexPopulationScanComplete(indexDescriptors);
                 if (stopped) {
                     multiPopulator.stop(cursorContext);
@@ -325,5 +330,29 @@ public class IndexPopulationJob implements Runnable {
         }
 
         return "Population of " + populatedIndexes.size() + " '" + populatedEntityType + "' indexes";
+    }
+
+    private static class FixedCursorContextFactory extends CursorContextFactory {
+        private final CursorContext cursorContext;
+
+        public FixedCursorContextFactory(CursorContext cursorContext) {
+            super(PageCacheTracer.NULL, FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER);
+            this.cursorContext = cursorContext;
+        }
+
+        @Override
+        public CursorContext create(String tag) {
+            return cursorContext.createRelatedContext(tag);
+        }
+
+        @Override
+        public CursorContext create(String tag, VersionContext versionContext) {
+            return cursorContext.createRelatedContext(tag);
+        }
+
+        @Override
+        public CursorContext create(PageCursorTracer cursorTracer) {
+            throw new UnsupportedOperationException("This operation is not supported");
+        }
     }
 }
