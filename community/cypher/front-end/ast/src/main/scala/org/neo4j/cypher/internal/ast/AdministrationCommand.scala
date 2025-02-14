@@ -1563,7 +1563,7 @@ final case class CreateCompositeDatabase(
               "COMPOSITE DATABASE names using '.' must be quoted with backticks e.g. `composite.database`.",
             nsn.position
           )
-        case _ => super.semanticCheck
+        case _ => super.semanticCheck.chain(defaultLanguageVersionCheck(defaultLanguage, name))
       }
   }
 }
