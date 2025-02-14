@@ -19,6 +19,7 @@
  */
 package org.neo4j.genai.dbs;
 
+import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
@@ -282,7 +283,8 @@ final class PineconeIT extends IntegrationTestBase {
                             "us-east-1",
                             indexName.equals("somecollection")
                                     ? DeletionProtection.ENABLED
-                                    : DeletionProtection.DISABLED);
+                                    : DeletionProtection.DISABLED,
+                            emptyMap());
                 }
                 return im.getStatus().getState() != IndexModelStatus.StateEnum.READY;
             });

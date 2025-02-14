@@ -150,7 +150,7 @@
 
     <jamm.version>0.4.0</jamm.version>
     <lucene.version>9.11.1</lucene.version>
-    <bouncycastle.version>1.79</bouncycastle.version>
+    <bouncycastle.version>1.80</bouncycastle.version>
     <jetty.version>12.0.16</jetty.version>
     <scala-maven-plugin.version>4.9.2</scala-maven-plugin.version>
     <scala.version>2.13.11</scala.version>
@@ -158,22 +158,22 @@
     <scala.plugin.recompileMode>all</scala.plugin.recompileMode>
     <scala.test.version>3.2.13</scala.test.version>
     <asm.version>9.7.1</asm.version>
-    <metrics.version>4.2.29</metrics.version>
+    <metrics.version>4.2.30</metrics.version>
     <scala.target.vm>${vm.target.version}</scala.target.vm>
     <jersey.version>2.43</jersey.version>
     <junit.version>5.11.4</junit.version>
     <junit.platform.version>1.11.4</junit.platform.version>
     <mockito.version>5.15.2</mockito.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
-    <cucumber.version>7.20.1</cucumber.version>
-    <cucumber.scala.version>8.25.1</cucumber.scala.version>
-    <caffeine.version>3.1.8</caffeine.version>
+    <cucumber.version>7.21.1</cucumber.version>
+    <cucumber.scala.version>8.26.1</cucumber.scala.version>
+    <caffeine.version>3.2.0</caffeine.version>
     <required.maven.version>3.8.2</required.maven.version>
     <jackson.version>2.18.2</jackson.version>
     <jackson-databind.version>2.18.2</jackson-databind.version>
     <amazon-sdk.version>1.12.772</amazon-sdk.version>
-    <awssdk.version>2.29.49</awssdk.version>
-    <awssdk-crt.version>0.33.7</awssdk-crt.version>
+    <awssdk.version>2.30.20</awssdk.version>
+    <awssdk-crt.version>0.34.1</awssdk-crt.version>
     <guava.version>33.4.0-jre</guava.version>
     <awaitility.version>4.2.2</awaitility.version>
     <log4j.version>2.20.0</log4j.version>
@@ -186,10 +186,10 @@
     <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
     <antlr.version>4.13.2</antlr.version> <!-- You MUST re-generate the parsers after changing this value! -->
     <error_prone.version>2.36.0</error_prone.version>
-    <protobuf.version>3.25.5</protobuf.version>
+    <protobuf.version>3.25.6</protobuf.version>
     <teavm.version>0.10.2</teavm.version>
     <javapoet.version>1.13.0</javapoet.version>
-    <grpc.version>1.69.0</grpc.version>
+    <grpc.version>1.70.0</grpc.version>
     <testcontainers.version>1.20.4</testcontainers.version>
     <build-resources.version>2024-12.1</build-resources.version>
     <s3mock.version>3.12.0</s3mock.version>
@@ -1201,6 +1201,10 @@
             <groupId>com.google.errorprone</groupId>
             <artifactId>error_prone_annotations</artifactId>
           </exclusion>
+          <exclusion>
+            <groupId>org.jspecify</groupId>
+            <artifactId>jspecify</artifactId>
+          </exclusion>
         </exclusions>
       </dependency>
       <dependency>
@@ -1246,7 +1250,7 @@
       <dependency>
         <groupId>io.projectreactor</groupId>
         <artifactId>reactor-bom</artifactId>
-        <version>2024.0.1</version>
+        <version>2024.0.3</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -1319,7 +1323,7 @@
       <dependency>
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
-        <version>3.27.2</version>
+        <version>3.27.3</version>
         <scope>test</scope>
         <exclusions>
           <exclusion>
@@ -1382,7 +1386,7 @@
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.17.2</version>
+        <version>1.18.0</version>
       </dependency>
 
       <dependency>
@@ -1568,7 +1572,7 @@
       <dependency>
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
-        <version>1.3.4</version>
+        <version>1.3.5</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -1588,7 +1592,7 @@
       <dependency>
         <groupId>com.github.luben</groupId>
         <artifactId>zstd-jni</artifactId>
-        <version>1.5.6-9</version>
+        <version>1.5.6-10</version>
       </dependency>
 
       <!--
@@ -1873,7 +1877,7 @@
       <dependency>
         <groupId>net.bytebuddy</groupId>
         <artifactId>byte-buddy</artifactId>
-        <version>1.15.11</version>
+        <version>1.17.1</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
@@ -1945,6 +1949,10 @@
           <exclusion>
             <groupId>com.google.errorprone</groupId>
             <artifactId>error_prone_annotations</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>animal-sniffer-annotations</artifactId>
           </exclusion>
         </exclusions>
       </dependency>
