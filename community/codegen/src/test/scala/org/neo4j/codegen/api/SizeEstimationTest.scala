@@ -63,6 +63,7 @@ import org.neo4j.codegen.api.IntermediateRepresentation.or
 import org.neo4j.codegen.api.IntermediateRepresentation.self
 import org.neo4j.codegen.api.IntermediateRepresentation.setField
 import org.neo4j.codegen.api.IntermediateRepresentation.subtract
+import org.neo4j.codegen.api.IntermediateRepresentation.tableSwitch
 import org.neo4j.codegen.api.IntermediateRepresentation.ternary
 import org.neo4j.codegen.api.IntermediateRepresentation.tryCatch
 import org.neo4j.codegen.api.IntermediateRepresentation.typeRefOf
@@ -1131,6 +1132,29 @@ class SizeEstimationTest extends CypherFunSuite {
         assign("e", block(once, load[Int]("a"))),
         declare[Int]("f"),
         assign("f", block(once, load[Int]("a")))
+      )
+
+    sizeOf(instructions) should equal(computeSize(instructions))
+  }
+
+  test("tableSwitch") {
+    val instructions =
+      block(
+        declare[Boolean]("a"),
+        assign("a", constant(false)),
+        declare[Int]("i"),
+        assign("i", constant(3)),
+        tableSwitch(
+          load[Int]("i"),
+          Seq(
+            assign("a", constant(false)),
+            assign("a", constant(false)),
+            assign("a", constant(true)),
+            assign("a", constant(false)),
+            assign("a", constant(false)),
+            assign("a", constant(false))
+          )
+        )
       )
 
     sizeOf(instructions) should equal(computeSize(instructions))

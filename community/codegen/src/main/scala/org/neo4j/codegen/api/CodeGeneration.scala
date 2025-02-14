@@ -21,6 +21,7 @@ package org.neo4j.codegen.api
 
 import org.neo4j.codegen
 import org.neo4j.codegen.ClassHandle
+import org.neo4j.codegen.CodeBlock
 import org.neo4j.codegen.CodeGenerationNotSupportedException
 import org.neo4j.codegen.CodeGenerator
 import org.neo4j.codegen.CodeGenerator.generateCode
@@ -58,9 +59,11 @@ import org.neo4j.exceptions.InternalException
 
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.function.Consumer
 
 import scala.annotation.nowarn
 import scala.collection.mutable.ArrayBuffer
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.language.existentials
 
 /**
@@ -459,6 +462,19 @@ class CodeGeneration(methodLimit: Int, val codeGenerationMode: CodeGenerationMod
       // while(test) { body }
       case Loop(test, body, labelName) =>
         beginBlock(block.whileLoop(compileExpression(test, block), labelName))(compileExpression(body, _))
+
+      case TableSwitch(test, ops, start) =>
+        block.tableSwitch(
+          compileExpression(test, block),
+          start,
+          ops.map(op =>
+            new Consumer[CodeBlock] {
+              override def accept(t: CodeBlock): Unit = compileExpression(op, t)
+
+            }
+          ).asJava
+        )
+        codegen.Expression.EMPTY
 
       // break label
       case Break(labelName) =>

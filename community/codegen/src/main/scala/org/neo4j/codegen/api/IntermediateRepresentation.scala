@@ -408,6 +408,27 @@ case class Loop(test: IntermediateRepresentation, body: IntermediateRepresentati
 }
 
 /**
+ * {{{
+ *   switch(test) {
+ *     case start:
+ *       ops[0];
+ *       break;
+ *     case start +1:
+ *       ops[1];
+ *       break:
+ *      ...
+ *   }
+ * }}}
+ * @param test the expression to switch on, must evaluate to an int
+ * @param ops the list of operations to perform at each case
+ * @param start the starting index
+ */
+case class TableSwitch(test: IntermediateRepresentation, ops: Seq[IntermediateRepresentation], start: Int)
+    extends IntermediateRepresentation {
+  override def typeReference: TypeReference = TypeReference.VOID
+}
+
+/**
  * Break out of a labeled loop.
  *
  * {{{
@@ -1730,6 +1751,9 @@ object IntermediateRepresentation {
     labelName: String,
     test: IntermediateRepresentation
   )(body: IntermediateRepresentation): IntermediateRepresentation = Loop(simplifyPredicates(test), body, labelName)
+
+  def tableSwitch(test: IntermediateRepresentation, ops: Seq[IntermediateRepresentation], start: Int = 0): TableSwitch =
+    TableSwitch(test, ops, start)
 
   def break(labelName: String): IntermediateRepresentation = Break(labelName)
 
