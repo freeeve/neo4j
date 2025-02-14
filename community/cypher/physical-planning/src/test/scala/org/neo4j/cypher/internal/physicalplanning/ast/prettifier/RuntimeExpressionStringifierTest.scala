@@ -78,6 +78,7 @@ import org.reflections.Reflections
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 import java.lang.reflect.Modifier
+
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructionTestSupport
