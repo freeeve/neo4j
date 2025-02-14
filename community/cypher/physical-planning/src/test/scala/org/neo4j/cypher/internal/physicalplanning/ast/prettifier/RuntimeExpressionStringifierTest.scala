@@ -48,7 +48,9 @@ import org.neo4j.cypher.internal.physicalplanning.ast.NonEmpty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheck
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckReferenceProperty
+import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveAnds
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveEquals
+import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveNotEquals
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipElementIdFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipPropertyExists
@@ -76,7 +78,6 @@ import org.reflections.Reflections
 import org.scalatest.prop.TableDrivenPropertyChecks
 
 import java.lang.reflect.Modifier
-
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructionTestSupport
@@ -122,6 +123,8 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     HasTypesFromSlot(0, Seq(1), Seq()),
     HasDegreeGreaterThanOrEqualPrimitive(0, None, OUTGOING, literalInt(1)),
     PrimitiveEquals(0, 1),
+    PrimitiveNotEquals(0, 1),
+    PrimitiveAnds(Seq(PrimitiveEquals(0, 1), PrimitiveNotEquals(0, 1))),
     IsPrimitiveNull(1),
     HasAnyLabelFromSlot(1, Seq(1), Seq()),
     HasALabelFromSlot(1),
