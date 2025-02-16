@@ -65,6 +65,7 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_hint -> exitHint((Cypher25Parser.HintContext) ctx);
             case Cypher25Parser.RULE_mergeClause -> exitMergeClause((Cypher25Parser.MergeClauseContext) ctx);
             case Cypher25Parser.RULE_mergeAction -> exitMergeAction((Cypher25Parser.MergeActionContext) ctx);
+            case Cypher25Parser.RULE_filterClause -> exitFilterClause((Cypher25Parser.FilterClauseContext) ctx);
             case Cypher25Parser.RULE_unwindClause -> exitUnwindClause((Cypher25Parser.UnwindClauseContext) ctx);
             case Cypher25Parser.RULE_callClause -> exitCallClause((Cypher25Parser.CallClauseContext) ctx);
             case Cypher25Parser.RULE_procedureName -> exitProcedureName((Cypher25Parser.ProcedureNameContext) ctx);

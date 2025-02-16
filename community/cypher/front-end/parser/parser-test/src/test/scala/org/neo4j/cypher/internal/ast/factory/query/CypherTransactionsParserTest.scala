@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -363,11 +364,18 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
   }
 
   test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK CONTINUE") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'CONTINUE': expected 'FOREACH', 'REPORT STATUS AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'ON ERROR', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OF', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 52 (offset: 51))
-        |"CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK CONTINUE"
-        |                                                    ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'CONTINUE': expected 'FOREACH', 'REPORT STATUS AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'ON ERROR', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OF', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 52 (offset: 51))
+            |"CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK CONTINUE"
+            |                                                    ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'CONTINUE': expected 'FOREACH', 'REPORT STATUS AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'ON ERROR', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OF', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 52 (offset: 51))
+            |"CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK CONTINUE"
+            |                                                    ^""".stripMargin
+        )
+    }
   }
 
   test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK REPORT STATUS AS status ON ERROR CONTINUE") {

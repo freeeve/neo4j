@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
@@ -540,11 +541,18 @@ class CountExpressionParserTest extends AstParsingTestBase with LegacyAstParsing
       |WHERE COUNT { MATCH (b) RETURN b WHERE true } >= 1
       |RETURN m""".stripMargin
   ) {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input 'WHERE': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or '}' (line 2, column 34 (offset: 43))
-        |"WHERE COUNT { MATCH (b) RETURN b WHERE true } >= 1"
-        |                                  ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'WHERE': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or '}' (line 2, column 34 (offset: 43))
+            |"WHERE COUNT { MATCH (b) RETURN b WHERE true } >= 1"
+            |                                  ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'WHERE': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or '}' (line 2, column 34 (offset: 43))
+            |"WHERE COUNT { MATCH (b) RETURN b WHERE true } >= 1"
+            |                                  ^""".stripMargin
+        )
+    }
   }
 
   test(

@@ -47,6 +47,7 @@ clause
    | matchClause
    | mergeClause
    | withClause
+   | filterClause
    | unwindClause
    | callClause
    | subqueryClause
@@ -180,6 +181,10 @@ mergeClause
 
 mergeAction
    : ON (MATCH | CREATE) setClause
+   ;
+
+filterClause
+   : FILTER WHERE? expression
    ;
 
 unwindClause
@@ -1846,6 +1851,7 @@ unescapedSymbolicNameString_
    | FAIL
    | FALSE
    | FIELDTERMINATOR
+   | FILTER
    | FINISH
    | FLOAT
    | FOREACH

@@ -483,6 +483,10 @@ FIELDTERMINATOR
    : F I E L D T E R M I N A T O R
    ;
 
+FILTER
+   : F I L T E R
+   ;
+
 FINISH
    : F I N I S H
    ;

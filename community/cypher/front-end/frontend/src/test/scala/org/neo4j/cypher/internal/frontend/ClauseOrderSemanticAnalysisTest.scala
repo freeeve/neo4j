@@ -24,6 +24,9 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
+import scala.util.Failure
+import scala.util.Success
+
 class ClauseOrderSemanticAnalysisTest
     extends CypherFunSuite
     with NameBasedSemanticAnalysisTestSuite {
@@ -80,7 +83,11 @@ class ClauseOrderSemanticAnalysisTest
     ("UNWIND", "UNWIND [1,2,3] AS x"),
     ("UNWIND", "UNWIND u.p AS x"),
     ("CALL", "CALL { UNWIND [1,2,3] AS x RETURN x }"),
-    ("LOAD CSV", "LOAD CSV FROM 'https://data.neo4j.com/bands/artists.csv' AS row")
+    ("LOAD CSV", "LOAD CSV FROM 'https://data.neo4j.com/bands/artists.csv' AS row"),
+    ("ORDER BY", "ORDER BY u"),
+    ("SKIP", "SKIP 5"),
+    ("LIMIT", "LIMIT 5"),
+    ("FILTER", "FILTER id(u) > 3")
   )
 
   val returnClause = "RETURN *"
@@ -88,10 +95,19 @@ class ClauseOrderSemanticAnalysisTest
   for {
     (_, u) <- updates
     w <- withs
-    (_, r) <- reads
+    (clause2, r) <- reads
   } yield {
     test(s"$u $w $r $returnClause") {
-      run().hasNoErrors
+      run().assertTryIn {
+        case CypherVersion.Cypher5 if clause2 == "FILTER" => {
+          case Success(_) => fail(new Exception("FILTER is not part of Cypher 5 syntax"))
+          case Failure(_) => ()
+        }
+        case _ => {
+          case Success(result) => result.errors shouldBe empty
+          case Failure(t)      => fail(t)
+        }
+      }
     }
   }
 
@@ -100,16 +116,29 @@ class ClauseOrderSemanticAnalysisTest
     (clause2, r) <- reads
   } yield {
     test(s"$u $r $returnClause") {
-      run().assertIn {
-        case CypherVersion.Cypher5 =>
-          _.errors should contain theSameElementsAs Seq(errorWithIsRequiredBetween(
-            clause1,
-            clause2,
-            u.length + 1,
-            1,
-            u.length + 2
-          ))
-        case _ => _.errors shouldBe empty
+      run().assertTryIn {
+        case CypherVersion.Cypher5 if Seq("ORDER BY", "SKIP", "LIMIT") contains clause2 => {
+          case Success(result) => result.errors shouldBe empty
+          case Failure(t)      => fail(t)
+        }
+        case CypherVersion.Cypher5 if clause2 == "FILTER" => {
+          case Success(_) => fail(new Exception("FILTER is not part of Cypher 5 syntax"))
+          case Failure(_) => ()
+        }
+        case CypherVersion.Cypher5 => {
+          case Success(result) => result.errors should contain theSameElementsAs Seq(errorWithIsRequiredBetween(
+              clause1,
+              clause2,
+              u.length + 1,
+              1,
+              u.length + 2
+            ))
+          case Failure(t) => fail(t)
+        }
+        case _ => {
+          case Success(result) => result.errors shouldBe empty
+          case Failure(t)      => fail(t)
+        }
       }
     }
   }

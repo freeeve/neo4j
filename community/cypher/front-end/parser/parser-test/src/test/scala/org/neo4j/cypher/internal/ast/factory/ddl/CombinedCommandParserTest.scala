@@ -2256,10 +2256,17 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
   }
 
   test("MATCH (n) TERMINATE TRANSACTION") {
-    failsParsing[ast.Statements].withSyntaxError(
-      """Invalid input 'TERMINATE': expected a graph pattern, 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
-        |"MATCH (n) TERMINATE TRANSACTION"
-        |           ^""".stripMargin
-    )
+    parseIn[ast.Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'TERMINATE': expected a graph pattern, 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+            |"MATCH (n) TERMINATE TRANSACTION"
+            |           ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'TERMINATE': expected a graph pattern, 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+            |"MATCH (n) TERMINATE TRANSACTION"
+            |           ^""".stripMargin
+        )
+    }
   }
 }

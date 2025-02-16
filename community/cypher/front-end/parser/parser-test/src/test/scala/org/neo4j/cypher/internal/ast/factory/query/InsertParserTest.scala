@@ -546,11 +546,18 @@ class InsertParserTest extends AstParsingTestBase {
   }
 
   test("INSERT ()[]->()") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '[': expected 'FOREACH', ',', '-', '<', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 10 (offset: 9))
-        |"INSERT ()[]->()"
-        |          ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '[': expected 'FOREACH', ',', '-', '<', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 10 (offset: 9))
+            |"INSERT ()[]->()"
+            |          ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '[': expected 'FOREACH', ',', '-', '<', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 10 (offset: 9))
+            |"INSERT ()[]->()"
+            |          ^""".stripMargin
+        )
+    }
   }
 
   def expectedAfterLeftParen(version: ParserInTest): String = version match {
@@ -1110,11 +1117,18 @@ class InsertParserTest extends AstParsingTestBase {
   }
 
   test("INSERT (a)-[:R]->(b)(a)") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '(': expected 'FOREACH', ',', '-', '<', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 21 (offset: 20))
-        |"INSERT (a)-[:R]->(b)(a)"
-        |                     ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '(': expected 'FOREACH', ',', '-', '<', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 21 (offset: 20))
+            |"INSERT (a)-[:R]->(b)(a)"
+            |                     ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '(': expected 'FOREACH', ',', '-', '<', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 21 (offset: 20))
+            |"INSERT (a)-[:R]->(b)(a)"
+            |                     ^""".stripMargin
+        )
+    }
   }
 
   test("INSERT ((n)-[r]->(m))*") {

@@ -19,10 +19,20 @@ package org.neo4j.cypher.internal.ast.prettifier
 import org.neo4j.cypher.internal.ast.AllDatabasesQualifier
 import org.neo4j.cypher.internal.ast.AllIndexActions
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.DatabasePrivilege
+import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.DenyPrivilege
+import org.neo4j.cypher.internal.ast.Limit
 import org.neo4j.cypher.internal.ast.NamedDatabasesScope
 import org.neo4j.cypher.internal.ast.NamespacedName
+import org.neo4j.cypher.internal.ast.OrderBy
+import org.neo4j.cypher.internal.ast.ParsedAsFilter
+import org.neo4j.cypher.internal.ast.ParsedAsLimit
+import org.neo4j.cypher.internal.ast.ParsedAsOrderBy
+import org.neo4j.cypher.internal.ast.ParsedAsSkip
+import org.neo4j.cypher.internal.ast.Skip
+import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -51,5 +61,113 @@ class PrettifierTest extends CypherFunSuite with AstConstructionTestSupport {
     commandArraySeq shouldBe commandList
     prettifier.asString(commandArraySeq) shouldBe "DENY INDEX MANAGEMENT ON DATABASE hej TO hej"
     prettifier.asString(commandArraySeq) shouldBe prettifier.asString(commandList)
+  }
+
+  val orderBys: Seq[Option[(String, OrderBy)]] = Seq(
+    Some(("ORDER BY n ASCENDING", orderBy(sortItem(varFor("n"))))),
+    None
+  )
+
+  val skips: Seq[Option[(String, Skip)]] = Seq(
+    Some(("SKIP 1", skip(1L))),
+    None
+  )
+
+  val limits: Seq[Option[(String, Limit)]] = Seq(
+    Some(("LIMIT 1", limit(1L))),
+    None
+  )
+
+  val wheres: Seq[Option[(String, Where)]] = Seq(
+    Some(("WHERE n IS NOT NULL", where(isNotNull(varFor("n"))))),
+    None
+  )
+  val withStar = "WITH *"
+  val filter = "FILTER"
+  val SEP = s"${System.lineSeparator()}  "
+
+  val clauses: Seq[(String, Clause)] =
+    (for {
+      o <- orderBys
+      s <- skips
+      l <- limits
+      w <- wheres
+    } yield {
+      (o, s, l, w) match {
+        case (None, None, None, None) => Seq(
+            (withStar, withAllTyped(None, None, None, None, DefaultWith))
+          )
+        // starting with ORDER BY
+        case (Some((oCy, oAst)), None, None, None) => Seq(
+            (s"$withStar$SEP$oCy".stripMargin, withAllTyped(Some(oAst), None, None, None, DefaultWith)),
+            (s"$oCy", withAllTyped(Some(oAst), None, None, None, ParsedAsOrderBy))
+          )
+        case (Some((oCy, oAst)), Some((sCy, sAst)), None, None) => Seq(
+            (s"$withStar$SEP$oCy$SEP$sCy".stripMargin, withAllTyped(Some(oAst), Some(sAst), None, None, DefaultWith)),
+            (s"$oCy$SEP$sCy", withAllTyped(Some(oAst), Some(sAst), None, None, ParsedAsOrderBy))
+          )
+        case (Some((oCy, oAst)), None, Some((lCy, lAst)), None) => Seq(
+            (s"$withStar$SEP$oCy$SEP$lCy", withAllTyped(Some(oAst), None, Some(lAst), None, DefaultWith)),
+            (s"$oCy$SEP$lCy", withAllTyped(Some(oAst), None, Some(lAst), None, ParsedAsOrderBy))
+          )
+        case (Some((oCy, oAst)), Some((sCy, sAst)), Some((lCy, lAst)), None) => Seq(
+            (s"$withStar$SEP$oCy$SEP$sCy$SEP$lCy", withAllTyped(Some(oAst), Some(sAst), Some(lAst), None, DefaultWith)),
+            (s"$oCy$SEP$sCy$SEP$lCy", withAllTyped(Some(oAst), Some(sAst), Some(lAst), None, ParsedAsOrderBy))
+          )
+        case (Some((oCy, oAst)), None, None, Some((wCy, wAst))) => Seq(
+            (s"$withStar$SEP$oCy$SEP$wCy", withAllTyped(Some(oAst), None, None, Some(wAst), DefaultWith))
+          )
+        case (Some((oCy, oAst)), Some((sCy, sAst)), None, Some((wCy, wAst))) => Seq(
+            (s"$withStar$SEP$oCy$SEP$sCy$SEP$wCy", withAllTyped(Some(oAst), Some(sAst), None, Some(wAst), DefaultWith))
+          )
+        case (Some((oCy, oAst)), None, Some((lCy, lAst)), Some((wCy, wAst))) => Seq(
+            (s"$withStar$SEP$oCy$SEP$lCy$SEP$wCy", withAllTyped(Some(oAst), None, Some(lAst), Some(wAst), DefaultWith))
+          )
+        case (Some((oCy, oAst)), Some((sCy, sAst)), Some((lCy, lAst)), Some((wCy, wAst))) => Seq(
+            (
+              s"$withStar$SEP$oCy$SEP$sCy$SEP$lCy$SEP$wCy",
+              withAllTyped(Some(oAst), Some(sAst), Some(lAst), Some(wAst), DefaultWith)
+            )
+          )
+        // starting with SKIP
+        case (None, Some((sCy, sAst)), None, None) => Seq(
+            (s"$withStar$SEP$sCy", withAllTyped(None, Some(sAst), None, None, DefaultWith)),
+            (s"$sCy", withAllTyped(None, Some(sAst), None, None, ParsedAsSkip))
+          )
+        case (None, Some((sCy, sAst)), Some((lCy, lAst)), None) => Seq(
+            (s"$withStar$SEP$sCy$SEP$lCy", withAllTyped(None, Some(sAst), Some(lAst), None, DefaultWith)),
+            (s"$sCy$SEP$lCy", withAllTyped(None, Some(sAst), Some(lAst), None, ParsedAsSkip))
+          )
+        case (None, Some((sCy, sAst)), None, Some((wCy, wAst))) => Seq(
+            (s"$withStar$SEP$sCy$SEP$wCy", withAllTyped(None, Some(sAst), None, Some(wAst), DefaultWith))
+          )
+        case (None, Some((sCy, sAst)), Some((lCy, lAst)), Some((wCy, wAst))) => Seq(
+            (s"$withStar$SEP$sCy$SEP$lCy$SEP$wCy", withAllTyped(None, Some(sAst), Some(lAst), Some(wAst), DefaultWith))
+          )
+        // starting with LIMIT
+        case (None, None, Some((lCy, lAst)), None) => Seq(
+            (s"$withStar$SEP$lCy", withAllTyped(None, None, Some(lAst), None, DefaultWith)),
+            (s"$lCy", withAllTyped(None, None, Some(lAst), None, ParsedAsLimit))
+          )
+        case (None, None, Some((lCy, lAst)), Some((wCy, wAst))) => Seq(
+            (s"$withStar$SEP$lCy$SEP$wCy", withAllTyped(None, None, Some(lAst), Some(wAst), DefaultWith))
+          )
+        // starting with WHERE
+        case (None, None, None, Some((wCy, wAst))) => Seq(
+            (s"$withStar$SEP$wCy", withAllTyped(None, None, None, Some(wAst), DefaultWith)),
+            (s"$filter $wCy", withAllTyped(None, None, None, Some(wAst), ParsedAsFilter))
+          )
+        case _ => Seq()
+      }
+    }).flatten
+
+  {
+    for {
+      (cypher, ast) <- clauses
+    } yield {
+      test(cypher) {
+        prettifier.asString(singleQuery(ast)) shouldBe cypher
+      }
+    }
   }
 }

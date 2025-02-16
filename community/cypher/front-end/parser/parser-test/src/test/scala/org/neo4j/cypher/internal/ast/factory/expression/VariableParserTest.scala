@@ -78,11 +78,18 @@ class VariableParserTest extends AstParsingTestBase
   }
 
   test("variables are not allowed uneven number of backticks") {
-    "RETURN `a`b`" should notParse[Statements].withSyntaxError(
-      """Invalid input 'b': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
-        |"RETURN `a`b`"
-        |           ^""".stripMargin
-    )
+    "RETURN `a`b`" should notParse[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'b': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+            |"RETURN `a`b`"
+            |           ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'b': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+            |"RETURN `a`b`"
+            |           ^""".stripMargin
+        )
+    }
   }
 
   test("variables are now allowed start with number") {

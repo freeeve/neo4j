@@ -87,6 +87,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitMergeAction(Cypher25Parser.MergeActionContext ctx);
 
+    void exitFilterClause(Cypher25Parser.FilterClauseContext ctx);
+
     void exitUnwindClause(Cypher25Parser.UnwindClauseContext ctx);
 
     void exitCallClause(Cypher25Parser.CallClauseContext ctx);

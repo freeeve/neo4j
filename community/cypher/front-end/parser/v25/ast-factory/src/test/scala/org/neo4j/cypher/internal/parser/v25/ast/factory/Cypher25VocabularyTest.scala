@@ -167,6 +167,7 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.FAIL -> "'FAIL'",
     Cypher25Parser.FALSE -> "'FALSE'",
     Cypher25Parser.FIELDTERMINATOR -> "'FIELDTERMINATOR'",
+    Cypher25Parser.FILTER -> "'FILTER'",
     Cypher25Parser.FINISH -> "'FINISH'",
     Cypher25Parser.FLOAT -> "'FLOAT'",
     Cypher25Parser.FOR -> "'FOR'",

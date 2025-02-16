@@ -56,7 +56,7 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
       // ≥ Cypher25
       case _ => (
           "for",
-          "'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{'",
+          "'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FILTER', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{'",
           0
         )
     })
@@ -240,11 +240,19 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("merge (n {p:{}) return *") { invalid(")", "an expression, ',' or '}'", 14) }
 
   test("return `a`b`") {
-    invalid(
-      "b",
-      "an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>",
-      10
-    )
+    invalid({
+      case Cypher5 => (
+          "b",
+          "an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>",
+          10
+        )
+      // ≥ Cypher25
+      case _ => (
+          "b",
+          "an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>",
+          10
+        )
+    })
   }
   test("return [1,") { invalid("", "an expression", 10) }
   test("return [1") { invalid("", "an expression, ',' or ']'", 9) }
@@ -252,11 +260,19 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
   test("return {1a:''}") { invalid("1a", "an identifier or '}'", 8) }
 
   test("return true AN false") {
-    invalid(
-      "AN",
-      "an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>",
-      12
-    )
+    invalid({
+      case Cypher5 => (
+          "AN",
+          "an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>",
+          12
+        )
+      // ≥ Cypher25
+      case _ => (
+          "AN",
+          "an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF>",
+          12
+        )
+    })
   }
   test("return {") { invalid("", "an identifier or '}'", 8) }
 
@@ -377,7 +393,7 @@ object SyntaxErrorParserTest {
 
   val clausesNotInCypher25: Seq[String] = Seq("USING PERIODIC COMMIT")
 
-  val clausesNotInCypher5: Seq[String] = Seq("{")
+  val clausesNotInCypher5: Seq[String] = Seq("{", "FILTER")
 
   def clauseExpected(cypherVersion: CypherVersion): String = {
     var tokens = Seq(
@@ -396,6 +412,7 @@ object SyntaxErrorParserTest {
       "DETACH",
       "DROP",
       "DRYRUN",
+      "FILTER",
       "FINISH",
       "GRANT",
       "INSERT",

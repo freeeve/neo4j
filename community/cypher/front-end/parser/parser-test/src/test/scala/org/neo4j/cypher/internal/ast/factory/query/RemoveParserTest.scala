@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.RemovePropertyItem
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.symbols.CTAny
 
@@ -192,21 +193,35 @@ class RemoveParserTest extends AstParsingTestBase {
   }
 
   test("REMOVE listOfNodes[0][toUpper(\"prop\")]") {
-    failsParsing[Statements].withMessage(
-      """Invalid input '[': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 22 (offset: 21))
-        |"REMOVE listOfNodes[0][toUpper("prop")]"
-        |                      ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withMessage(
+          """Invalid input '[': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 22 (offset: 21))
+            |"REMOVE listOfNodes[0][toUpper("prop")]"
+            |                      ^""".stripMargin
+        )
+      case _ => _.withMessage(
+          """Invalid input '[': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 22 (offset: 21))
+            |"REMOVE listOfNodes[0][toUpper("prop")]"
+            |                      ^""".stripMargin
+        )
+    }
   }
 
   //  Invalid use of other label expression symbols than :
 
   test("REMOVE n:A|B") {
-    failsParsing[Statements].withMessage(
-      """Invalid input '|': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
-        |"REMOVE n:A|B"
-        |           ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withMessage(
+          """Invalid input '|': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+            |"REMOVE n:A|B"
+            |           ^""".stripMargin
+        )
+      case _ => _.withMessage(
+          """Invalid input '|': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+            |"REMOVE n:A|B"
+            |           ^""".stripMargin
+        )
+    }
   }
 
   test("REMOVE n:!A") {
@@ -226,19 +241,33 @@ class RemoveParserTest extends AstParsingTestBase {
   }
 
   test("REMOVE n:A&B") {
-    failsParsing[Statements].withMessage(
-      """Invalid input '&': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
-        |"REMOVE n:A&B"
-        |           ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withMessage(
+          """Invalid input '&': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+            |"REMOVE n:A&B"
+            |           ^""".stripMargin
+        )
+      case _ => _.withMessage(
+          """Invalid input '&': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 11 (offset: 10))
+            |"REMOVE n:A&B"
+            |           ^""".stripMargin
+        )
+    }
   }
 
   test("REMOVE n IS A&B") {
-    failsParsing[Statements].withMessage(
-      """Invalid input '&': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 14 (offset: 13))
-        |"REMOVE n IS A&B"
-        |              ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withMessage(
+          """Invalid input '&': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 14 (offset: 13))
+            |"REMOVE n IS A&B"
+            |              ^""".stripMargin
+        )
+      case _ => _.withMessage(
+          """Invalid input '&': expected 'FOREACH', ',', ':', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 14 (offset: 13))
+            |"REMOVE n IS A&B"
+            |              ^""".stripMargin
+        )
+    }
   }
 
   test("REMOVE :A") {

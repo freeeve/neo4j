@@ -1080,8 +1080,23 @@ trait AstConstructionTestSupport {
   def withAll(where: Option[Where] = None): With =
     With(distinct = false, returnAllItems, None, None, None, where = where)(pos)
 
+  def withAllTyped(where: Option[Where] = None, withType: WithType): With =
+    With(distinct = false, returnAllItems, None, None, None, where = where, withType = withType)(pos)
+
   def withAll(orderBy: Option[OrderBy], skip: Option[Skip], limit: Option[Limit]): With =
     With(distinct = false, returnAllItems, orderBy, skip, limit, None)(pos)
+
+  def withAllTyped(orderBy: Option[OrderBy], skip: Option[Skip], limit: Option[Limit], withType: WithType): With =
+    With(distinct = false, returnAllItems, orderBy, skip, limit, None, withType = withType)(pos)
+
+  def withAllTyped(
+    orderBy: Option[OrderBy],
+    skip: Option[Skip],
+    limit: Option[Limit],
+    where: Option[Where],
+    withType: WithType
+  ): With =
+    With(distinct = false, returnAllItems, orderBy, skip, limit, where, withType = withType)(pos)
 
   def set_(items: Seq[SetItem]): SetClause =
     SetClause(items)(pos)

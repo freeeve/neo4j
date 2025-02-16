@@ -1731,6 +1731,10 @@ sealed trait ProjectionClause extends HorizonClause {
 // used for SHOW/TERMINATE commands (and procedure calls against system)
 sealed trait WithType
 case object DefaultWith extends WithType
+case object ParsedAsOrderBy extends WithType
+case object ParsedAsSkip extends WithType
+case object ParsedAsLimit extends WithType
+case object ParsedAsFilter extends WithType
 case object ParsedAsYield extends WithType
 case object AddedInRewrite extends WithType
 case object AddedInRewriteProcCall extends WithType
@@ -1751,7 +1755,13 @@ case class With(
   withType: WithType = DefaultWith
 )(val position: InputPosition) extends ProjectionClause {
 
-  override def name = "WITH"
+  override def name: String = withType match {
+    case ParsedAsOrderBy => "ORDER BY"
+    case ParsedAsSkip    => skip.get.name
+    case ParsedAsLimit   => limit.get.name
+    case ParsedAsFilter  => "FILTER"
+    case _               => "WITH"
+  }
 
   override def clauseSpecificSemanticCheck: SemanticCheck =
     super.clauseSpecificSemanticCheck chain

@@ -115,6 +115,10 @@ import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.OptionsParam
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.ParameterName
+import org.neo4j.cypher.internal.ast.ParsedAsFilter
+import org.neo4j.cypher.internal.ast.ParsedAsLimit
+import org.neo4j.cypher.internal.ast.ParsedAsOrderBy
+import org.neo4j.cypher.internal.ast.ParsedAsSkip
 import org.neo4j.cypher.internal.ast.ParsedAsYield
 import org.neo4j.cypher.internal.ast.PatternQualifier
 import org.neo4j.cypher.internal.ast.PrivilegeQualifier
@@ -1127,20 +1131,25 @@ case class Prettifier(
         w.limit.map(ind.asString),
         w.where.map(ind.asString)
       ).flatten
+      lazy val rewrittenClausesStrWithNlSeparators = rewrittenClauses.mkString(NL)
 
-      if (w.withType == ParsedAsYield || w.withType == AddedInRewrite) {
-        // part of SHOW/TERMINATE TRANSACTION which prettifies the YIELD items part
-        // but it no longer knows the subclauses, hence prettifying them here
+      w.withType match {
+        case ParsedAsOrderBy | ParsedAsSkip | ParsedAsLimit =>
+          s"$INDENT${rewrittenClausesStrWithNlSeparators.trim}"
+        case ParsedAsFilter =>
+          s"${INDENT}FILTER ${rewrittenClausesStrWithNlSeparators.trim}"
+        case ParsedAsYield | AddedInRewrite =>
+          // part of SHOW/TERMINATE TRANSACTION which prettifies the YIELD items part
+          // but it no longer knows the subclauses, hence prettifying them here
 
-        // only add newlines between subclauses and not in front of the first one
-        if (rewrittenClauses.nonEmpty)
-          s"$INDENT${rewrittenClauses.head}${rewrittenClauses.tail.map(asNewLine).mkString}"
-        else ""
-      } else {
-        val d = if (w.distinct) " DISTINCT" else ""
-        val i = asString(w.returnItems)
+          // only add newlines between subclauses and not in front of the first one
+          if (rewrittenClauses.nonEmpty) s"$INDENT$rewrittenClausesStrWithNlSeparators"
+          else ""
+        case _ =>
+          val d = if (w.distinct) " DISTINCT" else ""
+          val i = asString(w.returnItems)
 
-        s"${INDENT}WITH$d $i${rewrittenClauses.map(asNewLine).mkString}"
+          s"${INDENT}WITH$d $i${rewrittenClauses.map(asNewLine).mkString}"
       }
     }
 

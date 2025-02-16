@@ -19,8 +19,8 @@ package org.neo4j.cypher.internal.ast.factory.query
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
-import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 import org.neo4j.cypher.internal.expressions.FixedQuantifier
 import org.neo4j.cypher.internal.expressions.GraphPatternQuantifier
 import org.neo4j.cypher.internal.expressions.IntervalQuantifier
@@ -40,7 +40,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.StarQuantifier
 
-class QuantifiedPathPatternParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
+class QuantifiedPathPatternParserTest extends AstParsingTestBase {
 
   test("(n)") {
     parses[PatternPart].toAstPositioned {
@@ -272,7 +272,7 @@ class QuantifiedPathPatternParserTest extends AstParsingTestBase with LegacyAstP
   }
 }
 
-class QuantifiedPathPatternInMatchParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
+class QuantifiedPathPatternInMatchParserTest extends AstParsingTestBase {
 
   test("MATCH p= ( (a)-->(b) ) WHERE a.prop") {
     parsesTo[Clause] {
@@ -397,11 +397,18 @@ class QuantifiedPathPatternInMatchParserTest extends AstParsingTestBase with Leg
 
   // pattern expression are not implemented, yet
   test("MATCH (n), (m) WHERE (n) ((a)-->(b))+ (m) RETURN *") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '(': expected an expression, 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 26 (offset: 25))
-        |"MATCH (n), (m) WHERE (n) ((a)-->(b))+ (m) RETURN *"
-        |                          ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '(': expected an expression, 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 26 (offset: 25))
+            |"MATCH (n), (m) WHERE (n) ((a)-->(b))+ (m) RETURN *"
+            |                          ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '(': expected an expression, 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WITH' or <EOF> (line 1, column 26 (offset: 25))
+            |"MATCH (n), (m) WHERE (n) ((a)-->(b))+ (m) RETURN *"
+            |                          ^""".stripMargin
+        )
+    }
   }
 
   // node abbreviations are not implemented, yet
@@ -414,7 +421,7 @@ class QuantifiedPathPatternInMatchParserTest extends AstParsingTestBase with Leg
   }
 }
 
-class QuantifiedPathParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
+class QuantifiedPathParserTest extends AstParsingTestBase {
 
   test("((n)-[r]->(m))*") {
     parsesTo[QuantifiedPath] {
@@ -511,7 +518,7 @@ class QuantifiedPathParserTest extends AstParsingTestBase with LegacyAstParsingT
   }
 }
 
-class QuantifiedPathPatternsQuantifierParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
+class QuantifiedPathPatternsQuantifierParserTest extends AstParsingTestBase {
 
   test("+") {
     parses[GraphPatternQuantifier].toAstPositioned {
