@@ -1854,26 +1854,26 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       QueryGraph(
         patternNodes = Set(n),
         patternRelationships = Set(),
-        argumentIds = Set(v"m", v"n"),
+        argumentIds = Set(v"m", v"n", v"r"),
         selections = Selections(Set(Predicate(Set(v"n"), assertIsNode("n"))))
       ),
       horizon = RegularQueryProjection(
         Map(v"name" -> v"n"),
         position = QueryProjection.Position.Final,
-        importedExposedSymbols = Set(v"n", v"m")
+        importedExposedSymbols = Set(v"n", v"m", v"r")
       )
     )
     val secondQuery = RegularSinglePlannerQuery(
       QueryGraph(
         patternNodes = Set(m),
         patternRelationships = Set(),
-        argumentIds = Set(v"m", v"n"),
+        argumentIds = Set(v"m", v"n", v"r"),
         selections = Selections(Set(Predicate(Set(v"m"), assertIsNode("m"))))
       ),
       horizon = RegularQueryProjection(
         Map(v"name" -> v"m"),
         position = QueryProjection.Position.Final,
-        importedExposedSymbols = Set(v"n", v"m")
+        importedExposedSymbols = Set(v"n", v"m", v"r")
       )
     )
 

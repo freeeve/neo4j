@@ -92,7 +92,11 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
    * Count still requires it for Distinct Unions as in this case the count
    * changes based on which rows are distinct vs not
    */
-  def semanticCheckInSubqueryExpressionContext(canOmitReturn: Boolean): SemanticCheck
+  def semanticCheckInSubqueryExpressionContext(
+    canOmitReturn: Boolean,
+    outer: SemanticState,
+    context: UnaliasedNotAllowed = ImportingWithSubqueryCall
+  ): SemanticCheck
 
   /**
    * Semantic check for when this `Query` is enclosed in Top Level Braces
@@ -235,8 +239,12 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
    * No outer scope is needed for checkClauses as we don't need to check the naming of any returned variables
    * as no variables from EXISTS / COUNT can be returned, unlike in CALL subqueries.
    */
-  override def semanticCheckInSubqueryExpressionContext(canOmitReturn: Boolean): SemanticCheck =
-    semanticCheckAbstract(clauses, checkClauses(_, None), canOmitReturnClause = canOmitReturn)
+  override def semanticCheckInSubqueryExpressionContext(
+    canOmitReturn: Boolean,
+    outer: SemanticState,
+    context: UnaliasedNotAllowed
+  ): SemanticCheck =
+    semanticCheckAbstract(clauses, checkClauses(_, None, context), canOmitReturnClause = canOmitReturn)
 
   override def checkImportingWith: SemanticCheck = partitionedClauses.importingWith.foldSemanticCheck(_.semanticCheck)
 
@@ -763,8 +771,12 @@ case class TopLevelBraces(
   override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
     SemanticCheck.error(SemanticError.invalidUseOfOldCall(TopLevelBraces.name, position))
 
-  override def semanticCheckInSubqueryExpressionContext(canOmitReturn: Boolean): SemanticCheck =
-    query.semanticCheckInSubqueryExpressionContext(canOmitReturn) chain recordCurrentScope(this)
+  override def semanticCheckInSubqueryExpressionContext(
+    canOmitReturn: Boolean,
+    outer: SemanticState,
+    context: UnaliasedNotAllowed
+  ): SemanticCheck =
+    query.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, context) chain recordCurrentScope(this)
 
   override def semanticCheckInTopLevelBracesContext: SemanticCheck = semanticCheck
 
@@ -845,8 +857,15 @@ sealed trait Union extends Query {
 
   def semanticCheck: SemanticCheck = checkRecursively(_.semanticCheck)
 
-  override def semanticCheckInSubqueryExpressionContext(canOmitReturn: Boolean): SemanticCheck =
-    checkRecursively(_.semanticCheckInSubqueryExpressionContext(canOmitReturn))
+  override def semanticCheckInSubqueryExpressionContext(
+    canOmitReturn: Boolean,
+    outer: SemanticState,
+    context: UnaliasedNotAllowed
+  ): SemanticCheck =
+    checkRecursively(
+      importValuesFromScope(outer.currentScope.scope) chain
+        _.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, context)
+    )
 
   override def checkImportingWith: SemanticCheck =
     SemanticCheck.nestedCheck(lhs.checkImportingWith) chain

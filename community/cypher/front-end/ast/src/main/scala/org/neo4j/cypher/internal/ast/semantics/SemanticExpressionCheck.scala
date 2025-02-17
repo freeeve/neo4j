@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.checkValidLabels
 import org.neo4j.cypher.internal.expressions.Add
@@ -809,7 +810,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       case x: ExistsExpression =>
         withScopedState {
           importValuesFromParentInSubqueryExpression(x) chain
-            x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = true) chain
+            fromState(state => x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = true, state)) chain
             when(x.query.containsUpdates) {
               SemanticError.anExpressionCannotContainUpdates("Exists", x.position)
             } chain
@@ -826,8 +827,12 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       case x: CountExpression =>
         withScopedState {
           importValuesFromParentInSubqueryExpression(x) chain
-            x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn =
-              !x.query.isInstanceOf[UnionDistinct]
+            fromState(state =>
+              x.query.semanticCheckInSubqueryExpressionContext(
+                canOmitReturn =
+                  !x.query.isInstanceOf[UnionDistinct],
+                state
+              )
             ) chain
             when(x.query.containsUpdates) {
               SemanticError.aExpressionCannotContainUpdates("Count", x.position)
@@ -845,7 +850,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       case x: CollectExpression =>
         withScopedState {
           importValuesFromParentInSubqueryExpression(x) chain
-            x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = false) chain
+            fromState(state => x.query.semanticCheckInSubqueryExpressionContext(canOmitReturn = false, state)) chain
             when(x.query.containsUpdates) {
               SemanticError.aExpressionCannotContainUpdates("Collect", x.position)
             } chain

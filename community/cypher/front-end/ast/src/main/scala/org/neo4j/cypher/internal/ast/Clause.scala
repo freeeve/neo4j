@@ -1823,7 +1823,8 @@ case class Return(
 
   private def checkVariableScope: SemanticState => Seq[SemanticError] = s =>
     returnItems match {
-      case ReturnItems(star, _, _) if star && s.currentScope.isEmpty =>
+      case ReturnItems(star, _, _)
+        if star && (s.currentScope.isEmpty && s.currentScope.parent.fold(true)(_.isEmpty)) =>
         Seq(SemanticError.invalidUseOfReturnStar(position))
       case _ =>
         Seq.empty
