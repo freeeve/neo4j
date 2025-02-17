@@ -1009,7 +1009,6 @@ abstract class TransactionApplyTestBase[CONTEXT <: RuntimeContext](
         .toSeq
     }
 
-    val resultBatches = batches(executeAndConsume(query.copy(logicalPlan = rewritten), runtime).awaitAll())
     val expectedBatches = batches(expected.flatten)
 
     withClue(
@@ -1018,6 +1017,13 @@ abstract class TransactionApplyTestBase[CONTEXT <: RuntimeContext](
          |$rewritten
          |""".stripMargin
     ) {
+      val resultBatches =
+        try {
+          batches(executeAndConsume(query.copy(logicalPlan = rewritten), runtime).awaitAll())
+        } catch {
+          case e: Throwable => fail(e)
+        }
+
       resultBatches.size shouldBe expectedBatches.size
       resultBatches.zip(expectedBatches).foreach {
         case (result, expected) =>
