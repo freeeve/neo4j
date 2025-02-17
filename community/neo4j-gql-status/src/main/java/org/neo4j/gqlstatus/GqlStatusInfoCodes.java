@@ -5055,8 +5055,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_52N26(
             new GqlStatus("52N26"),
             """
-                    Invalid change identifier.""",
-            new GqlParams.GqlParam[] {},
+                    { %s } is not a valid change identifier.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.param},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
             "invalid change identifier",
@@ -5165,6 +5165,24 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
             "procedure execution error",
+            ErrorClassification.UNKNOWN),
+    STATUS_52N38(
+            new GqlStatus("52N38"),
+            """
+                    Cannot find a start position in the logs.""",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.PROCEDURE_EXCEPTION,
+            "cdc start position not found",
+            ErrorClassification.UNKNOWN),
+    STATUS_52N39(
+            new GqlStatus("52N39"),
+            """
+                    The log scanner is no longer active.""",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.PROCEDURE_EXCEPTION,
+            "cdc scanner inactive",
             ErrorClassification.UNKNOWN),
     STATUS_52U00(
             new GqlStatus("52U00"),
