@@ -43,42 +43,46 @@ case object collectDistinctRewriter extends Rewriter {
 
   override def apply(input: AnyRef): AnyRef = input match {
     case plan: LogicalPlan =>
-      val (unsafeVariables, onlyIn) = randomAccessVariables(plan)
-      bottomUp(innerRewriter(unsafeVariables, onlyIn)).apply(plan)
+      val rewriteConstraints = getRewriteConstraints(plan)
+      bottomUp(innerRewriter(rewriteConstraints)).apply(plan)
     case o => o
   }
 
   private def rewriteAggregations(
-    unsafeVariables: Set[LogicalVariable],
-    onlyIn: Set[LogicalVariable],
+    rewriteConstraints: RewriteConstraints,
     aggregationExpressions: Map[LogicalVariable, Expression]
   ) =
     aggregationExpressions.map {
       case (v, f @ FunctionInvocation(FunctionName(_, name), true, IndexedSeq(in), _, _))
-        if name.equalsIgnoreCase(Collect.name) && !unsafeVariables(v) =>
+        if name.equalsIgnoreCase(Collect.name) && !rewriteConstraints.unsafeVariables(v) =>
         v -> CollectDistinct(in, f.isOrdered)(f.position)
 
       case (v, f @ FunctionInvocation(FunctionName(_, name), false, IndexedSeq(in), _, _))
-        if name.equalsIgnoreCase(Collect.name) && onlyIn(v) =>
+        if name.equalsIgnoreCase(Collect.name) && rewriteConstraints.implicitlyDistinctVariables(v) =>
         v -> CollectDistinct(in, f.isOrdered)(f.position)
 
       case (v, e) => v -> e
     }
 
-  private def innerRewriter(unsafeVariables: Set[LogicalVariable], onlyIn: Set[LogicalVariable]): Rewriter =
+  private def innerRewriter(rewriteConstraints: RewriteConstraints): Rewriter =
     Rewriter.lift {
       case a @ Aggregation(_, _, aggregationExpressions) =>
-        a.copy(aggregationExpressions = rewriteAggregations(unsafeVariables, onlyIn, aggregationExpressions))(
+        a.copy(aggregationExpressions = rewriteAggregations(rewriteConstraints, aggregationExpressions))(
           SameId(a.id)
         )
 
       case a @ OrderedAggregation(_, _, aggregationExpressions, _) =>
-        a.copy(aggregationExpressions = rewriteAggregations(unsafeVariables, onlyIn, aggregationExpressions))(
+        a.copy(aggregationExpressions = rewriteAggregations(rewriteConstraints, aggregationExpressions))(
           SameId(a.id)
         )
     }
 
-  private def randomAccessVariables(originalPlan: LogicalPlan) = {
+  private case class RewriteConstraints(
+    unsafeVariables: Set[LogicalVariable],
+    implicitlyDistinctVariables: Set[LogicalVariable]
+  )
+
+  private def getRewriteConstraints(originalPlan: LogicalPlan): RewriteConstraints = {
     val res = originalPlan.folder.treeFold(Acc()) {
       case p: ProjectingPlan =>
         val aliases = p.projectExpressions.collect {
@@ -124,12 +128,12 @@ case object collectDistinctRewriter extends Rewriter {
       }
     }
 
-    def build: (Set[LogicalVariable], Set[LogicalVariable]) = {
+    def build: RewriteConstraints = {
       val variables = unsafe.flatMap(v => flattenAliases(v))
       // is only safe to rewrite non-DISTINCT collected list if its only usage is where it was introduced (aggregation)
       // if variable is used anywhere else we assume it is not safe to rewrite
       val onlyIn = in -- all.filter { case (_, n) => n > 1 }.keySet
-      (unsafe ++ variables, onlyIn)
+      RewriteConstraints(unsafeVariables = unsafe ++ variables, implicitlyDistinctVariables = onlyIn)
     }
 
     def withAliases(newAliases: Map[LogicalVariable, LogicalVariable]): Acc = {

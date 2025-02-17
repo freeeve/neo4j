@@ -105,8 +105,7 @@ class collectDistinctRewriterTest extends CypherFunSuite with LogicalPlanningTes
 
   test("should not rewrite collect non-distinct when IN if there are other usages") {
     val before = new LogicalPlanBuilder()
-      .produceResults("result")
-      .projection("'foo' AS result")
+      .produceResults("anotherSet")
       .projection("set AS anotherSet")
       .filter("'foo' IN set")
       .aggregation(Seq.empty, Seq("collect(a.prop) AS set"))
