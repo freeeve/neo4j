@@ -2812,8 +2812,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42I32(
             new GqlStatus("42I32"),
             """
-                    Node and relationship pattern predicates cannot be used in a { %s } clause. They can only be used in a `MATCH` clause or inside a pattern comprehension.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+                    Node and relationship pattern predicates cannot be used in { %s }. They can only be used in a `MATCH` clause or inside a pattern comprehension.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.context},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid use of node and relationship pattern predicate",

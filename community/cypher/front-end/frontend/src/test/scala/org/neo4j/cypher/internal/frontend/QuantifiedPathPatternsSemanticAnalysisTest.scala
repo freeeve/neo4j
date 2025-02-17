@@ -75,9 +75,13 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
 
   test("MERGE (var0 WHERE COUNT { ((var1)--())+ } > 1 ) RETURN *") {
     // This test asserts that we give semantic errors instead of throwing "java.util.NoSuchElementException: key not found"
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42I32("a MERGE clause", 42, 1, 43),
       "Node pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
-      "Subquery expressions are not allowed in a MERGE clause."
+      InputPosition(42, 1, 43),
+      GqlHelper.getGql42001_42I48(18, 1, 19),
+      "Subquery expressions are not allowed in a MERGE clause.",
+      InputPosition(18, 1, 19)
     )
   }
 

@@ -1439,6 +1439,14 @@ object SemanticError {
       position
     )
   }
+
+  def invalidPatternPredicate(entity: String, description: String, position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I32(description, position.offset, position.line, position.column),
+      s"$entity pattern predicates are not allowed in $description, but only in a MATCH clause or inside a pattern comprehension",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

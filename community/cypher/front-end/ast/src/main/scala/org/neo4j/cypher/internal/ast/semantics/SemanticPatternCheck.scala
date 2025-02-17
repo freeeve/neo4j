@@ -582,10 +582,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
     def checkPredicate(ctx: SemanticContext, relationshipPattern: RelationshipPattern): SemanticCheck =
       relationshipPattern.predicate.foldSemanticCheck { predicate =>
         when(ctx != SemanticContext.Match) {
-          error(
-            s"Relationship pattern predicates are not allowed in ${ctx.description}, but only in a MATCH clause or inside a pattern comprehension",
-            predicate.position
-          )
+          error(SemanticError.invalidPatternPredicate("Relationship", ctx.description, predicate.position))
         } chain relationshipPattern.length.foldSemanticCheck { _ =>
           error(SemanticError.patternPredicateInVarLengthRel(predicate.position))
         } ifOkChain withScopedState {
@@ -846,10 +843,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
   private def checkPredicate(ctx: SemanticContext, pattern: NodePattern): SemanticCheck =
     pattern.predicate.foldSemanticCheck { predicate =>
       when(ctx != SemanticContext.Match) {
-        error(
-          s"Node pattern predicates are not allowed in ${ctx.description}, but only in a MATCH clause or inside a pattern comprehension",
-          predicate.position
-        )
+        error(SemanticError.invalidPatternPredicate("Node", ctx.description, predicate.position))
       } ifOkChain withScopedState {
         Where.checkExpression(predicate)
       }

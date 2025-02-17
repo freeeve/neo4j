@@ -252,6 +252,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("should not allow node pattern predicates in CREATE") {
     run("CREATE (n WHERE n.prop = 123)").hasError(
+      GqlHelper.getGql42001_42I32("a CREATE clause", 23, 1, 24),
       "Node pattern predicates are not allowed in a CREATE clause, but only in a MATCH clause or inside a pattern comprehension",
       p(23, 1, 24)
     )
@@ -259,6 +260,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("should not allow node pattern predicates in MERGE") {
     run("MERGE (n WHERE n.prop = 123)").hasError(
+      GqlHelper.getGql42001_42I32("a MERGE clause", 22, 1, 23),
       "Node pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
       p(22, 1, 23)
     )
@@ -279,6 +281,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run("""MATCH (a), (b)
           |RETURN exists((a WHERE a.prop > 123)-->(b)) AS result""".stripMargin)
       .hasError(
+        GqlHelper.getGql42001_42I32("an expression", 45, 2, 31),
         "Node pattern predicates are not allowed in an expression, but only in a MATCH clause or inside a pattern comprehension",
         p(45, 2, 31)
       )
@@ -306,6 +309,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
           |WITH shortestPath((a WHERE a.prop > 123)-[:REL*]->(b)) AS p
           |RETURN length(p) AS result""".stripMargin)
       .hasError(
+        GqlHelper.getGql42001_42I32("an expression", 50, 3, 35),
         "Node pattern predicates are not allowed in an expression, but only in a MATCH clause or inside a pattern comprehension",
         p(50, 3, 35)
       )
@@ -334,6 +338,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("should not allow relationship pattern predicates in CREATE") {
     run("CREATE (n)-[r:Relationship WHERE r.prop = 42]->(m)").hasError(
+      GqlHelper.getGql42001_42I32("a CREATE clause", 40, 1, 41),
       "Relationship pattern predicates are not allowed in a CREATE clause, but only in a MATCH clause or inside a pattern comprehension",
       p(40, 1, 41)
     )
@@ -341,6 +346,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("should not allow relationship pattern predicates in MERGE") {
     run("MERGE (n)-[r:Relationship WHERE r.prop = 42]->(m)").hasError(
+      GqlHelper.getGql42001_42I32("a MERGE clause", 39, 1, 40),
       "Relationship pattern predicates are not allowed in a MERGE clause, but only in a MATCH clause or inside a pattern comprehension",
       p(39, 1, 40)
     )
@@ -361,6 +367,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       """MATCH (a)-[r]->(b)
         |RETURN exists((a)-[r WHERE r.prop > 123]->(b)) AS result""".stripMargin
     ).hasError(
+      GqlHelper.getGql42001_42I32("an expression", 53, 2, 35),
       "Relationship pattern predicates are not allowed in an expression, but only in a MATCH clause or inside a pattern comprehension",
       p(53, 2, 35)
     )
