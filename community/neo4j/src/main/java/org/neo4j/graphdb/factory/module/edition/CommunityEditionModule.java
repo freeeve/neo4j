@@ -67,7 +67,9 @@ import org.neo4j.dbms.routing.LocalRoutingTableServiceValidator;
 import org.neo4j.dbms.routing.RoutingOption;
 import org.neo4j.dbms.routing.RoutingService;
 import org.neo4j.dbms.routing.SingleAddressRoutingTableProvider;
+import org.neo4j.dbms.systemgraph.CommunityDefaultQueryLanguageLookup;
 import org.neo4j.dbms.systemgraph.CommunityTopologyGraphComponent;
+import org.neo4j.dbms.systemgraph.ContextBasedSystemDatabaseProvider;
 import org.neo4j.dbms.systemgraph.SystemDatabaseProvider;
 import org.neo4j.graphdb.factory.module.GlobalModule;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
@@ -203,6 +205,16 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
         globalModule
                 .getGlobalDependencies()
                 .satisfyDependency(SystemGraphComponents.UpgradeChecker.UPGRADE_ALWAYS_ALLOWED);
+
+        final var defaultQueryLanguage = new CommunityDefaultQueryLanguageLookup(
+                new ContextBasedSystemDatabaseProvider(databaseRepository, globalModule.getDatabaseEventListeners()),
+                globalModule.getJobScheduler(),
+                logProvider);
+        globalModule.getGlobalDependencies().satisfyDependency(defaultQueryLanguage);
+        globalModule.getGlobalLife().add(defaultQueryLanguage.life());
+        globalModule
+                .getTransactionEventListeners()
+                .registerTransactionEventListener(SYSTEM_DATABASE_NAME, defaultQueryLanguage.transactionListener());
 
         return databaseRepository;
     }

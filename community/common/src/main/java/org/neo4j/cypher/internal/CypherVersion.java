@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.internal;
 
+import java.util.Optional;
+
 public enum CypherVersion {
     Cypher5("5", "CYPHER 5", false, "cypher-5"),
     Cypher25("25", "CYPHER 25", true, "cypher-25");
@@ -43,11 +45,16 @@ public enum CypherVersion {
     }
 
     public static CypherVersion fromStoredValue(String storedValue) {
+        return fromStoredValueOptional(storedValue)
+                .orElseThrow(() -> new IllegalArgumentException(storedValue + " is not a valid CypherVersion"));
+    }
+
+    public static Optional<CypherVersion> fromStoredValueOptional(Object storedValue) {
         for (CypherVersion version : CypherVersion.values()) {
             if (version.persistedValue.equals(storedValue)) {
-                return version;
+                return Optional.of(version);
             }
         }
-        throw new IllegalArgumentException(storedValue + " is not a valid CypherVersion");
+        return Optional.empty();
     }
 }
