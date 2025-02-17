@@ -82,12 +82,12 @@ trait ExecutorPool extends Executors {
           if (executor.isCompatible(extraSettings)) {
             DbAccessor(executor.dbms.withNewExecutor(), executor.extraSettings)
           } else {
-            executor.dbms.shutdown()
+            shutdownExecutor(executor)
             createExecutor(extraSettings)
           }
         } catch {
           case t: Throwable =>
-            Try(executor.dbms.shutdown())
+            Try(shutdownExecutor(executor))
             executors.offer(None)
             throw t
         }
@@ -117,7 +117,7 @@ trait ExecutorPool extends Executors {
       executors.offer(Some(executor))
     } catch {
       case t: Throwable =>
-        Try(executor.dbms.shutdown())
+        Try(shutdownExecutor(executor))
         executors.offer(None)
         throw t
     }
@@ -136,7 +136,7 @@ trait ExecutorPool extends Executors {
   override def shutdown(): Unit = this.synchronized {
     checkState(started, "Tried stopping already stopped ExecutorPool")
     started = false
-    executors.parallelStream().forEach(_.foreach(a => Try(a.dbms.shutdown())))
+    executors.forEach(_.foreach(a => Try(shutdownExecutor(a))))
     executors.clear()
   }
 
@@ -181,6 +181,11 @@ trait ExecutorPool extends Executors {
     } else {
       Map.empty
     }
+  }
+
+  private def shutdownExecutor(accessor: DbAccessor): Unit = {
+    accessor.dbms.clearQueryCaches() // The ANTLR parser keeps a static cache that survives dbms shutdowns
+    accessor.dbms.shutdown()
   }
 }
 

@@ -57,7 +57,7 @@ object TestConf {
     tagContext: Set[String]
   ): TestConf = {
     val fullNeo4jConf = Seq(
-      Some("server.memory.query_cache.per_db_cache_num_entries" -> "128"),
+      Some("server.memory.query_cache.per_db_cache_num_entries" -> "64"),
       Option.when(useEnterprise)("server.metrics.enabled" -> "false"),
       Option.when(useBolt)("server.bolt.enabled" -> "true")
     ).flatten.toMap ++ neo4jConf

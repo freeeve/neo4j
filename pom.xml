@@ -127,7 +127,7 @@
       -XX:FlightRecorderOptions=stackdepth=256
       -XX:+UnlockDiagnosticVMOptions
       -XX:+DebugNonSafepoints
-      -XX:MaxMetaspaceSize=550m
+      -XX:MaxMetaspaceSize=${test.vm.maxmetaspace}
       -Xshare:off
       ${jdk.custom.options}
       ${test.runner.jvm.settings.db.format}
@@ -138,6 +138,7 @@
     <default.jupiter.test.mode>same_thread</default.jupiter.test.mode>
     <excludedTestGroups/>
     <test.vm.heap.size>2G</test.vm.heap.size>
+    <test.vm.maxmetaspace>550m</test.vm.maxmetaspace>
     <forkCounts>1</forkCounts>
     <parallel.tests>false</parallel.tests>
     <maven.build.timestamp.format>yyMMddHHmmssSSS</maven.build.timestamp.format>
