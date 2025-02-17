@@ -21,8 +21,6 @@ package org.neo4j.cypher.internal
 
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseSettings
-import org.neo4j.cypher.internal.PrivilegeGQLCodeEntity.entityAlreadyExistsGqlStatus
-import org.neo4j.cypher.internal.PrivilegeGQLCodeEntity.entityNotFoundGqlStatus
 import org.neo4j.cypher.internal.ast.DatabaseName
 import org.neo4j.cypher.internal.ast.ExternalAuth
 import org.neo4j.cypher.internal.ast.HomeDatabaseAction
@@ -55,7 +53,7 @@ import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.StringType
-import org.neo4j.dbms.api.DatabaseNotFoundException
+import org.neo4j.dbms.api.DatabaseNotFoundHelper.compositeDatabaseNotFound
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE_LABEL
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY
@@ -72,6 +70,7 @@ import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity
 import org.neo4j.graphdb.Direction
 import org.neo4j.graphdb.Transaction
 import org.neo4j.internal.helpers.collection.Iterators
@@ -89,6 +88,7 @@ import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComp
 import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_LABEL
 import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_PROVIDER
 import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.HAS_AUTH
+import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.ROLE_LABEL
 import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_CREDENTIALS
 import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_EXPIRED
 import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_HOME_DB
@@ -347,9 +347,9 @@ object AdministrationCommandRuntime {
                   error
                 )
               } else {
-                new InvalidArgumentException(
-                  s"Failed to create the specified user '${runtimeStringValue(userName, params)}': User already exists.",
-                  error
+                InvalidArgumentException.createEntityAlreadyExists(
+                  PrivilegeGqlCodeEntity.USER,
+                  runtimeStringValue(userName, params)
                 )
               }
             case (e: HasStatus, _) if e.status() == Status.Cluster.NotALeader =>
@@ -628,7 +628,7 @@ object AdministrationCommandRuntime {
     }).getOrElse((params, Set.empty))
 
   private[internal] def makeRenameExecutionPlan(
-    entity: PrivilegeGQLCodeEntity,
+    entityType: PrivilegeGqlCodeEntity,
     namePropKey: String,
     fromName: Either[String, Parameter],
     toName: Either[String, Parameter],
@@ -638,6 +638,12 @@ object AdministrationCommandRuntime {
     normalExecutionEngine: ExecutionEngine,
     securityAuthorizationHandler: SecurityAuthorizationHandler
   ): ExecutionPlan = {
+    val entity = entityType match {
+      case PrivilegeGqlCodeEntity.USER           => USER_LABEL.name()
+      case PrivilegeGqlCodeEntity.ROLE           => ROLE_LABEL.name()
+      case PrivilegeGqlCodeEntity.DATABASE       => DATABASE_NAME_LABEL.name()
+      case PrivilegeGqlCodeEntity.DATABASE_ALIAS => DATABASE_NAME_LABEL.name()
+    }
     val fromNameFields = getNameFields("fromName", fromName)
     val toNameFields = getNameFields("toName", toName)
 
@@ -659,8 +665,7 @@ object AdministrationCommandRuntime {
       QueryHandler
         .handleNoResult(p => {
           Some(ThrowException(InvalidArgumentException.renameEntityNotFound(
-            entityNotFoundGqlStatus(entity, entity.toString),
-            entity.toString.toLowerCase(Locale.ROOT),
+            entityType,
             runtimeStringValue(fromName, p),
             runtimeStringValue(toName, p)
           )))
@@ -669,11 +674,10 @@ object AdministrationCommandRuntime {
           (error, error.getCause) match {
             case (_, _: UniquePropertyValueValidationException) =>
               InvalidArgumentException.renameEntityAlreadyExists(
-                entityAlreadyExistsGqlStatus(entity, entity.toString),
-                entity.toString,
+                entityType,
                 runtimeStringValue(fromName, p),
-                runtimeStringValue(toName, p),
-                error
+                runtimeStringValue(toName, p)
+                // Not including the cause as that would be leaking information, we can consider logging it instead
               )
             case (e: HasStatus, _) if e.status() == Status.Cluster.NotALeader =>
               DatabaseAdministrationOnFollowerException.notALeader(
@@ -1045,7 +1049,7 @@ object AdministrationCommandRuntime {
         context.runtimeContext.cypherVersion match {
           case CypherVersion.Cypher5             => interpretNamespaceAsPartOfName(aliasNameFields, params, paramString)
           case _ if aliasNameFields.wasParameter => interpretNamespaceAsPartOfName(aliasNameFields, params, paramString)
-          case _ => throw compositeDatabaseNotFoundException(paramString(aliasNameFields.namespaceKey))
+          case _ => throw compositeDatabaseNotFound(paramString(aliasNameFields.namespaceKey))
         }
       } else {
         (params, Set.empty)
@@ -1053,11 +1057,6 @@ object AdministrationCommandRuntime {
     } else {
       (params, Set.empty)
     }
-  }
-
-  private def compositeDatabaseNotFoundException(name: String): Exception = {
-    val gql = entityNotFoundGqlStatus(PrivilegeGQLCodeEntity.Database(), name)
-    new DatabaseNotFoundException(gql, gql.statusDescription())
   }
 
   private def interpretNamespaceAsPartOfName(

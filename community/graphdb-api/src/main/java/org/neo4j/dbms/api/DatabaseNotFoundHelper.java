@@ -20,8 +20,11 @@
 package org.neo4j.dbms.api;
 
 import static java.lang.String.format;
+import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.DATABASE;
+import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.entityNotFound;
 
 import java.util.List;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
@@ -30,8 +33,22 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 /**
  * This helper class contains methods to create `DatabaseNotFoundException`. These would normally be on the exception
  * class itself, but that is `@PublicApi`, and we don't want these methods to be public API.
+ * <br>
+ * There are two GQL status variants for database not found:
+ * <ul>
+ *  <li>
+ *      {@link org.neo4j.gqlstatus.GqlStatusInfoCodes#STATUS_42002} - Syntax Error: Thrown when the database is considered to be an entity that can be modified, usually in admin commands such as ALTER DB, DROP DB, USE DB, etc.
+ *      <br>
+ *      They should probably throw {@link org.neo4j.exceptions.InvalidArgumentException} instead.
+ *  </li>
+ *  <li>
+ *      {@link org.neo4j.gqlstatus.GqlStatusInfoCodes#STATUS_22000} - Data Exception: Thrown when the database is considered a static part of the system. For example when trying to connect to a database that doesn't exist.
+ *  </li>
+ * </ul>
  */
 public class DatabaseNotFoundHelper {
+
+    // region [Data Exception Helpers]
 
     public static DatabaseNotFoundException databaseNotFound(String databaseName) {
         var gql = GqlHelper.getGql22000_22N51(databaseName);
@@ -80,30 +97,52 @@ public class DatabaseNotFoundHelper {
                         databaseName));
     }
 
-    public static DatabaseNotFoundException failedCreateCompositeAlias(String name, String nonPrettyName) {
-        var gql = GqlHelper.getGql42002_42N00(name);
+    // endregion [Data Exception Helpers]
+
+    // region [Syntax Error Helpers]
+
+    public static DatabaseNotFoundException compositeDatabaseNotFound(String databaseName) {
+        var gql = entityNotFound(DATABASE, databaseName);
+        var message = gql.gqlStatusObject()
+                .cause()
+                .map(ErrorGqlStatusObject::statusDescription)
+                .orElse(gql.statusDescription());
+        return new DatabaseNotFoundException(gql, message);
+    }
+
+    public static DatabaseNotFoundException failedCreateCompositeAlias(String fullName, String namespaceName) {
+        var gql = entityNotFound(DATABASE, namespaceName);
         return new DatabaseNotFoundException(
                 gql,
                 format(
                         "Failed to create the specified database alias '%s': "
                                 + "Composite database '%s' does not exist.",
-                        name, nonPrettyName));
+                        fullName, namespaceName));
+    }
+
+    public static DatabaseNotFoundException failedCreateAlias(String aliasName, String targetName) {
+        var gql = entityNotFound(DATABASE, targetName);
+        return new DatabaseNotFoundException(
+                gql,
+                format(
+                        "Failed to create the specified database alias '%s': " + "Database '%s' does not exist.",
+                        aliasName, targetName));
     }
 
     public static DatabaseNotFoundException failedDeleteComposite(String name) {
-        var gql = GqlHelper.getGql42002_42N00(name);
+        var gql = entityNotFound(DATABASE, name);
         return new DatabaseNotFoundException(
                 gql, format("Failed to delete the specified composite database '%s': Database does not exist.", name));
     }
 
     public static DatabaseNotFoundException failedAction(String action, String name) {
-        var gql = GqlHelper.getGql42002_42N00(name);
+        var gql = entityNotFound(DATABASE, name);
         return new DatabaseNotFoundException(
                 gql, format("Failed to %s the specified database '%s': Database does not exist.", action, name));
     }
 
     public static DatabaseNotFoundException failedActionAlias(String action, String alias, String name) {
-        var gql = GqlHelper.getGql42002_42N00(name);
+        var gql = entityNotFound(DATABASE, name);
         return new DatabaseNotFoundException(
                 gql,
                 format(
@@ -112,23 +151,23 @@ public class DatabaseNotFoundHelper {
     }
 
     public static DatabaseNotFoundException noNameOrAlias(String name) {
-        var gql = GqlHelper.getGql42002_42N00(name);
+        var gql = entityNotFound(DATABASE, name);
         return new DatabaseNotFoundException(
                 gql, format("Database '%s' does not exist': No database exists with that name or alias.", name));
     }
 
     public static DatabaseNotFoundException databaseNameNotFoundWithoutDot(String name) {
-        var gql = GqlHelper.getGql42002_42N00(name);
+        var gql = entityNotFound(DATABASE, name);
         return new DatabaseNotFoundException(gql, format("Database %s not found", name));
     }
 
     public static DatabaseNotFoundException databaseNameNotFoundWithDot(String name) {
-        var gql = GqlHelper.getGql42002_42N00(name);
+        var gql = entityNotFound(DATABASE, name);
         return new DatabaseNotFoundException(gql, format("Database %s not found.", name));
     }
 
     public static DatabaseNotFoundException graphNotFound(String name) {
-        var gql = GqlHelper.getGql42002_42N00(name);
+        var gql = entityNotFound(DATABASE, name);
         return new DatabaseNotFoundException(gql, format("Graph not found: %s", name));
     }
 
@@ -143,4 +182,6 @@ public class DatabaseNotFoundHelper {
                 "No database is corresponding to `graph.byElementId(" + elementId
                         + ")`. Verify that the elementId is correct.");
     }
+
+    // endregion [Syntax Error Helpers]
 }

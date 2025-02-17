@@ -22,6 +22,8 @@ package org.neo4j.exceptions;
 import static java.lang.String.format;
 import static org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27;
 import static org.neo4j.gqlstatus.GqlHelper.getGql42N51;
+import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.entityAlreadyExists;
+import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.entityNotFound;
 
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
@@ -33,6 +35,7 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.messages.MessageUtil;
 
@@ -227,20 +230,54 @@ public class InvalidArgumentException extends Neo4jException {
     }
 
     public static InvalidArgumentException renameEntityNotFound(
-            ErrorGqlStatusObject gql, String entity, String fromName, String toName) {
-        return new InvalidArgumentException(
-                gql,
-                String.format("Failed to rename the specified %s '%s' to ", entity, fromName)
-                        + String.format("'%s': The %s '%s' does not exist.", toName, entity, fromName));
+            PrivilegeGqlCodeEntity entity, String fromName, String toName) {
+        var action = "rename the specified %s '%s' to '%s'"
+                .formatted(entity.description.toLowerCase(Locale.ROOT), fromName, toName);
+        return failedActionEntityNotFound2(action, entity, fromName);
     }
 
     public static InvalidArgumentException renameEntityAlreadyExists(
-            ErrorGqlStatusObject gql, String entity, String fromName, String toName, Throwable cause) {
+            PrivilegeGqlCodeEntity entity, String fromName, String toName) {
+        var action = "rename the specified %s '%s' to '%s'"
+                .formatted(entity.description.toLowerCase(Locale.ROOT), fromName, toName);
+        return failedActionEntityAlreadyExists2(action, entity, toName);
+    }
+
+    public static InvalidArgumentException createEntityAlreadyExists(PrivilegeGqlCodeEntity entity, String name) {
+        var action = "create the specified %s '%s'".formatted(entity.description.toLowerCase(Locale.ROOT), name);
+        return failedActionEntityAlreadyExists(action, entity, name);
+    }
+
+    public static InvalidArgumentException failedActionEntityNotFound(
+            String action, PrivilegeGqlCodeEntity entity, String name) {
+        // e.g. Failed to <delete the specified role 'myRole'>: <Role> does not exist.
         return new InvalidArgumentException(
-                gql,
-                String.format("Failed to rename the specified %s '%s' to ", entity.toLowerCase(Locale.ROOT), fromName)
-                        + String.format("'%s': %s '%s' already exists.", toName, entity, toName),
-                cause);
+                entityNotFound(entity, name), "Failed to %s: %s does not exist.".formatted(action, entity.description));
+    }
+
+    public static InvalidArgumentException failedActionEntityNotFound2(
+            String action, PrivilegeGqlCodeEntity entity, String name) {
+        // e.g. Failed to <rename the role 'oldName' to 'newName'>: The <role> '<oldName>' does not exist.
+        return new InvalidArgumentException(
+                entityNotFound(entity, name),
+                "Failed to %s: The %s '%s' does not exist."
+                        .formatted(action, entity.description.toLowerCase(Locale.ROOT), name));
+    }
+
+    public static InvalidArgumentException failedActionEntityAlreadyExists(
+            String action, PrivilegeGqlCodeEntity entity, String name) {
+        // e.g. Failed to <create the specified user 'neo4j'>: <User> already exists.
+        return new InvalidArgumentException(
+                entityAlreadyExists(entity, name),
+                "Failed to %s: %s already exists.".formatted(action, entity.description));
+    }
+
+    public static InvalidArgumentException failedActionEntityAlreadyExists2(
+            String action, PrivilegeGqlCodeEntity entity, String name) {
+        // e.g. Failed to <rename the role 'oldName' to 'newName'>: <Role> '<newName>' already exists.
+        return new InvalidArgumentException(
+                entityAlreadyExists(entity, name),
+                "Failed to %s: %s '%s' already exists.".formatted(action, entity.description, name));
     }
 
     public static InvalidArgumentException oldPasswordEqualsNew(String user, Boolean onSelf) {
@@ -303,17 +340,13 @@ public class InvalidArgumentException extends Neo4jException {
     }
 
     public static InvalidArgumentException alterMissingUser(String username) {
-        var gql = GqlHelper.getGql42002_42N09(username);
-        return new InvalidArgumentException(
-                gql, String.format("Failed to alter the specified user '%s': User does not exist.", username));
+        return failedActionEntityNotFound(
+                "alter the specified user '%s'".formatted(username), PrivilegeGqlCodeEntity.USER, username);
     }
 
-    public static InvalidArgumentException roleMissingUser(String role, String username, Throwable cause) {
-        var gql = GqlHelper.getGql42002_42N09(username);
-        return new InvalidArgumentException(
-                gql,
-                String.format("Failed to grant role '%s' to user '%s': User does not exist.", role, username),
-                cause);
+    public static InvalidArgumentException roleMissingUser(String role, String username) {
+        return failedActionEntityNotFound(
+                "grant role '%s' to user '%s'".formatted(role, username), PrivilegeGqlCodeEntity.USER, username);
     }
 
     public static InvalidArgumentException invalidCommandMissingUser(

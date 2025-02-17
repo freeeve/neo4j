@@ -1564,11 +1564,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N51(
             new GqlStatus("22N51"),
             """
-                    A [composite] database or alias with the name { %s } does not exist. Verify that the spelling is correct.""",
+                    A graph reference with the name { %s } was not found. Verify that the spelling is correct.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.DATA_EXCEPTION,
-            "database or alias does not exist",
+            "graph reference not found",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N52(
             new GqlStatus("22N52"),
@@ -3006,11 +3006,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N00(
             new GqlStatus("42N00"),
             """
-                    The database { %s } was not found. Verify that the spelling is correct.""",
+                    A graph reference with the name { %s } was not found. Verify that the spelling is correct.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "no such database",
+            "graph reference not found",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N01(
             new GqlStatus("42N01"),
@@ -3115,11 +3115,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N11(
             new GqlStatus("42N11"),
             """
-                    A [composite] database or alias with the name { %s } already exists.""",
+                    A graph reference with the name { %s } already exists.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "database or alias already exists",
+            "graph reference already exists",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N12(
             new GqlStatus("42N12"),

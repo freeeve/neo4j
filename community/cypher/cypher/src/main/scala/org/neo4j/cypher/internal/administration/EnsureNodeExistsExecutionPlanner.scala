@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.Show.showString
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.checkNamespaceExists
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getNameFields
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.ExecutionEngine
@@ -43,9 +42,12 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL_DESCRIPTION
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
 import org.neo4j.exceptions.InvalidArgumentException
+import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
+import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.ROLE_LABEL
+import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_LABEL
 import org.neo4j.values.virtual.VirtualValues
 
 case class EnsureNodeExistsExecutionPlanner(
@@ -63,9 +65,9 @@ case class EnsureNodeExistsExecutionPlanner(
     action: String,
     sourcePlan: Option[ExecutionPlan]
   ): ExecutionPlan = {
-    val (label, namePropKey) = entity match {
-      case UserEntity => (userLabel, userNamePropKey)
-      case RoleEntity => ("Role", "name")
+    val (label, namePropKey, gqlEntity) = entity match {
+      case UserEntity => (USER_LABEL.name(), userNamePropKey, PrivilegeGqlCodeEntity.USER)
+      case RoleEntity => (ROLE_LABEL.name(), "name", PrivilegeGqlCodeEntity.ROLE)
     }
     val nameFields = getNameFields("name", name, valueMapper = valueMapper)
     UpdatingSystemCommandExecutionPlan(
@@ -76,13 +78,13 @@ case class EnsureNodeExistsExecutionPlanner(
          |${extraFilter("node")}
          |RETURN node""".stripMargin,
       VirtualValues.map(Array(nameFields.nameKey), Array(nameFields.nameValue)),
-      queryHandler(command, action, labelDescription, name),
+      queryHandler(command, action, labelDescription, name, gqlEntity),
       sourcePlan,
       parameterTransformer = ParameterTransformer().convert(nameFields.nameConverter)
     )
   }
 
-  def planEnsureDatabaseNodeExists(
+  def planEnsureDatabaseNameNodeExists(
     command: String,
     aliasName: DatabaseName,
     extraFilter: String => String,
@@ -101,7 +103,13 @@ case class EnsureNodeExistsExecutionPlanner(
          |${extraFilter("node")}
          |RETURN node""".stripMargin,
       VirtualValues.map(aliasNameFields.keys, aliasNameFields.values),
-      queryHandler(command, action, DATABASE_NAME_LABEL_DESCRIPTION, aliasName),
+      queryHandler(
+        command,
+        action,
+        DATABASE_NAME_LABEL_DESCRIPTION,
+        aliasName,
+        PrivilegeGqlCodeEntity.DATABASE_ALIAS
+      ),
       sourcePlan,
       parameterTransformer = ParameterTransformer().convert(aliasNameFields.nameConverter).validate(
         checkNamespaceExists(aliasNameFields, context)
@@ -110,13 +118,23 @@ case class EnsureNodeExistsExecutionPlanner(
 
   }
 
-  private def queryHandler[T](command: String, action: String, labelDescription: String, value: T)(implicit
-    show: Show[T]) = {
+  private def queryHandler[T](
+    command: String,
+    action: String,
+    labelDescription: String,
+    value: T,
+    entity: PrivilegeGqlCodeEntity
+  )(implicit show: Show[T]) = {
     QueryHandler
       .handleNoResult(p =>
-        Some(ThrowException(new InvalidArgumentException(
-          s"Failed to $action the specified ${labelDescription.toLowerCase} '${show(value, p)}': $labelDescription does not exist."
-        )))
+        Some(ThrowException(
+          InvalidArgumentException.failedActionEntityNotFound(
+            // e.g. "drop the specified Role 'myRole'"
+            s"$action the specified ${labelDescription.toLowerCase} '${show(value, p)}'",
+            entity,
+            show(value, p)
+          )
+        ))
       )
       .handleError {
         case (error: HasStatus, p) if error.status() == Status.Cluster.NotALeader =>

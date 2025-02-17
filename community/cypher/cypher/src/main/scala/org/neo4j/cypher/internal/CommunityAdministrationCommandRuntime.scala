@@ -82,6 +82,7 @@ import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.Neo4jException
+import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity
 import org.neo4j.graphdb.security.AuthorizationViolationException
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog
 import org.neo4j.internal.kernel.api.security.AccessMode
@@ -291,7 +292,7 @@ case class CommunityAdministrationCommandRuntime(
         val sourcePlan: Option[ExecutionPlan] =
           Some(fullLogicalToExecutable.applyOrElse(source, throwCantCompile).apply(context))
         makeRenameExecutionPlan(
-          PrivilegeGQLCodeEntity.User(),
+          PrivilegeGqlCodeEntity.USER,
           userNamePropKey,
           fromUserName,
           toUserName,

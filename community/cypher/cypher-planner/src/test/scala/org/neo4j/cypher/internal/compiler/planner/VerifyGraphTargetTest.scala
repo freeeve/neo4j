@@ -260,7 +260,7 @@ class VerifyGraphTargetTest extends CypherFunSuite {
     val cause = e.cause().get()
     cause.gqlStatus() shouldBe "42N00"
     cause.statusDescription() shouldBe
-      s"error: syntax error or access rule violation - no such database. The database `$dbName` was not found. Verify that the spelling is correct."
+      s"error: syntax error or access rule violation - graph reference not found. A graph reference with the name `$dbName` was not found. Verify that the spelling is correct."
     cause.cause() shouldBe empty
   }
 

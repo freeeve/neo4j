@@ -268,4 +268,10 @@ trait GqlExceptionMatchers {
     }
 }
 
-object GqlExceptionMatchers extends GqlExceptionMatchers {}
+object GqlExceptionMatchers extends GqlExceptionMatchers {
+
+  val InvalidReferenceStatus: GqlExceptionMatcher = GqlExceptionMatcher(
+    GqlStatusInfoCodes.STATUS_42002,
+    "error: syntax error or access rule violation - invalid reference"
+  )
+}
