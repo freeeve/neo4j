@@ -155,7 +155,7 @@ public class IndexPopulationJob implements Runnable {
                 }
 
                 monitor.indexPopulationScanStarting(indexDescriptors);
-                multiPopulator.resetVisibility(cursorContext);
+                multiPopulator.refreshVisibility(cursorContext);
                 monitor.indexPopulationScanStartingAfterVisibilityUpdate(indexDescriptors);
                 indexAllEntities(new FixedCursorContextFactory(cursorContext));
                 monitor.indexPopulationScanComplete(indexDescriptors);
@@ -279,6 +279,10 @@ public class IndexPopulationJob implements Runnable {
 
     public MemoryTracker getMemoryTracker() {
         return memoryTracker;
+    }
+
+    public long populationHorizon() {
+        return multiPopulator.populationHorison();
     }
 
     public JobMonitoringParams getMonitoringParams() {

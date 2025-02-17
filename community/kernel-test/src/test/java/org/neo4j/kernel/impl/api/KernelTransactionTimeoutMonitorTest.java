@@ -52,6 +52,7 @@ import org.neo4j.kernel.api.KernelTransactionHandle;
 import org.neo4j.kernel.api.TerminationMark;
 import org.neo4j.kernel.api.TransactionTimeout;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.transaction.monitor.KernelTransactionMonitor;
 import org.neo4j.kernel.impl.api.transaction.trace.TraceProvider;
 import org.neo4j.kernel.impl.api.transaction.trace.TraceProviderFactory;
@@ -249,7 +250,8 @@ class KernelTransactionTimeoutMonitorTest {
     }
 
     private KernelTransactionMonitor buildTransactionMonitor(Config config) {
-        return new KernelTransactionMonitor(kernelTransactions, transactionIdStore, config, fakeClock, logService);
+        return new KernelTransactionMonitor(
+                kernelTransactions, transactionIdStore, config, fakeClock, logService, mock(IndexingService.class));
     }
 
     private static KernelTransactionImplementation prepareTxMock(

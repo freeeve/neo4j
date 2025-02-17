@@ -32,6 +32,7 @@ import org.neo4j.kernel.api.TransactionTimeout;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.api.KernelTransactions;
 import org.neo4j.kernel.impl.api.TransactionVisibilityProvider;
+import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.transaction.trace.TransactionInitializationTrace;
 import org.neo4j.logging.internal.LogService;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -41,6 +42,7 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
         implements TransactionVisibilityProvider {
     private final KernelTransactions kernelTransactions;
     private final TransactionIdStore transactionIdStore;
+    private final IndexingService indexingService;
     private final AtomicLong oldestVisibilityBoundary = new AtomicLong(BASE_TX_ID);
     private final AtomicLong oldestVisibleClosedTransactionId = new AtomicLong(BASE_TX_ID);
 
@@ -49,10 +51,12 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
             TransactionIdStore transactionIdStore,
             Config config,
             SystemNanoClock clock,
-            LogService logService) {
+            LogService logService,
+            IndexingService indexingService) {
         super(config, clock, logService);
         this.kernelTransactions = kernelTransactions;
         this.transactionIdStore = transactionIdStore;
+        this.indexingService = indexingService;
         oldestVisibleClosedTransactionId.setRelease(
                 transactionIdStore.getHighestEverClosedTransaction().id());
         oldestVisibilityBoundary.setRelease(
@@ -74,6 +78,14 @@ public class KernelTransactionMonitor extends TransactionMonitor<KernelTransacti
                 oldestTxId = Math.min(oldestTxId, txHandle.getLastClosedTxId());
                 oldestHorizon = Math.min(oldestHorizon, txHandle.getTransactionHorizon());
             }
+        }
+        var populationJobs = indexingService.getPopulationJobs();
+        for (var job : populationJobs) {
+            // for this purpose population job is read only transaction
+            // so it's horizon is last closed transaction
+            long populationHorizon = job.populationHorizon();
+            oldestTxId = Math.min(oldestTxId, populationHorizon);
+            oldestHorizon = Math.min(oldestHorizon, populationHorizon);
         }
         oldestVisibleClosedTransactionId.setRelease(oldestTxId);
         oldestVisibilityBoundary.setRelease(oldestHorizon);

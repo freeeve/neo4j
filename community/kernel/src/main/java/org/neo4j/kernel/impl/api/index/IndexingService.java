@@ -44,6 +44,7 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
@@ -911,6 +912,10 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
     @VisibleForTesting
     public void reportTotalSizeStatistics() {
         indexMapRef.getAllIndexProxies().forEach(IndexProxy::reportSizeInBytes);
+    }
+
+    public Set<IndexPopulationJob> getPopulationJobs() {
+        return populationJobController.getPopulationJobs();
     }
 
     private final class IndexPopulationStarter implements UnaryOperator<IndexMap> {

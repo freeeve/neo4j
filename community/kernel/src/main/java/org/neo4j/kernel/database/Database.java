@@ -1051,7 +1051,8 @@ public class Database extends AbstractDatabase {
                 mode,
                 databaseMonitors);
 
-        var transactionMonitor = buildTransactionMonitor(kernelTransactions, transactionIdStore, databaseConfig);
+        var transactionMonitor =
+                buildTransactionMonitor(kernelTransactions, transactionIdStore, databaseConfig, indexingService);
 
         KernelImpl kernel = new KernelImpl(
                 kernelTransactions,
@@ -1076,9 +1077,12 @@ public class Database extends AbstractDatabase {
     }
 
     private KernelTransactionMonitor buildTransactionMonitor(
-            KernelTransactions kernelTransactions, TransactionIdStore transactionIdStore, Config config) {
-        var kernelTransactionMonitor =
-                new KernelTransactionMonitor(kernelTransactions, transactionIdStore, config, clock, databaseLogService);
+            KernelTransactions kernelTransactions,
+            TransactionIdStore transactionIdStore,
+            Config config,
+            IndexingService indexingService) {
+        var kernelTransactionMonitor = new KernelTransactionMonitor(
+                kernelTransactions, transactionIdStore, config, clock, databaseLogService, indexingService);
         databaseDependencies.satisfyDependency(kernelTransactionMonitor);
         TransactionMonitorScheduler transactionMonitorScheduler = new TransactionMonitorScheduler(
                 kernelTransactionMonitor,

@@ -159,6 +159,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
     private final IndexMonitor monitor;
     private final AtomicBoolean populationJobStopped = new AtomicBoolean(false);
     private final long transactionIdCreatedIndexes;
+    private volatile long populationHorizon;
 
     public MultipleIndexPopulator(
             IndexStoreView storeView,
@@ -198,6 +199,7 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         this.monitor = monitor;
         this.transactionIdCreatedIndexes =
                 cursorContextOfIndexCreator.getVersionContext().committingTransactionId();
+        this.populationHorizon = this.transactionIdCreatedIndexes;
     }
 
     IndexPopulation addPopulator(
@@ -531,9 +533,20 @@ public class MultipleIndexPopulator implements StoreScan.ExternalUpdatesCheck, A
         populationJobStopped.setRelease(true);
     }
 
-    public void resetVisibility(CursorContext cursorContext) {
+    public void refreshVisibility(CursorContext cursorContext) {
         cursorContext.getVersionContext().refreshVisibilityBoundaries();
+        populationHorizon = cursorContext.getVersionContext().lastClosedTransactionId();
         forEachPopulation(population -> population.resetVisibility(cursorContext), cursorContext);
+    }
+
+    /**
+     * Earliest transaction id that should be accessible for this population to continue.
+     * Job starts with horizon equal transactionIdCreatedIndexes, to prevent global horizon from moving past it and
+     * causing race in {@link #refreshVisibility(CursorContext)}
+     * When population ready to start store scan it bumps horizon to the last closed transaction at the moment
+     */
+    public long populationHorison() {
+        return populationHorizon;
     }
 
     static final class MultipleIndexUpdater implements AutoCloseable {

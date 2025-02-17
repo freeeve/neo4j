@@ -37,6 +37,7 @@ import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.kernel.api.KernelTransactionHandle;
 import org.neo4j.kernel.api.TransactionTimeout;
 import org.neo4j.kernel.impl.api.KernelTransactions;
+import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.transaction.monitor.KernelTransactionMonitor;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.storageengine.api.TransactionId;
@@ -56,7 +57,12 @@ class KernelTransactionMonitorTest {
         KernelTransactions kernelTransactions = mock(KernelTransactions.class);
         FakeClock clock = new FakeClock(100, MINUTES);
         KernelTransactionMonitor monitor = new KernelTransactionMonitor(
-                kernelTransactions, transactionIdStore, Config.defaults(), clock, NullLogService.getInstance());
+                kernelTransactions,
+                transactionIdStore,
+                Config.defaults(),
+                clock,
+                NullLogService.getInstance(),
+                mock(IndexingService.class));
 
         // a 2 minutes old schema transaction which has a timeout of 1 minute
         KernelTransactionHandle oldSchemaTransaction = mock(KernelTransactionHandle.class);
@@ -87,7 +93,8 @@ class KernelTransactionMonitorTest {
                 transactionIdStore,
                 Config.defaults(),
                 new FakeClock(100, MINUTES),
-                NullLogService.getInstance());
+                NullLogService.getInstance(),
+                mock(IndexingService.class));
 
         assertEquals(1, transactionMonitor.oldestVisibleClosedTransactionId());
         assertEquals(1, transactionMonitor.oldestObservableHorizon());
@@ -132,7 +139,8 @@ class KernelTransactionMonitorTest {
                 transactionIdStore,
                 Config.defaults(),
                 new FakeClock(100, MINUTES),
-                NullLogService.getInstance());
+                NullLogService.getInstance(),
+                mock(IndexingService.class));
 
         assertEquals(42, transactionMonitor.oldestVisibleClosedTransactionId());
         assertEquals(42, transactionMonitor.oldestObservableHorizon());
