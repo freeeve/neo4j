@@ -1447,6 +1447,41 @@ object SemanticError {
       position
     )
   }
+
+  def mixingColonAndIs(
+    labelExpressions: Set[String],
+    replacements: Set[String],
+    position: InputPosition
+  ): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I29(
+      labelExpressions.mkString(", "),
+      replacements.mkString(", "),
+      position.offset,
+      position.line,
+      position.column
+    )
+    val exprText = if (replacements.size > 1) "These expressions" else "This expression"
+    SemanticError(
+      gql,
+      s"Mixing the IS keyword with colon (':') between labels is not allowed. $exprText could be expressed as ${replacements.mkString(", ")}.",
+      position
+    )
+  }
+
+  def mixingIsWithMultipleLabels(statement: String, replacement: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I29(
+      statement,
+      replacement,
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(
+      gql,
+      s"It is not supported to use the `IS` keyword together with multiple labels in `$statement`. Rewrite the expression as `$replacement`.",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef
