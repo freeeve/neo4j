@@ -913,8 +913,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           )
         } else
           error(
-            s"Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :$sanitizedLabelExpression.",
-            legacySymbols.head.position
+            SemanticError.invalidLabelExpression(Set(s":$sanitizedLabelExpression"), legacySymbols.head.position)
           )
       } chain
       checkValidLabels(labelExpression.flatten, labelExpression.position)

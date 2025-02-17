@@ -82,8 +82,10 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test("MATCH (n:A&B:C) RETURN n") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B&C", 12, 1, 13),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C.",
+      InputPosition(12, 1, 13)
     )
   }
 
@@ -130,8 +132,10 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   }
 
   test("MATCH (n:A&B)-[r]-(m:B:C) RETURN *") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :B&C."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":B&C", 22, 1, 23),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :B&C.",
+      InputPosition(22, 1, 23)
     )
   }
 
@@ -144,20 +148,25 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   test("MATCH (n:A:B), (m:A&B) RETURN *") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression
     run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
       "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
       InputPosition(10, 1, 11)
     )
   }
 
   test("MATCH (n:A:B)-[]-(m) WHERE m:(A&B)|C RETURN *") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(10, 1, 11)
     )
   }
 
   test("MATCH (n:A:B)-[]-(m) WHERE (m:(A&B)|C)--() RETURN *") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(10, 1, 11)
     )
   }
 
@@ -228,8 +237,10 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   }
 
   test("MATCH (n:A&B)-[]-(m) WHERE (m:A:B)--() RETURN *") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 31, 1, 32),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(31, 1, 32)
     )
   }
 
@@ -391,8 +402,10 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   test("MATCH (n) WHERE n:A&B:C RETURN n") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression predicate
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B&C", 21, 1, 22),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C.",
+      InputPosition(21, 1, 22)
     )
   }
 
@@ -487,8 +500,10 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   // Both Node and predicate
 
   test("MATCH (n:A:B) WHERE n:C&D|E RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(10, 1, 11)
     )
   }
 
@@ -509,56 +524,74 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   }
 
   test("MATCH (n:A:B) WHERE n:C|D|E RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(10, 1, 11)
     )
   }
 
   test("MATCH (n:A:B WHERE n:C&D|E) RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(10, 1, 11)
     )
   }
 
   test("MATCH (n:A:B)-[:R|(T&S)]-(m) RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(10, 1, 11)
     )
   }
 
   test("MATCH (n:A&B)-[:R|T|:S]-(m) RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :R|T|S."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":R|T|S", 19, 1, 20),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :R|T|S.",
+      InputPosition(19, 1, 20)
     )
   }
 
   test("MATCH (n:A&B)-[IS R|T|:S]-(m) RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as IS R|T|S."
+    run().hasError(
+      GqlHelper.getGql42001_42I10("IS R|T|S", 21, 1, 22),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as IS R|T|S.",
+      InputPosition(21, 1, 22)
     )
   }
 
   test("MATCH (n:A:B WHERE n:C|D|E) RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(10, 1, 11)
     )
   }
 
   test("MATCH (n:C&D|E) WHERE n:A:B RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 25, 1, 26),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(25, 1, 26)
     )
   }
 
   test("MATCH (n:C&D|E)-[]-(m:A:F) WHERE n:A:B RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. These expressions could be expressed as :A&F, :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&F, :A&B", 23, 1, 24),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. These expressions could be expressed as :A&F, :A&B.",
+      InputPosition(23, 1, 24)
     )
   }
 
   test("MATCH (n:C&D|E)-[]-(m IS A:F) WHERE n:A:B RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. These expressions could be expressed as IS A&F, :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10("IS A&F, :A&B", 26, 1, 27),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. These expressions could be expressed as IS A&F, :A&B.",
+      InputPosition(26, 1, 27)
     )
   }
 
@@ -617,29 +650,37 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   // Mixed label expression in same statement
   test("MATCH (n:A:B)-[]-(m) WHERE m:(A&B)|C RETURN m, n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(10, 1, 11)
     )
   }
 
   // ... graph pattern
   test("MATCH (n:A:B)--(:C), (n)-->(m:(A&B)|C) RETURN m, n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(10, 1, 11)
     )
   }
 
   // ... path pattern
   test("MATCH (n:A:B)-[]-(m:(A&B)|C) RETURN m, n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 10, 1, 11),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(10, 1, 11)
     )
   }
 
   // ... node pattern
   test("MATCH (n:A|B:C) RETURN n") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A|(B&C)."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A|(B&C)", 12, 1, 13),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A|(B&C).",
+      InputPosition(12, 1, 13)
     )
   }
 

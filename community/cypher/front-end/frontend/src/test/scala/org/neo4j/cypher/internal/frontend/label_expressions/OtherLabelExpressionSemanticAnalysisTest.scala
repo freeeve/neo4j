@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend.label_expressions
 import org.neo4j.cypher.internal.frontend.NameBasedSemanticAnalysisTestSuite
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.LoneElement
@@ -98,14 +99,18 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
   }
 
   test("RETURN $param:A:B&C") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B&C", 15, 1, 16),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C.",
+      InputPosition(15, 1, 16)
     )
   }
 
   test("RETURN $param:A|B:C") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A|(B&C)."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A|(B&C)", 17, 1, 18),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A|(B&C).",
+      InputPosition(17, 1, 18)
     )
   }
 
@@ -122,8 +127,10 @@ class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
 
   // Mixed label expression in same statement
   test("MATCH ((n:A:B:C)-[]->()) RETURN n:A&B, n:A:B") {
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", 42, 1, 43),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(42, 1, 43)
     )
   }
 

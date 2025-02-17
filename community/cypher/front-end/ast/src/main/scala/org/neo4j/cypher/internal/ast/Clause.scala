@@ -208,20 +208,7 @@ sealed trait Clause extends ASTNode with SemanticCheckable with SemanticAnalysis
             // based on whether it contains IS.
             val conflictWithIS = gpm.head.containsIs
             if (conflictWithIS) SemanticError.mixingColonAndIs(labelExpressions, replacements, pos)
-            else {
-              if (replacements.size > 1) {
-                SemanticError(
-                  s"Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. These expressions could be expressed as ${replacements.mkString(", ")}.",
-                  pos
-                )
-              } else {
-                SemanticError(
-                  s"Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as ${replacements.mkString(", ")}.",
-                  pos
-                )
-              }
-            }
-
+            else SemanticError.invalidLabelExpression(replacements, pos)
           case None => SemanticCheck.success
         }
       }

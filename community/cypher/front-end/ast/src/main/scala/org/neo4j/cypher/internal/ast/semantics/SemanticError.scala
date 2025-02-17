@@ -1482,6 +1482,16 @@ object SemanticError {
       position
     )
   }
+
+  def invalidLabelExpression(replacements: Set[String], position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I10(replacements.mkString(", "), position.offset, position.line, position.column)
+    val exprText = if (replacements.size > 1) "These expressions" else "This expression"
+    SemanticError(
+      gql,
+      s"Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. $exprText could be expressed as ${replacements.mkString(", ")}.",
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

@@ -100,8 +100,10 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
 
   test("(n:A&B:C)") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B&C", offset + 6, 1, offset + 7),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B&C.",
+      InputPosition(offset + 6, 1, offset + 7)
     )
   }
 
@@ -311,8 +313,10 @@ class LabelExpressionInCreateSemanticAnalysisTest
 
   test("(n:A:B), (m:A&B)") {
     // should not allow mixing colon as label conjunction symbol with GPM label expression symbols in label expression
-    run().hasErrorMessages(
-      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B."
+    run().hasError(
+      GqlHelper.getGql42001_42I10(":A&B", offset + 4, 1, offset + 5),
+      "Mixing label expression symbols ('|', '&', '!', and '%') with colon (':') between labels is not allowed. Please only use one set of symbols. This expression could be expressed as :A&B.",
+      InputPosition(offset + 4, 1, offset + 5)
     )
   }
 
