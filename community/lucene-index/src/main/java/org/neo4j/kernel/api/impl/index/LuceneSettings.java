@@ -134,4 +134,12 @@ public class LuceneSettings implements SettingsDeclaration {
     public static final Setting<Boolean> lucene_population_serial_merge_scheduler = newBuilder(
                     "internal.dbms.index.lucene.population_serial_merge_scheduler", BOOL, TRUE)
             .build();
+
+    @Internal
+    @Description("Controls whether any newly created indexes backed by lucene are populated during a sharded import. "
+            + "If 'true', the index will be created but NOT populated during import. Population would then occur "
+            + "during the shards initial recovery when the sharded database is created.")
+    public static final Setting<Boolean> lucene_skip_population_during_sharded_import = newBuilder(
+                    "internal.dbms.index.lucene.skip_population_during_sharded_import", BOOL, TRUE)
+            .build();
 }

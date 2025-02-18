@@ -142,7 +142,7 @@ public interface Configuration {
      * @return index related configurations.
      */
     default IndexConfig indexConfig() {
-        return IndexConfig.DEFAULT;
+        return IndexConfig.create();
     }
 
     /**

@@ -33,13 +33,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.LongPredicate;
+import java.util.function.Predicate;
 import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.eclipse.collections.api.set.primitive.LongSet;
@@ -97,7 +97,7 @@ public class ImportIndexBuilder implements Closeable {
     private final ByteBufferFactory bufferFactory;
     private final MutableLongSet violatingEntities = LongSets.mutable.empty().asSynchronized();
     private final StorageEngineIndexingBehaviour indexingBehaviour;
-    private final Set<IndexDescriptor> excludedIndexes;
+    private final Predicate<IndexDescriptor> excludedIndexes;
 
     public ImportIndexBuilder(
             FileSystemAbstraction fileSystem,
@@ -111,7 +111,7 @@ public class ImportIndexBuilder implements Closeable {
             Configuration configuration,
             IndexStatisticsStore indexStatisticsStore,
             StorageEngineIndexingBehaviour indexingBehaviour,
-            Set<IndexDescriptor> excludedIndexes) {
+            Predicate<IndexDescriptor> excludedIndexes) {
         this.fileSystem = fileSystem;
         this.indexProviderMap = indexProviderMap;
         this.tempIndexes = tempIndexes;
@@ -130,9 +130,9 @@ public class ImportIndexBuilder implements Closeable {
     }
 
     public void add(IndexEntryUpdate indexUpdate) {
-        if (!excludedIndexes.contains(indexUpdate.indexKey())) {
-            var builder = getIndexBuilder(indexUpdate.indexKey());
-            builder.add(convertEntityId(indexUpdate));
+        final var indexKey = indexUpdate.indexKey();
+        if (!excludedIndexes.test(indexKey)) {
+            getIndexBuilder(indexKey).add(convertEntityId(indexUpdate));
         }
     }
 
@@ -142,9 +142,9 @@ public class ImportIndexBuilder implements Closeable {
      * @return {@code true} if the index update was applied w/o problems, otherwise {@code false}.
      */
     public boolean addDirect(IndexEntryUpdate indexUpdate) {
-        if (!excludedIndexes.contains(indexUpdate.indexKey())) {
-            var builder = getIndexBuilder(indexUpdate.indexKey());
-            return builder.addDirect(convertEntityId(indexUpdate));
+        final var indexKey = indexUpdate.indexKey();
+        if (!excludedIndexes.test(indexKey)) {
+            return getIndexBuilder(indexKey).addDirect(convertEntityId(indexUpdate));
         }
         return true;
     }

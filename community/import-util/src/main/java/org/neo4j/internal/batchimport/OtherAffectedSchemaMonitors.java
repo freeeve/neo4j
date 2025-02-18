@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.nio.file.OpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.function.LongPredicate;
+import java.util.function.Predicate;
 import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
 import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.list.primitive.IntList;
@@ -97,7 +97,7 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
             IndexStatisticsStore indexStatisticsStore,
             StorageEngineIndexingBehaviour indexingBehaviour,
             boolean generateNonUniqueIndexUpdates,
-            Set<IndexDescriptor> excludedIndexes) {
+            Predicate<IndexDescriptor> excludedIndexes) {
         this.schemaCache = schemaCache;
         this.entityType = entityType;
         this.indexedEntityIdConverter = indexedEntityIdConverter;

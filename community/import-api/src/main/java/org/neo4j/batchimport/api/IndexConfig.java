@@ -19,8 +19,14 @@
  */
 package org.neo4j.batchimport.api;
 
+import org.eclipse.collections.api.factory.Sets;
+import org.eclipse.collections.api.set.MutableSet;
+import org.neo4j.internal.schema.IndexType;
+
 public class IndexConfig {
-    public static final IndexConfig DEFAULT = new IndexConfig();
+
+    private final MutableSet<IndexType> excludedIndexTypes = Sets.mutable.empty();
+
     private boolean createLabelIndex;
     private boolean createRelationTypeIndex;
 
@@ -34,12 +40,21 @@ public class IndexConfig {
         return this;
     }
 
+    public IndexConfig excludeTypeFromPopulating(IndexType indexType) {
+        excludedIndexTypes.add(indexType);
+        return this;
+    }
+
     public boolean createLabelIndex() {
         return createLabelIndex;
     }
 
     public boolean createRelationshipIndex() {
         return createRelationTypeIndex;
+    }
+
+    public boolean isTypeExcludedFromPopulating(IndexType type) {
+        return excludedIndexTypes.contains(type);
     }
 
     public static IndexConfig create() {

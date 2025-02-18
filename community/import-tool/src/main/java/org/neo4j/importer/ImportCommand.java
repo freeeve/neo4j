@@ -504,7 +504,7 @@ public class ImportCommand {
                     ctx.out().println("Starting to import, output will be saved to: " + logFilePath.toAbsolutePath());
                     final var importerBuilder = FileImporter.builder()
                             .withCsvConfig(csvConfiguration(fileSystem))
-                            .withImportConfig(importConfiguration())
+                            .withImportConfig(importConfiguration(databaseConfig))
                             .withDatabaseLayout(databaseLayout)
                             .withDatabaseConfig(databaseConfig)
                             .withFileSystem(fileSystem)
@@ -590,6 +590,10 @@ public class ImportCommand {
                 Input input,
                 IndexProvidersAccess indexProvidersAccess)
                 throws IOException;
+
+        protected IndexConfig customiseIndexConfig(Config databaseConfig, IndexConfig indexConfig) {
+            return setupIndexConfigForImport(indexConfig);
+        }
 
         private List<SchemaCommand> parseSchemaCommands(FileSystemAbstraction fileSystem, Config config) {
             if (schemaCommands == null) {
@@ -687,7 +691,7 @@ public class ImportCommand {
             return builder.build();
         }
 
-        private org.neo4j.batchimport.api.Configuration importConfiguration() {
+        private org.neo4j.batchimport.api.Configuration importConfiguration(Config databaseConfig) {
             return new Configuration.Overridden(Configuration.defaultConfiguration()) {
                 @Override
                 public int maxNumberOfWorkerThreads() {
@@ -707,7 +711,7 @@ public class ImportCommand {
 
                 @Override
                 public IndexConfig indexConfig() {
-                    return IndexConfig.create().withLabelIndex().withRelationshipTypeIndex();
+                    return customiseIndexConfig(databaseConfig, IndexConfig.create());
                 }
 
                 @Override
@@ -1048,6 +1052,11 @@ public class ImportCommand {
         Path[] toPaths(FileSystemAbstraction fs) {
             return parseFilesList(fs, files);
         }
+    }
+
+    @VisibleForTesting
+    public static IndexConfig setupIndexConfigForImport(IndexConfig indexConfig) {
+        return indexConfig.withLabelIndex().withRelationshipTypeIndex();
     }
 
     @VisibleForTesting
