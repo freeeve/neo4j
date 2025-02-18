@@ -123,8 +123,13 @@ case object collectDistinctRewriter extends Rewriter {
       acc: Set[LogicalVariable] = Set.empty
     ): Set[LogicalVariable] = {
       aliases.get(variable) match {
-        case Some(v) => flattenAliases(v, acc + v)
-        case None    => acc
+        case None => acc
+        case Some(v) =>
+          val newAcc = acc + v
+          if (v eq variable)
+            newAcc
+          else
+            flattenAliases(v, newAcc)
       }
     }
 
