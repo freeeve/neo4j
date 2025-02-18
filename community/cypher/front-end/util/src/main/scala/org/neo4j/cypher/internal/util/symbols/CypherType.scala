@@ -228,6 +228,7 @@ object CypherType {
     (x: CypherType, y: CypherType) =>
       (x, y) match {
         case (lx: ListType, ly: ListType)                               => compareListTypes(lx, ly)
+        case (vx: VectorType, vy: VectorType)                           => compareVectorTypes(vx, vy)
         case (cux: ClosedDynamicUnionType, cuy: ClosedDynamicUnionType) =>
           // Sorting multiple closed dynamic unions
           compareInnerLists(cux.sortedInnerTypes, cuy.sortedInnerTypes)
@@ -236,11 +237,55 @@ object CypherType {
       }
   }
 
+  private def compareVectorTypes(x: VectorType, y: VectorType): Int = {
+    // Note: -1 means x comes before y, 0 means they are equal, 1 means y comes before x
+    (x, y) match {
+      // Both are super types, compare nullability
+      case (VectorType(None, None, isNullableX), VectorType(None, None, isNullableY)) =>
+        isNullableX.compare(isNullableY)
+
+      // Vector super type comes before any other vector
+      case (VectorType(_, _, _), VectorType(None, None, _)) => 1
+      case (VectorType(None, None, _), VectorType(_, _, _)) => -1
+
+      // One has a coordinate type defined, and the other does not
+      case (VectorType(None, _, _), VectorType(Some(_), _, _)) => 1
+      case (VectorType(Some(_), _, _), VectorType(None, _, _)) => -1
+
+      // Dimension only
+      case (VectorType(None, Some(dimenX), isNullableX), VectorType(None, Some(dimenY), isNullableY)) =>
+        val dimenCompare = dimenX.compare(dimenY)
+        if (dimenCompare == 0) isNullableX.compare(isNullableY)
+        else dimenCompare
+
+      // Vector with a coordinate type defined
+      case (
+          VectorType(Some(coordinateTypeX), maybeDimenX, isNullableX),
+          VectorType(Some(coordinateTypeY), maybeDimenY, isNullableY)
+        ) =>
+        val innerComparison = coordinateTypeX.sortOrder.compare(coordinateTypeY.sortOrder)
+        // If the types match, then order based on dimension, then nullability
+        if (innerComparison == 0) {
+          (maybeDimenX, maybeDimenY) match {
+            case (Some(dimenX), Some(dimenY)) if (dimenX == dimenY) => isNullableX.compare(isNullableY)
+            case (Some(dimenX), Some(dimenY))                       => dimenX.compare(dimenY)
+            case (Some(_), None)                                    => 1
+            case (None, Some(_))                                    => -1
+            case (None, None)                                       => isNullableX.compare(isNullableY)
+          }
+        } else {
+          innerComparison
+        }
+    }
+  }
+
   private def compareListTypes(x: ListType, y: ListType): Int = {
     val innerComparison = (x.innerType, y.innerType) match {
       case (hx: ListType, hy: ListType) => compareListTypes(hx, hy)
       case (hx: ClosedDynamicUnionType, hy: ClosedDynamicUnionType) =>
         compareInnerLists(hx.sortedInnerTypes, hy.sortedInnerTypes)
+      case (vx: VectorType, vy: VectorType) =>
+        compareVectorTypes(vx, vy)
       case _ => x.innerType.sortOrder.compare(y.innerType.sortOrder)
     }
 
@@ -271,6 +316,11 @@ object CypherType {
             ) =>
             compareInnerLists(lxDynamicUnion.sortedInnerTypes, lyDynamicUnion.sortedInnerTypes)
           case (
+              ListType(vx: VectorType, _),
+              ListType(vy: VectorType, _)
+            ) =>
+            compareVectorTypes(vx, vy)
+          case (
               ListType(lxListType: ListType, _),
               ListType(lyListType: ListType, _)
             ) =>
@@ -281,6 +331,8 @@ object CypherType {
             else innerTypeOrder
           case (cux: ClosedDynamicUnionType, cuy: ClosedDynamicUnionType) =>
             compareInnerLists(cux.sortedInnerTypes, cuy.sortedInnerTypes)
+          case (vx: VectorType, vy: VectorType) =>
+            compareVectorTypes(vx, vy)
           case _ => sortOrder
         }
 

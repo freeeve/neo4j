@@ -70,7 +70,6 @@ import org.neo4j.fabric.util.Folded.FoldableOps
 import org.neo4j.kernel.database.DatabaseIdFactory
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
-import org.neo4j.kernel.database.NamedDatabaseId
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.string.UTF8
 import org.neo4j.values.storable.Values

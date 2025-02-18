@@ -20,12 +20,17 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTFloat
+import org.neo4j.cypher.internal.util.symbols.CTFloat32
 import org.neo4j.cypher.internal.util.symbols.CTGraphRef
 import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.CTInteger16
+import org.neo4j.cypher.internal.util.symbols.CTInteger32
+import org.neo4j.cypher.internal.util.symbols.CTInteger8
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNumber
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -34,6 +39,8 @@ class CypherTypeTest extends CypherFunSuite {
 
   test("parents should be full path up type tree branch") {
     CTInteger.parents should equal(Seq(CTNumber, CTAny))
+    CTInteger8.parents should equal(Seq(CTInteger16, CTInteger32, CTInteger, CTNumber, CTAny))
+    CTFloat32.parents should equal(Seq(CTFloat, CTNumber, CTAny))
     CTNumber.parents should equal(Seq(CTAny))
     CTAny.parents should equal(Seq())
     CTList(CTString).parents should equal(Seq(CTList(CTAny), CTAny))
@@ -50,6 +57,8 @@ class CypherTypeTest extends CypherFunSuite {
 
   test("should be assignable from sub-type") {
     CTNumber.isAssignableFrom(CTInteger) should equal(true)
+    CTNumber.isAssignableFrom(CTInteger8) should equal(true)
+    CTNumber.isAssignableFrom(CTFloat32) should equal(true)
     CTAny.isAssignableFrom(CTString) should equal(true)
     CTList(CTString).isAssignableFrom(CTList(CTString)) should equal(true)
     CTList(CTNumber).isAssignableFrom(CTList(CTInteger)) should equal(true)
@@ -62,6 +71,9 @@ class CypherTypeTest extends CypherFunSuite {
 
   test("should find leastUpperBound") {
     assertLeastUpperBound(CTNumber, CTNumber, CTNumber)
+    assertLeastUpperBound(CTInteger8, CTInteger16, CTInteger16)
+    assertLeastUpperBound(CTFloat32, CTFloat, CTFloat)
+    assertLeastUpperBound(CTInteger8, CTFloat32, CTNumber)
     assertLeastUpperBound(CTNumber, CTAny, CTAny)
     assertLeastUpperBound(CTNumber, CTString, CTAny)
     assertLeastUpperBound(CTNumber, CTList(CTAny), CTAny)
@@ -86,8 +98,11 @@ class CypherTypeTest extends CypherFunSuite {
   test("should find greatestLowerBound") {
     assertGreatestLowerBound(CTNumber, CTNumber, Some(CTNumber))
     assertGreatestLowerBound(CTNumber, CTAny, Some(CTNumber))
+    assertGreatestLowerBound(CTVector, CTAny, Some(CTVector))
     assertGreatestLowerBound(CTList(CTNumber), CTList(CTInteger), Some(CTList(CTInteger)))
     assertGreatestLowerBound(CTNumber, CTString, None)
+    assertGreatestLowerBound(CTInteger8, CTInteger, Some(CTInteger8))
+    assertGreatestLowerBound(CTFloat32, CTFloat, Some(CTFloat32))
     assertGreatestLowerBound(CTNumber, CTList(CTAny), None)
     assertGreatestLowerBound(CTInteger, CTFloat, None)
     assertGreatestLowerBound(CTMap, CTFloat, None)

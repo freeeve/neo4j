@@ -21,7 +21,11 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTDate
 import org.neo4j.cypher.internal.util.symbols.CTFloat
+import org.neo4j.cypher.internal.util.symbols.CTFloat32
 import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.CTInteger16
+import org.neo4j.cypher.internal.util.symbols.CTInteger32
+import org.neo4j.cypher.internal.util.symbols.CTInteger8
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
@@ -30,6 +34,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPath
 import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.NothingType
 import org.neo4j.cypher.internal.util.symbols.NullType
@@ -43,11 +48,17 @@ class TypeSpecTest extends CypherFunSuite {
     TypeSpec.all contains CTString should equal(true)
     TypeSpec.all contains CTNumber should equal(true)
     TypeSpec.all contains CTInteger should equal(true)
+    TypeSpec.all contains CTInteger32 should equal(true)
+    TypeSpec.all contains CTInteger16 should equal(true)
+    TypeSpec.all contains CTInteger8 should equal(true)
     TypeSpec.all contains CTFloat should equal(true)
+    TypeSpec.all contains CTFloat32 should equal(true)
     TypeSpec.all contains CTNode should equal(true)
+    TypeSpec.all contains CTVector should equal(true)
     TypeSpec.all contains CTList(CTAny) should equal(true)
     TypeSpec.all contains CTList(CTFloat) should equal(true)
     TypeSpec.all contains CTList(CTList(CTFloat)) should equal(true)
+    TypeSpec.all contains CTList(CTList(CTVector)) should equal(true)
     TypeSpec.all contains ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE) should equal(true)
   }
 
@@ -62,8 +73,10 @@ class TypeSpecTest extends CypherFunSuite {
     anyCollection contains CTList(CTString) should equal(true)
     anyCollection contains CTList(CTInteger) should equal(true)
     anyCollection contains CTList(CTAny) should equal(true)
+    anyCollection contains CTList(CTVector) should equal(true)
     anyCollection contains CTList(CTList(CTInteger)) should equal(true)
     anyCollection contains CTBoolean should equal(false)
+    anyCollection contains CTVector should equal(false)
     anyCollection contains CTAny should equal(false)
     anyCollection contains ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE) should equal(false)
   }
@@ -75,9 +88,15 @@ class TypeSpecTest extends CypherFunSuite {
     CTNumber.covariant containsAny TypeSpec.all should equal(true)
 
     CTNumber.covariant containsAny CTInteger should equal(true)
+    CTNumber.covariant containsAny CTInteger32 should equal(true)
+    CTNumber.covariant containsAny CTInteger16 should equal(true)
+    CTNumber.covariant containsAny CTInteger8 should equal(true)
+    CTNumber.covariant containsAny CTFloat should equal(true)
+    CTNumber.covariant containsAny CTFloat32 should equal(true)
     CTInteger.covariant containsAny (CTInteger | CTString) should equal(true)
     CTInteger.covariant containsAny CTNumber.covariant should equal(true)
     CTInteger.covariant containsAny TypeSpec.all should equal(true)
+    CTVector.covariant containsAny TypeSpec.all should equal(true)
 
     CTInteger.covariant containsAny CTString should equal(false)
     CTNumber.covariant containsAny CTString should equal(false)
@@ -99,6 +118,7 @@ class TypeSpecTest extends CypherFunSuite {
   test("containsAll") {
     TypeSpec.all containsAll TypeSpec.all should equal(true)
     CTNumber.covariant containsAll CTNumber.covariant should equal(true)
+    CTVector.covariant containsAll CTVector.covariant should equal(true)
     TypeSpec.all containsAll CTNumber.covariant should equal(true)
     CTNumber.covariant containsAll TypeSpec.all should equal(false)
     CTBoolean.covariant containsAll TypeSpec.union(CTNumber, CTBoolean) should equal(false)
@@ -120,6 +140,7 @@ class TypeSpecTest extends CypherFunSuite {
 
   test("should union") {
     CTNumber.covariant | CTString.covariant should equal(CTNumber | CTFloat | CTInteger | CTString)
+    CTVector.covariant | CTString.covariant should equal(CTVector | CTString)
     CTNumber.covariant | CTBoolean should equal(CTNumber | CTFloat | CTInteger | CTBoolean)
     ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE) | CTBoolean should equal(
       CTString | CTInteger | CTBoolean
@@ -135,8 +156,10 @@ class TypeSpecTest extends CypherFunSuite {
 
   test("should intersect") {
     TypeSpec.all & CTInteger should equal(CTInteger.invariant)
+    TypeSpec.all & CTVector should equal(CTVector.invariant)
     CTNumber.covariant & CTInteger should equal(CTInteger.invariant)
     CTNumber.covariant & CTString should equal(TypeSpec.none)
+    CTVector.covariant & CTBoolean should equal(TypeSpec.none)
     ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE) & CTInteger should equal(CTInteger.invariant)
     ClosedDynamicUnionType(Set(CTString, CTBoolean))(InputPosition.NONE) & CTInteger should equal(TypeSpec.none)
     ClosedDynamicUnionType(Set(CTString, CTInteger))(InputPosition.NONE) & CTInteger.covariant should equal(
@@ -145,6 +168,7 @@ class TypeSpecTest extends CypherFunSuite {
 
     (CTNumber | CTInteger) & (CTAny | CTNumber) should equal(CTNumber.invariant)
     CTNumber.contravariant & CTNumber.covariant should equal(CTNumber.invariant)
+    CTVector.contravariant & CTVector.covariant should equal(CTVector.invariant)
     (CTNumber | CTInteger) & (CTNumber | CTFloat) should equal(CTNumber.invariant)
 
     CTList(CTList(CTAny)).contravariant intersect CTList(CTAny).covariant should equal(
@@ -164,6 +188,7 @@ class TypeSpecTest extends CypherFunSuite {
 
   test("should constrain") {
     CTInteger.covariant should equal(CTInteger.invariant)
+    CTVector.covariant should equal(CTVector.invariant)
     CTNumber.covariant should equal(CTNumber | CTFloat | CTInteger)
 
     CTInteger constrain CTNumber should equal(CTInteger.invariant)
@@ -230,6 +255,7 @@ class TypeSpecTest extends CypherFunSuite {
   test("constrain to super type of none") {
     CTNumber.contravariant constrain CTInteger should equal(TypeSpec.none)
     CTNumber.contravariant constrain CTString should equal(TypeSpec.none)
+    CTVector.contravariant constrain CTList(CTNumber) should equal(TypeSpec.none)
   }
 
   test("should find leastUpperBounds of TypeSpecs") {
@@ -264,6 +290,7 @@ class TypeSpecTest extends CypherFunSuite {
 
   test("leastUpperBounds with leaf type") {
     TypeSpec.all leastUpperBounds CTInteger should equal(CTAny | CTNumber | CTInteger)
+    TypeSpec.all leastUpperBounds CTVector should equal(CTAny | CTVector)
   }
 
   test("leastUpperBounds with list") {
@@ -319,6 +346,7 @@ class TypeSpecTest extends CypherFunSuite {
     (TypeSpec.all leastUpperBounds listOfListOfAny) contains CTList(CTAny) should equal(true)
     (TypeSpec.all leastUpperBounds listOfListOfAny) contains CTString should equal(false)
     (TypeSpec.all leastUpperBounds listOfListOfAny) contains CTNumber should equal(false)
+    (TypeSpec.all leastUpperBounds listOfListOfAny) contains CTVector should equal(false)
     (TypeSpec.all leastUpperBounds listOfListOfAny) contains CTAny should equal(true)
   }
 
@@ -353,6 +381,7 @@ class TypeSpecTest extends CypherFunSuite {
 
   test("should identify coercions") {
     CTFloat.covariant.coercions should equal(TypeSpec.none)
+    CTVector.covariant.coercions should equal(TypeSpec.none)
     CTInteger.covariant.coercions should equal(CTFloat.invariant)
     (CTFloat | CTInteger).coercions should equal(CTFloat.invariant)
     CTList(CTAny).covariant.coercions should equal(CTBoolean.invariant)
@@ -430,9 +459,13 @@ class TypeSpecTest extends CypherFunSuite {
 
   test("equal TypeSpecs should equal") {
     CTString.invariant should equal(CTString.invariant)
+    CTVector.invariant should equal(CTVector.invariant)
 
     CTString.invariant should equal(CTString.covariant)
     CTString.covariant should equal(CTString.invariant)
+
+    CTVector.invariant should equal(CTVector.covariant)
+    CTVector.covariant should equal(CTVector.invariant)
 
     CTFloat | CTInteger | CTNumber should equal(CTNumber | CTInteger | CTFloat)
     CTNumber.covariant should equal(CTNumber | CTInteger | CTFloat)
@@ -465,6 +498,7 @@ class TypeSpecTest extends CypherFunSuite {
     CTNumber.covariant should not equal TypeSpec.all
 
     CTList(CTAny).covariant should not equal CTNumber.covariant
+    CTList(CTFloat).covariant should not equal CTVector.covariant
     CTNumber.covariant should not equal CTList(CTAny).covariant
 
     CTNumber.invariant should not equal TypeSpec.all

@@ -19,11 +19,16 @@ package org.neo4j.cypher.internal.frontend.symbols
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTFloat
+import org.neo4j.cypher.internal.util.symbols.CTFloat32
 import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.CTInteger16
+import org.neo4j.cypher.internal.util.symbols.CTInteger32
+import org.neo4j.cypher.internal.util.symbols.CTInteger8
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTNumber
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.TypeRange
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -32,19 +37,29 @@ class TypeRangeTest extends CypherFunSuite {
   test("TypeRange of single type should contain only that type") {
     val rangeOfInteger = TypeRange(CTInteger, CTInteger)
     rangeOfInteger.contains(CTInteger) should equal(true)
+    rangeOfInteger.contains(CTInteger32) should equal(false)
+    rangeOfInteger.contains(CTInteger16) should equal(false)
+    rangeOfInteger.contains(CTInteger8) should equal(false)
     rangeOfInteger.contains(CTNumber) should equal(false)
     rangeOfInteger.contains(CTFloat) should equal(false)
+    rangeOfInteger.contains(CTFloat32) should equal(false)
     rangeOfInteger.contains(CTString) should equal(false)
     rangeOfInteger.contains(CTAny) should equal(false)
+    rangeOfInteger.contains(CTVector) should equal(false)
 
     val rangeOfNumber = TypeRange(CTNumber, CTNumber)
     rangeOfNumber.contains(CTInteger) should equal(false)
+    rangeOfNumber.contains(CTInteger32) should equal(false)
+    rangeOfNumber.contains(CTInteger16) should equal(false)
+    rangeOfNumber.contains(CTInteger8) should equal(false)
     rangeOfNumber.contains(CTNumber) should equal(true)
     rangeOfNumber.contains(CTFloat) should equal(false)
+    rangeOfNumber.contains(CTFloat32) should equal(false)
     rangeOfNumber.contains(CTString) should equal(false)
     rangeOfNumber.contains(CTAny) should equal(false)
 
     val rangeOfListAny = TypeRange(CTList(CTAny), CTList(CTAny))
+    rangeOfListAny.contains(CTVector) should equal(false)
     rangeOfListAny.contains(CTInteger) should equal(false)
     rangeOfListAny.contains(CTNumber) should equal(false)
     rangeOfListAny.contains(CTString) should equal(false)
@@ -62,30 +77,43 @@ class TypeRangeTest extends CypherFunSuite {
     rangeRootedAtAny.contains(CTInteger) should equal(true)
     rangeRootedAtAny.contains(CTFloat) should equal(true)
     rangeRootedAtAny.contains(CTNode) should equal(true)
+    rangeRootedAtAny.contains(CTVector) should equal(true)
     rangeRootedAtAny.contains(CTList(CTAny)) should equal(true)
     rangeRootedAtAny.contains(CTList(CTFloat)) should equal(true)
     rangeRootedAtAny.contains(CTList(CTList(CTFloat))) should equal(true)
   }
 
-  test("unbounded TypeRange rooted at leaf type should contain leaf") {
+  test("unbounded TypeRange rooted at leaf type should contain leaves") {
     val rangeRootedAtInteger = TypeRange(CTInteger, None)
     rangeRootedAtInteger.contains(CTInteger) should equal(true)
+    rangeRootedAtInteger.contains(CTInteger32) should equal(true)
+    rangeRootedAtInteger.contains(CTInteger16) should equal(true)
+    rangeRootedAtInteger.contains(CTInteger8) should equal(true)
     rangeRootedAtInteger.contains(CTNumber) should equal(false)
     rangeRootedAtInteger.contains(CTFloat) should equal(false)
     rangeRootedAtInteger.contains(CTAny) should equal(false)
 
     val rangeRootedAtListOfNumber = TypeRange(CTList(CTNumber), None)
     rangeRootedAtListOfNumber.contains(CTList(CTInteger)) should equal(true)
+    rangeRootedAtListOfNumber.contains(CTList(CTInteger32)) should equal(true)
+    rangeRootedAtListOfNumber.contains(CTList(CTInteger16)) should equal(true)
+    rangeRootedAtListOfNumber.contains(CTList(CTInteger8)) should equal(true)
     rangeRootedAtListOfNumber.contains(CTList(CTFloat)) should equal(true)
+    rangeRootedAtListOfNumber.contains(CTList(CTFloat32)) should equal(true)
     rangeRootedAtListOfNumber.contains(CTList(CTNumber)) should equal(true)
     rangeRootedAtListOfNumber.contains(CTList(CTString)) should equal(false)
+    rangeRootedAtListOfNumber.contains(CTVector) should equal(false)
     rangeRootedAtListOfNumber.contains(CTAny) should equal(false)
   }
 
   test("unbounded TypeRange rooted at branch type should contain all more specific types") {
     val rangeRootedAtInteger = TypeRange(CTNumber, None)
     rangeRootedAtInteger.contains(CTInteger) should equal(true)
+    rangeRootedAtInteger.contains(CTInteger32) should equal(true)
+    rangeRootedAtInteger.contains(CTInteger16) should equal(true)
+    rangeRootedAtInteger.contains(CTInteger8) should equal(true)
     rangeRootedAtInteger.contains(CTFloat) should equal(true)
+    rangeRootedAtInteger.contains(CTFloat32) should equal(true)
     rangeRootedAtInteger.contains(CTNumber) should equal(true)
     rangeRootedAtInteger.contains(CTString) should equal(false)
     rangeRootedAtInteger.contains(CTAny) should equal(false)
@@ -93,6 +121,7 @@ class TypeRangeTest extends CypherFunSuite {
     val rangeRootedAtListAny = TypeRange(CTList(CTAny), None)
     rangeRootedAtListAny.contains(CTList(CTString)) should equal(true)
     rangeRootedAtListAny.contains(CTList(CTInteger)) should equal(true)
+    rangeRootedAtListAny.contains(CTList(CTVector)) should equal(true)
     rangeRootedAtListAny.contains(CTList(CTAny)) should equal(true)
     rangeRootedAtListAny.contains(CTList(CTList(CTInteger))) should equal(true)
     rangeRootedAtListAny.contains(CTBoolean) should equal(false)
@@ -104,13 +133,16 @@ class TypeRangeTest extends CypherFunSuite {
     val rangeRootedAtInteger = TypeRange(CTInteger, None)
     rangeRootedAtNumber.contains(rangeRootedAtInteger) should equal(true)
 
+    val rangeOfInteger = TypeRange(CTInteger, CTInteger)
+    val rangeOfInteger32 = TypeRange(CTInteger32, CTInteger32)
+    rangeOfInteger.contains(rangeOfInteger32) should equal(false)
+
     val rangeOfNumberToDouble = TypeRange(CTNumber, CTFloat)
     rangeOfNumberToDouble.contains(rangeRootedAtInteger) should equal(false)
     rangeOfNumberToDouble.contains(rangeRootedAtNumber) should equal(false)
 
     val rangeOfDouble = TypeRange(CTFloat, CTFloat)
     val rangeOfNumber = TypeRange(CTNumber, CTNumber)
-    val rangeOfInteger = TypeRange(CTInteger, CTInteger)
     rangeOfNumberToDouble.contains(rangeOfDouble) should equal(true)
     rangeOfNumberToDouble.contains(rangeOfNumber) should equal(true)
     rangeOfNumberToDouble.contains(rangeOfInteger) should equal(false)
@@ -128,6 +160,9 @@ class TypeRangeTest extends CypherFunSuite {
 
     val rangeOfInteger = TypeRange(CTInteger, CTInteger)
     rangeOfInteger & TypeRange(CTNumber, None) should equal(Some(rangeOfInteger))
+
+    val rangeOfInteger8 = TypeRange(CTInteger8, CTInteger8)
+    rangeOfInteger8 & TypeRange(CTInteger32, None) should equal(Some(rangeOfInteger8))
 
     val rangeOfNumber = TypeRange(CTNumber, CTNumber)
     rangeOfNumber & TypeRange(CTNumber, None) should equal(Some(rangeOfNumber))
@@ -184,8 +219,12 @@ class TypeRangeTest extends CypherFunSuite {
     val rangeOfInteger = TypeRange(CTInteger, None)
     (rangeOfInteger leastUpperBounds rangeOfAny) should equal(Seq(rangeOfAny))
 
+    val rangeOfInteger8 = TypeRange(CTInteger8, None)
+    (rangeOfInteger8 leastUpperBounds rangeOfAny) should equal(Seq(rangeOfAny))
+
     val rangeOfNumber = TypeRange(CTNumber, CTNumber)
     (rangeOfInteger leastUpperBounds rangeOfNumber) should equal(Seq(rangeOfNumber))
+    (rangeOfInteger8 leastUpperBounds rangeOfNumber) should equal(Seq(rangeOfNumber))
   }
 
   test("leastUpperBound with sub type") {

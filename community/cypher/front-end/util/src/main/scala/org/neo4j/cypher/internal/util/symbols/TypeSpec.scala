@@ -73,7 +73,8 @@ object TypeSpec {
     CTTime,
     CTLocalTime,
     CTLocalDateTime,
-    CTDateTime
+    CTDateTime,
+    CTVector
   )
 
   private def apply(range: TypeRange): TypeSpec = new TypeSpec(Vector(range))

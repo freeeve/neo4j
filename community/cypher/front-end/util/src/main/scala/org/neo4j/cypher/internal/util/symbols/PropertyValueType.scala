@@ -39,6 +39,7 @@ case class PropertyValueType(isNullable: Boolean)(val position: InputPosition) e
     ZonedDateTimeType(isNullable)(position),
     DurationType(isNullable)(position),
     PointType(isNullable)(position),
+    // VectorType(None, None, isNullable)(position), to add later
     ListType(BooleanType(isNullable = false)(position), isNullable = isNullable)(position),
     ListType(StringType(isNullable = false)(position), isNullable = isNullable)(position),
     ListType(DateType(isNullable = false)(position), isNullable = isNullable)(position),

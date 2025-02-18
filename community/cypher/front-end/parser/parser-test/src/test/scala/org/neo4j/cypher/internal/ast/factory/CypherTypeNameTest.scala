@@ -24,7 +24,11 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.DateType
 import org.neo4j.cypher.internal.util.symbols.DurationType
+import org.neo4j.cypher.internal.util.symbols.Float32Type
 import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer16Type
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
+import org.neo4j.cypher.internal.util.symbols.Integer8Type
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType
@@ -38,10 +42,12 @@ import org.neo4j.cypher.internal.util.symbols.PointType
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
+import scala.math.signum
 import scala.util.Random
 
 class CypherTypeNameTest extends CypherFunSuite {
@@ -121,6 +127,12 @@ class CypherTypeNameTest extends CypherFunSuite {
       ("POINT", PointType(_)(pos)),
       ("NODE", NodeType(_)(pos)),
       ("RELATIONSHIP", RelationshipType(_)(pos)),
+      ("VECTOR<INTEGER8 NOT NULL>", VectorType(Some(Integer8Type(isNullable = false)(pos)), None, _)(pos)),
+      ("VECTOR<INTEGER16 NOT NULL>", VectorType(Some(Integer16Type(isNullable = false)(pos)), None, _)(pos)),
+      ("VECTOR<INTEGER32 NOT NULL>", VectorType(Some(Integer32Type(isNullable = false)(pos)), None, _)(pos)),
+      ("VECTOR<INTEGER NOT NULL>", VectorType(Some(IntegerType(isNullable = false)(pos)), None, _)(pos)),
+      ("VECTOR<FLOAT32 NOT NULL>", VectorType(Some(Float32Type(isNullable = false)(pos)), None, _)(pos)),
+      ("VECTOR<FLOAT NOT NULL>", VectorType(Some(FloatType(isNullable = false)(pos)), None, _)(pos)),
       ("MAP", MapType(_)(pos)),
       ("PATH", PathType(_)(pos))
     )
@@ -206,6 +218,12 @@ class CypherTypeNameTest extends CypherFunSuite {
   test("NULL should simplify to itself") {
     val expr = NullType()(pos)
     expr.simplify should be(expr)
+  }
+
+  test("VECTOR type with nullable innerType should simplify to non nullable innerType") {
+    val expr1 = VectorType(Some(Integer8Type(isNullable = true)(pos)), None, isNullable = true)(pos)
+    val expr2 = VectorType(Some(Integer8Type(isNullable = false)(pos)), None, isNullable = true)(pos)
+    expr1.simplify should be(expr2)
   }
 
   typesWithoutInnerTypes.foreach { case (typeName, typeExpr) =>
@@ -1487,6 +1505,84 @@ class CypherTypeNameTest extends CypherFunSuite {
     `INTEGER`.isSubtypeOf(`STRING | ANY`) shouldBe true
   }
 
+  // Vector types; alongside their coordinate types
+  test("vector types isSubtype works as expected") {
+    // Coordinate types
+    val `INTEGER64` = IntegerType(isNullable = true)(pos)
+    val `INTEGER64 NOT NULL` = IntegerType(isNullable = false)(pos)
+    val `INTEGER32` = Integer32Type(isNullable = true)(pos)
+    val `INTEGER32 NOT NULL` = Integer32Type(isNullable = false)(pos)
+    val `INTEGER16` = Integer16Type(isNullable = true)(pos)
+    val `INTEGER8` = Integer8Type(isNullable = true)(pos)
+    val `FLOAT64` = FloatType(isNullable = true)(pos)
+    val `FLOAT32` = Float32Type(isNullable = true)(pos)
+    val `FLOAT32 NOT NULL` = Float32Type(isNullable = false)(pos)
+
+    // Vector types
+    val `VECTOR (super type)` = VectorType(None, None, isNullable = true)(pos)
+    val `VECTOR (super type) NOT NULL` = VectorType(None, None, isNullable = false)(pos)
+    val `VECTOR (super type - INTEGER64)` = VectorType(Some(`INTEGER64`), None, isNullable = true)(pos)
+    val `VECTOR (super type - INTEGER64 NOT NULL)` =
+      VectorType(Some(`INTEGER64 NOT NULL`), None, isNullable = true)(pos)
+    val `VECTOR (super type - INTEGER32)` = VectorType(Some(`INTEGER32`), None, isNullable = true)(pos)
+    val `VECTOR (super type - INTEGER32 NOT NULL)` =
+      VectorType(Some(`INTEGER32 NOT NULL`), None, isNullable = true)(pos)
+    val `VECTOR (super type - INTEGER16)` = VectorType(Some(`INTEGER16`), None, isNullable = true)(pos)
+    val `VECTOR (super type - INTEGER8)` = VectorType(Some(`INTEGER8`), None, isNullable = true)(pos)
+    val `VECTOR (super type - FLOAT64)` = VectorType(Some(`FLOAT64`), None, isNullable = true)(pos)
+    val `VECTOR (super type - FLOAT32)` = VectorType(Some(`FLOAT32`), None, isNullable = true)(pos)
+    val `VECTOR (super type - FLOAT32 NOT NULL)` = VectorType(Some(`FLOAT32 NOT NULL`), None, isNullable = true)(pos)
+
+    val `VECTOR (super type - dimension 1024)` = VectorType(None, Some(1024), isNullable = true)(pos)
+    val `VECTOR (super type - dimension 2048)` = VectorType(None, Some(2048), isNullable = true)(pos)
+
+    val `VECTOR (INTEGER64 - dimension 1024)` = VectorType(Some(`INTEGER64`), Some(1024), isNullable = true)(pos)
+    val `VECTOR (INTEGER64 - dimension 2048)` = VectorType(Some(`INTEGER64`), Some(2048), isNullable = true)(pos)
+    val `VECTOR (FLOAT64 - dimension 2048)` = VectorType(Some(`FLOAT64`), Some(2048), isNullable = true)(pos)
+    val `VECTOR (FLOAT32 - dimension 2048)` = VectorType(Some(`FLOAT32`), Some(2048), isNullable = true)(pos)
+    val `VECTOR (FLOAT32 NOT NULL - dimension 2048)` =
+      VectorType(Some(`FLOAT32 NOT NULL`), Some(2048), isNullable = true)(pos)
+
+    val `ANY` = AnyType(isNullable = true)(pos)
+    val `STRING | ANY` = ClosedDynamicUnionType(Set(`VECTOR (super type)`, `ANY`))(pos)
+    val `VECTOR (super type) | INTEGER` = ClosedDynamicUnionType(Set(`VECTOR (super type)`, `INTEGER64`))(pos)
+
+    // Simple type isSubtypeOf itself but only if nullabilities match
+    `VECTOR (super type)`.isSubtypeOf(`ANY`) shouldBe true
+    `VECTOR (super type)`.isSubtypeOf(`VECTOR (super type)`) shouldBe true
+    `VECTOR (super type) NOT NULL`.isSubtypeOf(`VECTOR (super type)`) shouldBe true
+    `VECTOR (super type)`.isSubtypeOf(`VECTOR (super type) NOT NULL`) shouldBe false
+    `INTEGER64`.isSubtypeOf(`ANY`) shouldBe true
+
+    `VECTOR (INTEGER64 - dimension 1024)`.isSubtypeOf(`VECTOR (super type - INTEGER64)`) shouldBe true
+    `VECTOR (INTEGER64 - dimension 2048)`.isSubtypeOf(`VECTOR (super type - dimension 2048)`) shouldBe true
+    `VECTOR (INTEGER64 - dimension 1024)`.isSubtypeOf(`VECTOR (super type)`) shouldBe true
+    `VECTOR (FLOAT32 - dimension 2048)`.isSubtypeOf(`VECTOR (super type)`) shouldBe true
+    `VECTOR (super type - dimension 1024)`.isSubtypeOf(`VECTOR (super type)`) shouldBe true
+    `VECTOR (super type - FLOAT32)`.isSubtypeOf(`VECTOR (super type)`) shouldBe true
+    `VECTOR (FLOAT32 - dimension 2048)`.isSubtypeOf(`VECTOR (FLOAT32 - dimension 2048)`) shouldBe true
+    `VECTOR (super type - FLOAT32 NOT NULL)`.isSubtypeOf(`VECTOR (super type - FLOAT32 NOT NULL)`) shouldBe true
+    `VECTOR (FLOAT32 NOT NULL - dimension 2048)`.isSubtypeOf(`VECTOR (super type - FLOAT32 NOT NULL)`) shouldBe true
+    `VECTOR (FLOAT32 NOT NULL - dimension 2048)`.isSubtypeOf(`VECTOR (super type - FLOAT32)`) shouldBe true
+    `VECTOR (FLOAT32 NOT NULL - dimension 2048)`.isSubtypeOf(`VECTOR (FLOAT32 NOT NULL - dimension 2048)`) shouldBe true
+    `VECTOR (FLOAT32 NOT NULL - dimension 2048)`.isSubtypeOf(`VECTOR (FLOAT32 - dimension 2048)`) shouldBe true
+    `VECTOR (FLOAT32 - dimension 2048)`.isSubtypeOf(`VECTOR (FLOAT32 NOT NULL - dimension 2048)`) shouldBe true
+    `VECTOR (FLOAT32 NOT NULL - dimension 2048)`.isSubtypeOf(`VECTOR (super type - dimension 2048)`) shouldBe true
+    `VECTOR (super type - INTEGER64 NOT NULL)`.isSubtypeOf(`VECTOR (super type)`) shouldBe true
+    `VECTOR (super type - INTEGER32 NOT NULL)`.isSubtypeOf(`VECTOR (super type)`) shouldBe true
+
+    `VECTOR (super type - INTEGER32)`.isSubtypeOf(`VECTOR (super type - INTEGER64)`) shouldBe false
+    `VECTOR (super type - FLOAT32)`.isSubtypeOf(`VECTOR (super type - FLOAT64)`) shouldBe false
+    `VECTOR (super type - INTEGER64)`.isSubtypeOf(`VECTOR (INTEGER64 - dimension 1024)`) shouldBe false
+    `VECTOR (super type - INTEGER8)`.isSubtypeOf(`VECTOR (super type - INTEGER16)`) shouldBe false
+    `VECTOR (super type - dimension 1024)`.isSubtypeOf(`VECTOR (super type - dimension 2048)`) shouldBe false
+    `VECTOR (FLOAT32 - dimension 2048)`.isSubtypeOf(`VECTOR (FLOAT64 - dimension 2048)`) shouldBe false
+
+    // Simple type isSubtype if contained in Closed Dynamic Union
+    `VECTOR (super type)`.isSubtypeOf(`VECTOR (super type) | INTEGER`) shouldBe true
+    `VECTOR (super type)`.isSubtypeOf(`STRING | ANY`) shouldBe true
+  }
+
   test("listTypes isSubtype works as expected") {
     val `LIST<STRING>` = ListType(StringType(isNullable = true)(pos), isNullable = true)(pos)
     val `LIST<INTEGER>` = ListType(IntegerType(isNullable = true)(pos), isNullable = true)(pos)
@@ -1529,5 +1625,70 @@ class CypherTypeNameTest extends CypherFunSuite {
     `STRING | BOOLEAN NOT NULL | LIST<INTEGER>`.isSubtypeOf(`STRING | BOOLEAN NOT NULL | LIST<ANY>`) shouldBe true
     `STRING | BOOLEAN NOT NULL | LIST<INTEGER>`.isSubtypeOf(`ANY`) shouldBe true
     `STRING | LIST<INTEGER>`.isSubtypeOf(`ANY NOT NULL`) shouldBe false
+  }
+
+  private val orderedListOfVectors: Seq[CypherType] = Seq(
+    VectorType(None, None, isNullable = true)(pos),
+    VectorType(Some(Integer8Type(isNullable = false)(pos)), None, isNullable = true)(pos),
+    VectorType(Some(Integer8Type(isNullable = false)(pos)), Some(1024), isNullable = true)(pos),
+    VectorType(Some(Integer8Type(isNullable = false)(pos)), Some(2048), isNullable = true)(pos),
+    VectorType(Some(Integer16Type(isNullable = false)(pos)), None, isNullable = true)(pos),
+    VectorType(Some(Integer16Type(isNullable = false)(pos)), Some(1024), isNullable = true)(pos),
+    VectorType(Some(Integer16Type(isNullable = false)(pos)), Some(2048), isNullable = true)(pos),
+    VectorType(Some(Integer32Type(isNullable = false)(pos)), None, isNullable = true)(pos),
+    VectorType(Some(Integer32Type(isNullable = false)(pos)), Some(1024), isNullable = true)(pos),
+    VectorType(Some(Integer32Type(isNullable = false)(pos)), Some(2048), isNullable = true)(pos),
+    VectorType(Some(IntegerType(isNullable = false)(pos)), None, isNullable = true)(pos),
+    VectorType(Some(IntegerType(isNullable = false)(pos)), Some(1024), isNullable = true)(pos),
+    VectorType(Some(IntegerType(isNullable = false)(pos)), Some(2048), isNullable = true)(pos),
+    VectorType(Some(Float32Type(isNullable = false)(pos)), None, isNullable = true)(pos),
+    VectorType(Some(Float32Type(isNullable = false)(pos)), Some(1024), isNullable = true)(pos),
+    VectorType(Some(Float32Type(isNullable = false)(pos)), Some(2048), isNullable = true)(pos),
+    VectorType(Some(FloatType(isNullable = false)(pos)), None, isNullable = true)(pos),
+    VectorType(Some(FloatType(isNullable = false)(pos)), Some(1024), isNullable = true)(pos),
+    VectorType(Some(FloatType(isNullable = false)(pos)), Some(2048), isNullable = true)(pos),
+    VectorType(None, Some(1024), isNullable = true)(pos),
+    VectorType(None, Some(2048), isNullable = true)(pos)
+  )
+
+  test("Vector ordering works as expected") {
+    val randomizedInput = Random.shuffle(orderedListOfVectors.toSet)
+    randomizedInput.toList.sorted shouldBe orderedListOfVectors
+  }
+
+  test("Vector ordering within lists works as expected") {
+    val orderedListOfVectorsInsideLists: Seq[CypherType] = orderedListOfVectors.map(ct =>
+      ListType(ct, isNullable = true)(pos)
+    )
+
+    val randomizedInput = Random.shuffle(orderedListOfVectorsInsideLists.toSet)
+    randomizedInput.toList.sorted shouldBe orderedListOfVectorsInsideLists
+  }
+
+  test("Comparator contract holds") {
+    val someTypes = (setOfAllPropertyTypes.toSeq ++
+      orderedListOfVectors ++
+      typesWithoutInnerTypesPlusSimpleListPlusAny.flatMap(t => Seq(t._2(true), t._2(false))))
+      .flatMap(t => Seq(t, ListType(t, true)(pos), ListType(t, false)(pos)))
+    for {
+      x <- someTypes
+      y <- someTypes
+      z <- someTypes
+    } {
+      withClue(s"a=$x b=$y") {
+        // The implementor must ensure that signum(compare(x, y)) == -signum(compare(y, x)) for all x and y.
+        signum(CypherType.order.compare(x, y)) shouldBe -signum(CypherType.order.compare(y, x))
+
+        // The implementor must also ensure that the relation is transitive: ((compare(x, y)>0) && (compare(y, z)>0)) implies compare(x, z)>0.
+        if (CypherType.order.compare(x, y) > 0 && CypherType.order.compare(y, z) > 0) {
+          CypherType.order.compare(x, y) should be > 0
+        }
+
+        // Finally, the implementor must ensure that compare(x, y)==0 implies that signum(compare(x, z))==signum(compare(y, z)) for all z.
+        if (CypherType.order.compare(x, y) == 0) {
+          signum(CypherType.order.compare(x, z)) shouldBe signum(CypherType.order.compare(y, z))
+        }
+      }
+    }
   }
 }

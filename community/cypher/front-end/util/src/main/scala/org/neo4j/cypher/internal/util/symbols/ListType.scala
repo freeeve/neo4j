@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.util.symbols
 
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.symbols.CypherType.normalizeTypes
 
 case class ListType(innerType: CypherType, isNullable: Boolean)(val position: InputPosition) extends CypherType {
 
@@ -27,6 +28,15 @@ case class ListType(innerType: CypherType, isNullable: Boolean)(val position: In
 
   override def parents: Seq[CypherType] =
     innerType.parents.map(innerTypeParent => this.copy(innerTypeParent, isNullable)(position)) ++ super.parents
+
+  override lazy val covariant: TypeSpec = this.invariant.covariant
+
+  override lazy val invariant: TypeSpec = normalizeTypes(this.innerType) match {
+    case c: ClosedDynamicUnionType if c.innerTypes.forall(innerType => innerType.parentType == CTNumber) =>
+      TypeSpec.exact(CTList(CTNumber))
+    case _: ClosedDynamicUnionType => this.copy(CTAny)(position).invariant
+    case _                         => TypeSpec.exact(this)
+  }
 
   override val toString = s"List<$innerType>"
   override val toCypherTypeString = s"LIST<${innerType.description}>"
