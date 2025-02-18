@@ -35,6 +35,7 @@ import org.neo4j.values.storable.Value;
  */
 record ParquetColumn(
         String columnName,
+        HeaderDefinition headerDefinition,
         String propertyName,
         String groupName,
         ParquetLogicalColumnType logicalColumnType,
@@ -43,28 +44,61 @@ record ParquetColumn(
         String rawConfiguration,
         Map<String, String> configuration) {
 
-    static ParquetColumn from(String columnNameValue, EntityType knownEntityType) {
-        var columnName = columnNameValue;
-        boolean isArray = hasArrayDefinition(columnNameValue);
+    interface HeaderDefinition {
+
+        String targetColumnName();
+
+        String parquetColumnName();
+
+        default DefaultHeaderDefinition addParquetColumnName(String parquetColumnName) {
+            return new DefaultHeaderDefinition(targetColumnName(), parquetColumnName);
+        }
+
+        static HeaderDefinition from(String columnName, String originalColumn) {
+            return new DefaultHeaderDefinition(columnName, originalColumn);
+        }
+
+        static HeaderDefinition from(String columnName) {
+            return new SingleRowHeaderDefinition(columnName);
+        }
+    }
+    /**
+     * This entry would represent the very same data as the ParquetColumn itself,
+     * if there is no special header definition
+     *
+     * @param targetColumnName column name to be set as property name in Neo4j
+     * @param parquetColumnName points to the column name in the parquet file
+     */
+    record DefaultHeaderDefinition(String targetColumnName, String parquetColumnName) implements HeaderDefinition {}
+
+    record SingleRowHeaderDefinition(String targetColumnName) implements HeaderDefinition {
+        @Override
+        public String parquetColumnName() {
+            return targetColumnName();
+        }
+    }
+
+    static ParquetColumn from(HeaderDefinition headerDefinition, EntityType knownEntityType) {
+        String targetColumnName = headerDefinition.targetColumnName();
+        boolean isArray = hasArrayDefinition(targetColumnName);
         // get rid of the array definition after we looked for its presence
-        columnNameValue = columnNameValue.replace("[]", "");
+        String columnName = targetColumnName.replace("[]", "");
 
-        EnclosureMatch groupNameMatch = extractGroupName(columnNameValue);
-        EnclosureMatch configurationMatch = extractConfiguration(columnNameValue);
+        EnclosureMatch groupNameMatch = extractGroupName(columnName);
+        EnclosureMatch configurationMatch = extractConfiguration(columnName);
 
-        columnNameValue = groupNameMatch.removeFrom(columnNameValue);
-        columnNameValue =
-                configurationMatch.adjustAfterRemovalOf(groupNameMatch).removeFrom(columnNameValue);
-        var propertyName = extractPropertyName(columnNameValue);
+        columnName = groupNameMatch.removeFrom(columnName);
+        columnName = configurationMatch.adjustAfterRemovalOf(groupNameMatch).removeFrom(columnName);
+        var propertyName = extractPropertyName(columnName);
 
-        var logicalColumnType =
-                ParquetLogicalColumnType.resolve(extractLogicalColumnType(columnNameValue), knownEntityType);
-        var columnType = ParquetColumnType.resolve(extractColumnType(logicalColumnType, columnNameValue));
+        var logicalColumnType = ParquetLogicalColumnType.resolve(extractLogicalColumnType(columnName), knownEntityType);
+        var columnType = ParquetColumnType.resolve(extractColumnType(logicalColumnType, columnName));
 
         String rawConfiguration = configurationMatch.getMatch();
         Map<String, String> configuration = parseConfiguration(rawConfiguration);
         return new ParquetColumn(
                 columnName,
+                headerDefinition,
                 propertyName,
                 groupNameMatch.getMatch(),
                 logicalColumnType,
@@ -149,6 +183,7 @@ record ParquetColumn(
     ParquetColumn withoutArray() {
         return new ParquetColumn(
                 columnName(),
+                headerDefinition(),
                 propertyName(),
                 groupName(),
                 logicalColumnType(),

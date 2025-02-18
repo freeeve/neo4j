@@ -22,9 +22,11 @@ package org.neo4j.internal.batchimport.input.parquet;
 import static org.neo4j.util.Preconditions.checkState;
 
 import blue.strategic.parquet.ParquetReader;
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -54,6 +56,7 @@ import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.batchimport.api.input.PropertySizeCalculator;
 import org.neo4j.batchimport.api.input.ReadableGroups;
 import org.neo4j.cloud.storage.io.ReadableChannel;
+import org.neo4j.csv.reader.Configuration;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.input.HeaderException;
 import org.neo4j.internal.batchimport.input.InputException;
@@ -79,29 +82,21 @@ public class ParquetInput implements Input {
     private final Map<String, List<Path[]>> relationshipFiles;
     private final Map<Path, List<ParquetColumn>> verifiedColumns;
     private final String arrayDelimiter;
-
-    public ParquetInput(
-            Map<Set<String>, List<Path[]>> nodeFiles,
-            Map<String, List<Path[]>> relationshipFiles,
-            IdType idType,
-            Character arrayDelimiter,
-            Groups groups,
-            ParquetMonitor monitor) {
-        this(nodeFiles, relationshipFiles, Collections.emptyList(), idType, arrayDelimiter, groups, monitor);
-    }
+    private final String csvDelimiter;
 
     public ParquetInput(
             Map<Set<String>, List<Path[]>> nodeFiles,
             Map<String, List<Path[]>> relationshipFiles,
             List<SchemaCommand> schemaCommands,
             IdType idType,
-            Character arrayDelimiter,
+            Configuration csvConfig,
             Groups groups,
             ParquetMonitor monitor) {
         this.idType = idType;
         this.groups = groups;
         this.monitor = monitor;
-        this.arrayDelimiter = arrayDelimiter.toString();
+        this.arrayDelimiter = ((Character) csvConfig.arrayDelimiter()).toString();
+        this.csvDelimiter = ((Character) csvConfig.delimiter()).toString();
         this.nodeFiles = nodeFiles;
         this.relationshipFiles = relationshipFiles;
         this.schemaCommands = schemaCommands;
@@ -109,13 +104,17 @@ public class ParquetInput implements Input {
         this.verifiedColumns = verifyColumns(nodeFiles, relationshipFiles);
         this.nodeDatas = nodeFiles.entrySet().stream()
                 .flatMap(e -> e.getValue().stream().map(p -> Map.entry(e.getKey(), p)))
-                .flatMap(e -> Arrays.stream(e.getValue()).map(p -> Map.entry(e.getKey(), p)))
+                .flatMap(e -> Arrays.stream(e.getValue())
+                        .filter(files -> !files.toString().endsWith(".csv"))
+                        .map(p -> Map.entry(e.getKey(), p)))
                 .map(e -> new ParquetData(
                         e.getKey(), e.getValue(), verifiedColumns.get(e.getValue()), defaultTimezoneSupplier))
                 .toList();
         this.relationshipDatas = relationshipFiles.entrySet().stream()
                 .flatMap(e -> e.getValue().stream().map(p -> Map.entry(e.getKey(), p)))
-                .flatMap(e -> Arrays.stream(e.getValue()).map(p -> Map.entry(e.getKey(), p)))
+                .flatMap(e -> Arrays.stream(e.getValue())
+                        .filter(files -> !files.toString().endsWith(".csv"))
+                        .map(p -> Map.entry(e.getKey(), p)))
                 .map(e -> new ParquetData(
                         Set.of(e.getKey()), e.getValue(), verifiedColumns.get(e.getValue()), defaultTimezoneSupplier))
                 .toList();
@@ -146,8 +145,75 @@ public class ParquetInput implements Input {
         return schemaCommands;
     }
 
+    private static class HeaderContext {
+        private final Set<Set<String>> nodeHeaders = new HashSet<>();
+        private final Set<String> relationshipHeaders = new HashSet<>();
+
+        private final Map<List<Path>, Map<String, ParquetColumn.HeaderDefinition>> headerColumnNameDefinitions =
+                new HashMap<>();
+        private final Map<List<Path>, Map<Integer, ParquetColumn.HeaderDefinition>> headerColumnIndexDefinitions =
+                new HashMap<>();
+
+        private void setHeaderFileExistsFor(Set<String> labels) {
+            nodeHeaders.add(labels);
+        }
+
+        private boolean hasHeader(Set<String> labels) {
+            return nodeHeaders.contains(labels);
+        }
+
+        private void setHeaderFileExistsFor(String type) {
+            relationshipHeaders.add(type);
+        }
+
+        private boolean hasHeader(String type) {
+            return relationshipHeaders.contains(type);
+        }
+
+        private void addHeaderDefinition(
+                List<Path> files, String columnName, ParquetColumn.HeaderDefinition headerDefinition) {
+            headerColumnNameDefinitions.putIfAbsent(files, new HashMap<>());
+            headerColumnNameDefinitions.get(files).put(columnName, headerDefinition);
+        }
+
+        private void addHeaderDefinition(
+                List<Path> files, Integer index, ParquetColumn.HeaderDefinition headerDefinition) {
+            headerColumnIndexDefinitions.putIfAbsent(files, new HashMap<>());
+            headerColumnIndexDefinitions.get(files).put(index, headerDefinition);
+        }
+
+        private ParquetColumn.HeaderDefinition getHeaderDefinition(List<Path> files, Integer index, String columnName) {
+            if (headerColumnNameDefinitions.get(files) != null) {
+                return headerColumnNameDefinitions.get(files).get(columnName);
+            }
+
+            if (headerColumnIndexDefinitions.get(files) != null) {
+                return headerColumnIndexDefinitions.get(files).get(index).addParquetColumnName(columnName);
+            }
+
+            return new ParquetColumn.SingleRowHeaderDefinition(columnName);
+        }
+
+        private boolean isNotIncludedInHeaderDefinition(List<Path> value, Integer index, String columnName) {
+            return (headerColumnNameDefinitions.containsKey(value)
+                            && !headerColumnNameDefinitions.get(value).containsKey(columnName))
+                    || (headerColumnIndexDefinitions.containsKey(value)
+                            && !headerColumnIndexDefinitions.get(value).containsKey(index));
+        }
+
+        private boolean columnShouldBeSkipped(Set<String> labels, List<Path> nodeFiles, int index, String columnName) {
+            return hasHeader(labels) && isNotIncludedInHeaderDefinition(nodeFiles, index, columnName);
+        }
+
+        private boolean columnShouldBeSkipped(String type, List<Path> relationshipFiles, int index, String columnName) {
+            return hasHeader(type) && isNotIncludedInHeaderDefinition(relationshipFiles, index, columnName);
+        }
+    }
+
     private Map<Path, List<ParquetColumn>> verifyColumns(
             Map<Set<String>, List<Path[]>> labelsAndNodeFiles, Map<String, List<Path[]>> typeAndRelationshipFiles) {
+
+        var headerContext = new HeaderContext();
 
         Map<Path, List<ParquetColumn>> columnInfo = new HashMap<>();
         try {
@@ -157,7 +223,12 @@ public class ParquetInput implements Input {
                 var nodeFiles = labelsAndNodeFilesEntry.getValue().stream()
                         .flatMap(Arrays::stream)
                         .toList();
+
                 for (Path nodeFile : nodeFiles) {
+                    if (processPotentialHeaderFile(nodeFile, nodeFiles, headerContext)) {
+                        headerContext.setHeaderFileExistsFor(labelsAndNodeFilesEntry.getKey());
+                        continue;
+                    }
                     ParquetMetadata metadata = null;
                     try {
                         metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(nodeFile));
@@ -173,14 +244,21 @@ public class ParquetInput implements Input {
                     Set<String> structColumns = new HashSet<>();
                     // check for possible group / ID space definitions and register them
                     String fileName = nodeFile.getFileName().toString();
-                    for (ColumnDescriptor columnDescriptor : columns) {
+                    for (int i = 0; i < columns.size(); i++) {
+                        ColumnDescriptor columnDescriptor = columns.get(i);
                         String[] namePath = columnDescriptor.getPath();
                         var columnName = namePath[0];
                         if (columnName.isBlank()) {
                             throw new InputException("column name must not be blank");
                         }
                         try {
-                            var parquetColumn = ParquetColumn.from(columnName, EntityType.NODE);
+                            // ignore missing column in header definition
+                            if (headerContext.columnShouldBeSkipped(
+                                    labelsAndNodeFilesEntry.getKey(), nodeFiles, i, columnName)) {
+                                continue;
+                            }
+                            var parquetColumn = ParquetColumn.from(
+                                    headerContext.getHeaderDefinition(nodeFiles, i, columnName), EntityType.NODE);
                             if (parquetColumn.isIgnoredColumn()) {
                                 continue;
                             }
@@ -247,7 +325,6 @@ public class ParquetInput implements Input {
                     columnInfo.put(nodeFile, currentColumnInfo);
                 }
             }
-
             for (Map.Entry<String, List<Path[]>> typeAndRelationshipFilesEntry : typeAndRelationshipFiles.entrySet()) {
 
                 // parse all relationship headers and verify all ID spaces
@@ -257,6 +334,10 @@ public class ParquetInput implements Input {
                 Set<String> mapColumns = new HashSet<>();
                 Set<String> structColumns = new HashSet<>();
                 for (Path relationshipFile : relationshipFileList) {
+                    if (processPotentialHeaderFile(relationshipFile, relationshipFileList, headerContext)) {
+                        headerContext.setHeaderFileExistsFor(typeAndRelationshipFilesEntry.getKey());
+                        continue;
+                    }
                     ParquetMetadata metadata = null;
                     try {
                         metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(relationshipFile));
@@ -270,11 +351,18 @@ public class ParquetInput implements Input {
                     var hasTypeColumn = typeAndRelationshipFilesEntry.getKey() != null
                             && !typeAndRelationshipFilesEntry.getKey().isBlank();
                     String fileName = relationshipFile.getFileName().toString();
-                    for (ColumnDescriptor columnDescriptor : columns) {
+                    for (int i = 0; i < columns.size(); i++) {
+                        ColumnDescriptor columnDescriptor = columns.get(i);
                         String[] namePath = columnDescriptor.getPath();
                         var columnName = namePath[0];
                         try {
-                            var parquetColumn = ParquetColumn.from(columnName, EntityType.RELATIONSHIP);
+                            if (headerContext.columnShouldBeSkipped(
+                                    typeAndRelationshipFilesEntry.getKey(), relationshipFileList, i, columnName)) {
+                                continue;
+                            }
+                            var parquetColumn = ParquetColumn.from(
+                                    headerContext.getHeaderDefinition(relationshipFileList, i, columnName),
+                                    EntityType.RELATIONSHIP);
                             if (parquetColumn.isIgnoredColumn()) {
                                 continue;
                             }
@@ -337,6 +425,56 @@ public class ParquetInput implements Input {
         }
 
         return columnInfo;
+    }
+
+    private boolean processPotentialHeaderFile(Path path, List<Path> paths, HeaderContext headerContext)
+            throws IOException {
+        if (!isHeaderFile(path, paths)) {
+            return false;
+        }
+        try (var csvInputStream = new BufferedReader(
+                new InputStreamReader(path.getFileSystem().provider().newInputStream(path)))) {
+            var lines = csvInputStream.lines().toList();
+            if (lines.isEmpty() || lines.stream().allMatch(String::isBlank)) {
+                throw new IllegalArgumentException("The header definition is empty");
+            }
+            if (lines.size() > 2) {
+                throw new IllegalArgumentException("The header is expected to have one or two lines");
+            }
+            if (lines.size() == 1) { // CSV import style header
+                var targetColumnNames = Arrays.stream(lines.getFirst().split(csvDelimiter))
+                        .map(String::trim)
+                        .toList();
+                for (int i = 0; i < targetColumnNames.size(); i++) {
+                    headerContext.addHeaderDefinition(
+                            paths, i, ParquetColumn.HeaderDefinition.from(targetColumnNames.get(i)));
+                }
+            } else { // Parquet import style header
+                var targetColumnNames = Arrays.stream(lines.get(0).split(csvDelimiter))
+                        .map(String::trim)
+                        .toList();
+                var existingParquetColumns = Arrays.stream(lines.get(1).split(csvDelimiter))
+                        .map(String::trim)
+                        .toList();
+                for (int i = 0; i < targetColumnNames.size(); i++) {
+                    headerContext.addHeaderDefinition(
+                            paths,
+                            existingParquetColumns.get(i),
+                            ParquetColumn.HeaderDefinition.from(
+                                    targetColumnNames.get(i), existingParquetColumns.get(i)));
+                }
+            }
+        }
+        return true;
+    }
+
+    private boolean isHeaderFile(Path path, List<Path> paths) {
+        boolean isHeaderFile = path.toString().endsWith(".csv");
+        if (isHeaderFile && paths.indexOf(path) != 0) {
+            throw new IllegalArgumentException(
+                    "CSV header file for parquet data import must appear only once, as the first entry");
+        }
+        return isHeaderFile;
     }
 
     @Override

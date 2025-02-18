@@ -196,8 +196,9 @@ class ParquetInputBatchImportIT {
         return new ParquetInput(
                 Map.of(Set.of(""), Collections.singletonList(nodeArray)),
                 Map.of("", Collections.singletonList(relationshipArray)),
+                List.of(),
                 idType,
-                ';',
+                Configuration.newBuilder().build(),
                 groups,
                 new ParquetMonitor(System.out));
     }

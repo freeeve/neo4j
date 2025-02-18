@@ -41,6 +41,7 @@ import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 
 import blue.strategic.parquet.ParquetWriter;
 import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -71,6 +72,7 @@ import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.IdType;
 import org.neo4j.batchimport.api.input.Input;
 import org.neo4j.batchimport.api.input.InputChunk;
+import org.neo4j.csv.reader.Configuration;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.internal.batchimport.input.InputEntity;
 import org.neo4j.internal.batchimport.input.InputException;
@@ -132,8 +134,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named(":LABEL")),
                 List.<Object[]>of(new Object[] {123L, "Mattias Persson", "HACKER"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -142,12 +144,349 @@ class ParquetInputTest {
     }
 
     @Test
+    void shouldProvideNodesFromParquetInputWithHeaderFile() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ignored-column-id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "USER"}));
+        Path headerFile = createHeaderFile(
+                List.of(":ID", "name", ":Label"),
+                List.of("ignored-column-id", "ignored-column-name", "ignored-column-label"));
+
+        Input input = createParquetInput(
+                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldProvideNodesFromMultipleParquetInputsWithHeaderFile() throws Exception {
+        // GIVEN
+        Path nodeFile1 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ignored-column-id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "USER"}));
+        Path nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ignored-column-id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-label")),
+                List.<Object[]>of(new Object[] {456L, "SomeoneElse", "USER"}));
+        Path headerFile = createHeaderFile(
+                List.of(":ID", "name", ":Label"),
+                List.of("ignored-column-id", "ignored-column-name", "ignored-column-label"));
+
+        Input input = createParquetInput(
+                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile, nodeFile1, nodeFile2})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
+            assertNextNode(nodes, 456L, properties("name", "SomeoneElse"), labels("HACKER", "USER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldProvideNodesFromMultipleParquetInputsAndDifferentColumnOrderingWithHeaderFile() throws Exception {
+        // GIVEN
+        Path nodeFile1 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ignored-column-id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "USER"}));
+        Path nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-label"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ignored-column-id")),
+                List.<Object[]>of(new Object[] {"USER", "SomeoneElse", 456L}));
+        Path headerFile = createHeaderFile(
+                List.of(":ID", "name", ":Label"),
+                List.of("ignored-column-id", "ignored-column-name", "ignored-column-label"));
+
+        Input input = createParquetInput(
+                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile, nodeFile1, nodeFile2})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
+            assertNextNode(nodes, 456L, properties("name", "SomeoneElse"), labels("HACKER", "USER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldProvideNodesFromParquetInputWithHeaderFileReducedColumns() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ignored-column-id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "USER"}));
+        Path headerFile =
+                createHeaderFile(List.of(":ID", ":Label"), List.of("ignored-column-id", "ignored-column-label"));
+
+        Input input = createParquetInput(
+                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties(), labels("HACKER", "USER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldOnlyApplyHeadersInTheSameNodeGroup() throws Exception {
+        // GIVEN
+        Path nodeFile1 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":Label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "HACKER"}));
+
+        Path nodeFile2 = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":Label")),
+                List.<Object[]>of(new Object[] {456L, "SomeoneElse", "HACKER"}));
+
+        Path headerFile = createHeaderFile(List.of(":ID,new_name,:Label"), List.of(":ID,name,:Label"));
+
+        Input input = createParquetInput(
+                Map.of(
+                        Set.of(),
+                        List.<Path[]>of(new Path[] {nodeFile1}),
+                        Set.of("somethingElse"),
+                        List.<Path[]>of(new Path[] {headerFile, nodeFile2})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            List<InputEntity.Property> allProperties = new ArrayList<>();
+            readNext(nodes);
+            allProperties.addAll(visitor.properties);
+            readNext(nodes);
+            allProperties.addAll(visitor.properties);
+
+            assertThat(allProperties)
+                    .satisfiesExactlyInAnyOrder(
+                            propertyNode1 -> {
+                                assertThat(propertyNode1.asValue()).isEqualTo(Values.stringValue("Mattias Persson"));
+                                assertThat(propertyNode1.key()).isEqualTo("name");
+                            },
+                            propertyNode2 -> {
+                                assertThat(propertyNode2.asValue()).isEqualTo(Values.stringValue("SomeoneElse"));
+                                assertThat(propertyNode2.key()).isEqualTo("new_name");
+                            });
+        }
+    }
+
+    @Test
+    void failIfNodeHeaderFileIsNotFirstFile() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":Label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "HACKER"}));
+        Path headerFile = createHeaderFile(List.of("should_not_be_applied"), List.of("name"));
+
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(), List.<Path[]>of(new Path[] {nodeFile, headerFile})),
+                        Map.of(),
+                        INTEGER,
+                        groups,
+                        MONITOR))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(
+                        "CSV header file for parquet data import must appear only once, as the first entry");
+    }
+
+    @Test
+    void failIfHeaderHasMoreThanTwoRows() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ignored-column-id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "HACKER"}));
+        Path headerFile = directory.file("header.csv");
+        try (var writer = new BufferedWriter(new FileWriter(headerFile.toFile()))) {
+            writer.write(":ID,name,:Label");
+            writer.newLine();
+            writer.write("ignored-column-id,ignored-column-name,ignored-column-label");
+            writer.newLine();
+            writer.write("idkid,idkname,idklabel");
+            writer.newLine();
+        }
+
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                        Map.of(),
+                        INTEGER,
+                        groups,
+                        MONITOR))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("The header is expected to have one or two lines");
+    }
+
+    @Test
+    void failIfHeaderIsEmptyOrBlank() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named(":ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":Label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "HACKER"}));
+        Path headerFile = directory.file("header.csv");
+        try (var writer = new BufferedWriter(new FileWriter(headerFile.toFile()))) {
+            writer.newLine();
+        }
+
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(Set.of(), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                        Map.of(),
+                        INTEGER,
+                        groups,
+                        MONITOR))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("The header definition is empty");
+    }
+
+    @Test
+    void shouldProvideNodesFromParquetInputWithSingleLineHeaderFile() throws Exception {
+        // GIVEN
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("ignored-column-id"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-name"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("ignored-column-label")),
+                List.<Object[]>of(new Object[] {123L, "Mattias Persson", "USER"}));
+        Path headerFile = createHeaderFile(List.of(":ID", "name", ":Label"), List.of());
+
+        Input input = createParquetInput(
+                Map.of(Set.of("HACKER"), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                Map.of(),
+                INTEGER,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER", "USER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldStoreIdAsPropertyInSpecificValueTypeWithHeader() throws Exception {
+        Path nodeFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("notid"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("notprop")),
+                List.<Object[]>of(new Object[] {123, "val"}));
+        Path headerFile = createHeaderFile(List.of("id:ID{id-type:int}", "prop"), List.of());
+        try (var input = createParquetInput(
+                        Map.of(Set.of(""), List.<Path[]>of(new Path[] {headerFile, nodeFile})),
+                        Map.of(),
+                        STRING,
+                        groups,
+                        new ParquetMonitor(System.out));
+                var nodes = input.nodes(EMPTY).iterator()) {
+            // then
+            assertNextNode(nodes, 123, properties("id", 123, "prop", "val"), labels());
+            assertFalse(readNext(nodes));
+        }
+    }
+
+    @Test
     void shouldReadListTypes() throws Exception {
         // GIVEN
         var fileUrl = getClass().getResource("/parquet/list.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -164,8 +503,8 @@ class ParquetInputTest {
         // GIVEN
         var fileUrl = getClass().getResource("/parquet/list_single.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", List.of("a"), "name", "Mattias Persson"), labels("HACKER"));
@@ -178,8 +517,8 @@ class ParquetInputTest {
         // GIVEN
         var fileUrl = getClass().getResource("/parquet/list_empty.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aList", List.of(), "name", "Mattias Persson"), labels("HACKER"));
@@ -192,8 +531,8 @@ class ParquetInputTest {
         // GIVEN
         var fileUrl = getClass().getResource("/parquet/list_null.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -206,8 +545,8 @@ class ParquetInputTest {
         // GIVEN
         var fileUrl = getClass().getResource("/parquet/map.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -224,8 +563,8 @@ class ParquetInputTest {
         // GIVEN
         var fileUrl = getClass().getResource("/parquet/map_multiple.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -254,8 +593,8 @@ class ParquetInputTest {
         // GIVEN
         var fileUrl = getClass().getResource("/parquet/map_empty.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -268,8 +607,8 @@ class ParquetInputTest {
         // GIVEN
         var fileUrl = getClass().getResource("/parquet/map_null.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -282,8 +621,8 @@ class ParquetInputTest {
         // GIVEN
         var fileUrl = getClass().getResource("/parquet/map_single.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("aMap.x", "abcd", "name", "Mattias Persson"), labels("HACKER"));
@@ -298,13 +637,8 @@ class ParquetInputTest {
         var nodeFile = Path.of(fileUrl.toURI());
         // WHEN/THEN
         try {
-            Input input = new ParquetInput(
-                    Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
-                    Map.of(),
-                    INTEGER,
-                    ';',
-                    groups,
-                    MONITOR);
+            Input input = createParquetInput(
+                    Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
             fail("Should have failed");
         } catch (DuplicatedColumnException e) {
             // THEN
@@ -318,8 +652,8 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/struct.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         System.out.println(nodeFile.toAbsolutePath());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -337,8 +671,8 @@ class ParquetInputTest {
         var fileUrl = getClass().getResource("/parquet/struct_multiple.parquet");
         var nodeFile = Path.of(fileUrl.toURI());
         System.out.println(nodeFile.toAbsolutePath());
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(
@@ -378,13 +712,150 @@ class ParquetInputTest {
                 List.of(
                         new Object[] {"node1", "node2", "KNOWS", 1234567L},
                         new Object[] {"node2", "node10", "HACKS", 987654L}));
-        Input input = new ParquetInput(
-                Map.of(), Map.of("", List.<Path[]>of(new Path[] {relationshipFile})), STRING, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(), Map.of("", List.<Path[]>of(new Path[] {relationshipFile})), STRING, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
             assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
         }
+    }
+
+    @Test
+    void shouldProvideRelationshipsFromParquetInputWithHeaderFile() throws Exception {
+        // GIVEN
+        Path relationshipFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("notstartid"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("notendid"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("nottype"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("notsince")),
+                List.of(
+                        new Object[] {"node1", "node2", "KNOWS", 1234567L},
+                        new Object[] {"node2", "node10", "HACKS", 987654L}));
+
+        Path headerFile = createHeaderFile(
+                List.of(":START_ID", ":END_ID", ":Type", "since"),
+                List.of("notstartid", "notendid", "nottype", "notsince"));
+        Input input = createParquetInput(
+                Map.of(),
+                Map.of("", List.<Path[]>of(new Path[] {headerFile, relationshipFile})),
+                STRING,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
+            assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
+            assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
+        }
+    }
+
+    @Test
+    void shouldProvideRelationshipsFromParquetInputWithHeaderFileReducedColumns() throws Exception {
+        // GIVEN
+        Path relationshipFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("notstartid"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("notendid"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named("nottype"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("notsince")),
+                List.of(
+                        new Object[] {"node1", "node2", "KNOWS", 1234567L},
+                        new Object[] {"node2", "node10", "HACKS", 987654L}));
+
+        Path headerFile = createHeaderFile(
+                List.of(":START_ID", ":END_ID", ":Type"), List.of("notstartid", "notendid", "nottype"));
+        Input input = createParquetInput(
+                Map.of(),
+                Map.of("", List.<Path[]>of(new Path[] {headerFile, relationshipFile})),
+                STRING,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
+            assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties());
+            assertNextRelationship(relationships, "node2", "node10", "HACKS", properties());
+        }
+    }
+
+    @Test
+    void shouldOnlyApplyHeadersInTheSameRelationshipGroup() throws Exception {
+        // GIVEN
+        Path relationshipFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":START_ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":END_ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":TYPE"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("since")),
+                List.of(
+                        new Object[] {"node1", "node2", "KNOWS", 1234567L},
+                        new Object[] {"node2", "node10", "HACKS", 987654L}));
+
+        Path headerFile = createHeaderFile(
+                List.of(":START_ID", ":END_ID", ":Type"), List.of("notstartid", "notendid", "nottype"));
+        Input input = createParquetInput(
+                Map.of(),
+                Map.of("", List.<Path[]>of(new Path[] {relationshipFile}), "ignore_me", List.<Path[]>of(new Path[] {
+                    headerFile
+                })),
+                STRING,
+                groups,
+                MONITOR);
+        // WHEN/THEN
+        try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
+            assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
+            assertNextRelationship(relationships, "node2", "node10", "HACKS", properties("since", 987654L));
+        }
+    }
+
+    @Test
+    void failIfRelationshipHeaderFileIsNotFirstFile() throws Exception {
+        // GIVEN
+        Path relationshipFile = createParquetFile(
+                List.of(
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":START_ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":END_ID"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.BINARY)
+                                .as(LogicalTypeAnnotation.stringType())
+                                .named(":TYPE"),
+                        Types.required(PrimitiveType.PrimitiveTypeName.INT64).named("since")),
+                List.of(
+                        new Object[] {"node1", "node2", "KNOWS", 1234567L},
+                        new Object[] {"node2", "node10", "HACKS", 987654L}));
+
+        Path headerFile = createHeaderFile(
+                List.of(":START_ID", ":END_ID", ":Type"), List.of("notstartid", "notendid", "nottype"));
+        assertThatThrownBy(() -> createParquetInput(
+                        Map.of(),
+                        Map.of("", List.<Path[]>of(new Path[] {relationshipFile, headerFile})),
+                        STRING,
+                        groups,
+                        MONITOR))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(
+                        "CSV header file for parquet data import must appear only once, as the first entry");
     }
 
     @Test
@@ -410,11 +881,10 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("type")),
                 List.of(new Object[] {"3", "zergling"}, new Object[] {"4", "csv"}));
-        Input input = new ParquetInput(
+        Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
                 Map.of(),
                 STRING,
-                ';',
                 groups,
                 MONITOR);
         // WHEN iterating over them, THEN the expected data should come out
@@ -443,11 +913,10 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "First", ""}, new Object[] {1, "Second", "One"}, new Object[] {
                     2, "Third", "One;Two"
                 }));
-        Input input = new ParquetInput(
+        Input input = createParquetInput(
                 Map.of(Set.of(addedLabels), List.<Path[]>of(new Path[] {nodeFile})),
                 Map.of(),
                 INTEGER,
-                ';',
                 groups,
                 MONITOR);
         // WHEN/THEN
@@ -472,11 +941,10 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named(":TYPE")),
                 List.of(new Object[] {0, 1, ""}, new Object[] {1, 2, customType}, new Object[] {2, 1, defaultType}));
-        Input input = new ParquetInput(
+        Input input = createParquetInput(
                 Map.of(),
                 Map.of(defaultType, List.<Path[]>of(new Path[] {relationshipFile})),
                 INTEGER,
-                ';',
                 groups,
                 MONITOR);
 
@@ -499,8 +967,8 @@ class ParquetInputTest {
                                 .named("name"),
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("level")),
                 List.of(new Object[] {"Mattias", 1}, new Object[] {"Johan", 2}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -523,8 +991,8 @@ class ParquetInputTest {
                                 .named("name"),
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("level")),
                 List.of(new Object[] {"abc", "Mattias", 1}, new Object[] {null, "Johan", 2}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -547,8 +1015,8 @@ class ParquetInputTest {
                                 .named("name"),
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("level")),
                 List.of(new Object[] {"abc", "Mattias", 1}, new Object[] {null, "Johan", 2}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), STRING, groups, MONITOR);
 
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -570,8 +1038,8 @@ class ParquetInputTest {
                                 .named("name"),
                         Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("level")),
                 List.of(new Object[] {0, "Mattias", 1}, new Object[] {1, "Johan", 2}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), ACTUAL, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), ACTUAL, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -594,8 +1062,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("extra")),
                 List.of(new Object[] {0, "Mattias", null}, new Object[] {1, "Johan", "Additional"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -618,8 +1086,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("extra")),
                 List.of(new Object[] {0, "Mattias", ""}, new Object[] {1, "Johan", "Additional"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -644,8 +1112,8 @@ class ParquetInputTest {
                 List.of(
                         new Object[] {0, "Mattias", "{x: 2.7, y:3.2 }"},
                         new Object[] {1, "Johan", " { height :0.01 ,longitude:5, latitude : -4.2 } "}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -685,8 +1153,8 @@ class ParquetInputTest {
                                 .named("point:Point")),
                 List.<Object[]>of(
                         new Object[] {0, "Johan", " { height :0.01 ,longitude:5, latitude : -4.2, latitude : 4.2 } "}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -710,8 +1178,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("point:Point{crs:WGS-84-3D}")),
                 List.<Object[]>of(new Object[] {0, "Johan", " { height :0.01 ,longitude:5, latitude : -4.2 } "}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -741,8 +1209,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("point:Point{crs:WGS-84}")),
                 List.<Object[]>of(new Object[] {0, "Johan", " { x :1 ,y:2 } "}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -768,8 +1236,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("date:Date")),
                 List.of(new Object[] {0, "Mattias", "2018-02-27"}, new Object[] {1, "Johan", "2018-03-01"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -794,8 +1262,8 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", "13:37"}, new Object[] {1, "Johan", "16:20:01"}, new Object[] {
                     2, "Bob", "07:30-05:00"
                 }));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -824,8 +1292,8 @@ class ParquetInputTest {
                 List.of(new Object[] {0, "Mattias", "13:37"}, new Object[] {1, "Johan", "16:20:01"}, new Object[] {
                     2, "Bob", "07:30-05:00"
                 }));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -855,8 +1323,8 @@ class ParquetInputTest {
                         new Object[] {0, "Mattias", "2018-02-27T13:37"},
                         new Object[] {1, "Johan", "2018-03-01T16:20:01"},
                         new Object[] {2, "Bob", "1981-05-11T07:30-05:00"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -895,8 +1363,8 @@ class ParquetInputTest {
                         new Object[] {0, "Mattias", "2018-02-27T13:37"},
                         new Object[] {1, "Johan", "2018-03-01T16:20:01"},
                         new Object[] {2, "Bob", "1981-05-11T07:30-05:00"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -940,8 +1408,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("time:LocalTime")),
                 List.of(new Object[] {0, "Mattias", "13:37"}, new Object[] {1, "Johan", "16:20:01"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -967,8 +1435,8 @@ class ParquetInputTest {
                                 .named("time:LocalDateTime")),
                 List.of(new Object[] {0, "Mattias", "2018-02-27T13:37"}, new Object[] {1, "Johan", "2018-03-01T16:20:01"
                 }));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -999,8 +1467,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("duration:Duration")),
                 List.of(new Object[] {0, "Mattias", "P3MT13H37M"}, new Object[] {1, "Johan", "P-1YT4H20M"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             // THEN
@@ -1030,8 +1498,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("name")),
                 List.of(new Object[] {123, "one"}, new Object[] {456, "two"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, group, 123L, properties("name", "one"), labels());
@@ -1062,11 +1530,10 @@ class ParquetInputTest {
         Path nodeFile2 = createParquetFile(
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID(%s)".formatted(endGroupName))),
                 List.of());
-        Input input = new ParquetInput(
+        Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
                 Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
                 INTEGER,
-                ';',
                 groups,
                 MONITOR);
         // WHEN/THEN
@@ -1091,11 +1558,10 @@ class ParquetInputTest {
                 List.of(new Object[] {0, 1, "First"}, new Object[] {2, 3, "Second"}));
         Path nodeFile = createParquetFile(
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID")), List.of());
-        Input input = new ParquetInput(
+        Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
                 Map.of(defaultType, List.<Path[]>of(new Path[] {relationshipFile})),
                 INTEGER,
-                ';',
                 groups,
                 MONITOR);
         // WHEN
@@ -1126,8 +1592,8 @@ class ParquetInputTest {
                         new Object[] {1, "Mattias", "10", "Person"},
                         new Object[] {2, "Johan", "111", "Person"},
                         new Object[] {3, "Emil", "12", "Person"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
 
         // WHEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1160,11 +1626,10 @@ class ParquetInputTest {
                         new Object[] {3, "KNOWS", 4, "Emil", "12"}));
         Path nodeFile = createParquetFile(
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID")), List.of());
-        Input input = new ParquetInput(
+        Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
                 Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
                 INTEGER,
-                ';',
                 new Groups(),
                 MONITOR);
 
@@ -1190,8 +1655,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("lprop:long[]")),
                 List.of(new Object[] {1, "", ""}, new Object[] {2, "a;b", "10;20"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
 
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1215,8 +1680,8 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("lprop:long[]")),
                 List.of(new Object[] {1, null, null}, new Object[] {2, "a;b", "10;20"}));
-        Input input = new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, MONITOR);
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
 
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
@@ -1240,13 +1705,8 @@ class ParquetInputTest {
                 List.<Object[]>of(new Object[] {1, "test"}));
         try {
             // when
-            new ParquetInput(
-                    Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
-                    Map.of(),
-                    INTEGER,
-                    ';',
-                    groups,
-                    MONITOR);
+            createParquetInput(
+                    Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
             fail("Should not parse");
         } catch (InputException e) {
             // then
@@ -1271,11 +1731,10 @@ class ParquetInputTest {
                 List.<Object[]>of(new Object[] {1, 2, "TYPE", "test"}));
         try {
             // when
-            new ParquetInput(
+            createParquetInput(
                     Map.of(Set.of(""), List.of()),
                     Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
                     INTEGER,
-                    ';',
                     groups,
                     MONITOR);
             fail("Should not parse");
@@ -1302,11 +1761,10 @@ class ParquetInputTest {
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID(right)")), List.of());
         try {
             // when
-            new ParquetInput(
+            createParquetInput(
                     Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
                     Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
                     INTEGER,
-                    ';',
                     groups,
                     MONITOR);
             fail("Should not validate");
@@ -1333,11 +1791,10 @@ class ParquetInputTest {
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named(":ID(right)")), List.of());
         try {
             // when
-            new ParquetInput(
+            createParquetInput(
                     Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
                     Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
                     INTEGER,
-                    ';',
                     new Groups(),
                     MONITOR); // new Groups() instead of field groups important here to not have the global id space
             fail("Should not validate");
@@ -1372,11 +1829,10 @@ class ParquetInputTest {
         ParquetMonitor monitor = mock(ParquetMonitor.class);
 
         // when
-        new ParquetInput(
+        createParquetInput(
                 Map.of(Set.of("someLabel"), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
                 Map.of("someType", List.<Path[]>of(new Path[] {relationshipFile})),
                 INTEGER,
-                ';',
                 groups,
                 monitor);
 
@@ -1397,8 +1853,8 @@ class ParquetInputTest {
         ParquetMonitor monitor = mock(ParquetMonitor.class);
 
         // when
-        new ParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, ';', groups, monitor);
+        createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, monitor);
         // then
         verify(monitor).noNodeLabelsSpecified("test0.parquet");
     }
@@ -1412,13 +1868,8 @@ class ParquetInputTest {
         ParquetMonitor monitor = mock(ParquetMonitor.class);
 
         // when
-        new ParquetInput(
-                Map.of(Set.of("test"), List.<Path[]>of(new Path[] {nodeFile})),
-                Map.of(),
-                INTEGER,
-                ';',
-                groups,
-                monitor);
+        createParquetInput(
+                Map.of(Set.of("test"), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, monitor);
 
         // then
         verify(monitor, never()).noNodeLabelsSpecified("test0.parquet");
@@ -1435,8 +1886,8 @@ class ParquetInputTest {
         ParquetMonitor monitor = mock(ParquetMonitor.class);
 
         // when
-        new ParquetInput(
-                Map.of(), Map.of("", List.<Path[]>of(new Path[] {relationshipFile})), INTEGER, ';', groups, monitor);
+        createParquetInput(
+                Map.of(), Map.of("", List.<Path[]>of(new Path[] {relationshipFile})), INTEGER, groups, monitor);
 
         // then
         verify(monitor).noRelationshipTypeSpecified("test0.parquet");
@@ -1453,13 +1904,8 @@ class ParquetInputTest {
         ParquetMonitor monitor = mock(ParquetMonitor.class);
 
         // when
-        new ParquetInput(
-                Map.of(),
-                Map.of("someType", List.<Path[]>of(new Path[] {relationshipFile})),
-                INTEGER,
-                ';',
-                groups,
-                monitor);
+        createParquetInput(
+                Map.of(), Map.of("someType", List.<Path[]>of(new Path[] {relationshipFile})), INTEGER, groups, monitor);
         // then
         verify(monitor, never()).noRelationshipTypeSpecified("test0.parquet");
     }
@@ -1479,11 +1925,10 @@ class ParquetInputTest {
                 List.of());
         try {
             // when
-            new ParquetInput(
+            createParquetInput(
                     Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
                     Map.of(),
                     INTEGER,
-                    ';',
                     groups,
                     new ParquetMonitor(System.out));
             fail("Should have failed");
@@ -1512,11 +1957,10 @@ class ParquetInputTest {
                 List.of());
         try {
             // when
-            new ParquetInput(
+            createParquetInput(
                     Map.of(),
                     Map.of("", List.<Path[]>of(new Path[] {relationshipFile})),
                     INTEGER,
-                    ';',
                     groups,
                     new ParquetMonitor(System.out));
             fail("Should have failed");
@@ -1539,11 +1983,10 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named(":LABEL")),
                 List.of());
-        try (var input = new ParquetInput(
+        try (var input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
                 Map.of(),
                 STRING,
-                ';',
                 groups,
                 new ParquetMonitor(System.out))) {
             // when
@@ -1565,11 +2008,10 @@ class ParquetInputTest {
         Path nodeFile2 = createParquetFile(
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("myId:ID(MyGroup){label:Person}")),
                 List.of());
-        try (var input = new ParquetInput(
+        try (var input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
                 Map.of(),
                 STRING,
-                ';',
                 groups,
                 new ParquetMonitor(System.out))) {
             // when
@@ -1594,11 +2036,10 @@ class ParquetInputTest {
         Path nodeFile2 = createParquetFile(
                 List.of(Types.required(PrimitiveType.PrimitiveTypeName.INT32).named("myId:ID(MyGroup){label:Company}")),
                 List.of());
-        try (var input = new ParquetInput(
+        try (var input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile1, nodeFile2})),
                 Map.of(),
                 STRING,
-                ';',
                 groups,
                 new ParquetMonitor(System.out))) {
             // when
@@ -1626,11 +2067,10 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named(":LABEL")),
                 List.of());
-        try (var input = new ParquetInput(
+        try (var input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
                 Map.of(),
                 STRING,
-                ';',
                 groups,
                 new ParquetMonitor(System.out))) {
             // when
@@ -1654,11 +2094,10 @@ class ParquetInputTest {
                                 .as(LogicalTypeAnnotation.stringType())
                                 .named("prop")),
                 List.<Object[]>of(new Object[] {123, "val"}));
-        try (var input = new ParquetInput(
+        try (var input = createParquetInput(
                         Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
                         Map.of(),
                         STRING,
-                        ';',
                         groups,
                         new ParquetMonitor(System.out));
                 var nodes = input.nodes(EMPTY).iterator()) {
@@ -1687,11 +2126,10 @@ class ParquetInputTest {
                                 .named(":LABEL")),
                 List.of(new Object[] {"ABC", "123", "First", "Person"}, new Object[] {"ABC", "456", "Second", "Person"
                 }));
-        try (var input = new ParquetInput(
+        try (var input = createParquetInput(
                         Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
                         Map.of(),
                         STRING,
-                        ';',
                         groups,
                         new ParquetMonitor(System.out));
                 var nodes = input.nodes(Collector.STRICT).iterator()) {
@@ -1721,11 +2159,10 @@ class ParquetInputTest {
                 List.of(new Object[] {"ABC", "123", "First", "Person"}, new Object[] {"ABC", "456", "Second", "Person"
                 }));
         // when/then
-        assertThatThrownBy(() -> new ParquetInput(
+        assertThatThrownBy(() -> createParquetInput(
                         Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
                         Map.of(),
                         STRING,
-                        ';',
                         groups,
                         new ParquetMonitor(System.out)))
                 .isInstanceOf(InputException.class)
@@ -1752,11 +2189,10 @@ class ParquetInputTest {
                 List.of(new Object[] {"ABC", "123", "First", "Person"}, new Object[] {"ABC", "456", "Second", "Person"
                 }));
         // when/then
-        assertThatThrownBy(() -> new ParquetInput(
+        assertThatThrownBy(() -> createParquetInput(
                         Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
                         Map.of(),
                         INTEGER,
-                        ';',
                         groups,
                         new ParquetMonitor(System.out)))
                 .isInstanceOf(IllegalStateException.class)
@@ -1766,15 +2202,30 @@ class ParquetInputTest {
     @Test
     void shouldFailOnNonParquetFile() throws Exception {
         Path nodeFile = createNonParquetFile();
-        assertThatThrownBy(() -> new ParquetInput(
+        assertThatThrownBy(() -> createParquetInput(
                         Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})),
                         Map.of(),
                         INTEGER,
-                        ';',
                         groups,
                         new ParquetMonitor(System.out)))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Could not read parquet file %s".formatted(nodeFile));
+    }
+
+    private static ParquetInput createParquetInput(
+            Map<Set<String>, List<Path[]>> nodeFiles,
+            Map<String, List<Path[]>> relationshipFiles,
+            IdType idType,
+            Groups idGroups,
+            ParquetMonitor parquetMonitor) {
+        return new ParquetInput(
+                nodeFiles,
+                relationshipFiles,
+                List.of(),
+                idType,
+                Configuration.newBuilder().build(),
+                idGroups,
+                parquetMonitor);
     }
 
     private Path createNonParquetFile() throws Exception {
@@ -1806,6 +2257,19 @@ class ParquetInputTest {
         return path;
     }
 
+    private Path createHeaderFile(List<String> columnNames, List<String> originalColumnNames) throws Exception {
+        Path path = directory.file("header.csv");
+        try (var writer = new BufferedWriter(new FileWriter(path.toFile()))) {
+            writer.write(String.join(",", columnNames));
+            writer.newLine();
+            if (!originalColumnNames.isEmpty()) {
+                writer.write(String.join(",", originalColumnNames));
+                writer.newLine();
+            }
+        }
+        return path;
+    }
+
     private TokenHolder tokenHolder(Map<String, Integer> tokens) {
         var tokenHolder = new CreatingTokenHolder(ReadOnlyTokenCreator.READ_ONLY, "type");
         tokenHolder.setInitialTokens(tokens.entrySet().stream()
@@ -1832,7 +2296,7 @@ class ParquetInputTest {
 
     private static Input.Estimates calculateEstimatesOnSingleFileNodeData(IdType idType, Path nodeDataFile)
             throws IOException {
-        Input input = new ParquetInput(Map.of(), Map.of(), INTEGER, ';', new Groups(), MONITOR);
+        Input input = createParquetInput(Map.of(), Map.of(), INTEGER, new Groups(), MONITOR);
         // We don't care about correct value size calculation really, as long as it's consistent
         return input.validateAndEstimate((values, tracer, memTracker) ->
                 Stream.of(values).mapToInt(v -> v.toString().length()).sum());

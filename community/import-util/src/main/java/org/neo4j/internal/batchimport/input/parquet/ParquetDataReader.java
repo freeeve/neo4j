@@ -86,7 +86,7 @@ class ParquetDataReader implements Closeable {
             this.createdBy = metadata.getCreatedBy();
 
             var columnsToRead = parquetDataFile.columns().stream()
-                    .map(ParquetColumn::columnName)
+                    .map(column -> column.headerDefinition().parquetColumnName())
                     .toList();
             this.parquetColumns = schema.getColumns().stream()
                     .filter(c -> columnsToRead.contains(c.getPath()[0]))

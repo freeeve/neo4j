@@ -62,7 +62,7 @@ class ParquetColumnTest {
                 "id:ID    (    id-space   )    {   this_is: 'a weird {name}' }  ,{this_is: 'a weird {name}'}",
             })
     void parsesColumnConfiguration(String input, String expected) {
-        var column = ParquetColumn.from(input, EntityType.NODE);
+        var column = ParquetColumn.from(ParquetColumn.HeaderDefinition.from(input), EntityType.NODE);
 
         assertThat(column.rawConfiguration()).isEqualTo(expected);
     }
@@ -72,7 +72,7 @@ class ParquetColumnTest {
     void supportsAllNeo4jTypes(String rawType, ParquetColumnType expectedType) {
         var header = "prop%s".formatted(rawType == null ? "" : ":" + rawType);
 
-        var column = ParquetColumn.from(header, EntityType.RELATIONSHIP);
+        var column = ParquetColumn.from(ParquetColumn.HeaderDefinition.from(header), EntityType.RELATIONSHIP);
 
         assertThat(column.columnType()).isEqualTo(expectedType);
     }
