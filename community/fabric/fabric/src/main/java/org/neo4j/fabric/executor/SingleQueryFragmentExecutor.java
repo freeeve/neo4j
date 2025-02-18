@@ -47,7 +47,6 @@ import org.neo4j.fabric.stream.summary.PlanlessSummary;
 import org.neo4j.fabric.transaction.FabricTransaction;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.graphdb.QueryExecutionType;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.impl.query.QueryRoutingMonitor;
 import org.neo4j.notifications.NotificationImplementation;
@@ -317,10 +316,7 @@ abstract class SingleQueryFragmentExecutor {
             }
         } else {
             if (queryMode == AccessMode.WRITE) {
-                throw new FabricException(
-                        Status.Statement.AccessMode,
-                        FabricExecutor.WRITING_IN_READ_NOT_ALLOWED_MSG + ". Attempted write to %s",
-                        graph);
+                throw FabricException.writingInReadAccessMode(graph);
             } else {
                 return TransactionMode.DEFINITELY_READ;
             }

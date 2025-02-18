@@ -19,6 +19,8 @@
  */
 package org.neo4j.router;
 
+import static org.neo4j.fabric.executor.FabricExecutor.WRITING_IN_READ_NOT_ALLOWED_MSG;
+
 import org.neo4j.fabric.executor.Location;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
@@ -99,6 +101,16 @@ public class QueryRouterException extends GqlRuntimeException implements Status.
                 .withParam(GqlParams.StringParam.query, query)
                 .build();
         return new QueryRouterException(gql, Status.Transaction.ForbiddenDueToTransactionType, message);
+    }
+
+    public static QueryRouterException writingInReadAccessMode(String graph) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N03)
+                .withParam(GqlParams.StringParam.graph, graph)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N02)
+                        .build())
+                .build();
+        return new QueryRouterException(
+                gql, Status.Statement.AccessMode, WRITING_IN_READ_NOT_ALLOWED_MSG + ". Attempted write to %s", graph);
     }
 
     @Override

@@ -19,8 +19,6 @@
  */
 package org.neo4j.router.impl;
 
-import static org.neo4j.fabric.executor.FabricExecutor.WRITING_IN_READ_NOT_ALLOWED_MSG;
-
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -43,7 +41,6 @@ import org.neo4j.fabric.transaction.ErrorReporter;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
 import org.neo4j.internal.kernel.api.security.LoginContext;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.impl.api.transaction.trace.TraceProviderFactory;
@@ -337,9 +334,7 @@ public class QueryRouterImpl implements QueryRouter {
             StatementType statementType,
             DatabaseReference databaseReference) {
         if (!(executionMode.isExplain()) && accessMode == AccessMode.READ && statementType.isWrite()) {
-            throw new QueryRouterException(
-                    Status.Statement.AccessMode,
-                    WRITING_IN_READ_NOT_ALLOWED_MSG + ". Attempted write to %s",
+            throw QueryRouterException.writingInReadAccessMode(
                     databaseReference.alias().name());
         }
     }

@@ -19,6 +19,7 @@
  */
 package org.neo4j.fabric.executor;
 
+import static org.neo4j.fabric.executor.FabricExecutor.WRITING_IN_READ_NOT_ALLOWED_MSG;
 import static org.neo4j.kernel.api.exceptions.Status.Transaction.InvalidBookmark;
 
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -237,6 +238,16 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
                 gql,
                 Status.Statement.TypeError,
                 String.format("Importing %s values in remote subqueries is currently not supported", entityType));
+    }
+
+    public static FabricException writingInReadAccessMode(String graph) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N03)
+                .withParam(GqlParams.StringParam.graph, graph)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N02)
+                        .build())
+                .build();
+        return new FabricException(
+                gql, Status.Statement.AccessMode, WRITING_IN_READ_NOT_ALLOWED_MSG + ". Attempted write to %s", graph);
     }
 
     @Override
