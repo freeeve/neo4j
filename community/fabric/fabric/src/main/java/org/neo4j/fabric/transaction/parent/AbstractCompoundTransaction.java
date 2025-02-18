@@ -466,9 +466,7 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
         }
 
         // 2. The user is really trying to write to two different databases.
-        return new FabricException(
-                Status.Statement.AccessMode,
-                "Writing to more than one database per transaction is not allowed. Attempted write to %s, currently writing to %s",
+        return FabricException.writingToMultipleGraphs(
                 attempt.databaseReference().toPrettyString(),
                 current.databaseReference().toPrettyString());
     }

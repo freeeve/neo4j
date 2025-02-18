@@ -39,13 +39,6 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
 
     private static final String ROUTING_ENABLED_SETTING = GraphDatabaseSettings.routing_enabled.name();
 
-    @Deprecated
-    public FabricException(Status statusCode, Throwable cause) {
-        super(ErrorMessageHolder.getOldCauseMessage(cause), cause);
-        this.statusCode = statusCode;
-        this.queryId = null;
-    }
-
     public FabricException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, Throwable cause) {
         super(gqlStatusObject, ErrorMessageHolder.getOldCauseMessage(cause), cause);
         this.statusCode = statusCode;
@@ -248,6 +241,20 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
                 .build();
         return new FabricException(
                 gql, Status.Statement.AccessMode, WRITING_IN_READ_NOT_ALLOWED_MSG + ". Attempted write to %s", graph);
+    }
+
+    public static FabricException writingToMultipleGraphs(String attemptedGraph, String currentGraph) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N03)
+                .withParam(GqlParams.StringParam.graph, attemptedGraph)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N03)
+                        .build())
+                .build();
+        return new FabricException(
+                gql,
+                Status.Statement.AccessMode,
+                "Writing to more than one database per transaction is not allowed. Attempted write to %s, currently writing to %s",
+                attemptedGraph,
+                currentGraph);
     }
 
     @Override

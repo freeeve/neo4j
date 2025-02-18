@@ -113,6 +113,20 @@ public class QueryRouterException extends GqlRuntimeException implements Status.
                 gql, Status.Statement.AccessMode, WRITING_IN_READ_NOT_ALLOWED_MSG + ". Attempted write to %s", graph);
     }
 
+    public static QueryRouterException writingToMultipleGraphs(String attemptedGraph, String currentGraph) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N03)
+                .withParam(GqlParams.StringParam.graph, attemptedGraph)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N03)
+                        .build())
+                .build();
+        return new QueryRouterException(
+                gql,
+                Status.Statement.AccessMode,
+                "Writing to more than one database per transaction is not allowed. Attempted write to %s, currently writing to %s",
+                attemptedGraph,
+                currentGraph);
+    }
+
     @Override
     public Status status() {
         return statusCode;

@@ -468,9 +468,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
         }
 
         // 2. The user is really trying to write to two different databases.
-        return new QueryRouterException(
-                Status.Statement.AccessMode,
-                "Writing to more than one database per transaction is not allowed. Attempted write to %s, currently writing to %s",
+        return QueryRouterException.writingToMultipleGraphs(
                 attempt.databaseReference().toPrettyString(),
                 current.databaseReference().toPrettyString());
     }
