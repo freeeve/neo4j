@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.preparser.QueryOptions;
 import org.neo4j.cypher.internal.util.CancellationChecker;
 import org.neo4j.cypher.internal.util.InputPosition;
 import org.neo4j.cypher.internal.util.ObfuscationMetadata;
+import org.neo4j.exceptions.InvalidSemanticsException;
 import org.neo4j.fabric.bookmark.BookmarkFormat;
 import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
@@ -73,7 +74,6 @@ import org.neo4j.router.transaction.RouterTransaction;
 import org.neo4j.router.transaction.RouterTransactionContext;
 import org.neo4j.router.transaction.RoutingInfo;
 import org.neo4j.router.transaction.TransactionInfo;
-import org.neo4j.router.util.Errors;
 import org.neo4j.time.SystemNanoClock;
 
 public class QueryRouterImpl implements QueryRouter {
@@ -186,7 +186,7 @@ public class QueryRouterImpl implements QueryRouter {
     private CypherExecutionMode executionMode(QueryOptions queryOptions, Boolean isComposite) {
         CypherExecutionMode cypherExecutionMode = queryOptions.queryOptions().executionMode();
         if (isComposite && cypherExecutionMode.isProfile()) {
-            Errors.semantic("'PROFILE' is not supported on composite databases.");
+            throw InvalidSemanticsException.profileNotSupportedOnComposite();
         }
         return cypherExecutionMode;
     }

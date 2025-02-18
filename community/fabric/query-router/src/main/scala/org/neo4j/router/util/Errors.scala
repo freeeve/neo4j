@@ -30,8 +30,6 @@ object Errors {
 
   def syntax(msg: String): Nothing = throw new SyntaxException(msg)
 
-  def semantic(message: String) = throw new InvalidSemanticsException(message)
-
   private def dynamicGraphNotAllowedMessage(use: String) =
     MessageUtilProvider.createDynamicGraphReferenceUnsupportedError(use).stripMargin
 

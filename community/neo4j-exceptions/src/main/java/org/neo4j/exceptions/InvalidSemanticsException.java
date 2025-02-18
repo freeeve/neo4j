@@ -136,6 +136,15 @@ public class InvalidSemanticsException extends Neo4jException {
                         action, db1, db2));
     }
 
+    public static InvalidSemanticsException profileNotSupportedOnComposite() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N06)
+                        .withParam(GqlParams.StringParam.action, "PROFILE")
+                        .build())
+                .build();
+        return new InvalidSemanticsException(gql, "'PROFILE' is not supported on composite databases.");
+    }
+
     @Override
     public Status status() {
         return Status.Statement.SemanticError;

@@ -75,8 +75,6 @@ object Errors {
   def syntax(msg: String, query: String, pos: InputPosition): Nothing =
     throw new SyntaxException(msg, query, pos.offset)
 
-  def semantic(message: String) = throw new InvalidSemanticsException(message)
-
   /** Attaches position and query info to exceptions, if it is missing */
   def errorContext[T](query: String, node: ASTNode)(block: => T): T =
     try block

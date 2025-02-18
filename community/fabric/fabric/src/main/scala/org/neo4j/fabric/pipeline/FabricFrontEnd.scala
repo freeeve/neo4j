@@ -53,8 +53,8 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.rendering.QueryRenderer
+import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.fabric.planning.FabricPlan
-import org.neo4j.fabric.util.Errors
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.monitoring
 import org.neo4j.values.virtual.MapValue
@@ -85,7 +85,7 @@ case class FabricFrontEnd(
         case CypherExecutionMode.default => FabricPlan.Execute
         case CypherExecutionMode.explain => FabricPlan.Explain
         case CypherExecutionMode.profile if inCompositeContext =>
-          Errors.semantic("'PROFILE' is not supported on composite databases.")
+          throw InvalidSemanticsException.profileNotSupportedOnComposite()
         case CypherExecutionMode.profile => FabricPlan.PROFILE
       }
 

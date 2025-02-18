@@ -58,6 +58,8 @@ import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.tracing.TimingCompilationTracer
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.fabric.FabricTest
 import org.neo4j.fabric.FragmentTestUtils
@@ -67,6 +69,7 @@ import org.neo4j.fabric.config.FabricConfig
 import org.neo4j.fabric.eval.Catalog
 import org.neo4j.fabric.util.Folded.Descend
 import org.neo4j.fabric.util.Folded.FoldableOps
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.kernel.database.DatabaseIdFactory
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.DatabaseReferenceImpl
@@ -962,8 +965,19 @@ class FabricPlannerTest
           |RETURN 1 AS x
           |""".stripMargin
 
-      the[InvalidSemanticsException].thrownBy(plan(q, params, sessionDatabaseName = fabricName))
-        .check(_.getMessage.should(include("'PROFILE' is not supported on composite databases.")))
+      the[InvalidSemanticsException].thrownBy(plan(q, params, sessionDatabaseName = fabricName)) should be(
+        gqlException(
+          "'PROFILE' is not supported on composite databases.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_42001,
+            "error: syntax error or access rule violation - invalid syntax"
+          )
+            .withCause(
+              GqlStatusInfoCodes.STATUS_42N06,
+              "error: syntax error or access rule violation - unsupported action on composite database. PROFILE is not supported on composite databases."
+            )
+        )
+      )
     }
 
     "passes options on in remote and local parts" in {
