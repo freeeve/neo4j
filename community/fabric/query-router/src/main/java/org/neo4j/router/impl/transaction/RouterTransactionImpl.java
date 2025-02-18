@@ -56,7 +56,6 @@ import org.neo4j.kernel.impl.query.ConstituentTransactionFactory;
 import org.neo4j.router.QueryRouterException;
 import org.neo4j.router.impl.query.StatementType;
 import org.neo4j.router.impl.transaction.database.LocalDatabaseTransaction;
-import org.neo4j.router.location.LocationService;
 import org.neo4j.router.query.Query;
 import org.neo4j.router.transaction.DatabaseTransaction;
 import org.neo4j.router.transaction.DatabaseTransactionFactory;
@@ -126,12 +125,10 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
     }
 
     @Override
-    public DatabaseTransaction transactionFor(
-            Location location, TransactionMode mode, LocationService locationService) {
+    public DatabaseTransaction transactionFor(Location location, TransactionMode mode) {
         var tx = databaseTransactions.computeIfAbsent(
                 location.databaseReference().id(),
-                ref -> registerNewChildTransaction(
-                        location, mode, () -> createTransactionFor(location, locationService)));
+                ref -> registerNewChildTransaction(location, mode, () -> createTransactionFor(location)));
         if (mode == TransactionMode.DEFINITELY_WRITE) {
             upgradeToWritingTransaction(tx);
         }
@@ -143,7 +140,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
         this.constituentTransactionFactory = constituentTransactionFactory;
     }
 
-    private DatabaseTransaction createTransactionFor(Location location, LocationService locationService) {
+    private DatabaseTransaction createTransactionFor(Location location) {
         if (location instanceof Location.Local local) {
             return localDatabaseTransactionFactory.beginTransaction(
                     local,

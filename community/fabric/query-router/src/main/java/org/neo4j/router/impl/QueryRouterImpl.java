@@ -153,7 +153,7 @@ public class QueryRouterImpl implements QueryRouter {
             Location location = rpcCall
                     ? new Location.Local(-1, (DatabaseReferenceImpl.Internal) sessionDatabaseReference)
                     : locationService.locationOf(sessionDatabaseReference);
-            sessionTransaction = routerTransaction.transactionFor(location, dummyTransactionMode, locationService);
+            sessionTransaction = routerTransaction.transactionFor(location, dummyTransactionMode);
         } catch (Exception e) {
             queryRouterLog.warn("Could not eagerly create kernel transaction due to: %s".formatted(e));
         }
