@@ -145,6 +145,13 @@ public class InvalidSemanticsException extends Neo4jException {
         return new InvalidSemanticsException(gql, "'PROFILE' is not supported on composite databases.");
     }
 
+    public static InvalidSemanticsException routingNotSupportedInEmbedded() {
+        return new InvalidSemanticsException(
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N05)
+                        .build(),
+                "Query routing is not available in embedded sessions. Try running the query using a Neo4j driver or the HTTP API.");
+    }
+
     @Override
     public Status status() {
         return Status.Statement.SemanticError;

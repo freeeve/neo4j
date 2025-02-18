@@ -33,9 +33,12 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util._
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.cypher.messages.MessageUtilProvider
 import org.neo4j.dbms.api.DatabaseNotFoundException
 import org.neo4j.exceptions.InvalidSemanticsException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.kernel.database._
 
 import java.util.UUID
@@ -91,7 +94,15 @@ class VerifyGraphTargetTest extends CypherFunSuite {
       the[InvalidSemanticsException] thrownBy verifyGraphTarget(
         query,
         version
-      ) should have message "Query routing is not available in embedded sessions. Try running the query using a Neo4j driver or the HTTP API."
+      ) should be(
+        gqlException(
+          "Query routing is not available in embedded sessions. Try running the query using a Neo4j driver or the HTTP API.",
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_08N05,
+            "error: connection exception - unable to route administration command. Routing administration commands is not supported in embedded sessions. Connect to the system database directly or try running the query using a Neo4j driver or the HTTP API."
+          )
+        )
+      )
     }
 
     test(s"Cypher $version: should not accept USE targeting a non-existent graph") {

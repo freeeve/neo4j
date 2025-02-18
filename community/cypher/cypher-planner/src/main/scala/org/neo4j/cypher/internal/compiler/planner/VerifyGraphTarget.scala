@@ -162,9 +162,7 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
         MessageUtilProvider.createMultipleGraphReferencesError(graphNameWithContext.graphName.qualifiedNameString)
       )
     } else {
-      throw new InvalidSemanticsException(
-        "Query routing is not available in embedded sessions. Try running the query using a Neo4j driver or the HTTP API."
-      )
+      throw InvalidSemanticsException.routingNotSupportedInEmbedded()
     }
   }
 
