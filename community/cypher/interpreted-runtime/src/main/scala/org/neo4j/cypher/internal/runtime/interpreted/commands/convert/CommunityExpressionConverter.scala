@@ -130,6 +130,7 @@ import org.neo4j.cypher.internal.expressions.functions.Type
 import org.neo4j.cypher.internal.expressions.functions.ValueType
 import org.neo4j.cypher.internal.expressions.functions.VectorSimilarityCosine
 import org.neo4j.cypher.internal.expressions.functions.VectorSimilarityEuclidean
+import org.neo4j.cypher.internal.expressions.functions.VectorValueConstructor
 import org.neo4j.cypher.internal.expressions.functions.WithinBBox
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.logical.plans.CoerceToPredicate
@@ -805,6 +806,24 @@ case class CommunityExpressionConverter(
           VectorSimilarity.EUCLIDEAN,
           firstArg,
           secondArg
+        )
+      case VectorValueConstructor if invocation.arguments.size == 1 =>
+        commands.expressions.VectorValueConstructorFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          None,
+          None
+        )
+      case VectorValueConstructor if invocation.arguments.size == 2 =>
+        commands.expressions.VectorValueConstructorFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          Some(self.toCommandExpression(id, invocation.arguments(1))),
+          None
+        )
+      case VectorValueConstructor if invocation.arguments.size == 3 =>
+        commands.expressions.VectorValueConstructorFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          Some(self.toCommandExpression(id, invocation.arguments(1))),
+          Some(self.toCommandExpression(id, invocation.arguments(2)))
         )
       case VectorSimilarityCosine =>
         val firstArg = self.toCommandExpression(id, invocation.arguments.head)

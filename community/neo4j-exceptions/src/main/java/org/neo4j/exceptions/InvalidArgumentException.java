@@ -708,6 +708,12 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, "Invalid nanosecond: " + value);
     }
 
+    public static InvalidArgumentException argumentOutOfRange(
+            String fun, String arg, long lower, long upper, long value) {
+        var gql = GqlHelper.getGql22N38_22N03(fun, arg, "INTEGER", lower, upper, value);
+        return new InvalidArgumentException(gql, String.format("Function argument to '%s()' is out of range", fun));
+    }
+
     public static InvalidArgumentException zeroStepRange() {
         var gql = GqlHelper.getGql22N38_22N03("range", "step", "INTEGER", 1, Long.MAX_VALUE, 0);
         return new InvalidArgumentException(gql, "Step argument to 'range()' cannot be zero");

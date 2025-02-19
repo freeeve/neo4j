@@ -121,6 +121,7 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.ValueRepresentation;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.ListValueBuilder;
 import org.neo4j.values.virtual.MapValue;
@@ -521,6 +522,110 @@ public final class CypherFunctions {
         } else {
             return NO_VALUE;
         }
+    }
+
+    private static long getDimension(AnyValue dimension) {
+        if (!(dimension instanceof IntegralValue dimensionValue)) {
+            throw CypherTypeException.functionArgumentWrongType(
+                    format("Invalid input for function 'vector()': Expected an integer but got %s", dimension),
+                    "vector",
+                    dimension.toString(),
+                    List.of("INTEGER"),
+                    dimension.getTypeName());
+        }
+
+        if (dimensionValue.longValue() < 0 || dimensionValue.longValue() > 4096) {
+            throw InvalidArgumentException.argumentOutOfRange(
+                    "vector", "dimension", 0, 4096, dimensionValue.longValue());
+        }
+
+        return dimensionValue.longValue();
+    }
+
+    private static VectorValue getVectorFromString(TextValue vectorString) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    private static VectorValue getVectorFromSequence(SequenceValue vectorSequence) {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
+    public static AnyValue vectorValueConstructor(AnyValue vector) {
+        if (vector == NO_VALUE) {
+            return NO_VALUE;
+        } else if (vector instanceof TextValue vectorString) {
+            return getVectorFromString(vectorString);
+        } else if (vector instanceof SequenceValue sv) {
+            return getVectorFromSequence(sv);
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    format("Invalid input for function 'vector()': Expected a string or list but got %s", vector),
+                    "vector",
+                    vector.toString(),
+                    List.of("STRING", "LIST<INTEGER | FLOAT>"),
+                    vector.getTypeName());
+        }
+    }
+
+    public static AnyValue vectorValueConstructor(AnyValue vector, AnyValue dimension) {
+        if (vector == NO_VALUE || dimension == NO_VALUE) {
+            return NO_VALUE;
+        }
+        return getVectorValue(vector, getDimension(dimension));
+    }
+
+    public static AnyValue vectorValueConstructor(AnyValue vector, AnyValue dimension, AnyValue coordinateValue) {
+        if (vector == NO_VALUE || dimension == NO_VALUE || coordinateValue == NO_VALUE) {
+            return NO_VALUE;
+        }
+
+        // User given dimension should match dimension of resulting vector
+        long dimensionValue = getDimension(dimension);
+
+        // TODO:
+        // This coordinate type can only be:
+        // INTEGER NOT NULL
+        // INTEGER32 NOT NULL
+        // INTEGER16 NOT NULL
+        // INTEGER8 NOT NULL
+        // FLOAT NOT NULL
+        // FLOAT32 NOT NULL
+        // This should be used to determine which vector type to create; values should be coerced to the given type.
+        // If any of the values results in a lossy conversion, a warning should be raised.
+        if (!(coordinateValue instanceof TextValue)) {
+            throw CypherTypeException.functionArgumentWrongType(
+                    format("Invalid input for function 'vector()': Expected a string but got %s", coordinateValue),
+                    "vector",
+                    coordinateValue.toString(),
+                    List.of("STRING"),
+                    coordinateValue.getTypeName());
+        }
+
+        VectorValue vectorValue = getVectorValue(vector, dimensionValue);
+
+        return vectorValue;
+    }
+
+    private static VectorValue getVectorValue(AnyValue vector, long dimensionValue) {
+        VectorValue vectorValue;
+        if (vector instanceof TextValue vectorString) {
+            vectorValue = getVectorFromString(vectorString);
+        } else if (vector instanceof SequenceValue sv) {
+            vectorValue = getVectorFromSequence(sv);
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    format("Invalid input for function 'vector()': Expected a string or list but got %s", vector),
+                    "vector",
+                    vector.toString(),
+                    List.of("STRING", "LIST<INTEGER | FLOAT>"),
+                    vector.getTypeName());
+        }
+
+        if (vectorValue.dimensions() != dimensionValue) {
+            throw new CypherTypeException(format(
+                    "Expected a vector of dimension %d, but got: %d;", dimensionValue, vectorValue.dimensions()));
+        }
+        return vectorValue;
     }
 
     @CalledFromGeneratedCode

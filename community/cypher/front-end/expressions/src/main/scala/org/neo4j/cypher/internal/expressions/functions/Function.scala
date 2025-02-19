@@ -146,6 +146,7 @@ object Function {
     Upper,
     ValueType,
     WithinBBox,
+    VectorValueConstructor,
     VectorSimilarityEuclidean,
     VectorSimilarityCosine
   )
