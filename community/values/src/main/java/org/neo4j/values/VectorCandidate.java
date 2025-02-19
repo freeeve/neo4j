@@ -21,16 +21,31 @@ package org.neo4j.values;
 
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
-import java.util.Objects;
 import org.neo4j.values.storable.NumberValue;
 
+/**
+ * Represents a candidate that might or might not represent a valid vector.
+ */
 public interface VectorCandidate {
+
+    /**
+     * @return the value at the given index as a float. Returns {@code Float.NaN} if the value is not a number (i.e. if this candidate is not valid).
+     */
     float floatValue(int index);
 
+    /**
+     * @return the value at the given index as a double. Returns {@code Double.NaN} if the value is not a number (i.e. if this candidate is not valid).
+     */
     double doubleValue(int index);
 
+    /**
+     * @return the number of dimensions in this vector candidate.
+     */
     int dimensions();
 
+    /**
+     * Returns a VectorCandidate if the provided value can be converted to a vector candidate, otherwise null.
+     */
     static VectorCandidate maybeFrom(AnyValue candidate) {
         if (candidate == null || candidate == NO_VALUE) {
             return null;
@@ -43,15 +58,10 @@ public interface VectorCandidate {
         };
     }
 
-    static VectorCandidate from(AnyValue candidate) {
-        final var vectorCandidate = maybeFrom(candidate);
-        if (vectorCandidate == null) {
-            Objects.requireNonNull(candidate, "Value cannot be null");
-            throw new IllegalArgumentException("Value is not a valid vector candidate. Provided: " + candidate);
-        }
-        return vectorCandidate;
-    }
-
+    /**
+     * A VectorCandidate wrapping a SequenceValue. This candidate might or might not be valid, depending on the
+     * contents of the sequence.
+     */
     record SequenceValueVectorCandidate(SequenceValue sequence) implements VectorCandidate {
 
         @Override

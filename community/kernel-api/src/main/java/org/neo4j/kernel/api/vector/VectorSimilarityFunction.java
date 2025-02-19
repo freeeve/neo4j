@@ -25,16 +25,21 @@ import org.neo4j.values.VectorCandidate;
 public interface VectorSimilarityFunction {
     String name();
 
+    /**
+     * Returns a float[] if the provided value is a valid vector candidate, otherwise null.
+     */
     default float[] maybeToValidVector(AnyValue candidate) {
         return maybeToValidVector(VectorCandidate.maybeFrom(candidate));
     }
 
-    default float[] toValidVector(AnyValue candidate) {
-        return toValidVector(VectorCandidate.from(candidate));
-    }
-
+    /**
+     * Returns a float[] if the provided vector candidate is valid, otherwise null.
+     */
     float[] maybeToValidVector(VectorCandidate candidate);
 
+    /**
+     * Returns a float[] if the provided vector candidate is valid, otherwise throws an Exception.
+     */
     float[] toValidVector(VectorCandidate candidate);
 
     float compare(float[] vector1, float[] vector2);
