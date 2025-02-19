@@ -63,30 +63,36 @@ class PrettifierTest extends CypherFunSuite with AstConstructionTestSupport {
     prettifier.asString(commandArraySeq) shouldBe prettifier.asString(commandList)
   }
 
-  val orderBys: Seq[Option[(String, OrderBy)]] = Seq(
+  private val orderBys: Seq[Option[(String, OrderBy)]] = Seq(
     Some(("ORDER BY n ASCENDING", orderBy(sortItem(varFor("n"))))),
     None
   )
 
-  val skips: Seq[Option[(String, Skip)]] = Seq(
+  private val skips: Seq[Option[(String, Skip)]] = Seq(
     Some(("SKIP 1", skip(1L))),
     None
   )
 
-  val limits: Seq[Option[(String, Limit)]] = Seq(
+  private val limits: Seq[Option[(String, Limit)]] = Seq(
     Some(("LIMIT 1", limit(1L))),
     None
   )
 
-  val wheres: Seq[Option[(String, Where)]] = Seq(
+  private val wheres: Seq[Option[(String, Where)]] = Seq(
     Some(("WHERE n IS NOT NULL", where(isNotNull(varFor("n"))))),
     None
   )
-  val withStar = "WITH *"
-  val filter = "FILTER"
-  val SEP = s"${System.lineSeparator()}  "
+  private val withStar: String = "WITH *"
+  private val filter: String = "FILTER"
 
-  val clauses: Seq[(String, Clause)] =
+  /**
+   * clause separator: line break + indent
+   */
+  private val SEP: String =
+    s"""
+       |  """.stripMargin
+
+  private val clauses: Seq[(String, Clause)] =
     (for {
       o <- orderBys
       s <- skips
