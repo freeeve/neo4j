@@ -77,6 +77,7 @@ public class TestDirectory {
     private static final DateTimeFormatter DATE_TIME_FORMATTER =
             DateTimeFormatter.ofPattern("dd_HH-mm-ss-SSS").withZone(ZoneOffset.UTC);
     public static final String REGISTER_FILE_NAME = ".register";
+    public static final String TEST_DATA = "test data";
 
     private final FileSystemAbstraction fileSystem;
     private Path testClassBaseFolder;
@@ -314,7 +315,7 @@ public class TestDirectory {
     }
 
     private static Path testDataDirectoryOf(Class<?> owningTest) {
-        Path testData = locateTarget(owningTest).resolve("test data");
+        Path testData = locateTarget(owningTest).resolve(TEST_DATA);
         return testData.resolve(shorten(owningTest.getName())).toAbsolutePath();
     }
 
