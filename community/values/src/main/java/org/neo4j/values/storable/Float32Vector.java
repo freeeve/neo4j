@@ -72,7 +72,7 @@ public final class Float32Vector extends FloatingPointVector {
 
     @Override
     public <T> T map(ValueMapper<T> mapper) {
-        return null;
+        return mapper.mapFloat32Vector(this);
     }
 
     @Override

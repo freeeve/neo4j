@@ -29,7 +29,11 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType;
 import org.neo4j.cypher.internal.util.symbols.CypherType;
 import org.neo4j.cypher.internal.util.symbols.DateType;
 import org.neo4j.cypher.internal.util.symbols.DurationType;
+import org.neo4j.cypher.internal.util.symbols.Float32Type;
 import org.neo4j.cypher.internal.util.symbols.FloatType;
+import org.neo4j.cypher.internal.util.symbols.Integer16Type;
+import org.neo4j.cypher.internal.util.symbols.Integer32Type;
+import org.neo4j.cypher.internal.util.symbols.Integer8Type;
 import org.neo4j.cypher.internal.util.symbols.IntegerType;
 import org.neo4j.cypher.internal.util.symbols.ListType;
 import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType;
@@ -42,6 +46,7 @@ import org.neo4j.cypher.internal.util.symbols.PathType;
 import org.neo4j.cypher.internal.util.symbols.PointType;
 import org.neo4j.cypher.internal.util.symbols.RelationshipType;
 import org.neo4j.cypher.internal.util.symbols.StringType;
+import org.neo4j.cypher.internal.util.symbols.VectorType;
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType;
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType;
 import org.neo4j.values.AnyValue;
@@ -56,8 +61,14 @@ import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
 import org.neo4j.values.storable.DurationArray;
 import org.neo4j.values.storable.DurationValue;
+import org.neo4j.values.storable.Float32Vector;
+import org.neo4j.values.storable.Float64Vector;
 import org.neo4j.values.storable.FloatingPointArray;
 import org.neo4j.values.storable.FloatingPointValue;
+import org.neo4j.values.storable.Int16Vector;
+import org.neo4j.values.storable.Int32Vector;
+import org.neo4j.values.storable.Int64Vector;
+import org.neo4j.values.storable.Int8Vector;
 import org.neo4j.values.storable.IntegralArray;
 import org.neo4j.values.storable.IntegralValue;
 import org.neo4j.values.storable.LocalDateTimeArray;
@@ -72,10 +83,12 @@ import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeArray;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.VirtualNodeValue;
 import org.neo4j.values.virtual.VirtualPathValue;
 import org.neo4j.values.virtual.VirtualRelationshipValue;
+import scala.Option;
 
 public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
 
@@ -83,7 +96,11 @@ public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
     private static final NullType NULL_CYPHER_TYPE_NAME = new NullType(dummyPos);
     private static final BooleanType BOOLEAN_CYPHER_TYPE_NAME = new BooleanType(false, dummyPos);
     private static final StringType STRING_CYPHER_TYPE_NAME = new StringType(false, dummyPos);
+    private static final Integer8Type INTEGER8_CYPHER_TYPE_NAME = new Integer8Type(false, dummyPos);
+    private static final Integer16Type INTEGER16_CYPHER_TYPE_NAME = new Integer16Type(false, dummyPos);
+    private static final Integer32Type INTEGER32_CYPHER_TYPE_NAME = new Integer32Type(false, dummyPos);
     private static final IntegerType INTEGER_CYPHER_TYPE_NAME = new IntegerType(false, dummyPos);
+    private static final Float32Type FLOAT32_CYPHER_TYPE_NAME = new Float32Type(false, dummyPos);
     private static final FloatType FLOAT_CYPHER_TYPE_NAME = new FloatType(false, dummyPos);
     private static final DateType DATE_CYPHER_TYPE_NAME = new DateType(false, dummyPos);
     private static final LocalTimeType LOCAL_TIME_CYPHER_TYPE_NAME = new LocalTimeType(false, dummyPos);
@@ -96,6 +113,22 @@ public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
     private static final RelationshipType RELATIONSHIP_CYPHER_TYPE_NAME = new RelationshipType(false, dummyPos);
     private static final MapType MAP_CYPHER_TYPE_NAME = new MapType(false, dummyPos);
     private static final PathType PATH_CYPHER_TYPE_NAME = new PathType(false, dummyPos);
+
+    private static final VectorType INTEGER8_VECTOR_CYPHER_TYPE_NAME =
+            new VectorType(Option.apply(INTEGER8_CYPHER_TYPE_NAME), Option.empty(), false, dummyPos);
+    private static final VectorType INTEGER16_VECTOR_CYPHER_TYPE_NAME =
+            new VectorType(Option.apply(INTEGER16_CYPHER_TYPE_NAME), Option.empty(), false, dummyPos);
+    private static final VectorType INTEGER32_VECTOR_CYPHER_TYPE_NAME =
+            new VectorType(Option.apply(INTEGER32_CYPHER_TYPE_NAME), Option.empty(), false, dummyPos);
+    private static final VectorType INTEGER64_VECTOR_CYPHER_TYPE_NAME =
+            new VectorType(Option.apply(INTEGER_CYPHER_TYPE_NAME), Option.empty(), false, dummyPos);
+    private static final VectorType FLOAT32_VECTOR_CYPHER_TYPE_NAME =
+            new VectorType(Option.apply(FLOAT32_CYPHER_TYPE_NAME), Option.empty(), false, dummyPos);
+    private static final VectorType FLOAT64_VECTOR_CYPHER_TYPE_NAME =
+            new VectorType(Option.apply(FLOAT_CYPHER_TYPE_NAME), Option.empty(), false, dummyPos);
+    private static final VectorType ANY_VECTOR_CYPHER_TYPE_NAME =
+            new VectorType(Option.empty(), Option.empty(), false, dummyPos);
+
     private static final ListType LIST_BOOLEAN_CYPHER_TYPE_NAME =
             new ListType(BOOLEAN_CYPHER_TYPE_NAME, false, dummyPos);
     private static final ListType LIST_STRING_CYPHER_TYPE_NAME = new ListType(STRING_CYPHER_TYPE_NAME, false, dummyPos);
@@ -284,5 +317,40 @@ public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
     @Override
     public CypherType mapPath(VirtualPathValue value) {
         return PATH_CYPHER_TYPE_NAME;
+    }
+
+    @Override
+    public CypherType mapVector(VectorValue value) {
+        return ANY_VECTOR_CYPHER_TYPE_NAME;
+    }
+
+    @Override
+    public CypherType mapInt8Vector(Int8Vector value) {
+        return INTEGER8_VECTOR_CYPHER_TYPE_NAME;
+    }
+
+    @Override
+    public CypherType mapInt16Vector(Int16Vector value) {
+        return INTEGER16_VECTOR_CYPHER_TYPE_NAME;
+    }
+
+    @Override
+    public CypherType mapInt32Vector(Int32Vector value) {
+        return INTEGER32_VECTOR_CYPHER_TYPE_NAME;
+    }
+
+    @Override
+    public CypherType mapInt64Vector(Int64Vector value) {
+        return INTEGER64_VECTOR_CYPHER_TYPE_NAME;
+    }
+
+    @Override
+    public CypherType mapFloat32Vector(Float32Vector value) {
+        return FLOAT32_VECTOR_CYPHER_TYPE_NAME;
+    }
+
+    @Override
+    public CypherType mapFloat64Vector(Float64Vector value) {
+        return FLOAT64_VECTOR_CYPHER_TYPE_NAME;
     }
 }

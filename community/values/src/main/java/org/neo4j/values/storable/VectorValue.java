@@ -27,7 +27,7 @@ public abstract sealed class VectorValue extends HashMemoizingScalarValue implem
         permits IntegralVector, FloatingPointVector {
 
     @Override
-    public Object asObjectCopy() {
+    public Vector asObjectCopy() {
         // Similar to PointValue, all VectorValues implement the public interface Vector,
         // which is the Java representation.
         return this;

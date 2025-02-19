@@ -72,7 +72,7 @@ public final class Int8Vector extends IntegralVector {
 
     @Override
     public <T> T map(ValueMapper<T> mapper) {
-        return null;
+        return mapper.mapInt8Vector(this);
     }
 
     @Override

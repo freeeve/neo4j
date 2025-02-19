@@ -72,7 +72,7 @@ public final class Int16Vector extends IntegralVector {
 
     @Override
     public <T> T map(ValueMapper<T> mapper) {
-        return null;
+        return mapper.mapInt16Vector(this);
     }
 
     @Override

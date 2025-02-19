@@ -39,6 +39,7 @@ import org.neo4j.values.storable.PointValue;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.MapValueBuilder;
 import org.neo4j.values.virtual.NodeValue;
@@ -217,6 +218,11 @@ public class TruncatedQuerySnapshot {
         @Override
         public AnyValue mapPoint(PointValue value) {
             return value;
+        }
+
+        @Override
+        public AnyValue mapVector(VectorValue value) {
+            return Values.stringValue("§VECTOR[" + value.dimensions() + "]");
         }
     }
 }

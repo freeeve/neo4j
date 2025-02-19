@@ -43,14 +43,22 @@ import org.neo4j.values.storable.DoubleArray;
 import org.neo4j.values.storable.DoubleValue;
 import org.neo4j.values.storable.DurationArray;
 import org.neo4j.values.storable.DurationValue;
+import org.neo4j.values.storable.Float32Vector;
+import org.neo4j.values.storable.Float64Vector;
 import org.neo4j.values.storable.FloatArray;
 import org.neo4j.values.storable.FloatValue;
 import org.neo4j.values.storable.FloatingPointArray;
 import org.neo4j.values.storable.FloatingPointValue;
+import org.neo4j.values.storable.FloatingPointVector;
+import org.neo4j.values.storable.Int16Vector;
+import org.neo4j.values.storable.Int32Vector;
+import org.neo4j.values.storable.Int64Vector;
+import org.neo4j.values.storable.Int8Vector;
 import org.neo4j.values.storable.IntArray;
 import org.neo4j.values.storable.IntValue;
 import org.neo4j.values.storable.IntegralArray;
 import org.neo4j.values.storable.IntegralValue;
+import org.neo4j.values.storable.IntegralVector;
 import org.neo4j.values.storable.LocalDateTimeArray;
 import org.neo4j.values.storable.LocalDateTimeValue;
 import org.neo4j.values.storable.LocalTimeArray;
@@ -69,6 +77,8 @@ import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.storable.TimeArray;
 import org.neo4j.values.storable.TimeValue;
+import org.neo4j.values.storable.Vector;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.VirtualNodeValue;
 import org.neo4j.values.virtual.VirtualPathValue;
@@ -231,6 +241,40 @@ public interface ValueMapper<Base> {
         return mapSequence(value);
     }
 
+    Base mapVector(VectorValue value);
+
+    default Base mapIntegralVector(IntegralVector value) {
+        return mapVector(value);
+    }
+
+    default Base mapFloatingPointVector(FloatingPointVector value) {
+        return mapVector(value);
+    }
+
+    default Base mapInt8Vector(Int8Vector value) {
+        return mapIntegralVector(value);
+    }
+
+    default Base mapInt16Vector(Int16Vector value) {
+        return mapIntegralVector(value);
+    }
+
+    default Base mapInt32Vector(Int32Vector value) {
+        return mapIntegralVector(value);
+    }
+
+    default Base mapInt64Vector(Int64Vector value) {
+        return mapIntegralVector(value);
+    }
+
+    default Base mapFloat32Vector(Float32Vector value) {
+        return mapFloatingPointVector(value);
+    }
+
+    default Base mapFloat64Vector(Float64Vector value) {
+        return mapFloatingPointVector(value);
+    }
+
     abstract class JavaMapper implements ValueMapper<Object> {
         @Override
         public Object mapNoValue() {
@@ -363,6 +407,11 @@ public interface ValueMapper<Base> {
 
         @Override
         public Point mapPoint(PointValue value) {
+            return value.asObjectCopy();
+        }
+
+        @Override
+        public Vector mapVector(VectorValue value) {
             return value.asObjectCopy();
         }
     }
