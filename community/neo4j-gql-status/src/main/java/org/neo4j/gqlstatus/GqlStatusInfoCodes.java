@@ -2652,9 +2652,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42I13(
             new GqlStatus("42I13"),
             """
-                    The procedure or function call does not provide the required number of arguments; expected { %s } but got { %s }.
-
-                    The procedure or function { %s } has the signature: { %s }.""",
+                    The procedure or function call does not provide the required number of arguments; expected { %s } but got { %s }. The procedure or function { %s } has the signature: { %s }.""",
             new GqlParams.GqlParam[] {
                 GqlParams.NumberParam.count1,
                 GqlParams.NumberParam.count2,

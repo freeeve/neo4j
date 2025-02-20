@@ -1492,6 +1492,92 @@ object SemanticError {
       position
     )
   }
+
+  def functionCallWrongNumberOfArguments(
+    expectedNumArgs: Int,
+    actualNumArgs: Int,
+    name: String,
+    signature: String,
+    argumentMsg: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I13(
+      expectedNumArgs,
+      actualNumArgs,
+      name,
+      signature,
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(
+      gql,
+      s"""Function call does not provide the required number of arguments: expected $expectedNumArgs got $actualNumArgs.
+         |
+         |Function $name has signature: $signature
+         |meaning that it expects $expectedNumArgs $argumentMsg""".stripMargin,
+      position
+    )
+  }
+
+  def procedureCallTooFewArguments(
+    actualNumArgs: Int,
+    minNumArgs: Int,
+    totalNumArgs: Int,
+    numArgsWithDefaults: Int,
+    name: String,
+    signature: String,
+    sigDesc: String,
+    description: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I13(
+      minNumArgs,
+      actualNumArgs,
+      name,
+      signature,
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(
+      gql,
+      s"""Procedure call does not provide the required number of arguments: got $actualNumArgs expected at least $minNumArgs (total: $totalNumArgs, $numArgsWithDefaults of which have default values).
+         |
+         |$sigDesc
+         |$description""".stripMargin,
+      position
+    )
+  }
+
+  def procedureCallTooManyArguments(
+    expectedNumArgs: Int,
+    actualNumArgs: Int,
+    name: String,
+    signature: String,
+    maxExpectedMsg: String,
+    sigDesc: String,
+    description: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I13(
+      expectedNumArgs,
+      actualNumArgs,
+      name,
+      signature,
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(
+      gql,
+      s"""Procedure call provides too many arguments: got $actualNumArgs expected $maxExpectedMsg.
+         |
+         |$sigDesc
+         |$description""".stripMargin,
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

@@ -195,25 +195,32 @@ case class ResolvedCall(
         val description = signature.description.fold("")(d => s"Description: $d")
 
         if (tooFewArgs) {
-          error(
-            s"""Procedure call does not provide the required number of arguments: got $givenNumArgs expected at least $minNumArgs (total: $totalNumArgs, $numArgsWithDefaults of which have default values).
-               |
-               |$sigDesc
-               |$description""".stripMargin,
+          error(SemanticError.procedureCallTooFewArguments(
+            givenNumArgs,
+            minNumArgs,
+            totalNumArgs,
+            numArgsWithDefaults,
+            String.valueOf(signature.name),
+            String.valueOf(signature),
+            sigDesc,
+            description,
             position
-          )
+          ))
         } else {
           val maxExpectedMsg = totalNumArgs match {
             case 0 => "none"
             case _ => s"no more than $totalNumArgs"
           }
-          error(
-            s"""Procedure call provides too many arguments: got $givenNumArgs expected $maxExpectedMsg.
-               |
-               |$sigDesc
-               |$description""".stripMargin,
+          error(SemanticError.procedureCallTooManyArguments(
+            totalNumArgs,
+            givenNumArgs,
+            String.valueOf(signature.name),
+            String.valueOf(signature),
+            maxExpectedMsg,
+            sigDesc,
+            description,
             position
-          )
+          ))
         }
       }
     } else {

@@ -454,6 +454,26 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42I13(
+            int expectedNumberOfArgs,
+            int obtainedNumberOfArgs,
+            String procedureFunction,
+            String signature,
+            int offset,
+            int line,
+            int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I13)
+                        .atPosition(offset, line, column)
+                        .withParam(GqlParams.NumberParam.count1, expectedNumberOfArgs)
+                        .withParam(GqlParams.NumberParam.count2, obtainedNumberOfArgs)
+                        .withParam(GqlParams.StringParam.procFun, procedureFunction)
+                        .withParam(GqlParams.StringParam.sig, signature)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_42I20(
             String input, String labelExpr, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)

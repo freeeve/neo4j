@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42I13;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -237,7 +236,6 @@ public class GqlStatusInfoCodesTest {
     @Test
     void verifySingleWhitespaces() {
         Set<GqlStatusInfoCodes> whitelist = EnumSet.noneOf(GqlStatusInfoCodes.class);
-        whitelist.add(STATUS_42I13);
         var regex = "\\s\\s";
         Pattern pattern = Pattern.compile(regex);
         ArrayList<String> dontNeedWhiteList = new ArrayList<>();

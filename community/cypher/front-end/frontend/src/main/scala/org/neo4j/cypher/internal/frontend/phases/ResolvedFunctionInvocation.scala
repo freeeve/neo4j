@@ -122,11 +122,12 @@ case class ResolvedFunctionInvocation(
             signature.description.map(d => s"${System.lineSeparator()}Description: $d").getOrElse("")
         error(
           _: SemanticState,
-          SemanticError(
-            s"""Function call does not provide the required number of arguments: expected $expectedNumArgs got $actualNumArgs.
-               |
-               |Function ${signature.name} has signature: $signature
-               |meaning that it expects $expectedNumArgs $msg""".stripMargin,
+          SemanticError.functionCallWrongNumberOfArguments(
+            expectedNumArgs,
+            actualNumArgs,
+            String.valueOf(signature.name),
+            String.valueOf(signature),
+            msg,
             position
           )
         )
