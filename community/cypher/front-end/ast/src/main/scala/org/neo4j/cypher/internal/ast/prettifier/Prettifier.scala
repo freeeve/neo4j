@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.ast.AlterUser
 import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CommandResultItem
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.CreateCompositeDatabase
 import org.neo4j.cypher.internal.ast.CreateConstraint
@@ -933,7 +934,10 @@ case class Prettifier(
           Seq(lhs, operation, rhs).mkString(NL)
         case TopLevelBraces(innerQuery, use) =>
           val useStr = use.map(asString(_) ++ " ").getOrElse("")
-          useStr ++ Seq("{", indented().query(innerQuery), "}").mkString(NL)
+          useStr ++ Seq(s"${INDENT}{", indented().query(innerQuery), s"${INDENT}}").mkString(NL)
+        case ConditionalQueryWhen(branches, default) =>
+          (branches.map(b => s"${INDENT}WHEN ${expr(b.predicate)} THEN ${query(b.query).trim}") ++
+            default.map(d => s"${INDENT}ELSE ${query(d.query).trim}")).mkString(NL)
       }
 
     def asString(clause: Clause): String = dispatch(clause)

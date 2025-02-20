@@ -153,7 +153,12 @@ object ReturnItems {
   case class ReturnVariables(
     includeExisting: Boolean,
     explicitVariables: Seq[LogicalVariable]
-  )
+  ) {
+
+    def merge(other: ReturnVariables): ReturnVariables = {
+      ReturnVariables(includeExisting || other.includeExisting, (explicitVariables ++ other.explicitVariables).distinct)
+    }
+  }
 
   object ReturnVariables {
     def empty: ReturnVariables = ReturnVariables(includeExisting = false, Seq.empty)

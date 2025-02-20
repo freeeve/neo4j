@@ -462,6 +462,107 @@ class PrettifierIT extends CypherFunSuite {
         |  RETURN $node AS n
         |}""".stripMargin
     ),
+    FailsInCypher5(
+      "{ { match (n) } UNION match (n) } UNION ALL USE graph { RETURN $node AS n }",
+      """{
+        |  {
+        |    MATCH (n)
+        |  }
+        |  UNION
+        |  MATCH (n)
+        |}
+        |UNION ALL
+        |USE `graph` {
+        |  RETURN $node AS n
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "WHEN x.prop > 1 THEN match (n) WHEN x.prop > 1 THEN match (n) WHEN x.prop > 1 THEN match (n) ELSE match (n)",
+      """WHEN x.prop > 1 THEN MATCH (n)
+        |WHEN x.prop > 1 THEN MATCH (n)
+        |WHEN x.prop > 1 THEN MATCH (n)
+        |ELSE MATCH (n)""".stripMargin
+    ),
+    FailsInCypher5(
+      "WHEN x.prop > 1 THEN { match (n) UNION match (n) } ELSE match (n)",
+      """WHEN x.prop > 1 THEN {
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}
+        |ELSE MATCH (n)""".stripMargin
+    ),
+    FailsInCypher5(
+      "WHEN x.prop > 1 THEN { match (n) UNION match (n) } WHEN x.prop > 1 THEN { match (n) UNION match (n) } WHEN x.prop > 1 THEN { match (n) UNION match (n) } ELSE match (n)",
+      """WHEN x.prop > 1 THEN {
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}
+        |WHEN x.prop > 1 THEN {
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}
+        |WHEN x.prop > 1 THEN {
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}
+        |ELSE MATCH (n)""".stripMargin
+    ),
+    FailsInCypher5(
+      "WHEN x.prop > 1 THEN { match (n) UNION match (n) } WHEN x.prop > 1 THEN { match (n) UNION match (n) } WHEN x.prop > 1 THEN { match (n) UNION match (n) }",
+      """WHEN x.prop > 1 THEN {
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}
+        |WHEN x.prop > 1 THEN {
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}
+        |WHEN x.prop > 1 THEN {
+        |  MATCH (n)
+        |  UNION
+        |  MATCH (n)
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "{ WHEN true THEN match (n) ELSE match (n) } UNION ALL { match (n) }",
+      """{
+        |  WHEN true THEN MATCH (n)
+        |  ELSE MATCH (n)
+        |}
+        |UNION ALL
+        |{
+        |  MATCH (n)
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "{ WHEN true THEN { match (n) } ELSE match (n) } UNION ALL { match (n) }",
+      """{
+        |  WHEN true THEN {
+        |    MATCH (n)
+        |  }
+        |  ELSE MATCH (n)
+        |}
+        |UNION ALL
+        |{
+        |  MATCH (n)
+        |}""".stripMargin
+    ),
+    FailsInCypher5(
+      "{ WHEN true THEN match (n) } UNION ALL { match (n) }",
+      """{
+        |  WHEN true THEN MATCH (n)
+        |}
+        |UNION ALL
+        |{
+        |  MATCH (n)
+        |}""".stripMargin
+    ),
     "load csv from '/import/data.csv' AS row create ({key: row[0]})" ->
       """LOAD CSV FROM "/import/data.csv" AS row
         |CREATE ({key: row[0]})""".stripMargin,

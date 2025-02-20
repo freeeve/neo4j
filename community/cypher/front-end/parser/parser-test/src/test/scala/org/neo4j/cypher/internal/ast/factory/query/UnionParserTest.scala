@@ -154,6 +154,28 @@ class UnionParserTest extends AstParsingTestBase {
     }
   }
 
+  test("UNION with unenclosed WHEN") {
+    val query = """{
+              WHEN false THEN RETURN 1 AS x
+              ELSE RETURN n AS x
+           }
+           UNION
+           WHEN true THEN RETURN 2 AS x
+           ELSE RETURN n AS x"""
+    query should parseIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '{': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'USING PERIODIC COMMIT', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE' or 'WITH' (line 1, column 1 (offset: 0))
+            |"{"
+            | ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'WHEN': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or '{' (line 6, column 12 (offset: 120))
+            |"           WHEN true THEN RETURN 2 AS x"
+            |            ^""".stripMargin
+        )
+    }
+  }
+
   test("RETURN 1 AS a UNION RETURN 2 AS a UNION RETURN 3 AS a") {
     parsesTo[Statement](union(
       union(

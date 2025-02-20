@@ -233,7 +233,6 @@ abstract class Expression extends ASTNode {
   }
 
   /**
-   * 
    * @return `true` if expression is constant and doesn't require the incoming row to be evaluated.
    */
   def isConstantForQuery: Boolean

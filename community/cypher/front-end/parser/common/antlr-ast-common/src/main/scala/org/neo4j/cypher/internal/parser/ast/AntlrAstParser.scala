@@ -114,10 +114,9 @@ trait AntlrAstParser[P <: AstBuildingAntlrParser] extends AstParser {
     val errors = parser.syntaxChecker().errors ++ listener.syntaxErrors
 
     if (errors.isEmpty && !parseReachedEof(parser)) {
-      val eofError = exceptionFactory.syntaxException(
-        s"Invalid input '${parser.getCurrentToken.getText}'",
-        position(parser.getCurrentToken)
-      )
+      val (legacyMessage, gqlCauseBuilder) = new CypherErrorStrategy(errorStrategyConf).reportErrorAtEof(parser)
+      val eofError =
+        exceptionFactory.syntaxException(gqlCauseBuilder.build(), legacyMessage, position(parser.getCurrentToken))
       return (result, errors :+ eofError)
     }
 

@@ -3353,16 +3353,34 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N39(
             new GqlStatus("42N39"),
             """
-                    All subqueries in a UNION clause must have the same return column names.""",
-            new GqlParams.GqlParam[] {},
+                    All { %s } must have the same return column names. Use `AS` to ensure columns have the same name.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.context},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "incompatible return columns",
+            "incompatible return column names",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42N3A(
+            new GqlStatus("42N3A"),
+            """
+                    All { %s } need to either return rows or update the graph.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.context},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "incompatible conditional query",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42N3B(
+            new GqlStatus("42N3B"),
+            """
+                    All { %s } must return the same number of columns.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.context},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "incompatible number of return columns",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N3C(
             new GqlStatus("42N3C"),
             """
-                    Not possible to enclose { %s } in CALL { ... }, please use CALL () { ... }.""",
+                    Not possible to enclose { %s } in 'CALL { ... }'. Use 'CALL () { ... }' instead.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,

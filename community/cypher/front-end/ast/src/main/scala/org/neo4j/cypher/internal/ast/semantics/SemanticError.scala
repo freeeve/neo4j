@@ -531,9 +531,24 @@ object SemanticError {
     )
   }
 
-  def incompatibleReturnColumns(position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42001_42N39(position.offset, position.line, position.column)
+  def incompatibleWhenReturnColumns(context: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N39(context, position.offset, position.line, position.column)
+    SemanticError(gql, gql.cause().get().gqlStatusObject().getMessage, position)
+  }
+
+  def incompatibleReturnColumns(context: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N39(context, position.offset, position.line, position.column)
     SemanticError(gql, "All sub queries in an UNION must have the same return column names", position)
+  }
+
+  def incompatibleSubqueryType(context: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N3A(context, position.offset, position.line, position.column)
+    SemanticError(gql, gql.cause().get().gqlStatusObject().getMessage, position)
+  }
+
+  def incompatibleNumberOfReturnColumns(context: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N3B(context, position.offset, position.line, position.column)
+    SemanticError(gql, gql.cause().get().gqlStatusObject().getMessage, position)
   }
 
   def invalidUseOfOldCall(clause: String, position: InputPosition): SemanticError = {

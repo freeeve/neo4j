@@ -21,6 +21,8 @@ import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.ast.Clause
+import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Delete
@@ -105,6 +107,7 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.SimplePattern
+import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.parser.AstRuleCtx
@@ -143,29 +146,43 @@ trait StatementBuilder extends Cypher25ParserListener {
   }
 
   final override def exitRegularQuery(ctx: Cypher25Parser.RegularQueryContext): Unit = {
+    ctx.ast = ctxChild(ctx, 0).ast[Query]()
+  }
+
+  override def exitUnion(ctx: Cypher25Parser.UnionContext): Unit = {
     var result: Query = ctxChild(ctx, 0).ast[PartQuery]()
     val size = ctx.children.size()
-    if (size != 1) {
-      var i = 1; var all = false; var p: InputPosition = null
-      while (i < size) {
-        ctx.children.get(i) match {
-          case sqCtx: Cypher25Parser.SingleQueryContext =>
-            val rhs = sqCtx.ast[PartQuery]()
-            result = if (all) UnionAll(result, rhs)(p)
-            else UnionDistinct(result, rhs)(p)
-            all = false
-          case node: TerminalNode => node.getSymbol.getType match {
-              case Cypher25Parser.ALL      => all = true
-              case Cypher25Parser.DISTINCT => all = false
-              case Cypher25Parser.UNION    => p = pos(node)
-              case _                       => throw new IllegalStateException(s"Unexpected token $node")
-            }
-          case _ => throw new IllegalStateException(s"Unexpected ctx $ctx")
-        }
-        i += 1
+    var i = 1; var all = false; var p: InputPosition = null
+    while (i < size) {
+      ctx.children.get(i) match {
+        case sqCtx: Cypher25Parser.SingleQueryContext =>
+          val rhs = sqCtx.ast[PartQuery]()
+          result = if (all) UnionAll(result, rhs)(p)
+          else UnionDistinct(result, rhs)(p)
+          all = false
+        case node: TerminalNode => node.getSymbol.getType match {
+            case Cypher25Parser.ALL      => all = true
+            case Cypher25Parser.DISTINCT => all = false
+            case Cypher25Parser.UNION    => p = pos(node)
+            case _                       => throw new IllegalStateException(s"Unexpected token $node")
+          }
+        case _ => throw new IllegalStateException(s"Unexpected ctx $ctx")
       }
+      i += 1
     }
     ctx.ast = result
+  }
+
+  override def exitWhen(ctx: Cypher25Parser.WhenContext): Unit = {
+    ctx.ast = ConditionalQueryWhen(astSeq[ConditionalQueryBranch](ctx.whenBranch()), astOpt(ctx.elseBranch()))(pos(ctx))
+  }
+
+  override def exitWhenBranch(ctx: Cypher25Parser.WhenBranchContext): Unit = {
+    ctx.ast = ConditionalQueryBranch(ctx.expression().ast[Expression](), ctx.singleQuery().ast[PartQuery])(pos(ctx))
+  }
+
+  override def exitElseBranch(ctx: Cypher25Parser.ElseBranchContext): Unit = {
+    ctx.ast = ConditionalQueryBranch(True()(pos(ctx)), ctx.singleQuery().ast[PartQuery])(pos(ctx))
   }
 
   final override def exitSingleQuery(ctx: Cypher25Parser.SingleQueryContext): Unit = {

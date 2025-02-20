@@ -18,6 +18,8 @@ package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AscSortItem
+import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
 import org.neo4j.cypher.internal.ast.OrderBy
@@ -141,6 +143,17 @@ case class NormalizeWithAndReturnClauses(
         union.copy(lhs = rewriteTopLevelQuery(lhs), rhs = rewriteTopLevelPartQuery(rhs))(
           union.position
         )
+      case when @ ConditionalQueryWhen(branches, default) =>
+        when.copy(
+          branches = branches.map {
+            case b @ ConditionalQueryBranch(predicate, query) =>
+              b.copy(
+                predicate = predicate.endoRewrite(rewriteProjectionsRecursively),
+                query.endoRewrite(rewriteProjectionsRecursively)
+              )(b.position)
+          },
+          default = default.endoRewrite(rewriteProjectionsRecursively)
+        )(when.position)
       case _: ProjectingUnion =>
         throw new IllegalStateException("Didn't expect ProjectingUnion, only SingleQuery, UnionAll, or UnionDistinct.")
     }

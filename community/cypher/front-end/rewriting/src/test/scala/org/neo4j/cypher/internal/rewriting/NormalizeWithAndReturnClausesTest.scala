@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
@@ -86,6 +87,25 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
   }
 
+  test("ensure all things are are aliased in UNION ALL") {
+    assertRewrite(
+      """MATCH (n)
+        |RETURN n, 3 + 5
+        |  UNION ALL
+        |MATCH (n)
+        |WITH n {.foo, .bar}
+        |RETURN n {.baz, .bar}, 3 + 5
+      """.stripMargin,
+      """MATCH (n)
+        |RETURN n AS n, 3 + 5 AS `3 + 5`
+        |  UNION ALL
+        |MATCH (n)
+        |WITH n {.foo, .bar} AS n
+        |RETURN n {.baz, .bar} AS n, 3 + 5 AS `3 + 5`
+      """.stripMargin
+    )
+  }
+
   test("ensure valid things are aliased in subqueries") {
     assertRewrite(
       """CALL {
@@ -115,6 +135,50 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
   }
 
+  test("ensure returns are aliased in when returns") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """WHEN true THEN WITH 1 AS x RETURN x""".stripMargin,
+      """WHEN true THEN WITH 1 AS x RETURN x AS x""".stripMargin
+    )
+  }
+
+  test("ensure returns are aliased in wrapped when returns") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """WHEN true THEN { WITH 1 AS x RETURN x }""".stripMargin,
+      """WHEN true THEN { WITH 1 AS x RETURN x AS x }""".stripMargin
+    )
+  }
+
+  test("ensure valid things are aliased in subqueries in conditional query") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """WHEN true THEN CALL () {
+        |  MATCH (n:N) RETURN n
+        |    UNION
+        |  MATCH (n:M) RETURN n
+        |} RETURN n
+        |WHEN true THEN CALL (*) {
+        |  MATCH (n)--(m)--(p)
+        |  RETURN p {.foo, .bar} AS n
+        |}
+        |RETURN n
+      """.stripMargin,
+      """WHEN true THEN CALL () {
+        |  MATCH (n:N) RETURN n AS n
+        |    UNION
+        |  MATCH (n:M) RETURN n AS n
+        |} RETURN n AS n
+        |WHEN true THEN CALL (*){
+        |  MATCH (n)--(m)--(p)
+        |  RETURN p {.foo, .bar} AS n
+        |}
+        |RETURN n AS n
+      """.stripMargin
+    )
+  }
+
   test("ensure returns are aliased in Exists expressions") {
     assertRewrite(
       """MATCH (n)
@@ -132,6 +196,66 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
         |       ELSE 2
         |    END` }
         |RETURN n AS n
+      """.stripMargin
+    )
+  }
+
+  test("ensure returns are aliased in Exists expressions in when") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """WHEN EXISTS {
+        |  RETURN CASE
+        |       WHEN true THEN 1
+        |       ELSE 2
+        |    END
+        |}
+        |THEN RETURN 1 AS n
+      """.stripMargin,
+      """WHEN EXISTS { RETURN CASE WHEN true THEN 1 ELSE 2 END AS `CASE
+        |       WHEN true THEN 1
+        |       ELSE 2
+        |    END` }
+        |THEN RETURN 1 AS n
+      """.stripMargin
+    )
+  }
+
+  test("ensure returns are aliased in COLLECT expressions in when") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """WHEN COLLECT {
+        |  RETURN CASE
+        |       WHEN true THEN 1
+        |       ELSE 2
+        |    END
+        |}
+        |THEN RETURN 1 AS n
+      """.stripMargin,
+      """WHEN COLLECT { RETURN CASE WHEN true THEN 1 ELSE 2 END AS `CASE
+        |       WHEN true THEN 1
+        |       ELSE 2
+        |    END` }
+        |THEN RETURN 1 AS n
+      """.stripMargin
+    )
+  }
+
+  test("ensure returns are aliased in Count expressions in when") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """WHEN COUNT {
+        |  RETURN CASE
+        |       WHEN true THEN 1
+        |       ELSE 2
+        |    END
+        |} > 1
+        |THEN RETURN 1 AS n
+      """.stripMargin,
+      """WHEN COUNT { RETURN CASE WHEN true THEN 1 ELSE 2 END AS `CASE
+        |       WHEN true THEN 1
+        |       ELSE 2
+        |    END` } > 1
+        |THEN RETURN 1 AS n
       """.stripMargin
     )
   }
@@ -730,10 +854,96 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
   }
 
+  test("should introduce aliases for when but not in return") {
+    assertRewriteAndSemanticError(
+      CypherVersion.Cypher25,
+      "WHEN true THEN MATCH (n) WITH n RETURN 1",
+      "WHEN true THEN MATCH (n) WITH n AS n RETURN 1",
+      "Expression in WHEN ... THEN ... must be aliased (use AS) (line 1, column 40 (offset: 39))"
+    )
+  }
+
+  test("should introduce aliases for when but not in return wrapped") {
+    assertRewriteAndSemanticError(
+      CypherVersion.Cypher25,
+      "WHEN true THEN { MATCH (n) WITH n RETURN 1 }",
+      "WHEN true THEN { MATCH (n) WITH n AS n RETURN 1 }",
+      "Expression in { RETURN ... } must be aliased (use AS) (line 1, column 42 (offset: 41))"
+    )
+  }
+
+  test("should introduce aliases for TLB but not in return") {
+    assertRewriteAndSemanticError(
+      CypherVersion.Cypher25,
+      "{ MATCH (n) WITH n RETURN 1 }",
+      "{ MATCH (n) WITH n AS n RETURN 1 }",
+      "Expression in { RETURN ... } must be aliased (use AS) (line 1, column 27 (offset: 26))"
+    )
+  }
+
+  test("should not introduce aliases in when then return") {
+    assertNotRewrittenAndSemanticErrors(
+      CypherVersion.Cypher25,
+      "WHEN true THEN RETURN 1",
+      "Expression in WHEN ... THEN ... must be aliased (use AS) (line 1, column 23 (offset: 22))"
+    )
+  }
+
+  test("should not introduce aliases in when then return multiple branches") {
+    assertNotRewrittenAndSemanticErrors(
+      CypherVersion.Cypher25,
+      """WHEN true THEN RETURN 1
+        |WHEN true THEN RETURN 1
+        |WHEN true THEN RETURN 1
+        |ELSE RETURN 1
+        |""".stripMargin,
+      "Expression in WHEN ... THEN ... must be aliased (use AS) (line 1, column 23 (offset: 22))",
+      "Expression in WHEN ... THEN ... must be aliased (use AS) (line 2, column 23 (offset: 46))",
+      "Expression in WHEN ... THEN ... must be aliased (use AS) (line 3, column 23 (offset: 70))",
+      "Expression in WHEN ... THEN ... must be aliased (use AS) (line 4, column 13 (offset: 84))"
+    )
+  }
+
+  test("should not introduce aliases in when then contained in subquery return") {
+    assertNotRewrittenAndSemanticErrors(
+      CypherVersion.Cypher25,
+      "CALL () { WHEN true THEN RETURN 1 } RETURN 1 AS one",
+      "Expression in CALL () { RETURN ... } must be aliased (use AS) (line 1, column 33 (offset: 32))"
+    )
+  }
+
   test("should not introduce aliases in subquery return") {
     assertNotRewrittenAndSemanticErrors(
       "CALL { RETURN 1 } RETURN 1 AS one",
       "Expression in CALL { RETURN ... } must be aliased (use AS) (line 1, column 15 (offset: 14))"
+    )
+  }
+
+  test("should not introduce aliases in scoped subquery return") {
+    assertNotRewrittenAndSemanticErrors(
+      "CALL () { RETURN 1 } RETURN 1 AS one",
+      "Expression in CALL () { RETURN ... } must be aliased (use AS) (line 1, column 18 (offset: 17))"
+    )
+  }
+
+  test("should introduce allowed aliases in scoped subquery return") {
+    assertRewrite(
+      "CALL () { WITH 1 AS x RETURN x } RETURN 1 AS one",
+      "CALL () { WITH 1 AS x RETURN x AS x } RETURN 1 AS one"
+    )
+  }
+
+  test("should introduce allowed aliases in multiple branch when") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """WHEN false THEN RETURN 1 AS x
+        WHEN true  THEN UNWIND [2,2,2] AS x RETURN x
+        ELSE UNWIND [3,3,3] AS x RETURN x
+    """,
+      """WHEN false THEN RETURN 1 AS x
+        WHEN true  THEN UNWIND [2,2,2] AS x RETURN x AS x
+        ELSE UNWIND [3,3,3] AS x RETURN x AS x
+    """
     )
   }
 
@@ -1241,6 +1451,29 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
   }
 
+  private def rewrite(version: CypherVersion, originalQuery: String, expectedQuery: String): SemanticCheckResult = {
+    val original = parseForRewriting(version, originalQuery.replace("\r\n", "\n"))
+    val expected = parseForRewriting(version, expectedQuery.replace("\r\n", "\n"))
+    val result = endoRewrite(original)
+    assert(
+      result === expected,
+      s"""
+    $originalQuery
+    should be rewritten to:
+    $expectedQuery
+    but was rewritten to:${prettifier.asString(result)}"""
+    )
+    result.semanticCheck.run(
+      SemanticState.clean.withFeatures(MultipleDatabases),
+      SemanticCheckContext.default
+    )
+  }
+
+  override protected def assertRewrite(version: CypherVersion, originalQuery: String, expectedQuery: String): Unit = {
+    val checkResult = rewrite(version, originalQuery, expectedQuery)
+    assert(checkResult.errors === Seq())
+  }
+
   override protected def assertRewrite(originalQuery: String, expectedQuery: String): Unit = {
     val checkResult = rewrite(originalQuery, expectedQuery)
     assert(checkResult.errors === Seq())
@@ -1258,8 +1491,29 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
   }
 
+  protected def assertRewriteAndSemanticError(
+    version: CypherVersion,
+    originalQuery: String,
+    expectedQuery: String,
+    semanticErrors: String*
+  ): Unit = {
+    val checkResult = rewrite(version, originalQuery, expectedQuery)
+    val errors = checkResult.errors.map(error => s"${error.msg} (${error.position})").toSet
+    semanticErrors.foreach(msg =>
+      assert(errors contains msg, s"Error '$msg' not produced (errors: $errors)}")
+    )
+  }
+
   protected def assertNotRewrittenAndSemanticErrors(query: String, semanticErrors: String*): Unit = {
     assertRewriteAndSemanticError(query, query, semanticErrors: _*)
+  }
+
+  protected def assertNotRewrittenAndSemanticErrors(
+    version: CypherVersion,
+    query: String,
+    semanticErrors: String*
+  ): Unit = {
+    assertRewriteAndSemanticError(version, query, query, semanticErrors: _*)
   }
 
   protected def rewriting(queryText: String): Unit = {

@@ -69,7 +69,9 @@ trait FrontEndCompilationPhases {
         ExtractSensitiveLiterals
       ) andThen
       SemanticAnalysis(warn = true, config.semanticFeatures: _*) andThen
+      ExpandWhen andThen
       UnwrapTopLevelBraces andThen
+      SemanticAnalysis(warn = false, config.semanticFeatures: _*) andThen
       RemoveDuplicateUseClauses andThen
       SemanticTypeCheck andThen
       SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures) andThen

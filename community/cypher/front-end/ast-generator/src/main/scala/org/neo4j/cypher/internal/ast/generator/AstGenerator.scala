@@ -66,6 +66,8 @@ import org.neo4j.cypher.internal.ast.CollectExpression
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.CompositeDatabaseManagementActions
+import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.CountExpression
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.CreateAliasAction
@@ -189,6 +191,7 @@ import org.neo4j.cypher.internal.ast.OptionsParam
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.ParameterName
 import org.neo4j.cypher.internal.ast.ParsedAsYield
+import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.Password
 import org.neo4j.cypher.internal.ast.PasswordChange
 import org.neo4j.cypher.internal.ast.PatternQualifier
@@ -626,6 +629,7 @@ object AstGenerator {
 class AstGenerator(
   simpleStrings: Boolean = true,
   allowedVarNames: Option[Seq[String]] = None,
+  allowedParamNames: Option[Seq[String]] = None,
   val whenAstDifferUseCypherVersion: CypherVersion = CypherVersion.Default
 ) {
   // HELPERS
@@ -711,8 +715,16 @@ class AstGenerator(
   def _doubleLit: Gen[DecimalDoubleLiteral] =
     Arbitrary.arbDouble.arbitrary.map(_.toString).map(DecimalDoubleLiteral(_)(pos))
 
-  def _parameter: Gen[Parameter] =
-    _identifier.map(ExplicitParameter(_, AnyType(isNullable = true)(pos))(pos))
+  def _parameter: Gen[Parameter] = {
+    val nameGen = allowedParamNames match {
+      case None        => _identifier
+      case Some(Seq()) => const("").suchThat(_ => false)
+      case Some(names) => oneOf(names)
+    }
+    for {
+      name <- nameGen
+    } yield ExplicitParameter(name, AnyType(isNullable = true)(pos))(pos)
+  }
 
   def _stringParameter: Gen[Parameter] = _identifier.map(ExplicitParameter(_, CTString)(pos))
 
@@ -1013,7 +1025,7 @@ class AstGenerator(
   // Expression
   // ----------------------------------
 
-  private def _shallowExpression: Gen[Expression] = oneOf(
+  def _shallowExpression: Gen[Expression] = oneOf(
     lzy(_nullLit),
     lzy(_stringLit),
     lzy(_booleanLit),
@@ -1697,7 +1709,7 @@ class AstGenerator(
   } yield SingleQuery(clauses)(pos)
 
   def _union: Gen[Union] = for {
-    lhs <- _query
+    lhs <- _unionArgument
     rhs <- _singleQuery
     union <- oneOf(
       UnionDistinct(lhs, rhs)(pos),
@@ -1705,10 +1717,36 @@ class AstGenerator(
     )
   } yield union
 
+  def _branch: Gen[ConditionalQueryBranch] = for {
+    predicate <- _expression
+    query <- _partQuery
+  } yield ConditionalQueryBranch(predicate, query)(pos)
+
+  def _when: Gen[ConditionalQueryWhen] = for {
+    branches <- oneOrMore(_branch)
+    default <- option[PartQuery](_partQuery)
+  } yield ConditionalQueryWhen(branches, default.map(x => ConditionalQueryBranch(True()(pos), x)(pos)))(pos)
+
   def _topLevelBraces: Gen[TopLevelBraces] = for {
     inner <- _query
     use <- option(_use)
   } yield TopLevelBraces(inner, use)(pos)
+
+  def _partQuery: Gen[PartQuery] = for {
+    partQuery <- oneOf(_singleQuery, _topLevelBraces)
+  } yield partQuery
+
+  def _unionArgument: Gen[Query] = {
+    if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) frequency(
+      5 -> lzy(_singleQuery),
+      1 -> lzy(_union)
+    )
+    else frequency(
+      5 -> lzy(_singleQuery),
+      1 -> lzy(_union),
+      1 -> lzy(_topLevelBraces)
+    )
+  }
 
   def _query: Gen[Query] = {
     if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) frequency(
@@ -1718,7 +1756,8 @@ class AstGenerator(
     else frequency(
       5 -> lzy(_singleQuery),
       1 -> lzy(_union),
-      1 -> lzy(_topLevelBraces)
+      1 -> lzy(_topLevelBraces),
+      1 -> lzy(_when)
     )
   }
 

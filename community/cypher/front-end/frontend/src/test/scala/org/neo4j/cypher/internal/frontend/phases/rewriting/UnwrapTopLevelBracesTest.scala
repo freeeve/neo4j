@@ -62,6 +62,161 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
     )
   }
 
+  test("when in top level braces") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """USE graph { WHEN true THEN RETURN 1 AS x } """.stripMargin,
+      """
+        |WHEN true THEN USE `graph`
+        |RETURN 1 AS x
+        """.stripMargin
+    )
+  }
+
+  test("when in tlb with top level braces as arguments with inner union") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """
+        |{
+        |   WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
+        |   WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
+        |   ELSE { RETURN 3 AS x UNION RETURN 3 AS x }
+        | }
+        | """.stripMargin,
+      """
+        |WHEN false THEN CALL (*) {
+        |  RETURN 1 AS x
+        |  UNION
+        |  RETURN 2 AS x
+        |}
+        |RETURN *
+        |WHEN false THEN CALL (*) {
+        |  RETURN 1 AS x
+        |  UNION
+        |  RETURN 2 AS x
+        |}
+        |RETURN *
+        |ELSE CALL (*) {
+        |  RETURN 3 AS x
+        |  UNION
+        |  RETURN 3 AS x
+        |}
+        |RETURN *
+        """.stripMargin
+    )
+  }
+
+  test("when with top level braces as arguments with inner union") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """
+        | WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
+        | WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
+        | ELSE { RETURN 3 AS x UNION RETURN 3 AS x }""".stripMargin,
+      """
+        |WHEN false THEN CALL (*) {
+        |  RETURN 1 AS x
+        |  UNION
+        |  RETURN 2 AS x
+        |}
+        |RETURN *
+        |WHEN false THEN CALL (*) {
+        |  RETURN 1 AS x
+        |  UNION
+        |  RETURN 2 AS x
+        |}
+        |RETURN *
+        |ELSE CALL (*) {
+        |  RETURN 3 AS x
+        |  UNION
+        |  RETURN 3 AS x
+        |}
+        |RETURN *
+        """.stripMargin
+    )
+  }
+
+  test("when with top level braces as arguments") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """
+        | WHEN false THEN { RETURN 1 AS x }
+        | WHEN false THEN { RETURN 1 AS x }
+        | ELSE { RETURN 3 AS x }""".stripMargin,
+      """
+        |WHEN false THEN CALL (*) {
+        |  RETURN 1 AS x
+        |}
+        |RETURN *
+        |WHEN false THEN CALL (*) {
+        |  RETURN 1 AS x
+        |}
+        |RETURN *
+        |ELSE CALL (*) {
+        |  RETURN 3 AS x
+        |}
+        |RETURN *
+        """.stripMargin
+    )
+  }
+
+  test("when with top level braces and graph as arguments") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """
+        |   WHEN false THEN USE innerGraph { RETURN 1 AS x }
+        |   WHEN false THEN USE innerGraph { RETURN 2 AS x }
+        |   ELSE { RETURN 3 AS x }
+        |""".stripMargin,
+      """
+        |WHEN false THEN CALL (*) {
+        |  USE `innerGraph`
+        |  RETURN 1 AS x
+        |}
+        |RETURN *
+        |WHEN false THEN CALL (*) {
+        |  USE `innerGraph`
+        |  RETURN 2 AS x
+        |}
+        |RETURN *
+        |ELSE CALL (*) {
+        |  RETURN 3 AS x
+        |}
+        |RETURN *
+        |""".stripMargin
+    )
+  }
+
+  test("when in top level braces with top level braces as arguments") {
+    assertRewrite(
+      CypherVersion.Cypher25,
+      """
+        |USE graph {
+        |   WHEN false THEN USE innerGraph { RETURN 1 AS x }
+        |   WHEN false THEN USE innerGraph { RETURN 2 AS x }
+        |   ELSE { RETURN 3 AS x }
+        |}
+        |""".stripMargin,
+      """
+        |WHEN false THEN CALL (*) {
+        |  USE `innerGraph`
+        |  RETURN 1 AS x
+        |}
+        |RETURN *
+        |WHEN false THEN CALL (*) {
+        |  USE `innerGraph`
+        |  RETURN 2 AS x
+        |}
+        |RETURN *
+        |ELSE CALL (*) {
+        |  USE `graph`
+        |  RETURN 3 AS x
+        |}
+        |RETURN *
+        |""".stripMargin
+    )
+  }
+
   test("union with top level braces as arguments") {
     assertRewrite(
       CypherVersion.Cypher25,

@@ -56,7 +56,7 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
       // ≥ Cypher25
       case _ => (
           "for",
-          "'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FILTER', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WITH' or '{'",
+          "'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FILTER', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WHEN', 'WITH' or '{'",
           0
         )
     })
@@ -393,7 +393,7 @@ object SyntaxErrorParserTest {
 
   val clausesNotInCypher25: Seq[String] = Seq("USING PERIODIC COMMIT")
 
-  val clausesNotInCypher5: Seq[String] = Seq("{", "FILTER")
+  val clausesNotInCypher5: Seq[String] = Seq("FILTER", "WHEN", "{")
 
   def clauseExpected(cypherVersion: CypherVersion): String = {
     var tokens = Seq(
@@ -434,6 +434,7 @@ object SyntaxErrorParserTest {
       "TERMINATE",
       "UNWIND",
       "USE",
+      "WHEN",
       "WITH",
       "{"
     )

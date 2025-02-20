@@ -947,7 +947,25 @@ trait AstConstructionTestSupport {
   def singleQuery(cs: Clause*): SingleQuery =
     SingleQuery(cs)(pos)
 
-  def unionDistinct(qs: SingleQuery*): Query =
+  def topLevelBraces(query: Query): TopLevelBraces =
+    TopLevelBraces(query, None)(pos)
+
+  def topLevelBraces(query: Query, graph: UseGraph): TopLevelBraces =
+    TopLevelBraces(query, Some(graph))(pos)
+
+  def conditionalQueryDefault(query: PartQuery): Option[ConditionalQueryBranch] =
+    Some(conditionalQueryBranch(trueLiteral, query))
+
+  def conditionalQueryBranch(predicate: Expression, query: PartQuery): ConditionalQueryBranch =
+    ConditionalQueryBranch(predicate, query)(pos)
+
+  def conditionalQueryWhen(wt: ConditionalQueryBranch*): ConditionalQueryWhen =
+    ConditionalQueryWhen(wt, None)(pos)
+
+  def conditionalQueryWhen(default: Option[ConditionalQueryBranch], wt: ConditionalQueryBranch*): ConditionalQueryWhen =
+    ConditionalQueryWhen(wt, default)(pos)
+
+  def unionDistinct(qs: PartQuery*): Query =
     qs.reduceLeft[Query](UnionDistinct(_, _)(pos))
 
   def importingWithSubqueryCall(cs: Clause*): ImportingWithSubqueryCall =

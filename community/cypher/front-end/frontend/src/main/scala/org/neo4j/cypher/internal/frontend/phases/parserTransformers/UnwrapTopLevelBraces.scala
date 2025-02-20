@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProjectingUnion
 import org.neo4j.cypher.internal.ast.Query
@@ -27,9 +28,12 @@ import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoTopLevelBraces
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.Rewriter
@@ -85,15 +89,19 @@ case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTra
 
   override def preConditions: Set[StepSequencer.Condition] = Set()
 
-  override def postConditions: Set[StepSequencer.Condition] = Set()
+  override def postConditions: Set[StepSequencer.Condition] = Set(StatementCondition(ContainsNoTopLevelBraces))
 
-  override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
+  override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable + ContainsNoReturnAll
 
   private def pushDownUse(query: Query, use: Option[UseGraph]): Query = {
     query match {
       case ua: PartQuery               => pushDownUse(ua, use)
       case u @ UnionDistinct(lhs, rhs) => u.copy(pushDownUse(lhs, use), pushDownUse(rhs, use))(u.position)
       case u @ UnionAll(lhs, rhs)      => u.copy(pushDownUse(lhs, use), pushDownUse(rhs, use))(u.position)
+      case wh @ ConditionalQueryWhen(branches, default) => wh.copy(
+          branches = branches.map(b => b.copy(query = pushDownUse(b.query, use))(b.position)),
+          default = default.map(d => d.copy(query = pushDownUse(d.query, use))(d.position))
+        )(wh.position)
       case _: ProjectingUnion =>
         throw new IllegalStateException(
           "Didn't expect ProjectingUnion, only SingleQuery, TopLevelBraces, UnionAll, or UnionDistinct."
@@ -121,6 +129,11 @@ case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTra
       u.copy(lhs.getQuery(true), rhs.singleQuery)(u.position)
     case u @ UnionAll(lhs, rhs) =>
       u.copy(lhs.getQuery(true), rhs.singleQuery)(u.position)
+    case wh @ ConditionalQueryWhen(branches, default) =>
+      wh.copy(
+        branches = branches.map(b => b.copy(query = b.query.singleQuery)(b.position)),
+        default = default.map(d => d.copy(query = d.query.singleQuery)(d.position))
+      )(wh.position)
     case tlb: TopLevelBraces =>
       tlb.getQuery(false)
   })

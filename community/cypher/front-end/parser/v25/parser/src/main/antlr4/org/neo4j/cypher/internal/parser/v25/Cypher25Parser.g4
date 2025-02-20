@@ -27,7 +27,23 @@ statement
    ;
 
 regularQuery
+   : union | when
+   ;
+
+union
    : singleQuery (UNION (ALL | DISTINCT)? singleQuery)*
+   ;
+
+when
+   : whenBranch+ elseBranch?
+   ;
+
+whenBranch
+   : WHEN expression THEN singleQuery
+   ;
+
+elseBranch
+   : ELSE singleQuery
    ;
 
 singleQuery

@@ -16,13 +16,17 @@
  */
 package org.neo4j.cypher.internal.rewriting.conditions
 
-import org.neo4j.cypher.internal.ast.TopLevelBraces
+import org.neo4j.cypher.internal.ast.ConditionalQueryBranch
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.rewriting.ValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 
-case object ContainsNoTopLevelBraces extends ValidatingCondition {
+case object ContainsNoConditionalQueries extends ValidatingCondition {
 
-  private val matcher = ContainsNoMatchingNodes({ case _: TopLevelBraces => "TopLevelBraces(...)" })
+  private val matcher = ContainsNoMatchingNodes({
+    case _: ConditionalQueryWhen   => "ConditionalQueryWhen(...)"
+    case _: ConditionalQueryBranch => "ConditionalQueryBranch(...)"
+  })
 
   override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] =
     matcher(that)(cancellationChecker)

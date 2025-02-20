@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.ast.Ast.p
+import org.neo4j.cypher.internal.ast.UnmappedUnion
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -414,7 +415,7 @@ class CollectExpressionSemanticAnalysisTest
      """.stripMargin
   ) {
     run().hasErrors(
-      getGql42001_42N39(74, 5, 5),
+      getGql42001_42N39(UnmappedUnion.errorParam, 74, 5, 5),
       "All sub queries in an UNION must have the same return column names",
       InputPosition(74, 5, 5),
       getGql42001_42N71(88, 6, 5),
@@ -438,7 +439,7 @@ class CollectExpressionSemanticAnalysisTest
      """.stripMargin
   ) {
     run().hasErrors(
-      getGql42001_42N39(56, 4, 5),
+      getGql42001_42N39(UnmappedUnion.errorParam, 56, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       InputPosition(56, 4, 5),
       getGql42001_42N71(42, 3, 5),
@@ -462,7 +463,7 @@ class CollectExpressionSemanticAnalysisTest
      """.stripMargin
   ) {
     run().hasErrors(
-      getGql42001_42N39(69, 5, 5),
+      getGql42001_42N39(UnmappedUnion.errorParam, 69, 5, 5),
       "All sub queries in an UNION must have the same return column names",
       InputPosition(69, 5, 5),
       getGql42001_42N71(83, 6, 5),
@@ -486,7 +487,7 @@ class CollectExpressionSemanticAnalysisTest
      """.stripMargin
   ) {
     run().hasErrors(
-      getGql42001_42N39(56, 4, 5),
+      getGql42001_42N39(UnmappedUnion.errorParam, 56, 4, 5),
       "All sub queries in an UNION must have the same return column names",
       InputPosition(56, 4, 5),
       getGql42001_42N71(42, 3, 5),
@@ -513,7 +514,7 @@ class CollectExpressionSemanticAnalysisTest
   ) {
     run().hasErrors(
       SemanticError(
-        getGql42001_42N39(56, 4, 5),
+        getGql42001_42N39(UnmappedUnion.errorParam, 56, 4, 5),
         "All sub queries in an UNION must have the same return column names",
         InputPosition(56, 4, 5)
       ),
@@ -552,12 +553,12 @@ class CollectExpressionSemanticAnalysisTest
   ) {
     run().hasErrors(
       SemanticError(
-        getGql42001_42N39(69, 5, 5),
+        getGql42001_42N39(UnmappedUnion.errorParam, 69, 5, 5),
         "All sub queries in an UNION must have the same return column names",
         p(69, 5, 5)
       ),
       SemanticError(
-        getGql42001_42N39(106, 8, 5),
+        getGql42001_42N39(UnmappedUnion.errorParam, 106, 8, 5),
         "All sub queries in an UNION must have the same return column names",
         p(106, 8, 5)
       ),

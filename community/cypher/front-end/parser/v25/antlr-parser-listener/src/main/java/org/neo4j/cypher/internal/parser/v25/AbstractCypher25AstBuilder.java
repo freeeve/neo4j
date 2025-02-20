@@ -36,6 +36,10 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_statements -> exitStatements((Cypher25Parser.StatementsContext) ctx);
             case Cypher25Parser.RULE_statement -> exitStatement((Cypher25Parser.StatementContext) ctx);
             case Cypher25Parser.RULE_regularQuery -> exitRegularQuery((Cypher25Parser.RegularQueryContext) ctx);
+            case Cypher25Parser.RULE_union -> exitUnion((Cypher25Parser.UnionContext) ctx);
+            case Cypher25Parser.RULE_when -> exitWhen((Cypher25Parser.WhenContext) ctx);
+            case Cypher25Parser.RULE_whenBranch -> exitWhenBranch((Cypher25Parser.WhenBranchContext) ctx);
+            case Cypher25Parser.RULE_elseBranch -> exitElseBranch((Cypher25Parser.ElseBranchContext) ctx);
             case Cypher25Parser.RULE_singleQuery -> exitSingleQuery((Cypher25Parser.SingleQueryContext) ctx);
             case Cypher25Parser.RULE_clause -> exitClause((Cypher25Parser.ClauseContext) ctx);
             case Cypher25Parser.RULE_useClause -> exitUseClause((Cypher25Parser.UseClauseContext) ctx);

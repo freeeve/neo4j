@@ -97,16 +97,18 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     pipeline: Pipeline = pipelineWithSemanticFeatures(),
     isComposite: Boolean = false,
     sessionDatabase: String = defaultDatabaseName,
-    state: BaseState => BaseState = s => s
-  ): AnalysisAssertions = analyse(query, pipeline, isComposite, sessionDatabase, state).run
+    state: BaseState => BaseState = s => s,
+    disabledVersions: Set[CypherVersion] = Set.empty
+  ): AnalysisAssertions = analyse(query, pipeline, isComposite, sessionDatabase, state, disabledVersions).run
 
   def analyse(
     query: String,
     pipeline: Pipeline = pipelineWithSemanticFeatures(),
     isComposite: Boolean = false,
     sessionDatabase: String = defaultDatabaseName,
-    state: BaseState => BaseState = s => s
-  ): Analyse = Analyse(query, pipeline, isComposite, sessionDatabase, state, messageProvider)
+    state: BaseState => BaseState = s => s,
+    disabledVersions: Set[CypherVersion] = Set.empty
+  ): Analyse = Analyse(query, pipeline, isComposite, sessionDatabase, state, messageProvider, disabledVersions)
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
   def pipelineWithSemanticFeatures(semanticFeatures: SemanticFeature*): Pipeline =
@@ -120,7 +122,8 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     isComposite: Boolean,
     sessionDatabase: String,
     stateTransform: BaseState => BaseState,
-    messageProvider: ErrorMessageProvider
+    messageProvider: ErrorMessageProvider,
+    disabledVersions: Set[CypherVersion] = Set.empty
   ) {
     def withPipeline(pipeline: Pipeline): Analyse = copy(pipeline = pipeline)
 
@@ -132,7 +135,7 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     def state(f: BaseState => BaseState): Analyse = copy(stateTransform = stateTransform.andThen(f))
 
     def run: AnalysisAssertions = {
-      val results = CypherVersion.values()
+      val results = (CypherVersion.values().toSet -- disabledVersions).toSeq
         .map(v =>
           v -> Try(SemanticAnalysisTestSuite.run(
             v,
@@ -156,6 +159,8 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     private type Pos = InputPosition
     private type GqlError = ErrorGqlStatusObject
     private type Notification = InternalNotification
+
+    private val versions: Seq[CypherVersion] = (CypherVersion.values().toSet -- analyse.disabledVersions).toSeq
 
     def hasNoErrors: Self = hasErrors()
 
@@ -218,13 +223,16 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     def hasErrorsIn(f: CypherVersion => Seq[(String, Pos)]): Self =
       assertIn(v => r => r.errors should contain theSameElementsAs f(v).map(toSemErr))
 
+    def hasGQLErrorsIn(f: CypherVersion => Seq[(GqlError, String, Pos)]): Self =
+      assertIn(v => r => r.errors should contain theSameElementsAs f(v).map(toSemErr))
+
     def failsWithMessageContaining(msg: String): Any = assertTry { res =>
       res should be a Symbol("failure")
       normalizeNewLines(res.failed.get.getMessage) should include(msg)
     }
 
     def assert(assertion: SemanticAnalysisResult => Unit): AnalysisAssertions = {
-      CypherVersion.values().foreach { version =>
+      versions.foreach { version =>
         results(version) match {
           case Success(result) => withContext(version)(assertion(result))
           case Failure(t)      => fail(s"Expected to succeed in CYPHER $version: $t", t)
@@ -234,17 +242,17 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     }
 
     def assertTry(assertion: Try[SemanticAnalysisResult] => Unit): AnalysisAssertions = {
-      CypherVersion.values().foreach(version => withContext(version)(assertion(results(version))))
+      versions.foreach(version => withContext(version)(assertion(results(version))))
       this
     }
 
     def assertTryIn(assertion: CypherVersion => Try[SemanticAnalysisResult] => Unit): AnalysisAssertions = {
-      CypherVersion.values().foreach(version => withContext(version)(assertion(version)(results(version))))
+      versions.foreach(version => withContext(version)(assertion(version)(results(version))))
       this
     }
 
     def assertIn(assertion: CypherVersion => SemanticAnalysisResult => Unit): AnalysisAssertions = {
-      CypherVersion.values().foreach { version =>
+      versions.foreach { version =>
         results(version) match {
           case Success(result) => withContext(version)(assertion(version)(result))
           case Failure(t)      => withContext(version)(fail(t))
@@ -254,6 +262,8 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
     }
 
     private def toSemErr(a: (String, Pos)): SemanticError = SemanticError(a._1, a._2)
+
+    private def toSemErr(a: (GqlError, String, Pos)): SemanticError = SemanticError(a._1, a._2, a._3)
 
     private def withContext(version: CypherVersion)(f: => Unit): Unit = {
       withClue(

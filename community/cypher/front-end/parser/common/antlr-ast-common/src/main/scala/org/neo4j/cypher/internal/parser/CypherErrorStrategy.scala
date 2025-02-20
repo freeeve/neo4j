@@ -76,6 +76,11 @@ final class CypherErrorStrategy(conf: CypherErrorStrategy.Conf) extends ANTLRErr
     }
   }
 
+  def reportErrorAtEof(parser: Parser): (String, ErrorGqlStatusObjectImplementation.Builder) = {
+    val t = parser.getCurrentToken
+    getCompletedError(t.getText, codeCompletion(parser, t))
+  }
+
   private def beginErrorCondition(): Unit = {
     inErrorMode = true
   }
@@ -84,7 +89,7 @@ final class CypherErrorStrategy(conf: CypherErrorStrategy.Conf) extends ANTLRErr
     parser: Parser,
     e: RecognitionException
   ): (String, ErrorGqlStatusObjectImplementation.Builder) = {
-    // println("Error at " + e.getCtx.getClass.getSimpleName)
+//    println("Error at " + e.getCtx.getClass.getSimpleName)
     if (isUnclosedQuote(e.getOffendingToken)) {
       val legacyMessage = SyntaxException.QUOTE_MISMATCH_ERROR_MESSAGE
       val gqlCauseBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I19)
@@ -99,17 +104,24 @@ final class CypherErrorStrategy(conf: CypherErrorStrategy.Conf) extends ANTLRErr
         .flatMap(t => Option(t.getText))
         .map(t => t.replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t"))
         .getOrElse("")
-      val expected = codeCompletion(parser, e) match {
-        case Seq(e)          => s": expected $e"
-        case e if e.nonEmpty => e.dropRight(1).mkString(": expected ", ", ", "") + " or " + e.last
-        case _               => ""
-      }
-      val legacyMessage = s"Invalid input '$offender'$expected"
-      val gqlCauseBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I06)
-        .withParam(GqlParams.StringParam.input, offender)
-        .withParam(GqlParams.ListParam.valueList, codeCompletion(parser, e).asJava)
-      (legacyMessage, gqlCauseBuilder)
+      getCompletedError(offender, codeCompletion(parser, e))
     }
+  }
+
+  private def getCompletedError(
+    offender: String,
+    completion: Seq[String]
+  ): (String, ErrorGqlStatusObjectImplementation.Builder) = {
+    val expected = completion match {
+      case Seq(e)          => s": expected $e"
+      case e if e.nonEmpty => e.dropRight(1).mkString(": expected ", ", ", "") + " or " + e.last
+      case _               => ""
+    }
+    val legacyMessage = s"Invalid input '$offender'$expected"
+    val gqlCauseBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I06)
+      .withParam(GqlParams.StringParam.input, offender)
+      .withParam(GqlParams.ListParam.valueList, completion.asJava)
+    (legacyMessage, gqlCauseBuilder)
   }
 
   override def recoverInline(parser: Parser): Token = {
@@ -137,15 +149,30 @@ final class CypherErrorStrategy(conf: CypherErrorStrategy.Conf) extends ANTLRErr
 
   override def reportMatch(recognizer: Parser): Unit = {}
 
-  private def codeCompletion(parser: Parser, e: RecognitionException): Seq[String] = {
+  private def codeCompletion(parser: Parser, e: RecognitionException): Seq[String] =
+    codeCompletion(
+      parser,
+      e.getOffendingToken,
+      e.getCtx.asInstanceOf[ParserRuleContext],
+      vocabulary.tokenDisplayNames(e.getExpectedTokens)
+    )
+
+  private def codeCompletion(parser: Parser, t: Token): Seq[String] =
+    codeCompletion(parser, t, parser.getRuleContext, Seq())
+
+  private def codeCompletion(
+    parser: Parser,
+    t: Token,
+    context: ParserRuleContext,
+    default: Seq[String]
+  ): Seq[String] = {
     try {
       val completion = new CodeCompletionCore(parser, conf.preferredRules.asJava, conf.ignoredTokens)
-      val tokenIndex = e.getOffendingToken.getTokenIndex
-      vocabulary.expected(completion.collectCandidates(tokenIndex, e.getCtx.asInstanceOf[ParserRuleContext]))
+      val tokenIndex = t.getTokenIndex
+      vocabulary.expected(completion.collectCandidates(tokenIndex, context))
     } catch {
-      case NonFatal(_) =>
-        // Hide bugs in code completion and fallback to default antlr expected tokens
-        vocabulary.tokenDisplayNames(e.getExpectedTokens)
+      // Hide bugs in code completion and fallback to default antlr expected tokens
+      case NonFatal(_) => default
     }
   }
 

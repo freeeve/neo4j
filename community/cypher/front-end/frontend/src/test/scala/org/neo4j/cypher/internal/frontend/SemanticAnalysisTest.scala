@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.frontend
 
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.literal
+import org.neo4j.cypher.internal.ast.UnmappedUnion
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
 import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidNumberOfProcedureOrFunctionArguments
@@ -1362,7 +1363,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         getGql42001_42N71(10, 1, 11),
         "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
         p(10, 1, 11),
-        getGql42001_42N39(17, 1, 18),
+        getGql42001_42N39(UnmappedUnion.errorParam, 17, 1, 18),
         "All sub queries in an UNION must have the same return column names",
         p(17, 1, 18)
       )
@@ -1374,7 +1375,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         getGql42001_42N71(35 + extraLength, 1, 36 + extraLength),
         "Query cannot conclude with WITH (must be a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call with no YIELD).",
         p(35 + extraLength, 1, 36 + extraLength),
-        getGql42001_42N39(19, 1, 20),
+        getGql42001_42N39(UnmappedUnion.errorParam, 19, 1, 20),
         "All sub queries in an UNION must have the same return column names",
         p(19, 1, 20)
       )
@@ -1382,7 +1383,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
     test(s"UNION$setQuantifier with missing return in first part") {
       run(s"CALL db.labels() YIELD label UNION$setQuantifier CALL db.labels() YIELD label RETURN label").hasError(
-        getGql42001_42N39(29, 1, 30),
+        getGql42001_42N39(UnmappedUnion.errorParam, 29, 1, 30),
         "All sub queries in an UNION must have the same return column names",
         p(29, 1, 30)
       )
@@ -1390,7 +1391,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
     test(s"UNION$setQuantifier with missing return in second part") {
       run(s"CALL db.labels() YIELD label RETURN label UNION$setQuantifier CALL db.labels() YIELD label").hasError(
-        getGql42001_42N39(42, 1, 43),
+        getGql42001_42N39(UnmappedUnion.errorParam, 42, 1, 43),
         "All sub queries in an UNION must have the same return column names",
         p(42, 1, 43)
       )
@@ -1398,7 +1399,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
     test(s"UNION$setQuantifier with finish in first part") {
       run(s"UNWIND [1,2] AS a FINISH UNION$setQuantifier UNWIND [2,3] AS a RETURN a").hasError(
-        getGql42001_42N39(25, 1, 26),
+        getGql42001_42N39(UnmappedUnion.errorParam, 25, 1, 26),
         "All sub queries in an UNION must have the same return column names",
         p(25, 1, 26)
       )
@@ -1406,7 +1407,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
     test(s"UNION$setQuantifier with finish in second part") {
       run(s"UNWIND [1,2] AS a RETURN a UNION$setQuantifier UNWIND [2,3] AS a FINISH").hasError(
-        getGql42001_42N39(27, 1, 28),
+        getGql42001_42N39(UnmappedUnion.errorParam, 27, 1, 28),
         "All sub queries in an UNION must have the same return column names",
         p(27, 1, 28)
       )

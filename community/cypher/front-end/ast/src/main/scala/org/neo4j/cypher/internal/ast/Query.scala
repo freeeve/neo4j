@@ -17,8 +17,11 @@
 package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen.msg
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen.name
 import org.neo4j.cypher.internal.ast.ReturnItems.ReturnVariables
 import org.neo4j.cypher.internal.ast.Union.UnionMapping
+import org.neo4j.cypher.internal.ast.UnmappedUnion.errorParam
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.Scope
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
@@ -32,6 +35,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.Symbol
@@ -39,14 +43,15 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ExpressionWithComputedDependencies
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
+import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.topDown
 import org.neo4j.gqlstatus.GqlHelper
 
-sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysisTooling {
-  def containsUpdates: Boolean
+sealed trait QueryUtils {
 
   /**
    * All variables that are explicitly listed to be returned from this statement.
@@ -63,16 +68,6 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
    * True iff this query part ends with a return clause.
    */
   def isReturning: Boolean
-
-  /**
-   * All Return clauses contained within this statement.
-   */
-  def getReturns: Seq[Return]
-
-  /**
-   * True iff this query part ends with a finish clause.
-   */
-  def endsWithFinish: Boolean
 
   /**
    * Given the root scope for this query part,
@@ -102,6 +97,23 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
    * Semantic check for when this `Query` is enclosed in Top Level Braces
    */
   def semanticCheckInTopLevelBracesContext: SemanticCheck
+
+  def semanticCheckInConditionalQueryContext: SemanticCheck
+
+}
+
+sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysisTooling with QueryUtils {
+  def containsUpdates: Boolean
+
+  /**
+   * All Return clauses contained within this statement.
+   */
+  def getReturns: Seq[Return]
+
+  /**
+   * True iff this query part ends with a finish clause.
+   */
+  def endsWithFinish: Boolean
 
   /**
    * Check this query part if it starts with an importing WITH
@@ -163,7 +175,7 @@ sealed trait PartQuery extends Query {
   }
 
   override def finalScope(scope: Scope): Scope =
-    scope.children.last
+    if (scope.children.size < 1) Scope.empty else scope.children.last
 
 }
 
@@ -234,6 +246,9 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
 
   override def semanticCheckInTopLevelBracesContext: SemanticCheck =
     semanticCheckAbstract(clauses, checkClauses(_, None, TopLevelBraces))
+
+  override def semanticCheckInConditionalQueryContext: SemanticCheck =
+    semanticCheckAbstract(clauses, checkClauses(_, None, ConditionalQueryWhen))
 
   /**
    * No outer scope is needed for checkClauses as we don't need to check the naming of any returned variables
@@ -502,7 +517,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     val lastIndex = clauses.size - 1
     clauses.zipWithIndex.foldSemanticCheck {
       case (clause, idx) =>
-        val next = SemanticCheck.fromState { _ =>
+        val next = SemanticCheck.fromState { state =>
           clause match {
             case c: Return =>
               checkReturn(c, outerScope, context)
@@ -739,7 +754,9 @@ case class TopLevelBraces(
     query.getQuery(fromUnion) match {
       case u @ UnionDistinct(lhs, rhs) => u.copy(lhs = lhs.getQuery(true), rhs = rhs.singleQuery)(u.position)
       case u @ UnionAll(lhs, rhs)      => u.copy(lhs = lhs.getQuery(true), rhs = rhs.singleQuery)(u.position)
-      case q                           => q
+      case wh @ ConditionalQueryWhen(branches, default) =>
+        wh.copy(branches = branches.map(_.wrapInnerQuery), default = default.map(_.wrapInnerQuery))(wh.position)
+      case q => q
     }
   }
 
@@ -765,6 +782,8 @@ case class TopLevelBraces(
     sq
   }
 
+  override def semanticCheckInConditionalQueryContext: SemanticCheck = semanticCheck
+
   override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
     query.semanticCheckInSubqueryContext(outer, current) chain recordCurrentScope(this)
 
@@ -786,8 +805,7 @@ case class TopLevelBraces(
   override def importColumns: Seq[String] = query.importColumns
   override def isCorrelated: Boolean = query.isCorrelated
 
-  override def finalScope(scope: Scope): Scope =
-    if (scope.children.size < 1) Scope.empty else scope.children.last
+  override def returnVariables: ReturnVariables = query.returnVariables
 }
 
 object Union {
@@ -835,7 +853,8 @@ sealed trait Union extends Query {
 
     def checkNestedQuery(query: Query): SemanticCheck =
       query match {
-        case partQuery: PartQuery => checkSingleQuery(partQuery)
+        case partQuery: PartQuery       => checkSingleQuery(partQuery)
+        case when: ConditionalQueryWhen => withScopedState(semanticCheck(when))
         case union: Union =>
           withScopedState {
             SemanticCheck.nestedCheck(union.checkRecursively(semanticCheck))
@@ -889,6 +908,9 @@ sealed trait Union extends Query {
 
   override def semanticCheckInTopLevelBracesContext: SemanticCheck =
     checkRecursively(_.semanticCheckInTopLevelBracesContext)
+
+  override def semanticCheckInConditionalQueryContext: SemanticCheck =
+    checkRecursively(_.semanticCheckInConditionalQueryContext)
 
   private def defineUnionVariables: SemanticCheck = (state: SemanticState) => {
     var result = SemanticCheckResult.success(state.newChildScope)
@@ -1027,18 +1049,20 @@ sealed trait UnmappedUnion extends Union {
   }
 
   override def checkColumnNamesAgree: SemanticCheck = (state: SemanticState) => {
-    val myScope: Scope = state.currentScope.scope
-
-    val lhsScope = if (lhs.isReturning) lhs.finalScope(myScope.children.head) else Scope.empty
-    val rhsScope = if (rhs.isReturning) rhs.finalScope(myScope.children.last) else Scope.empty
+    val lhsScope = if (lhs.isReturning) lhs.finalScope(state.scope(lhs).getOrElse(Scope.empty)) else Scope.empty
+    val rhsScope = if (rhs.isReturning) rhs.finalScope(state.scope(rhs).getOrElse(Scope.empty)) else Scope.empty
     val errors =
       if (lhsScope.symbolNames == rhsScope.symbolNames) {
         Seq.empty
       } else {
-        Seq(SemanticError.incompatibleReturnColumns(position))
+        Seq(SemanticError.incompatibleReturnColumns(errorParam, position))
       }
-    semantics.SemanticCheckResult(state, errors)
+    SemanticCheckResult(state, errors)
   }
+}
+
+object UnmappedUnion {
+  val errorParam = "UNION subqueries"
 }
 
 sealed trait ProjectingUnion extends Union {
@@ -1076,4 +1100,175 @@ final case class ProjectingUnionDistinct(lhs: Query, rhs: PartQuery, unionMappin
 
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
     copy(lhs.mapEachSingleQuery(f), f(rhs.singleQuery))(position)
+}
+
+case class ConditionalQueryBranch(predicate: Expression, query: PartQuery)(val position: InputPosition) extends ASTNode
+    with SemanticCheckable with SemanticAnalysisTooling with QueryUtils {
+
+  override def returnVariables: ReturnVariables = query.returnVariables
+  override def isReturning: Boolean = query.isReturning
+
+  override def semanticCheck: SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInConditionalQueryContext)
+
+  override def semanticCheckInConditionalQueryContext: SemanticCheck =
+    semanticCheck
+
+  override def semanticCheckInTopLevelBracesContext: SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInTopLevelBracesContext)
+
+  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck = {
+    importValuesFromScope(outer.currentScope.scope) chain
+      semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current))
+  }
+
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckImportingWithSubQueryContext(outer))
+
+  override def semanticCheckInSubqueryExpressionContext(
+    canOmitReturn: Boolean,
+    outer: SemanticState,
+    context: UnaliasedNotAllowed
+  ): SemanticCheck =
+    semanticCheckAbstract(
+      importValuesFromScope(outer.currentScope.scope) chain
+        _.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, context)
+    )
+
+  private def semanticCheckAbstract(check: QueryUtils => SemanticCheck): SemanticCheck = {
+    predicateCheck chain
+      check(query) chain
+      recordCurrentScope(this)
+  }
+
+  private def predicateCheck: SemanticCheck = {
+    SemanticExpressionCheck.simple(predicate) chain
+      SemanticExpressionCheck.expectType(CTBoolean.covariant, predicate)
+  }
+
+  override def finalScope(scope: Scope): Scope =
+    if (scope.children.size < 1) Scope.empty else scope.children.last
+
+  def mapEachSingleQuery(f: SingleQuery => SingleQuery): ConditionalQueryBranch =
+    copy(query = f(query.singleQuery))(position)
+
+  def wrapInnerQuery: ConditionalQueryBranch = this.copy(query = query.singleQuery)(position)
+
+}
+
+case object ConditionalQueryWhen extends UnaliasedNotAllowed {
+  override val msg: String = "WHEN ... THEN ..."
+  val name: String = "conditional queries"
+}
+
+case class ConditionalQueryWhen(
+  branches: Seq[ConditionalQueryBranch],
+  default: Option[ConditionalQueryBranch]
+)(val position: InputPosition) extends Query {
+
+  private def allBranches: Seq[ConditionalQueryBranch] = branches ++ default
+
+  override def containsUpdates: Boolean = allBranches.exists(_.query.containsUpdates)
+
+  override def getQuery(fromUnion: Boolean): Query = this
+
+  override def returnVariables: ReturnVariables =
+    allBranches.foldLeft(ReturnVariables.empty)((acc, branch) => acc.merge(branch.query.returnVariables))
+
+  override def getReturns: Seq[Return] =
+    allBranches.flatMap(_.query.getReturns)
+
+  override def isReturning: Boolean = branches.head.isReturning
+  override def endsWithFinish: Boolean = allBranches.exists(_.query.endsWithFinish)
+
+  override def finalScope(scope: Scope): Scope = {
+    if (scope.children.size < 1) Scope.empty else scope.children.last
+  }
+
+  override def semanticCheckInSubqueryContext(outer: SemanticState, current: SemanticState): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInSubqueryContext(outer, current))
+
+  override def semanticCheckImportingWithSubQueryContext(outer: SemanticState): SemanticCheck =
+    SemanticCheck.error(SemanticError.invalidUseOfOldCall(msg, position))
+
+  override def semanticCheckInSubqueryExpressionContext(
+    canOmitReturn: Boolean,
+    outer: SemanticState,
+    context: UnaliasedNotAllowed
+  ): SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInSubqueryExpressionContext(canOmitReturn, outer, ConditionalQueryWhen))
+
+  override def semanticCheckInTopLevelBracesContext: SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInTopLevelBracesContext)
+
+  override def semanticCheckInConditionalQueryContext: SemanticCheck = semanticCheck
+
+  override def semanticCheck: SemanticCheck =
+    semanticCheckAbstract(_.semanticCheckInConditionalQueryContext)
+
+  private def semanticCheckAbstract(check: QueryUtils => SemanticCheck): SemanticCheck = {
+    allBranches.foldSemanticCheck(x => withScopedState(check(x))) chain
+      checkReturns chain
+      defineReturnScope chain
+      recordCurrentScope(this)
+  }
+
+  private def defineReturnScope: SemanticCheck = (state: SemanticState) => {
+    val result = SemanticCheckResult.success(state.newChildScope)
+    val headQuery = branches.head.query
+    val headScope = state.scope(headQuery)
+    val scope = headQuery.finalScope(headScope.getOrElse(Scope.empty))
+    SemanticCheckResult(result.state.importValuesFromScope(scope).popScope, Seq.empty)
+  }
+
+  // Return checks
+  // 1. All conditional queries need to be either returning or unit
+  // 2. There need to be the same number of return values
+  // 3. Column names need to agree
+
+  private def firstNonConformer(f: QueryUtils => Any): Option[PartQuery] = {
+    val firstQueryType = f(branches.head)
+    allBranches.find(f(_) != firstQueryType).map(_.query)
+  }
+
+  private def checkConformingBranches: SemanticCheck =
+    when(firstNonConformer(_.isReturning).isDefined)((state: SemanticState) => {
+      SemanticCheckResult(
+        state,
+        Seq(SemanticError.incompatibleSubqueryType(name, firstNonConformer(_.isReturning).get.position))
+      )
+    })
+
+  private def checkColumnNamesAgree: SemanticCheck = (state: SemanticState) => {
+    val myScope: Scope = state.currentScope.scope
+
+    val scopes = allBranches.zipWithIndex.map { case (b, i) =>
+      (b, if (b.query.isReturning) b.finalScope(myScope.children(i)) else Scope.empty)
+    }
+
+    val errors = scopes.foldLeft(Seq.empty[SemanticError]) { case (errors, (branch, scope)) =>
+      if (scopes.head._2.symbolNames.size != scope.symbolNames.size)
+        errors ++ Seq(SemanticError.incompatibleNumberOfReturnColumns(name, branch.position))
+      else if (scopes.head._2.symbolNames != scope.symbolNames)
+        errors ++ Seq(SemanticError.incompatibleWhenReturnColumns(name, branch.position))
+      else errors
+    }
+    SemanticCheckResult(state, errors)
+  }
+
+  private def checkReturns: SemanticCheck =
+    checkConformingBranches ifOkChain
+      checkColumnNamesAgree
+
+  override def checkImportingWith: SemanticCheck =
+    allBranches.foldSemanticCheck(_.query.checkImportingWith)
+
+  override def isCorrelated: Boolean =
+    allBranches.exists(_.query.isCorrelated)
+
+  override def importColumns: Seq[String] =
+    allBranches.flatMap(_.query.importColumns)
+
+  override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query =
+    copy(branches.map(_.mapEachSingleQuery(f)), default.map(_.mapEachSingleQuery(f)))(position)
 }

@@ -88,7 +88,7 @@ object AstParsing extends AstParsing {
   }
 
   object ParserInTest {
-    val AllParsers: Seq[ParserInTest] = Seq(Cypher5, Cypher25)
+    val AllParsers: Seq[ParserInTest] = Seq(Cypher25, Cypher5)
   }
 
   case object Cypher5 extends ParserInTest {

@@ -96,6 +96,11 @@ object CompositeQueryFragmenter {
         throw new IllegalStateException(
           "TopLevelBraces should have been rewritten to single queries by preparatory rewriting."
         )
+      case _: ast.ConditionalQueryWhen =>
+        throw new IllegalStateException(
+          "When should have been rewritten to single queries by AST rewriting."
+        )
+
     }
   }
 

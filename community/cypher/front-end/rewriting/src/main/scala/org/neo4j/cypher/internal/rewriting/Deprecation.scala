@@ -18,6 +18,7 @@ package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.Create
 import org.neo4j.cypher.internal.ast.CreateDatabase
 import org.neo4j.cypher.internal.ast.CreateIndex
@@ -79,8 +80,6 @@ import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.Ref
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
-
-import scala.annotation.tailrec
 
 object Deprecations {
 
@@ -292,13 +291,14 @@ object Deprecations {
           ))
 
         case c @ ImportingWithSubqueryCall(innerQuery, _, _) =>
-          @tailrec
           def includesExisting(q: Query): Boolean = {
             q match {
               case sq: SingleQuery => sq.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting)
               case un: Union =>
                 un.rhs.singleQuery.partitionedClauses.importingWith.exists(w => w.returnItems.includeExisting) ||
                 includesExisting(un.lhs)
+              case wh: ConditionalQueryWhen =>
+                wh.branches.exists(b => includesExisting(b.query)) || wh.default.exists(d => includesExisting(d.query))
               case tlb: TopLevelBraces => includesExisting(tlb.query)
             }
           }

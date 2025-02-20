@@ -17,7 +17,9 @@
 package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
+import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
+import org.neo4j.cypher.internal.ast.PartQuery
 import org.neo4j.cypher.internal.ast.ProjectingUnion
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
@@ -86,28 +88,30 @@ case object AddDependenciesToProjectionsInSubqueryExpressions extends StepSequen
 
   private def rewriteQuery(query: Query, scopeDependencies: Set[LogicalVariable], shouldSplitReturn: Boolean): Query =
     query match {
-      case sq: SingleQuery => rewriteSingleQuery(sq, scopeDependencies, shouldSplitReturn)
+      case sq: SingleQuery => rewritePartQuery(sq, scopeDependencies, shouldSplitReturn)
       case union @ UnionAll(lhs, rhs) =>
         union.copy(
           lhs = rewriteQuery(lhs, scopeDependencies, shouldSplitReturn),
-          rhs = rewriteSingleQuery(rhs.singleQuery, scopeDependencies, shouldSplitReturn)
+          rhs = rewritePartQuery(rhs.singleQuery, scopeDependencies, shouldSplitReturn)
         )(union.position)
       case union @ UnionDistinct(lhs, rhs) =>
         union.copy(
           lhs = rewriteQuery(lhs, scopeDependencies, shouldSplitReturn),
-          rhs = rewriteSingleQuery(rhs.singleQuery, scopeDependencies, shouldSplitReturn)
+          rhs = rewritePartQuery(rhs.singleQuery, scopeDependencies, shouldSplitReturn)
         )(union.position)
+      case _: ConditionalQueryWhen =>
+        throw new IllegalStateException("Didn't expect When, only SingleQuery, UnionAll, or UnionDistinct.")
       case _: TopLevelBraces =>
         throw new IllegalStateException("Didn't expect TopLevelBraces, only SingleQuery, UnionAll, or UnionDistinct.")
       case _: ProjectingUnion =>
         throw new IllegalStateException("Didn't expect ProjectingUnion, only SingleQuery, UnionAll, or UnionDistinct.")
     }
 
-  def rewriteSingleQuery(
-    query: SingleQuery,
+  def rewritePartQuery(
+    query: PartQuery,
     scopeDependencies: Set[LogicalVariable],
     shouldSplitReturn: Boolean
-  ): SingleQuery = {
+  ): PartQuery = {
     val newClauses = query.clauses.flatMap {
       case w: With => Seq(addDependenciesToWithClause(w, scopeDependencies))
       case ret: Return if ret.orderBy.nonEmpty && shouldSplitReturn =>
@@ -115,7 +119,7 @@ case object AddDependenciesToProjectionsInSubqueryExpressions extends StepSequen
         Seq(addDependenciesToWithClause(newWith, scopeDependencies), newReturn)
       case x => Seq(x)
     }
-    query.copy(clauses = newClauses)(query.position)
+    SingleQuery(clauses = newClauses)(query.position)
   }
 
   private def addDependenciesToWithClause(w: With, scopeDependencies: Set[LogicalVariable]): With = {
