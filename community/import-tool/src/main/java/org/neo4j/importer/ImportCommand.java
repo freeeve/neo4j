@@ -340,7 +340,7 @@ public class ImportCommand {
                                 + "value. For optimal performance, this value should not be greater than the number of available processors.")
         private int threads = DEFAULT_IMPORTER_CONFIG.maxNumberOfWorkerThreads();
 
-        private static final String BAD_TOLERANCE_OPTION = "--bad-tolerance";
+        static final String BAD_TOLERANCE_OPTION = "--bad-tolerance";
 
         @Option(
                 names = BAD_TOLERANCE_OPTION,
@@ -375,9 +375,9 @@ public class ImportCommand {
                 fallbackValue = "true",
                 description =
                         "Whether or not to skip importing relationships that refer to missing node IDs, i.e. either start or end node ID/group referring "
-                                + "to a node that was not specified by the node input data. Skipped relationships will be logged, containing at most the number of entities "
-                                + "specified by " + BAD_TOLERANCE_OPTION + ", unless otherwise specified by the "
-                                + SKIP_BAD_ENTRIES_LOGGING + " option.")
+                                + "to a node that was not specified by the node input data. Skipped relationships will be logged if they are within the limit of entities "
+                                + "specified by " + BAD_TOLERANCE_OPTION + "and the" + SKIP_BAD_ENTRIES_LOGGING
+                                + " option is disabled.")
         private boolean skipBadRelationships;
 
         @Option(
@@ -399,9 +399,9 @@ public class ImportCommand {
                 fallbackValue = "true",
                 description =
                         "Whether or not to skip importing nodes that have the same ID/group. In the event of multiple nodes within the same group having "
-                                + "the same ID, the first encountered will be imported, whereas consecutive such nodes will be skipped. Skipped nodes will be logged, "
-                                + "containing at most the number of entities specified by " + BAD_TOLERANCE_OPTION
-                                + ", unless otherwise specified by the " + SKIP_BAD_ENTRIES_LOGGING + " option.")
+                                + "the same ID, the first encountered will be imported, whereas consecutive such nodes will be skipped. Skipped nodes will be logged "
+                                + "if they are within the limit of entities specified by " + BAD_TOLERANCE_OPTION
+                                + "and the" + SKIP_BAD_ENTRIES_LOGGING + " option is disabled.")
         private boolean skipDuplicateNodes;
 
         @Option(
@@ -920,8 +920,11 @@ public class ImportCommand {
                 paramLabel = "true|false",
                 fallbackValue = "true",
                 defaultValue = "false",
-                description = "If one relationship data entry matches multiple existing relationships, "
-                        + "this decides whether to update all matching or to log as an error.")
+                description =
+                        "Whether or not to update all existing relationships that match a relationship data entry. "
+                                + "If disabled, the relationship data entry will be logged if it is within the limit of entities "
+                                + "specified by " + BAD_TOLERANCE_OPTION + "and the" + SKIP_BAD_ENTRIES_LOGGING
+                                + " option is disabled. ")
         boolean updateAllMatchingRelationships;
 
         public Incremental(ExecutionContext ctx) {
