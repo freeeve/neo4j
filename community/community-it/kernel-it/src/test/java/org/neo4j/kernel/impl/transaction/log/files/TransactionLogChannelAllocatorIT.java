@@ -101,7 +101,7 @@ class TransactionLogChannelAllocatorIT {
         try (var storeChannel = fileSystem.write(path)) {
             writeLogHeader(
                     storeChannel,
-                    LATEST_LOG_FORMAT.newHeader(1, 1, 1, STORE_ID, UNKNOWN_LOG_SEGMENT_SIZE, 1, LATEST_KERNEL_VERSION),
+                    LATEST_LOG_FORMAT.newHeader(1, 1, STORE_ID, UNKNOWN_LOG_SEGMENT_SIZE, 1, LATEST_KERNEL_VERSION),
                     INSTANCE);
         }
 
@@ -121,7 +121,7 @@ class TransactionLogChannelAllocatorIT {
         try (StoreChannel storeChannel = fileSystem.write(path)) {
             writeLogHeader(
                     storeChannel,
-                    LATEST_LOG_FORMAT.newHeader(1, 1, 1, STORE_ID, UNKNOWN_LOG_SEGMENT_SIZE, 1, LATEST_KERNEL_VERSION),
+                    LATEST_LOG_FORMAT.newHeader(1, 1, STORE_ID, UNKNOWN_LOG_SEGMENT_SIZE, 1, LATEST_KERNEL_VERSION),
                     INSTANCE);
         }
 

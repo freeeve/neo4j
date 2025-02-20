@@ -97,7 +97,6 @@ class EnvelopeReadChannelTest {
                     LogFormat.V10.newHeader(
                             42,
                             1,
-                            10,
                             StoreId.UNKNOWN,
                             segmentSize,
                             previousLogFileChecksum,

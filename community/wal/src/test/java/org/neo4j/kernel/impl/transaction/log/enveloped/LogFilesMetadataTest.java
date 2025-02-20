@@ -61,9 +61,9 @@ class LogFilesMetadataTest {
 
     @Test
     void shouldReadHeaders() throws IOException {
-        var logHeader1 = LogFormat.V10.newHeader(4, 1, 1, StoreId.UNKNOWN, 512, 1, KernelVersion.GLORIOUS_FUTURE);
-        var logHeader2 = LogFormat.V10.newHeader(5, 2, 2, StoreId.UNKNOWN, 512, 2, KernelVersion.GLORIOUS_FUTURE);
-        var logHeader3 = LogFormat.V10.newHeader(6, 3, 3, StoreId.UNKNOWN, 512, 3, KernelVersion.GLORIOUS_FUTURE);
+        var logHeader1 = LogFormat.V10.newHeader(4, 1, StoreId.UNKNOWN, 512, 1, KernelVersion.GLORIOUS_FUTURE);
+        var logHeader2 = LogFormat.V10.newHeader(5, 2, StoreId.UNKNOWN, 512, 2, KernelVersion.GLORIOUS_FUTURE);
+        var logHeader3 = LogFormat.V10.newHeader(6, 3, StoreId.UNKNOWN, 512, 3, KernelVersion.GLORIOUS_FUTURE);
         var logHeaders = new LogHeader[] {logHeader1, logHeader2, logHeader3};
         for (var logHeader : logHeaders) {
             var writeChannel = logsRepository.createWriteChannel(logHeader.getLogVersion());
@@ -84,9 +84,9 @@ class LogFilesMetadataTest {
 
     @Test
     void shouldIgnorePreAllocatedFiles() throws IOException {
-        var logHeader1 = LogFormat.V10.newHeader(0, 1, 1, StoreId.UNKNOWN, 512, 1, KernelVersion.GLORIOUS_FUTURE);
-        var logHeader2 = LogFormat.V10.newHeader(1, 2, 2, StoreId.UNKNOWN, 512, 2, KernelVersion.GLORIOUS_FUTURE);
-        var logHeader3 = LogFormat.V10.newHeader(2, 3, 3, StoreId.UNKNOWN, 512, 3, KernelVersion.GLORIOUS_FUTURE);
+        var logHeader1 = LogFormat.V10.newHeader(0, 1, StoreId.UNKNOWN, 512, 1, KernelVersion.GLORIOUS_FUTURE);
+        var logHeader2 = LogFormat.V10.newHeader(1, 2, StoreId.UNKNOWN, 512, 2, KernelVersion.GLORIOUS_FUTURE);
+        var logHeader3 = LogFormat.V10.newHeader(2, 3, StoreId.UNKNOWN, 512, 3, KernelVersion.GLORIOUS_FUTURE);
         var logHeaders = new LogHeader[] {logHeader1, logHeader2, logHeader3};
         for (var i = 0; i < logHeaders.length; i++) {
 

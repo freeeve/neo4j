@@ -55,7 +55,6 @@ class LogHeaderCacheTest {
                 LATEST_LOG_FORMAT.newHeader(
                         1,
                         3,
-                        LogHeader.UNKNOWN_TERM,
                         new StoreId(1, 2, "engine-1", "format-1", 3, 4),
                         UNKNOWN_LOG_SEGMENT_SIZE,
                         BASE_TX_CHECKSUM,
@@ -77,7 +76,6 @@ class LogHeaderCacheTest {
                 LATEST_LOG_FORMAT.newHeader(
                         1,
                         3,
-                        LogHeader.UNKNOWN_TERM,
                         new StoreId(1, 2, "engine-1", "format-1", 3, 4),
                         UNKNOWN_LOG_SEGMENT_SIZE,
                         BASE_TX_CHECKSUM,

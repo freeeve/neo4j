@@ -64,7 +64,6 @@ class LogHeaderWriterTest {
     private StoreId expectedStoreId;
     private int expectedBlockSize;
     private int expectedChecksum;
-    private long expectedTerm;
 
     @BeforeEach
     void setUp() {
@@ -79,7 +78,6 @@ class LogHeaderWriterTest {
                 random.nextInt(0, 127));
         expectedBlockSize = 1 << random.nextInt(7, 10);
         expectedChecksum = random.nextInt();
-        expectedTerm = random.nextLong(0, Long.MAX_VALUE);
     }
 
     @ParameterizedTest
@@ -93,7 +91,6 @@ class LogHeaderWriterTest {
         LogHeader logHeader = logFormat.newHeader(
                 expectedLogVersion,
                 expectedAppendIndex,
-                expectedTerm,
                 expectedStoreId,
                 logFormat != V10 ? UNKNOWN_LOG_SEGMENT_SIZE : expectedBlockSize,
                 expectedChecksum,
@@ -129,7 +126,6 @@ class LogHeaderWriterTest {
         if (logFormat == V10) {
             assertEquals(expectedBlockSize, result.getInt());
             assertEquals(expectedChecksum, result.getInt());
-            assertEquals(expectedTerm, result.getLong());
         }
     }
 }

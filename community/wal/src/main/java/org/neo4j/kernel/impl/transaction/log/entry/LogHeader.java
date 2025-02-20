@@ -32,15 +32,12 @@ public class LogHeader {
      */
     static final int LOG_HEADER_VERSION_SIZE = Long.BYTES;
 
-    public static final long UNKNOWN_TERM = -1L;
-
     private final LogFormat logFormatVersion;
     private final long logVersion;
     private final long lastAppendIndex;
     private final StoreId storeId;
     private final LogPosition startPosition;
     private final int segmentBlockSize;
-    private final long lastTerm;
     private final int previousLogFileChecksum;
     private final KernelVersion kernelVersion;
 
@@ -48,7 +45,6 @@ public class LogHeader {
             byte logFormatVersion,
             long logVersion,
             long lastAppendIndex,
-            long lastTerm,
             StoreId storeId,
             long headerSize,
             int segmentBlockSize,
@@ -59,7 +55,6 @@ public class LogHeader {
         this.lastAppendIndex = lastAppendIndex;
         this.storeId = storeId;
         this.segmentBlockSize = segmentBlockSize;
-        this.lastTerm = lastTerm;
         if (segmentBlockSize != UNKNOWN_LOG_SEGMENT_SIZE) {
             // If we have a segmented file we should start reading after the first segment
             this.startPosition = new LogPosition(logVersion, segmentBlockSize);
@@ -79,7 +74,6 @@ public class LogHeader {
         startPosition = new LogPosition(version, logHeader.startPosition.getByteOffset());
         previousLogFileChecksum = logHeader.previousLogFileChecksum;
         kernelVersion = logHeader.kernelVersion;
-        lastTerm = logHeader.lastTerm;
     }
 
     public LogPosition getStartPosition() {
@@ -114,10 +108,6 @@ public class LogHeader {
         return lastAppendIndex;
     }
 
-    public long getLastTerm() {
-        return lastTerm;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -134,8 +124,7 @@ public class LogHeader {
                 && Objects.equals(startPosition, logHeader.startPosition)
                 && segmentBlockSize == logHeader.segmentBlockSize
                 && previousLogFileChecksum == logHeader.previousLogFileChecksum
-                && kernelVersion == logHeader.kernelVersion
-                && lastTerm == logHeader.lastTerm;
+                && kernelVersion == logHeader.kernelVersion;
     }
 
     @Override
@@ -148,15 +137,13 @@ public class LogHeader {
                 startPosition,
                 segmentBlockSize,
                 previousLogFileChecksum,
-                kernelVersion,
-                lastTerm);
+                kernelVersion);
     }
 
     @Override
     public String toString() {
         return "LogHeader{" + "logFormatVersion=" + logFormatVersion + ", logVersion=" + logVersion
-                + ", lastAppendIndex=" + lastAppendIndex + ", lastTerm="
-                + lastTerm + ", storeId=" + storeId + ", startPosition=" + startPosition
+                + ", lastAppendIndex=" + lastAppendIndex + ", storeId=" + storeId + ", startPosition=" + startPosition
                 + ", segmentBlockSize="
                 + segmentBlockSize + ", previousLogFileChecksum=" + previousLogFileChecksum + ", kernelVersion="
                 + kernelVersion + '}';
