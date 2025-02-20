@@ -107,6 +107,13 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         return new InvalidArgumentsException(gql, msg);
     }
 
+    public static InvalidArgumentsException providedFieldEmpty(String field) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+                .withParam(GqlParams.ListParam.inputList, List.of(field))
+                .build();
+        return new InvalidArgumentsException(gql, String.format("The provided %s is empty.", field));
+    }
+
     @Override
     public Status status() {
         return status;
@@ -395,6 +402,15 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 String.format(
                         "Could not %s with specified %s '%s'. Unknown format, supported formats are %s",
                         operation, key, value, validFormatsString));
+    }
+
+    public static InvalidArgumentsException missingOptionCreateSchema(
+            String schemaType, List<String> option, String quotedOptions) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+                .withParam(GqlParams.ListParam.inputList, option)
+                .build();
+        return new InvalidArgumentsException(
+                gql, String.format("Failed to create %s: Missing index config options %s.", schemaType, quotedOptions));
     }
 
     public static InvalidArgumentsException invalidOptionsExpectedMap(String operation, AnyValue input) {

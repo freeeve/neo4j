@@ -77,7 +77,7 @@ abstract class GqlExceptionTestBase {
     @Test
     void shouldAppendGqlExceptionToExistingGqlCause() {
         ErrorGqlStatusObject existingCauseGqlObject = ErrorGqlStatusObjectImplementation.from(
-                        GqlStatusInfoCodes.STATUS_22N06)
+                        GqlStatusInfoCodes.STATUS_22N09)
                 .withParam(GqlParams.StringParam.option, "option")
                 .atPosition(7, 2, 3)
                 .build();
@@ -97,8 +97,8 @@ abstract class GqlExceptionTestBase {
 
         assertTrue(errorWithGqlExceptionCause.cause().isPresent());
         ErrorGqlStatusObject firstCause = errorWithGqlExceptionCause.cause().get();
-        assertEquals(GqlStatusInfoCodes.STATUS_22N06.getStatusString(), firstCause.gqlStatus());
-        assertThat(firstCause.statusDescription()).contains("'option' needs to be specified");
+        assertEquals(GqlStatusInfoCodes.STATUS_22N09.getStatusString(), firstCause.gqlStatus());
+        assertThat(firstCause.statusDescription()).contains("conflicting values for 'option'.");
         Object position = firstCause.diagnosticRecord().get("_position");
         assertEquals(Map.of("offset", 7, "line", 2, "column", 3), position);
 
@@ -111,7 +111,7 @@ abstract class GqlExceptionTestBase {
 
     @Test
     void shouldNotAppendGqlExceptionToExistingGqlCausesIfAlreadyPresent() {
-        ErrorGqlStatusObject causeGqlObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+        ErrorGqlStatusObject causeGqlObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N09)
                 .withParam(GqlParams.StringParam.option, "option")
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N08)
                         .withParam(GqlParams.StringParam.option1, "myOption")
@@ -129,8 +129,8 @@ abstract class GqlExceptionTestBase {
 
         assertTrue(errorWithGqlExceptionCause.cause().isPresent());
         ErrorGqlStatusObject firstCause = errorWithGqlExceptionCause.cause().get();
-        assertEquals(GqlStatusInfoCodes.STATUS_22N06.getStatusString(), firstCause.gqlStatus());
-        assertThat(firstCause.statusDescription()).contains("'option' needs to be specified");
+        assertEquals(GqlStatusInfoCodes.STATUS_22N09.getStatusString(), firstCause.gqlStatus());
+        assertThat(firstCause.statusDescription()).contains("conflicting values for 'option'.");
 
         assertTrue(firstCause.cause().isPresent());
         ErrorGqlStatusObject secondCause = firstCause.cause().get();
@@ -142,7 +142,7 @@ abstract class GqlExceptionTestBase {
 
     @Test
     void shouldAppendGqlExceptionToExistingGqlCausesIfAlmostSameCauseAlreadyPresent() {
-        ErrorGqlStatusObject causeGqlObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+        ErrorGqlStatusObject causeGqlObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N09)
                 .withParam(GqlParams.StringParam.option, "option")
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N08)
                         .withParam(GqlParams.StringParam.option1, "myOption")
@@ -157,7 +157,7 @@ abstract class GqlExceptionTestBase {
                 .build();
 
         ErrorGqlStatusObject almostIdenticalExceptionCauseGqlObject = ErrorGqlStatusObjectImplementation.from(
-                        GqlStatusInfoCodes.STATUS_22N06)
+                        GqlStatusInfoCodes.STATUS_22N09)
                 .withParam(GqlParams.StringParam.option, "option")
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N08)
                         .withParam(GqlParams.StringParam.option1, "myOption")
@@ -170,8 +170,8 @@ abstract class GqlExceptionTestBase {
 
         assertTrue(errorWithGqlExceptionCause.cause().isPresent());
         ErrorGqlStatusObject cause1 = errorWithGqlExceptionCause.cause().get();
-        assertEquals(GqlStatusInfoCodes.STATUS_22N06.getStatusString(), cause1.gqlStatus());
-        assertThat(cause1.statusDescription()).contains("'option' needs to be specified");
+        assertEquals(GqlStatusInfoCodes.STATUS_22N09.getStatusString(), cause1.gqlStatus());
+        assertThat(cause1.statusDescription()).contains("conflicting values for 'option'.");
 
         assertTrue(cause1.cause().isPresent());
         ErrorGqlStatusObject cause2 = cause1.cause().get();
@@ -180,8 +180,8 @@ abstract class GqlExceptionTestBase {
 
         assertTrue(cause2.cause().isPresent());
         ErrorGqlStatusObject cause3 = cause2.cause().get();
-        assertEquals(GqlStatusInfoCodes.STATUS_22N06.getStatusString(), cause3.gqlStatus());
-        assertThat(cause3.statusDescription()).contains("'option' needs to be specified");
+        assertEquals(GqlStatusInfoCodes.STATUS_22N09.getStatusString(), cause3.gqlStatus());
+        assertThat(cause3.statusDescription()).contains("conflicting values for 'option'.");
 
         assertTrue(cause3.cause().isPresent());
         ErrorGqlStatusObject cause4 = cause3.cause().get();
@@ -215,14 +215,14 @@ abstract class GqlExceptionTestBase {
 
     @Test
     void getMessageForTopLevelExceptionWithMessagePart() {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N09)
                 .withParam(GqlParams.StringParam.option, "myOption")
                 .build();
         var exception = testException(gql, "legacy message");
 
         assertEquals("legacy message", exception.getMessage());
         assertEquals(
-                "22N06: Invalid input. 'myOption' needs to be specified.",
+                "22N09: Invalid pre-parser option, cannot specify multiple conflicting values for 'myOption'.",
                 exception.gqlStatusObject().getMessage());
     }
 
@@ -250,7 +250,7 @@ abstract class GqlExceptionTestBase {
     @Test
     void getMessageForErrorCauseWithMessagePart() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N09)
                         .withParam(GqlParams.StringParam.option, "myOption")
                         .build())
                 .build();
@@ -260,7 +260,7 @@ abstract class GqlExceptionTestBase {
         assertEquals("22000", exception.gqlStatusObject().getMessage());
         assertTrue(exception.cause().isPresent());
         assertEquals(
-                "22N06: Invalid input. 'myOption' needs to be specified.",
+                "22N09: Invalid pre-parser option, cannot specify multiple conflicting values for 'myOption'.",
                 exception.cause().get().getMessage());
     }
 
@@ -268,7 +268,7 @@ abstract class GqlExceptionTestBase {
     void getMessageForJavaCause() {
         var gql1 = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
                 .build();
-        var gql2 = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+        var gql2 = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N09)
                 .withParam(GqlParams.StringParam.option, "myOption")
                 .build();
         var innerException = testException(gql2, "legacy message 2");
@@ -278,7 +278,7 @@ abstract class GqlExceptionTestBase {
         assertEquals("22000", exception.gqlStatusObject().getMessage());
         assertTrue(exception.cause().isPresent());
         assertEquals(
-                "22N06: Invalid input. 'myOption' needs to be specified.",
+                "22N09: Invalid pre-parser option, cannot specify multiple conflicting values for 'myOption'.",
                 exception.cause().get().getMessage());
     }
 

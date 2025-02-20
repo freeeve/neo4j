@@ -328,6 +328,13 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, legacyMessage);
     }
 
+    public static InvalidArgumentException providedFieldEmpty(String field) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+                .withParam(GqlParams.ListParam.inputList, List.of(field))
+                .build();
+        return new InvalidArgumentException(gql, String.format("The provided %s is empty.", field));
+    }
+
     public static InvalidArgumentException couldNotGetPassword() {
         var msg = "Could not get password name field from password expression.";
         var gql = GqlHelper.get50N00(InvalidArgumentException.class.getSimpleName(), msg);

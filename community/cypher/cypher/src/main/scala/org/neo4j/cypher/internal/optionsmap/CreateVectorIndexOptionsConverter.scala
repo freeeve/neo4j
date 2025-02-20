@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.optionsmap
 
 import org.eclipse.collections.api.PrimitiveIterable
+import org.eclipse.collections.api.set.sorted.ImmutableSortedSet
 import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.IndexProviderContext
@@ -95,18 +96,19 @@ case class CreateVectorIndexOptionsConverter(context: IndexProviderContext, late
     }
 
     def assertMandatoryConfigSettingsExists(validationRecords: IndexConfigValidationRecords): Unit = {
-      val missingSettings = validationRecords.get(MISSING_SETTING)
+      val missingSettings: ImmutableSortedSet[IndexConfigValidationRecord] = validationRecords.get(MISSING_SETTING)
       if (!missingSettings.isEmpty) {
-        val missing =
+        val missingQuoted =
           missingSettings.makeString(
             (r: IndexConfigValidationRecord) => s"'${r.settingName}'",
             "[",
             ", ",
             "]"
           )
-        throw new InvalidArgumentsException(
-          s"Failed to create $schemaType: Missing index config options $missing."
-        )
+        val missing = missingSettings
+          .collect[String](_.settingName)
+          .castToList()
+        throw InvalidArgumentsException.missingOptionCreateSchema(schemaType, missing, missingQuoted)
       }
     }
 

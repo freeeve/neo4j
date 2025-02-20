@@ -22,10 +22,12 @@ package org.neo4j.cypher
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.auth_enabled
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.exceptions.ParameterWrongTypeException
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.QueryExecutionException
 import org.neo4j.graphdb.Result
 import org.neo4j.graphdb.config.Setting
@@ -778,13 +780,25 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
       // WHEN
       execute("CREATE USER `` SET PASSWORD 'password' SET PASSWORD CHANGE REQUIRED")
       // THEN
-    } should have message "The provided username is empty."
+    } should (
+      have message "The provided username is empty."
+        and be(gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N06,
+          "error: data exception - required input missing or empty. Invalid input. 'username' needs to be specified."
+        ))
+    )
 
     the[InvalidArgumentException] thrownBy {
       // WHEN
       execute("CREATE USER $user SET PASSWORD 'password' SET PASSWORD CHANGE REQUIRED", Map("user" -> ""))
       // THEN
-    } should have message "The provided username is empty."
+    } should (
+      have message "The provided username is empty."
+        and be(gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N06,
+          "error: data exception - required input missing or empty. Invalid input. 'username' needs to be specified."
+        ))
+    )
 
     // THEN
     execute("SHOW USERS").toSet shouldBe Set(defaultUser)

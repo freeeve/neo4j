@@ -34,8 +34,9 @@ object NameValidator {
   private val reservedRoleName = "PUBLIC"
 
   def assertValidUsername(name: String): Boolean = {
-    if (name == null || name.isEmpty)
-      throw new InvalidArgumentException("The provided username is empty.")
+    if (name == null || name.isEmpty) {
+      throw InvalidArgumentException.providedFieldEmpty("username")
+    }
     if (!usernamePattern.matcher(name).matches)
       throw InvalidArgumentException.inputContainsInvalidCharacters(
         name,
@@ -47,8 +48,9 @@ object NameValidator {
   }
 
   def assertValidRoleName(name: String): Boolean = {
-    if (name == null || name.isEmpty)
-      throw new InvalidArgumentException("The provided role name is empty.")
+    if (name == null || name.isEmpty) {
+      throw InvalidArgumentException.providedFieldEmpty("role name")
+    }
     if (!roleNamePattern.matcher(name).matches)
       throw InvalidArgumentException.inputContainsInvalidCharacters(
         name,
@@ -60,8 +62,9 @@ object NameValidator {
   }
 
   def assertValidAliasName(name: String): Boolean = {
-    if (name == null || name.isEmpty)
-      throw new InvalidArgumentException("The provided alias is empty.")
+    if (name == null || name.isEmpty) {
+      throw InvalidArgumentException.providedFieldEmpty("alias")
+    }
     if (name.length > 65534)
       throw InvalidArgumentException.aliasTooLong(name)
     if (name.startsWith("system")) {
@@ -71,8 +74,9 @@ object NameValidator {
   }
 
   def assertValidTargetName(name: String): Boolean = {
-    if (name == null || name.isEmpty)
-      throw new InvalidArgumentException("The provided target database name is empty.")
+    if (name == null || name.isEmpty) {
+      throw InvalidArgumentException.providedFieldEmpty("target database name")
+    }
     if (name.length > 65534)
       throw InvalidArgumentException.dbNameTooLong(name)
     if (name.startsWith("system")) {

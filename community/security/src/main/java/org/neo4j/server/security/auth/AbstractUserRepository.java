@@ -102,7 +102,7 @@ public abstract class AbstractUserRepository extends LifecycleAdapter implements
     @Override
     public void assertValidUsername(String username) throws InvalidArgumentsException {
         if (username == null || username.isEmpty()) {
-            throw new InvalidArgumentsException("The provided username is empty.");
+            throw InvalidArgumentsException.providedFieldEmpty("username");
         }
         if (!usernamePattern.matcher(username).matches()) {
             throw InvalidArgumentsException.inputContainsInvalidCharacters(

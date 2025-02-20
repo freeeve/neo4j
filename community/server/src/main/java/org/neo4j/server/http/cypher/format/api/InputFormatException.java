@@ -19,6 +19,7 @@
  */
 package org.neo4j.server.http.cypher.format.api;
 
+import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlParams;
@@ -85,6 +86,7 @@ public class InputFormatException extends RuntimeException implements ErrorGqlSt
     public static InputFormatException emptyInputString(String requiredOption, String message) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N11)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+                        .withParam(GqlParams.ListParam.inputList, List.of(requiredOption))
                         .build())
                 .build();
         throw new InputFormatException(gql, message);

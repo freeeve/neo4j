@@ -1179,10 +1179,10 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("22N06"),
             """
                     Invalid input. { %s } needs to be specified.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.option},
-            emptyMap(),
+            new GqlParams.GqlParam[] {GqlParams.ListParam.inputList},
+            Map.of(GqlParams.ListParam.inputList, GqlParams.JoinStyle.ANDED),
             Condition.DATA_EXCEPTION,
-            "empty input string",
+            "required input missing or empty",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N07(
             new GqlStatus("22N07"),
@@ -4537,7 +4537,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
-            "admin operation failed ",
+            "admin operation failed",
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N42(
             new GqlStatus("51N42"),
