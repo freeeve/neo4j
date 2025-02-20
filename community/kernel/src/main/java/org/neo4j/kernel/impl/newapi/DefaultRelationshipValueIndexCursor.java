@@ -153,7 +153,7 @@ class DefaultRelationshipValueIndexCursor extends DefaultEntityValueIndexCursor<
         }
         for (int propId : propertyIds) {
             for (int relType : descriptor.schema().getEntityTokenIds()) {
-                if (!accessMode.allowsReadRelationshipProperty(() -> relType, propId)) {
+                if (!accessMode.allowsReadRelProperty(() -> relType, propId)) {
                     return false;
                 }
             }
@@ -177,7 +177,7 @@ class DefaultRelationshipValueIndexCursor extends DefaultEntityValueIndexCursor<
 
         int relType = relationshipScanCursor.type();
         for (int prop : propertyIds) {
-            if (!accessModeProvider.getAccessMode().allowsReadRelationshipProperty(() -> relType, prop)) {
+            if (!accessModeProvider.getAccessMode().allowsReadRelProperty(() -> relType, prop)) {
                 return false;
             }
         }

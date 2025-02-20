@@ -35,23 +35,38 @@ import org.neo4j.values.storable.Values;
 
 public interface PatternSegment extends Segment {
 
-    default String labelsString() {
-        return labels().isEmpty()
+    default String elementTypeString() {
+        return elementTypes().isEmpty()
                 ? ""
-                : labels().stream().sorted().map(NameUtil::escapeName).collect(Collectors.joining("|", ":", ""));
+                : elementTypes().stream().sorted().map(NameUtil::escapeName).collect(Collectors.joining("|", ":", ""));
     }
 
-    default String nodeString() {
-        return String.format("(n%s)", labelsString());
+    default String propertyString(String elementVariableName) {
+        return String.format("%s.%s", elementVariableName, NameUtil.escapeName(property()));
     }
 
-    default String propertyString() {
-        return String.format("n.%s", NameUtil.escapeName(property()));
+    default String prettyPrintValue(Value value) {
+        String method = null;
+        String prettyPrintedValue = value.prettyPrint();
+
+        switch (value) {
+            case DateValue ignored -> method = "date";
+            case LocalDateTimeValue ignored -> method = "localdatetime";
+            case DateTimeValue ignored -> method = "datetime";
+            case LocalTimeValue ignored -> method = "localtime";
+            case TimeValue ignored -> method = "time";
+            case DurationValue ignored -> method = "duration";
+            case PointValue ignored -> prettyPrintedValue = value.toString();
+            default -> {}
+        }
+        return method == null ? prettyPrintedValue : String.format("%s('%s')", method, prettyPrintedValue);
     }
 
-    Set<String> ALL_LABELS = Set.of();
+    PropertyRule buildPropertyRule(int securityProperty);
 
-    Set<String> labels();
+    Set<String> ALL_ELEMENT_TYPES = Set.of();
+
+    Set<String> elementTypes();
 
     String property();
 
@@ -67,77 +82,160 @@ public interface PatternSegment extends Segment {
         return String.format("FOR %s", pattern());
     }
 
-    record ValuePatternSegment(
-            Set<String> labels, String property, Value value, PropertyRule.ComparisonOperator operator)
-            implements PatternSegment {
+    abstract class ValuePatternSegment implements PatternSegment {
+        protected final Set<String> elementTypes;
+        protected final String property;
+        protected final Value value;
+        protected final PropertyRule.ComparisonOperator operator;
 
-        public ValuePatternSegment(String property, Value value, PropertyRule.ComparisonOperator operator) {
-            this(ALL_LABELS, property, value, operator);
-        }
-
-        public ValuePatternSegment {
-            Preconditions.requireNonNull(labels, "labels must not be null");
+        public ValuePatternSegment(
+                Set<String> elementTypes, String property, Value value, PropertyRule.ComparisonOperator operator) {
+            Preconditions.requireNonNull(elementTypes, "elementTypes must not be null");
             Preconditions.requireNonNull(property, "property must not be null");
             Preconditions.requireNonNull(value, "value must not be null");
             Preconditions.checkArgument(
                     value != Values.NO_VALUE, "value must not be NO_VALUE. Use NullPatternSegment for this purpose.");
+            this.elementTypes = elementTypes;
+            this.property = property;
+            this.value = value;
+            this.operator = operator;
+        }
+
+        @Override
+        public Set<String> elementTypes() {
+            return elementTypes;
+        }
+
+        @Override
+        public String property() {
+            return property;
+        }
+
+        public Value value() {
+            return value;
+        }
+
+        public PropertyRule.ComparisonOperator operator() {
+            return operator;
+        }
+
+        @Override
+        public PropertyRule buildPropertyRule(int securityProperty) {
+            return PropertyRule.newRule(securityProperty, value(), operator());
+        }
+
+        @Override
+        public String toString() {
+            return String.format("FOR(%s)", pattern());
+        }
+    }
+
+    class NodeValuePatternSegment extends ValuePatternSegment {
+        public NodeValuePatternSegment(
+                Set<String> elementTypes, String property, Value value, PropertyRule.ComparisonOperator operator) {
+            super(elementTypes, property, value, operator);
+        }
+
+        public NodeValuePatternSegment(String property, Value value, PropertyRule.ComparisonOperator operator) {
+            this(ALL_ELEMENT_TYPES, property, value, operator);
         }
 
         @Override
         public String pattern() {
             return String.format(
-                    "%s WHERE %s",
-                    nodeString(), this.operator.toPredicateString(propertyString(), prettyPrintValue(this.value)));
-        }
-
-        @Override
-        public String toString() {
-            return String.format("FOR(%s)", pattern());
-        }
-
-        private String prettyPrintValue(Value value) {
-            String method = null;
-            String prettyPrintedValue = value.prettyPrint();
-
-            if (value instanceof DateValue) {
-                method = "date";
-            } else if (value instanceof LocalDateTimeValue) {
-                method = "localdatetime";
-            } else if (value instanceof DateTimeValue) {
-                method = "datetime";
-            } else if (value instanceof LocalTimeValue) {
-                method = "localtime";
-            } else if (value instanceof TimeValue) {
-                method = "time";
-            } else if (value instanceof DurationValue) {
-                method = "duration";
-            } else if (value instanceof PointValue) {
-                prettyPrintedValue = value.toString();
-            }
-            return method == null ? prettyPrintedValue : String.format("%s('%s')", method, prettyPrintedValue);
+                    "(n%s) WHERE %s",
+                    elementTypeString(),
+                    this.operator.toPredicateString(propertyString("n"), prettyPrintValue(this.value)));
         }
     }
 
-    record NullPatternSegment(Set<String> labels, String property, PropertyRule.NullOperator operator)
-            implements PatternSegment {
-
-        public NullPatternSegment(String property, PropertyRule.NullOperator operator) {
-            this(ALL_LABELS, property, operator);
+    class RelValuePatternSegment extends ValuePatternSegment {
+        public RelValuePatternSegment(
+                Set<String> elementTypes, String property, Value value, PropertyRule.ComparisonOperator operator) {
+            super(elementTypes, property, value, operator);
         }
 
-        public NullPatternSegment {
-            Preconditions.requireNonNull(labels, "labels must not be null");
-            Preconditions.requireNonNull(property, "property must not be null");
+        public RelValuePatternSegment(String property, Value value, PropertyRule.ComparisonOperator operator) {
+            this(ALL_ELEMENT_TYPES, property, value, operator);
         }
 
         @Override
         public String pattern() {
-            return String.format("%s WHERE %s", nodeString(), this.operator.toPredicateString(propertyString()));
+            return String.format(
+                    "()-[r%s]-() WHERE %s",
+                    elementTypeString(),
+                    this.operator.toPredicateString(propertyString("r"), prettyPrintValue(this.value)));
+        }
+    }
+
+    abstract class NullPatternSegment implements PatternSegment {
+
+        protected final Set<String> elementTypes;
+        protected final String property;
+        protected final PropertyRule.NullOperator operator;
+
+        public NullPatternSegment(Set<String> elementTypes, String property, PropertyRule.NullOperator operator) {
+            Preconditions.requireNonNull(elementTypes, "elementTypes must not be null");
+            Preconditions.requireNonNull(property, "property must not be null");
+            this.elementTypes = elementTypes;
+            this.property = property;
+            this.operator = operator;
+        }
+
+        @Override
+        public Set<String> elementTypes() {
+            return elementTypes;
+        }
+
+        @Override
+        public String property() {
+            return property;
+        }
+
+        public PropertyRule.NullOperator operator() {
+            return operator;
+        }
+
+        @Override
+        public PropertyRule buildPropertyRule(int securityProperty) {
+            return PropertyRule.newNullRule(securityProperty, operator());
         }
 
         @Override
         public String toString() {
             return String.format("FOR(%s)", pattern());
+        }
+    }
+
+    class NodeNullPatternSegment extends NullPatternSegment {
+        public NodeNullPatternSegment(Set<String> elementTypes, String property, PropertyRule.NullOperator operator) {
+            super(elementTypes, property, operator);
+        }
+
+        public NodeNullPatternSegment(String property, PropertyRule.NullOperator operator) {
+            this(ALL_ELEMENT_TYPES, property, operator);
+        }
+
+        @Override
+        public String pattern() {
+            return String.format(
+                    "(n%s) WHERE %s", elementTypeString(), this.operator.toPredicateString(propertyString("n")));
+        }
+    }
+
+    class RelNullPatternSegment extends NullPatternSegment {
+        public RelNullPatternSegment(Set<String> elementTypes, String property, PropertyRule.NullOperator operator) {
+            super(elementTypes, property, operator);
+        }
+
+        public RelNullPatternSegment(String property, PropertyRule.NullOperator operator) {
+            this(ALL_ELEMENT_TYPES, property, operator);
+        }
+
+        @Override
+        public String pattern() {
+            return String.format(
+                    "()-[r%s]-() WHERE %s", elementTypeString(), this.operator.toPredicateString(propertyString("r")));
         }
     }
 }

@@ -128,7 +128,7 @@ public abstract class KernelTokenRead implements TokenRead {
         performCheckBeforeOperation();
         return Iterators.stream(tokenHolders.labelTokens().getAllTokens().iterator())
                 .filter(label -> getAccessMode().allowsTraverseNode(label.id())
-                        || getAccessMode().hasApplicableTraverseAllowPropertyRules(label.id()))
+                        || getAccessMode().hasApplicableTraverseNodeAllowPropertyRules(label.id()))
                 .iterator();
     }
 

@@ -135,12 +135,12 @@ public interface AccessMode {
         }
 
         @Override
-        public IntSet getTraverseSecurityProperties(int[] labels) {
+        public IntSet getTraverseNodeSecurityProperties(int[] labels) {
             return IntSets.immutable.empty();
         }
 
         @Override
-        public boolean hasApplicableTraverseAllowPropertyRules(int label) {
+        public boolean hasApplicableTraverseNodeAllowPropertyRules(int label) {
             return read;
         }
 
@@ -151,7 +151,7 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean hasTraversePropertyRules() {
+        public boolean hasTraverseNodePropertyRules() {
             return false;
         }
 
@@ -171,6 +171,26 @@ public interface AccessMode {
         }
 
         @Override
+        public IntSet getTraverseRelSecurityProperties(int type) {
+            return IntSets.immutable.empty();
+        }
+
+        @Override
+        public boolean hasApplicableTraverseRelAllowPropertyRules(int type) {
+            return read;
+        }
+
+        @Override
+        public boolean allowsTraverseRelWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int type) {
+            return read;
+        }
+
+        @Override
+        public boolean hasTraverseRelPropertyRules() {
+            return false;
+        }
+
+        @Override
         public boolean allowsReadPropertyAllLabels(int propertyKey) {
             return read;
         }
@@ -181,7 +201,7 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean allowsReadNodeProperties(
+        public boolean allowsReadNodePropertiesWithPropertyRules(
                 Supplier<TokenSet> labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
             return read;
         }
@@ -192,7 +212,7 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean allowsReadNodeProperty(
+        public boolean allowsReadNodePropertyWithPropertyRules(
                 Supplier<TokenSet> labels, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
             return read;
         }
@@ -208,17 +228,59 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean allowsReadRelationshipProperty(RelTypeSupplier relType, int propertyKey) {
+        public boolean allowsReadRelProperty(RelTypeSupplier relType, int propertyKey) {
             return read;
         }
 
         @Override
-        public IntSet getAllReadSecurityProperties() {
+        public boolean allowsReadRelPropertiesWithPropertyRules(
+                RelTypeSupplier relType, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
+            return read;
+        }
+
+        @Override
+        public boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys) {
+            return read;
+        }
+
+        @Override
+        public boolean allowsReadRelPropertyWithPropertyRules(
+                RelTypeSupplier relType, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
+            return read;
+        }
+
+        @Override
+        public IntSet getAllNodeReadSecurityProperties() {
             return IntSets.immutable.empty();
         }
 
         @Override
-        public PropertySelection getSecurityPropertySelection(PropertySelection selection) {
+        public PropertySelection getNodeSecurityPropertySelection(PropertySelection selection) {
+            return PropertySelection.NO_PROPERTIES;
+        }
+
+        @Override
+        public boolean hasRelPropertyReadRules() {
+            return false;
+        }
+
+        @Override
+        public boolean hasRelPropertyReadRules(int... propertyKeys) {
+            return false;
+        }
+
+        @Override
+        public IntSet getRelReadSecurityProperties(int propertyKey) {
+            return IntSets.immutable.empty();
+        }
+
+        @Override
+        public IntSet getAllRelReadSecurityProperties() {
+            return IntSets.immutable.empty();
+        }
+
+        @Override
+        public PropertySelection getRelSecurityPropertySelection(PropertySelection selection) {
             return PropertySelection.NO_PROPERTIES;
         }
 
@@ -228,17 +290,17 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean hasPropertyReadRules() {
+        public boolean hasNodePropertyReadRules() {
             return false;
         }
 
         @Override
-        public boolean hasPropertyReadRules(int... propertyKeys) {
+        public boolean hasNodePropertyReadRules(int... propertyKeys) {
             return false;
         }
 
         @Override
-        public IntSet getReadSecurityProperties(int propertyKey) {
+        public IntSet getNodeReadSecurityProperties(int propertyKey) {
             return IntSets.immutable.empty();
         }
 
@@ -374,7 +436,7 @@ public interface AccessMode {
      * @param labels - the node labels which may have security rules on them
      * @return the set of operand properties
      */
-    IntSet getTraverseSecurityProperties(int[] labels);
+    IntSet getTraverseNodeSecurityProperties(int[] labels);
 
     /**
      * checks whether there is potential for nodes with this label to be traversed subject of property-based
@@ -382,7 +444,7 @@ public interface AccessMode {
      * @param label - the label to check permissions for
      * @return true when nodes with this label could be traversable due to property-based GRANTS
      */
-    boolean hasApplicableTraverseAllowPropertyRules(int label);
+    boolean hasApplicableTraverseNodeAllowPropertyRules(int label);
 
     /**
      * Uses the {@code propertyProvider} to get the node property values and the {@code labels} to get the relevant property rules,
@@ -394,10 +456,10 @@ public interface AccessMode {
     boolean allowsTraverseNodeWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int... labels);
 
     /**
-     * Determines whether there are any property rules controlling traversal
+     * Determines whether there are any property rules controlling node traversal
      * @return {@code true} when the authenticated principal's ability to traverse nodes could be subject to property rules
      */
-    boolean hasTraversePropertyRules();
+    boolean hasTraverseNodePropertyRules();
 
     /**
      * true if all relationships can be traversed
@@ -419,6 +481,37 @@ public interface AccessMode {
      */
     boolean disallowsTraverseRelType(int relType);
 
+    /**
+     * Gets the keys of the operand properties (aka Security Properties) whose
+     * values are to be checked by the property rules of relationships having the {@code type} supplied
+     * @param type - the relationship type which may have security rules on them
+     * @return the set of operand properties
+     */
+    IntSet getTraverseRelSecurityProperties(int type);
+
+    /**
+     * checks whether there is potential for relationships with this type to be traversed subject of property-based
+     * GRANTS evaluating to true and not being precluded by type-based DENYs.
+     * @param type - the type to check permissions for
+     * @return true when relationships with this type could be traversable due to property-based GRANTS
+     */
+    boolean hasApplicableTraverseRelAllowPropertyRules(int type);
+
+    /**
+     * Uses the {@code propertyProvider} to get the relationship property values and the {@code type} to get the relevant property rules,
+     * and then evaluates the property rules to determine whether the relationship can be traversed. Also checks type-based traverse rules.
+     * @param propertyProvider provider of the scrutinee relationship's properties
+     * @param type the type of the relationship. Used to determine which property rules need to be checked.
+     * @return {@code true} if traversal of this relationship is allowed
+     */
+    boolean allowsTraverseRelWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int type);
+
+    /**
+     * Determines whether there are any property rules controlling traversal of any relationship types
+     * @return {@code true} when the authenticated principal's ability to traverse relationships could be subject to property rules
+     */
+    boolean hasTraverseRelPropertyRules();
+
     boolean allowsReadPropertyAllLabels(int propertyKey);
 
     boolean disallowsReadPropertyForSomeLabel(int propertyKey);
@@ -432,7 +525,7 @@ public interface AccessMode {
      * @param propertyProvider the provider of the node's property values. Used as operands for the property rules.
      * @return {@code true} if the principal is allowed to read ALL of the requested {@code propertyKeys}
      */
-    boolean allowsReadNodeProperties(
+    boolean allowsReadNodePropertiesWithPropertyRules(
             Supplier<TokenSet> labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider);
 
     /**
@@ -454,7 +547,7 @@ public interface AccessMode {
      * @param propertyProvider the provider of the node's property values. Used as operands for the property rules.
      * @return {@code true} if the principal is allowed to read  the requested {@code propertyKey}
      */
-    boolean allowsReadNodeProperty(
+    boolean allowsReadNodePropertyWithPropertyRules(
             Supplier<TokenSet> labels, int propertyKey, ReadSecurityPropertyProvider propertyProvider);
 
     /**
@@ -469,42 +562,109 @@ public interface AccessMode {
 
     boolean allowsReadPropertyAllRelTypes(int propertyKey);
 
-    boolean allowsReadRelationshipProperty(RelTypeSupplier relType, int propertyKey);
+    boolean allowsReadRelProperty(RelTypeSupplier relType, int propertyKey);
+
+    /**
+     * determines whether the authenticated principal is allowed to read the specified {@code propertyKeys} according
+     * to the property-based RBAC read rules AND the type-based RBAC rules.
+     * Optimised for a multi-property reads.
+     * @param relType the type of the relationship in question. Used to determine which RBAC rules are applicable.
+     * @param propertyKeys the properties which the principal is requesting to read
+     * @param propertyProvider the provider of the relationship's property values. Used as operands for the property rules.
+     * @return {@code true} if the principal is allowed to read ALL of the requested {@code propertyKeys}
+     */
+    boolean allowsReadRelPropertiesWithPropertyRules(
+            RelTypeSupplier relType, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider);
+
+    /**
+     * determines whether the authenticated principal is allowed to read the specified {@code propertyKeys} according
+     * to type-based RBAC rules. For use in contexts where there are no property-based RBAC rules in place.
+     * Optimised for a multi-property reads.
+     * @param relType the type of the relationship in question. Used to determine which RBAC rules are applicable.
+     * @param propertyKeys the properties which the principal is requesting to read
+     * @return {@code true} if the principal is allowed to read ALL of the requested {@code propertyKeys}
+     */
+    boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys);
+
+    /**
+     * determines whether the authenticated principal is allowed to read the specified {@code propertyKey} according
+     * to the property-based RBAC read rules AND the type-based RBAC rules.
+     * Optimised for a single-property reads.
+     * @param relType the type of the relationship in question. Used to determine which RBAC rules are applicable.
+     * @param propertyKey the property which the principal is requesting to read
+     * @param propertyProvider the provider of the relationship's property values. Used as operands for the property rules.
+     * @return {@code true} if the principal is allowed to read  the requested {@code propertyKey}
+     */
+    boolean allowsReadRelPropertyWithPropertyRules(
+            RelTypeSupplier relType, int propertyKey, ReadSecurityPropertyProvider propertyProvider);
 
     boolean allowsSeePropertyKeyToken(int propertyKey);
 
     /**
-     * Determines whether there are any property rules controlling the ability to read properties.
+     * Determines whether there are any property rules controlling the ability to read node properties.
      * @return {@code true} when the authenticated principal's ability to read node properties could be subject to property rules
      */
-    boolean hasPropertyReadRules();
+    boolean hasNodePropertyReadRules();
 
     /**
-     * Determines whether there are any property rules controlling the ability to read the specified {@code propertyKeys}.
-     * @return {@code true} when the authenticated principal's ability to read any of the specified {@code propertyKeys}
+     * Determines whether there are any property rules controlling the ability to read the specified node {@code propertyKeys}.
+     * @return {@code true} when the authenticated principal's ability to read any of the specified node {@code propertyKeys}
      * could be subject to property rules (further dependent on the labels of the node in question).
      */
-    boolean hasPropertyReadRules(int... propertyKeys);
+    boolean hasNodePropertyReadRules(int... propertyKeys);
 
     /**
-     * Get the keys of the properties which are used as operands for rules controlling the ability to read {@code propertyKey}
+     * Get the keys of the properties which are used as operands for rules controlling the ability to read node {@code propertyKey}
      * @param propertyKey the key of the property whose reading is being restricted
      * @return the list of keys of the properties which will be scrutinised in determining whether {@code propertyKey} can be read
      */
-    IntSet getReadSecurityProperties(int propertyKey);
+    IntSet getNodeReadSecurityProperties(int propertyKey);
 
     /**
-     * Get all keys of the properties which are used as operands for rules controlling the ability to read certain properties
+     * Get all keys of the properties which are used as operands for rules controlling the ability to read certain node properties
      * @return the list of keys of the properties which will be scrutinised in determining whether certain properties can be read
      */
-    IntSet getAllReadSecurityProperties();
+    IntSet getAllNodeReadSecurityProperties();
 
     /**
-     * Given a PropertySelection get the PropertySelection for the corresponding security properties
+     * Given a PropertySelection get the PropertySelection for the corresponding node security properties
      * @param selection the properties to get the security properties for
      * @return the security properties which are operands to the relevant property rules
      */
-    PropertySelection getSecurityPropertySelection(PropertySelection selection);
+    PropertySelection getNodeSecurityPropertySelection(PropertySelection selection);
+
+    /**
+     * Determines whether there are any property rules controlling the ability to read relationship properties.
+     * @return {@code true} when the authenticated principal's ability to read relationship properties could be subject to property rules
+     */
+    boolean hasRelPropertyReadRules();
+
+    /**
+     * Determines whether there are any property rules controlling the ability to read the specified relationship {@code propertyKeys}.
+     * @return {@code true} when the authenticated principal's ability to read any of the specified {@code propertyKeys}
+     * could be subject to property rules (further dependent on the type of the relationship in question).
+     */
+    boolean hasRelPropertyReadRules(int... propertyKeys);
+
+    /**
+     * Get the keys of the properties which are used as operands for rules controlling the ability to read relationship {@code propertyKey}
+     * @param propertyKey the key of the property whose reading is being restricted
+     * @return the list of keys of the properties which will be scrutinised in determining whether {@code propertyKey} can be read
+     */
+    IntSet getRelReadSecurityProperties(int propertyKey);
+
+    /**
+     * Get all keys of the properties which are used as operands for rules controlling the ability to read certain relationship properties
+     * @return the list of keys of the properties which will be scrutinised in determining whether certain properties can be read
+     */
+    IntSet getAllRelReadSecurityProperties();
+
+    /**
+     * Given a PropertySelection get the PropertySelection for the corresponding relationship security properties
+     * @param selection the properties to get the security properties for
+     * @return the security properties which are operands to the relevant property rules
+     */
+    PropertySelection getRelSecurityPropertySelection(PropertySelection selection);
 
     /**
      * Check if execution of a procedure is allowed

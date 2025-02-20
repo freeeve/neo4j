@@ -23,25 +23,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
-import static org.neo4j.internal.kernel.api.security.PatternSegment.NullPatternSegment;
+import static org.neo4j.internal.kernel.api.security.PatternSegment.NodeNullPatternSegment;
 import static org.neo4j.internal.kernel.api.security.PropertyRule.NullOperator;
 
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-public class NullPatternSegmentTest {
+public class NodeNullPatternSegmentTest {
 
     @Test
     void testPattern() {
-        var nps = new NullPatternSegment("p", NullOperator.IS_NULL);
+        var nps = new NodeNullPatternSegment("p", NullOperator.IS_NULL);
         var npsSpy = spy(nps);
-        when(npsSpy.propertyString()).thenReturn("propertyString");
+        when(npsSpy.propertyString("n")).thenReturn("propertyString");
         assertThat(npsSpy.pattern()).isEqualTo("(n) WHERE propertyString IS NULL");
     }
 
     @Test
     void testToString() {
-        var nps = new NullPatternSegment("propertyString", NullOperator.IS_NULL);
+        var nps = new NodeNullPatternSegment("propertyString", NullOperator.IS_NULL);
         var npsSpy = spy(nps);
         when(npsSpy.pattern()).thenReturn("patternString");
         assertThat(npsSpy.toString()).isEqualTo("FOR(patternString)");
@@ -49,21 +49,21 @@ public class NullPatternSegmentTest {
 
     @Test
     void testConstructorDisallowsNullParameters() {
-        assertThatThrownBy(() -> new NullPatternSegment(null, "p1", NullOperator.IS_NULL))
+        assertThatThrownBy(() -> new NodeNullPatternSegment(null, "p1", NullOperator.IS_NULL))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageStartingWith("labels must not be null");
-        assertThatThrownBy(() -> new NullPatternSegment(null, NullOperator.IS_NULL))
+                .hasMessageStartingWith("elementTypes must not be null");
+        assertThatThrownBy(() -> new NodeNullPatternSegment(null, NullOperator.IS_NULL))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageStartingWith("property must not be null");
     }
 
     @Test
     void testGetLabel() {
-        var nps1 = new NullPatternSegment("p1", NullOperator.IS_NULL);
-        var nps2 = new NullPatternSegment(Set.of("L1"), "p1", NullOperator.IS_NULL);
-        var nps3 = new NullPatternSegment(Set.of("L1", "L2"), "p1", NullOperator.IS_NULL);
-        assertThat(nps1.labels()).isEmpty();
-        assertThat(nps2.labels()).containsExactlyInAnyOrder("L1");
-        assertThat(nps3.labels()).containsExactlyInAnyOrder("L1", "L2");
+        var nps1 = new NodeNullPatternSegment("p1", NullOperator.IS_NULL);
+        var nps2 = new NodeNullPatternSegment(Set.of("L1"), "p1", NullOperator.IS_NULL);
+        var nps3 = new NodeNullPatternSegment(Set.of("L1", "L2"), "p1", NullOperator.IS_NULL);
+        assertThat(nps1.elementTypes()).isEmpty();
+        assertThat(nps2.elementTypes()).containsExactlyInAnyOrder("L1");
+        assertThat(nps3.elementTypes()).containsExactlyInAnyOrder("L1", "L2");
     }
 }

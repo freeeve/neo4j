@@ -133,11 +133,11 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
     void initSecurityPropertyProvision(BiConsumer<StoragePropertyCursor, PropertySelection> initNodeProperties) {
         AccessMode accessMode = accessModeProvider.getAccessMode();
         securityPropertyProvider = null;
-        if (internalCursors == null || !accessMode.hasPropertyReadRules()) {
+        if (internalCursors == null || !accessMode.hasNodePropertyReadRules()) {
             return;
         }
         // We have property read rules
-        PropertySelection securityProperties = accessMode.getSecurityPropertySelection(selection);
+        PropertySelection securityProperties = accessMode.getNodeSecurityPropertySelection(selection);
         if (securityProperties == null) {
             // The property read rules were not relevant to this `selection`.
             return;
@@ -229,12 +229,12 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
     public boolean allowed(int[] propertyKeys, int[] labels) {
         AccessMode accessMode = accessModeProvider.getAccessMode();
         if (isNode()) {
-            return accessMode.allowsReadNodeProperties(
+            return accessMode.allowsReadNodePropertiesWithPropertyRules(
                     () -> Labels.from(labels), propertyKeys, securityPropertyProvider);
         }
 
         for (int propertyKey : propertyKeys) {
-            if (!accessMode.allowsReadRelationshipProperty(this, propertyKey)) {
+            if (!accessMode.allowsReadRelProperty(this, propertyKey)) {
                 return false;
             }
         }
@@ -245,9 +245,9 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
     public boolean allowed(int propertyKey) {
         AccessMode accessMode = accessModeProvider.getAccessMode();
         if (isNode()) {
-            return accessMode.allowsReadNodeProperty(this, propertyKey, securityPropertyProvider);
+            return accessMode.allowsReadNodePropertyWithPropertyRules(this, propertyKey, securityPropertyProvider);
         } else {
-            return accessMode.allowsReadRelationshipProperty(this, propertyKey);
+            return accessMode.allowsReadRelProperty(this, propertyKey);
         }
     }
 

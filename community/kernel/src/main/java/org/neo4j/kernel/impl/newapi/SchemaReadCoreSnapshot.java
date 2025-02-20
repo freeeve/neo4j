@@ -132,7 +132,7 @@ final class SchemaReadCoreSnapshot implements SchemaReadCore {
     @Override
     public Iterator<IndexDescriptor> indexesGetForLabel(int labelId) {
         AccessMode accessMode = accessModeProvider.getAccessMode();
-        if (accessMode.allowsTraverseNode(labelId) || accessMode.hasApplicableTraverseAllowPropertyRules(labelId)) {
+        if (accessMode.allowsTraverseNode(labelId) || accessMode.hasApplicableTraverseNodeAllowPropertyRules(labelId)) {
             Iterator<IndexDescriptor> iterator = storageReader.indexesGetForLabel(labelId);
 
             if (txStateHolder.hasTxStateWithChanges()) {

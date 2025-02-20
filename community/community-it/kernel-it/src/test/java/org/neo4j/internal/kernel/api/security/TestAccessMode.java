@@ -96,12 +96,12 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public IntSet getTraverseSecurityProperties(int[] labels) {
+    public IntSet getTraverseNodeSecurityProperties(int[] labels) {
         return IntSets.immutable.empty();
     }
 
     @Override
-    public boolean hasApplicableTraverseAllowPropertyRules(int label) {
+    public boolean hasApplicableTraverseNodeAllowPropertyRules(int label) {
         return allowRead;
     }
 
@@ -111,7 +111,7 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean hasTraversePropertyRules() {
+    public boolean hasTraverseNodePropertyRules() {
         return false;
     }
 
@@ -131,6 +131,26 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
+    public IntSet getTraverseRelSecurityProperties(int type) {
+        return IntSets.immutable.empty();
+    }
+
+    @Override
+    public boolean hasApplicableTraverseRelAllowPropertyRules(int type) {
+        return allowRead;
+    }
+
+    @Override
+    public boolean allowsTraverseRelWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int type) {
+        return allowRead;
+    }
+
+    @Override
+    public boolean hasTraverseRelPropertyRules() {
+        return false;
+    }
+
+    @Override
     public boolean allowsReadPropertyAllLabels(int propertyKey) {
         return allowReadAll;
     }
@@ -141,7 +161,7 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean allowsReadNodeProperties(
+    public boolean allowsReadNodePropertiesWithPropertyRules(
             Supplier<TokenSet> labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
         return allowRead;
     }
@@ -152,7 +172,7 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean allowsReadNodeProperty(
+    public boolean allowsReadNodePropertyWithPropertyRules(
             Supplier<TokenSet> labels, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
         return allowRead;
     }
@@ -168,7 +188,24 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean allowsReadRelationshipProperty(RelTypeSupplier relType, int propertyKey) {
+    public boolean allowsReadRelProperty(RelTypeSupplier relType, int propertyKey) {
+        return allowRead;
+    }
+
+    @Override
+    public boolean allowsReadRelPropertiesWithPropertyRules(
+            RelTypeSupplier relType, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
+        return allowRead;
+    }
+
+    @Override
+    public boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys) {
+        return allowRead;
+    }
+
+    @Override
+    public boolean allowsReadRelPropertyWithPropertyRules(
+            RelTypeSupplier relType, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
         return allowRead;
     }
 
@@ -178,27 +215,52 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean hasPropertyReadRules() {
+    public boolean hasNodePropertyReadRules() {
         return false;
     }
 
     @Override
-    public boolean hasPropertyReadRules(int... propertyKeys) {
+    public boolean hasNodePropertyReadRules(int... propertyKeys) {
         return false;
     }
 
     @Override
-    public IntSet getReadSecurityProperties(int propertyKey) {
+    public IntSet getNodeReadSecurityProperties(int propertyKey) {
         return IntSets.immutable.empty();
     }
 
     @Override
-    public IntSet getAllReadSecurityProperties() {
+    public IntSet getAllNodeReadSecurityProperties() {
         return IntSets.immutable.empty();
     }
 
     @Override
-    public PropertySelection getSecurityPropertySelection(PropertySelection selection) {
+    public PropertySelection getNodeSecurityPropertySelection(PropertySelection selection) {
+        return PropertySelection.NO_PROPERTIES;
+    }
+
+    @Override
+    public boolean hasRelPropertyReadRules() {
+        return false;
+    }
+
+    @Override
+    public boolean hasRelPropertyReadRules(int... propertyKeys) {
+        return false;
+    }
+
+    @Override
+    public IntSet getRelReadSecurityProperties(int propertyKey) {
+        return IntSets.immutable.empty();
+    }
+
+    @Override
+    public IntSet getAllRelReadSecurityProperties() {
+        return IntSets.immutable.empty();
+    }
+
+    @Override
+    public PropertySelection getRelSecurityPropertySelection(PropertySelection selection) {
         return PropertySelection.NO_PROPERTIES;
     }
 

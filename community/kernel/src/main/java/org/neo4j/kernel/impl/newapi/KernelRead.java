@@ -836,8 +836,7 @@ public final class KernelRead implements Read {
             RelationshipState relationshipState = txStateHolder.txState().getRelationshipState(relationship);
             return !applyAccessModeToTxState
                             || (relationshipState.hasPropertyChanges()
-                                    && getAccessMode()
-                                            .allowsReadRelationshipProperty(relationshipState::getType, propertyKeyId))
+                                    && getAccessMode().allowsReadRelProperty(relationshipState::getType, propertyKeyId))
                     ? relationshipState.propertyValue(propertyKeyId)
                     : null;
         }

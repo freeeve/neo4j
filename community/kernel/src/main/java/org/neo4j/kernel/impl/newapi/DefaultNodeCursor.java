@@ -373,8 +373,8 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         }
 
         var labels = applyAccessModeToTxState ? labels(nodeCursor).all() : nodeCursor.labels();
-        if (accessMode.hasTraversePropertyRules()) {
-            var securityProperties = accessMode.getTraverseSecurityProperties(labels);
+        if (accessMode.hasTraverseNodePropertyRules()) {
+            var securityProperties = accessMode.getTraverseNodeSecurityProperties(labels);
             if (securityProperties.notEmpty()) { // This means there are property-based rules affecting THIS NODE
                 var securityPropertyProvider = getSecurityPropertyProvider(nodeCursor, securityProperties);
                 return accessMode.allowsTraverseNodeWithPropertyRules(securityPropertyProvider, labels);

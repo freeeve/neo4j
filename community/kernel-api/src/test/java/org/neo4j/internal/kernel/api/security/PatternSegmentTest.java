@@ -31,7 +31,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class PatternSegmentTest {
-    private static Arguments[] labelsStrings() {
+    private static Arguments[] elementTypeStrings() {
         return new Arguments[] {
             of(Set.of("L1"), ":L1"), of(Set.of("L1", "L2"), ":L1|L2"), of(Set.of(), ""),
         };
@@ -39,24 +39,17 @@ public class PatternSegmentTest {
 
     @ParameterizedTest
     @MethodSource
-    void labelsStrings(Set<String> labels, String stringRepresentation) {
+    void elementTypeStrings(Set<String> labels, String stringRepresentation) {
         var ps = spy(PatternSegment.class);
-        when(ps.labels()).thenReturn(labels);
-        assertThat(ps.labelsString()).isEqualTo(stringRepresentation);
-    }
-
-    @Test
-    void nodeString() {
-        var ps = spy(PatternSegment.class);
-        when(ps.labelsString()).thenReturn(":L1");
-        assertThat(ps.nodeString()).isEqualTo("(n:L1)");
+        when(ps.elementTypes()).thenReturn(labels);
+        assertThat(ps.elementTypeString()).isEqualTo(stringRepresentation);
     }
 
     @Test
     void propertyString() {
         var ps = spy(PatternSegment.class);
         when(ps.property()).thenReturn("p1");
-        assertThat(ps.propertyString()).isEqualTo("n.p1");
+        assertThat(ps.propertyString("n")).isEqualTo("n.p1");
     }
 
     @Test

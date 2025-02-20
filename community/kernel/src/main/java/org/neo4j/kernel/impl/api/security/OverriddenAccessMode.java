@@ -92,13 +92,13 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public IntSet getTraverseSecurityProperties(int[] labels) {
-        return wrapping.getTraverseSecurityProperties(labels);
+    public IntSet getTraverseNodeSecurityProperties(int[] labels) {
+        return wrapping.getTraverseNodeSecurityProperties(labels);
     }
 
     @Override
-    public boolean hasApplicableTraverseAllowPropertyRules(int label) {
-        return wrapping.hasApplicableTraverseAllowPropertyRules(label);
+    public boolean hasApplicableTraverseNodeAllowPropertyRules(int label) {
+        return wrapping.hasApplicableTraverseNodeAllowPropertyRules(label);
     }
 
     @Override
@@ -107,8 +107,8 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean hasTraversePropertyRules() {
-        return wrapping.hasTraversePropertyRules();
+    public boolean hasTraverseNodePropertyRules() {
+        return wrapping.hasTraverseNodePropertyRules();
     }
 
     @Override
@@ -127,6 +127,26 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
+    public IntSet getTraverseRelSecurityProperties(int type) {
+        return wrapping.getTraverseRelSecurityProperties(type);
+    }
+
+    @Override
+    public boolean hasApplicableTraverseRelAllowPropertyRules(int type) {
+        return wrapping.hasApplicableTraverseRelAllowPropertyRules(type);
+    }
+
+    @Override
+    public boolean allowsTraverseRelWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int type) {
+        return wrapping.allowsTraverseRelWithPropertyRules(propertyProvider, type);
+    }
+
+    @Override
+    public boolean hasTraverseRelPropertyRules() {
+        return wrapping.hasTraverseRelPropertyRules();
+    }
+
+    @Override
     public boolean allowsReadPropertyAllLabels(int propertyKey) {
         return wrapping.allowsReadPropertyAllLabels(propertyKey);
     }
@@ -137,9 +157,9 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean allowsReadNodeProperties(
+    public boolean allowsReadNodePropertiesWithPropertyRules(
             Supplier<TokenSet> labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
-        return wrapping.allowsReadNodeProperties(labels, propertyKeys, propertyProvider);
+        return wrapping.allowsReadNodePropertiesWithPropertyRules(labels, propertyKeys, propertyProvider);
     }
 
     @Override
@@ -148,9 +168,9 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean allowsReadNodeProperty(
+    public boolean allowsReadNodePropertyWithPropertyRules(
             Supplier<TokenSet> labels, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
-        return wrapping.allowsReadNodeProperty(labels, propertyKey, propertyProvider);
+        return wrapping.allowsReadNodePropertyWithPropertyRules(labels, propertyKey, propertyProvider);
     }
 
     public boolean allowsReadNodeProperty(Supplier<TokenSet> labels, int propertyKey) {
@@ -163,8 +183,25 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean allowsReadRelationshipProperty(RelTypeSupplier relType, int propertyKey) {
-        return wrapping.allowsReadRelationshipProperty(relType, propertyKey);
+    public boolean allowsReadRelProperty(RelTypeSupplier relType, int propertyKey) {
+        return wrapping.allowsReadRelProperty(relType, propertyKey);
+    }
+
+    @Override
+    public boolean allowsReadRelPropertiesWithPropertyRules(
+            RelTypeSupplier relType, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
+        return wrapping.allowsReadRelPropertiesWithPropertyRules(relType, propertyKeys, propertyProvider);
+    }
+
+    @Override
+    public boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys) {
+        return wrapping.allowsReadRelProperties(relType, propertyKeys);
+    }
+
+    @Override
+    public boolean allowsReadRelPropertyWithPropertyRules(
+            RelTypeSupplier relType, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
+        return wrapping.allowsReadRelPropertyWithPropertyRules(relType, propertyKey, propertyProvider);
     }
 
     @Override
@@ -173,28 +210,53 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean hasPropertyReadRules() {
-        return wrapping.hasPropertyReadRules();
+    public boolean hasNodePropertyReadRules() {
+        return wrapping.hasNodePropertyReadRules();
     }
 
     @Override
-    public boolean hasPropertyReadRules(int... propertyKeys) {
-        return wrapping.hasPropertyReadRules(propertyKeys);
+    public boolean hasNodePropertyReadRules(int... propertyKeys) {
+        return wrapping.hasNodePropertyReadRules(propertyKeys);
     }
 
     @Override
-    public IntSet getReadSecurityProperties(int propertyKey) {
-        return wrapping.getReadSecurityProperties(propertyKey);
+    public IntSet getNodeReadSecurityProperties(int propertyKey) {
+        return wrapping.getNodeReadSecurityProperties(propertyKey);
     }
 
     @Override
-    public IntSet getAllReadSecurityProperties() {
-        return wrapping.getAllReadSecurityProperties();
+    public IntSet getAllNodeReadSecurityProperties() {
+        return wrapping.getAllNodeReadSecurityProperties();
     }
 
     @Override
-    public PropertySelection getSecurityPropertySelection(PropertySelection selection) {
-        return wrapping.getSecurityPropertySelection(selection);
+    public PropertySelection getNodeSecurityPropertySelection(PropertySelection selection) {
+        return wrapping.getNodeSecurityPropertySelection(selection);
+    }
+
+    @Override
+    public boolean hasRelPropertyReadRules() {
+        return wrapping.hasRelPropertyReadRules();
+    }
+
+    @Override
+    public boolean hasRelPropertyReadRules(int... propertyKeys) {
+        return wrapping.hasRelPropertyReadRules(propertyKeys);
+    }
+
+    @Override
+    public IntSet getRelReadSecurityProperties(int propertyKey) {
+        return wrapping.getRelReadSecurityProperties(propertyKey);
+    }
+
+    @Override
+    public IntSet getAllRelReadSecurityProperties() {
+        return wrapping.getAllRelReadSecurityProperties();
+    }
+
+    @Override
+    public PropertySelection getRelSecurityPropertySelection(PropertySelection selection) {
+        return wrapping.getRelSecurityPropertySelection(selection);
     }
 
     @Override

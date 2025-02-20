@@ -118,7 +118,7 @@ class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<DefaultN
                 : securityNodeCursor.labelsIgnoringTxStateSetRemove().all();
 
         AccessMode accessMode = accessModeProvider.getAccessMode();
-        if (accessMode.hasPropertyReadRules(propertyIds)) {
+        if (accessMode.hasNodePropertyReadRules(propertyIds)) {
             ensureSecurityPropertyCursor();
             securityNodeCursor.properties(securityPropertyCursor, PropertySelection.selection(propertyIds));
             return securityPropertyCursor.allowed(propertyIds, labels);
