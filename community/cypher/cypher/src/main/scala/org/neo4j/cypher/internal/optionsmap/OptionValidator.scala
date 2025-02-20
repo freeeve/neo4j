@@ -222,13 +222,6 @@ object AllocationHintsOption extends MapOptionValidator {
   override val KEY: String = "allocationHints"
 
   override protected def validateContent(value: MapValue, config: Option[Config])(implicit operation: String): Unit = {
-    value.foreach((k, v) => {
-      try {
-        DatabaseAllocationHints.validate(k, v)
-      } catch {
-        case e: IllegalArgumentException => // TODO should not this have gql-code too?
-          throw new InvalidArgumentsException(s"Could not $operation with specified $KEY '$value'. ${e.getMessage}'")
-      }
-    })
+    value.foreach((k, v) => DatabaseAllocationHints.validate(k, v))
   }
 }

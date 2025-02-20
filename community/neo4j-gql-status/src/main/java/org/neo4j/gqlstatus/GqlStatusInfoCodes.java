@@ -2069,6 +2069,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "parsing JSON failure",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NA9(
+            new GqlStatus("22NA9"),
+            """
+                    Invalid input. Unexpected key { %s }, expected keys are { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.mapKey, GqlParams.ListParam.mapKeyList},
+            Map.of(GqlParams.ListParam.mapKeyList, GqlParams.JoinStyle.ORED),
+            Condition.DATA_EXCEPTION,
+            "unexpected map entry",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22NB0(
             new GqlStatus("22NB0"),
             """

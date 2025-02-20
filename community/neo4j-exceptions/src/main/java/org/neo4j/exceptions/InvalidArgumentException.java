@@ -29,6 +29,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
@@ -939,6 +940,28 @@ public class InvalidArgumentException extends Neo4jException {
                 String.format(
                         "Invalid option type for ALTER USER, expected PasswordExpression, Boolean, String or Parameter but got: %s",
                         actualType));
+    }
+
+    public static InvalidArgumentException incorrectTypeForAllocationHint(String input, String hint, String type) {
+        var legacyMessage = String.format(
+                "Incorrect value type provided for allocation hint '%s'. Expected an Integer but found a %s.",
+                hint, type);
+        var gql = getGql22G03_22N27(input, hint, List.of("INTEGER"));
+        return new InvalidArgumentException(gql, legacyMessage);
+    }
+
+    public static InvalidArgumentException invalidAllocationHintKey(String invalidKey, Set<String> validKeys) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA9)
+                .withParam(GqlParams.StringParam.mapKey, invalidKey)
+                .withParam(GqlParams.ListParam.mapKeyList, validKeys.stream().toList())
+                .build();
+
+        var validKeysString = validKeys.stream().collect(Collectors.joining(", ", "'", "'"));
+        return new InvalidArgumentException(
+                gql,
+                String.format(
+                        "The key %s is not a recognised allocation hint key! Valid hint keys are: %s",
+                        invalidKey, validKeysString));
     }
 
     public static InvalidArgumentException atLeastOneTemporalUnitRequired() {
