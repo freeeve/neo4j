@@ -1685,13 +1685,21 @@ class SchemaCommandReaderTest {
                         "Constraint type 'IS NOT NULL' does not allow multiple properties"),
                 arguments(
                         """
-                    CREATE CONSTRAINT boom
+                    CYPHER 5 CREATE CONSTRAINT boom
                     FOR (n:LabelName)
                     REQUIRE n.prop IS NOT NULL
                     OPTIONS { duff:13 }
                     """,
                         "Failed to create node property existence constraint",
                         "Invalid option provided"),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT boom
+                    FOR (n:LabelName)
+                    REQUIRE n.prop IS NOT NULL
+                    OPTIONS { duff:13 }
+                    """,
+                        "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'."),
                 arguments(
                         """
                     CREATE CONSTRAINT boom
@@ -1732,13 +1740,21 @@ class SchemaCommandReaderTest {
                         "Constraint type 'IS TYPED' does not allow multiple properties"),
                 arguments(
                         """
-                    CREATE CONSTRAINT boom
+                    CYPHER 5 CREATE CONSTRAINT boom
                     FOR (n:LabelName)
                     REQUIRE n.prop IS :: STRING
                     OPTIONS { duff:13 }
                     """,
                         "Failed to create node property type constraint",
                         "Invalid option provided"),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT boom
+                    FOR (n:LabelName)
+                    REQUIRE n.prop IS :: STRING
+                    OPTIONS { duff:13 }
+                    """,
+                        "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'."),
                 arguments(
                         """
                     CREATE CONSTRAINT boom
@@ -1779,13 +1795,21 @@ class SchemaCommandReaderTest {
                         "Constraint type 'IS NOT NULL' does not allow multiple properties"),
                 arguments(
                         """
-                    CREATE CONSTRAINT boom
+                    CYPHER 5 CREATE CONSTRAINT boom
                     FOR ()-[r:RelName]-()
                     REQUIRE r.prop IS NOT NULL
                     OPTIONS { duff:13 }
                     """,
                         "Failed to create relationship property existence constraint",
                         "Invalid option provided"),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT boom
+                    FOR ()-[r:RelName]-()
+                    REQUIRE r.prop IS NOT NULL
+                    OPTIONS { duff:13 }
+                    """,
+                        "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'."),
                 arguments(
                         """
                     CREATE CONSTRAINT boom
@@ -1826,13 +1850,21 @@ class SchemaCommandReaderTest {
                         "Constraint type 'IS TYPED' does not allow multiple properties"),
                 arguments(
                         """
-                    CREATE CONSTRAINT boom
+                    CYPHER 5 CREATE CONSTRAINT boom
                     FOR ()-[r:RelName]-()
                     REQUIRE r.prop IS :: STRING
                     OPTIONS { duff:13 }
                     """,
                         "Failed to create relationship property type constraint",
                         "Invalid option provided"),
+                arguments(
+                        """
+                    CYPHER 25 CREATE CONSTRAINT boom
+                    FOR ()-[r:RelName]-()
+                    REQUIRE r.prop IS :: STRING
+                    OPTIONS { duff:13 }
+                    """,
+                        "22N04: Invalid input 'duff' for 'OPTIONS'. Expected 'indexConfig'."),
                 // mixed index/constraint violations
                 arguments(
                         """
