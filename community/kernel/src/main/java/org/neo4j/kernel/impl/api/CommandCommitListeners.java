@@ -20,11 +20,20 @@
 package org.neo4j.kernel.impl.api;
 
 import java.util.List;
+import org.neo4j.internal.helpers.ArrayUtil;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
 
-public class CommandCommitListeners {
+public final class CommandCommitListeners {
     public static final CommandCommitListeners NO_LISTENERS = new CommandCommitListeners();
     private final List<CommandCommitListener> listeners;
+
+    public static CommandCommitListeners chain(CommandCommitListeners original, CommandCommitListener... newListeners) {
+        if (original == null || original == NO_LISTENERS) {
+            return new CommandCommitListeners(newListeners);
+        }
+        return new CommandCommitListeners(
+                ArrayUtil.concat(original.listeners.toArray(new CommandCommitListener[] {}), newListeners));
+    }
 
     public CommandCommitListeners(CommandCommitListener... listeners) {
         this.listeners = List.of(listeners);
