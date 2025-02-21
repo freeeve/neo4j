@@ -45,7 +45,7 @@ public final class DateReader<CTX> implements StructReader<CTX, DateValue> {
     @Override
     public DateValue read(CTX ctx, PackstreamBuf buffer, StructHeader header) throws PackstreamReaderException {
         if (header.length() != 1) {
-            throw new IllegalStructSizeException(1, header.length());
+            throw IllegalStructSizeException.illegalStructSize(1, header.length());
         }
 
         var epochDays = buffer.readInt();

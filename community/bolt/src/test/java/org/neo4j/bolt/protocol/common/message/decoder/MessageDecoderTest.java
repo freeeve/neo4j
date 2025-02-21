@@ -19,10 +19,10 @@
  */
 package org.neo4j.bolt.protocol.common.message.decoder;
 
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-
 import org.junit.jupiter.api.Test;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.error.struct.IllegalStructSizeException;
 import org.neo4j.packstream.io.PackstreamBuf;
 import org.neo4j.packstream.struct.StructHeader;
@@ -41,13 +41,21 @@ public interface MessageDecoderTest<D extends MessageDecoder<?>> {
 
     @Test
     default void shouldFailWithIllegalStructSizeWhenExcessNumberOfFieldsIsGiven() {
-        assertThatExceptionOfType(IllegalStructSizeException.class)
-                .isThrownBy(() -> this.getDecoder()
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> this.getDecoder()
                         .read(
                                 ConnectionMockFactory.newInstance(),
                                 PackstreamBuf.allocUnpooled(),
                                 new StructHeader(this.excessNumberOfFields(), (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be " + this.maximumNumberOfFields()
-                        + " fields but got " + this.excessNumberOfFields());
+                .isInstanceOf(IllegalStructSizeException.class)
+                .hasMessage("Illegal struct size: Expected struct to be " + this.maximumNumberOfFields()
+                        + " fields but got " + this.excessNumberOfFields())
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
+                .hasStatusDescription(
+                        "error: connection exception - request error. The request is invalid and could not be processed by the server. See cause for further details.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N57)
+                .hasStatusDescription(String.format(
+                        "error: data exception - invalid protocol type. Protocol type is invalid. Invalid number of struct components (received %s but expected %s).",
+                        this.excessNumberOfFields(), this.maximumNumberOfFields()));
     }
 }

@@ -45,7 +45,7 @@ public final class DurationReader<CTX> implements StructReader<CTX, DurationValu
     @Override
     public DurationValue read(CTX ctx, PackstreamBuf buffer, StructHeader header) throws PackstreamReaderException {
         if (header.length() != 4) {
-            throw new IllegalStructSizeException(4, header.length());
+            throw IllegalStructSizeException.illegalStructSize(4, header.length());
         }
 
         var months = buffer.readInt();

@@ -46,7 +46,7 @@ public final class LocalDateTimeReader<CTX> implements StructReader<CTX, LocalDa
     public LocalDateTimeValue read(CTX ctx, PackstreamBuf buffer, StructHeader header)
             throws PackstreamReaderException {
         if (header.length() != 2) {
-            throw new IllegalStructSizeException(2, header.length());
+            throw IllegalStructSizeException.illegalStructSize(2, header.length());
         }
 
         var epochSecond = buffer.readInt();

@@ -37,7 +37,7 @@ public final class PackstreamConditions {
      */
     public static void requireLength(StructHeader header, int expected) throws IllegalStructSizeException {
         if (header.length() != expected) {
-            throw new IllegalStructSizeException(expected, header.length());
+            throw IllegalStructSizeException.illegalStructSize(expected, header.length());
         }
     }
 

@@ -49,7 +49,7 @@ public final class TimeReader<CTX> implements StructReader<CTX, TimeValue> {
     @Override
     public TimeValue read(CTX ctx, PackstreamBuf buffer, StructHeader header) throws PackstreamReaderException {
         if (header.length() != 2) {
-            throw new IllegalStructSizeException(2, header.length());
+            throw IllegalStructSizeException.illegalStructSize(2, header.length());
         }
 
         var nanoOfDay = buffer.readInt();

@@ -59,7 +59,7 @@ public final class LegacyDateTimeZoneIdReader<CTX> implements StructReader<CTX, 
     @Override
     public DateTimeValue read(CTX ctx, PackstreamBuf buffer, StructHeader header) throws PackstreamReaderException {
         if (header.length() != 3) {
-            throw new IllegalStructSizeException(3, header.length());
+            throw IllegalStructSizeException.illegalStructSize(3, header.length());
         }
 
         var epochSecond = buffer.readInt();

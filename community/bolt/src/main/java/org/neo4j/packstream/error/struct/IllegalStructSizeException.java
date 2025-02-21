@@ -20,18 +20,26 @@
 package org.neo4j.packstream.error.struct;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 public class IllegalStructSizeException extends PackstreamStructException {
     private final long actual;
 
-    public IllegalStructSizeException(long expected, long actual) {
-        super("Illegal struct size: Expected struct to be " + expected + " fields but got " + actual);
+    private IllegalStructSizeException(ErrorGqlStatusObject gqlStatusObject, long expected, long actual) {
+        super(gqlStatusObject, "Illegal struct size: Expected struct to be " + expected + " fields but got " + actual);
         this.actual = actual;
     }
 
-    public IllegalStructSizeException(ErrorGqlStatusObject gqlStatusObject, long expected, long actual) {
-        super(gqlStatusObject, "Illegal struct size: Expected struct to be " + expected + " fields but got " + actual);
-        this.actual = actual;
+    public static IllegalStructSizeException illegalStructSize(long expected, long actual) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N11)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N57)
+                        .withParam(GqlParams.NumberParam.count1, actual)
+                        .withParam(GqlParams.NumberParam.count2, expected)
+                        .build())
+                .build();
+        return new IllegalStructSizeException(gql, expected, actual);
     }
 
     public long getActual() {

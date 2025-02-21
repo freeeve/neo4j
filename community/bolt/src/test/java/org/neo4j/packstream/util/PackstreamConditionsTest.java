@@ -24,6 +24,8 @@ import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.packstream.error.struct.IllegalStructSizeException;
 import org.neo4j.packstream.struct.StructHeader;
@@ -44,14 +46,22 @@ class PackstreamConditionsTest {
     @TestFactory
     Stream<DynamicTest> requireLengthShouldRejectMismatchingValues() {
         return IntStream.of(1, 2, 4, 5, 7, 9, 42, 84, 128, 255)
-                .mapToObj(expected ->
-                        DynamicTest.dynamicTest(expected + " fields", () -> Assertions.assertThatExceptionOfType(
-                                        IllegalStructSizeException.class)
-                                .isThrownBy(() -> PackstreamConditions.requireLength(
-                                        new StructHeader(expected + 1, (short) (expected * 2)), expected))
-                                .withMessage("Illegal struct size: Expected struct to be " + expected
+                .mapToObj(expected -> DynamicTest.dynamicTest(
+                        expected + " fields", () -> ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                                        () -> PackstreamConditions.requireLength(
+                                                new StructHeader(expected + 1, (short) (expected * 2)), expected))
+                                .isInstanceOf(IllegalStructSizeException.class)
+                                .hasMessage("Illegal struct size: Expected struct to be " + expected
                                         + " fields but got " + (expected + 1))
-                                .withNoCause()));
+                                .hasNoCause()
+                                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
+                                .hasStatusDescription(
+                                        "error: connection exception - request error. The request is invalid and could not be processed by the server. See cause for further details.")
+                                .gqlCause()
+                                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N57)
+                                .hasStatusDescription(String.format(
+                                        "error: data exception - invalid protocol type. Protocol type is invalid. Invalid number of struct components (received %s but expected %s).",
+                                        expected + 1, expected))));
     }
 
     @TestFactory

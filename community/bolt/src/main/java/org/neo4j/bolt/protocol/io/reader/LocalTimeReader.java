@@ -45,7 +45,7 @@ public final class LocalTimeReader<CTX> implements StructReader<CTX, LocalTimeVa
     @Override
     public LocalTimeValue read(CTX ctx, PackstreamBuf buffer, StructHeader header) throws PackstreamReaderException {
         if (header.length() != 1) {
-            throw new IllegalStructSizeException(1, header.length());
+            throw IllegalStructSizeException.illegalStructSize(1, header.length());
         }
 
         var nanoOfDay = buffer.readInt();

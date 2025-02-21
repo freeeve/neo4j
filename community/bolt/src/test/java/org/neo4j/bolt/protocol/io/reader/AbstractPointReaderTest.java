@@ -30,6 +30,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.InvalidSpatialArgumentException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.packstream.error.struct.IllegalStructSizeException;
@@ -70,36 +72,60 @@ public abstract class AbstractPointReaderTest {
 
     @Test
     void shouldFailWithIllegalStructSizeWhenEmptyStructIsGiven() {
-        Assertions.assertThatExceptionOfType(IllegalStructSizeException.class)
-                .isThrownBy(() ->
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() ->
                         this.getReader().read(null, PackstreamBuf.allocUnpooled(), new StructHeader(0, (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be 3 fields but got 0")
-                .withNoCause();
+                .isInstanceOf(IllegalStructSizeException.class)
+                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 0")
+                .hasNoCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
+                .hasStatusDescription(
+                        "error: connection exception - request error. The request is invalid and could not be processed by the server. See cause for further details.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N57)
+                .hasStatusDescription(
+                        "error: data exception - invalid protocol type. Protocol type is invalid. Invalid number of struct components (received 0 but expected 3).");
     }
 
     @TestFactory
     Stream<DynamicTest> shouldFailWithIllegalStructSizeWhenSmallStructIsGiven() {
         return LongStream.range(1, this.getStructSize())
                 .mapToObj(size -> DynamicTest.dynamicTest(
-                        size + " elements", () -> Assertions.assertThatExceptionOfType(IllegalStructSizeException.class)
-                                .isThrownBy(() -> this.getReader()
+                        size + " elements",
+                        () -> ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> this.getReader()
                                         .read(null, PackstreamBuf.allocUnpooled(), new StructHeader(size, (short)
                                                 0x42)))
-                                .withMessage("Illegal struct size: Expected struct to be " + this.getStructSize()
+                                .isInstanceOf(IllegalStructSizeException.class)
+                                .hasMessage("Illegal struct size: Expected struct to be " + this.getStructSize()
                                         + " fields but got " + size)
-                                .withNoCause()));
+                                .hasNoCause()
+                                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
+                                .hasStatusDescription(
+                                        "error: connection exception - request error. The request is invalid and could not be processed by the server. See cause for further details.")
+                                .gqlCause()
+                                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N57)
+                                .hasStatusDescription(String.format(
+                                        "error: data exception - invalid protocol type. Protocol type is invalid. Invalid number of struct components (received %s but expected %s).",
+                                        size, this.getStructSize()))));
     }
 
     @Test
     void shouldFailWithIllegalStructSizeWhenLargeStructIsGiven() {
         var invalidSize = this.getStructSize() + 1;
 
-        Assertions.assertThatExceptionOfType(IllegalStructSizeException.class)
-                .isThrownBy(() -> this.getReader()
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> this.getReader()
                         .read(null, PackstreamBuf.allocUnpooled(), new StructHeader(invalidSize, (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be " + this.getStructSize() + " fields but got "
+                .isInstanceOf(IllegalStructSizeException.class)
+                .hasMessage("Illegal struct size: Expected struct to be " + this.getStructSize() + " fields but got "
                         + invalidSize)
-                .withNoCause();
+                .hasNoCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
+                .hasStatusDescription(
+                        "error: connection exception - request error. The request is invalid and could not be processed by the server. See cause for further details.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N57)
+                .hasStatusDescription(String.format(
+                        "error: data exception - invalid protocol type. Protocol type is invalid. Invalid number of struct components (received %s but expected %s).",
+                        invalidSize, this.getStructSize()));
     }
 
     @Test

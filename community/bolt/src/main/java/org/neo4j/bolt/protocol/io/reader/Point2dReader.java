@@ -51,7 +51,7 @@ public final class Point2dReader<CTX> implements StructReader<CTX, PointValue> {
     @Override
     public PointValue read(CTX ctx, PackstreamBuf buffer, StructHeader header) throws PackstreamReaderException {
         if (header.length() != 3) {
-            throw new IllegalStructSizeException(3, header.length());
+            throw IllegalStructSizeException.illegalStructSize(3, header.length());
         }
 
         var crsCode = buffer.readInt();

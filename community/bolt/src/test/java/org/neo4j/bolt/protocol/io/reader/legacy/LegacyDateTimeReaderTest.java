@@ -20,12 +20,13 @@
 package org.neo4j.bolt.protocol.io.reader.legacy;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.temporal.ChronoField;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.packstream.error.struct.IllegalStructSizeException;
@@ -110,29 +111,53 @@ class LegacyDateTimeReaderTest {
     void shouldFailWithIllegalStructSizeWhenEmptyStructIsGiven() {
         var reader = LegacyDateTimeReader.getInstance();
 
-        assertThatExceptionOfType(IllegalStructSizeException.class)
-                .isThrownBy(() -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(0, (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be 3 fields but got 0")
-                .withNoCause();
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(0, (short) 0x42)))
+                .isInstanceOf(IllegalStructSizeException.class)
+                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 0")
+                .hasNoCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
+                .hasStatusDescription(
+                        "error: connection exception - request error. The request is invalid and could not be processed by the server. See cause for further details.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N57)
+                .hasStatusDescription(
+                        "error: data exception - invalid protocol type. Protocol type is invalid. Invalid number of struct components (received 0 but expected 3).");
     }
 
     @Test
     void shouldFailWithIllegalStructSizeWhenSmallStructIsGiven() {
         var reader = LegacyDateTimeReader.getInstance();
 
-        assertThatExceptionOfType(IllegalStructSizeException.class)
-                .isThrownBy(() -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(2, (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be 3 fields but got 2")
-                .withNoCause();
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(2, (short) 0x42)))
+                .isInstanceOf(IllegalStructSizeException.class)
+                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 2")
+                .hasNoCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
+                .hasStatusDescription(
+                        "error: connection exception - request error. The request is invalid and could not be processed by the server. See cause for further details.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N57)
+                .hasStatusDescription(
+                        "error: data exception - invalid protocol type. Protocol type is invalid. Invalid number of struct components (received 2 but expected 3).");
     }
 
     @Test
     void shouldFailWithIllegalStructSizeWhenLargeStructIsGiven() {
         var reader = LegacyDateTimeReader.getInstance();
 
-        assertThatExceptionOfType(IllegalStructSizeException.class)
-                .isThrownBy(() -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(4, (short) 0x42)))
-                .withMessage("Illegal struct size: Expected struct to be 3 fields but got 4")
-                .withNoCause();
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> reader.read(null, PackstreamBuf.allocUnpooled(), new StructHeader(4, (short) 0x42)))
+                .isInstanceOf(IllegalStructSizeException.class)
+                .hasMessage("Illegal struct size: Expected struct to be 3 fields but got 4")
+                .hasNoCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N11)
+                .hasStatusDescription(
+                        "error: connection exception - request error. The request is invalid and could not be processed by the server. See cause for further details.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N57)
+                .hasStatusDescription(
+                        "error: data exception - invalid protocol type. Protocol type is invalid. Invalid number of struct components (received 4 but expected 3).");
     }
 }
