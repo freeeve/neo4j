@@ -987,4 +987,33 @@ public class InvalidArgumentException extends Neo4jException {
                 .build();
         return new InvalidArgumentException(gql, e.getMessage(), e);
     }
+
+    public static InvalidArgumentException queryContainsIllegalName(String name) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N15)
+                        .withParam(GqlParams.StringParam.syntax, name)
+                        .build())
+                .build();
+        return new InvalidArgumentException(
+                gql, "The query contains a parameter with an illegal name: '%s'".formatted(name));
+    }
+
+    public static InvalidArgumentException invalidPrefixSystem(String entity, String name) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N15)
+                        .withParam(GqlParams.StringParam.syntax, "system")
+                        .build())
+                .build();
+        throw new InvalidArgumentException(
+                gql, "%s '%s' is invalid, due to the prefix 'system'.".formatted(entity, name));
+    }
+
+    public static InvalidArgumentException failedActionReservedRole(String action, String role) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N15)
+                        .withParam(GqlParams.StringParam.syntax, role)
+                        .build())
+                .build();
+        return new InvalidArgumentException(gql, "Failed to %s: '%s' is a reserved role.".formatted(action, role));
+    }
 }

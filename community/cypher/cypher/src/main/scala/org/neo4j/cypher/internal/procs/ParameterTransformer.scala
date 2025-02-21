@@ -43,7 +43,7 @@ trait ParameterTransformerFunction {
     updatedSystemParams.foreach {
       case (_, Values.NO_VALUE) => // placeholders should be replaced
       case (key, _) => if (userParams.containsKey(key))
-          throw new InvalidArgumentException(s"The query contains a parameter with an illegal name: '$key'")
+          throw InvalidArgumentException.queryContainsIllegalName(key)
     }
     updatedSystemParams.updatedWith(userParams)
   }

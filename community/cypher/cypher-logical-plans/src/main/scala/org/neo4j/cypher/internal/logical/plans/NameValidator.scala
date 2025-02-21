@@ -68,7 +68,7 @@ object NameValidator {
     if (name.length > 65534)
       throw InvalidArgumentException.aliasTooLong(name)
     if (name.startsWith("system")) {
-      throw new InvalidArgumentException("Alias name '" + name + "' is invalid, due to the prefix 'system'.")
+      throw InvalidArgumentException.invalidPrefixSystem("Alias name", name)
     }
     true
   }
@@ -80,17 +80,21 @@ object NameValidator {
     if (name.length > 65534)
       throw InvalidArgumentException.dbNameTooLong(name)
     if (name.startsWith("system")) {
-      throw new InvalidArgumentException("Target database name '" + name + "' is invalid, due to the prefix 'system'.")
+      throw InvalidArgumentException.invalidPrefixSystem("Target database name", name)
     }
     true
   }
 
   def assertUnreservedRoleName(verb: String, name: String, newName: Option[String] = None): Boolean =
     if (reservedRoleName.equals(name)) {
-      throw new InvalidArgumentException(s"Failed to $verb the specified role '$name': '$name' is a reserved role.")
-    } else if (newName.isDefined && reservedRoleName.equals(newName.get)) {
-      throw new InvalidArgumentException(
-        s"Failed to $verb the specified role '$name' to '${newName.get}': '${newName.get}' is a reserved role."
+      throw InvalidArgumentException.failedActionReservedRole(
+        s"$verb the specified role '$name'",
+        reservedRoleName
+      )
+    } else if (newName.contains(reservedRoleName)) {
+      throw InvalidArgumentException.failedActionReservedRole(
+        s"$verb the specified role '$name' to '${newName.get}'",
+        reservedRoleName
       )
     } else {
       true
