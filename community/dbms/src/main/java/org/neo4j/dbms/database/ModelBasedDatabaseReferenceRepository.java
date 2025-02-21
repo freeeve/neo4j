@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.database;
+package org.neo4j.dbms.database;
 
 import static org.neo4j.kernel.database.NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID;
 import static org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME;
@@ -28,17 +28,33 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel;
+import org.neo4j.kernel.database.DatabaseReference;
+import org.neo4j.kernel.database.DatabaseReferenceImpl;
+import org.neo4j.kernel.database.DatabaseReferenceRepository;
+import org.neo4j.kernel.database.NormalizedCatalogEntry;
+import org.neo4j.kernel.database.NormalizedDatabaseName;
 
-public abstract class SystemDatabaseReferenceRepository implements DatabaseReferenceRepository {
+public class ModelBasedDatabaseReferenceRepository implements DatabaseReferenceRepository {
     private static final DatabaseReference SYSTEM_DATABASE_REFERENCE = new DatabaseReferenceImpl.Internal(
             new NormalizedDatabaseName(SYSTEM_DATABASE_NAME), NAMED_SYSTEM_DATABASE_ID, true);
+
+    @FunctionalInterface
+    public interface DatabaseReferenceRepositoryModelProvider {
+        <T> T withModel(Function<TopologyGraphDbmsModel, T> operation);
+    }
+
+    private final DatabaseReferenceRepositoryModelProvider modelProvider;
+
+    public ModelBasedDatabaseReferenceRepository(DatabaseReferenceRepositoryModelProvider modelProvider) {
+        this.modelProvider = modelProvider;
+    }
 
     @Override
     public Optional<DatabaseReference> getByAlias(NormalizedCatalogEntry catalogEntry) {
         if (catalogEntry.compositeDb().isEmpty() && catalogEntry.databaseAlias().equals(SYSTEM_DATABASE_NAME)) {
             return Optional.of(SYSTEM_DATABASE_REFERENCE);
         }
-        return execute(model -> model.getDatabaseRefByAlias(catalogEntry));
+        return modelProvider.withModel(model -> model.getDatabaseRefByAlias(catalogEntry));
     }
 
     @Override
@@ -52,7 +68,7 @@ public abstract class SystemDatabaseReferenceRepository implements DatabaseRefer
             return Optional.of(SYSTEM_DATABASE_REFERENCE);
         }
 
-        return execute(model -> model.getDatabaseIdByUUID(databaseId)
+        return modelProvider.withModel(model -> model.getDatabaseIdByUUID(databaseId)
                 .flatMap(id -> model.getDatabaseRefByAlias(new NormalizedCatalogEntry(id.name()))));
     }
 
@@ -67,13 +83,11 @@ public abstract class SystemDatabaseReferenceRepository implements DatabaseRefer
 
     @Override
     public Set<DatabaseReference> getAllDatabaseReferences() {
-        return execute(TopologyGraphDbmsModel::getAllDatabaseReferences);
+        return modelProvider.withModel(TopologyGraphDbmsModel::getAllDatabaseReferences);
     }
 
     @Override
     public Set<DatabaseReferenceImpl.Composite> getCompositeDatabaseReferences() {
-        return execute(TopologyGraphDbmsModel::getAllCompositeDatabaseReferences);
+        return modelProvider.withModel(TopologyGraphDbmsModel::getAllCompositeDatabaseReferences);
     }
-
-    protected abstract <T> T execute(Function<TopologyGraphDbmsModel, T> operation);
 }

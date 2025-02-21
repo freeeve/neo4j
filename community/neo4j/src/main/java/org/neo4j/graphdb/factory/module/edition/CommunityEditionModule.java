@@ -35,6 +35,7 @@ import org.neo4j.dbms.CommunityDatabaseStateService;
 import org.neo4j.dbms.CommunityKernelPanicListener;
 import org.neo4j.dbms.DatabaseStateService;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.database.CommunityDatabaseReferenceRepositoryModelProvider;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.dbms.database.DatabaseLifecycles;
@@ -48,6 +49,7 @@ import org.neo4j.dbms.database.DefaultDatabaseDetailsExtrasProvider;
 import org.neo4j.dbms.database.DefaultSystemGraphComponent;
 import org.neo4j.dbms.database.DefaultSystemGraphInitializer;
 import org.neo4j.dbms.database.DefaultTopologyInfoService;
+import org.neo4j.dbms.database.ModelBasedDatabaseReferenceRepository;
 import org.neo4j.dbms.database.StandaloneDatabaseContext;
 import org.neo4j.dbms.database.SystemGraphComponents;
 import org.neo4j.dbms.database.SystemGraphInitializer;
@@ -77,7 +79,6 @@ import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.kernel.api.security.SecurityModule;
 import org.neo4j.kernel.api.security.provider.NoAuthSecurityProvider;
 import org.neo4j.kernel.api.security.provider.SecurityProvider;
-import org.neo4j.kernel.database.CommunitySystemReferenceRepository;
 import org.neo4j.kernel.database.DatabaseId;
 import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.database.DatabaseReferenceRepository;
@@ -172,10 +173,13 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
                 () -> new SystemGraphDatabaseIdRepository(
                         () -> databaseRepository.getDatabaseContext(DatabaseId.SYSTEM_DATABASE_ID),
                         globalModule.getLogService().getInternalLogProvider()));
+        var systemDatabaseProvider =
+                new ContextBasedSystemDatabaseProvider(databaseRepository, globalModule.getDatabaseEventListeners());
         var rootDatabaseReferenceRepository = AbstractEditionModule.tryResolveOrCreate(
                 DatabaseReferenceRepository.class,
                 globalModule.getExternalDependencyResolver(),
-                () -> new CommunitySystemReferenceRepository(databaseRepository::getSystemDatabaseContext));
+                () -> new ModelBasedDatabaseReferenceRepository(
+                        new CommunityDatabaseReferenceRepositoryModelProvider(systemDatabaseProvider)));
         databaseIdRepo.setDelegate(rootDatabaseIdRepository);
         databaseReferenceRepo.setDelegate(rootDatabaseReferenceRepository);
         var databaseIdCacheCleaner = new DatabaseReferenceCacheClearingListener(databaseIdRepo, databaseReferenceRepo);
@@ -206,10 +210,8 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
                 .getGlobalDependencies()
                 .satisfyDependency(SystemGraphComponents.UpgradeChecker.UPGRADE_ALWAYS_ALLOWED);
 
-        final var defaultQueryLanguage = new CommunityDefaultQueryLanguageLookup(
-                new ContextBasedSystemDatabaseProvider(databaseRepository, globalModule.getDatabaseEventListeners()),
-                globalModule.getJobScheduler(),
-                logProvider);
+        var defaultQueryLanguage = new CommunityDefaultQueryLanguageLookup(
+                systemDatabaseProvider, globalModule.getJobScheduler(), logProvider);
         globalModule.getGlobalDependencies().satisfyDependency(defaultQueryLanguage);
         globalModule.getGlobalLife().add(defaultQueryLanguage.life());
         globalModule
