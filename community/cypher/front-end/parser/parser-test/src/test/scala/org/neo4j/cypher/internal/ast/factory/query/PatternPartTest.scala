@@ -99,8 +99,11 @@ class PatternPartTest extends AstParsingTestBase
     testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
   }
 
-  test("ANY SHORTEST (n)-->+(m)") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
+  test("ANY SHORTEST (n)-[r]->+(m)") {
+    testName should parse[PatternPart].withAstLike { part =>
+      part.isBounded shouldBe false
+      part.strictInteriorVariables shouldEqual Set(varFor("r"))
+    }
   }
 
   test("ANY 4 (n)-->*(m)") {
@@ -132,11 +135,24 @@ class PatternPartTest extends AstParsingTestBase
   }
 
   test("((a)-[r]->(b))") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe true)
+    testName should parse[PatternPart].withAstLike { part =>
+      part.isBounded shouldBe true
+      part.strictInteriorVariables shouldEqual Set(varFor("r"))
+    }
   }
 
   test("((a)-[r]->+(b))") {
-    testName should parse[PatternPart].withAstLike(_.isBounded shouldBe false)
+    testName should parse[PatternPart].withAstLike { part =>
+      part.isBounded shouldBe false
+      part.strictInteriorVariables shouldEqual Set(varFor("r"))
+    }
+  }
+
+  test("((a)-[r]->+(b)<-[q]-(c))") {
+    testName should parse[PatternPart].withAstLike { part =>
+      part.isBounded shouldBe false
+      part.strictInteriorVariables shouldEqual Set(varFor("r"), varFor("b"), varFor("q"))
+    }
   }
 
   test("shortestPath((a)-[r]->+(b))") {

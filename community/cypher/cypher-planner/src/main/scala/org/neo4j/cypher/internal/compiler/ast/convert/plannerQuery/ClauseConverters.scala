@@ -80,7 +80,6 @@ import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.Null
 import org.neo4j.cypher.internal.expressions.PathPatternPart
 import org.neo4j.cypher.internal.expressions.PatternElement
-import org.neo4j.cypher.internal.expressions.PatternElement.boundaryNodes
 import org.neo4j.cypher.internal.expressions.PatternPart.SelectiveSelector
 import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.Property
@@ -539,7 +538,7 @@ object ClauseConverters extends LabelExpressionConversion {
       val previousPatternVars = acc.currentQueryGraph.coveredIdsForPatterns
       val currentStrictInteriorVarsAndDependencies = clause.pattern.patternParts.view.collect {
         case spp @ PatternPartWithSelector(_: SelectiveSelector, _) =>
-          (spp.allVariables -- boundaryNodes(spp.element)) ++ spp.dependencies
+          spp.strictInteriorVariables ++ spp.dependencies
       }.flatten.toSet
       val hasInteriorOrDependencyReferringToPreviouslyBoundVar =
         previousPatternVars.intersect(currentStrictInteriorVarsAndDependencies).nonEmpty

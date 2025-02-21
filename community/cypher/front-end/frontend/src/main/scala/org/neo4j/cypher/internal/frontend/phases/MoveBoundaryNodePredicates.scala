@@ -68,10 +68,9 @@ case object MoveBoundaryNodePredicates extends StatementRewriter
         case patternPart @ PatternPartWithSelector(_: SelectiveSelector, part) =>
           val (newElement: PatternElement, extractedPredicates: ListSet[Expression]) = part.element match {
             case pp @ ParenthesizedPath(part, Some(where)) =>
-              val element = part.element
-              val boundaryNodes = PatternElement.boundaryNodes(element)
-              val variablesInPattern = parts.flatMap(_.allVariables).toSet
-              val disallowedDependencies = variablesInPattern -- boundaryNodes
+              // The strict interior variables are not visible outside the path pattern.
+              // Therefore, they cannot be moved.
+              val disallowedDependencies = part.strictInteriorVariables
 
               val (extractedPredicates, notExtractedPredicates) = extractPredicates(where, disallowedDependencies)
               val newElement = notExtractedPredicates match {

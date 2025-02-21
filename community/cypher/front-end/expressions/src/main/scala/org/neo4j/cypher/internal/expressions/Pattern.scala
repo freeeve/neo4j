@@ -94,6 +94,15 @@ sealed abstract class PatternPart extends ASTNode {
   def dependencies: Set[LogicalVariable]
   def pathVariable: Option[LogicalVariable]
 
+  lazy val boundaryNodes: Set[LogicalVariable] = PatternElement.boundaryNodes(element)
+
+  lazy val strictInteriorVariables: Set[LogicalVariable] = element match {
+    // QPPs connect the adjacent nodes but do not have any boundary nodes themselves.
+    // Therefore, everything in a QPP is a strict interior node. Boundary nodes should be connected through a PathConcatenation
+    case _: QuantifiedPath => element.allVariables
+    case element           => element.allVariables.filterNot(boundaryNodes)
+  }
+
   def isBounded: Boolean
   def isFixedLength: Boolean
 
@@ -430,7 +439,7 @@ object PatternElement {
 
   /**
    * Returns the boundary nodes of this pattern element. Note, this does not work on QPPs directly.
-   * Therefore, qpps need to have been padded before.
+   * Therefore, QPPs need to have been padded before.
    */
   @tailrec
   def boundaryNodes(element: PatternElement): Set[LogicalVariable] = {
@@ -441,9 +450,9 @@ object PatternElement {
         Set(allVars.head, allVars.last)
       // or non-simple patterns (QPPs) have been padded (see QppsHavePaddedNodes)
       case PathConcatenation(factors) =>
-        val left = factors.head.asInstanceOf[SimplePattern].allTopLevelVariablesLeftToRight.head
-        val right = factors.last.asInstanceOf[SimplePattern].allTopLevelVariablesLeftToRight.last
-        Set(left, right)
+        val left = factors.head.asInstanceOf[SimplePattern].allTopLevelVariablesLeftToRight.headOption
+        val right = factors.last.asInstanceOf[SimplePattern].allTopLevelVariablesLeftToRight.lastOption
+        Set.empty ++ left ++ right
       case ParenthesizedPath(part, _) => boundaryNodes(part.element)
       case _                          => throw new IllegalStateException()
     }
