@@ -26,19 +26,22 @@ public interface VectorSimilarityFunction {
     String name();
 
     /**
-     * Returns a float[] if the provided value is a valid vector candidate, otherwise null.
+     * Returns a float[] if the provided value is a valid vector candidate in the context of the vector similarity
+     * function, otherwise null.
      */
     default float[] maybeToValidVector(AnyValue candidate) {
         return maybeToValidVector(VectorCandidate.maybeFrom(candidate));
     }
 
     /**
-     * Returns a float[] if the provided vector candidate is valid, otherwise null.
+     * Returns a float[] if the provided vector candidate is valid in the context of the vector similarity
+     * function, otherwise null.
      */
     float[] maybeToValidVector(VectorCandidate candidate);
 
     /**
-     * Returns a float[] if the provided vector candidate is valid, otherwise throws an Exception.
+     * Returns a float[] if the provided vector candidate is valid in the context of the vector similarity
+     * function, otherwise throws an Exception.
      */
     float[] toValidVector(VectorCandidate candidate);
 

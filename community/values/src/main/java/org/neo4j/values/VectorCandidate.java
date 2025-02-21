@@ -59,7 +59,7 @@ public interface VectorCandidate {
     }
 
     /**
-     * A VectorCandidate wrapping a SequenceValue. This candidate might or might not be valid, depending on the
+     * A VectorCandidate wrapping a SequenceValue. This candidate may or may not be valid, depending on the
      * contents of the sequence.
      */
     record SequenceValueVectorCandidate(SequenceValue sequence) implements VectorCandidate {

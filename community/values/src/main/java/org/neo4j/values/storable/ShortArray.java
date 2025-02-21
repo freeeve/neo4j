@@ -43,6 +43,16 @@ public class ShortArray extends IntegralArray {
         return value.length;
     }
 
+    @Override
+    public float floatValue(int index) {
+        return value[index];
+    }
+
+    @Override
+    public double doubleValue(int index) {
+        return value[index];
+    }
+
     public short shortValue(int index) {
         return value[index];
     }

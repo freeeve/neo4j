@@ -44,6 +44,16 @@ public final class LongArray extends IntegralArray {
     }
 
     @Override
+    public float floatValue(int index) {
+        return value[index];
+    }
+
+    @Override
+    public double doubleValue(int index) {
+        return value[index];
+    }
+
+    @Override
     public long longValue(int index) {
         return value[index];
     }

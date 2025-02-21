@@ -53,6 +53,18 @@ public final class ByteArray extends IntegralArray {
     }
 
     @Override
+    public double doubleValue(int index) {
+        checkValid();
+        return value[index];
+    }
+
+    @Override
+    public float floatValue(int index) {
+        checkValid();
+        return value[index];
+    }
+
+    @Override
     public long longValue(int index) {
         checkValid();
         return value[index];

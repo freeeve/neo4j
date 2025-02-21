@@ -43,6 +43,16 @@ public final class IntArray extends IntegralArray {
         return value.length;
     }
 
+    @Override
+    public float floatValue(int index) {
+        return value[index];
+    }
+
+    @Override
+    public double doubleValue(int index) {
+        return value[index];
+    }
+
     public int intValue(int index) {
         return value[index];
     }
