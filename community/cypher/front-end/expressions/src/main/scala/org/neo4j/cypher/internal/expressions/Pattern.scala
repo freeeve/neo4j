@@ -92,6 +92,7 @@ sealed abstract class PatternPart extends ASTNode {
   def allVariables: Set[LogicalVariable]
   def element: PatternElement
   def dependencies: Set[LogicalVariable]
+  def pathVariable: Option[LogicalVariable]
 
   def isBounded: Boolean
   def isFixedLength: Boolean
@@ -104,6 +105,7 @@ sealed trait NonPrefixedPatternPart extends PatternPart with HasMappableExpressi
 case class PatternPartWithSelector(selector: Selector, part: NonPrefixedPatternPart) extends PatternPart {
   override def position: InputPosition = part.position
   override def allVariables: Set[LogicalVariable] = part.allVariables
+  override def pathVariable: Option[LogicalVariable] = part.pathVariable
   override def element: PatternElement = part.element
   override def isBounded: Boolean = part.isBounded
   override def isFixedLength: Boolean = part.isFixedLength
@@ -137,6 +139,8 @@ case class NamedPatternPart(variable: Variable, patternPart: AnonymousPatternPar
 
   override def allVariables: Set[LogicalVariable] = patternPart.allVariables + variable
 
+  override def pathVariable: Option[LogicalVariable] = Some(variable)
+
   override def isBounded: Boolean = patternPart.isBounded
 
   override def isFixedLength: Boolean = patternPart.isFixedLength
@@ -152,6 +156,7 @@ case class NamedPatternPart(variable: Variable, patternPart: AnonymousPatternPar
 sealed trait AnonymousPatternPart extends NonPrefixedPatternPart {
   override def allVariables: Set[LogicalVariable] = element.allVariables
   override def containsDynamicPattern: Boolean = element.containsDynamicPattern
+  override def pathVariable: Option[LogicalVariable] = None
 }
 
 case class PathPatternPart(element: PatternElement) extends AnonymousPatternPart {

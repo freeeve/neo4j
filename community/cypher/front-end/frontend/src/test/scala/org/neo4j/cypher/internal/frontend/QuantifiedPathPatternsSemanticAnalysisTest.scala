@@ -29,6 +29,8 @@ import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 abstract class QuantifiedPathPatternsInDifferentClausesSemanticAnalysisTest(statement: UpdateStatement)
     extends CypherFunSuite
     with SemanticAnalysisTestSuiteWithDefaultQuery
@@ -636,9 +638,10 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
     run().hasError(
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
         .atPosition(6, 1, 7)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I21)
           .atPosition(6, 1, 7)
-          .withParam(GqlParams.StringParam.variable, "p")
+          .withParam(GqlParams.ListParam.variableList, Seq("p").asJava)
+          .withParam(GqlParams.StringParam.pat, "((a)-[e]->(b {h: (nodes(p)[0]).prop}))*")
           .build())
         .build(),
       """From within a quantified path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.

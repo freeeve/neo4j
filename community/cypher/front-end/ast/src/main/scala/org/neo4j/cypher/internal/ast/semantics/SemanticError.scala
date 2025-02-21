@@ -1593,6 +1593,25 @@ object SemanticError {
       position
     )
   }
+
+  def invalidReferenceInParenthesizedPathPatternPredicate(
+    stringifiedPattern: String,
+    invalidReferences: Set[String],
+    position: InputPosition,
+    legacyErrorMessage: String
+  ): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I21(
+        invalidReferences.toList.asJava,
+        stringifiedPattern,
+        position.offset,
+        position.line,
+        position.column
+      ),
+      legacyErrorMessage,
+      position
+    )
+  }
 }
 
 sealed trait UnsupportedOpenCypher extends SemanticErrorDef

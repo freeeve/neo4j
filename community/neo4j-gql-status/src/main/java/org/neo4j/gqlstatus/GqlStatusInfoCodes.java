@@ -2726,6 +2726,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid symbol in expression",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42I21(
+            new GqlStatus("42I21"),
+            """
+                    Not allowed to reference { %s } from within a parenthesized/quantified path pattern like { %s } in the same graph pattern.""",
+            new GqlParams.GqlParam[] {GqlParams.ListParam.variableList, GqlParams.StringParam.pat},
+            Map.of(GqlParams.ListParam.variableList, GqlParams.JoinStyle.COMMAD),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid reference to variable out of scope",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42I22(
             new GqlStatus("42I22"),
             """

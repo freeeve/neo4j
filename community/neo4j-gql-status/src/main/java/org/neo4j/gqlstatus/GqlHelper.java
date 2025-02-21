@@ -488,6 +488,18 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql42001_42I21(
+            List<String> invalidReferences, String stringifiedPattern, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .atPosition(offset, line, column)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I21)
+                        .atPosition(offset, line, column)
+                        .withParam(GqlParams.ListParam.variableList, invalidReferences)
+                        .withParam(GqlParams.StringParam.pat, stringifiedPattern)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql42001_42I23(String funcName, int offset, int line, int column) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withClassification(ErrorClassification.CLIENT_ERROR)

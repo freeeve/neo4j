@@ -23,6 +23,8 @@ import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.LoneElement
 
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite with LoneElement {
 
   test("can use sub-path variable in WHERE") {
@@ -34,7 +36,7 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
     run(q).hasNoErrors
   }
 
-  test("can not use path variable from the same MATCH clause in WHERE") {
+  test("cannot use path variable from the same MATCH clause in WHERE") {
     val q =
       """MATCH p = SHORTEST 1 ((a)-[r]->+(b) WHERE length(p) % 2 = 0)
         |RETURN b
@@ -43,9 +45,10 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
     run(q).hasError(
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
         .atPosition(6, 1, 7)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I21)
           .atPosition(6, 1, 7)
-          .withParam(GqlParams.StringParam.variable, "p")
+          .withParam(GqlParams.ListParam.variableList, Seq("p").asJava)
+          .withParam(GqlParams.StringParam.pat, "((a) (()-[r]->())+ (b) WHERE length(p) % 2 = 0)")
           .build())
         .build(),
       """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
@@ -74,9 +77,14 @@ class ParenthesizedPathSemanticAnalysisTest extends SemanticAnalysisTestSuite wi
     run(q).hasError(
       ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
         .atPosition(6, 1, 7)
-        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I21)
           .atPosition(6, 1, 7)
-          .withParam(GqlParams.StringParam.variable, "p")
+          .withParam(GqlParams.ListParam.variableList, Seq("p").asJava)
+          .withParam(
+            GqlParams.StringParam.pat,
+            """((a) (()-[r]->())+ (b) WHERE 0 = COUNT { MATCH (x)-->(y)
+              |  WHERE length(p) % 2 = 0 })""".stripMargin
+          )
           .build())
         .build(),
       """From within a parenthesized path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.

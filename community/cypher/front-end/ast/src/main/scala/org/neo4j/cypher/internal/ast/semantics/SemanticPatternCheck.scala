@@ -99,16 +99,11 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       semanticCheckFold(pattern.patternParts)(check(ctx)) ifOkChain
       semanticCheckFold(pattern.patternParts)(checkMinimumNodeCount) ifOkChain
       when(ctx != SemanticContext.Create && ctx != SemanticContext.Insert) {
-        var checkPipeline =
-          ensureNoIllegalReferencesOut(pattern)
-
-        if (requireDifferentRelationships) {
-          checkPipeline = checkPipeline chain
+        ensureNoOutOfScopePathReferences(pattern) chain
+          when(requireDifferentRelationships) {
             ensureNoRepeatedRelationships(pattern) chain
-            ensureNoRepeatedVarLengthRelationships(pattern)
-        }
-
-        checkPipeline
+              ensureNoRepeatedVarLengthRelationships(pattern)
+          }
       }
 
   private def declareVariablesInSeparateScope(ctx: SemanticContext, parts: Seq[PatternPart]): SemanticCheck = {
@@ -694,7 +689,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
         }
     }
 
-  private def ensureNoIllegalReferencesOut(pattern: Pattern): SemanticCheck = {
+  private def ensureNoOutOfScopePathReferences(pattern: Pattern): SemanticCheck = {
     val elements: Seq[PatternElement] = pattern.patternParts.flatMap { patternPart =>
       patternPart.element.folder.treeCollect {
         case q: QuantifiedPath    => q
@@ -702,14 +697,14 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       }
     }
     elements.foldSemanticCheck {
-      case q: QuantifiedPath    => ensureNoReferencesOutFromQuantifiedPath(pattern, q)
-      case p: ParenthesizedPath => ensureNoReferencesOutFromParenthesizedPath(pattern, normalizeParenthesizedPath(p))
+      case q: QuantifiedPath    => ensureNoPathReferencesFromQuantifiedPath(pattern, q)
+      case p: ParenthesizedPath => ensureNoPathReferencesFromParenthesizedPath(pattern, normalizeParenthesizedPath(p))
       case x =>
         throw new IllegalArgumentException(s"Expected QuantifiedPath or ParenthesizedPath, but was ${x.getClass}.")
     }
   }
 
-  private def ensureNoReferencesOutFromQuantifiedPath(
+  private def ensureNoPathReferencesFromQuantifiedPath(
     pattern: Pattern,
     quantifiedPath: QuantifiedPath
   ): SemanticCheck = {
@@ -717,7 +712,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       val scope = state.recordedScopes(quantifiedPath)
       val dependencies = scope.declarationsAndDependencies.dependencies
 
-      ensureNoReferencesOutFromPatternElement(
+      ensureNoReferencesToLocalPathVariable(
         pattern,
         quantifiedPath,
         dependencies,
@@ -726,7 +721,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
     }
   }
 
-  private def ensureNoReferencesOutFromParenthesizedPath(
+  private def ensureNoPathReferencesFromParenthesizedPath(
     pattern: Pattern,
     parenthesizedPath: ParenthesizedPath
   ): SemanticCheck = {
@@ -739,7 +734,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       val finalScope = state.recordedScopes(parenthesizedPath)
       val dependencies = finalScope.declarationsAndDependencies.dependencies -- introducedDeclarations
 
-      ensureNoReferencesOutFromPatternElement(
+      ensureNoReferencesToLocalPathVariable(
         pattern,
         parenthesizedPath,
         dependencies,
@@ -748,7 +743,12 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
     }
   }
 
-  private def ensureNoReferencesOutFromPatternElement(
+  /**
+   * Verifies that the pattern does not reference a path variable defined in the same pattern.
+   *
+   * It does so by checking where path variables are defined.
+   */
+  private def ensureNoReferencesToLocalPathVariable(
     pattern: Pattern,
     patternElement: PatternElement,
     dependencies: Set[SymbolUse],
@@ -759,22 +759,24 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       // this may contain declarations from previous MATCH clauses.
       val declarationsInCurrentScope = state.currentScope.declarationsAndDependencies.declarations
 
-      val pathVariablesInPattern = pattern.patternParts.flatMap { part =>
-        part.allVariables -- part.element.allVariables
-      }.toSet
-      val declarationsInPattern = pathVariablesInPattern.map(SymbolUse(_)).filter(declarationsInCurrentScope)
+      val pathVariablesUsedInPattern = pattern.patternParts.flatMap(_.pathVariable)
+      val pathVariablesDeclaredInPattern =
+        pathVariablesUsedInPattern
+          .map(SymbolUse(_))
+          .filter(declarationsInCurrentScope)
 
-      val referencesFromPatternElementToPattern = dependencies.intersect(declarationsInPattern).toSeq
+      val referencesFromPatternElementToPattern = dependencies.intersect(pathVariablesDeclaredInPattern.toSet)
       val errors = referencesFromPatternElementToPattern.map { symbolUse =>
         val stringifiedPatternElement = stringifier.patterns(patternElement)
-        SemanticError.variableNotDefined(
-          symbolUse.name,
+        SemanticError.invalidReferenceInParenthesizedPathPatternPredicate(
+          stringifiedPatternElement,
+          Set(symbolUse.name),
+          symbolUse.asVariable.position,
           s"""From within a $patternElementErrorMessageDescription, one may only reference variables, that are already bound in a previous `MATCH` clause.
-             |In this case, `${symbolUse.name}` is defined in the same `MATCH` clause as $stringifiedPatternElement.""".stripMargin,
-          symbolUse.asVariable.position
+             |In this case, `${symbolUse.name}` is defined in the same `MATCH` clause as $stringifiedPatternElement.""".stripMargin
         )
       }
-      SemanticCheckResult(state, errors)
+      SemanticCheckResult(state, errors.toSeq)
     }
   }
 
