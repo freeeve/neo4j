@@ -272,6 +272,8 @@ public interface TopologyGraphDbmsModel {
     String HAS_SHARD_INDEX_PROPERTY = "index";
     Label ALLOCATION_HINTS_LABEL = Label.label("AllocationHints");
     RelationshipType HAS_ALLOCATION_HINTS_RELATIONSHIP = RelationshipType.withName("HAS_ALLOCATION_HINTS");
+    RelationshipType IS_MIRROR_OF_RELATIONSHIP = RelationshipType.withName("IS_MIRROR_OF");
+    String IS_MIRROR_OF_INSTALLED_AT_PROPERTY = "installed_at";
 
     /**
      * Fetches all known database references

@@ -22,6 +22,7 @@ package org.neo4j.dbms.systemgraph;
 import static org.neo4j.dbms.systemgraph.DriverSettings.Keys.CONNECTION_POOL_ACQUISITION_TIMEOUT;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.IS_MIRROR_OF_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL;
 
 import java.net.URI;
@@ -59,6 +60,7 @@ public final class CommunityTopologyGraphDbmsModelUtil {
                 .filter(node -> !node.hasProperty(TopologyGraphDbmsModel.DATABASE_VIRTUAL_PROPERTY))
                 .filter(node -> node.getDegree(TopologyGraphDbmsModel.HAS_SHARD, Direction.INCOMING) == 0
                         && node.getDegree(TopologyGraphDbmsModel.HAS_SHARD, Direction.OUTGOING) == 0)
+                .filter(node -> node.getDegree(IS_MIRROR_OF_RELATIONSHIP, Direction.OUTGOING) == 0)
                 .map(node -> new Internal(
                         new NormalizedDatabaseName(getDatabaseId(node).name()), getDatabaseId(node), true));
     }
@@ -400,6 +402,22 @@ public final class CommunityTopologyGraphDbmsModelUtil {
                     aliasNode.getRelationships(Direction.INCOMING, TopologyGraphDbmsModel.HAS_SHARD).stream()
                             .map(Relationship::getStartNode)
                             .toList(); // exhaust cursor
+            if (relationships.isEmpty()) {
+                return Optional.of(aliasNode.getProperty(DATABASE_NAME_PROPERTY).toString());
+            } else {
+                return Optional.of(relationships
+                        .getFirst()
+                        .getProperty(DATABASE_NAME_PROPERTY)
+                        .toString());
+            }
+        });
+    }
+
+    public static Optional<String> readUpstreamDatabase(Node aliasNode) {
+        return ignoreConcurrentDeletes(() -> {
+            var relationships = aliasNode.getRelationships(Direction.OUTGOING, IS_MIRROR_OF_RELATIONSHIP).stream()
+                    .map(Relationship::getStartNode)
+                    .toList(); // exhaust cursor
             if (relationships.isEmpty()) {
                 return Optional.of(aliasNode.getProperty(DATABASE_NAME_PROPERTY).toString());
             } else {

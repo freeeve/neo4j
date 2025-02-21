@@ -287,6 +287,10 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
         public DatabaseReferenceImpl.SPDShard asShard(String ownerDatabase) {
             return new SPDShard(alias, namedDatabaseId, primary, ownerDatabase);
         }
+
+        public DatabaseReferenceImpl.Mirror asMirror(String upstreamDatabase) {
+            return new Mirror(alias, namedDatabaseId, upstreamDatabase);
+        }
     }
 
     public static final class Composite extends DatabaseReferenceImpl.Internal {
@@ -468,6 +472,29 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
                     + namedDatabaseId + ", primary="
                     + primary + ", owningDatabaseName="
                     + owningDatabaseName + '}';
+        }
+    }
+
+    public static final class Mirror extends DatabaseReferenceImpl.Internal {
+        private final String upstream;
+
+        public Mirror(NormalizedDatabaseName alias, NamedDatabaseId namedDatabaseId, String upstream) {
+            super(alias, namedDatabaseId, true);
+            this.upstream = upstream;
+        }
+
+        public String upstream() {
+            return upstream;
+        }
+
+        @Override
+        public String toString() {
+            return "Mirror{" + "alias="
+                    + alias + ", namespace="
+                    + namespace + ", namedDatabaseId="
+                    + namedDatabaseId + ", primary="
+                    + primary + ", upstream="
+                    + upstream + '}';
         }
     }
 }

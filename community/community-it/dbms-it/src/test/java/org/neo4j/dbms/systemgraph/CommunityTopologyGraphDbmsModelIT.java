@@ -181,6 +181,30 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
     }
 
     @Test
+    void canReturnAllMirrorDatabaseReferences() {
+        // given
+        var upstream = newDatabase(b -> b.withDatabase("upstream"));
+        var mirror0 = newDatabase(b -> b.withDatabase("mirror0").withUpstream(upstream));
+        //        var mirror1 = newDatabase(b -> b.withDatabase("mirror1").withUpstream(upstream));
+        createInternalReferenceForDatabase(tx, mirror0.name(), true, mirror0);
+        //        createInternalReferenceForDatabase(tx, mirror1.name(), true, mirror1);
+        createInternalReferenceForDatabase(tx, upstream.name(), true, upstream);
+
+        // then
+        var mirror0Ref = new DatabaseReferenceImpl.Mirror(name(mirror0), mirror0, upstream.name());
+        //        var mirror1Ref = new DatabaseReferenceImpl.Mirror(name(mirror1), mirror1, upstream.name());
+        var upstreamRef = new DatabaseReferenceImpl.Internal(name(upstream), upstream, true);
+
+        assertThat(dbmsModel().getAllDatabaseReferences()).containsExactlyInAnyOrder(mirror0Ref, upstreamRef);
+        //                .containsExactlyInAnyOrder(mirror0Ref, mirror1Ref, upstreamRef);
+        //                .containsExactlyInAnyOrder(upstreamRef);
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(mirror0.name())))
+                .hasValue(mirror0Ref);
+        //        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(mirror1.name())))
+        //                .hasValue(mirror1Ref);
+    }
+
+    @Test
     void canReturnAllDatabaseReferences() {
         // given
         var fooDb = newDatabase(b -> b.withDatabase("foo"));

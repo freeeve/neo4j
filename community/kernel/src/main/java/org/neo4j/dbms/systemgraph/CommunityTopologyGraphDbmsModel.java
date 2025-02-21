@@ -73,13 +73,15 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         var compositeRefs = getAllCompositeDatabaseReferencesInRoot();
         var spdGraphShardRefs = getAllSPDGraphShardReferencesInRoot();
         var spdPropertyShardRefs = getAllSPDPropertyShardReferencesInRoot();
+        var mirrorRefs = getAllMirrorReferencesInRoot();
         return Stream.of(
                         primaryRefs,
                         internalAliasRefs,
                         externalRefs,
                         compositeRefs,
                         spdGraphShardRefs,
-                        spdPropertyShardRefs)
+                        spdPropertyShardRefs,
+                        mirrorRefs)
                 .flatMap(s -> s)
                 .collect(Collectors.toUnmodifiableSet());
     }
@@ -111,6 +113,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                 .or(() -> getCompositeDatabaseReferenceInRoot(normalizedDatabaseAlias))
                 .or(() -> getSPDGraphShardReferenceInRoot(normalizedDatabaseAlias))
                 .or(() -> getSPDPropertyShardReferenceInRoot(normalizedDatabaseAlias))
+                .or(() -> getMirrorReferencesInRoot(normalizedDatabaseAlias))
                 .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReferenceInRoot(
                         tx, normalizedDatabaseAlias))
                 .or(() -> CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReferenceInRoot(
@@ -164,6 +167,23 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         return tx.findNodes(REMOTE_DATABASE_LABEL, NAME_PROPERTY, databaseName, NAMESPACE_PROPERTY, namespace).stream()
                 .findFirst()
                 .flatMap(CommunityTopologyGraphDbmsModelUtil::getDatabaseCredentials);
+    }
+
+    private Stream<DatabaseReferenceImpl.Mirror> getAllMirrorReferencesInRoot() {
+        return getAllAliasNodesInRoot()
+                .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
+                        .filter(db -> db.getDegree(IS_MIRROR_OF_RELATIONSHIP, Direction.OUTGOING) > 0)
+                        .flatMap(db -> createMirrorReference(alias, db))
+                        .stream());
+    }
+
+    private Optional<DatabaseReferenceImpl.Mirror> getMirrorReferencesInRoot(String databaseName) {
+        return getAliasNodeInRoot(databaseName)
+                .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
+                        .filter(db -> db.getDegree(IS_MIRROR_OF_RELATIONSHIP, Direction.OUTGOING) > 0)
+                        .flatMap(db -> createMirrorReference(alias, db))
+                        .stream())
+                .findFirst();
     }
 
     private Stream<DatabaseReferenceImpl.Composite> getAllCompositeDatabaseReferencesInRoot() {
@@ -251,6 +271,13 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                         .map(internal::asShard));
     }
 
+    private static Optional<DatabaseReferenceImpl.Mirror> createMirrorReference(Node alias, Node db) {
+        return CommunityTopologyGraphDbmsModelUtil.createInternalReference(
+                        alias, CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db))
+                .flatMap(internal -> CommunityTopologyGraphDbmsModelUtil.readUpstreamDatabase(db)
+                        .map(internal::asMirror));
+    }
+
     private Set<DatabaseReference> getAllDatabaseReferencesInComposite(NormalizedDatabaseName compositeName) {
         var internalRefs = getAllInternalDatabaseReferencesInNamespace(compositeName.name());
         var spdInternalRefs = getAllSpdDatabaseReferencesInNamespace(compositeName.name());
@@ -278,6 +305,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                         .filter(node -> !node.hasProperty(DATABASE_VIRTUAL_PROPERTY))
                         .filter(node -> node.getDegree(HAS_SHARD, Direction.OUTGOING) == 0
                                 && node.getDegree(HAS_SHARD, Direction.INCOMING) == 0)
+                        .filter(node -> node.getDegree(IS_MIRROR_OF_RELATIONSHIP, Direction.OUTGOING) == 0)
                         .map(CommunityTopologyGraphDbmsModelUtil::getDatabaseId)
                         .flatMap(db -> CommunityTopologyGraphDbmsModelUtil.createInternalReference(alias, db))
                         .stream());
