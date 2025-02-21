@@ -19,15 +19,36 @@
  */
 package org.neo4j.bolt.fsm.error.state;
 
+import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.util.VisibleForTesting;
 
 public class IllegalRequestParameterException extends IllegalRequestException {
 
-    public IllegalRequestParameterException(String message) {
-        super(message);
-    }
-
+    @VisibleForTesting
     public IllegalRequestParameterException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static IllegalRequestParameterException nullValueNotAllowed(long statementId) {
+        return new IllegalRequestParameterException(
+                GqlHelper.getGql08N06(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22004)
+                        .build()),
+                "No such statement: " + statementId);
+    }
+
+    public static IllegalRequestParameterException invalidServerState(RequestMessage message, String serverState) {
+        var gql = GqlHelper.getGql08N06(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N10)
+                .withParam(GqlParams.StringParam.msg, String.valueOf(message))
+                .withParam(GqlParams.StringParam.boltServerState, serverState)
+                .build());
+
+        return new IllegalRequestParameterException(
+                gql,
+                "Request of type " + message.getClass().getName() + " is not permitted while failed or interrupted");
     }
 }

@@ -45,6 +45,9 @@ import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
 import org.neo4j.bolt.testing.mock.StateMockFactory;
 import org.neo4j.dbms.admissioncontrol.AdmissionControlResponse;
 import org.neo4j.dbms.admissioncontrol.AdmissionControlToken;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.HasQuery;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.exceptions.Status.General;
@@ -60,6 +63,9 @@ class StateMachineImplTest {
     private static final StateReference TEST_REFERENCE = new StateReference("test");
     private static final StateReference DEFAULT_REFERENCE = new StateReference("default");
     private static final StateReference UNKNOWN_REFERENCE = new StateReference("unknown");
+    private static final ErrorGqlStatusObject gqlDummy = ErrorGqlStatusObjectImplementation.from(
+                    GqlStatusInfoCodes.STATUS_50N42)
+            .build();
 
     private StateMachineImpl fsm;
 
@@ -175,7 +181,7 @@ class StateMachineImplTest {
         var responseHandler = Mockito.mock(ResponseHandler.class);
 
         StateMockFactory.newFactory(TEST_REFERENCE)
-                .withResult(new IllegalRequestParameterException("Something went wrong!"))
+                .withResult(new IllegalRequestParameterException(gqlDummy, "Something went wrong!"))
                 .attachTo(this.configuration);
 
         Mockito.doReturn(TEST_REFERENCE).when(this.initialState).process(Mockito.any(), Mockito.any(), Mockito.any());
@@ -245,7 +251,7 @@ class StateMachineImplTest {
 
         StateMockFactory.attachNewInstance(DEFAULT_REFERENCE, this.configuration);
         StateMockFactory.newFactory(TEST_REFERENCE)
-                .withResult(new IllegalRequestParameterException("Something went wrong!"))
+                .withResult(new IllegalRequestParameterException(gqlDummy, "Something went wrong!"))
                 .attachTo(this.configuration);
 
         Mockito.doReturn(TEST_REFERENCE).when(this.initialState).process(Mockito.any(), Mockito.any(), Mockito.any());
@@ -308,7 +314,7 @@ class StateMachineImplTest {
         var responseHandler = Mockito.mock(ResponseHandler.class);
         var request = Mockito.mock(RequestMessage.class);
 
-        Mockito.doThrow(new IllegalRequestParameterException("Something went wrong!"))
+        Mockito.doThrow(new IllegalRequestParameterException(gqlDummy, "Something went wrong!"))
                 .when(this.initialState)
                 .process(Mockito.any(), Mockito.any(), Mockito.any());
 
@@ -365,7 +371,7 @@ class StateMachineImplTest {
         var responseHandler = Mockito.mock(ResponseHandler.class);
         var request = Mockito.mock(RequestMessage.class);
 
-        Mockito.doThrow(new IllegalRequestParameterException("Something went wrong!"))
+        Mockito.doThrow(new IllegalRequestParameterException(gqlDummy, "Something went wrong!"))
                 .when(this.initialState)
                 .process(Mockito.any(), Mockito.any(), Mockito.any());
 

@@ -140,8 +140,8 @@ final class StateMachineImpl implements StateMachine, Context {
                 handler.onFailure(Error.from(BoltException.invalidServerState(
                         message.toString(), this.state().name())));
 
-                throw new IllegalRequestParameterException("Request of type "
-                        + message.getClass().getName() + " is not permitted while failed or interrupted");
+                throw IllegalRequestParameterException.invalidServerState(
+                        message, this.state().name());
             }
 
             handler.onIgnored();

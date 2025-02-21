@@ -50,7 +50,7 @@ public abstract sealed class StreamingStateTransition<R extends AbstractStreamin
         }
 
         var statement = tx.getStatement(statementId)
-                .orElseThrow(() -> new IllegalRequestParameterException("No such statement: " + statementId));
+                .orElseThrow(() -> IllegalRequestParameterException.nullValueNotAllowed(statementId));
 
         return this.process(ctx, tx, statement, message, handler);
     }

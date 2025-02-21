@@ -33,6 +33,8 @@ import org.neo4j.bolt.protocol.common.fsm.transition.transaction.TransactionalSt
 import org.neo4j.bolt.protocol.common.message.request.streaming.AbstractStreamingMessage;
 import org.neo4j.bolt.tx.error.TransactionException;
 import org.neo4j.bolt.tx.error.statement.StatementException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 abstract class AbstractStreamingStateTransitionTest<
                 R extends AbstractStreamingMessage, D extends TransactionalStateTransition<R>>
@@ -129,9 +131,16 @@ abstract class AbstractStreamingStateTransitionTest<
 
                     var request = this.createMessage(parameters.statementId, parameters.n);
 
-                    Assertions.assertThatExceptionOfType(IllegalRequestParameterException.class)
-                            .isThrownBy(() -> this.transition.process(this.context, request, this.responseHandler))
-                            .withMessage("No such statement: " + parameters.statementId);
+                    ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                                    () -> this.transition.process(this.context, request, this.responseHandler))
+                            .isInstanceOf(IllegalRequestParameterException.class)
+                            .hasMessage("No such statement: " + parameters.statementId)
+                            .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
+                            .hasStatusDescription(
+                                    "error: connection exception - protocol error. General network protocol error.")
+                            .gqlCause()
+                            .hasGqlStatus(GqlStatusInfoCodes.STATUS_22004)
+                            .hasStatusDescription("error: data exception - null value not allowed");
                 }));
     }
 
