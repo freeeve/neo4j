@@ -69,7 +69,7 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
       .filterNot(m => m("removedInCypher25").asInstanceOf[Boolean])
       .map(m => m("name").asInstanceOf[String])
 
-  private val defaultUsesCypher5 = CypherVersion.Default.equals(CypherVersion.Cypher5)
+  private val defaultUsesCypher5 = dbmsDefaultQueryLanguage == CypherVersion.Cypher5
 
   // Tests
 

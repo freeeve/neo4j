@@ -21,10 +21,12 @@ package org.neo4j.cypher
 
 import org.assertj.core.api.Condition
 import org.neo4j.collection.Dependencies
+import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.dbms.api.DatabaseManagementService
@@ -110,6 +112,22 @@ trait GraphDatabaseTestSupport
    * @return Some(url, databaseName) to load an existing database instead of creating an impermanent test database
    */
   def externalDatabase: Option[(String, String)] = None
+
+  // Best effort to find the dbms default query language version.
+  def dbmsDefaultQueryLanguage: CypherVersion = {
+    Option(graph)
+      .map {
+        _.getDependencyResolver.resolveDependency(classOf[Config])
+          .get(GraphDatabaseSettings.default_language)
+      }
+      .getOrElse {
+        Config.newBuilder().set(databaseConfig().asJava).build()
+          .get(GraphDatabaseSettings.default_language)
+      } match {
+      case GraphDatabaseSettings.CypherVersion.Cypher5  => CypherVersion.Cypher5
+      case GraphDatabaseSettings.CypherVersion.Cypher25 => CypherVersion.Cypher25
+    }
+  }
 
   protected def startGraphDatabase(
     config: Map[Setting[_], Object] = databaseConfig(),

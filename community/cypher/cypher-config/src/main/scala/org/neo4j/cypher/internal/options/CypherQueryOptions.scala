@@ -229,9 +229,6 @@ sealed abstract class CypherVersionOption(val version: String) extends CypherOpt
   override def relevantForLogicalPlanCacheKey: Boolean = false // We include the resolved version in the cache key
   def fromPreParserOption: Boolean
   def explicitVersion: Option[CypherVersion]
-
-  @deprecated("Replaced by explicitVersion, kept for apoc but will soon be removed", "2025.02")
-  def actualVersion: CypherVersion = explicitVersion.getOrElse(CypherVersion.Default)
 }
 
 case object CypherVersionOption extends CypherOptionCompanion[CypherVersionOption](name = "cypher version") {

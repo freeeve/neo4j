@@ -31,7 +31,7 @@ class CommunityTransactionCommandAcceptanceTest extends TransactionCommandAccept
 
   private val cypherVersions =
     (CypherVersion.values().map(cv => (s"CYPHER ${cv.versionName} ", cv))
-      :+ ("", CypherVersion.Default))
+      :+ ("", dbmsDefaultQueryLanguage))
 
   // SHOW TRANSACTIONS (don't test exact id as it might change)
 

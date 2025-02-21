@@ -46,7 +46,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
 
   private val cypherVersions =
     (CypherVersion.values().map(cv => (s"CYPHER ${cv.versionName} ", cv.equals(CypherVersion.Cypher5)))
-      :+ ("", CypherVersion.Default.equals(CypherVersion.Cypher5)))
+      :+ ("", dbmsDefaultQueryLanguage == CypherVersion.Cypher5))
 
   private def withoutIdColumn(result: List[Map[String, AnyRef]]) =
     result.map(m => m.filterNot { case (key, _) => key.equals("id") })
@@ -443,7 +443,7 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
       "type" -> "RELATIONSHIP_PROPERTY_UNIQUENESS",
       "enforcedLabel" -> null
     )
-    val expected = if (CypherVersion.Default.equals(CypherVersion.Cypher5)) expectedCypher5 else expectedCypher25
+    val expected = if (dbmsDefaultQueryLanguage == CypherVersion.Cypher5) expectedCypher5 else expectedCypher25
     withoutIdColumn(result.toList) should be(List(expected))
   }
 

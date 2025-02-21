@@ -68,7 +68,7 @@ class CommunityShowFuncProcAcceptanceTest extends ExecutionEngineFunSuite with G
     globalProcedures.registerAggregationFunction(classOf[TestShowFunction])
   }
 
-  private val defaultsToCypher5: Boolean = CypherVersion.Default.equals(CypherVersion.Cypher5)
+  private val defaultsToCypher5: Boolean = dbmsDefaultQueryLanguage.equals(CypherVersion.Cypher5)
 
   private val cypherVersions =
     (CypherVersion.values().map(cv => (s"CYPHER ${cv.versionName} ", cv.equals(CypherVersion.Cypher5)))

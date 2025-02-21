@@ -78,7 +78,7 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
     query: String,
     database: String = DEFAULT_DATABASE_NAME,
     numColumns: Int = 10,
-    cypherVersion: CypherVersion = CypherVersion.Default
+    cypherVersion: CypherVersion = dbmsDefaultQueryLanguage
   ): Unit = {
     val checkCypher5Values = cypherVersion == CypherVersion.Cypher5
 
@@ -133,7 +133,7 @@ class TransactionCommandAcceptanceTestSupport extends ExecutionEngineFunSuite wi
     database: String = DEFAULT_DATABASE_NAME,
     planner: String = "idp",
     queryAllocatedBytesIsNull: Boolean = false,
-    cypherVersion: CypherVersion = CypherVersion.Default
+    cypherVersion: CypherVersion = dbmsDefaultQueryLanguage
   ): Unit = {
     val checkCypher5Values = cypherVersion == CypherVersion.Cypher5
 

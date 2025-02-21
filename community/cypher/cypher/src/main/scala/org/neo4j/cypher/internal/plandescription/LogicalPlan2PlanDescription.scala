@@ -333,8 +333,7 @@ object LogicalPlan2PlanDescription {
       withRawCardinalities,
       withDistinctness,
       providedOrders,
-      runtimeOperatorMetadata,
-      cypherVersion
+      runtimeOperatorMetadata
     )
       .create(input)
       .addArgument(Version(cypherVersion.versionName))
@@ -372,8 +371,7 @@ case class LogicalPlan2PlanDescription(
   withRawCardinalities: Boolean,
   withDistinctness: Boolean = false,
   providedOrders: ImmutablePlanningAttributes.ProvidedOrders,
-  runtimeOperatorMetadata: Id => Seq[Argument],
-  cypherVersion: CypherVersion = CypherVersion.Default
+  runtimeOperatorMetadata: Id => Seq[Argument]
 ) extends LogicalPlans.Mapper[InternalPlanDescription] {
   private val SEPARATOR = ", "
 

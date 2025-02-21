@@ -222,7 +222,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     // THEN
     result.toList should be(List(
       // Show database/alias returns the database and alias names escaped, if needed, from Cypher 25
-      homeOrDefaultDb(if (CypherVersion.Default == CypherVersion.Cypher5) "123abc" else "`123abc`")
+      homeOrDefaultDb(if (dbmsDefaultQueryLanguage == CypherVersion.Cypher5) "123abc" else "`123abc`")
     ))
   }
 
