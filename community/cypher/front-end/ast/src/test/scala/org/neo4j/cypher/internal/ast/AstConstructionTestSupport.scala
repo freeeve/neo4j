@@ -1095,6 +1095,8 @@ trait AstConstructionTestSupport {
       where
     )(pos)
 
+  def repeatableElementsMatchMode(): MatchMode.RepeatableElements = MatchMode.RepeatableElements()(pos)
+
   def patternForMatch(parts: NonPrefixedPatternPart*): Pattern.ForMatch = {
     Pattern.ForMatch(parts.map(_.withAllPathsSelector))(pos)
   }
@@ -1161,6 +1163,9 @@ trait AstConstructionTestSupport {
     RemovePropertyItem(Property(varFor(map, pos), PropertyKeyName(propertyName)(pos))(pos))
 
   def finish(): Finish = Finish()(pos)
+
+  def returnVariables(items: String*): Return =
+    return_(items.map(item => aliasedReturnItem(varFor(item))): _*)
 
   def return_(items: ReturnItem*): Return =
     Return(ReturnItems(includeExisting = false, items)(pos))(pos)
