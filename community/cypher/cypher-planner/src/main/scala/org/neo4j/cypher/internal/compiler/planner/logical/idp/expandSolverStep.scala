@@ -63,6 +63,7 @@ import org.neo4j.cypher.internal.logical.plans.NFA.PathLength
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
 import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Trail
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
 import org.neo4j.cypher.internal.util.Cardinality
@@ -280,11 +281,7 @@ object expandSolverStep {
             varLength = varLength
           )
 
-        val isTrailSemantics = alwaysTrailSemantics || solvedPredicates.exists {
-          case _: Unique => true
-          case _         => false
-        }
-        val traversalMatchMode = if (isTrailSemantics) TraversalMatchMode.Trail else TraversalMatchMode.Walk
+        val matchMode = TraversalMatchMode.getFromPredicates(solvedPredicates, alwaysTrailSemantics)
 
         val plan =
           context.staticComponents.logicalPlanProducer.planVarExpand(
@@ -296,7 +293,7 @@ object expandSolverStep {
             relationshipPredicates = relationshipPredicates,
             solvedPredicates = solvedPredicates,
             mode = mode,
-            matchMode = traversalMatchMode,
+            matchMode = matchMode,
             context = context
           )
 
@@ -411,7 +408,7 @@ object expandSolverStep {
     val previouslyBoundRelationships = uniquenessPredicates.flatMap(_.previouslyBoundRelationships).toSet
     val previouslyBoundRelationshipGroups = uniquenessPredicates.flatMap(_.previouslyBoundRelationshipGroups).toSet
 
-    val trailSemantics = uniquenessPredicates.nonEmpty
+    val matchMode = TraversalMatchMode.getFromPredicates(solvedPredicates)
 
     val plan = updatedContext.staticComponents.logicalPlanProducer.planRepeat(
       source = sourcePlan,
@@ -425,7 +422,7 @@ object expandSolverStep {
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
       reverseGroupVariableProjections = !fromLeft,
-      trailSemantics
+      matchMode == Trail
     )
 
     val bothEndpointsBoundInSourcePlan =
