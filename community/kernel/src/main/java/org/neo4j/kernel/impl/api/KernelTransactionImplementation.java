@@ -1598,7 +1598,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         return statistics;
     }
 
-    private TxStateVisitor enforceConstraints(TxStateVisitor txStateVisitor, MemoryTracker memoryTracker) {
+    protected TxStateVisitor enforceConstraints(TxStateVisitor txStateVisitor, MemoryTracker memoryTracker) {
         return constraintSemantics.decorateTxStateVisitor(
                 storageReader,
                 kernelRead,
