@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.IsNormalized
 import org.neo4j.cypher.internal.ast.IsNotNormalized
 import org.neo4j.cypher.internal.ast.IsNotTyped
@@ -58,7 +59,8 @@ case object NormalizeComparisons extends StepSequencer.Step with ASTRewriterFact
     semanticState: SemanticState,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    cancellationChecker: CancellationChecker
+    cancellationChecker: CancellationChecker,
+    version: CypherVersion
   ): Rewriter = instance
 
   override def preConditions: Set[StepSequencer.Condition] = Set(

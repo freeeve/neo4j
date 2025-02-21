@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem
 import org.neo4j.cypher.internal.ast.RemovePropertyItem
 import org.neo4j.cypher.internal.ast.SetDynamicPropertyItem
@@ -66,6 +67,7 @@ case object ReplaceLiteralDynamicPropertyLookups extends Step with DefaultPostCo
     semanticState: SemanticState,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    cancellationChecker: CancellationChecker
+    cancellationChecker: CancellationChecker,
+    version: CypherVersion
   ): Rewriter = instance
 }

@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.QuantifiedPath
 import org.neo4j.cypher.internal.rewriting.conditions.NoUnnamedNodesAndRelationships
@@ -56,6 +57,7 @@ case object AddQuantifiedPathAnonymousVariableGroupings extends StepSequencer.St
     semanticState: SemanticState,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    cancellationChecker: CancellationChecker
+    cancellationChecker: CancellationChecker,
+    version: CypherVersion
   ): Rewriter = instance
 }

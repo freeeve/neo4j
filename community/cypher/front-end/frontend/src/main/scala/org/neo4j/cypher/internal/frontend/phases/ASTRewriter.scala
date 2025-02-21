@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.RewriterStep
@@ -105,11 +106,18 @@ object ASTRewriter {
     parameterTypeMapping: Map[String, ParameterTypeInfo],
     cypherExceptionFactory: CypherExceptionFactory,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    cancellationChecker: CancellationChecker
+    cancellationChecker: CancellationChecker,
+    version: CypherVersion
   ): Statement = {
     val rewriters = orderedSteps.map { step =>
       val rewriter =
-        step.getRewriter(semanticState, parameterTypeMapping, anonymousVariableNameGenerator, cancellationChecker)
+        step.getRewriter(
+          semanticState,
+          parameterTypeMapping,
+          anonymousVariableNameGenerator,
+          cancellationChecker,
+          version
+        )
       RewriterStep.validatingRewriter(rewriter, step, cancellationChecker)
     }
 

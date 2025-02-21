@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
@@ -51,6 +52,7 @@ case object ParameterValueTypeReplacement extends Step with DefaultPostCondition
     semanticState: SemanticState,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    cancellationChecker: CancellationChecker
+    cancellationChecker: CancellationChecker,
+    version: CypherVersion
   ): Rewriter = ParameterValueTypeReplacement(parameterTypeMapping)
 }

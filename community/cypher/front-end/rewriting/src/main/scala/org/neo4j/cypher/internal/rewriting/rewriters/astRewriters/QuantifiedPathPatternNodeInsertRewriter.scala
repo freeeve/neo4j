@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.PathConcatenation
@@ -46,7 +47,8 @@ case object QuantifiedPathPatternNodeInsertRewriter extends StepSequencer.Step w
     semanticState: SemanticState,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    cancellationChecker: CancellationChecker
+    cancellationChecker: CancellationChecker,
+    version: CypherVersion
   ): Rewriter = instance
 
   private val filler = NodePattern(None, None, None, None)(InputPosition.NONE)

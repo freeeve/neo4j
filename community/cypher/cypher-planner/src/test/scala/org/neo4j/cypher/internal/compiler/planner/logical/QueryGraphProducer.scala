@@ -109,7 +109,8 @@ trait QueryGraphProducer {
         Map.empty,
         exceptionFactory,
         anonymousVariableNameGenerator,
-        CancellationChecker.NeverCancelled
+        CancellationChecker.NeverCancelled,
+        version
       )
     val state = LogicalPlanState(
       query,

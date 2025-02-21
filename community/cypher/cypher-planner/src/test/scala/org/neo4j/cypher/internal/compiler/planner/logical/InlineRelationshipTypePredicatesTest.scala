@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.mockito.Mockito.when
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
@@ -63,8 +64,20 @@ class InlineRelationshipTypePredicatesTest extends CypherFunSuite with PlannerQu
       LabelExpressionPredicateNormalizer.instance,
       NormalizeHasLabelsAndHasType(orgAstState),
       QuantifiedPathPatternNodeInsertRewriter.instance,
-      NameAllPatternElements.getRewriter(orgAstState, Map.empty, anonVarGen, CancellationChecker.neverCancelled()),
-      NormalizePredicates.getRewriter(orgAstState, Map.empty, anonVarGen, CancellationChecker.neverCancelled()),
+      NameAllPatternElements.getRewriter(
+        orgAstState,
+        Map.empty,
+        anonVarGen,
+        CancellationChecker.neverCancelled(),
+        CypherVersion.Cypher5
+      ),
+      NormalizePredicates.getRewriter(
+        orgAstState,
+        Map.empty,
+        anonVarGen,
+        CancellationChecker.neverCancelled(),
+        CypherVersion.Cypher5
+      ),
       flattenBooleanOperators.instance(CancellationChecker.NeverCancelled),
       ExpandStar(orgAstState),
       simplifyPredicates(orgAstState, CancellationChecker.neverCancelled())

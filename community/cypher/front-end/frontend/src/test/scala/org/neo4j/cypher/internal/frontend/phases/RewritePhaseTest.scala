@@ -162,7 +162,8 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
         Map.empty,
         exceptionFactory,
         nameGenerator,
-        CancellationChecker.NeverCancelled
+        CancellationChecker.NeverCancelled,
+        version
       )
     } else {
       cleanedAst

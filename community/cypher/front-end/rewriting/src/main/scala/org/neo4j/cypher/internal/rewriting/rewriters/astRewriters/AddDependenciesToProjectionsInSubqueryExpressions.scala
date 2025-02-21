@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.FullSubqueryExpression
@@ -156,13 +157,18 @@ case object AddDependenciesToProjectionsInSubqueryExpressions extends StepSequen
     semanticState: SemanticState,
     parameterTypeMapping: Map[String, ParameterTypeInfo],
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    cancellationChecker: CancellationChecker
+    cancellationChecker: CancellationChecker,
+    version: CypherVersion
   ): Rewriter = {
     // For composite dbs, apply rewriter to both expressions and clauses.
-    if (semanticState.features.contains(SemanticFeature.UseAsMultipleGraphsSelector)) {
-      subqueryExpressionAndCallClauseRewriter
+    if (version == CypherVersion.Cypher5) {
+      if (semanticState.features.contains(SemanticFeature.UseAsMultipleGraphsSelector)) {
+        subqueryExpressionAndCallClauseRewriter
+      } else {
+        subqueryExpressionRewriter
+      }
     } else {
-      subqueryExpressionRewriter
+      Rewriter.noop
     }
   }
 }

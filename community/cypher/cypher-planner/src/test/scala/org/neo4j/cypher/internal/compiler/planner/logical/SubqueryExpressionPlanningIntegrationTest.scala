@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
@@ -2956,18 +2957,35 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
   }
 
   test("should plan FULL COUNT expression with ORDER BY") {
-    val plan = planner.plan(
+    val query =
       "MATCH (a:Person) WHERE COUNT { MATCH (a)-[r:KNOWS]->(c) RETURN a ORDER BY a } > 1 RETURN a"
-    ).stripProduceResults
-    plan should equal(planner.subPlanBuilder()
-      .filter("anon_0 > 1")
-      .apply()
-      .|.aggregation(Seq(), Seq("count(*) AS anon_0"))
-      .|.sort("a ASC")
-      .|.expandAll("(a)-[r:KNOWS]->(c)")
-      .|.argument("a")
-      .nodeByLabelScan("a", "Person")
-      .build())
+    val plan5 = planner.plan(CypherVersion.Cypher5, query).stripProduceResults
+    withClue("Cypher5") {
+      plan5 should equal(planner.subPlanBuilder()
+        .filter("anon_0 > 1")
+        .apply()
+        .|.aggregation(Seq(), Seq("count(*) AS anon_0"))
+        .|.sort("a ASC")
+        .|.expandAll("(a)-[r:KNOWS]->(c)")
+        .|.argument("a")
+        .nodeByLabelScan("a", "Person")
+        .build())
+    }
+
+    val plan25 = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    withClue("Cypher25") {
+      plan25 should equal(planner.subPlanBuilder()
+        .filterExpression(
+          HasDegreeGreaterThan(
+            varFor("a"),
+            Some(relTypeName("KNOWS")),
+            OUTGOING,
+            literalInt(1)
+          )(pos)
+        )
+        .nodeByLabelScan("a", "Person", IndexOrderNone)
+        .build())
+    }
   }
 
   test("should plan FULL COUNT expression with SKIP") {
@@ -3035,10 +3053,20 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
   }
 
   test("should plan FULL COUNT expression with a CALL Subquery") {
-    val plan = planner.plan(
+    val query =
       "MATCH (a:Person) RETURN COUNT { MATCH (a)-[r:KNOWS]->(c) CALL { WITH a MATCH (a)-[:HAS_DOG]-(b) RETURN b} RETURN a } AS foo"
-    ).stripProduceResults
-    plan shouldBe planner.subPlanBuilder()
+    val plan5 = planner.plan(CypherVersion.Cypher5, query).stripProduceResults
+    plan5 shouldBe planner.subPlanBuilder()
+      .apply()
+      .|.aggregation(Seq(), Seq("count(*) AS foo"))
+      .|.expandAll("(a)-[anon_0:HAS_DOG]-(b)")
+      .|.expandAll("(a)-[r:KNOWS]->(c)")
+      .|.argument("a")
+      .nodeByLabelScan("a", "Person", IndexOrderNone)
+      .build()
+
+    val plan25 = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan25 shouldBe planner.subPlanBuilder()
       .apply()
       .|.aggregation(Seq(), Seq("count(*) AS foo"))
       .|.expandAll("(a)-[anon_0:HAS_DOG]-(b)")
@@ -3049,18 +3077,32 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
   }
 
   test("should plan FULL COUNT expression with a CALL Subquery and ORDER BY") {
-    val plan = planner.plan(
+    val query =
       "MATCH (a:Person) RETURN COUNT { MATCH (a)-[r:KNOWS]->(c) CALL { WITH a MATCH (a)-[:HAS_DOG]-(b) RETURN b} RETURN a ORDER BY a} AS foo"
-    ).stripProduceResults
-    plan shouldBe planner.subPlanBuilder()
-      .apply()
-      .|.aggregation(Seq(), Seq("count(*) AS foo"))
-      .|.sort("a ASC")
-      .|.expandAll("(a)-[anon_0:HAS_DOG]-(b)")
-      .|.expandAll("(a)-[r:KNOWS]->(c)")
-      .|.argument("a")
-      .nodeByLabelScan("a", "Person", IndexOrderNone)
-      .build()
+    val plan5 = planner.plan(CypherVersion.Cypher5, query).stripProduceResults
+    withClue("Cypher5") {
+      plan5 shouldBe planner.subPlanBuilder()
+        .apply()
+        .|.aggregation(Seq(), Seq("count(*) AS foo"))
+        .|.sort("a ASC")
+        .|.expandAll("(a)-[anon_0:HAS_DOG]-(b)")
+        .|.expandAll("(a)-[r:KNOWS]->(c)")
+        .|.argument("a")
+        .nodeByLabelScan("a", "Person", IndexOrderNone)
+        .build()
+    }
+
+    val plan25 = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    withClue("Cypher25") {
+      plan25 shouldBe planner.subPlanBuilder()
+        .apply()
+        .|.aggregation(Seq(), Seq("count(*) AS foo"))
+        .|.expandAll("(a)-[anon_0:HAS_DOG]-(b)")
+        .|.expandAll("(a)-[r:KNOWS]->(c)")
+        .|.argument("a")
+        .nodeByLabelScan("a", "Person", IndexOrderNone)
+        .build()
+    }
   }
 
   test("should plan nested COUNT in RETURN") {
@@ -3847,15 +3889,29 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
         |  ORDER BY x
         |} AS result""".stripMargin
 
-    val plan = planner.plan(q).stripProduceResults
-    plan shouldEqual planner.subPlanBuilder()
-      .rollUpApply("result", "total")
-      .|.sort("x ASC")
-      .|.aggregation(Seq("x AS x", "y AS y"), Seq("sum(x + y) AS total"))
-      .|.argument("x", "y")
-      .projection("123 AS x", "321 AS y")
-      .argument()
-      .build()
+    val plan5 = planner.plan(CypherVersion.Cypher5, q).stripProduceResults
+    withClue("Cypher5") {
+      plan5 shouldEqual planner.subPlanBuilder()
+        .rollUpApply("result", "total")
+        .|.sort("x ASC")
+        .|.aggregation(Seq("x AS x", "y AS y"), Seq("sum(x + y) AS total"))
+        .|.argument("x", "y")
+        .projection("123 AS x", "321 AS y")
+        .argument()
+        .build()
+    }
+
+    val plan25 = planner.plan(CypherVersion.Cypher25, q).stripProduceResults
+    withClue("Cypher25") {
+      plan25 shouldEqual planner.subPlanBuilder()
+        .rollUpApply("result", "total")
+        .|.sort("x ASC")
+        .|.aggregation(Seq(), Seq("sum(x + y) AS total"))
+        .|.argument("x", "y")
+        .projection("123 AS x", "321 AS y")
+        .argument()
+        .build()
+    }
   }
 
   test("should plan COUNT with ORDER BY NULL, aggregation, combined with another aggregating expression") {

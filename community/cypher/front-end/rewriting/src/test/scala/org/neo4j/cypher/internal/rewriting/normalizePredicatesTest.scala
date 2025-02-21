@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
@@ -46,7 +47,8 @@ class normalizePredicatesTest extends CypherFunSuite with TestName with AstRewri
         semanticState,
         Map.empty,
         new AnonymousVariableNameGenerator,
-        CancellationChecker.neverCancelled()
+        CancellationChecker.neverCancelled(),
+        CypherVersion.Cypher5
       ),
       NormalizeHasLabelsAndHasType(semanticState)
     )
