@@ -64,7 +64,6 @@ import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.api.security.AuthManager;
 import org.neo4j.kernel.api.security.provider.SecurityProvider;
 import org.neo4j.kernel.database.DatabaseIdRepository;
-import org.neo4j.kernel.database.DatabaseReferenceRepository;
 import org.neo4j.kernel.database.DefaultDatabaseResolver;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.index.DatabaseIndexStats;
@@ -136,8 +135,6 @@ public abstract class AbstractEditionModule {
     public abstract SystemGraphComponents getSystemGraphComponents();
 
     public abstract void createSecurityModule(GlobalModule globalModule, SystemDatabaseProvider systemDatabaseProvider);
-
-    public abstract DatabaseReferenceRepository getDatabaseReferenceRepo();
 
     public abstract void createGlobalReadOnlyChecker(
             SystemDatabaseProvider systemDatabaseProvider,

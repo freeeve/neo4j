@@ -26,7 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceRepository.Caching {
-    private DatabaseReferenceRepository delegate;
+    private final DatabaseReferenceRepository delegate;
     private volatile Map<NormalizedDatabaseName, DatabaseReference> databaseRefsByName;
     private volatile Map<NormalizedCatalogEntry, DatabaseReference> databaseRefsByCatalogEntry;
     private volatile Map<UUID, DatabaseReference> databaseRefsByUUID;
@@ -35,14 +35,6 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
         this.databaseRefsByName = new ConcurrentHashMap<>();
         this.databaseRefsByCatalogEntry = new ConcurrentHashMap<>();
         this.databaseRefsByUUID = new ConcurrentHashMap<>();
-        this.delegate = delegate;
-    }
-
-    public MapCachingDatabaseReferenceRepository() {
-        this(null);
-    }
-
-    public void setDelegate(DatabaseReferenceRepository delegate) {
         this.delegate = delegate;
     }
 

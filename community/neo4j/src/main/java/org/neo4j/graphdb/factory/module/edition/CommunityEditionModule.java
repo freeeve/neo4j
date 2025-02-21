@@ -111,12 +111,12 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
     protected final SslPolicyLoader sslPolicyLoader;
     protected final GlobalModule globalModule;
     protected final ServerIdentity identityModule;
-    private final MapCachingDatabaseReferenceRepository databaseReferenceRepo;
     private final DeviceMapper deviceMapper;
     private final InternalLogProvider logProvider;
     private final CommunitySecurityLog securityLog;
 
     protected DatabaseStateService databaseStateService;
+    private MapCachingDatabaseReferenceRepository databaseReferenceRepo;
     private Lifecycle defaultDatabaseInitializer = new LifecycleAdapter();
     private SystemGraphComponents systemGraphComponents;
 
@@ -149,7 +149,6 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
         globalDependencies.satisfyDependency(deviceMapper);
 
         connectionTracker = globalDependencies.satisfyDependency(createConnectionTracker());
-        databaseReferenceRepo = globalDependencies.satisfyDependency(new MapCachingDatabaseReferenceRepository());
     }
 
     @Override
@@ -175,13 +174,14 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
                         globalModule.getLogService().getInternalLogProvider()));
         var systemDatabaseProvider =
                 new ContextBasedSystemDatabaseProvider(databaseRepository, globalModule.getDatabaseEventListeners());
-        var rootDatabaseReferenceRepository = AbstractEditionModule.tryResolveOrCreate(
-                DatabaseReferenceRepository.class,
-                globalModule.getExternalDependencyResolver(),
-                () -> new ModelBasedDatabaseReferenceRepository(
-                        new CommunityDatabaseReferenceRepositoryModelProvider(systemDatabaseProvider)));
         databaseIdRepo.setDelegate(rootDatabaseIdRepository);
-        databaseReferenceRepo.setDelegate(rootDatabaseReferenceRepository);
+        databaseReferenceRepo = globalModule
+                .getGlobalDependencies()
+                .satisfyDependency(new MapCachingDatabaseReferenceRepository(AbstractEditionModule.tryResolveOrCreate(
+                        DatabaseReferenceRepository.class,
+                        globalModule.getExternalDependencyResolver(),
+                        () -> new ModelBasedDatabaseReferenceRepository(
+                                new CommunityDatabaseReferenceRepositoryModelProvider(systemDatabaseProvider)))));
         var databaseIdCacheCleaner = new DatabaseReferenceCacheClearingListener(databaseIdRepo, databaseReferenceRepo);
 
         var kernelPanicListener =
@@ -351,11 +351,6 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
     @Override
     public void createSecurityModule(GlobalModule globalModule, SystemDatabaseProvider systemDatabaseProvider) {
         setSecurityProvider(makeSecurityModule(globalModule));
-    }
-
-    @Override
-    public DatabaseReferenceRepository getDatabaseReferenceRepo() {
-        return databaseReferenceRepo;
     }
 
     private SecurityProvider makeSecurityModule(GlobalModule globalModule) {
