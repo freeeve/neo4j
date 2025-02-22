@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.dbms.database;
+package org.neo4j.kernel.database;
 
 import static org.neo4j.kernel.database.NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID;
 import static org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME;
@@ -26,26 +26,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel;
-import org.neo4j.kernel.database.DatabaseReference;
-import org.neo4j.kernel.database.DatabaseReferenceImpl;
-import org.neo4j.kernel.database.DatabaseReferenceRepository;
-import org.neo4j.kernel.database.NormalizedCatalogEntry;
-import org.neo4j.kernel.database.NormalizedDatabaseName;
 
 public class ModelBasedDatabaseReferenceRepository implements DatabaseReferenceRepository {
     private static final DatabaseReference SYSTEM_DATABASE_REFERENCE = new DatabaseReferenceImpl.Internal(
             new NormalizedDatabaseName(SYSTEM_DATABASE_NAME), NAMED_SYSTEM_DATABASE_ID, true);
 
-    @FunctionalInterface
-    public interface DatabaseReferenceRepositoryModelProvider {
-        <T> T withModel(Function<TopologyGraphDbmsModel, T> operation);
-    }
+    private final DatabaseObjectRepositoryModelProvider modelProvider;
 
-    private final DatabaseReferenceRepositoryModelProvider modelProvider;
-
-    public ModelBasedDatabaseReferenceRepository(DatabaseReferenceRepositoryModelProvider modelProvider) {
+    public ModelBasedDatabaseReferenceRepository(DatabaseObjectRepositoryModelProvider modelProvider) {
         this.modelProvider = modelProvider;
     }
 

@@ -24,10 +24,8 @@ import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.neo4j.kernel.database.DatabaseIdFactory.from;
-import static org.neo4j.kernel.database.NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -39,7 +37,7 @@ class MapCachingDatabaseIdRepositoryTest {
     private final DatabaseIdRepository delegate = Mockito.mock(DatabaseIdRepository.class);
 
     private final NamedDatabaseId randomNamedDbId = from("randomDb", UUID.randomUUID());
-    private final String randomDbName = randomNamedDbId.name();
+    private final NormalizedDatabaseName randomDbName = randomNamedDbId.normalizedName();
     private final DatabaseId randomDbId = randomNamedDbId.databaseId();
     private DatabaseIdRepository.Caching databaseIdRepository;
 
@@ -100,37 +98,18 @@ class MapCachingDatabaseIdRepositoryTest {
     }
 
     @Test
-    void shouldReturnSystemDatabaseIdDirectlyByName() {
-        NamedDatabaseId namedDatabaseId =
-                databaseIdRepository.getByName(NAMED_SYSTEM_DATABASE_ID.name()).get();
-
-        assertThat(namedDatabaseId).isEqualTo(NAMED_SYSTEM_DATABASE_ID);
-        verifyNoInteractions(delegate);
-    }
-
-    @Test
-    void shouldReturnSystemDatabaseIdDirectlyByUuid() {
-        NamedDatabaseId namedDatabaseId = databaseIdRepository
-                .getById(NAMED_SYSTEM_DATABASE_ID.databaseId())
-                .get();
-
-        assertThat(namedDatabaseId).isEqualTo(NAMED_SYSTEM_DATABASE_ID);
-        verifyNoInteractions(delegate);
-    }
-
-    @Test
     void shouldInvalidateAll() {
         var otherNamedDbId = DatabaseIdFactory.from("otherDb", UUID.randomUUID());
 
-        databaseIdRepository.getByName(otherNamedDbId.name());
+        databaseIdRepository.getByName(otherNamedDbId.normalizedName());
         databaseIdRepository.getById(randomDbId);
 
         databaseIdRepository.invalidateAll();
 
-        databaseIdRepository.getByName(otherNamedDbId.name());
+        databaseIdRepository.getByName(otherNamedDbId.normalizedName());
         databaseIdRepository.getById(randomDbId);
 
-        verify(delegate, times(2)).getByName(otherNamedDbId.name());
+        verify(delegate, times(2)).getByName(otherNamedDbId.normalizedName());
         verify(delegate, times(2)).getById(randomDbId);
     }
 }

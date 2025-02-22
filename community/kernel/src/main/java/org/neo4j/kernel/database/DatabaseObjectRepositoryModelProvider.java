@@ -17,23 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.dbms.database;
+package org.neo4j.kernel.database;
 
 import java.util.function.Function;
-import org.neo4j.dbms.systemgraph.CommunityTopologyGraphDbmsModel;
-import org.neo4j.dbms.systemgraph.SystemDatabaseProvider;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel;
 
-public class CommunityDatabaseReferenceRepositoryModelProvider
-        implements ModelBasedDatabaseReferenceRepository.DatabaseReferenceRepositoryModelProvider {
-    private final SystemDatabaseProvider systemDatabaseProvider;
-
-    public CommunityDatabaseReferenceRepositoryModelProvider(SystemDatabaseProvider systemDatabaseProvider) {
-        this.systemDatabaseProvider = systemDatabaseProvider;
-    }
-
-    @Override
-    public <T> T withModel(Function<TopologyGraphDbmsModel, T> operation) {
-        return systemDatabaseProvider.query(tx -> operation.apply(new CommunityTopologyGraphDbmsModel(tx)));
-    }
+@FunctionalInterface
+public interface DatabaseObjectRepositoryModelProvider {
+    <T> T withModel(Function<TopologyGraphDbmsModel, T> operation);
 }

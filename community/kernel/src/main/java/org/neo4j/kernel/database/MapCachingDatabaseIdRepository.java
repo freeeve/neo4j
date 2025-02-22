@@ -24,10 +24,8 @@ import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class MapCachingDatabaseIdRepository implements DatabaseIdRepository.Caching {
-    private static final Optional<NamedDatabaseId> OPT_SYS_DB = Optional.of(NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID);
-
     private volatile DatabaseIdRepository delegate;
-    private volatile Map<String, NamedDatabaseId> databaseIdsByName;
+    private volatile Map<NormalizedDatabaseName, NamedDatabaseId> databaseIdsByName;
     private volatile Map<DatabaseId, NamedDatabaseId> databaseIdsByUuid;
 
     public MapCachingDatabaseIdRepository(DatabaseIdRepository delegate) {
@@ -46,23 +44,17 @@ public class MapCachingDatabaseIdRepository implements DatabaseIdRepository.Cach
 
     @Override
     public Optional<NamedDatabaseId> getByName(NormalizedDatabaseName databaseName) {
-        if (NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID.name().equals(databaseName.name())) {
-            return OPT_SYS_DB;
-        }
         var dbId = Optional.ofNullable(databaseIdsByName.computeIfAbsent(
-                databaseName.name(), name -> delegate.getByName(name).orElse(null)));
+                databaseName, name -> delegate.getByName(name).orElse(null)));
         dbId.ifPresent(id -> databaseIdsByUuid.put(id.databaseId(), id));
         return dbId;
     }
 
     @Override
     public Optional<NamedDatabaseId> getById(DatabaseId uuid) {
-        if (DatabaseId.SYSTEM_DATABASE_ID.equals(uuid)) {
-            return OPT_SYS_DB;
-        }
         var dbId = Optional.ofNullable(databaseIdsByUuid.computeIfAbsent(
                 uuid, id -> delegate.getById(id).orElse(null)));
-        dbId.ifPresent(id -> databaseIdsByName.put(id.name(), id));
+        dbId.ifPresent(id -> databaseIdsByName.put(id.normalizedName(), id));
         return dbId;
     }
 

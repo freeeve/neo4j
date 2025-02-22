@@ -35,7 +35,7 @@ import org.neo4j.dbms.CommunityDatabaseStateService;
 import org.neo4j.dbms.CommunityKernelPanicListener;
 import org.neo4j.dbms.DatabaseStateService;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.database.CommunityDatabaseReferenceRepositoryModelProvider;
+import org.neo4j.dbms.database.CommunityDatabaseObjectRepositoryModelProvider;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.dbms.database.DatabaseLifecycles;
@@ -49,7 +49,6 @@ import org.neo4j.dbms.database.DefaultDatabaseDetailsExtrasProvider;
 import org.neo4j.dbms.database.DefaultSystemGraphComponent;
 import org.neo4j.dbms.database.DefaultSystemGraphInitializer;
 import org.neo4j.dbms.database.DefaultTopologyInfoService;
-import org.neo4j.dbms.database.ModelBasedDatabaseReferenceRepository;
 import org.neo4j.dbms.database.StandaloneDatabaseContext;
 import org.neo4j.dbms.database.SystemGraphComponents;
 import org.neo4j.dbms.database.SystemGraphInitializer;
@@ -79,12 +78,12 @@ import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.kernel.api.security.SecurityModule;
 import org.neo4j.kernel.api.security.provider.NoAuthSecurityProvider;
 import org.neo4j.kernel.api.security.provider.SecurityProvider;
-import org.neo4j.kernel.database.DatabaseId;
 import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.database.DatabaseReferenceRepository;
 import org.neo4j.kernel.database.MapCachingDatabaseIdRepository;
 import org.neo4j.kernel.database.MapCachingDatabaseReferenceRepository;
-import org.neo4j.kernel.database.SystemGraphDatabaseIdRepository;
+import org.neo4j.kernel.database.ModelBasedDatabaseIdRepository;
+import org.neo4j.kernel.database.ModelBasedDatabaseReferenceRepository;
 import org.neo4j.kernel.impl.api.TransactionalProcessFactory;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.factory.DefaultTransactionalProcessFactory;
@@ -166,22 +165,20 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
 
         var databaseIdRepo = new MapCachingDatabaseIdRepository();
         var databaseRepository = new DatabaseRepository<StandaloneDatabaseContext>(databaseIdRepo);
-        var rootDatabaseIdRepository = AbstractEditionModule.tryResolveOrCreate(
-                DatabaseIdRepository.class,
-                globalModule.getExternalDependencyResolver(),
-                () -> new SystemGraphDatabaseIdRepository(
-                        () -> databaseRepository.getDatabaseContext(DatabaseId.SYSTEM_DATABASE_ID),
-                        globalModule.getLogService().getInternalLogProvider()));
         var systemDatabaseProvider =
                 new ContextBasedSystemDatabaseProvider(databaseRepository, globalModule.getDatabaseEventListeners());
-        databaseIdRepo.setDelegate(rootDatabaseIdRepository);
+        var modelProvider = new CommunityDatabaseObjectRepositoryModelProvider(systemDatabaseProvider);
+
+        databaseIdRepo.setDelegate(AbstractEditionModule.tryResolveOrCreate(
+                DatabaseIdRepository.class,
+                globalModule.getExternalDependencyResolver(),
+                () -> new ModelBasedDatabaseIdRepository(modelProvider)));
         databaseReferenceRepo = globalModule
                 .getGlobalDependencies()
                 .satisfyDependency(new MapCachingDatabaseReferenceRepository(AbstractEditionModule.tryResolveOrCreate(
                         DatabaseReferenceRepository.class,
                         globalModule.getExternalDependencyResolver(),
-                        () -> new ModelBasedDatabaseReferenceRepository(
-                                new CommunityDatabaseReferenceRepositoryModelProvider(systemDatabaseProvider)))));
+                        () -> new ModelBasedDatabaseReferenceRepository(modelProvider))));
         var databaseIdCacheCleaner = new DatabaseReferenceCacheClearingListener(databaseIdRepo, databaseReferenceRepo);
 
         var kernelPanicListener =
