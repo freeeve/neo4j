@@ -71,11 +71,8 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 
 class CreateIrExpressionsTest extends CypherFunSuite with AstConstructionTestSupport {
-
-  implicit val windowsSafe: WindowsStringSafe.type = WindowsStringSafe
 
   private val n = v"n"
   private val m = v"m"

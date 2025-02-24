@@ -41,7 +41,9 @@ object LogicalPlanTreeRenderer {
       plan.lhs.foreach(lhs => childrenStack ::= LevelPlanItem(level, lhs))
       plan.rhs.foreach(rhs => childrenStack ::= LevelPlanItem(level + 1, rhs))
 
-      if (childrenStack.nonEmpty) sb ++= System.lineSeparator()
+      if (childrenStack.nonEmpty)
+        sb ++= """
+                 |""".stripMargin
     }
 
     sb.toString()

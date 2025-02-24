@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.SyntaxExceptionCreator
 import org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery.StatementConverters
-import org.neo4j.cypher.internal.compiler.helpers.WindowsSafeAnyRef
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -81,9 +80,6 @@ trait PlannerQueryRewriterTest {
   ): Statement
 
   protected def assertRewrite(originalQuery: String, expectedQuery: String): Unit = {
-    // We compare "solvedExpressionAsString" nested inside IRExpressions.
-    // This saves us from windows line break mismatches in those strings.
-    implicit val windowsSafe: WindowsSafeAnyRef[PlannerQuery] = new WindowsSafeAnyRef[PlannerQuery]
 
     val expectedGen = new AnonymousVariableNameGenerator()
     val actualGen = new AnonymousVariableNameGenerator()

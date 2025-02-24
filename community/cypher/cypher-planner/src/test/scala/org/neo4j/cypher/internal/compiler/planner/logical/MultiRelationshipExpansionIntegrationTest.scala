@@ -24,13 +24,11 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPla
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
-import org.neo4j.cypher.internal.compiler.helpers.WindowsSafeAnyRef
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.GetValue
-import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -39,10 +37,6 @@ import java.lang.Boolean.TRUE
 
 class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
-
-  // We compare "solvedExpressionString" nested inside LogicalPlans.
-  // This saves us from windows line break mismatches in those strings.
-  implicit val windowsSafe: WindowsSafeAnyRef[LogicalPlan] = new WindowsSafeAnyRef[LogicalPlan]
 
   private val plannerBase = plannerBuilder()
     .setAllNodesCardinality(100)
@@ -400,9 +394,6 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
   }
 
   test("nested plan expression in non-inlined predicate") {
-    // We compare "solvedExpressionAsString" nested inside NestedPlanExpressions.
-    // This saves us from windows line break mismatches in those strings.
-    implicit val windowsSafe: WindowsSafeAnyRef[LogicalPlan] = new WindowsSafeAnyRef[LogicalPlan]
 
     val query = """
       MATCH p = ANY SHORTEST (s) ((a)-[r1]->(b)-[r2]->(c) WHERE EXISTS { (c)-->(a) })+ (t)

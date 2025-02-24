@@ -29,12 +29,10 @@ import org.neo4j.cypher.internal.frontend.prettifier.PrettifierTestSupport.TestC
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 
 import scala.math.Ordered.orderingToOrdered
 
 class PrettifierIT extends CypherFunSuite {
-  implicit private val windowsSafe: WindowsStringSafe.type = WindowsStringSafe
 
   val prettifier: Prettifier = Prettifier(ExpressionStringifier())
 

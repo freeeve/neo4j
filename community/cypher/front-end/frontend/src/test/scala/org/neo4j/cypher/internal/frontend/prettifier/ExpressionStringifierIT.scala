@@ -22,11 +22,8 @@ import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 
 class ExpressionStringifierIT extends CypherFunSuite {
-
-  implicit val windowsSafe: WindowsStringSafe.type = WindowsStringSafe
 
   val stringifier: ExpressionStringifier = ExpressionStringifier()
 

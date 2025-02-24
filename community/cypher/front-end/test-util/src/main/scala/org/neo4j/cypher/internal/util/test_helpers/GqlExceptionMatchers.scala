@@ -29,8 +29,6 @@ import scala.jdk.OptionConverters.RichOptional
 
 trait GqlExceptionMatchers {
 
-  implicit val windowsSafe: WindowsStringSafe.type = WindowsStringSafe
-
   case class GqlExceptionMatcher(
     code: GqlStatusInfoCodes,
     statusDescription: String,

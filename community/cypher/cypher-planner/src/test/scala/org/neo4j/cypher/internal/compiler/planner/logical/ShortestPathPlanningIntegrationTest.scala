@@ -28,7 +28,6 @@ import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
-import org.neo4j.cypher.internal.compiler.helpers.WindowsSafeAnyRef
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
 import org.neo4j.cypher.internal.expressions.LiteralEntry
@@ -56,7 +55,6 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.GetValue
-import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
 import org.neo4j.cypher.internal.logical.plans.NestedPlanGetByNameExpression
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
@@ -72,10 +70,6 @@ import java.lang.Boolean.FALSE
 
 class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport {
-
-  // We compare "solvedExpressionString" nested inside LogicalPlans.
-  // This saves us from windows line break mismatches in those strings.
-  implicit val windowsSafe: WindowsSafeAnyRef[LogicalPlan] = new WindowsSafeAnyRef[LogicalPlan]
 
   private val plannerBase = plannerBuilder()
     .setAllNodesCardinality(100)
@@ -1957,9 +1951,6 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
   }
 
   test("should plan pattern expression predicates") {
-    // We compare "solvedExpressionAsString" nested inside NestedPlanExpressions.
-    // This saves us from windows line break mismatches in those strings.
-    implicit val windowsSafe: WindowsSafeAnyRef[LogicalPlan] = new WindowsSafeAnyRef[LogicalPlan]
 
     val query =
       """MATCH ANY SHORTEST ((u:User) ((a)-[r]->(b))+ (v)-[s]->(w) WHERE (v)-->(:N))
@@ -2015,9 +2006,6 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
   }
 
   test("should plan pattern expression predicates inside QPP") {
-    // We compare "solvedExpressionAsString" nested inside NestedPlanExpressions.
-    // This saves us from windows line break mismatches in those strings.
-    implicit val windowsSafe: WindowsSafeAnyRef[LogicalPlan] = new WindowsSafeAnyRef[LogicalPlan]
 
     val query =
       """MATCH ANY SHORTEST ((u:User)(
@@ -2156,9 +2144,6 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
   }
 
   test("should plan subquery expression inside QPP") {
-    // We compare "solvedExpressionAsString" nested inside NestedPlanExpressions.
-    // This saves us from windows line break mismatches in those strings.
-    implicit val windowsSafe: WindowsSafeAnyRef[LogicalPlan] = new WindowsSafeAnyRef[LogicalPlan]
 
     // GIVEN
     val query =
@@ -2224,9 +2209,6 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
   }
 
   test("should plan subquery expression predicates with multiple dependencies") {
-    // We compare "solvedExpressionAsString" nested inside NestedPlanExpressions.
-    // This saves us from windows line break mismatches in those strings.
-    implicit val windowsSafe: WindowsSafeAnyRef[LogicalPlan] = new WindowsSafeAnyRef[LogicalPlan]
 
     val query =
       """MATCH ANY SHORTEST ((u:User) ((a)-[r]->(b))+ (v)-[s]->(w)-[t]->(x) WHERE EXISTS { (v)<--(w) })
@@ -2876,9 +2858,6 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
   }
 
   test("Should not inline relationship local (start and end node) predicate into NFA: NestedPlanExpression") {
-    // We compare "solvedExpressionAsString" nested inside NestedPlanExpressions.
-    // This saves us from windows line break mismatches in those strings.
-    implicit val windowsSafe: WindowsSafeAnyRef[LogicalPlan] = new WindowsSafeAnyRef[LogicalPlan]
 
     val query =
       "MATCH ANY SHORTEST ((u:User)((n)-[r]->(m))+(v)-[r2]->(w) WHERE EXISTS { (v)-->({prop: v.prop + r2.prop + w.prop}) } ) RETURN *"
@@ -4419,9 +4398,6 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
   }
 
   test("nested plan expression in non-inlined predicate") {
-    // We compare "solvedExpressionAsString" nested inside NestedPlanExpressions.
-    // This saves us from windows line break mismatches in those strings.
-    implicit val windowsSafe: WindowsSafeAnyRef[LogicalPlan] = new WindowsSafeAnyRef[LogicalPlan]
 
     val query = """
       MATCH p = ANY SHORTEST (s) ((a)-[r1]->(b)-[r2]->(c) WHERE EXISTS { (c)-->(a) })+ (t)

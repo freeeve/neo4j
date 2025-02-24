@@ -40,7 +40,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.LiteralHelper.lite
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 import org.neo4j.internal.kernel.api.IndexReadSession
 import org.neo4j.internal.kernel.api.helpers.StubNodeValueIndexCursor
 import org.neo4j.values.storable.TextValue
@@ -48,7 +47,6 @@ import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.NodeValue
 
 class NodeIndexStringScanPipeTest extends CypherFunSuite with ImplicitDummyPos with IndexMockingHelp {
-  implicit val windowsSafe: WindowsStringSafe.type = WindowsStringSafe
 
   private val label = LabelToken(LabelName("LabelName") _, LabelId(11))
   private val propertyKey = PropertyKeyToken(PropertyKeyName("PropertyName") _, PropertyKeyId(10))
