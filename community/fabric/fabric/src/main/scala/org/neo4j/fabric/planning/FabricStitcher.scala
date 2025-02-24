@@ -92,14 +92,14 @@ case class FabricStitcher(
 
   private def processCompositeCallInTx(fragment: Fragment): Fragment.Chain = fragment match {
     // Go over the fragment chain and process CALL IN TX Apply if present
-    case apply: Apply if apply.inTransactionsParameters.isDefined => {
+    case apply: Apply if apply.inTransactionsParameters.isDefined =>
       val newExec = apply.inner match {
         case exec: Exec => constructCallInTransactionExec(exec, apply.inTransactionsParameters.get)
         // At the end of stitching an Apply can have only Exec as the inner fragment
         case f => throw new IllegalArgumentException("Unexpected fragment: " + f);
       }
       apply.copy(input = processCompositeCallInTx(apply.input), inner = newExec)(apply.pos)
-    }
+
     case apply: Apply => apply.copy(input = processCompositeCallInTx(apply.input))(apply.pos)
     case init: Init   => init
     case exec: Exec   => exec.copy(input = processCompositeCallInTx(exec.input))
@@ -376,7 +376,7 @@ case class FabricStitcher(
       case Some(outer) =>
         def outerIsComposite = useHelper.useTargetsCompositeContext(outer)
         def same = outer.graphSelection == inner.graphSelection
-        if (!outerIsComposite && !same) Some(outer, inner) else None
+        if (!outerIsComposite && !same) Some((outer, inner)) else None
     }
   }
 

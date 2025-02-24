@@ -723,7 +723,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     }
 
     val rowN1 = Array(10, 11)
-    val rowN2 = Array(20, null)
+    val rowN2 = Array[Any](20, null)
     val rowN3 = Array(20, 21)
     val predicates = Table(
       ("predicate(s)", "expected"),

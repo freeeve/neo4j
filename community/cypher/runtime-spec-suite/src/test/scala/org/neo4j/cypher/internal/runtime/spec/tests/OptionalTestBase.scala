@@ -384,7 +384,7 @@ abstract class OptionalTestBase[CONTEXT <: RuntimeContext](
       .build()
 
     execute(query, runtime) should beColumns("a", "b")
-      .withRows(Seq(Array("input", NO_VALUE)))
+      .withRows(Seq(Array[Object]("input", NO_VALUE)))
   }
 
   // https://trello.com/c/nN53ne8o/

@@ -28,10 +28,8 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
-import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNodeWithProperties
-import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
 import org.neo4j.cypher.internal.logical.plans.Prober
 import org.neo4j.cypher.internal.logical.plans.Prober.Probe
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
@@ -663,7 +661,7 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
   test("no resource leaks with continuations on rhs") {
     val size = 10
     val relCount = givenGraph {
-      val (as, bs) = bipartiteGraph(size, "A", "B", "R")
+      val (as, _) = bipartiteGraph(size, "A", "B", "R")
       val rIdGen = new AtomicInteger(0)
       for {
         a <- as
@@ -791,15 +789,16 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
 
     // then
     val queryStatistics = runtimeResult.runtimeResult.queryStatistics().asInstanceOf[ExtendedQueryStatistics]
-    val expectedCommitted = List.fill(queryStatistics.getTransactionsCommitted * batchSize)(Array(true, true, null))
-    val expectedFailed = List.fill(batchSize)(Array(false, true, "I hate the number you chose"))
-    val expectedInterrupted = List.fill((queryStatistics.getTransactionsRolledBack - 1) * batchSize)(Array(
+    val expectedCommitted =
+      List.fill(queryStatistics.getTransactionsCommitted * batchSize)(Array[Any](true, true, null))
+    val expectedFailed = List.fill(batchSize)(Array[Any](false, true, "I hate the number you chose"))
+    val expectedInterrupted = List.fill((queryStatistics.getTransactionsRolledBack - 1) * batchSize)(Array[Any](
       false,
       true,
       "The batch was interrupted and the transaction was rolled back because another batch failed"
     ))
     val expectedNotStarted =
-      List.fill(input.size - queryStatistics.getTransactionsStarted * batchSize)(Array(false, false, null))
+      List.fill(input.size - queryStatistics.getTransactionsStarted * batchSize)(Array[Any](false, false, null))
     val expected = expectedCommitted ++ expectedFailed ++ expectedInterrupted ++ expectedNotStarted
 
     assert(expectedFailed.nonEmpty, "No transactions failed")

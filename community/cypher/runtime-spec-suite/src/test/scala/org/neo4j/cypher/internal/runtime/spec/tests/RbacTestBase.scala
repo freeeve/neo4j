@@ -128,8 +128,8 @@ abstract class RbacTestBase[CONTEXT <: RuntimeContext](
 
     val result = executeAs(query, runtime, username, password)
 
-    val aProps = for { i <- 0 until sizeHint } yield Array(i, null, 3)
-    val bProps = for { i <- 0 until sizeHint } yield Array(null, i, null)
+    val aProps = for { i <- 0 until sizeHint } yield Array[Any](i, null, 3)
+    val bProps = for { i <- 0 until sizeHint } yield Array[Any](null, i, null)
     val expected = aProps ++ bProps
     result should beColumns("a", "b", "c").withRows(expected)
   }
@@ -150,8 +150,8 @@ abstract class RbacTestBase[CONTEXT <: RuntimeContext](
 
     val result = executeAs(query, runtime, username, password)
 
-    val aProps = for { i <- 0 until sizeHint } yield Array(i, null, null, null)
-    val cProps = for { i <- 0 until sizeHint } yield Array(null, null, i, null)
+    val aProps = for { i <- 0 until sizeHint } yield Array[Any](i, null, null, null)
+    val cProps = for { i <- 0 until sizeHint } yield Array[Any](null, null, i, null)
     val expected = aProps ++ cProps
     result should beColumns("n.a", "n.b", "n.c", "n.d").withRows(expected)
   }

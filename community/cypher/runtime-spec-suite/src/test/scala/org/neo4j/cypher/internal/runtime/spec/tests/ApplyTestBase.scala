@@ -504,7 +504,7 @@ abstract class ApplyTestBase[CONTEXT <: RuntimeContext](
 
     // then
     val expected = nodes.zipWithIndex.map {
-      case (n, i) => Array(n, i.toString)
+      case (n, i) => Array[Any](n, i.toString)
     }
     runtimeResult should beColumns("x", "str").withRows(expected)
   }
@@ -540,7 +540,7 @@ abstract class ApplyTestBase[CONTEXT <: RuntimeContext](
 
     // then
     val expected = nodes.zipWithIndex.map {
-      case (n, i) => Array(n, "n_" + i.toString)
+      case (n, i) => Array[Any](n, "n_" + i.toString)
     }
     runtimeResult should beColumns("x", "str").withRows(expected)
   }
@@ -579,8 +579,8 @@ abstract class ApplyTestBase[CONTEXT <: RuntimeContext](
     // then
     val expected = nodes.zipWithIndex.flatMap {
       case (n, i) => Seq(
-          Seq(n, i.toString),
-          Seq(n, i.toString.reverse)
+          Seq[Any](n, i.toString),
+          Seq[Any](n, i.toString.reverse)
         ).distinct.map(_.toArray)
     }
     runtimeResult should beColumns("x", "str").withRows(expected)

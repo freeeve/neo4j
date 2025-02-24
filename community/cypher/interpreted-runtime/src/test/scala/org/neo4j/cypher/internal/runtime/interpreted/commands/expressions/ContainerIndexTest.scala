@@ -55,7 +55,7 @@ class ContainerIndexTest extends CypherFunSuite {
   }
 
   test("handles empty collections") {
-    implicit val collection = ListLiteral()
+    implicit val collection: ListLiteral = ListLiteral()
 
     idx(0) should equal(expectedNull)
     idx(-1) should equal(expectedNull)
@@ -63,13 +63,13 @@ class ContainerIndexTest extends CypherFunSuite {
   }
 
   test("handles nulls") {
-    implicit val collection = Literal(Values.NO_VALUE)
+    implicit val collection: Literal = Literal(Values.NO_VALUE)
 
     idx(0) should equal(expectedNull)
   }
 
   test("handles scala map lookup") {
-    implicit val expression = literal(Map[String, Any]("a" -> 1, "b" -> "foo"))
+    implicit val expression: Literal = literal(Map[String, Any]("a" -> 1, "b" -> "foo"))
 
     idx("a") should equal(longValue(1))
     idx("b") should equal(Values.stringValue("foo"))
@@ -77,7 +77,7 @@ class ContainerIndexTest extends CypherFunSuite {
   }
 
   test("handles java map lookup") {
-    implicit val expression = literal(Map[String, Any]("a" -> 1, "b" -> "foo").asJava)
+    implicit val expression: Literal = literal(Map[String, Any]("a" -> 1, "b" -> "foo").asJava)
 
     idx("a") should equal(longValue(1))
     idx("b") should equal(Values.stringValue("foo"))

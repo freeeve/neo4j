@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter.NoRewrites
 import org.neo4j.graphdb.Label
+import org.neo4j.graphdb.Node
 import org.neo4j.values.storable.Values.stringValue
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -95,7 +96,7 @@ abstract class RightOuterHashJoinTestBase[CONTEXT <: RuntimeContext](
 
     val expectedRows = for {
       (n, r) <- rhsRows
-      (_, l) <- matchingRowsOuter(lhsRows, n)
+      (_, l) <- matchingRowsOuter[Node, Any](lhsRows, n)
     } yield Array(n, l, r)
 
     runtimeResult should beColumns("n", "l", "r").withRows(expectedRows)
@@ -137,8 +138,8 @@ abstract class RightOuterHashJoinTestBase[CONTEXT <: RuntimeContext](
 
     val expectedRows = for {
       (n, r) <- rhsRows
-      (_, l) <- matchingRowsOuter(lhsRows, n)
-    } yield Array(n, l, r)
+      (_, l) <- matchingRowsOuter[Node, Any](lhsRows, n)
+    } yield Array[Any](n, l, r)
 
     runtimeResult should beColumns("n", "l", "r").withRows(expectedRows)
   }
@@ -181,7 +182,7 @@ abstract class RightOuterHashJoinTestBase[CONTEXT <: RuntimeContext](
 
     val expectedRows = for {
       (n, r) <- rhsRows
-      (_, l) <- matchingRowsOuter(lhsRows, n)
+      (_, l) <- matchingRowsOuter[Node, Any](lhsRows, n)
     } yield Array(n, l, r)
 
     runtimeResult should beColumns("n", "l", "r").withRows(expectedRows)
@@ -226,8 +227,8 @@ abstract class RightOuterHashJoinTestBase[CONTEXT <: RuntimeContext](
 
     val expectedRows = for {
       (n, r) <- rhsRows
-      (_, l) <- matchingRowsOuter(lhsRows, n)
-    } yield Array(n, l, r)
+      (_, l) <- matchingRowsOuter[Node, Any](lhsRows, n)
+    } yield Array[Any](n, l, r)
 
     runtimeResult should beColumns("n", "l", "r").withRows(expectedRows)
   }
@@ -273,7 +274,7 @@ abstract class RightOuterHashJoinTestBase[CONTEXT <: RuntimeContext](
 
     val expectedRows = for {
       (n, r) <- rhsRows
-      (_, l) <- matchingRowsOuter(lhsRows, n)
+      (_, l) <- matchingRowsOuter[Node, Any](lhsRows, n)
     } yield Array(n, l, r)
 
     runtimeResult should beColumns("n", "l", "r").withRows(expectedRows)
@@ -381,7 +382,7 @@ abstract class RightOuterHashJoinTestBase[CONTEXT <: RuntimeContext](
 
     val expectedRows = for {
       (n, _) <- rhsRows
-      (_, _) <- matchingRowsOuter(lhsRows, n)
+      (_, _) <- matchingRowsOuter[Node, Any](lhsRows, n)
       l = n.getProperty("leftProp").asInstanceOf[Int]
       r = n.getProperty("rightProp").asInstanceOf[Int]
     } yield Array[Any](n, l, r)
