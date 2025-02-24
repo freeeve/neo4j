@@ -341,6 +341,32 @@ abstract class SeekCursorTestBase<KEY, VALUE> {
     }
 
     @Test
+    void shouldHandleEmptyTree() throws IOException {
+        // GIVEN
+        long fromInclusive = 0;
+        long toExclusive = 10;
+
+        // WHEN
+        try (SeekCursor<KEY, VALUE> cursor = seekCursor(fromInclusive, toExclusive)) {
+            // THEN
+            assertFalse(cursor.next());
+        }
+    }
+
+    @Test
+    void shouldHandleEmptyTreeBackwards() throws IOException {
+        // GIVEN
+        long fromInclusive = 10;
+        long toExclusive = 0;
+
+        // WHEN
+        try (SeekCursor<KEY, VALUE> cursor = seekCursor(fromInclusive, toExclusive)) {
+            // THEN
+            assertFalse(cursor.next());
+        }
+    }
+
+    @Test
     void shouldHandleBackwardsWithNoExactHitOnFromInclusive() throws IOException {
         // GIVEN
         insert(0);
