@@ -265,9 +265,20 @@ object AdministrationCommandRuntime {
     val userId = Values.utf8Value(UUID.randomUUID().toString)
     val authKey = internalKey("auth")
     val homeDatabaseFields = defaultDatabase.map {
-      case RemoveHomeDatabaseAction => NameFields(s"${internalPrefix}homeDatabase", Values.NO_VALUE, IdentityConverter)
+      case RemoveHomeDatabaseAction => DatabaseNameFields(
+          s"${internalPrefix}homeDatabase",
+          Values.NO_VALUE,
+          s"${internalPrefix}homeDatabase_namespace",
+          Values.NO_VALUE,
+          s"${internalPrefix}homeDatabase_displayName",
+          Values.NO_VALUE,
+          s"${internalPrefix}homeDatabase_quotedDisplayName",
+          Values.NO_VALUE,
+          wasParameter = false,
+          IdentityConverter
+        )
       case SetHomeDatabaseAction(name) =>
-        getNameFields("homeDatabase", name.asLegacyName, s => NormalizedDatabaseName.normalize(s))
+        getDatabaseNameFields("homeDatabase", name, emulateGetNameFields = true)
     }
     val userNameFields = getNameFields("username", userName)
     val nonPasswordParameterNames = Array(
@@ -275,14 +286,16 @@ object AdministrationCommandRuntime {
       uuidKey,
       suspendedKey,
       authKey
-    ) ++ homeDatabaseFields.map(_.nameKey) ++ changeRequiredOption.map(_ =>
+    ) ++ homeDatabaseFields.map(_.displayNameKey) ++ changeRequiredOption.map(_ =>
       passwordChangeRequiredKey
     )
     val credentialsOption = nativeAuth.map(_.password).collectFirst {
       case Some(Password(password, isEncrypted)) =>
         getPasswordExpression(password, isEncrypted, nonPasswordParameterNames)(config)
     }
-    val homeDatabaseCypher = homeDatabaseFields.map(ddf => s", $userHomeDbPropKey: $$`${ddf.nameKey}`").getOrElse("")
+    val homeDatabaseCypher = homeDatabaseFields.map(ddf =>
+      s", $userHomeDbPropKey: $$`${ddf.displayNameKey}`"
+    ).getOrElse("")
     val nativeAuthCypher = credentialsOption.map(credentials =>
       s", $userCredPropKey: $$`${credentials.key}`, $userPwChangeReqPropKey: $$`$passwordChangeRequiredKey`"
     ).getOrElse("")
@@ -330,7 +343,7 @@ object AdministrationCommandRuntime {
             userId,
             Values.booleanValue(suspended),
             Values.NO_VALUE // generated
-          ) ++ homeDatabaseFields.map(_.nameValue) ++ changeRequiredOption.map(Values.booleanValue)
+          ) ++ homeDatabaseFields.map(_.displayNameValue) ++ changeRequiredOption.map(Values.booleanValue)
       ),
       QueryHandler
         .handleNoResult(params =>
@@ -393,11 +406,22 @@ object AdministrationCommandRuntime {
     val removeNativeKey = internalKey("removeNative")
     val enforceAuthKey = internalKey("enforceAuth")
     val homeDatabaseFields = homeDatabase.map {
-      case RemoveHomeDatabaseAction => NameFields(s"${internalPrefix}homeDatabase", Values.NO_VALUE, IdentityConverter)
+      case RemoveHomeDatabaseAction => DatabaseNameFields(
+          s"${internalPrefix}homeDatabase",
+          Values.NO_VALUE,
+          s"${internalPrefix}homeDatabase_namespace",
+          Values.NO_VALUE,
+          s"${internalPrefix}homeDatabase_displayName",
+          Values.NO_VALUE,
+          s"${internalPrefix}homeDatabase_quotedDisplayName",
+          Values.NO_VALUE,
+          wasParameter = false,
+          IdentityConverter
+        )
       case SetHomeDatabaseAction(name) =>
-        getNameFields("homeDatabase", name.asLegacyName, s => NormalizedDatabaseName.normalize(s))
+        getDatabaseNameFields("homeDatabase", name, emulateGetNameFields = true)
     }
-    val nonPasswordParameterNames = Array(userNameFields.nameKey) ++ homeDatabaseFields.map(_.nameKey) ++
+    val nonPasswordParameterNames = Array(userNameFields.nameKey) ++ homeDatabaseFields.map(_.displayNameKey) ++
       Array(setAuthKey, removeAuthKey, removeNativeKey, enforceAuthKey)
     val maybePw = nativeAuth.map(_.password).collectFirst {
       case Some(Password(password, isEncrypted)) =>
@@ -415,7 +439,10 @@ object AdministrationCommandRuntime {
         case Some(passwordExpression: PasswordExpression) =>
           Seq((param._2, passwordExpression.key, passwordExpression.value))
         case Some(nameFields: NameFields) => Seq((param._2, nameFields.nameKey, nameFields.nameValue))
-        case Some(p)                      =>
+        case Some(nameFields: DatabaseNameFields) => Seq(
+            (param._2, nameFields.displayNameKey, nameFields.displayNameValue)
+          )
+        case Some(p) =>
           // The $input (...getSimpleName) is a bit strange, but it's fine as this error should not happen as we only give the expected values in the loop
           throw InvalidArgumentException.invalidOptionTypeForAlterUser(
             String.valueOf(p),
@@ -609,12 +636,12 @@ object AdministrationCommandRuntime {
     )
   }
 
-  private def isHomeDatabasePresent(homeDatabaseFields: Option[NameFields])(
+  private def isHomeDatabasePresent(homeDatabaseFields: Option[DatabaseNameFields])(
     tx: Transaction,
     params: MapValue
   ): (MapValue, Set[InternalNotification]) =
     homeDatabaseFields.map(ddf => {
-      params.get(ddf.nameKey) match {
+      params.get(ddf.displayNameKey) match {
         case tv: TextValue =>
           val notifications: Set[InternalNotification] =
             if (Iterators.asList(tx.findNodes(DATABASE_NAME_LABEL, DISPLAY_NAME_PROPERTY, tv.stringValue())).isEmpty) {
@@ -730,16 +757,16 @@ object AdministrationCommandRuntime {
    *
    * @param nameKey parameter key used in the "inner" cypher
    * @param name the namespaced name or parameter
-   * @param fromCreateDb make this behave closer to getNameFields to keep existing behaviour for create database
+   * @param emulateGetNameFields make this behave closer to getNameFields to keep existing behaviour for example for create database
    * @return
    */
   private[internal] def getDatabaseNameFields(
     nameKey: String,
     name: DatabaseName,
-    fromCreateDb: Boolean = false
+    emulateGetNameFields: Boolean = false
   ): DatabaseNameFields = {
     // NOTE: valueMapper and backtick are used in different order, ensure that valueMapper doesn't affect backticks
-    val valueMapper: String => String = NormalizedDatabaseName.normalize(_)
+    val valueMapper: String => String = NormalizedDatabaseName.normalize
     def backtick(s: String) = ExpressionStringifier().backtick(s)
     name match {
       case name @ NamespacedName(_, None) =>
@@ -774,14 +801,16 @@ object AdministrationCommandRuntime {
           wasParameter = false,
           IdentityConverter
         )
-      case pn @ ParameterName(parameter) =>
-        def rename: String => String = paramName => internalKey(paramName)
-        val displayNameKey = internalKey(parameter.name + "_displayName")
-        val quotedDisplayNameKey = internalKey(parameter.name + "_quotedDisplayName")
+      case pn: ParameterName =>
+        // use 'real' parameter name to fetch values with `pn.getNameParts`
+        // but then the internal name (nameKey) to not cause namespace collision with other internal parameters
+        // similar as what `RenamingStringParameterConverter` does for `getNameFields`
+        val displayNameKey = internalKey(nameKey + "_displayName")
+        val quotedDisplayNameKey = internalKey(nameKey + "_quotedDisplayName")
         DatabaseNameFields(
-          rename(parameter.name),
+          internalKey(nameKey),
           Values.NO_VALUE,
-          internalKey(parameter.name + "_namespace"),
+          internalKey(nameKey + "_namespace"),
           Values.utf8Value(DEFAULT_NAMESPACE),
           displayNameKey,
           Values.NO_VALUE,
@@ -790,12 +819,12 @@ object AdministrationCommandRuntime {
           wasParameter = true,
           (_, params) => {
             val (namespace, name, displayName, quotedDisplayName) =
-              pn.getNameParts(params, DEFAULT_NAMESPACE, fromCreateDb)
+              pn.getNameParts(params, DEFAULT_NAMESPACE, emulateGetNameFields)
             params.updatedWith(
-              internalKey(parameter.name + "_namespace"),
+              internalKey(nameKey + "_namespace"),
               Values.utf8Value(valueMapper(namespace.getOrElse(DEFAULT_NAMESPACE)))
             )
-              .updatedWith(internalKey(parameter.name), Values.utf8Value(valueMapper(name)))
+              .updatedWith(internalKey(nameKey), Values.utf8Value(valueMapper(name)))
               .updatedWith(displayNameKey, Values.utf8Value(valueMapper(displayName)))
               .updatedWith(quotedDisplayNameKey, Values.utf8Value(valueMapper(quotedDisplayName)))
           }

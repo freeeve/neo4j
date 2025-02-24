@@ -67,7 +67,7 @@ case class ParameterName(parameter: Parameter)(val position: InputPosition) exte
   def getNameParts(
     params: MapValue,
     defaultNamespace: String,
-    fromCreateDb: Boolean = false
+    emulateGetNameFields: Boolean = false
   ): (Option[String], String, String, String) = {
     val paramValue = params.get(parameter.name)
     if (!paramValue.isInstanceOf[TextValue]) {
@@ -84,7 +84,7 @@ case class ParameterName(parameter: Parameter)(val position: InputPosition) exte
       val nameParts = if (paramStringValue.endsWith(".")) namePartsSplit :+ "" else namePartsSplit
       if (nameParts.length == 1) {
         (None, nameParts(0), nameParts(0), backtick(nameParts(0)))
-      } else if (fromCreateDb) {
+      } else if (emulateGetNameFields) {
         val displayName = paramValue.asInstanceOf[TextValue].stringValue()
         val quotedDisplayName = backtick(displayName)
         (None, displayName, displayName, quotedDisplayName)
