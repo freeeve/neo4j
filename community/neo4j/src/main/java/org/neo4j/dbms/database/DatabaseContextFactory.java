@@ -19,9 +19,7 @@
  */
 package org.neo4j.dbms.database;
 
-import org.neo4j.kernel.database.NamedDatabaseId;
-
 @FunctionalInterface
 public interface DatabaseContextFactory<CONTEXT, OPTIONS> {
-    CONTEXT create(NamedDatabaseId namedDatabaseId, OPTIONS databaseOptions);
+    CONTEXT create(OPTIONS databaseOptions);
 }

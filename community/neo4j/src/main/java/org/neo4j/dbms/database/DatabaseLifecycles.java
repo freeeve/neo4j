@@ -40,13 +40,13 @@ import org.neo4j.logging.LogProvider;
 public final class DatabaseLifecycles {
     private final DatabaseRepository<StandaloneDatabaseContext> databaseRepository;
     private final String defaultDatabaseName;
-    private final DatabaseContextFactory<StandaloneDatabaseContext, Optional<?>> databaseContextFactory;
+    private final DatabaseContextFactory<StandaloneDatabaseContext, NamedDatabaseId> databaseContextFactory;
     private final Log log;
 
     public DatabaseLifecycles(
             DatabaseRepository<StandaloneDatabaseContext> databaseRepository,
             String defaultDatabaseName,
-            DatabaseContextFactory<StandaloneDatabaseContext, Optional<?>> databaseContextFactory,
+            DatabaseContextFactory<StandaloneDatabaseContext, NamedDatabaseId> databaseContextFactory,
             LogProvider logProvider) {
         this.databaseRepository = databaseRepository;
         this.defaultDatabaseName = defaultDatabaseName;
@@ -92,7 +92,7 @@ public final class DatabaseLifecycles {
     private StandaloneDatabaseContext createDatabase(NamedDatabaseId namedDatabaseId) {
         log.info("Creating '%s'.", namedDatabaseId);
         checkDatabaseLimit(namedDatabaseId);
-        StandaloneDatabaseContext databaseContext = databaseContextFactory.create(namedDatabaseId, Optional.empty());
+        StandaloneDatabaseContext databaseContext = databaseContextFactory.create(namedDatabaseId);
         databaseRepository.add(namedDatabaseId, databaseContext);
         return databaseContext;
     }

@@ -19,7 +19,6 @@
  */
 package org.neo4j.dbms.database;
 
-import java.util.Optional;
 import org.neo4j.configuration.DatabaseConfig;
 import org.neo4j.cypher.internal.javacompat.CommunityCypherEngineProvider;
 import org.neo4j.dbms.identity.ServerIdentity;
@@ -51,7 +50,7 @@ import org.neo4j.logging.internal.DatabaseLogProvider;
 import org.neo4j.storageengine.StoreIdGenerator;
 
 public class DefaultDatabaseContextFactory
-        extends AbstractDatabaseContextFactory<StandaloneDatabaseContext, Optional<?>> {
+        extends AbstractDatabaseContextFactory<StandaloneDatabaseContext, NamedDatabaseId> {
     private final DatabaseTransactionStats.Factory transactionStatsFactory;
     private final DatabaseIndexStats.Factory indexStatsFactory;
     private final DeviceMapper deviceMapper;
@@ -81,7 +80,7 @@ public class DefaultDatabaseContextFactory
     }
 
     @Override
-    public StandaloneDatabaseContext create(NamedDatabaseId namedDatabaseId, Optional<?> ignored) {
+    public StandaloneDatabaseContext create(NamedDatabaseId namedDatabaseId) {
         return new Creator(namedDatabaseId).context();
     }
 

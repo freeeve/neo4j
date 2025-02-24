@@ -50,12 +50,7 @@ class DatabaseLifecyclesTest {
             new DatabaseRepository<>(new SimpleDatabaseIdRepository());
 
     private final DatabaseLifecycles databaseLifecycles = new DatabaseLifecycles(
-            databaseRepository,
-            DEFAULT_DATABASE_NAME,
-            (namedDatabaseId, databaseOptions) -> getContext(namedDatabaseId),
-            NullLogProvider.getInstance());
-
-    private StandaloneDatabaseContext context = null;
+            databaseRepository, DEFAULT_DATABASE_NAME, this::getContext, NullLogProvider.getInstance());
 
     @Test
     void shouldCreateSystemOmInitThenStart() throws Exception {
@@ -100,7 +95,7 @@ class DatabaseLifecyclesTest {
         systemDatabaseStarter.start();
         databaseLifecycles.defaultDatabaseStarter().start();
         var context =
-                databaseRepository.getDatabaseContext(DEFAULT_DATABASE_NAME).get();
+                databaseRepository.getDatabaseContext(DEFAULT_DATABASE_NAME).orElseThrow();
         var message = "Oh noes...";
 
         // when
@@ -122,9 +117,8 @@ class DatabaseLifecyclesTest {
     }
 
     private StandaloneDatabaseContext getContext(NamedDatabaseId namedDatabaseId) {
-        context = mock(StandaloneDatabaseContext.class);
-        Database db = null;
-
+        var context = mock(StandaloneDatabaseContext.class);
+        Database db;
         if (namedDatabaseId.name().equals(GraphDatabaseSettings.SYSTEM_DATABASE_NAME)) {
             db = system;
         } else if (namedDatabaseId.name().equals(DEFAULT_DATABASE_NAME)) {
