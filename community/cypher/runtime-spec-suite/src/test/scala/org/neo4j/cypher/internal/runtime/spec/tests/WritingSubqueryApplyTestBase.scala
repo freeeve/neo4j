@@ -84,6 +84,7 @@ abstract class WritingSubqueryApplyTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = builder
       .limit(limit)
       .apply()
+      // NOTE: create is only here to force single-row execution on RHS
       .|.create(createNode("c", "C"))
       .|.unwind(s"range(1,$rhsRows) AS b")
       .|.nonFuseable()
@@ -131,6 +132,33 @@ abstract class WritingSubqueryApplyTestBase[CONTEXT <: RuntimeContext](
       queryProfile.operatorProfile(nonFuseableId).rows() should expectedRowsBottomRhs
       queryProfile.operatorProfile(argumentId).rows() should expectedRowsBottomRhs
     }
+  }
+
+  test("should handle limit on RHS") {
+    // given
+    val sizeHint = 2
+
+    val nodes = givenGraph {
+      nodeGraph(sizeHint)
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("c")
+      .aggregation(Seq.empty, Seq("count(x) AS c"))
+      .apply()
+      .|.create(createNode("n"))
+      .|.limit(1)
+      .|.argument("x")
+      .allNodeScan("x")
+      .build(readOnly = false)
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    val expected = nodes.length
+
+    // then
+    runtimeResult should beColumns("c").withSingleRow(expected).withStatistics(nodesCreated = expected)
   }
 
   test("should handle RHS with R/W dependencies - with AllNodesScan on RHS") {
