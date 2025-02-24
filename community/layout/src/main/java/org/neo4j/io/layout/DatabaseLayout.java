@@ -47,12 +47,11 @@ public interface DatabaseLayout {
     }
 
     static DatabaseLayout of(Config config) {
-        var databaseName = config.get(GraphDatabaseSettings.initial_default_database);
-        return of(config, databaseName);
+        return of(config, config.get(GraphDatabaseSettings.initial_default_database));
     }
 
-    static DatabaseLayout of(Config config, String databaseName) {
-        return Neo4jLayout.of(config).databaseLayout(databaseName);
+    static DatabaseLayout of(Config config, String dbName) {
+        return Neo4jLayout.of(config).databaseLayout(dbName);
     }
 
     static DatabaseLayout of(Neo4jLayout neo4jLayout, String databaseName) {
