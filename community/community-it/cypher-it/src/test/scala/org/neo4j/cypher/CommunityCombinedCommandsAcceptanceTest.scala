@@ -836,14 +836,15 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
         try {
           val unwindTransactionId = getTransactionIdExecutingQuery(unwindQuery)
 
+          val expectedValuesMap: Map[String, Object] = Map(
+            "txId" -> unwindTransactionId,
+            "parameters" -> Map("setting" -> expectedSetting("name"))
+          )
           execute(
             s"""$cypherVersionString
                |SHOW TRANSACTION '$unwindTransactionId'
                |YIELD transactionId AS txId, parameters""".stripMargin
-          ).toList should be(List(Map(
-            "txId" -> unwindTransactionId,
-            "parameters" -> Map("setting" -> expectedSetting("name"))
-          )))
+          ).toList should be(List(expectedValuesMap))
 
           // WHEN
           val result = execute(

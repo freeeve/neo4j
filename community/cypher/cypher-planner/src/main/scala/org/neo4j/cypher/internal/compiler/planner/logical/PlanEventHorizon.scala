@@ -377,8 +377,9 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           context.staticComponents.logicalPlanProducer.planUnwind(selectedPlan, variable, expression, context)
         SortPlanner.ensureSortedPlanWithSolved(projected, interestingOrderConfig, context, updateSolvedOrdering)
 
-      case projection: AbstractProcedureCallProjection =>
-        val projected = context.staticComponents.logicalPlanProducer.planProcedureCall(plan, projection.call, context)
+      case callProjection: AbstractProcedureCallProjection =>
+        val projected =
+          context.staticComponents.logicalPlanProducer.planProcedureCall(plan, callProjection.call, context)
         SortPlanner.ensureSortedPlanWithSolved(projected, interestingOrderConfig, context, updateSolvedOrdering)
 
       case LoadCSVProjection(variableName, url, format, fieldTerminator) =>

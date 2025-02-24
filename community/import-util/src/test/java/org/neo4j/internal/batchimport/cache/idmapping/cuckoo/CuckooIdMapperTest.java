@@ -21,6 +21,7 @@ package org.neo4j.internal.batchimport.cache.idmapping.cuckoo;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.OFF_HEAP;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.ArrayList;
@@ -34,7 +35,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.batchimport.api.PropertyValueLookup;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.batchimport.api.input.ReadableGroups;
-import org.neo4j.internal.batchimport.cache.NumberArrayFactories;
 import org.neo4j.internal.batchimport.cache.idmapping.IdMapper;
 import org.neo4j.internal.batchimport.input.Groups;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -144,8 +144,7 @@ class CuckooIdMapperTest {
         Group g1 = groups.getOrCreate("G1");
         Group g2 = groups.getOrCreate("G2");
         Group g3 = groups.getOrCreate("G3");
-        try (IdMapper idMapper =
-                new CuckooIdMapper(10, NumberArrayFactories.HEAP, groups, EmptyMemoryTracker.INSTANCE)) {
+        try (IdMapper idMapper = new CuckooIdMapper(10, OFF_HEAP, groups, EmptyMemoryTracker.INSTANCE)) {
             IdMapper.Setter setter = idMapper.newSetter();
             setter.put(10L, 2, g1);
             setter.put(10L, 3, g2);
@@ -164,7 +163,7 @@ class CuckooIdMapperTest {
         for (int i = 0; i < size; i++) {
             groups.getOrCreate("" + i);
         }
-        try (IdMapper mapper = new StringCuckooIdMapper(size, NumberArrayFactories.HEAP, groups, INSTANCE, null)) {
+        try (IdMapper mapper = new StringCuckooIdMapper(size, OFF_HEAP, groups, INSTANCE, null)) {
             IdMapper.Setter setter = mapper.newSetter();
             for (int i = 0; i < size; i++) {
                 setter.put(i, i, groups.get("" + i));
@@ -195,8 +194,8 @@ class CuckooIdMapperTest {
     public void shouldPutFromMultipleThreads(int processors) throws Throwable {
         // GIVEN
         long countPerThread = 30_000;
-        IdMapper idMapper = new StringCuckooIdMapper(
-                countPerThread * processors, NumberArrayFactories.HEAP, ReadableGroups.EMPTY, INSTANCE, null);
+        IdMapper idMapper =
+                new StringCuckooIdMapper(countPerThread * processors, OFF_HEAP, ReadableGroups.EMPTY, INSTANCE, null);
         AtomicLong highNodeId = new AtomicLong();
         long batchSize = 1234;
         Race race = new Race();
@@ -240,22 +239,18 @@ class CuckooIdMapperTest {
     }
 
     private static CuckooIdMapper getCuckooIdMapperForLongs() {
-        return new CuckooIdMapper(10, NumberArrayFactories.HEAP, ReadableGroups.EMPTY, EmptyMemoryTracker.INSTANCE);
+        return new CuckooIdMapper(10, OFF_HEAP, ReadableGroups.EMPTY, EmptyMemoryTracker.INSTANCE);
     }
 
     private static CuckooIdMapper getCuckooIdMapperForString(Map<Long, String> stringStore) {
         return new StringCuckooIdMapper(
-                10,
-                NumberArrayFactories.HEAP,
-                ReadableGroups.EMPTY,
-                EmptyMemoryTracker.INSTANCE,
-                new InMemoryLookup(stringStore));
+                10, OFF_HEAP, ReadableGroups.EMPTY, EmptyMemoryTracker.INSTANCE, new InMemoryLookup(stringStore));
     }
 
     private static CuckooIdMapper getCuckooIdMapperForString(Map<Long, String> stringStore, StringHash stringHash) {
         return new StringCuckooIdMapper(
                 10,
-                NumberArrayFactories.HEAP,
+                OFF_HEAP,
                 ReadableGroups.EMPTY,
                 EmptyMemoryTracker.INSTANCE,
                 stringHash,

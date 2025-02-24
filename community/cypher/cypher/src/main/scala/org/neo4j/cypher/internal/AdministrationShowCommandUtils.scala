@@ -38,10 +38,11 @@ import org.neo4j.util.Stringifier.backtick
 
 object AdministrationShowCommandUtils {
 
-  private val prettifier = Prettifier(ExpressionStringifier {
+  private val intermediatePrettifier: Prettifier = Prettifier(ExpressionStringifier {
     case ParameterFromSlot(_, name, _) => s"$$${backtick(name)}"
     case expression                    => ExpressionStringifier.failingExtender(expression)
-  }).IndentingQueryPrettifier()
+  })
+  private val prettifier = intermediatePrettifier.IndentingQueryPrettifier()
 
   private def genDefaultOrderBy(columns: List[String], defaultOrder: Seq[String]): Option[OrderBy] =
     defaultOrder.filter(columns.contains) match {

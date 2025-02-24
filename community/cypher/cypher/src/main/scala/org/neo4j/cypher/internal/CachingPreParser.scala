@@ -146,11 +146,11 @@ class PreParser(
 
   private val EMPTY_QUERY_PARSER_EXCEPTION_MSG = "Unexpected end of input: expected CYPHER, EXPLAIN, PROFILE or Query"
 
-  @Deprecated // To be removed soon
+  @deprecated("To be removed soon", since = "01/2025")
   def preParse(query: String, notifications: InternalNotificationLogger): PreParsedQuery =
     preParse(query, configuration.systemDefaultLanguage)
 
-  @Deprecated // To be removed soon
+  @deprecated("To be removed soon", since = "01/2025")
   def preParse(query: String): PreParsedQuery = preParse(query, configuration.systemDefaultLanguage)
 
   /**

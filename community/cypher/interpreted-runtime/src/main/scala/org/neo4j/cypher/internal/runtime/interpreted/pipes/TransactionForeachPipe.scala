@@ -98,7 +98,8 @@ object TransactionForeachPipe {
         statusMap(Some(transactionId), started = true, committed = true, None)
       case Rollback(transactionId, failure, _, _) =>
         statusMap(Some(transactionId), started = true, committed = false, Some(failure.getMessage))
-      case NotRun => notRunStatus
+      case NotRun              => notRunStatus
+      case NonRecoverableError => notRunStatus
     }
   }
 

@@ -3977,7 +3977,9 @@ case class LogicalPlanProducer(
   }
 
   private def invalidatesProvidedOrderRecursive(plan: LogicalPlan, executionModel: ExecutionModel): Boolean =
-    plan.folder.treeExists { case plan: LogicalPlan if invalidatesProvidedOrder(plan, executionModel) => true }
+    plan.folder.treeExists {
+      case logicalPlan: LogicalPlan if invalidatesProvidedOrder(logicalPlan, executionModel) => true
+    }
 
   /**
    * Compute cardinality for a plan. Set this cardinality in the Cardinalities attribute.

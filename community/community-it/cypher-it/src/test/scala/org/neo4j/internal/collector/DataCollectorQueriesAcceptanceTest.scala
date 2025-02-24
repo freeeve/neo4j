@@ -165,23 +165,33 @@ class DataCollectorQueriesAcceptanceTest extends DataCollectorTestSupport {
     val res = execute("CALL db.stats.retrieve('QUERIES')").toList
 
     // then
+    val lhsMap: Map[String, Any] = Map(
+      "id" -> 1,
+      "operator" -> "EagerAggregation",
+      "lhs" -> Map[String, Any](
+        "id" -> 2,
+        "operator" -> "AllNodesScan"
+      )
+    )
+    val queryExecutionMap1: Map[String, Any] = Map(
+      "id" -> 0,
+      "operator" -> "ProduceResults",
+      "lhs" -> lhsMap
+    )
+    val queryExecutionMap2: Map[String, Any] = Map(
+      "id" -> 0,
+      "operator" -> "ProduceResults",
+      "lhs" -> Map[String, Any](
+        "id" -> 1,
+        "operator" -> "NodeCountFromCountStore"
+      )
+    )
     res should beListWithoutOrder(
       beMapContaining(
         "section" -> "QUERIES",
         "data" -> beMapContaining(
           "query" -> "MATCH (n) RETURN sum(id(n))",
-          "queryExecutionPlan" -> Map(
-            "id" -> 0,
-            "operator" -> "ProduceResults",
-            "lhs" -> Map(
-              "id" -> 1,
-              "operator" -> "EagerAggregation",
-              "lhs" -> Map[String, Any](
-                "id" -> 2,
-                "operator" -> "AllNodesScan"
-              )
-            )
-          ),
+          "queryExecutionPlan" -> queryExecutionMap1,
           "estimatedRows" -> List(1.0, 1.0, 20.0)
         )
       ),
@@ -189,14 +199,7 @@ class DataCollectorQueriesAcceptanceTest extends DataCollectorTestSupport {
         "section" -> "QUERIES",
         "data" -> beMapContaining(
           "query" -> "MATCH (n) RETURN count(n)",
-          "queryExecutionPlan" -> Map(
-            "id" -> 0,
-            "operator" -> "ProduceResults",
-            "lhs" -> Map[String, Any](
-              "id" -> 1,
-              "operator" -> "NodeCountFromCountStore"
-            )
-          ),
+          "queryExecutionPlan" -> queryExecutionMap2,
           "estimatedRows" -> List(1.0, 1.0)
         )
       )
@@ -624,9 +627,12 @@ class DataCollectorQueriesAcceptanceTest extends DataCollectorTestSupport {
   test("[retrieveAllAnonymized] should anonymize parameters") {
     // given
     execute("RETURN 42 = $user, $name", Map("user" -> "BrassLeg", "name" -> "George"))
-    execute("RETURN 42 = $user, $name", Map("user" -> 2, "name" -> "Glinda"))
-    execute("RETURN 42 = $user, $name", Map("user" -> List(3.1, 3.2), "name" -> "Kim"))
-    execute("RETURN $user, $name, $user + $name", Map("user" -> List(3.1, 3.2), "name" -> "Kim"))
+    val arguments1: Map[String, Any] = Map("user" -> 2, "name" -> "Glinda")
+    val arguments2: Map[String, Serializable] = Map("user" -> List(3.1, 3.2), "name" -> "Kim")
+    val arguments3: Map[String, Serializable] = Map("user" -> List(3.1, 3.2), "name" -> "Kim")
+    execute("RETURN 42 = $user, $name", arguments1)
+    execute("RETURN 42 = $user, $name", arguments2)
+    execute("RETURN $user, $name, $user + $name", arguments3)
 
     // when
     val res = execute("CALL db.stats.retrieveAllAnonymized('myToken')")

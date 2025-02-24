@@ -154,7 +154,7 @@
     <bouncycastle.version>1.80</bouncycastle.version>
     <jetty.version>12.0.16</jetty.version>
     <scala-maven-plugin.version>4.9.2</scala-maven-plugin.version>
-    <scala.version>2.13.11</scala.version>
+    <scala.version>2.13.16</scala.version>
     <scala.binary.version>2.13</scala.binary.version>
     <scala.plugin.recompileMode>all</scala.plugin.recompileMode>
     <scala.test.version>3.2.13</scala.test.version>
@@ -756,6 +756,9 @@
           <configuration>
             <showDeprecation>true</showDeprecation>
             <showWarnings>true</showWarnings>
+            <compilerArgs>
+              <arg>-proc:full</arg>
+            </compilerArgs>
           </configuration>
         </plugin>
         <plugin>

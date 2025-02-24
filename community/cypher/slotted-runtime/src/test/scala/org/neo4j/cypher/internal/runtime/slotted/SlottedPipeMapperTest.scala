@@ -897,15 +897,15 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
           UnwindSlottedPipe(
             ArgumentSlottedPipe(),
             commands.expressions.ListLiteral(
-              commands.expressions.Literal(a),
-              commands.expressions.Literal(b),
-              commands.expressions.Literal(c)
+              commands.expressions.Literal(aLit),
+              commands.expressions.Literal(bLit),
+              commands.expressions.Literal(cLit)
             ),
             0,
             `expectedSlots2`
           ),
           _
-        ) if a == longValue(1) && b == longValue(2) && c == longValue(3) =>
+        ) if aLit == longValue(1) && bLit == longValue(2) && cLit == longValue(3) =>
 
     }
   }

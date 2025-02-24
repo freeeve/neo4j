@@ -49,7 +49,8 @@ class KillQueryTest extends ExecutionEngineFunSuite {
     // given
     givenTx {
       (1 to NODE_COUNT) foreach { x =>
-        createLabeledNode(Map("x" -> x, "name" -> ("apa" + x)), "Label")
+        val properties: Map[String, Any] = Map("x" -> x, "name" -> ("apa" + x))
+        createLabeledNode(properties, "Label")
       }
     }
 

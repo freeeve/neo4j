@@ -66,7 +66,7 @@ class ToStringListFunctionTest extends CypherFunSuite with CypherScalaCheckDrive
 
   test("should convert a mixed list to a list of strings") {
     val expected = Values.stringArray("123.0", "456.9", "foo", "789")
-    assert(toStringList(Seq(123.0f, 456.9d, "foo", "789")) === expected)
+    assert(toStringList(Seq[Any](123.0f, 456.9d, "foo", "789")) === expected)
   }
 
   test("should convert a list of booleans to a list of strings") {
@@ -74,7 +74,7 @@ class ToStringListFunctionTest extends CypherFunSuite with CypherScalaCheckDrive
   }
 
   test("should not throw an exception if the list argument contains an object which cannot be converted to string") {
-    assert(toStringList(Seq("1234", VirtualValues.EMPTY_MAP, VirtualValues.EMPTY_LIST)) === VirtualValues.list(
+    assert(toStringList(Seq[Any]("1234", VirtualValues.EMPTY_MAP, VirtualValues.EMPTY_LIST)) === VirtualValues.list(
       stringValue("1234"),
       NO_VALUE,
       NO_VALUE

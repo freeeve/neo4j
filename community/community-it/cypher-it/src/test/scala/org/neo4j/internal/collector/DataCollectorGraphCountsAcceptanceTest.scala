@@ -72,79 +72,87 @@ class DataCollectorGraphCountsAcceptanceTest extends ExecutionEngineFunSuite wit
     // when
     val res = execute("CALL db.stats.retrieve('GRAPH COUNTS')").single
 
+    val entry1: Map[String, Any] = Map(
+      "totalSize" -> 0,
+      "indexType" -> IndexType.LOOKUP.name,
+      "properties" -> Seq.empty,
+      "labels" -> Seq.empty,
+      "updatesSinceEstimation" -> 0,
+      "estimatedUniqueSize" -> 0,
+      "indexProvider" -> "token-lookup-1.0"
+    )
+    val entry2: Map[String, Any] = Map(
+      "totalSize" -> 0,
+      "indexType" -> IndexType.TEXT.name,
+      "properties" -> Seq("textProp"),
+      "labels" -> Seq("Label"),
+      "updatesSinceEstimation" -> 0,
+      "estimatedUniqueSize" -> 0,
+      "indexProvider" -> "text-2.0"
+    )
+    val entry3: Map[String, Any] = Map(
+      "totalSize" -> 0,
+      "indexType" -> IndexType.POINT.name,
+      "properties" -> Seq("pointProp"),
+      "labels" -> Seq("Label"),
+      "updatesSinceEstimation" -> 0,
+      "estimatedUniqueSize" -> 0,
+      "indexProvider" -> "point-1.0"
+    )
+    val entry5: Map[String, Any] = Map(
+      "totalSize" -> 0,
+      "indexType" -> IndexType.RANGE.name,
+      "properties" -> Seq("rangeProp"),
+      "labels" -> Seq("Label"),
+      "updatesSinceEstimation" -> 0,
+      "estimatedUniqueSize" -> 0,
+      "indexProvider" -> "range-1.0"
+    )
+    val entry6: Map[String, Any] = Map(
+      "totalSize" -> 0,
+      "indexType" -> IndexType.LOOKUP.name,
+      "properties" -> Seq.empty,
+      "relationshipTypes" -> Seq.empty,
+      "updatesSinceEstimation" -> 0,
+      "estimatedUniqueSize" -> 0,
+      "indexProvider" -> "token-lookup-1.0"
+    )
+    val entry7: Map[String, Any] = Map(
+      "totalSize" -> 0,
+      "indexType" -> IndexType.TEXT.name,
+      "properties" -> Seq("textProp"),
+      "relationshipTypes" -> Seq("RelationshipType"),
+      "updatesSinceEstimation" -> 0,
+      "estimatedUniqueSize" -> 0,
+      "indexProvider" -> "text-2.0"
+    )
+    val entry8: Map[String, Any] = Map(
+      "totalSize" -> 0,
+      "indexType" -> IndexType.POINT.name,
+      "properties" -> Seq("pointProp"),
+      "relationshipTypes" -> Seq("RelationshipType"),
+      "updatesSinceEstimation" -> 0,
+      "estimatedUniqueSize" -> 0,
+      "indexProvider" -> "point-1.0"
+    )
+    val entry9: Map[String, Any] = Map(
+      "totalSize" -> 0,
+      "indexType" -> IndexType.RANGE.name,
+      "properties" -> Seq("rangeProp"),
+      "relationshipTypes" -> Seq("RelationshipType"),
+      "updatesSinceEstimation" -> 0,
+      "estimatedUniqueSize" -> 0,
+      "indexProvider" -> "range-1.0"
+    )
     seq(res("data"), "indexes") should contain.only(
-      Map(
-        "totalSize" -> 0,
-        "indexType" -> IndexType.LOOKUP.name,
-        "properties" -> Seq.empty,
-        "labels" -> Seq.empty,
-        "updatesSinceEstimation" -> 0,
-        "estimatedUniqueSize" -> 0,
-        "indexProvider" -> "token-lookup-1.0"
-      ),
-      Map(
-        "totalSize" -> 0,
-        "indexType" -> IndexType.TEXT.name,
-        "properties" -> Seq("textProp"),
-        "labels" -> Seq("Label"),
-        "updatesSinceEstimation" -> 0,
-        "estimatedUniqueSize" -> 0,
-        "indexProvider" -> "text-2.0"
-      ),
-      Map(
-        "totalSize" -> 0,
-        "indexType" -> IndexType.POINT.name,
-        "properties" -> Seq("pointProp"),
-        "labels" -> Seq("Label"),
-        "updatesSinceEstimation" -> 0,
-        "estimatedUniqueSize" -> 0,
-        "indexProvider" -> "point-1.0"
-      ),
-      Map(
-        "totalSize" -> 0,
-        "indexType" -> IndexType.RANGE.name,
-        "properties" -> Seq("rangeProp"),
-        "labels" -> Seq("Label"),
-        "updatesSinceEstimation" -> 0,
-        "estimatedUniqueSize" -> 0,
-        "indexProvider" -> "range-1.0"
-      ),
-      Map(
-        "totalSize" -> 0,
-        "indexType" -> IndexType.LOOKUP.name,
-        "properties" -> Seq.empty,
-        "relationshipTypes" -> Seq.empty,
-        "updatesSinceEstimation" -> 0,
-        "estimatedUniqueSize" -> 0,
-        "indexProvider" -> "token-lookup-1.0"
-      ),
-      Map(
-        "totalSize" -> 0,
-        "indexType" -> IndexType.TEXT.name,
-        "properties" -> Seq("textProp"),
-        "relationshipTypes" -> Seq("RelationshipType"),
-        "updatesSinceEstimation" -> 0,
-        "estimatedUniqueSize" -> 0,
-        "indexProvider" -> "text-2.0"
-      ),
-      Map(
-        "totalSize" -> 0,
-        "indexType" -> IndexType.POINT.name,
-        "properties" -> Seq("pointProp"),
-        "relationshipTypes" -> Seq("RelationshipType"),
-        "updatesSinceEstimation" -> 0,
-        "estimatedUniqueSize" -> 0,
-        "indexProvider" -> "point-1.0"
-      ),
-      Map(
-        "totalSize" -> 0,
-        "indexType" -> IndexType.RANGE.name,
-        "properties" -> Seq("rangeProp"),
-        "relationshipTypes" -> Seq("RelationshipType"),
-        "updatesSinceEstimation" -> 0,
-        "estimatedUniqueSize" -> 0,
-        "indexProvider" -> "range-1.0"
-      )
+      entry1,
+      entry2,
+      entry3,
+      entry5,
+      entry6,
+      entry7,
+      entry8,
+      entry9
     )
   }
 
@@ -159,10 +167,13 @@ class DataCollectorGraphCountsAcceptanceTest extends ExecutionEngineFunSuite wit
     val res = execute("CALL db.stats.retrieve('GRAPH COUNTS')").single
 
     // then
+    val entry1: Map[String, Int] = Map("count" -> 4)
+    val entry2: Map[String, Any] = Map("count" -> 2, "label" -> "User")
+    val entry3: Map[String, Any] = Map("count" -> 1, "label" -> "Donkey")
     seq(res("data"), "nodes") should contain.only(
-      Map("count" -> 4),
-      Map("count" -> 2, "label" -> "User"),
-      Map("count" -> 1, "label" -> "Donkey")
+      entry1,
+      entry2,
+      entry3
     )
   }
 
@@ -179,13 +190,19 @@ class DataCollectorGraphCountsAcceptanceTest extends ExecutionEngineFunSuite wit
     val res = execute("CALL db.stats.retrieve('GRAPH COUNTS')").single
 
     // then
+    val entry1: Map[String, Int] = Map("count" -> 4)
+    val entry2: Map[String, Any] = Map("count" -> 3, "relationshipType" -> "R")
+    val entry3: Map[String, Any] = Map("count" -> 1, "relationshipType" -> "R", "startLabel" -> "User")
+    val entry4: Map[String, Any] = Map("count" -> 2, "relationshipType" -> "R", "endLabel" -> "User")
+    val entry5: Map[String, Any] = Map("count" -> 1, "relationshipType" -> "R2")
+    val entry6: Map[String, Any] = Map("count" -> 1, "relationshipType" -> "R2", "startLabel" -> "User")
     seq(res("data"), "relationships") should contain.only(
-      Map("count" -> 4),
-      Map("count" -> 3, "relationshipType" -> "R"),
-      Map("count" -> 1, "relationshipType" -> "R", "startLabel" -> "User"),
-      Map("count" -> 2, "relationshipType" -> "R", "endLabel" -> "User"),
-      Map("count" -> 1, "relationshipType" -> "R2"),
-      Map("count" -> 1, "relationshipType" -> "R2", "startLabel" -> "User")
+      entry1,
+      entry2,
+      entry3,
+      entry4,
+      entry5,
+      entry6
     )
   }
 
@@ -247,68 +264,90 @@ class DataCollectorGraphCountsAcceptanceTest extends ExecutionEngineFunSuite wit
   private def assertSteelfaceGraphCounts(res: Map[String, AnyRef], tokenNames: TokenNames): Unit = {
 
     res("section") should be("GRAPH COUNTS")
+    val nodeEntry1: Map[String, Int] = Map("count" -> 1278)
+    val nodeEntry2: Map[String, Any] = Map("label" -> tokenNames.User, "count" -> 1000)
+    val nodeEntry3: Map[String, Any] = Map("label" -> tokenNames.Car, "count" -> 128)
+    val nodeEntry4: Map[String, Any] = Map("label" -> tokenNames.Room, "count" -> 150)
     seq(res("data"), "nodes") should contain.only(
-      Map("count" -> 1278),
-      Map("label" -> tokenNames.User, "count" -> 1000),
-      Map("label" -> tokenNames.Car, "count" -> 128),
-      Map("label" -> tokenNames.Room, "count" -> 150)
+      nodeEntry1,
+      nodeEntry2,
+      nodeEntry3,
+      nodeEntry4
     )
-    seq(res("data"), "relationships") should contain.only(
-      Map("count" -> 320),
-      Map("relationshipType" -> tokenNames.OWNS, "count" -> 170),
-      Map("relationshipType" -> tokenNames.OWNS, "startLabel" -> tokenNames.User, "count" -> 170),
-      Map("relationshipType" -> tokenNames.OWNS, "endLabel" -> tokenNames.Car, "count" -> 100),
-      Map("relationshipType" -> tokenNames.OWNS, "endLabel" -> tokenNames.Room, "count" -> 70),
-      Map("relationshipType" -> tokenNames.STAYS_IN, "count" -> 150),
-      Map("relationshipType" -> tokenNames.STAYS_IN, "startLabel" -> tokenNames.User, "count" -> 150),
+    val relEntry1: Map[String, Int] = Map("count" -> 320)
+    val relEntry2: Map[String, Any] = Map("relationshipType" -> tokenNames.OWNS, "count" -> 170)
+    val relEntry3: Map[String, Any] =
+      Map("relationshipType" -> tokenNames.OWNS, "startLabel" -> tokenNames.User, "count" -> 170)
+    val relEntry4: Map[String, Any] =
+      Map("relationshipType" -> tokenNames.OWNS, "endLabel" -> tokenNames.Car, "count" -> 100)
+    val relEntry5: Map[String, Any] =
+      Map("relationshipType" -> tokenNames.OWNS, "endLabel" -> tokenNames.Room, "count" -> 70)
+    val relEntry6: Map[String, Any] = Map("relationshipType" -> tokenNames.STAYS_IN, "count" -> 150)
+    val relEntry7: Map[String, Any] =
+      Map("relationshipType" -> tokenNames.STAYS_IN, "startLabel" -> tokenNames.User, "count" -> 150)
+    val relEntry8: Map[String, Any] =
       Map("relationshipType" -> tokenNames.STAYS_IN, "endLabel" -> tokenNames.Room, "count" -> 150)
+    seq(res("data"), "relationships") should contain.only(
+      relEntry1,
+      relEntry2,
+      relEntry3,
+      relEntry4,
+      relEntry5,
+      relEntry6,
+      relEntry7,
+      relEntry8
+    )
+    val indexEntry1: Map[String, Any] = Map(
+      "labels" -> List(tokenNames.User),
+      "properties" -> List(tokenNames.email),
+      "totalSize" -> 1000,
+      "estimatedUniqueSize" -> 1000,
+      "updatesSinceEstimation" -> 0,
+      "indexType" -> "RANGE",
+      "indexProvider" -> "range-1.0"
+    )
+    val indexEntry2: Map[String, Any] = Map(
+      "labels" -> List(tokenNames.User),
+      "properties" -> List(tokenNames.lastName),
+      "totalSize" -> 500,
+      "estimatedUniqueSize" -> 500,
+      "updatesSinceEstimation" -> 0,
+      "indexType" -> "RANGE",
+      "indexProvider" -> "range-1.0"
+    )
+    val indexEntry3: Map[String, Any] = Map(
+      "labels" -> List(tokenNames.User),
+      "properties" -> List(tokenNames.firstName, tokenNames.lastName),
+      "totalSize" -> 300,
+      "estimatedUniqueSize" -> 300,
+      "updatesSinceEstimation" -> 0,
+      "indexType" -> "RANGE",
+      "indexProvider" -> "range-1.0"
+    )
+    val indexEntry4: Map[String, Any] = Map(
+      "labels" -> List(tokenNames.Room),
+      "properties" -> List(tokenNames.hotel, tokenNames.number),
+      "totalSize" -> 150,
+      "estimatedUniqueSize" -> 50,
+      "updatesSinceEstimation" -> 0,
+      "indexType" -> "RANGE",
+      "indexProvider" -> "range-1.0"
+    )
+    val indexEntry5: Map[String, Any] = Map(
+      "labels" -> List(tokenNames.Car),
+      "properties" -> List(tokenNames.number),
+      "totalSize" -> 120,
+      "estimatedUniqueSize" -> 120,
+      "updatesSinceEstimation" -> 8,
+      "indexType" -> "RANGE",
+      "indexProvider" -> "range-1.0"
     )
     seq(res("data"), "indexes") should contain.only(
-      Map(
-        "labels" -> List(tokenNames.User),
-        "properties" -> List(tokenNames.email),
-        "totalSize" -> 1000,
-        "estimatedUniqueSize" -> 1000,
-        "updatesSinceEstimation" -> 0,
-        "indexType" -> "RANGE",
-        "indexProvider" -> "range-1.0"
-      ),
-      Map(
-        "labels" -> List(tokenNames.User),
-        "properties" -> List(tokenNames.lastName),
-        "totalSize" -> 500,
-        "estimatedUniqueSize" -> 500,
-        "updatesSinceEstimation" -> 0,
-        "indexType" -> "RANGE",
-        "indexProvider" -> "range-1.0"
-      ),
-      Map(
-        "labels" -> List(tokenNames.User),
-        "properties" -> List(tokenNames.firstName, tokenNames.lastName),
-        "totalSize" -> 300,
-        "estimatedUniqueSize" -> 300,
-        "updatesSinceEstimation" -> 0,
-        "indexType" -> "RANGE",
-        "indexProvider" -> "range-1.0"
-      ),
-      Map(
-        "labels" -> List(tokenNames.Room),
-        "properties" -> List(tokenNames.hotel, tokenNames.number),
-        "totalSize" -> 150,
-        "estimatedUniqueSize" -> 50,
-        "updatesSinceEstimation" -> 0,
-        "indexType" -> "RANGE",
-        "indexProvider" -> "range-1.0"
-      ),
-      Map(
-        "labels" -> List(tokenNames.Car),
-        "properties" -> List(tokenNames.number),
-        "totalSize" -> 120,
-        "estimatedUniqueSize" -> 120,
-        "updatesSinceEstimation" -> 8,
-        "indexType" -> "RANGE",
-        "indexProvider" -> "range-1.0"
-      )
+      indexEntry1,
+      indexEntry2,
+      indexEntry3,
+      indexEntry4,
+      indexEntry5
     )
     seq(res("data"), "constraints") should contain only
       Map("label" -> tokenNames.User, "properties" -> List(tokenNames.email), "type" -> "Uniqueness constraint")

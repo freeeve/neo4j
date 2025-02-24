@@ -100,7 +100,7 @@ class CompressPlanIDsTest extends CypherFunSuite with AstConstructionTestSupport
 
   // plan.flatten does not find plans in NestedPlanExpressions
   private def allPlans(plan: LogicalPlan): Seq[LogicalPlan] = plan.folder.treeFold(Seq.empty[LogicalPlan]) {
-    case plan: LogicalPlan => acc => TraverseChildren(acc :+ plan)
+    case logicalPlan: LogicalPlan => acc => TraverseChildren(acc :+ logicalPlan)
   }
 
   private def compress(state: LogicalPlanState): LogicalPlanState = {

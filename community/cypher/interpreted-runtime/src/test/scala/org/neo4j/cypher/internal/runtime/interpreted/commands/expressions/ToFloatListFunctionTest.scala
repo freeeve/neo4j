@@ -66,12 +66,12 @@ class ToFloatListFunctionTest extends CypherFunSuite with CypherScalaCheckDriven
   }
 
   test("should convert a mixed list to a list of floats") {
-    assert(toFloatList(Seq(123.0f, 456.9d, "789")) === Values.doubleArray(Array(123d, 456.9d, 789d)))
+    assert(toFloatList(Seq[Any](123.0f, 456.9d, "789")) === Values.doubleArray(Array(123d, 456.9d, 789d)))
   }
 
   test("should convert a mixed list with invalid strings to a list of floats") {
     val expected = VirtualValues.list(doubleValue(123), doubleValue(456.9), NO_VALUE, doubleValue(789))
-    assert(toFloatList(Seq(123.0f, 456.9d, "foo", "789")) === expected)
+    assert(toFloatList(Seq[Any](123.0f, 456.9d, "foo", "789")) === expected)
   }
 
   test("should convert a mixed list of strings to a list of floats") {

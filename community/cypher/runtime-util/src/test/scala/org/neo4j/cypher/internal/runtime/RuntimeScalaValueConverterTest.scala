@@ -56,7 +56,7 @@ class RuntimeScalaValueConverterTest extends CypherFunSuite {
     it.put("k1", singletonMap("a", 2))
     it.put("k2", 15)
 
-    converter.asDeepScalaValue(it) should equal(Map("k1" -> Map("a" -> 2), "k2" -> 15))
+    converter.asDeepScalaValue(it) should equal(Map[String, Any]("k1" -> Map("a" -> 2), "k2" -> 15))
   }
 
   test("should convert linked list") {

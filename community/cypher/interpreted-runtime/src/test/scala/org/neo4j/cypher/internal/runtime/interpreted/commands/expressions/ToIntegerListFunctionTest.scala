@@ -62,12 +62,12 @@ class ToIntegerListFunctionTest extends CypherFunSuite with CypherScalaCheckDriv
   }
 
   test("should convert a mixed list to a list of integers") {
-    assert(toIntegerList(Seq(123.0f, 456.9d, "789")) === Values.intArray(Array(123, 456, 789)))
+    assert(toIntegerList(Seq[Any](123.0f, 456.9d, "789")) === Values.intArray(Array(123, 456, 789)))
   }
 
   test("should convert a mixed list with invalid strings to a list of integers") {
     val expected = VirtualValues.list(longValue(123), longValue(456), NO_VALUE, longValue(789))
-    assert(toIntegerList(Seq(123.0f, 456.9d, "foo", "789")) === expected)
+    assert(toIntegerList(Seq[Any](123.0f, 456.9d, "foo", "789")) === expected)
   }
 
   test("should convert a mixed list of strings to a list of integers") {

@@ -85,7 +85,7 @@ class JoinHintPlanningIntegrationTest extends CypherFunSuite with PatternGen wit
 
   def joinSymbolsIn(plan: LogicalPlan) = {
     val flattenedPlan = plan.folder.treeFold(Seq.empty[LogicalPlan]) {
-      case plan: LogicalPlan => acc => TraverseChildren(acc :+ plan)
+      case logicalPlan: LogicalPlan => acc => TraverseChildren(acc :+ logicalPlan)
     }
 
     flattenedPlan.collect {
@@ -98,13 +98,13 @@ class JoinHintPlanningIntegrationTest extends CypherFunSuite with PatternGen wit
       return None
     }
 
-    val firstNodeName = findFirstNodeName(elements).getOrElse(None)
-    val lastNodeName = findFirstNodeName(elements.reverse).getOrElse(None)
+    val firstNodeName = findFirstNodeName(elements).get
+    val lastNodeName = findFirstNodeName(elements.reverse).get
 
     var joinNodeName: String = null
     do {
       joinNodeName = findFirstNodeName(Random.shuffle(elements)).get
-    } while (joinNodeName == firstNodeName || joinNodeName == lastNodeName)
+    } while (firstNodeName.equals(joinNodeName) || lastNodeName.equals(joinNodeName))
 
     Some(joinNodeName)
   }

@@ -49,10 +49,10 @@ case class AttributeFullyAssigned[T <: Attribute[LogicalPlan, _]]()(implicit val
       }
 
       plan.folder(cancellationChecker).treeFold(Seq.empty[String]) {
-        case plan: LogicalPlan => acc =>
-            if (!attribute.isDefinedAt(plan.id)) {
+        case logicalPlan: LogicalPlan => acc =>
+            if (!attribute.isDefinedAt(logicalPlan.id)) {
               val error =
-                s"Attribute ${tag.runtimeClass.getSimpleName} not set for \n${LogicalPlanToPlanBuilderString(plan)}"
+                s"Attribute ${tag.runtimeClass.getSimpleName} not set for \n${LogicalPlanToPlanBuilderString(logicalPlan)}"
               TraverseChildren(acc :+ error)
             } else {
               TraverseChildren(acc)

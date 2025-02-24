@@ -622,8 +622,10 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
           !innerScopeSymbols(s.name).map(_.definition).contains(s.definition)
 
       val shadowedSymbols = outerScopeSymbols.collect {
-        case (name, symbol) if isShadowed(symbol) =>
-          name -> innerScopeSymbols(name).find(_.definition != symbol.definition).get.definition.asVariable.position
+        case (symbolName, symbol) if isShadowed(symbol) =>
+          symbolName -> innerScopeSymbols(
+            symbolName
+          ).find(_.definition != symbol.definition).get.definition.asVariable.position
       }
       val stateWithNotifications = shadowedSymbols.foldLeft(inner) {
         case (state, (varName, pos)) =>
@@ -655,8 +657,10 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     }
 
     val shadowedSymbols = outerScopeSymbols.collect {
-      case (name, symbol) if isShadowed(symbol) =>
-        name -> innerScopeSymbols(name).find(_.definition != symbol.definition).get.definition.asVariable.position
+      case (symbolName, symbol) if isShadowed(symbol) =>
+        symbolName -> innerScopeSymbols(
+          symbolName
+        ).find(_.definition != symbol.definition).get.definition.asVariable.position
     }
 
     val shadowingErrors = shadowedSymbols.map {

@@ -558,10 +558,10 @@ case class CommunityExpressionConverter(
           .RelationshipEndPoints(self.toCommandExpression(id, invocation.arguments.head), start = false)
       case Exists =>
         invocation.arguments.head match {
-          case expression: internal.expressions.PatternExpression =>
-            self.toCommandPredicate(id, expression)
-          case expression: pipes.NestedPipeCollectExpression =>
-            self.toCommandPredicate(id, expression)
+          case patternExpression: internal.expressions.PatternExpression =>
+            self.toCommandPredicate(id, patternExpression)
+          case nestedExpression: pipes.NestedPipeCollectExpression =>
+            self.toCommandPredicate(id, nestedExpression)
           case _: NestedPlanExpression =>
             throw new InternalException("should have been rewritten away")
         }

@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.MutableGraphStatisticsSnapshot
 import org.neo4j.cypher.internal.planner.spi.NodesAllCardinality
 import org.neo4j.cypher.internal.planner.spi.NodesWithLabelCardinality
+import org.neo4j.cypher.internal.planner.spi.StatisticsKey
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.PropertyKeyId
@@ -60,12 +61,13 @@ class GraphStatisticsSnapshotTest extends CypherFunSuite {
     instrumentedStatistics.nodesWithLabelCardinality(Some(label4))
     instrumentedStatistics.patternStepCardinality(Some(label2), None, None)
 
-    snapshot.freeze.statsValues should equal(Map(
+    val statisticsKeyToDouble: Map[StatisticsKey, Double] = Map(
       NodesAllCardinality -> allNodes,
       IndexSelectivity(index) -> indexSelectivity,
       NodesWithLabelCardinality(Some(label4)) -> nodesWithLabel,
       CardinalityByLabelsAndRelationshipType(Some(label2), None, None) -> relationships
-    ))
+    )
+    snapshot.freeze.statsValues should equal(statisticsKeyToDouble)
   }
 
   test("a snapshot shouldn't diverge from equal values") {

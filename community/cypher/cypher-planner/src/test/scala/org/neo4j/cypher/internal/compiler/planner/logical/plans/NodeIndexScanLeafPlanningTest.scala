@@ -129,7 +129,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, DoNotGetValue, NODE_TYPE)),
             _,
@@ -301,7 +301,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(plan @ NodeIndexScan(LogicalVariable(n), _, _, _, _, _, _)) =>
+        case SetExtractor(plan @ NodeIndexScan(LogicalVariable(_), _, _, _, _, _, _)) =>
           solvedPredicates(plan, ctx) should equal(Set(
             propIsNotNull,
             hasLabelAwesome
@@ -322,7 +322,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(plan @ NodeIndexScan(LogicalVariable(n), _, _, _, _, _, _)) =>
+        case SetExtractor(plan @ NodeIndexScan(LogicalVariable(_), _, _, _, _, _, _)) =>
           solvedPredicates(plan, ctx) should equal(Set(
             propIsNotNull,
             hasLabelAwesome
@@ -349,7 +349,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, CanGetValue, NODE_TYPE)),
             _,
@@ -374,7 +374,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, DoNotGetValue, NODE_TYPE)),
             _,
@@ -399,7 +399,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, CanGetValue, NODE_TYPE)),
             _,
@@ -426,7 +426,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(NodeIndexScan(LogicalVariable(n), _, _, _, _, _, _)) => ()
+        case SetExtractor(NodeIndexScan(LogicalVariable(_), _, _, _, _, _, _)) => ()
       }
 
       resultPlans.map(p =>
@@ -450,7 +450,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(NodeIndexScan(LogicalVariable(n), _, _, _, _, _, _)) => ()
+        case SetExtractor(NodeIndexScan(LogicalVariable(_), _, _, _, _, _, _)) => ()
       }
 
       resultPlans.map(p =>
@@ -474,7 +474,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(NodeIndexScan(LogicalVariable(n), _, _, _, _, _, _)) => ()
+        case SetExtractor(NodeIndexScan(LogicalVariable(_), _, _, _, _, _, _)) => ()
       }
 
       resultPlans.map(p =>
@@ -495,7 +495,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(plan @ NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, DoNotGetValue, NODE_TYPE)),
             _,
@@ -526,7 +526,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(plan @ NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, CanGetValue, NODE_TYPE)),
             _,
@@ -558,7 +558,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(plan @ NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, DoNotGetValue, NODE_TYPE)),
             _,
@@ -590,7 +590,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(plan @ NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, CanGetValue, NODE_TYPE)),
             _,
@@ -621,7 +621,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(plan @ NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, DoNotGetValue, NODE_TYPE)),
             _,
@@ -652,7 +652,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(plan @ NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, CanGetValue, NODE_TYPE)),
             _,
@@ -683,7 +683,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(plan @ NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, DoNotGetValue, NODE_TYPE)),
             _,
@@ -714,7 +714,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(plan @ NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, CanGetValue, NODE_TYPE)),
             _,
@@ -745,7 +745,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(plan @ NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, DoNotGetValue, NODE_TYPE)),
             _,
@@ -776,7 +776,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(plan @ NodeIndexScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             Seq(IndexedProperty(_, CanGetValue, NODE_TYPE)),
             _,
@@ -807,7 +807,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(plan @ NodeIndexScan(LogicalVariable(n), _, properties, _, _, _, _)) =>
+        case SetExtractor(plan @ NodeIndexScan(LogicalVariable(_), _, properties, _, _, _, _)) =>
           properties should beLike {
             case Seq(
                 IndexedProperty(PropertyKeyToken("foo", _), CanGetValue, NODE_TYPE),
@@ -842,7 +842,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(plan @ NodeIndexScan(LogicalVariable(n), _, properties, _, _, _, _)) =>
+        case SetExtractor(plan @ NodeIndexScan(LogicalVariable(_), _, properties, _, _, _, _)) =>
           properties should beLike {
             case Seq(
                 IndexedProperty(PropertyKeyToken("foo", _), CanGetValue, NODE_TYPE),
@@ -917,7 +917,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(NodeIndexContainsScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             IndexedProperty(_, DoNotGetValue, NODE_TYPE),
             `litApa`,
@@ -945,7 +945,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(NodeIndexContainsScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             IndexedProperty(_, CanGetValue, NODE_TYPE),
             `litApa`,
@@ -1028,7 +1028,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(NodeIndexContainsScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             IndexedProperty(_, DoNotGetValue, NODE_TYPE),
             `litApa`,
@@ -1056,7 +1056,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(NodeIndexContainsScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             IndexedProperty(_, CanGetValue, NODE_TYPE),
             `litApa`,
@@ -1086,7 +1086,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(NodeIndexContainsScan(LogicalVariable(n), _, _, `litApa`, _, _, _)) => ()
+        case SetExtractor(NodeIndexContainsScan(LogicalVariable(_), _, _, `litApa`, _, _, _)) => ()
       }
 
       resultPlans.map(p =>
@@ -1113,7 +1113,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(NodeIndexContainsScan(LogicalVariable(n), _, _, `litApa`, _, _, _)) => ()
+        case SetExtractor(NodeIndexContainsScan(LogicalVariable(_), _, _, `litApa`, _, _, _)) => ()
       }
 
       resultPlans.map(p =>
@@ -1140,7 +1140,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(NodeIndexContainsScan(LogicalVariable(n), _, _, `litApa`, _, _, _)) => ()
+        case SetExtractor(NodeIndexContainsScan(LogicalVariable(_), _, _, `litApa`, _, _, _)) => ()
       }
 
       resultPlans.map(p =>
@@ -1165,7 +1165,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(NodeIndexEndsWithScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             IndexedProperty(_, DoNotGetValue, NODE_TYPE),
             `litApa`,
@@ -1193,7 +1193,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
       // then
       resultPlans should beLike {
         case SetExtractor(NodeIndexEndsWithScan(
-            LogicalVariable(n),
+            LogicalVariable(_),
             _,
             IndexedProperty(_, CanGetValue, NODE_TYPE),
             `litApa`,
@@ -1280,7 +1280,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(p @ NodeIndexEndsWithScan(LogicalVariable(n), _, _, `litApa`, _, _, _)) =>
+        case SetExtractor(p @ NodeIndexEndsWithScan(LogicalVariable(_), _, _, `litApa`, _, _, _)) =>
           val plannedQG = ctx.staticComponents.planningAttributes.solveds.get(p.id).asSinglePlannerQuery.queryGraph
           plannedQG.hints shouldEqual Set(hint)
       }
@@ -1305,7 +1305,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(p @ NodeIndexEndsWithScan(LogicalVariable(n), _, _, `litApa`, _, _, _)) =>
+        case SetExtractor(p @ NodeIndexEndsWithScan(LogicalVariable(_), _, _, `litApa`, _, _, _)) =>
           val plannedQG = ctx.staticComponents.planningAttributes.solveds.get(p.id).asSinglePlannerQuery.queryGraph
           plannedQG.hints shouldEqual Set()
       }
@@ -1413,7 +1413,7 @@ class NodeIndexScanLeafPlanningTest extends CypherFunSuite with LogicalPlanningT
 
       // then
       resultPlans should beLike {
-        case SetExtractor(NodeIndexScan(LogicalVariable(n), _, _, _, _, _, _)) => ()
+        case SetExtractor(NodeIndexScan(LogicalVariable(_), _, _, _, _, _, _)) => ()
       }
     }
   }

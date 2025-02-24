@@ -1140,7 +1140,7 @@ class ConnectComponentsPlanningIntegrationTest extends CypherFunSuite with Logic
     )
 
     val allNodesScanned = plan.folder.treeFold(Seq.empty[String]) {
-      case a: AllNodesScan => ids => TraverseChildren(ids :+ a.idName.name)
+      case allNode: AllNodesScan => ids => TraverseChildren(ids :+ allNode.idName.name)
     }
     val optionalExpanded = plan.folder.treeFold(Seq.empty[String]) {
       case o: OptionalExpand => ids => TraverseChildren(ids :+ o.to.name)
@@ -1166,7 +1166,7 @@ class ConnectComponentsPlanningIntegrationTest extends CypherFunSuite with Logic
     )
 
     val allNodesScanned = plan.folder.treeFold(Seq.empty[String]) {
-      case a: AllNodesScan => ids => TraverseChildren(ids :+ a.idName.name)
+      case allNode: AllNodesScan => ids => TraverseChildren(ids :+ allNode.idName.name)
     }
     val optionalExpanded = plan.folder.treeFold(Seq.empty[String]) {
       case o: OptionalExpand => ids => TraverseChildren(ids :+ o.to.name)

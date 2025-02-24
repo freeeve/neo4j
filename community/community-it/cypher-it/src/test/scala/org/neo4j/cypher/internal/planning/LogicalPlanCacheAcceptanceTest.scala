@@ -290,8 +290,10 @@ class LogicalPlanCacheAcceptanceTest extends CypherFunSuite with GraphDatabaseTe
   test(
     "should keep different cache entries for explicitly parametrized lists where inner type is not string and where inner type is string"
   ) {
-    runQuery("MATCH (n:Label) WHERE n.prop IN $list RETURN *", params = Map("list" -> Seq("1", "2", "3")))
-    runQuery("MATCH (n:Label) WHERE n.prop IN $list RETURN *", params = Map("list" -> Seq("1", 2, "3")))
+    val arguments1: Map[String, Seq[String]] = Map("list" -> Seq("1", "2", "3"))
+    val arguments2: Map[String, Seq[Any]] = Map("list" -> Seq("1", 2, "3"))
+    runQuery("MATCH (n:Label) WHERE n.prop IN $list RETURN *", params = arguments1)
+    runQuery("MATCH (n:Label) WHERE n.prop IN $list RETURN *", params = arguments2)
 
     logicalPlanCacheCounts should equal(CacheCounts(misses = 2, flushes = 1, compilations = 2))
   }

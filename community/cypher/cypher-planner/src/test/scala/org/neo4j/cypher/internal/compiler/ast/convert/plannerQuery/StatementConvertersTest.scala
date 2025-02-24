@@ -3080,9 +3080,9 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
 
         // CALL (x, y)
         inside(singleQuery.tail.value.horizon) {
-          case cs: CallSubqueryHorizon =>
-            cs.importedVariables shouldBe Set(v"x", v"y")
-            val singleQuery = cs.callSubquery.assertSinglePlannerQuery
+          case subqueryHorizon: CallSubqueryHorizon =>
+            subqueryHorizon.importedVariables shouldBe Set(v"x", v"y")
+            val singleQuery = subqueryHorizon.callSubquery.assertSinglePlannerQuery
 
             // WITH x + y AS z
             inside(singleQuery.horizon) {
@@ -3091,11 +3091,11 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
 
             // CALL (z)
             inside(singleQuery.tail.value.horizon) {
-              case cs: CallSubqueryHorizon =>
-                cs.importedVariables shouldBe Set(v"z")
+              case insideSubqueryHorizon: CallSubqueryHorizon =>
+                insideSubqueryHorizon.importedVariables shouldBe Set(v"z")
 
                 // RETURN z+1 AS t
-                inside(cs.callSubquery.assertSinglePlannerQuery.horizon) {
+                inside(insideSubqueryHorizon.callSubquery.assertSinglePlannerQuery.horizon) {
                   case proj: QueryProjection => proj.importedExposedSymbols shouldBe Set(v"z")
                 }
             }

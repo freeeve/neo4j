@@ -105,10 +105,10 @@ class IRExpressionTest extends CypherFunSuite with AstConstructionTestSupport {
 
     val rewriter = topDown(Rewriter.lift {
       case lv: LogicalVariable => rename(lv)
-      case e: ExpressionWithComputedDependencies =>
-        val newIntroducedVariables = e.introducedVariables.map(rename)
-        val newScopeDependencies = e.scopeDependencies.map(rename)
-        e.withComputedIntroducedVariables(newIntroducedVariables).withComputedScopeDependencies(newScopeDependencies)
+      case exp: ExpressionWithComputedDependencies =>
+        val newIntroducedVariables = exp.introducedVariables.map(rename)
+        val newScopeDependencies = exp.scopeDependencies.map(rename)
+        exp.withComputedIntroducedVariables(newIntroducedVariables).withComputedScopeDependencies(newScopeDependencies)
     })
 
     val rewritten = e.endoRewrite(rewriter)

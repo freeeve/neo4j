@@ -134,8 +134,8 @@ class TransformerTest extends CypherFunSuite with CypherVersionTestSupport {
     def p(y: Set[StepSequencer.Condition], n: Set[StepSequencer.Condition] = Set.empty): TestPhase =
       TestPhase(y, invalidatedConditions = n)
 
-    If((_: Any) => true)(p(Set(cond1))).postConditions shouldBe Set()
-    If((_: Any) => true)(p(Set.empty, Set(cond1))).invalidatedConditions shouldBe Set(cond1)
+    If[BaseContext, Any, Any]((_: Any) => true)(p(Set(cond1))).postConditions shouldBe empty
+    If[BaseContext, Any, Any]((_: Any) => true)(p(Set.empty, Set(cond1))).invalidatedConditions shouldBe Set(cond1)
 
     (p(Set(cond1)) andThen p(Set(cond2))).postConditions shouldBe Set(cond1, cond2)
     (p(Set(cond1)) andThen p(Set(cond2), Set(cond1))).postConditions shouldBe Set(cond2)

@@ -42,7 +42,10 @@ trait SampleGraphs {
 
     val cars = (0 until 120).map(i => createLabeledNode(Map("number" -> i), "Car"))
 
-    val rooms = (0 until 150).map(i => createLabeledNode(Map("hotel" -> "Clarion", "number" -> i % 50), "Room"))
+    val rooms = (0 until 150).map(i => {
+      val properties: Map[String, Any] = Map("hotel" -> "Clarion", "number" -> i % 50)
+      createLabeledNode(properties, "Room")
+    })
 
     for (source <- users.take(100))
       relate(source, cars.head, "OWNS")

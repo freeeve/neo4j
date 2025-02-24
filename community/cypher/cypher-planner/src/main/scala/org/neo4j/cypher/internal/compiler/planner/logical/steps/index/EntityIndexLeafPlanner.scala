@@ -252,9 +252,9 @@ object EntityIndexLeafPlanner {
       original match {
         case AsExplicitlyPropertyScannable(scannable) =>
           scannable.expr
-        case expr =>
+        case partialExpr =>
           val isNotNull = IsNotNull(property)(predicate.position)
-          PartialPredicate(isNotNull, expr)
+          PartialPredicate(isNotNull, partialExpr)
       }
     }
 

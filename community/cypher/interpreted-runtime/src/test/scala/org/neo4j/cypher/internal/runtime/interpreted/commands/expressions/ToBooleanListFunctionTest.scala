@@ -65,12 +65,12 @@ class ToBooleanListFunctionTest extends CypherFunSuite with ScalaCheckDrivenProp
   }
 
   test("should convert a mixed list to a list of booleans") {
-    assert(toBooleanList(Seq(0, true, "false")) === VirtualValues.list(Values.FALSE, Values.TRUE, Values.FALSE))
+    assert(toBooleanList(Seq[Any](0, true, "false")) === VirtualValues.list(Values.FALSE, Values.TRUE, Values.FALSE))
   }
 
   test("should convert a mixed list that also include invalid strings to a list of booleans") {
     val expected = VirtualValues.list(Values.TRUE, Values.TRUE, NO_VALUE, Values.FALSE)
-    assert(toBooleanList(Seq(123, "trUE", "foo", false)) === expected)
+    assert(toBooleanList(Seq[Any](123, "trUE", "foo", false)) === expected)
   }
 
   test("should convert a mixed list of strings to a list of booleans") {

@@ -460,8 +460,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
     val cardinalities = planState.planningAttributes.cardinalities
 
     plan.folder.treeExists {
-      case plan: LogicalPlan =>
-        cardinalities.get(plan.id) match {
+      case logicalPlan: LogicalPlan =>
+        cardinalities.get(logicalPlan.id) match {
           case Cardinality(amount) =>
             withClue("We should not get a NaN cardinality.") {
               amount.isNaN should not be true
