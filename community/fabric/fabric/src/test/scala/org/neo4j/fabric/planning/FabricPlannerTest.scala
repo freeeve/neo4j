@@ -117,9 +117,10 @@ class FabricPlannerTest
   private def instance(
     query: String,
     params: MapValue = params,
-    sessionDatabaseName: String = defaultGraphName
+    sessionDatabaseName: String = defaultGraphName,
+    defaultLanguage: CypherVersion = cypherConfig.systemDefaultLanguage
   ): planner.PlannerInstance = {
-    planner.instance(signatures, query, params, databaseReference(sessionDatabaseName), fabricCatalog)
+    planner.instance(signatures, query, params, databaseReference(sessionDatabaseName), fabricCatalog, defaultLanguage)
   }
 
   private def plan(query: String, params: MapValue = params, sessionDatabaseName: String = defaultGraphName) =
@@ -573,8 +574,8 @@ class FabricPlannerTest
           |RETURN w, y
           |""".stripMargin
 
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(1)
       newPlanner.queryCache.getHits.shouldEqual(1)
@@ -597,8 +598,8 @@ class FabricPlannerTest
           |RETURN f, b
           |""".stripMargin
 
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(1)
       newPlanner.queryCache.getHits.shouldEqual(1)
@@ -617,8 +618,8 @@ class FabricPlannerTest
           |RETURN x, 2 AS y
           |""".stripMargin
 
-      newPlanner.instance(signatures, q1, params, defaultRef, Catalog(Map())).plan
-      newPlanner.instance(signatures, q2, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q1, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
+      newPlanner.instance(signatures, q2, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(2)
       newPlanner.queryCache.getHits.shouldEqual(0)
@@ -632,8 +633,22 @@ class FabricPlannerTest
           |RETURN x
           |""".stripMargin
 
-      newPlanner.instance(signatures, q, params, databaseReference("foo"), Catalog(Map())).plan
-      newPlanner.instance(signatures, q, params, databaseReference("bar"), Catalog(Map())).plan
+      newPlanner.instance(
+        signatures,
+        q,
+        params,
+        databaseReference("foo"),
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
+      newPlanner.instance(
+        signatures,
+        q,
+        params,
+        databaseReference("bar"),
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(2)
       newPlanner.queryCache.getHits.shouldEqual(0)
@@ -653,8 +668,8 @@ class FabricPlannerTest
           |RETURN x
           |""".stripMargin
 
-      newPlanner.instance(signatures, q1, params, defaultRef, Catalog(Map())).plan
-      newPlanner.instance(signatures, q2, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q1, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
+      newPlanner.instance(signatures, q2, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(2)
       newPlanner.queryCache.getHits.shouldEqual(0)
@@ -673,14 +688,16 @@ class FabricPlannerTest
         q,
         VirtualValues.map(Array("a"), Array(Values.of("a"))),
         defaultRef,
-        Catalog(Map())
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
       ).plan
       newPlanner.instance(
         signatures,
         q,
         VirtualValues.map(Array("a"), Array(Values.of(1))),
         defaultRef,
-        Catalog(Map())
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
       ).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(2)
@@ -700,14 +717,16 @@ class FabricPlannerTest
         q,
         VirtualValues.map(Array("a"), Array(Values.of("a"))),
         defaultRef,
-        Catalog(Map())
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
       ).plan
       newPlanner.instance(
         signatures,
         q,
         VirtualValues.map(Array("a", "b"), Array(Values.of("a"), Values.of(1))),
         defaultRef,
-        Catalog(Map())
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
       ).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(2)
@@ -727,14 +746,16 @@ class FabricPlannerTest
         q,
         VirtualValues.map(Array("a"), Array(Values.of("a"))),
         defaultRef,
-        Catalog(Map())
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
       ).plan
       newPlanner.instance(
         signatures,
         q,
         VirtualValues.map(Array("a"), Array(Values.of("b"))),
         defaultRef,
-        Catalog(Map())
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
       ).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(1)
@@ -748,8 +769,8 @@ class FabricPlannerTest
         """CREATE USER foo SET PASSWORD 'secret'
           |""".stripMargin
 
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(2)
       newPlanner.queryCache.getHits.shouldEqual(0)
@@ -763,8 +784,22 @@ class FabricPlannerTest
           |""".stripMargin
 
       val secretParams = VirtualValues.map(Array("p"), Array(Values.stringValue("secret")))
-      newPlanner.instance(signatures, q, secretParams, defaultRef, Catalog(Map())).plan
-      newPlanner.instance(signatures, q, secretParams, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(
+        signatures,
+        q,
+        secretParams,
+        defaultRef,
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
+      newPlanner.instance(
+        signatures,
+        q,
+        secretParams,
+        defaultRef,
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(2)
       newPlanner.queryCache.getHits.shouldEqual(0)
@@ -783,8 +818,8 @@ class FabricPlannerTest
           |RETURN true
           |""".stripMargin
 
-      newPlanner.instance(signatures, q1, params, defaultRef, Catalog(Map())).plan
-      newPlanner.instance(signatures, q2, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q1, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
+      newPlanner.instance(signatures, q2, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
 
       newPlanner.queryCache.getMisses.shouldEqual(2)
       newPlanner.queryCache.getHits.shouldEqual(0)
@@ -798,7 +833,7 @@ class FabricPlannerTest
           |RETURN x
           |""".stripMargin
 
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
       newPlanner.queryCache.contextSize(defaultRef.alias().name()).shouldEqual(1)
       newPlanner.queryCache.clearByContext(defaultRef.alias().name()).shouldEqual(1)
       newPlanner.queryCache.contextSize(defaultRef.alias().name()).shouldEqual(0)
@@ -818,8 +853,22 @@ class FabricPlannerTest
           |RETURN x
           |""".stripMargin
 
-      newPlanner.instance(signatures, q1, params, databaseReference("foo"), Catalog(Map())).plan
-      newPlanner.instance(signatures, q2, params, databaseReference("bar"), Catalog(Map())).plan
+      newPlanner.instance(
+        signatures,
+        q1,
+        params,
+        databaseReference("foo"),
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
+      newPlanner.instance(
+        signatures,
+        q2,
+        params,
+        databaseReference("bar"),
+        Catalog(Map()),
+        cypherConfig.systemDefaultLanguage
+      ).plan
       newPlanner.queryCache.contextSize("foo").shouldEqual(1)
       newPlanner.queryCache.contextSize("bar").shouldEqual(1)
       newPlanner.queryCache.clearByContext("foo").shouldEqual(1)
@@ -836,18 +885,18 @@ class FabricPlannerTest
           |""".stripMargin
 
       // plan query (cold miss)
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
       newPlanner.queryCache.getHits.shouldEqual(0)
       newPlanner.queryCache.getMisses.shouldEqual(1)
 
       // replan query (hits)
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
       newPlanner.queryCache.getHits.shouldEqual(1)
       newPlanner.queryCache.getMisses.shouldEqual(1)
 
       // clear cache and rereplan query (cold miss again)
       newPlanner.queryCache.clearByContext(defaultRef.alias().name())
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
       newPlanner.queryCache.getHits.shouldEqual(1)
       newPlanner.queryCache.getMisses.shouldEqual(2)
     }
@@ -865,7 +914,7 @@ class FabricPlannerTest
           |RETURN x
           |""".stripMargin
 
-      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map())).plan
+      newPlanner.instance(signatures, q, params, defaultRef, Catalog(Map()), cypherConfig.systemDefaultLanguage).plan
       newPlanner.queryCache.clearByContext(defaultRef.alias().name()).shouldEqual(1)
       newPlanner.queryCache.clearByContext(defaultRef.alias().name()).shouldEqual(0)
     }
@@ -916,7 +965,14 @@ class FabricPlannerTest
         ("CYPHER planner=dp runtime=slotted debug=toString RETURN 1", model.hit())
       ).foreach { case (query, expectation) =>
         withClue(query) {
-          val result = Try(newPlanner.instance(signatures, query, params, defaultRef, Catalog(Map())).plan)
+          val result = Try(newPlanner.instance(
+            signatures,
+            query,
+            params,
+            defaultRef,
+            Catalog(Map()),
+            cypherConfig.systemDefaultLanguage
+          ).plan)
           result.isFailure.shouldEqual(expectation.failure)
           newPlanner.queryCache.getMisses.shouldEqual(expectation.misses)
           newPlanner.queryCache.getHits.shouldEqual(expectation.hits)
@@ -1384,14 +1440,21 @@ class FabricPlannerTest
     def planAndStitch(sessionGraphName: String, query: String, params: MapValue = params) = {
       val planner =
         FabricPlanner(makeConfig(), cypherConfig, monitors, cacheFactory)
-          .instance(signatures, query, params, databaseReference(sessionGraphName), fabricCatalog)
+          .instance(
+            signatures,
+            query,
+            params,
+            databaseReference(sessionGraphName),
+            fabricCatalog,
+            cypherConfig.systemDefaultLanguage
+          )
       Try(planner.plan)
     }
 
     def planAndStitchDatabaseRef(sessionDatabase: DatabaseReference, query: String, params: MapValue = params) = {
       val planner =
         FabricPlanner(makeConfig(), cypherConfig, monitors, cacheFactory)
-          .instance(signatures, query, params, sessionDatabase, fabricCatalog)
+          .instance(signatures, query, params, sessionDatabase, fabricCatalog, cypherConfig.systemDefaultLanguage)
       Try(planner.plan)
     }
 

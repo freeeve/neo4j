@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.cypher.internal.CypherVersion;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
 import org.neo4j.cypher.internal.options.CypherQueryOptions;
 import org.neo4j.cypher.internal.preparser.QueryOptions;
@@ -139,10 +140,12 @@ class ConstituentTransactionFactoryImplTest {
             CypherQueryOptions cypherQueryOptions, DatabaseTransaction innerTransaction) {
         LocationService locationService = (databaseReference) -> mock(Location.Local.class);
         TransactionInfo transactionInfo = mock(TransactionInfo.class);
+        when(transactionInfo.defaultQueryLanguageScope()).thenReturn(mock(DefaultQueryLanguageScope.class));
         RouterTransactionContext context = mock(RouterTransactionContext.class);
         when(context.transactionInfo()).thenReturn(transactionInfo);
         when(context.locationService()).thenReturn(locationService);
         when(context.transactionFor(any(), any())).thenReturn(innerTransaction);
+        when(context.sessionTransaction()).thenReturn(mock(DatabaseTransaction.class));
 
         var sessionDatabase = mock(DatabaseReferenceImpl.Composite.class);
         when(sessionDatabase.getConstituentByName(any())).thenReturn(Optional.empty());

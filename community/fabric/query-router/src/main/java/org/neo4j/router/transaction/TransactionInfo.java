@@ -30,6 +30,7 @@ import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.fabric.transaction.StatementLifecycleTransactionInfo;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.security.LoginContext;
@@ -39,7 +40,7 @@ import org.neo4j.kernel.database.NormalizedDatabaseName;
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration;
 
 /**
- * Container for all the information given by the bolt server for a given transaction
+ * Container for all the information given by the bolt server, and more, for a given transaction
  */
 public final class TransactionInfo {
     private final DatabaseReference sessionDatabase;
@@ -52,6 +53,7 @@ public final class TransactionInfo {
     private Map<String, Object> txMetadata;
     private final RoutingContext routingContext;
     private final QueryExecutionConfiguration queryExecutionConfiguration;
+    private DefaultQueryLanguageScope defaultQueryLanguageScope = DefaultQueryLanguageScope.create();
 
     public TransactionInfo(
             DatabaseReference sessionDatabase,
@@ -144,6 +146,10 @@ public final class TransactionInfo {
 
     public boolean targetsSystemDatabase() {
         return sessionDatabase.fullName().equals(new NormalizedDatabaseName(SYSTEM_DATABASE_NAME));
+    }
+
+    public DefaultQueryLanguageScope defaultQueryLanguageScope() {
+        return defaultQueryLanguageScope;
     }
 
     @Override

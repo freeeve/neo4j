@@ -25,6 +25,7 @@ import static org.mockito.Mockito.when;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
 import org.neo4j.internal.kernel.api.Locks;
@@ -381,5 +382,10 @@ public class StubKernelTransaction implements KernelTransaction {
     @Override
     public InnerTransactionHandler getInnerTransactionHandler() {
         throw new UnsupportedOperationException("not implemented");
+    }
+
+    @Override
+    public DefaultQueryLanguageScope defaultQueryLanguageScope() {
+        return null;
     }
 }

@@ -25,11 +25,14 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.options.CypherExecutionMode;
 import org.neo4j.cypher.internal.preparser.QueryOptions;
 import org.neo4j.cypher.internal.util.CancellationChecker;
 import org.neo4j.cypher.internal.util.InputPosition;
 import org.neo4j.cypher.internal.util.ObfuscationMetadata;
+import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup;
 import org.neo4j.exceptions.InvalidSemanticsException;
 import org.neo4j.fabric.bookmark.BookmarkFormat;
 import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
@@ -89,6 +92,8 @@ public class QueryRouterImpl implements QueryRouter {
     private final QueryRoutingMonitor queryRoutingMonitor;
     private final AbstractSecurityLog securityLog;
     private final InternalLog queryRouterLog;
+    final CypherVersion systemDefaultQueryLanguage;
+    private final DefaultQueryLanguageLookup defaultQueryLanguageLookup;
 
     public QueryRouterImpl(
             Config config,
@@ -104,7 +109,8 @@ public class QueryRouterImpl implements QueryRouter {
             QueryRoutingMonitor queryRoutingMonitor,
             RouterTransactionManager transactionManager,
             AbstractSecurityLog securityLog,
-            InternalLog queryRouterLog) {
+            InternalLog queryRouterLog,
+            DefaultQueryLanguageLookup defaultQueryLanguageLookup) {
         this.config = config;
         this.databaseReferenceResolver = databaseReferenceResolver;
         this.locationServiceFactory = locationServiceFactory;
@@ -119,6 +125,11 @@ public class QueryRouterImpl implements QueryRouter {
         this.transactionManager = transactionManager;
         this.securityLog = securityLog;
         this.queryRouterLog = queryRouterLog;
+        this.systemDefaultQueryLanguage = switch (config.get(GraphDatabaseSettings.default_language)) {
+            case Cypher5 -> CypherVersion.Cypher5;
+            case Cypher25 -> CypherVersion.Cypher25;
+        };
+        this.defaultQueryLanguageLookup = defaultQueryLanguageLookup;
     }
 
     @Override
@@ -225,7 +236,11 @@ public class QueryRouterImpl implements QueryRouter {
         statementLifecycle.startProcessing();
         try {
             LocationService locationService = context.locationService();
-            final var preParsedQuery = queryProcessor.preParse(query);
+            final var queryLangScope = context.transactionInfo().defaultQueryLanguageScope();
+            final var defaultLanguage = defaultQueryLanguageLookup.dbDefaultQueryLanguage(
+                    queryLangScope, context.sessionDatabaseReference().namedDatabaseId(), systemDefaultQueryLanguage);
+
+            final var preParsedQuery = queryProcessor.preParse(query, defaultLanguage);
             statementLifecycle.donePreParsing(preParsedQuery);
             var processedQueryInfo = queryProcessor.processQuery(
                     query,
@@ -276,9 +291,14 @@ public class QueryRouterImpl implements QueryRouter {
             var databaseTransaction = context.transactionFor(
                     location,
                     TransactionMode.from(accessMode, executionMode, statementType.isReadQuery(), target.isComposite()));
-            if (databaseTransaction instanceof LocalDatabaseTransaction) {
-                ((LocalDatabaseTransaction) databaseTransaction)
-                        .setConstituentTransactionFactory(constituentTransactionFactory);
+            if (databaseTransaction instanceof LocalDatabaseTransaction localDbTx) {
+                localDbTx.setConstituentTransactionFactory(constituentTransactionFactory);
+            }
+
+            if (databaseTransaction.defaultQueryLanguageScope().defaultQueryLanguage() == null) {
+                // set default transaction of underlying kernel transaction
+                // so we won't resolve it a second time later in the stack
+                databaseTransaction.defaultQueryLanguageScope().setDefaultQueryLanguage(defaultLanguage);
             }
             return databaseTransaction.executeQuery(
                     processedQueryInfo.rewrittenQuery(),

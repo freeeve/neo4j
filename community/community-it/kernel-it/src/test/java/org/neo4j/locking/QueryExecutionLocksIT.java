@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Test;
 import org.neo4j.common.EntityType;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -1080,6 +1081,11 @@ class QueryExecutionLocksIT {
         @Override
         public InnerTransactionHandler getInnerTransactionHandler() {
             return internal.getInnerTransactionHandler();
+        }
+
+        @Override
+        public DefaultQueryLanguageScope defaultQueryLanguageScope() {
+            return internal.defaultQueryLanguageScope();
         }
     }
 }

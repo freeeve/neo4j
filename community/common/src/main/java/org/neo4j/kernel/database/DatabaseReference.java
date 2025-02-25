@@ -45,6 +45,9 @@ public interface DatabaseReference extends Comparable<DatabaseReference>, Privil
      */
     UUID id();
 
+    /** Returns the named database id for this reference. */
+    NamedDatabaseId namedDatabaseId();
+
     /**
      * @return Prettified String representaion
      */

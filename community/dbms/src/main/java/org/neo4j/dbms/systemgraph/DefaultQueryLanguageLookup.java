@@ -21,6 +21,7 @@ package org.neo4j.dbms.systemgraph;
 
 import java.util.Optional;
 import org.neo4j.cypher.internal.CypherVersion;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.kernel.database.NamedDatabaseId;
 
 public interface DefaultQueryLanguageLookup {
@@ -33,4 +34,24 @@ public interface DefaultQueryLanguageLookup {
      * expect a short delay after changes to the default language are reflected here.
      */
     Optional<CypherVersion> defaultLanguage(NamedDatabaseId dbId);
+
+    /**
+     * Returns the default query language from the scope if it's set.
+     * Or else, looks it up using {@link #defaultLanguage(NamedDatabaseId)}.
+     * Multiple queries in the same transaction needs to use the same default,
+     * this mechanism is here to guarantee that.
+     *
+     * @param scope transactional default query language scope
+     * @param dbId database id
+     * @param fallbackLanguage fallback query language
+     */
+    default CypherVersion dbDefaultQueryLanguage(
+            DefaultQueryLanguageScope scope, NamedDatabaseId dbId, CypherVersion fallbackLanguage) {
+        var defaultLanguage = scope.defaultQueryLanguage();
+        if (defaultLanguage == null) {
+            defaultLanguage = defaultLanguage(dbId).orElse(fallbackLanguage);
+            scope.setDefaultQueryLanguage(defaultLanguage);
+        }
+        return defaultLanguage;
+    }
 }

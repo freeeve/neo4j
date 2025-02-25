@@ -139,6 +139,11 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
         }
 
         @Override
+        public NamedDatabaseId namedDatabaseId() {
+            return DatabaseIdFactory.from(name(), uuid);
+        }
+
+        @Override
         public NormalizedCatalogEntry catalogEntry() {
             if (namespace != null) {
                 return new NormalizedCatalogEntry(namespace.name(), alias.name());
@@ -239,6 +244,11 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
         @Override
         public UUID id() {
             return namedDatabaseId.databaseId().uuid();
+        }
+
+        @Override
+        public NamedDatabaseId namedDatabaseId() {
+            return namedDatabaseId;
         }
 
         @Override

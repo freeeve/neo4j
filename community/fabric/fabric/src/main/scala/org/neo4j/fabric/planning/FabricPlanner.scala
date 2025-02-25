@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.RecordingNotificationLogger
 import org.neo4j.cypher.rendering.QueryOptionsRenderer
+import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup
 import org.neo4j.fabric.cache.FabricQueryCache
 import org.neo4j.fabric.config.FabricConfig
 import org.neo4j.fabric.eval.Catalog
@@ -57,7 +58,6 @@ case class FabricPlanner(
   monitors: Monitors,
   cacheFactory: CaffeineCacheFactory
 ) {
-
   private[planning] val queryCache = new FabricQueryCache(cacheFactory, CacheSize.Dynamic(cypherConfig.queryCacheSize))
 
   private val frontend = FabricFrontEnd(cypherConfig, monitors, cacheFactory)
@@ -70,7 +70,8 @@ case class FabricPlanner(
     queryString: String,
     queryParams: MapValue,
     sessionDatabase: DatabaseReference,
-    catalog: Catalog
+    catalog: Catalog,
+    defaultLanguage: CypherVersion
   ): PlannerInstance =
     instance(
       signatureResolver,
@@ -79,7 +80,8 @@ case class FabricPlanner(
       sessionDatabase,
       catalog,
       InternalSyntaxUsageStatsNoOp,
-      CancellationChecker.NeverCancelled
+      CancellationChecker.NeverCancelled,
+      defaultLanguage
     )
 
   def instance(
@@ -89,12 +91,12 @@ case class FabricPlanner(
     sessionDatabase: DatabaseReference,
     catalog: Catalog,
     internalSyntaxUsageStats: InternalSyntaxUsageStats,
-    cancellationChecker: CancellationChecker
+    cancellationChecker: CancellationChecker,
+    defaultLanguage: CypherVersion
   ): PlannerInstance = {
     val notificationLogger = new RecordingNotificationLogger()
 
-    val dbDefaultLanguage = cypherConfig.systemDefaultLanguage // TODO Replace with db specific default
-    val query = frontend.preParsing.preParse(queryString, notificationLogger, dbDefaultLanguage)
+    val query = frontend.preParsing.preParse(queryString, notificationLogger, defaultLanguage)
 
     PlannerInstance(
       ScopedProcedureSignatureResolver.from(

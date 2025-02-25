@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.api.parallel;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
@@ -412,6 +413,11 @@ public class ExecutionContextProcedureKernelTransaction implements KernelTransac
     @Override
     public InnerTransactionHandler getInnerTransactionHandler() {
         throw failure("getInnerTransactionHandler");
+    }
+
+    @Override
+    public DefaultQueryLanguageScope defaultQueryLanguageScope() {
+        return ktx.defaultQueryLanguageScope();
     }
 
     // Since TX object is reused, let's check if this is still the same TX

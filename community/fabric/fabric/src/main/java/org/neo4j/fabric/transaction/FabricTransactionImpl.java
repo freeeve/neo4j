@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.cypher.internal.ast.Statement;
 import org.neo4j.cypher.internal.util.CancellationChecker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
@@ -271,5 +272,10 @@ public class FabricTransactionImpl extends AbstractCompoundTransaction<SingleDbT
     @Override
     public void closeTransaction(SingleDbTransaction databaseTransaction) {
         // only used in query router
+    }
+
+    @Override
+    public DefaultQueryLanguageScope defaultQueryLanguageScope() {
+        return kernelTransaction.getInternalTransaction().kernelTransaction().defaultQueryLanguageScope();
     }
 }

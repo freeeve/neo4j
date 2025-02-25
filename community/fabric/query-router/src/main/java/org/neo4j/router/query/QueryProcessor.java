@@ -21,6 +21,7 @@ package org.neo4j.router.query;
 
 import java.util.Optional;
 import java.util.Set;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.preparser.PreParsedQuery;
 import org.neo4j.cypher.internal.preparser.QueryOptions;
 import org.neo4j.cypher.internal.util.CancellationChecker;
@@ -47,7 +48,7 @@ public interface QueryProcessor {
             Set<InternalNotification> parsingNotifications,
             Set<InternalNotification> routingNotifications) {}
 
-    PreParsedQuery preParse(Query query);
+    PreParsedQuery preParse(Query query, CypherVersion defaultLanguage);
 
     ProcessedQueryInfo processQuery(
             Query query,

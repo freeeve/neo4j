@@ -110,7 +110,8 @@ class RouterTransactionMonitorTest {
                 mock(QueryRoutingMonitor.class),
                 new RouterTransactionManager(transactionMonitor, config),
                 mock(AbstractSecurityLog.class),
-                mock(InternalLog.class));
+                mock(InternalLog.class),
+                null);
     }
 
     @Test

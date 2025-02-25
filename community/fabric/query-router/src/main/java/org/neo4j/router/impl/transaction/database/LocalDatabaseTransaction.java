@@ -21,6 +21,7 @@ package org.neo4j.router.impl.transaction.database;
 
 import java.util.HashSet;
 import java.util.Set;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.cypher.internal.util.InternalNotification;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.fabric.bookmark.LocalBookmark;
@@ -227,6 +228,11 @@ public class LocalDatabaseTransaction implements DatabaseTransaction {
     @Override
     public boolean isOpen() {
         return internalTransaction.isOpen();
+    }
+
+    @Override
+    public DefaultQueryLanguageScope defaultQueryLanguageScope() {
+        return internalTransaction.kernelTransaction().defaultQueryLanguageScope();
     }
 
     private class QuerySubscriberImpl extends StatementLifecycleQuerySubscriber {

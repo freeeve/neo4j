@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
+import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup;
 import org.neo4j.fabric.FabricDatabaseManager;
 import org.neo4j.fabric.bolt.BoltFabricDatabaseManagementService;
 import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
@@ -159,6 +160,7 @@ public abstract class FabricServicesBootstrap extends CommonQueryRouterBootstrap
         var planner =
                 register(new FabricPlanner(fabricConfig, cypherConfig, monitors, cacheFactory), FabricPlanner.class);
         var useEvaluation = register(new UseEvaluation(), UseEvaluation.class);
+        var defaultQueryLanguageLookup = resolve(DefaultQueryLanguageLookup.class);
 
         var fabricExecutor = new FabricExecutor(
                 fabricConfig,
@@ -168,7 +170,8 @@ public abstract class FabricServicesBootstrap extends CommonQueryRouterBootstrap
                 statementLifecycles,
                 executor,
                 monitors,
-                internalSyntaxUsageStats);
+                internalSyntaxUsageStats,
+                defaultQueryLanguageLookup);
         register(fabricExecutor, FabricExecutor.class);
         return createBoltDatabaseManagementServiceProvider();
     }

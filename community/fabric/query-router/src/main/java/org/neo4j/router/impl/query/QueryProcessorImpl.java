@@ -25,6 +25,7 @@ import static scala.jdk.javaapi.OptionConverters.toJava;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.PreParser;
 import org.neo4j.cypher.internal.ast.AdministrationCommand;
 import org.neo4j.cypher.internal.ast.CatalogName;
@@ -96,8 +97,8 @@ public class QueryProcessorImpl implements QueryProcessor {
     }
 
     @Override
-    public PreParsedQuery preParse(Query query) {
-        return preParser.preParse(query.text());
+    public PreParsedQuery preParse(Query query, CypherVersion defaultLanguage) {
+        return preParser.preParse(query.text(), defaultLanguage);
     }
 
     @Override
@@ -219,9 +220,11 @@ public class QueryProcessorImpl implements QueryProcessor {
         var rewrittenStatement = flattenBooleanOperators
                 .instance(cancellationChecker)
                 .apply(RemoveUseRewriter.instance().apply(parsedQuery.statement()));
+
         var rewrittenStatementString = QueryRenderer.render((Statement) rewrittenStatement);
 
-        return QueryOptionsRenderer.addOptions(rewrittenStatementString, queryOptions);
+        return QueryOptionsRenderer.addOptions(
+                rewrittenStatementString, queryOptions.withQueryLanguage(queryOptions.resolvedLanguage()));
     }
 
     private static MapValue formatMaybeExtractedParams(BaseState parsedQuery) {

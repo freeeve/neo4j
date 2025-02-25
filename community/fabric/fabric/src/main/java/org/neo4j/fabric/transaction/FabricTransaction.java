@@ -22,6 +22,7 @@ package org.neo4j.fabric.transaction;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.cypher.internal.ast.Statement;
 import org.neo4j.cypher.internal.util.CancellationChecker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
@@ -80,4 +81,6 @@ public interface FabricTransaction {
     ExecutingQuery.TransactionBinding transactionBinding();
 
     Procedures contextlessProcedures();
+
+    DefaultQueryLanguageScope defaultQueryLanguageScope();
 }

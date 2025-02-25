@@ -53,6 +53,7 @@ import org.neo4j.collection.pool.Pool;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.LocalConfig;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.dbms.DbmsRuntimeVersionProvider;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.dbms.identity.ServerIdentity;
@@ -279,6 +280,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private final ExecutionContextFactory executionContextFactory;
     private ProcedureView procedureView;
     private boolean needsHighIdTracking;
+    private DefaultQueryLanguageScope defaultQueryLanguageScope = DefaultQueryLanguageScope.create();
 
     /**
      * Lock prevents transaction {@link #markForTermination(Status)}  transaction termination} from interfering with
@@ -1471,6 +1473,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 error = Exceptions.chain(error, e);
             }
             innerTransactionHandler = null;
+            defaultQueryLanguageScope.reset();
         } finally {
             terminationReleaseLock.unlock();
         }
@@ -1809,6 +1812,11 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     @Override
     public PropertyCursor ambientPropertyCursor() {
         return operations.propertyCursor();
+    }
+
+    @Override
+    public DefaultQueryLanguageScope defaultQueryLanguageScope() {
+        return defaultQueryLanguageScope;
     }
 
     public void ensureValid() throws LeaseException {

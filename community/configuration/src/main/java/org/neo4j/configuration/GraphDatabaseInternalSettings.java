@@ -638,7 +638,8 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
 
     @Internal
     @Description("Name of file containing commands to be run during initialization of the system database. "
-            + "The file should exists in the scripts directory in neo4j home directory.")
+            + "The file should exists in the scripts directory in neo4j home directory."
+            + "Initialization queries are run in the query language version defined in `db.query.default_language`.")
     public static final Setting<Path> system_init_file = newBuilder("internal.dbms.init_file", PATH, null)
             .immutable()
             .setDependency(scripts_dir)

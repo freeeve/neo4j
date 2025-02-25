@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.NotInTransactionException;
 import org.neo4j.internal.kernel.api.CursorFactory;
@@ -572,4 +573,6 @@ public interface KernelTransaction extends AssertOpen, AutoCloseable {
     }
 
     default void clearSPDQueryCaches() {}
+
+    DefaultQueryLanguageScope defaultQueryLanguageScope();
 }

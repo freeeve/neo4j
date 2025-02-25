@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
 import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.cypher.internal.options.CypherReplanOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
+import org.neo4j.cypher.internal.options.CypherVersionOption
 import org.neo4j.cypher.internal.util.DeprecatedRuntimeNotification
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotification
@@ -133,7 +134,7 @@ case class QueryOptions(
   materializedEntitiesMode: Boolean = false,
   private[preparser] val defaultLanguage: CypherVersion // The db default language (NOT the version to use)
 ) {
-  val resolvedLanguage = queryOptions.cypherVersion.explicitVersion.getOrElse(defaultLanguage)
+  val resolvedLanguage: CypherVersion = queryOptions.cypherVersion.explicitVersion.getOrElse(defaultLanguage)
 
   def compileWhenHot: Boolean =
     queryOptions.expressionEngine == CypherExpressionEngineOption.onlyWhenHot || queryOptions.expressionEngine == CypherExpressionEngineOption.default
@@ -148,6 +149,11 @@ case class QueryOptions(
 
   def withExecutionMode(executionMode: CypherExecutionMode): QueryOptions =
     copy(queryOptions = queryOptions.copy(executionMode = executionMode))
+
+  def withQueryLanguage(language: CypherVersion): QueryOptions =
+    copy(queryOptions =
+      queryOptions.copy(cypherVersion = CypherVersionOption.values.find(_.explicitVersion.contains(language)).get)
+    )
 
   /**
    * Cache key used for executableQueryCache and astCache.

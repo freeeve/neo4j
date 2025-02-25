@@ -20,6 +20,7 @@
 package org.neo4j.router.transaction;
 
 import java.util.Set;
+import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.cypher.internal.util.InternalNotification;
 import org.neo4j.fabric.executor.QueryStatementLifecycles;
 import org.neo4j.fabric.transaction.parent.ChildTransaction;
@@ -48,4 +49,6 @@ public interface DatabaseTransaction extends ChildTransaction {
             QuerySubscriber querySubscriber,
             QueryStatementLifecycles.StatementLifecycle statementLifecycle,
             Set<InternalNotification> routerNotifications);
+
+    DefaultQueryLanguageScope defaultQueryLanguageScope();
 }

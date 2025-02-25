@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.compiler.helpers.SignatureResolver;
 import org.neo4j.cypher.internal.evaluator.StaticEvaluation;
 import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats;
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery;
+import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup;
 import org.neo4j.exceptions.InvalidSemanticsException;
 import org.neo4j.fabric.config.FabricConfig;
 import org.neo4j.fabric.config.FabricConstants;
@@ -78,6 +79,7 @@ public class FabricExecutor {
     private final CallableExecutor fabricWorkerExecutor;
     private final QueryRoutingMonitor queryRoutingMonitor;
     private final InternalSyntaxUsageStats internalSyntaxUsageStats;
+    private final DefaultQueryLanguageLookup defaultQueryLanguageLookup;
 
     public FabricExecutor(
             FabricConfig config,
@@ -87,7 +89,8 @@ public class FabricExecutor {
             QueryStatementLifecycles statementLifecycles,
             CallableExecutor fabricWorkerExecutor,
             Monitors monitors,
-            InternalSyntaxUsageStats internalSyntaxUsageStats) {
+            InternalSyntaxUsageStats internalSyntaxUsageStats,
+            DefaultQueryLanguageLookup defaultQueryLanguageLookup) {
         this.dataStreamConfig = config.getDataStream();
         this.planner = planner;
         this.useEvaluation = useEvaluation;
@@ -96,6 +99,7 @@ public class FabricExecutor {
         this.fabricWorkerExecutor = fabricWorkerExecutor;
         this.queryRoutingMonitor = monitors.newMonitor(QueryRoutingMonitor.class);
         this.internalSyntaxUsageStats = internalSyntaxUsageStats;
+        this.defaultQueryLanguageLookup = defaultQueryLanguageLookup;
     }
 
     public StatementResult run(FabricTransaction fabricTransaction, String statement, MapValue parameters) {
@@ -111,8 +115,13 @@ public class FabricExecutor {
 
         try {
             var defaultGraphName = fabricTransaction.getTransactionInfo().getSessionDatabaseReference();
-
             var catalog = fabricTransaction.getCatalogSnapshot();
+
+            final var defaultLanguage = defaultQueryLanguageLookup.dbDefaultQueryLanguage(
+                    fabricTransaction.defaultQueryLanguageScope(),
+                    defaultGraphName.namedDatabaseId(),
+                    planner.cypherConfig().systemDefaultLanguage());
+
             var plannerInstance = planner.instance(
                     signatureResolver,
                     statement,
@@ -120,7 +129,8 @@ public class FabricExecutor {
                     defaultGraphName,
                     catalog,
                     internalSyntaxUsageStats,
-                    fabricTransaction.cancellationChecker());
+                    fabricTransaction.cancellationChecker(),
+                    defaultLanguage);
             lifecycle.donePreParsing(plannerInstance.query());
             var plan = plannerInstance.plan();
             var query = plan.query();

@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
+import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup;
 import org.neo4j.exceptions.InvalidSemanticsException;
 import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
 import org.neo4j.fabric.bootstrap.CommonQueryRouterBootstrap;
@@ -188,6 +189,7 @@ public class CommunityQueryRouterBootstrap extends CommonQueryRouterBootstrap {
         var transactionLookup = new TransactionLookup(routerTxManager, compositeTxManager);
         dependencies.satisfyDependency(transactionLookup);
         var queryRouterLog = getLogService().getInternalLog(QueryRouter.class);
+        final var defaultQueryLanguageLookup = resolve(DefaultQueryLanguageLookup.class);
 
         var queryRouter = new QueryRouterImpl(
                 config,
@@ -204,7 +206,8 @@ public class CommunityQueryRouterBootstrap extends CommonQueryRouterBootstrap {
                 monitors.newMonitor(QueryRoutingMonitor.class),
                 routerTxManager,
                 securityLog,
-                queryRouterLog);
+                queryRouterLog,
+                defaultQueryLanguageLookup);
         dependencies.satisfyDependency(queryRouter);
         return new QueryRouterBoltSpi.DatabaseManagementService(
                 queryRouter, databaseReferenceResolver, getCompositeDatabaseStack(), useQueryRouterForCompositeQueries);

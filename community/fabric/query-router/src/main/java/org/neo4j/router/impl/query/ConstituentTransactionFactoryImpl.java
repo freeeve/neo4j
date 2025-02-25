@@ -97,10 +97,11 @@ public class ConstituentTransactionFactoryImpl implements ConstituentTransaction
                     context.transactionInfo().statementLifecycleTransactionInfo(), queryString, parameters, null);
             statementLifecycle.startProcessing();
             var query = Query.of(QueryOptionsRenderer.addOptions(queryString, queryOptions), parameters);
-            final var preParsedQuery = queryProcessor.preParse(query);
+            final var defaultQueryLanguage =
+                    context.transactionInfo().defaultQueryLanguageScope().defaultQueryLanguage();
+            final var preParsedQuery = queryProcessor.preParse(query, defaultQueryLanguage);
             statementLifecycle.donePreParsing(preParsedQuery);
             var processedQuery = queryProcessor.processQuery(
-                    // the session database can be ignored in the constituent for now
                     query, preParsedQuery, targetService, (dbRef) -> location, cancellationChecker, sessionDatabase());
             var notifications = Stream.concat(
                             processedQuery.routingNotifications().stream(),

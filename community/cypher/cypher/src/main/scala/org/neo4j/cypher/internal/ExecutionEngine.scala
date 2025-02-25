@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.tracing.CompilationTracer.QueryCompilationEvent
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.RecordingNotificationLogger
+import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup
 import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.internal.kernel.api.security.AccessMode
@@ -45,6 +46,7 @@ import org.neo4j.kernel.api.QueryLanguage
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
 import org.neo4j.kernel.database.DatabaseReference
+import org.neo4j.kernel.database.NamedDatabaseId
 import org.neo4j.kernel.database.NormalizedCatalogEntry
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.kernel.impl.query.FunctionInformation
@@ -85,6 +87,9 @@ abstract class ExecutionEngine(
   protected val defaultQueryExecutionMonitor = kernelMonitors.newMonitor(classOf[QueryExecutionMonitor])
 
   private val preParser = new CachingPreParser(config, queryCaches.preParserCache)
+
+  private val defaultLanguageLookup =
+    queryService.getDependencyResolver.resolveDependency(classOf[DefaultQueryLanguageLookup])
 
   private val queryCache: QueryCache[CacheKey[InputQuery.CacheKey], ExecutableQuery] = queryCaches.executableQueryCache
 
@@ -185,11 +190,14 @@ abstract class ExecutionEngine(
     closing(context, queryTracer) {
       val couldContainSensitiveFields = isOutermostQuery && masterCompiler.supportsAdministrativeCommands()
       val notificationLogger = new RecordingNotificationLogger()
+      val queryLangScope = context.kernelTransaction().defaultQueryLanguageScope()
 
+      val defaultLanguage =
+        defaultLanguageLookup.dbDefaultQueryLanguage(queryLangScope, context.databaseId(), config.systemDefaultLanguage)
       val preParsedQuery = preParser.preParseQuery(
         queryText = query,
         notificationLogger = notificationLogger,
-        defaultLanguage = config.systemDefaultLanguage, // To be replaced with db specific default
+        defaultLanguage = defaultLanguage,
         profile = profile,
         couldContainSensitiveFields = couldContainSensitiveFields,
         targetsComposite = DatabaseMode.COMPOSITE.equals(context.databaseMode())
@@ -408,6 +416,8 @@ abstract class ExecutionEngine(
            * @return the unique identity for this reference
            */
             override def id(): UUID = throw new NotImplementedError()
+
+            override def namedDatabaseId(): NamedDatabaseId = throw new NotImplementedError()
 
             /**
            * @return Prettified String representaion

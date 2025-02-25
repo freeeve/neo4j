@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.util._
 import org.neo4j.kernel.database.DatabaseReference
+import org.neo4j.kernel.database.NamedDatabaseId
 import org.neo4j.kernel.database.NormalizedCatalogEntry
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.scalatest.matchers.MatchResult
@@ -69,6 +70,8 @@ class ErrorCollectingContext(
       override def isPrimary: Boolean = true
 
       override def id(): UUID = ???
+
+      override def namedDatabaseId(): NamedDatabaseId = ???
 
       override def toPrettyString: String = s"${fullName().name()} (isComposite: $isComposite)"
 
