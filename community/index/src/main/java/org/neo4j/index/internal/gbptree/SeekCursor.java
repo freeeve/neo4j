@@ -493,24 +493,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
      */
     private void traverseDownToCorrectLevel() throws IOException {
         traverseToTargetLevel(searchLevel);
-        // now cursor positioned at target node
-        // another key search to init pos
-        initSearch();
-    }
-
-    private void initSearch() {
-        // beware this initial search is done without should-retry loop intentionally
-        // subsequent call to #next() will do should-retry check and reinit or trigger new traversal if needed
-        int searchResult = KeySearch.search(
-                cursor, isInternal ? internalNode : leafNode, fromInclusive, tempKey, keyCount, cursorContext);
-
-        pos = KeySearch.positionOf(searchResult) - stride;
-
-        if (!seekForward) {
-            // The tree traversal is best effort when seeking backwards
-            // need to trigger search for key in next
-            concurrentWriteHappened = true;
-        }
+        concurrentWriteHappened = true;
         cache.clear();
     }
 
@@ -641,21 +624,13 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                     if (goToNextSibling()) {
                         continue; // in the read loop above so that we can continue reading from next sibling
                     }
-                } else {
-                    if (0 <= pos && insideEndRange(exactMatch, cache.currentKey())) {
-                        if (cache.hasCurrent() && isResultKey(cache.currentKey())) {
-                            resultOnTrack = true;
-                            if (isValueDefined(cache.currentValue())) {
-                                return true; // which marks this read a hit that user can see
-                            }
-                        }
-                        continue;
-                    }
                 }
+                // at this point we identified pos to return and probably filled read-ahead cache from that position
+                // next iteration should return entry at that pos using cache, so move pos back to prepare for it
+                pos -= stride;
 
-                // We've come too far and so this means the end of the result set
-                ended = true;
-                return false;
+                // wasn't able to fill cache or move to sibling, that's it
+                ended = cache.empty();
             }
         } catch (Throwable e) {
             exceptionDecorator.accept(e);
@@ -678,7 +653,8 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                 }
 
                 if (verifyExpectedFirstAfterGoToNext) {
-                    pos = seekForward ? 0 : keyCount - 1;
+                    assert !seekForward;
+                    pos = keyCount - 1;
                     (isInternal ? internalNode : leafNode).keyAt(cursor, firstKeyInNode, pos, cursorContext);
                 }
 
@@ -690,7 +666,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                     int searchResult = KeySearch.search(
                             cursor, isInternal ? internalNode : leafNode, key, tempKey, keyCount, cursorContext);
 
-                    pos = KeySearch.positionOf(searchResult);
+                    pos = selectPosition(searchResult, first, seekForward, keyCount);
                 }
 
                 cache.fill(pos);
@@ -719,6 +695,40 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
         }
 
         return true;
+    }
+
+    /**
+     * Binary search returns position of the element if it is hit, or position where that element would be inserted if no hit
+     * This gives us different rules on selecting next position to return depending on direction of seek, or if hit should be included.
+     * And there is special case when result equals keyCount.
+     */
+    private int selectPosition(int searchResult, boolean inclusive, boolean seekForward, int keyCount) {
+        int position = KeySearch.positionOf(searchResult);
+        boolean hit = KeySearch.isHit(searchResult);
+        if (seekForward) {
+            // found exact match but need to skip it
+            if (hit && !inclusive) {
+                return position + 1;
+            }
+            return position;
+        }
+        // when seeking backwards there are few options:
+        // - no exact match - move left to get correct element
+        // - exact match, but not inclusive - need to skip element
+        // - special case, position == keyCount, this is no exact match, but we don't move left
+        //      in this case we could've come here after traversal from root and there is no match in tree at all,
+        //      or maybe there were concurrent updates since traversal and split/rebalance moved target element
+        //      to the right sibling.
+        //      we return keyCount here which triggers jump back to the right sibling, and subsequent move
+        //      to the left sibling (this node) sets {@link #verifyExpectedFirstAfterGoToNext} which updates pos to
+        //      "keyCount - 1"
+        if (position == keyCount) {
+            return position;
+        }
+        if (!hit || !inclusive) {
+            return position - 1;
+        }
+        return position;
     }
 
     /**
@@ -902,7 +912,6 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                     forceReadHeader = true;
                     pos = -1;
                 }
-                return true;
             } else {
                 // Need to scout next sibling because we are seeking backwards
                 if (scoutNextSibling()) {
@@ -912,8 +921,8 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                 } else {
                     concurrentWriteHappened = true;
                 }
-                return true;
             }
+            return true;
         }
 
         // The current node is exhausted and it had no sibling to read more from.
@@ -1208,8 +1217,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                 keys = (KEY[]) new Object[batchSize];
                 values = new ValueHolder[batchSize];
             }
-            index = 0;
-            length = 0;
+            clear();
         }
 
         private void fill(int fromPos) throws IOException {
@@ -1218,29 +1226,31 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                     cacheIndex < keys.length && 0 <= readPos && readPos < keyCount;
                     readPos += stride) {
                 // Read the next value in this leaf
-                if (keys[cacheIndex] == null) {
-                    // Lazy instantiation of key/value
-                    keys[cacheIndex] = layout.newKey();
-                    values[cacheIndex] = new ValueHolder<>(layout.newValue());
-                }
-                if (!isInternal) {
-                    leafNode.keyValueAt(cursor, keys[cacheIndex], values[cacheIndex], readPos, cursorContext);
-                } else {
-                    internalNode.keyAt(cursor, keys[cacheIndex], readPos, cursorContext);
-                }
+                initSlot(cacheIndex);
+                readIntoSlot(cacheIndex, readPos);
 
-                if (insideEndRange(exactMatch, keys[cacheIndex])) {
-                    // This seems to be a result that should be part of our result set
-                    /*no need to check "inside prev" for consecutive keys*/
-                    if (cacheIndex > 0 || insidePrevKey(keys[cacheIndex])) {
-                        cacheIndex++;
-                    }
-                } else {
+                if (!insideEndRange(exactMatch, keys[cacheIndex])) {
                     // OK so we read too far, abort this ahead-reading
                     break;
                 }
+                cacheIndex++;
             }
             this.length = cacheIndex;
+        }
+
+        private void readIntoSlot(int index, int readPos) throws IOException {
+            if (isInternal) {
+                internalNode.keyAt(cursor, keys[index], readPos, cursorContext);
+            } else {
+                leafNode.keyValueAt(cursor, keys[index], values[index], readPos, cursorContext);
+            }
+        }
+
+        private void initSlot(int cacheIndex) {
+            if (keys[cacheIndex] == null) {
+                keys[cacheIndex] = layout.newKey();
+                values[cacheIndex] = new ValueHolder<>(layout.newValue());
+            }
         }
 
         private ValueHolder<VALUE> currentValue() {
@@ -1259,17 +1269,17 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
             index++;
         }
 
-        private boolean hasCurrent() {
-            return index < length;
-        }
-
         private void clear() {
-            index = 0;
+            index = -1;
             length = 0;
         }
 
         private int size() {
             return keys.length;
+        }
+
+        private boolean empty() {
+            return length == 0;
         }
     }
 }
