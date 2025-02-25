@@ -86,38 +86,51 @@ public abstract class StorageSettingsDeclaration implements SettingsDeclaration 
     }
 
     protected static Setting<Integer> pushQueueSlotSize(String scheme) {
-        return option(scheme, "push", "slot", INT, PushQueue.QUEUE_SIZE)
+        return queueOption(scheme, "push", "slot", INT, PushQueue.QUEUE_SIZE)
                 .addConstraint(min(16))
                 .build();
     }
 
     protected static Setting<Long> pushQueueChunkSize(String scheme) {
-        return option(scheme, "push", "chunk", BYTES, DOWNLOAD_CHUNK_SIZE)
+        return queueOption(scheme, "push", "chunk", BYTES, DOWNLOAD_CHUNK_SIZE)
                 .addConstraint(CHUNK_RANGE)
                 .build();
     }
 
     protected static Setting<Integer> pullQueueSlotSize(String scheme) {
-        return option(scheme, "pull", "slot", INT, PullQueue.QUEUE_SIZE)
+        return queueOption(scheme, "pull", "slot", INT, defaultPullQueueSize())
                 .addConstraint(min(1))
                 .build();
     }
 
     protected static Setting<Long> pullQueueChunkSize(String scheme) {
-        return option(scheme, "pull", "chunk", BYTES, DOWNLOAD_CHUNK_SIZE)
+        return queueOption(scheme, "pull", "chunk", BYTES, DOWNLOAD_CHUNK_SIZE)
                 .addConstraint(CHUNK_RANGE)
                 .build();
     }
 
-    private static <S> SettingBuilder<S> option(
+    protected static <S> SettingBuilder<S> publicOption(
+            String scheme, String optionName, SettingValueParser<S> parser, S defaultValue) {
+        return newBuilder("dbms.integrations.cloud_storage.%s.%s".formatted(scheme, optionName), parser, defaultValue);
+    }
+
+    protected static <S> SettingBuilder<S> internalOption(
+            String scheme, String optionName, SettingValueParser<S> parser, S defaultValue) {
+        return newBuilder("internal.dbms.cloud.storage.%s.%s".formatted(scheme, optionName), parser, defaultValue);
+    }
+
+    private static <S> SettingBuilder<S> queueOption(
             String scheme, String queueType, String optionType, SettingValueParser<S> parser, S defaultValue) {
-        return newBuilder(
-                "internal.dbms.cloud.storage.%s.%s_queue_%s_size".formatted(scheme, queueType, optionType),
-                parser,
-                defaultValue);
+        return internalOption(scheme, "%s_queue_%s_size".formatted(queueType, optionType), parser, defaultValue);
     }
 
     private static String scheme(StoragePath path) {
         return Objects.requireNonNull(path).scheme();
+    }
+
+    private static int defaultPullQueueSize() {
+        // when running on 96 core machine, testing found that a good queue size was 32
+        return Math.max(
+                PullQueue.QUEUE_SIZE, Integer.highestOneBit(Runtime.getRuntime().availableProcessors() / 6) << 1);
     }
 }
