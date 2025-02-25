@@ -109,19 +109,22 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
 
   test("debug me - expect no errors no retries") {
     val params = TestCaseParameters(
-      concurrency = Concurrent(None),
-      onErrorBehaviour = OnErrorRetryThenContinue,
+      concurrency = Serial,
+      onErrorBehaviour = OnErrorRetryThenFail,
       applyOrForeach = ApplyOrForeach.Apply,
-      reportStatus = true,
-      batchSize = 2
+      reportStatus = false,
+      batchSize = 10
     )
-    val nBatches = 10
-    val config = TestCaseConfig.withNoErrors(
+    val nBatches = defaultNumberOfBatches
+    val retryTimeoutSeconds = shortRetryTimeoutSeconds
+    val config = TestCaseConfig.withErrors(
       params,
-      nBatches
+      nBatches,
+      retryTimeoutSeconds,
+      errorsForBatch = (b: Int) => if (b == nBatches / 2) 1 else 0 // A batch in the middle has one error
     )
     val result = runTest(config)
-    TestCaseExpectation.expectNoErrorsAndNoRetries(config).verify(result)
+    TestCaseExpectation.expectNoFailedBatchesAtLeastOneRetry(config).verify(result)
   }
 
   // StaticGraphRuntimeTestSuite
@@ -174,9 +177,12 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
     retryTimeoutSeconds: Double = DEFAULT_RETRY_TIMEOUT_SECONDS,
     innerProbe: Prober.Probe = Prober.NoopProbe,
     inputProbe: Prober.Probe = Prober.NoopProbe,
-    outputProbe: Prober.Probe = Prober.NoopProbe
+    outputProbe: Prober.Probe = Prober.NoopProbe,
+    errorsForBatch: Int => Int = _ => 0
   ) {
     def nRows: Int = nBatches * params.batchSize
+
+    def rollbacksPlusCommit(batch: Int) = errorsForBatch(batch) + 1
   }
 
   object TestCaseConfig {
@@ -190,7 +196,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
       exceptionFactory: String => Throwable = TestTransientErrorFactory
     ): TestCaseConfig = {
       val errorProbe = createErrorProbe(sizeHint, params.batchSize, errorsForBatch, delaysForBatch, exceptionFactory)
-      TestCaseConfig(params, nBatches, retryTimeoutSeconds, errorProbe)
+      TestCaseConfig(params, nBatches, retryTimeoutSeconds, errorProbe, errorsForBatch = errorsForBatch)
     }
 
     def withNoErrors(params: TestCaseParameters, nBatches: Int): TestCaseConfig =
@@ -337,14 +343,26 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
       val nResultRows = config.nRows
       val nFailedBatches = failedBatches.size
       val failedBatchesSet = failedBatches.toSet
+
       config.params.onErrorBehaviour match {
         case OnErrorRetryThenContinue =>
           TestCaseExpectation(
             config,
             Some(nResultRows),
-            transactionsStarted = AtLeast(config.nBatches + nFailedBatches),
+            transactionsStarted = if (nFailedBatches > 0) {
+              AtLeast(config.nBatches + nFailedBatches)
+            } else {
+              Exactly((0 until config.nBatches).map(config.rollbacksPlusCommit).sum)
+            },
             transactionsCommitted = Exactly(config.nBatches - nFailedBatches),
-            transactionsRolledBack = AtLeast(nFailedBatches * 2),
+            transactionsRolledBack =
+              if (nFailedBatches > 0) {
+                AtLeast((0 until config.nBatches).map(i =>
+                  if (failedBatchesSet.contains(i)) 2 else config.errorsForBatch(i)
+                ).sum)
+              } else {
+                Exactly((0 until config.nBatches).map(config.errorsForBatch).sum)
+              },
             expectedOuterFailure = ErrorMessageExpectation.NoError,
             batchesExpectedStartedStatus = TrueForAllBatches,
             batchesExpectedCommittedStatus = (b: Int) => Some(!failedBatchesSet.contains(b)),
@@ -360,35 +378,82 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
           TestCaseExpectation(
             config,
             Some(nResultRows),
-            transactionsStarted = NoExpectation,
-            transactionsCommitted = AtMost(config.nBatches - nFailedBatches),
-            transactionsRolledBack = AtLeast(nFailedBatches * 2),
+            transactionsStarted = config.params.concurrency match {
+              case Serial if nFailedBatches > 0 =>
+                AtLeast((0 until failedBatches.min).map(config.rollbacksPlusCommit).sum + 1)
+              case Concurrent(_) if nFailedBatches > 0 =>
+                AtLeast(2)
+              case _ =>
+                Exactly((0 until config.nBatches).map(config.rollbacksPlusCommit).sum)
+            },
+            transactionsCommitted = config.params.concurrency match {
+              case Serial if nFailedBatches > 0        => Exactly(failedBatches.min)
+              case Concurrent(_) if nFailedBatches > 0 => AtMost(config.nBatches - nFailedBatches)
+              case _                                   => Exactly(config.nBatches)
+            },
+            transactionsRolledBack = config.params.concurrency match {
+              // in serial we will retry each batch in order until we hit the failing batch. here we account for each
+              // batch prior to the failing batch, plus the minimum number of expected failures for the failing batch: 1
+              case Serial if nFailedBatches > 0 =>
+                AtLeast((0 until failedBatches.min).map(config.errorsForBatch).sum + 1)
+
+              // in concurrent we only know that something will fail, not in which order
+              case Concurrent(_) if nFailedBatches > 0 =>
+                AtLeast(2)
+
+              case _ =>
+                Exactly((0 until config.nBatches).map(config.errorsForBatch).sum)
+            },
             expectedOuterFailure = eb match {
               case OnErrorRetryThenFail if failedBatches.nonEmpty =>
                 ErrorMessageExpectation.TransientErrorWithPrefix(errorMessage)
               case _ =>
                 ErrorMessageExpectation.NoError
             },
-            batchesExpectedStartedStatus = {
-              if (nFailedBatches == 1) {
+            batchesExpectedStartedStatus =
+              config.params.concurrency match {
+                case Serial if nFailedBatches > 0 =>
+                  (b: Int) => Some(b <= failedBatches.min)
+
+                case Concurrent(_) if nFailedBatches == 1 =>
+                  (b: Int) => if (failedBatchesSet.contains(b)) Some(true) else None
+
+                case Concurrent(_) if nFailedBatches > 1 =>
+                  NoExpectationForAllBatches
+
+                case _ => TrueForAllBatches
+              },
+            batchesExpectedCommittedStatus = config.params.concurrency match {
+              case Serial if nFailedBatches > 0 =>
+                (b: Int) => Some(b < failedBatches.min)
+
+              case Concurrent(_) if nFailedBatches > 0 =>
+                (b: Int) => if (failedBatchesSet.contains(b)) Some(false) else None
+
+              case _ => TrueForAllBatches
+            },
+            batchesExpectedErrorStatus = config.params.concurrency match {
+              case Serial if nFailedBatches > 0 =>
                 (b: Int) =>
-                  if (failedBatchesSet.contains(b)) Some(true) else None
-              } else {
-                NoExpectationForAllBatches
-              }
-            },
-            batchesExpectedCommittedStatus = {
-              (b: Int) =>
-                if (failedBatchesSet.contains(b)) Some(false) else None
-            },
-            batchesExpectedErrorStatus =
-              if (nFailedBatches == 1) {
+                  if (b < failedBatches.min) {
+                    Some(ErrorMessageExpectation.NoError)
+                  } else if (b == failedBatches.min) {
+                    Some(ErrorMessageExpectation.TransientErrorWithPrefix(errorMessage))
+                  } else {
+                    None
+                  }
+
+              case Concurrent(_) if nFailedBatches == 1 =>
                 (b: Int) =>
                   if (failedBatchesSet.contains(b)) Some(ErrorMessageExpectation.TransientErrorWithPrefix(errorMessage))
                   else None
-              } else {
+
+              case Concurrent(_) if nFailedBatches > 1 =>
                 NoExpectationForAllBatches
-              }
+
+              case _ =>
+                NoErrorForAllBatches
+            }
           )
       }
     }
@@ -466,7 +531,7 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
   // ========================================
   // Test multiple combinations of parameters
   for {
-    concurrency <- Seq( /* Serial <not supported yet>,*/ Concurrent(None))
+    concurrency <- Seq(Serial, Concurrent(random.shuffle(Seq(1, 2, 4, 8, 16)).head))
     onErrorBehaviour <- Seq(OnErrorRetryThenFail, OnErrorRetryThenContinue, OnErrorRetryThenBreak)
     applyOrForeach <- Seq(ApplyOrForeach.Apply, ApplyOrForeach.Foreach)
     reportStatus <- if (onErrorBehaviour != OnErrorRetryThenFail) Seq(true, false) else Seq(false)

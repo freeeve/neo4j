@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.EntityTransformer
 import org.neo4j.cypher.internal.runtime.QueryStatistics
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExponentialBackoffRetryLogic.DEFAULT_MAX_RETRY_TIME_NANOS
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.NotApplicable
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.NotRetryable
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.RetryTimeout
@@ -46,6 +47,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.profiler.InterpretedProfile
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.CypherExecutionInterruptedException
 import org.neo4j.exceptions.InternalException
+import org.neo4j.exceptions.TransactionRetryAbortedException
 import org.neo4j.kernel.impl.util.collection.EagerBuffer
 import org.neo4j.kernel.impl.util.collection.EagerBuffer.createEagerBuffer
 import org.neo4j.memory.MemoryTracker
@@ -290,12 +292,13 @@ class OnErrorRetryThenBreakTxPipe(
   val retryLogic: TransactionRetryLogic
 ) extends OnErrorBreakTxPipe(outerId, inner, concurrentAccess) with OnErrorRetryTxPipe
 
+// this extends OnErrorBreakTxPipe on purpose because we don't want exceptions to be thrown directly
 class OnErrorRetryThenFailTxPipe(
   outerId: Id,
   inner: Pipe,
   concurrentAccess: Boolean,
   val retryLogic: TransactionRetryLogic
-) extends OnErrorFailTxPipe(outerId, inner, concurrentAccess) with OnErrorRetryTxPipe
+) extends OnErrorBreakTxPipe(outerId, inner, concurrentAccess) with OnErrorRetryTxPipe
 
 trait OnErrorRetryTxPipe {
   self: TransactionPipeWrapper =>
@@ -456,8 +459,6 @@ object TransactionPipeWrapper {
         new OnErrorRetryThenContinueTxPipe(outerId, inner, concurrentAccess, retryLogic)
       case (OnErrorRetryThenBreak, Some(retryLogic)) =>
         new OnErrorRetryThenBreakTxPipe(outerId, inner, concurrentAccess, retryLogic)
-      case (OnErrorRetryThenFail, Some(retryLogic)) if concurrentAccess =>
-        new OnErrorRetryThenBreakTxPipe(outerId, inner, concurrentAccess, retryLogic)
       case (OnErrorRetryThenFail, Some(retryLogic)) =>
         new OnErrorRetryThenFailTxPipe(outerId, inner, concurrentAccess, retryLogic)
 
@@ -518,6 +519,26 @@ object TransactionPipeWrapper {
     log.info(s"Recover error in inner transaction $innerTxId (outer transaction $outerTxId)", t)
   }
 
+  def createRetryLogic(
+    onErrorBehaviour: InTransactionsOnErrorBehaviour,
+    retryPolicy: TransactionRetryPolicy,
+    state: QueryState
+  ): Option[TransactionRetryLogic] = onErrorBehaviour match {
+    case OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail =>
+      retryPolicy match {
+        case TransactionRetryPolicy.RetryFor(maybeDurationInSeconds) =>
+          // TODO: Integrate with config setting from QueryRuntimeConfig when that is merged
+          // state.query.getConfig.get("...")
+          val maxRetryTimeNanos = evaluateRetryTimeoutNanos(maybeDurationInSeconds, state, DEFAULT_MAX_RETRY_TIME_NANOS)
+          Some(new ExponentialBackoffRetryLogic(maxRetryTimeNanos))
+
+        case _ =>
+          throw new IllegalArgumentException(s"Unsupported retry policy $retryPolicy")
+      }
+
+    case _ => None
+  }
+
   def evaluateRetryTimeoutNanos(
     retryTimeout: Option[Expression],
     state: QueryState,
@@ -537,4 +558,61 @@ object TransactionPipeWrapper {
         defaultTimeoutInNanos
     }
   }
+
+  def updateStatisticsAndProfileInformation(status: TransactionStatus, queryState: QueryState): Unit = {
+    val statistics = status.queryStatistics
+    if (statistics != null) {
+      queryState.query.addStatistics(statistics)
+    }
+    val profileInformation = status.profileInformation
+    if (profileInformation != null) {
+      queryState.profileInformation.merge(profileInformation)
+    }
+  }
+
+  def handleRetry(
+    retryDecision: RetryDecision,
+    resultStatus: TransactionStatus,
+    onErrorBehaviour: InTransactionsOnErrorBehaviour,
+    batch: TransactionBatch
+  ): (TransactionStatus, Throwable) = {
+    // NOTE: It is very important that these match cases correctly propagate non-recoverable errors
+    (resultStatus, onErrorBehaviour, retryDecision) match {
+      case (r @ Rollback(_, failure, _, _), OnErrorRetryThenFail, RetryTimeout) =>
+        // Non-recoverable failure
+        (
+          r,
+          TransactionRetryAbortedException.transactionRetryAborted(
+            failure,
+            batch.retriedCount,
+            batch.abortedReason
+          )
+        )
+
+      case (r @ Rollback(_, failure, _, _), OnErrorRetryThenFail, NotRetryable | NotApplicable) =>
+        // Non-recoverable failure
+        (r, failure)
+
+      case (r @ Rollback(_, failure, _, _), OnErrorFail, _) =>
+        // Non-recoverable failure
+        (r, failure)
+
+      case (r @ Rollback(_, failure, _, _), OnErrorRetryThenBreak | OnErrorRetryThenContinue, RetryTimeout) =>
+        // Recoverable failure
+        (
+          r.copy(failure =
+            TransactionRetryAbortedException.transactionRetryAborted(
+              failure,
+              batch.retriedCount,
+              batch.abortedReason
+            )
+          ),
+          null
+        )
+
+      case (status, _, _) =>
+        (status, null)
+    }
+  }
+
 }

@@ -25,9 +25,9 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator.JavaIteratorAsClosingIt
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionForeachPipe.toStatusMap
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.evaluateBatchSize
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.kernel.impl.util.collection.EagerBuffer
+import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
 
@@ -37,39 +37,34 @@ abstract class AbstractTransactionApplyPipe(
   batchSize: Expression,
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   retryPolicy: TransactionRetryPolicy
-) extends PipeWithSource(source) {
+) extends AbstractSerialTransactionsPipe(source, inner, batchSize, onErrorBehaviour, retryPolicy) {
 
   protected def withStatus(output: ClosingIterator[CypherRow], status: TransactionStatus): ClosingIterator[CypherRow]
   protected def nullRows(value: EagerBuffer[CypherRow], state: QueryState): ClosingIterator[CypherRow]
 
-  final override protected def internalCreateResults(
-    input: ClosingIterator[CypherRow],
+  override protected def produceOutput(
+    eagerBuffer: EagerBuffer[CypherRow],
+    result: TransactionResult,
+    batch: TransactionBatch,
     state: QueryState
   ): ClosingIterator[CypherRow] = {
-    val innerPipeInTx = TransactionPipeWrapper(onErrorBehaviour, id, inner, concurrentAccess = false, retryLogic = None)
-    val batchSizeLong = evaluateBatchSize(batchSize, state)
-    val memoryTracker = state.memoryTrackerForOperatorProvider.memoryTrackerForOperator(id.x)
+    val output = result.committedResults match {
+      case Some(result) =>
+        batch.close()
+        result.autoClosingIterator().asClosingIterator
+      case _ => nullRows(batch.rows, state)
+    }
 
-    input
-      .eagerGrouped(batchSizeLong, memoryTracker)
-      .flatMap { eagerBuffer =>
-        val batch = TransactionBatch(eagerBuffer)
-        val innerResult = innerPipeInTx.createResults(state, batch, memoryTracker)
-        // TODO: Implement retry if (result.shouldRetry)
-        val statistics = innerResult.status.queryStatistics
-        if (statistics != null) {
-          state.query.addStatistics(statistics)
-        }
-        val output = innerResult.committedResults match {
-          case Some(result) =>
-            batch.close()
-            result.autoClosingIterator().asClosingIterator
-          case _ => nullRows(batch.rows, state)
-        }
-
-        withStatus(output, innerResult.status)
-      }
+    withStatus(output, result.status)
   }
+
+  override protected def getResult(
+    innerPipeInTx: TransactionPipeWrapper,
+    state: QueryState,
+    batch: TransactionBatch,
+    memoryTracker: MemoryTracker
+  ): TransactionResult =
+    innerPipeInTx.createResults(state, batch, memoryTracker)
 }
 
 case class TransactionApplyPipe(

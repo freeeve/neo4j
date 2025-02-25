@@ -20,10 +20,6 @@
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
-import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
-import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
-import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenContinue
-import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorRetryThenFail
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingIterator.JavaIteratorAsClosingIterator
@@ -31,16 +27,12 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrefetchingIterator
 import org.neo4j.cypher.internal.runtime.debug.DebugSupport
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExponentialBackoffRetryLogic.DEFAULT_MAX_RETRY_TIME_NANOS
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.NotApplicable
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.NotRetryable
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.RetryTimeout
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.createRetryLogic
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.evaluateBatchSize
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.evaluateConcurrency
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.evaluateRetryTimeoutNanos
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionPipeWrapper.handleRetry
 import org.neo4j.cypher.internal.runtime.memory.TransactionWorkerThreadDelegatingMemoryTracker
 import org.neo4j.exceptions.CypherExecutionInterruptedException
-import org.neo4j.exceptions.TransactionRetryAbortedException
 import org.neo4j.kernel.impl.util.collection.EagerBuffer
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.scheduler.CallableExecutor
@@ -58,22 +50,6 @@ abstract class AbstractConcurrentTransactionsPipe(
   onErrorBehaviour: InTransactionsOnErrorBehaviour,
   retryPolicy: TransactionRetryPolicy
 ) extends PipeWithSource(source) {
-
-  private def createRetryLogic(state: QueryState): Option[TransactionRetryLogic] = onErrorBehaviour match {
-    case OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail =>
-      retryPolicy match {
-        case TransactionRetryPolicy.RetryFor(maybeDurationInSeconds) =>
-          // TODO: Integrate with config setting from QueryRuntimeConfig when that is merged
-          // state.query.getConfig.get("...")
-          val maxRetryTimeNanos = evaluateRetryTimeoutNanos(maybeDurationInSeconds, state, DEFAULT_MAX_RETRY_TIME_NANOS)
-          Some(new ExponentialBackoffRetryLogic(maxRetryTimeNanos))
-
-        case _ =>
-          throw new IllegalArgumentException(s"Unsupported retry policy $retryPolicy")
-      }
-
-    case _ => None
-  }
 
   protected def withStatus(output: ClosingIterator[CypherRow], status: TransactionStatus): ClosingIterator[CypherRow]
   protected def nullRows(value: EagerBuffer[CypherRow], state: QueryState): ClosingIterator[CypherRow]
@@ -95,7 +71,7 @@ abstract class AbstractConcurrentTransactionsPipe(
     // in ExecutingQuery becomes thread-safe
     state.query.transactionalContext.kernelExecutingQuery.upgradeToConcurrentAccess()
 
-    val retryLogic = createRetryLogic(state)
+    val retryLogic = createRetryLogic(onErrorBehaviour, retryPolicy, state)
     val innerPipeInTx = TransactionPipeWrapper(onErrorBehaviour, id, inner, concurrentAccess = true, retryLogic)
     val batchSizeLong = evaluateBatchSize(batchSize, state)
     val concurrencyLong = evaluateConcurrency(concurrency, state)
@@ -162,7 +138,7 @@ abstract class AbstractConcurrentTransactionsPipe(
             val taskResult = pollOutputQueue() // NOTE: blocking operation!
             if (taskResult != null) {
               pendingTaskCount -= 1
-              updateStatisticsAndProfileInformation(taskResult)
+              TransactionPipeWrapper.updateStatisticsAndProfileInformation(taskResult.status, queryState)
               val error = taskResult.nonRecoverableError
               if (error != null && shouldReportError(error)) {
                 try {
@@ -197,17 +173,6 @@ abstract class AbstractConcurrentTransactionsPipe(
     }
 
     protected def processTaskResult(taskResult: TaskOutputResult): Unit = {}
-
-    private def updateStatisticsAndProfileInformation(taskResult: TaskOutputResult): Unit = {
-      val statistics = taskResult.status.queryStatistics
-      if (statistics != null) {
-        queryState.query.addStatistics(statistics)
-      }
-      val profileInformation = taskResult.status.profileInformation
-      if (profileInformation != null) {
-        queryState.profileInformation.merge(profileInformation)
-      }
-    }
 
     final protected def drainOutputQueue(error: Throwable = null): Unit = {
       while (pendingTaskCount > 0) {
@@ -480,51 +445,6 @@ abstract class AbstractConcurrentTransactionsPipe(
     }
 
     protected def consumeBatch(): TaskOutputResult
-
-    private[pipes] def handleRetry(
-      retryDecision: RetryDecision,
-      resultStatus: TransactionStatus,
-      onErrorBehaviour: InTransactionsOnErrorBehaviour,
-      batch: TransactionBatch
-    ): (TransactionStatus, Throwable) = {
-      // NOTE: It is very important that these match cases correctly propagates non-recoverable errors correctly!
-      (resultStatus, onErrorBehaviour, retryDecision) match {
-        case (r @ Rollback(_, failure, _, _), OnErrorRetryThenFail, RetryTimeout) =>
-          // Non-recoverable failure
-          (
-            r,
-            TransactionRetryAbortedException.transactionRetryAborted(
-              failure,
-              batch.retriedCount,
-              batch.abortedReason
-            )
-          )
-
-        case (r @ Rollback(_, failure, _, _), OnErrorRetryThenFail, NotRetryable | NotApplicable) =>
-          // Non-recoverable failure
-          (r, failure)
-
-        case (r @ Rollback(_, failure, _, _), OnErrorFail, _) =>
-          // Non-recoverable failure
-          (r, failure)
-
-        case (r @ Rollback(_, failure, _, _), OnErrorRetryThenBreak | OnErrorRetryThenContinue, RetryTimeout) =>
-          // Recoverable failure
-          (
-            r.copy(failure =
-              TransactionRetryAbortedException.transactionRetryAborted(
-                failure,
-                batch.retriedCount,
-                batch.abortedReason
-              )
-            ),
-            null
-          )
-
-        case (status, _, _) =>
-          (status, null)
-      }
-    }
 
     private def initializeMemoryTracker(): Unit = {
       var memoryTracker = TransactionWorkerThreadDelegatingMemoryTracker.threadLocalExecutionContextMemoryTracker.get
