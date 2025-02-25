@@ -108,7 +108,7 @@ import org.neo4j.cypher.internal.ast.RevokeType
 import org.neo4j.cypher.internal.ast.ServerManagementAction
 import org.neo4j.cypher.internal.ast.SetAuthAction
 import org.neo4j.cypher.internal.ast.SetDatabaseAccessAction
-import org.neo4j.cypher.internal.ast.SetDefaultLanguageAction
+import org.neo4j.cypher.internal.ast.SetDatabaseDefaultLanguageAction
 import org.neo4j.cypher.internal.ast.SetOwnPassword
 import org.neo4j.cypher.internal.ast.SetPasswordsAction
 import org.neo4j.cypher.internal.ast.SetUserHomeDatabaseAction
@@ -1194,12 +1194,12 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           optionsToRemove.nonEmpty -> AlterDatabaseOptionsAction,
           // ALTER DATABASE foo SET ACCESS ... requires 'SET DATABASE ACCESS' privileges:
           access.nonEmpty -> SetDatabaseAccessAction,
-          // ALTER DATABASE foo SET DEFAULT LANGUAGE ... requires 'SET DEFAULT LANGUAGE' privileges:
-          cypherVersion.nonEmpty -> SetDefaultLanguageAction
+          // ALTER DATABASE foo SET DEFAULT LANGUAGE ... requires 'SET DATABASE DEFAULT LANGUAGE' privileges:
+          cypherVersion.nonEmpty -> SetDatabaseDefaultLanguageAction
         ).filter(_._1)
           .map(_._2)
           .distinct
-        val alterIsValidOnSystem = requiredPrivilegedActions == Seq(SetDefaultLanguageAction)
+        val alterIsValidOnSystem = requiredPrivilegedActions == Seq(SetDatabaseDefaultLanguageAction)
 
         Some(plans.AssertManagementActionNotBlocked(requiredPrivilegedActions))
           .map(s => plans.AssertAllowedDbmsActions(Some(s), requiredPrivilegedActions))

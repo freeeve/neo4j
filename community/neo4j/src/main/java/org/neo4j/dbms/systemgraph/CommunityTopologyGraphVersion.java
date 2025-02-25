@@ -37,17 +37,21 @@ public enum CommunityTopologyGraphVersion implements ComponentVersion {
      *  -
      * Version 3 (Neo4j 2025.02):
      *  - Add quoted display names for database name nodes
+     *  - Add default language to database nodes
+     * Version 4 (Neo4j 2025.03):
+     *  - Add default language to non-constituent remote alias nodes
      */
     COMMUNITY_TOPOLOGY_44(0, Neo4jVersions.VERSION_44),
     COMMUNITY_TOPOLOGY_50(1, Neo4jVersions.VERSION_50),
     COMMUNITY_TOPOLOGY_58(2, Neo4jVersions.VERSION_58),
     COMMUNITY_TOPOLOGY_202502(3, Neo4jVersions.VERSION_202502),
+    COMMUNITY_TOPOLOGY_202503(4, Neo4jVersions.VERSION_202503),
 
     COMMUNITY_TOPOLOGY_UNKNOWN_VERSION(
             UNKNOWN_VERSION, String.format("no '%s' found", COMMUNITY_TOPOLOGY_GRAPH_COMPONENT));
 
     public static final int FIRST_VALID_COMMUNITY_TOPOLOGY_VERSION = COMMUNITY_TOPOLOGY_44.getVersion();
-    public static final int LATEST_COMMUNITY_TOPOLOGY_VERSION = COMMUNITY_TOPOLOGY_202502.getVersion();
+    public static final int LATEST_COMMUNITY_TOPOLOGY_VERSION = COMMUNITY_TOPOLOGY_202503.getVersion();
 
     CommunityTopologyGraphVersion(int version, String description) {
         this.version = version;

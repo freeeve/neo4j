@@ -36,7 +36,11 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPER
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.QUOTED_DISPLAY_NAME_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS_RELATIONSHIP;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGET_NAME_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.URL_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.USERNAME_PROPERTY;
 
 import java.time.Clock;
 import java.util.Map;
@@ -299,7 +303,7 @@ class CommunityTopologyGraphComponentTest {
     }
 
     @Test
-    void shouldHaveQuotedDisplayNameOnUpgradeToV1() throws Exception {
+    void shouldHaveQuotedDisplayNameOnUpgradeToV3() throws Exception {
         // GIVEN
         initializeSystem();
         CommunityTopologyGraphComponent component =
@@ -329,7 +333,7 @@ class CommunityTopologyGraphComponentTest {
     }
 
     @Test
-    void shouldHaveDefaultLanguageOnUpgradeToV1() throws Exception {
+    void shouldHaveDefaultLanguageOnDatabasesOnUpgradeToV3() throws Exception {
         // GIVEN
         initializeSystem();
         CommunityTopologyGraphComponent component = new CommunityTopologyGraphComponent(
@@ -358,6 +362,86 @@ class CommunityTopologyGraphComponentTest {
             try (ResourceIterator<Node> nodes = tx.findNodes(DATABASE_LABEL)) {
                 nodes.forEachRemaining(node -> assertThat(node.getProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY))
                         .isEqualTo(CypherVersion.Cypher5.persistedValue));
+            }
+        });
+    }
+
+    @Test
+    void shouldHaveDefaultLanguageOnAliasesOnUpgradeToV4() throws Exception {
+        // GIVEN
+        initializeSystem();
+        CommunityTopologyGraphComponent component = new CommunityTopologyGraphComponent(
+                Config.defaults(Map.of(
+                        // to show we don't pick up on the config value when upgrading
+                        GraphDatabaseSettings.default_language,
+                        GraphDatabaseSettings.CypherVersion.Cypher25,
+                        GraphDatabaseInternalSettings.enable_experimental_cypher_versions,
+                        Boolean.TRUE)),
+                NullLogProvider.getInstance());
+        component.initializeSystemGraph(system, true);
+
+        inTx(tx -> {
+            // Add aliases to check (missing the relationships to other things and some properties on remote alias)
+            // cannot use `tx.execute(...)` since we're in community and aliases (and composite database) are enterprise
+            Node localAlias = tx.createNode(DATABASE_NAME_LABEL);
+            localAlias.setProperty(NAME_PROPERTY, "local");
+            localAlias.setProperty(NAMESPACE_PROPERTY, DEFAULT_NAMESPACE);
+            localAlias.setProperty(PRIMARY_PROPERTY, false);
+            localAlias.setProperty(DISPLAY_NAME_PROPERTY, "local");
+            localAlias.setProperty(QUOTED_DISPLAY_NAME_PROPERTY, "local");
+
+            Node localConstituentAlias = tx.createNode(DATABASE_NAME_LABEL);
+            localConstituentAlias.setProperty(NAME_PROPERTY, "composite.local");
+            localConstituentAlias.setProperty(NAMESPACE_PROPERTY, "composite");
+            localConstituentAlias.setProperty(PRIMARY_PROPERTY, false);
+            localConstituentAlias.setProperty(DISPLAY_NAME_PROPERTY, "composite.local");
+            localConstituentAlias.setProperty(QUOTED_DISPLAY_NAME_PROPERTY, "composite.local");
+
+            Node remoteAlias = tx.createNode(DATABASE_NAME_LABEL);
+            remoteAlias.setProperty(NAME_PROPERTY, "remote");
+            remoteAlias.setProperty(NAMESPACE_PROPERTY, DEFAULT_NAMESPACE);
+            remoteAlias.setProperty(PRIMARY_PROPERTY, false);
+            remoteAlias.setProperty(DISPLAY_NAME_PROPERTY, "remote");
+            remoteAlias.setProperty(QUOTED_DISPLAY_NAME_PROPERTY, "remote");
+            remoteAlias.setProperty(TARGET_NAME_PROPERTY, "target");
+            remoteAlias.setProperty(URL_PROPERTY, "neo4j+s://remote-location");
+            remoteAlias.setProperty(USERNAME_PROPERTY, "remoteUser");
+
+            Node remoteConstituentAlias = tx.createNode(DATABASE_NAME_LABEL);
+            remoteConstituentAlias.setProperty(NAME_PROPERTY, "composite.remote");
+            remoteConstituentAlias.setProperty(NAMESPACE_PROPERTY, "composite");
+            remoteConstituentAlias.setProperty(PRIMARY_PROPERTY, false);
+            remoteConstituentAlias.setProperty(DISPLAY_NAME_PROPERTY, "composite.remote");
+            remoteConstituentAlias.setProperty(QUOTED_DISPLAY_NAME_PROPERTY, "composite.remote");
+            remoteAlias.setProperty(TARGET_NAME_PROPERTY, "target");
+            remoteAlias.setProperty(URL_PROPERTY, "neo4j+s://remote-location");
+            remoteAlias.setProperty(USERNAME_PROPERTY, "remoteUser");
+
+            // Remove any defaultLanguage to get old behaviour
+            try (ResourceIterator<Node> nodes =
+                    tx.findNodes(REMOTE_DATABASE_LABEL, NAMESPACE_PROPERTY, DEFAULT_NAMESPACE)) {
+                nodes.forEachRemaining(node -> node.removeProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY));
+            }
+        });
+        setComponentVersionTo(0);
+
+        // WHEN
+        component.upgradeToCurrent(system);
+
+        // THEN
+        inTx(tx -> {
+            try (ResourceIterator<Node> nodes = tx.findNodes(DATABASE_NAME_LABEL)) {
+                nodes.forEachRemaining(node -> {
+                    if (node.hasLabel(REMOTE_DATABASE_LABEL)
+                            && node.getProperty(NAMESPACE_PROPERTY, DEFAULT_NAMESPACE)
+                                    .equals(DEFAULT_NAMESPACE)) {
+                        assertThat(node.getProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, null))
+                                .isEqualTo(CypherVersion.Cypher5.persistedValue);
+                    } else {
+                        assertThat(node.getProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, null))
+                                .isEqualTo(null);
+                    }
+                });
             }
         });
     }

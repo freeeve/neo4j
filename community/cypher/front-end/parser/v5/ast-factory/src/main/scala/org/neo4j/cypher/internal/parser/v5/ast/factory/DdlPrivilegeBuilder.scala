@@ -126,7 +126,7 @@ import org.neo4j.cypher.internal.ast.RevokeRolesFromUsers
 import org.neo4j.cypher.internal.ast.ServerManagementAction
 import org.neo4j.cypher.internal.ast.SetAuthAction
 import org.neo4j.cypher.internal.ast.SetDatabaseAccessAction
-import org.neo4j.cypher.internal.ast.SetDefaultLanguageAction
+import org.neo4j.cypher.internal.ast.SetDatabaseDefaultLanguageAction
 import org.neo4j.cypher.internal.ast.SetLabelAction
 import org.neo4j.cypher.internal.ast.SetPasswordsAction
 import org.neo4j.cypher.internal.ast.SetPropertyAction
@@ -526,7 +526,7 @@ trait DdlPrivilegeBuilder extends Cypher5ParserListener {
       else if (ctx.STATUS() != null) SetUserStatusAction
       else if (ctx.HOME() != null) SetUserHomeDatabaseAction
       else if (ctx.AUTH() != null) SetAuthAction
-      else if (ctx.DEFAULT() != null && ctx.LANGUAGE() != null) SetDefaultLanguageAction
+      else if (ctx.DEFAULT() != null && ctx.LANGUAGE() != null) SetDatabaseDefaultLanguageAction
       else SetDatabaseAccessAction
       allQualifier(DbmsPrivilege(action)(p), None)
     } else {

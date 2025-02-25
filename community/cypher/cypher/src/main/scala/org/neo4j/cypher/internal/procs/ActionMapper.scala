@@ -80,7 +80,7 @@ import org.neo4j.cypher.internal.ast.RenameUserAction
 import org.neo4j.cypher.internal.ast.ServerManagementAction
 import org.neo4j.cypher.internal.ast.SetAuthAction
 import org.neo4j.cypher.internal.ast.SetDatabaseAccessAction
-import org.neo4j.cypher.internal.ast.SetDefaultLanguageAction
+import org.neo4j.cypher.internal.ast.SetDatabaseDefaultLanguageAction
 import org.neo4j.cypher.internal.ast.SetLabelAction
 import org.neo4j.cypher.internal.ast.SetPasswordsAction
 import org.neo4j.cypher.internal.ast.SetPropertyAction
@@ -168,7 +168,7 @@ object ActionMapper {
     case DropDatabaseAction                 => security.PrivilegeAction.DROP_DATABASE
     case AlterDatabaseAction                => security.PrivilegeAction.ALTER_DATABASE
     case SetDatabaseAccessAction            => security.PrivilegeAction.SET_DATABASE_ACCESS
-    case SetDefaultLanguageAction           => security.PrivilegeAction.SET_DEFAULT_LANGUAGE
+    case SetDatabaseDefaultLanguageAction   => security.PrivilegeAction.SET_DEFAULT_LANGUAGE
     case AlterDatabaseTopologyAction        => security.PrivilegeAction.ALTER_DATABASE_TOPOLOGY
     case AlterDatabaseOptionsAction         => security.PrivilegeAction.ALTER_DATABASE_OPTIONS
     case CreateCompositeDatabaseAction      => security.PrivilegeAction.CREATE_COMPOSITE_DATABASE

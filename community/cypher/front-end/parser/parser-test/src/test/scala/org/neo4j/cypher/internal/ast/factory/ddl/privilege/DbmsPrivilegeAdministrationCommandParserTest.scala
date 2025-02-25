@@ -46,7 +46,7 @@ import org.neo4j.cypher.internal.ast.RenameUserAction
 import org.neo4j.cypher.internal.ast.ServerManagementAction
 import org.neo4j.cypher.internal.ast.SetAuthAction
 import org.neo4j.cypher.internal.ast.SetDatabaseAccessAction
-import org.neo4j.cypher.internal.ast.SetDefaultLanguageAction
+import org.neo4j.cypher.internal.ast.SetDatabaseDefaultLanguageAction
 import org.neo4j.cypher.internal.ast.SetPasswordsAction
 import org.neo4j.cypher.internal.ast.SetUserHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetUserStatusAction
@@ -92,7 +92,7 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
           ("DROP DATABASE", DropDatabaseAction),
           ("ALTER DATABASE", AlterDatabaseAction),
           ("SET DATABASE ACCESS", SetDatabaseAccessAction),
-          ("SET DEFAULT LANGUAGE", SetDefaultLanguageAction),
+          ("SET DATABASE DEFAULT LANGUAGE", SetDatabaseDefaultLanguageAction),
           ("DATABASE MANAGEMENT", AllDatabaseManagementActions),
           ("SHOW PRIVILEGE", ShowPrivilegeAction),
           ("ASSIGN PRIVILEGE", AssignPrivilegeAction),
@@ -287,7 +287,13 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
 
         test(s"$command$immutableString SET AUTHS ON DBMS $preposition role") {
           testName should notParse[Statements].withSyntaxErrorContaining(
-            s"""Invalid input 'AUTHS': expected 'DATABASE ACCESS', 'AUTH ON DBMS', 'LABEL', 'DEFAULT LANGUAGE', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER' (line 1, column ${offset + 5} (offset: ${offset + 4}))"""
+            s"""Invalid input 'AUTHS': expected 'DATABASE', 'AUTH ON DBMS', 'LABEL', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER' (line 1, column ${offset + 5} (offset: ${offset + 4}))"""
+          )
+        }
+
+        test(s"$command$immutableString SET DEFAULT LANGUAGE ON DBMS $preposition role") {
+          testName should notParse[Statements].withSyntaxErrorContaining(
+            s"""Invalid input 'DEFAULT': expected 'DATABASE', 'AUTH ON DBMS', 'LABEL', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER' (line 1, column ${offset + 5} (offset: ${offset + 4}))"""
           )
         }
     }

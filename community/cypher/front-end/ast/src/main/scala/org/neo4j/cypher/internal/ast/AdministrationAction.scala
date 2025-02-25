@@ -170,7 +170,7 @@ case object AlterDatabaseAction extends DatabaseManagementAction("ALTER DATABASE
 
 case object SetDatabaseAccessAction extends DatabaseManagementAction("SET DATABASE ACCESS")
 
-case object SetDefaultLanguageAction extends DatabaseManagementAction("SET DEFAULT LANGUAGE")
+case object SetDatabaseDefaultLanguageAction extends DatabaseManagementAction("SET DATABASE DEFAULT LANGUAGE")
 
 /*
  * This is an internal only sub-privilege of ALTER DATABASE, so we display it to the user as ALTER DATABASE since

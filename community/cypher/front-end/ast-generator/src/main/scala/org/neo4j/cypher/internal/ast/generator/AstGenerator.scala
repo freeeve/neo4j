@@ -247,7 +247,7 @@ import org.neo4j.cypher.internal.ast.ServerManagementAction
 import org.neo4j.cypher.internal.ast.SetAuthAction
 import org.neo4j.cypher.internal.ast.SetClause
 import org.neo4j.cypher.internal.ast.SetDatabaseAccessAction
-import org.neo4j.cypher.internal.ast.SetDefaultLanguageAction
+import org.neo4j.cypher.internal.ast.SetDatabaseDefaultLanguageAction
 import org.neo4j.cypher.internal.ast.SetExactPropertiesFromMapItem
 import org.neo4j.cypher.internal.ast.SetHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetIncludingPropertiesFromMapItem
@@ -2831,7 +2831,7 @@ class AstGenerator(
     CompositeDatabaseManagementActions,
     AlterDatabaseAction,
     SetDatabaseAccessAction,
-    SetDefaultLanguageAction,
+    SetDatabaseDefaultLanguageAction,
     AllAliasManagementActions,
     CreateAliasAction,
     DropAliasAction,

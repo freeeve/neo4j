@@ -1394,7 +1394,7 @@ showPrivilege
 
 setPrivilege
    : SET (
-      (passwordToken | USER (STATUS | HOME DATABASE) | DATABASE ACCESS | DEFAULT LANGUAGE) ON DBMS
+      (passwordToken | USER (STATUS | HOME DATABASE) | DATABASE (ACCESS | DEFAULT LANGUAGE)) ON DBMS
       | LABEL labelsResource ON graphScope
       | PROPERTY propertiesResource ON graphScope graphQualifier
       | AUTH ON DBMS

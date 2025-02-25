@@ -72,6 +72,9 @@ public enum PrivilegeAction {
     CREATE_DATABASE,
     DROP_DATABASE,
     SET_DATABASE_ACCESS,
+    // would preferably be SET_DATABASE_DEFAULT_LANGUAGE,
+    // but since the enum is directly stored in system db for the privileges and
+    // those got released before the wanted renaming, we're leaving this as is
     SET_DEFAULT_LANGUAGE,
     ALTER_DATABASE_OPTIONS,
     ALTER_DATABASE_TOPOLOGY,
