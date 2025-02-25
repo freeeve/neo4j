@@ -283,9 +283,7 @@ object TestConf {
     "internal.dbms.single_raft_enabled" -> "true",
     "internal.dbms.replication_enabled" -> "true",
     "internal.initial.dbms.default_database.enable" -> "false",
-    "internal.dbms.sharded_property_database.enabled" -> "true",
-    "internal.dbms.sharded_property_database.transactional_writes" -> "true",
-    "internal.dbms.sharded_property_database.read_only" -> "false"
+    "internal.dbms.sharded_property_database.enabled" -> "true"
   )
 
   object SpdBolt extends InjectedTestConf {
