@@ -108,7 +108,7 @@ public class TransactionLogChannelAllocator {
             throws IOException {
         LogHeader header = readLogHeader(storeChannel, false, logFile, logFilesContext.getMemoryTracker());
         if (header == null) {
-            try (LogFileCreateEvent ignored = databaseTracer.createLogFile()) {
+            try (LogFileCreateEvent createEvent = databaseTracer.createLogFile()) {
                 // we always write file header from the beginning of the file
                 storeChannel.position(0);
                 KernelVersion kernelVersion = kernelVersionProvider.kernelVersion();
@@ -122,6 +122,7 @@ public class TransactionLogChannelAllocator {
                                 previousLogFileChecksum,
                                 kernelVersion);
                 writeLogHeader(storeChannel, header, logFilesContext.getMemoryTracker());
+                createEvent.fileCreated(header.getStartPosition().getByteOffset());
             }
         }
         return header;

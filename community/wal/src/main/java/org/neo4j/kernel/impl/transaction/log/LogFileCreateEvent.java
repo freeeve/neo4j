@@ -23,7 +23,15 @@ package org.neo4j.kernel.impl.transaction.log;
  * Event for new transaction log file creation
  */
 public interface LogFileCreateEvent extends AutoCloseable {
-    LogFileCreateEvent NULL = () -> {};
+    LogFileCreateEvent NULL = new LogFileCreateEvent() {
+        @Override
+        public void fileCreated(long headerSize) {}
+
+        @Override
+        public void close() {}
+    };
+
+    void fileCreated(long headerSize);
 
     @Override
     void close();

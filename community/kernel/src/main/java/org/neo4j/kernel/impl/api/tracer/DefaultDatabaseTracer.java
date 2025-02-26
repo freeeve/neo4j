@@ -30,7 +30,6 @@ import org.neo4j.kernel.impl.transaction.log.LogFileCreateEvent;
 import org.neo4j.kernel.impl.transaction.log.LogFileFlushEvent;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvent;
 import org.neo4j.kernel.impl.transaction.log.LogForceWaitEvent;
-import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.rotation.CountingLogRotateEvent;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvent;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
@@ -53,7 +52,7 @@ public class DefaultDatabaseTracer implements DatabaseTracer {
     private final AtomicLong appliedBatchSize = new AtomicLong();
 
     private final CountingLogRotateEvent countingLogRotateEvent = new CountingLogRotateEvent();
-    private final LogFileCreateEvent logFileCreateEvent = () -> appendedBytes.add(LogFormat.BIGGEST_HEADER);
+    private final LogFileCreateEvent logFileCreateEvent = new DefaultLogFileCreateEvent();
     private final LogFileFlushEvent logFileFlushEvent = numberOfFlushes::increment;
     private final LogAppendEvent logAppendEvent = new DefaultLogAppendEvent();
     private final TransactionWriteEvent transactionWriteEvent = new DefaultTransactionWriteEvent();
@@ -311,5 +310,15 @@ public class DefaultDatabaseTracer implements DatabaseTracer {
         public LogForceEvent beginLogForce() {
             return LogForceEvent.NULL;
         }
+    }
+
+    private class DefaultLogFileCreateEvent implements LogFileCreateEvent {
+        @Override
+        public void fileCreated(long headerSize) {
+            appendedBytes.add(headerSize);
+        }
+
+        @Override
+        public void close() {}
     }
 }
