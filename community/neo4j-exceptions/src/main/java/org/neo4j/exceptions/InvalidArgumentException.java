@@ -29,6 +29,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
@@ -62,6 +63,71 @@ public class InvalidArgumentException extends Neo4jException {
     @Override
     public Status status() {
         return Status.Statement.ArgumentError;
+    }
+
+    public static InvalidArgumentException cdcUnexpectedFieldException(
+            List<String> unexpected, List<String> expected, String context) {
+        var expectedString = expected.stream().sorted().collect(Collectors.joining("', '", "'", "'"));
+        var unexpectedString = unexpected.stream().sorted().collect(Collectors.joining("', '", "'", "'"));
+        var legacyMessage =
+                "Unexpected field(s) [%s], expected one of [%s].".formatted(unexpectedString, expectedString);
+
+        var sortedExpected = expected.stream().sorted().toList();
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N04)
+                .withParam(GqlParams.StringParam.input, unexpected.getFirst())
+                .withParam(GqlParams.StringParam.context, context)
+                .withParam(GqlParams.ListParam.inputList, sortedExpected)
+                .build();
+        return new InvalidArgumentException(gql, legacyMessage);
+    }
+
+    public static InvalidArgumentException cdcUnexpectedValueException(
+            String key, String found, List<String> expected) {
+        var expectedString = expected.stream().sorted().collect(Collectors.joining("', '", "'", "'"));
+        var legacyMessage =
+                "Unexpected value '%s' for field '%s', expected one of [%s].".formatted(found, key, expectedString);
+
+        var sortedExpected = expected.stream().sorted().toList();
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N04)
+                .withParam(GqlParams.StringParam.input, found)
+                .withParam(GqlParams.StringParam.context, "field '%s'".formatted(key))
+                .withParam(GqlParams.ListParam.inputList, sortedExpected)
+                .build();
+        return new InvalidArgumentException(gql, legacyMessage);
+    }
+
+    public static InvalidArgumentException cdcWrongTypeException(Object obj, String in, Class<?> expected) {
+        String foundType =
+                Optional.ofNullable(obj).map(o -> o.getClass().getSimpleName()).orElse("null");
+        String value = Optional.ofNullable(obj).map(Object::toString).orElse("");
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
+                .withParam(GqlParams.StringParam.value, value)
+                .withParam(GqlParams.ListParam.valueTypeList, List.of(expected.getSimpleName()))
+                .withParam(GqlParams.StringParam.valueType, foundType)
+                .build();
+        String legacyMessage = "Wrong type '%s'('%s') in '%s', expected '%s'."
+                .formatted(foundType, value, in, expected.getSimpleName());
+
+        return new InvalidArgumentException(gql, legacyMessage);
+    }
+
+    public static InvalidArgumentException cdcMissingFieldException(String key, String context) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N55)
+                .withParam(GqlParams.StringParam.mapKey, key)
+                .withParam(GqlParams.StringParam.field, context)
+                .build();
+        return new InvalidArgumentException(gql, "Missing field '%s'.".formatted(key));
+    }
+
+    public static InvalidArgumentException cdcUnexpectedSelectorType(String found, String expected, String in) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N67)
+                .withParam(GqlParams.StringParam.selectorType1, found)
+                .withParam(GqlParams.StringParam.input, in)
+                .withParam(GqlParams.StringParam.selectorType2, expected)
+                .build();
+        throw new InvalidArgumentException(
+                gql,
+                "Unexpected selector type '%s' at %s, expected selector to be a %s".formatted(found, in, expected));
     }
 
     public static InvalidArgumentException unknownNormalForm(String normalForm) {
