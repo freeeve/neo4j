@@ -3734,8 +3734,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("42N82"),
             """
                     The database identified by { %s } has one or more aliases. Drop the aliases { %s } before dropping the database.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2},
-            emptyMap(),
+            new GqlParams.GqlParam[] {GqlParams.StringParam.db, GqlParams.ListParam.aliasList},
+            Map.of(GqlParams.ListParam.aliasList, GqlParams.JoinStyle.ANDED),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "cannot drop database with aliases",
             ErrorClassification.CLIENT_ERROR),
