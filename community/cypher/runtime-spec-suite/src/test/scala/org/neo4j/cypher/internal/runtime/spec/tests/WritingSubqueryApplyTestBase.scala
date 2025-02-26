@@ -115,22 +115,22 @@ abstract class WritingSubqueryApplyTestBase[CONTEXT <: RuntimeContext](
       queryProfile.operatorProfile(sortId).rows() shouldBe expectedResultRows
     )
     queryProfile.operatorProfile(limitId).rows() shouldBe expectedResultRows
-    val expectedRowsTopRhs = be >= expectedResultRows and be <= (rhsRows + limit)
+    val beExpectedRowsTopRhs = be >= expectedResultRows and be <= (rhsRows + limit)
     withClue(
-      s"LHS:$lhsRows, RHS:$rhsRows, LIMIT:$limit, expectedResultRows:$expectedResultRows, Top RHS: $expectedRowsTopRhs"
+      s"LHS:$lhsRows, RHS:$rhsRows, LIMIT:$limit, expectedResultRows:$expectedResultRows, Top RHS: $beExpectedRowsTopRhs\n"
     ) {
-      queryProfile.operatorProfile(createId).rows() should expectedRowsTopRhs
-      queryProfile.operatorProfile(unwindId).rows() should expectedRowsTopRhs
+      queryProfile.operatorProfile(createId).rows() should beExpectedRowsTopRhs
+      queryProfile.operatorProfile(unwindId).rows() should beExpectedRowsTopRhs
     }
-    val expectedRowsBottomRhs = if (expectedResultRows % rhsRows == 0)
+    val beExpectedRowsBottomRhs = if (expectedResultRows % rhsRows == 0)
       be >= expectedResultRows / rhsRows and be <= expectedResultRows
     else
       be >= expectedResultRows / rhsRows + 1 and be <= expectedResultRows
     withClue(
-      s"LHS:$lhsRows, RHS:$rhsRows, LIMIT:$limit, expectedResultRows:$expectedResultRows, Bottom RHS: $expectedRowsBottomRhs"
+      s"LHS:$lhsRows, RHS:$rhsRows, LIMIT:$limit, expectedResultRows:$expectedResultRows, Bottom RHS: $beExpectedRowsBottomRhs\n"
     ) {
-      queryProfile.operatorProfile(nonFuseableId).rows() should expectedRowsBottomRhs
-      queryProfile.operatorProfile(argumentId).rows() should expectedRowsBottomRhs
+      queryProfile.operatorProfile(nonFuseableId).rows() should beExpectedRowsBottomRhs
+      queryProfile.operatorProfile(argumentId).rows() should beExpectedRowsBottomRhs
     }
   }
 

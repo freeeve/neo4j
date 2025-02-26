@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.runtime.spec.tests.RepeatTrailTestBase.`(me) [(
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatTrailTestBase.`(me) [(a)-[r]->(b)]{0,1} (you)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatTrailTestBase.`(me) [(a)-[r]->(b)]{0,2} (you)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatTrailTestBase.`(me) [(a)-[r]->(b)]{0,3} (you)`
+import org.neo4j.cypher.internal.runtime.spec.tests.RepeatTrailTestBase.`(me) [(a)-[r]->(b)]{1,1} (you)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatTrailTestBase.`(me) [(a)-[r]->(b)]{1,2} (you)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatTrailTestBase.`(me) [(a)-[r]->(b)]{2,2} (you)`
 import org.neo4j.cypher.internal.runtime.spec.tests.RepeatTrailTestBase.`(me)( (b)-[r]->(c) WHERE EXISTS { (b)( (bb)-[rr]->(aa:A) ){0,}(a) } ){0,}(you)`
@@ -3089,6 +3090,123 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
         )
       )
     ))
+  }
+
+  test("should be lazy when below limit - 1") {
+    // (n0:START) ↘
+    //              (n2) → (n3) → (n4)
+    // (n1:START) ↗
+    val (n0, n1, n2, n3, n4, r02, r12, r23, r34) = smallDoubleChainGraph
+
+    val expectedResult = Seq(
+      Seq(
+        Array(n0, n2, listOf(n0), listOf(n2), listOf(r02)),
+        Array(n0, n2, listOf(n0), listOf(n2), listOf(r02))
+      )
+    )
+
+    assertLazyWhenBelowApply(limit = 2, rhsUnwind = 2, expectedResult)
+  }
+
+  test("should be lazy when below limit - 2") {
+    // (n0:START) ↘
+    //              (n2) → (n3) → (n4)
+    // (n1:START) ↗
+    val (n0, n1, n2, n3, n4, r02, r12, r23, r34) = smallDoubleChainGraph
+
+    val expectedResult = Seq(
+      Seq(
+        Array(n0, n2, listOf(n0), listOf(n2), listOf(r02))
+      )
+    )
+
+    assertLazyWhenBelowApply(limit = 1, rhsUnwind = 2, expectedResult)
+  }
+
+  test("should be lazy when below limit - 3") {
+    // (n0:START) ↘
+    //              (n2) → (n3) → (n4)
+    // (n1:START) ↗
+    val (n0, n1, n2, n3, n4, r02, r12, r23, r34) = smallDoubleChainGraph
+
+    val expectedResult = Seq(
+      Seq(
+        Array(n0, n2, listOf(n0), listOf(n2), listOf(r02)),
+        Array(n0, n2, listOf(n0), listOf(n2), listOf(r02))
+      ),
+      Seq(
+        Array(n1, n2, listOf(n1), listOf(n2), listOf(r12))
+      )
+    )
+
+    assertLazyWhenBelowApply(limit = 3, rhsUnwind = 2, expectedResult)
+  }
+
+  private def assertLazyWhenBelowApply(limit: Long, rhsUnwind: Long, expectedResult: Seq[Seq[Array[Object]]]): Unit = {
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("me", "you", "a", "b", "r")
+      .limit(limit)
+      .repeatTrail(`(me) [(a)-[r]->(b)]{1,1} (you)`).withLeveragedOrder()
+      .|.filterExpression(isRepeatTrailUnique("r_inner"))
+      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
+      .|.unwind(s"range(1,$rhsUnwind) as ignore")
+      .|.argument("me", "a_inner")
+      .sort("foo ASC")
+      .projection("me.foo AS foo")
+      .nodeByLabelScan("me", "START", IndexOrderNone)
+      .build()
+
+    // when
+    val runtimeResult = profile(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("me", "you", "a", "b", "r").withRows(inPartialOrder(expectedResult))
+
+    val produceResultsId = 0
+    val limitId = 1
+    val repeatId = 2
+    val filterId = 3
+    val expandId = 4
+    val unwindId = 5
+    val argumentId = 6
+    val sortId = 7
+    val projectionId = 8
+    val labelScanId = 9
+
+    val totalRows = 2 /*label scan rows*/ * rhsUnwind
+    val expectedResultRows = math.min(limit, totalRows)
+
+    val queryProfile = runtimeResult.runtimeResult.queryProfile()
+
+    queryProfile.operatorProfile(produceResultsId).rows() shouldBe expectedResultRows
+    queryProfile.operatorProfile(limitId).rows() shouldBe expectedResultRows
+
+    val beExpectedRowsTopRhs = be >= expectedResultRows and be <= (rhsUnwind + limit)
+    withClue(
+      s"LIMIT:$limit, UNWIND:$rhsUnwind, expectedResultRows:$expectedResultRows, Bottom RHS: $beExpectedRowsTopRhs\n"
+    ) {
+      // NOTE with fused-pipelined & interpreted Repeat will be lower
+      queryProfile.operatorProfile(repeatId).rows() should beExpectedRowsTopRhs
+      queryProfile.operatorProfile(filterId).rows() should beExpectedRowsTopRhs
+      queryProfile.operatorProfile(expandId).rows() should beExpectedRowsTopRhs
+      queryProfile.operatorProfile(unwindId).rows() should beExpectedRowsTopRhs
+    }
+
+    // NOTE: in fused code sometimes Argument profiles as 0 rows
+    val errorMarginForFusedCode = 1L
+    val beExpectedRowsBottomRhs = if (expectedResultRows % rhsUnwind == 0)
+      be >= (expectedResultRows / rhsUnwind) - errorMarginForFusedCode and be <= expectedResultRows
+    else
+      be >= (expectedResultRows / rhsUnwind + 1) - errorMarginForFusedCode and be <= expectedResultRows
+    withClue(
+      s"LIMIT:$limit, UNWIND:$rhsUnwind, expectedResultRows:$expectedResultRows, Bottom RHS: $beExpectedRowsBottomRhs\n"
+    ) {
+      queryProfile.operatorProfile(argumentId).rows() should beExpectedRowsBottomRhs
+    }
+
+    queryProfile.operatorProfile(sortId).rows() should (be >= 1L and be <= 2L)
+    queryProfile.operatorProfile(projectionId).rows() shouldBe 2
+    queryProfile.operatorProfile(labelScanId).rows() shouldBe 2
   }
 
   test("should respect relationship uniqueness - with leveraged order on LHS") {
