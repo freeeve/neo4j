@@ -130,7 +130,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
         List<StorageCommand> commands = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             // The type of command doesn't matter here
-            commands.add(new TestCommand());
+            commands.add(new TestCommand(kernelVersion));
         }
         return new CompleteCommandBatch(commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, kernelVersion, ANONYMOUS);
     }

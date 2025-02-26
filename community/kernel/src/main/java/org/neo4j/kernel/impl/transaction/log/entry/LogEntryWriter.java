@@ -133,6 +133,9 @@ public class LogEntryWriter<T extends WritableChannel> {
     public void serialize(StorageCommand command, KernelVersion kernelVersion) throws IOException {
         updateSerializationSet(kernelVersion);
         LogEntrySerializer.writeLogEntryHeader(kernelVersion, COMMAND, channel);
+        assert command.kernelVersion() == kernelVersion
+                : "Command serialization KernelVersion %s does not match tx KernelVersion %s"
+                        .formatted(command.kernelVersion(), kernelVersion);
         command.serialize(channel);
     }
 

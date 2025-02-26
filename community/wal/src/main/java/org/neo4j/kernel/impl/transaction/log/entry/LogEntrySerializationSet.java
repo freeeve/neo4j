@@ -91,6 +91,9 @@ public abstract class LogEntrySerializationSet {
     public void serialize(WritableChannel channel, Iterable<StorageCommand> commands, KernelVersion kernelVersion)
             throws IOException {
         for (StorageCommand storageCommand : commands) {
+            assert storageCommand.kernelVersion() == kernelVersion
+                    : "Command serialization KernelVersion %s does not match tx KernelVersion %s"
+                            .formatted(storageCommand.kernelVersion(), kernelVersion);
             writeLogEntryHeader(kernelVersion, COMMAND, channel);
             storageCommand.serialize(channel);
         }
