@@ -17,39 +17,70 @@
 package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
 import org.neo4j.cypher.internal.expressions.And
-import org.neo4j.cypher.internal.expressions.BinaryOperatorExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.False
 import org.neo4j.cypher.internal.expressions.In
 import org.neo4j.cypher.internal.expressions.ListLiteral
+import org.neo4j.cypher.internal.expressions.Literal
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.Or
-import org.neo4j.cypher.internal.expressions.ScopeExpression
+import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.rewriting.conditions.LiteralsExtracted
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.conditions.SensitiveLiteralsExtracted
 import org.neo4j.cypher.internal.rewriting.rewriters.factories.PreparatoryRewritingRewriterFactory
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
 import org.neo4j.cypher.internal.util.StepSequencer.Step
 import org.neo4j.cypher.internal.util.bottomUp
+import org.neo4j.cypher.internal.util.topDown
 
 /**
- * Merges multiple IN predicates into one.
- *
+ * Merges multiple `IN` predicates of lists of literals into one.
+ * <p>
  * Examples:
+ * <pre>
  * MATCH (n) WHERE n.prop IN [1,2,3] AND n.prop IN [2,3,4] RETURN n.prop
  * -> MATCH (n) WHERE n.prop IN [2,3]
  *
  * MATCH (n) WHERE n.prop IN [1,2,3] OR n.prop IN [2,3,4] RETURN n.prop
  * -> MATCH (n) WHERE n.prop IN [1,2,3,4]
  *
+ * MATCH (n) WHERE n.prop IN [1,2,3] OR NOT n.prop IN [2,3,4] RETURN n.prop
+ * -> MATCH (n) WHERE NOT n.prop IN [4]
+ *
  * MATCH (n) WHERE n.prop IN [1,2,3] AND n.prop IN [4,5,6] RETURN n.prop
  * -> MATCH (n) WHERE FALSE
+ * </pre>
+ * Any Expression that is `AND` or `OR` that immediately contains an `IN()` or 
+ * `NOT(IN())` is a candidate for a rewrite. All child expressions that are 
+ * `IN()` or `NOT(IN())` with list literals on their RHS are added to a list of
+ * expressions to rewrite, along with a lookup from their predicand to the new 
+ * list literal formed by merging.
  *
+ * The AND and OR are further simplified using these operations:
+ * <pre>
+ *  - P AND P => P
+ *  - P OR P => P
+ *  - TRUE AND P => P
+ *  - FALSE AND P => FALSE
+ *  - TRUE OR P => TRUE
+ *  - FALSE OR P => P
+ * </pre>
+ * The rewriter works bottom up, allowing it to make a series of simplifications
+ * that ripple upwards. For example:
+ * <pre>
+ *    And(Not(And(In(v, [1, 2]), In(v, [3, 4]))), Not(Or(In(v, [3, 4]), In([4, 5]))))
+ * -> And(Not(    In(v, [])                    ), Not(   In(v, [3, 4, 5])          ))
+ * -> And(Not(    False()                      ), Not(   In(v, [3, 4, 5])          ))
+ * -> And(        True()                        , Not(   In(v, [3, 4, 5])          ))
+ * ->                                             Not(   In(v, [3, 4, 5])          )
+ * </pre>
  * NOTE: this rewriter must be applied before auto parameterization, since after
  * that we are just dealing with opaque parameters.
  */
@@ -62,100 +93,221 @@ case object MergeInPredicates extends Step with DefaultPostCondition with Prepar
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable
 
-  val instance: Rewriter = bottomUp(Rewriter.lift {
+  override def getRewriter(cypherExceptionFactory: CypherExceptionFactory): Rewriter = instance
 
-    case and @ And(lhs, rhs) if containNeitherOrsNorInnerScopes(lhs, rhs) && containIns(lhs, rhs) =>
-      if (containNoNots(lhs, rhs))
-        // Look for a `IN [...] AND a IN [...]` and compute the intersection of lists
-        rewriteBinaryOperator(and, (a, b) => a intersect b, (l, r) => and.copy(l, r)(and.position))
-      else if (containNots(lhs, rhs))
-        // Look for a `NOT IN [...] AND a NOT IN [...]` and compute the union of lists
-        rewriteBinaryOperator(and, (a, b) => a concat b, (l, r) => and.copy(l, r)(and.position))
-      else
-        // In case only one of lhs and rhs includes a NOT we cannot rewrite
-        and
+  // Rewrites AND / OR that directly contain IN or NOT IN. Binary operators are simplified where
+  // one or more operands are TRUE or FALSE e.g. FALSE AND p => FALSE, FALSE OR p => p.
+  val instance: Rewriter = bottomUp {
+    Rewriter.lift { case AsBinaryBoolean(target) => rewriteBinaryBoolean(target) }
+  }
 
-    case or @ Or(lhs, rhs) if containNoAnds(lhs, rhs) && containIns(lhs, rhs) =>
-      if (containNoNots(lhs, rhs))
-        // Look for `a IN [...] OR a IN [...]` and compute union of lists
-        rewriteBinaryOperator(or, (a, b) => a concat b, (l, r) => or.copy(l, r)(or.position))
-      else if (containNots(lhs, rhs))
-        // Look for a `NOT IN [...] OR a NOT IN [...]` and compute the intersection of lists
-        rewriteBinaryOperator(or, (a, b) => a intersect b, (l, r) => or.copy(l, r)(or.position))
-      else
-        // In case only one of lhs and rhs includes a NOT we cannot rewrite
-        or
-  })
+  private def topLevelComparisonExists(expressions: Expression*): Boolean = expressions.exists {
+    case AsListComparison(_) => true
+    case _                   => false
+  }
 
-  private def containNeitherOrsNorInnerScopes(expressions: Expression*): Boolean =
-    expressions.forall(!_.folder.treeExists {
-      case _: Or              => true
-      case _: ScopeExpression => true
-    })
+  private object AsListComparison {
 
-  private def containNoAnds(expressions: Expression*): Boolean = expressions.forall(!_.folder.treeExists {
-    case _: And => true
-  })
+    def unapply(v: Expression): Option[ListComparison] = v match {
+      case Not(In(expr, ListLiteral(list))) => Some(NotInList(expr, list.distinct))
+      case In(expr, ListLiteral(list))      => Some(InList(expr, list.distinct))
+      case _                                => None
+    }
+  }
 
-  private def containNots(expressions: Expression*): Boolean = expressions.forall(_.folder.treeExists {
-    case _: Not => true
-  })
+  sealed private trait ListComparison {
+    def predicand: Expression
+    def list: Seq[Expression]
+    def rewrite(original: Expression): Expression
+  }
 
-  private def containNoNots(expressions: Expression*): Boolean = expressions.forall(!_.folder.treeExists {
-    case _: Not => true
-  })
+  private case class InList(predicand: Expression, list: Seq[Expression]) extends ListComparison {
 
-  private def containIns(expressions: Expression*): Boolean = expressions.forall(_.folder.treeExists {
-    case _: In => true
-  })
+    def rewrite(original: Expression): Expression = original match {
+      case AsComparisonPositions(positions) =>
+        if (list.nonEmpty)
+          In(predicand, ListLiteral(list)(positions.listPosition))(positions.exprPosition)
+        else
+          False()(positions.exprPosition)
+      case _ =>
+        original
+    }
+  }
 
-  // Takes a binary operator a merge operator and a copy constructor
-  // and rewrites the binary operator
-  private def rewriteBinaryOperator(
-    binary: BinaryOperatorExpression,
-    merge: (Seq[Expression], Seq[Expression]) => Seq[Expression],
-    copy: (Expression, Expression) => Expression
-  ): Expression = {
-    val rewriter = inRewriter(collectInPredicates(merge)(binary.lhs, binary.rhs))
-    val newLhs = binary.lhs.endoRewrite(rewriter)
-    val newRhs = binary.rhs.endoRewrite(rewriter)
+  private case class NotInList(predicand: Expression, list: Seq[Expression]) extends ListComparison {
+
+    def rewrite(original: Expression): Expression = original match {
+      case AsComparisonPositions(positions) =>
+        if (list.nonEmpty)
+          Not(
+            In(predicand, ListLiteral(list)(positions.listPosition))(positions.exprPosition)
+          )(positions.exprPosition)
+        else
+          True()(positions.exprPosition)
+      case _ =>
+        original
+    }
+  }
+
+  /**
+   * @param comparisonsToUpdate the IN and NOT(IN()) expressions that need to be rewritten
+   * @param updates map of predicands (the LHS of the expressions to be rewritten) to their merged list of literal values
+   */
+  private case class PendingUpdates(
+    comparisonsToUpdate: Seq[Expression],
+    updates: Map[Expression, ListComparison]
+  ) {
+
+    def addComparison(
+      binaryBoolean: BinaryBoolean,
+      comparisonExpr: Expression,
+      newComparison: ListComparison
+    ): PendingUpdates =
+      PendingUpdates(
+        comparisonsToUpdate :+ comparisonExpr,
+        updates.updatedWith(newComparison.predicand) {
+          case Some(curComparison) => Some(binaryBoolean.merge(curComparison, newComparison))
+          case None                => Some(newComparison)
+        }
+      )
+  }
+
+  private object PendingUpdates {
+    def empty: PendingUpdates = PendingUpdates(Seq.empty, Map.empty)
+  }
+
+  private case class ComparisonPositions(exprPosition: InputPosition, listPosition: InputPosition)
+
+  private object AsComparisonPositions {
+
+    def unapply(v: Expression): Option[ComparisonPositions] = v match {
+      case not @ Not(In(_, list @ ListLiteral(_))) => Some(ComparisonPositions(not.position, list.position))
+      case in @ In(_, list @ ListLiteral(_))       => Some(ComparisonPositions(in.position, list.position))
+      case _                                       => None
+    }
+  }
+
+  private def rewriteBinaryBoolean(binaryBoolean: BinaryBoolean): Expression = {
+
+    val rewriter = comparisonRewriter(binaryBoolean)
+
+    val newLhs = binaryBoolean.lhs.endoRewrite(rewriter)
+    val newRhs = binaryBoolean.rhs.endoRewrite(rewriter)
+
+    // If both operands of AND / OR are the same, the binary
+    // expression can be replaced by one of the operands.
     if (newLhs == newRhs)
       newLhs
     else
-      copy(newLhs, newRhs)
+      binaryBoolean.copy(newLhs, newRhs)
   }
 
-  // Rewrites a IN [] by using the the provided map of precomputed lists
-  // a IN ... is rewritten to a IN inPredicates(a)
-  private def inRewriter(inPredicates: Map[Expression, Seq[Expression]]) = bottomUp(Rewriter.lift({
-    case in @ In(a, list @ ListLiteral(_)) =>
-      val expressions = inPredicates(a)
-      if (expressions.nonEmpty)
-        in.copy(rhs = list.copy(expressions)(list.position))(in.position)
-      else
-        False()(in.position)
-  }))
+  private def comparisonRewriter(root: BinaryBoolean) = {
 
-  // Given `a IN A ... b IN B ... a IN C` and use `merge` to merge all the lists with the same key.
-  // Returns {a -> merge(A,B), b -> C}
-  private def collectInPredicates(merge: (Seq[Expression], Seq[Expression]) => Seq[Expression])(
-    expressions: Expression*
-  ): Map[Expression, Seq[Expression]] = {
-    val maps = expressions.map(_.folder.treeFold(Map.empty[Expression, Seq[Expression]]) {
-      case In(a, ListLiteral(exprs)) => map => {
-          // if there is already a list associated with `a`, do map(a) ++ exprs otherwise exprs
-          val values = map.get(a).map(current => merge(current, exprs)).getOrElse(exprs).distinct
-          SkipChildren(map + (a -> values))
-        }
-    })
-    // Take list of maps, [map1,map2,...] and merge the using the provided `merge` to
-    // merge lists
-    maps.reduceLeft((acc, current) => {
-      val sharedKeys = acc.keySet intersect current.keySet
-      val updates = sharedKeys.map(k => k -> merge(acc(k), current(k)).distinct)
-      acc ++ updates ++ (current -- sharedKeys)
-    })
+    val PendingUpdates(toUpdate, updates) = comparisonsToUpdate(root)
+
+    topDown {
+      Rewriter.lift {
+        case node @ AsListComparison(listComparison) if toUpdate.exists(_ eq node) =>
+          updates(listComparison.predicand).rewrite(node)
+      }
+    }
   }
 
-  override def getRewriter(cypherExceptionFactory: CypherExceptionFactory): Rewriter = instance
+  sealed private trait BinaryBoolean {
+    def lhs: Expression
+    def rhs: Expression
+    def merge(lhs: ListComparison, rhs: ListComparison): ListComparison
+    def copy(newLhs: Expression, newRhs: Expression): Expression
+  }
+
+  private case class AndBinaryBoolean(and: And) extends BinaryBoolean {
+    def lhs: Expression = and.lhs
+    def rhs: Expression = and.rhs
+
+    def merge(lhs: ListComparison, rhs: ListComparison): ListComparison =
+      (lhs, rhs) match {
+        case (l: InList, _: InList)       => l.copy(list = lhs.list.intersect(rhs.list))
+        case (l: InList, _: NotInList)    => l.copy(list = lhs.list.diff(rhs.list))
+        case (_: NotInList, r: InList)    => r.copy(list = rhs.list.diff(lhs.list))
+        case (l: NotInList, _: NotInList) => l.copy(list = lhs.list.concat(rhs.list).distinct)
+      }
+
+    def copy(newLhs: Expression, newRhs: Expression): Expression = (newLhs, newRhs) match {
+      case (False(), _) | (_, False()) => False()(and.position)
+      case (True(), newRhs)            => newRhs
+      case (newLhs, True())            => newLhs
+      case _                           => and.copy(newLhs, newRhs)(and.position)
+    }
+  }
+
+  private case class OrBinaryBoolean(or: Or) extends BinaryBoolean {
+    def lhs: Expression = or.lhs
+    def rhs: Expression = or.rhs
+
+    def merge(lhs: ListComparison, rhs: ListComparison): ListComparison =
+      (lhs, rhs) match {
+        case (l: InList, _: InList)       => l.copy(list = lhs.list.concat(rhs.list).distinct)
+        case (_: InList, r: NotInList)    => r.copy(list = rhs.list.diff(lhs.list))
+        case (l: NotInList, _: InList)    => l.copy(list = lhs.list.diff(rhs.list))
+        case (l: NotInList, _: NotInList) => l.copy(list = lhs.list.intersect(rhs.list))
+      }
+
+    def copy(newLhs: Expression, newRhs: Expression): Expression = (newLhs, newRhs) match {
+      case (True(), _) | (_, True()) => True()(or.position)
+      case (False(), newRhs)         => newRhs
+      case (newLhs, False())         => newLhs
+      case _                         => or.copy(newLhs, newRhs)(or.position)
+    }
+  }
+
+  private object AsBinaryBoolean {
+
+    def unapply(expr: Expression): Option[BinaryBoolean] = expr match {
+      case and @ And(lhs, rhs) if topLevelComparisonExists(lhs, rhs) => Some(AndBinaryBoolean(and))
+      case or @ Or(lhs, rhs) if topLevelComparisonExists(lhs, rhs)   => Some(OrBinaryBoolean(or))
+      case _                                                         => None
+    }
+  }
+
+  // Lists can be merged across a tree of mixture of AND / OR / NOT if the predicands (the LHS of
+  // the IN comparisons) are all the same. For example, (A IN L1 AND (A IN L2 OR A IN L3)) can be
+  // rewritten to (A IN (L1 ∩ (L2 ∪ L3))), whereas (A IN L1 AND (B IN L2 OR A IN L3)) can't.
+  private def comparisonsToUpdate(binaryBoolean: BinaryBoolean): PendingUpdates = {
+
+    val expressions = Seq(binaryBoolean.lhs, binaryBoolean.rhs)
+
+    val keys = expressions.collect { case AsListComparison(in) => in.predicand }.toSet
+
+    expressions.foldLeft(PendingUpdates.empty)((pendingUpdates, expression) =>
+      expression.folder.treeFold(pendingUpdates) {
+
+        case expr @ AsListComparison(listComparison) =>
+          if (keys.contains(listComparison.predicand) && listComparison.list.forall(isLiteral))
+            acc => SkipChildren(acc.addComparison(binaryBoolean, expr, listComparison))
+          else
+            acc => SkipChildren(acc)
+
+        case _: Or =>
+          binaryBoolean match {
+            case _: OrBinaryBoolean  => acc => TraverseChildren(acc)
+            case _: AndBinaryBoolean => acc => SkipChildren(acc)
+          }
+
+        case _: And =>
+          binaryBoolean match {
+            case _: AndBinaryBoolean => acc => TraverseChildren(acc)
+            case _: OrBinaryBoolean  => acc => SkipChildren(acc)
+          }
+
+        case _ =>
+          acc => SkipChildren(acc)
+      }
+    )
+  }
+
+  private def isLiteral(v: Expression): Boolean = v match {
+    case _: Literal => true
+    case _          => false
+  }
 }
