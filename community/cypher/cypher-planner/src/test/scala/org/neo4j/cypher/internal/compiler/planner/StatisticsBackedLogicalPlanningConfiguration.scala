@@ -1488,8 +1488,11 @@ class StatisticsBackedLogicalPlanningConfiguration(
       .transform(state, context)
   }
 
-  def planBuilder(): LogicalPlanBuilder = new LogicalPlanBuilder(wholePlan = true, resolver)
-  def subPlanBuilder(): LogicalPlanBuilder = new LogicalPlanBuilder(wholePlan = false, resolver)
+  def planBuilder(language: CypherVersion = CypherVersion.Default): LogicalPlanBuilder =
+    new LogicalPlanBuilder(wholePlan = true, resolver, language = language)
+
+  def subPlanBuilder(language: CypherVersion = CypherVersion.Default): LogicalPlanBuilder =
+    new LogicalPlanBuilder(wholePlan = false, resolver, language = language)
 
   def queryGraphSolver(): QueryGraphSolver = {
     queryGraphSolver(CypherPlannerConfiguration.withSettings(settings))

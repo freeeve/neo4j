@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.helpers
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.pos
@@ -35,8 +36,12 @@ import org.neo4j.cypher.internal.util.attribution.Default
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
 
-class LogicalPlanBuilder(wholePlan: Boolean = true, resolver: Resolver = new LogicalPlanResolver, initialId: Int = 0)
-    extends AbstractLogicalPlanBuilder[LogicalPlan, LogicalPlanBuilder](resolver, wholePlan, initialId) {
+class LogicalPlanBuilder(
+  wholePlan: Boolean = true,
+  resolver: Resolver = new LogicalPlanResolver,
+  initialId: Int = 0,
+  language: CypherVersion = CypherVersion.Default
+) extends AbstractLogicalPlanBuilder[LogicalPlan, LogicalPlanBuilder](resolver, wholePlan, initialId, language) {
 
   val cardinalities: Cardinalities = new Cardinalities with Default[LogicalPlan, Cardinality] {
     override protected def defaultValue: Cardinality = Cardinality.SINGLE
