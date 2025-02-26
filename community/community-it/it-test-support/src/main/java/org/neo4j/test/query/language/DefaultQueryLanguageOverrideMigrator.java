@@ -1,0 +1,44 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.test.query.language;
+
+import static org.neo4j.configuration.GraphDatabaseSettings.default_language;
+
+import java.util.Map;
+import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.configuration.SettingMigrator;
+import org.neo4j.logging.InternalLog;
+
+@ServiceProvider
+public class DefaultQueryLanguageOverrideMigrator implements SettingMigrator {
+    public static final String OVERRIDE_QUERY_LANG_KEY = "NEO4J_OVERRIDE_QUERY_LANGUAGE";
+
+    @Override
+    public void migrate(Map<String, String> values, Map<String, String> defaultValues, InternalLog log) {
+        String overrideQueryLang = System.getProperty(OVERRIDE_QUERY_LANG_KEY);
+        if (overrideQueryLang != null && !values.containsKey(default_language.name())) {
+            try {
+                defaultValues.put(default_language.name(), overrideQueryLang);
+            } catch (RuntimeException ex) {
+                log.warn("Unable to override the query language to " + overrideQueryLang, ex);
+            }
+        }
+    }
+}
