@@ -362,6 +362,8 @@ public enum ValueRepresentation {
             return "NULL";
         } else if (given instanceof Value value) {
             return value.prettyPrint();
+        } else if (given instanceof SequenceValue inner && inner.isEmpty()) {
+            return "[]";
         } else if (given instanceof SequenceValue inner) {
             return serializeList(inner, inner.value(0));
         } else {

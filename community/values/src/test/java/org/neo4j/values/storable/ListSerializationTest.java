@@ -64,4 +64,18 @@ public class ListSerializationTest {
         assertEquals(
                 "[3, [1000, 2000, ...], ...]", ValueRepresentation.serializeList(nestedSequences2, new IntValue(3)));
     }
+
+    @Test
+    void shouldSerializeNestedEmptySequenceNicely() {
+        var nestedSequences = VirtualValues.list(
+                VirtualValues.list(new IntValue(1), new IntValue(4), new IntValue(7)),
+                VirtualValues.EMPTY_LIST,
+                VirtualValues.list(new IntValue(1), new IntValue(2), new IntValue(3)),
+                VirtualValues.EMPTY_LIST,
+                VirtualValues.list(new IntValue(7)));
+        assertEquals(
+                "[..., [], [1, 2, ...], [], ...]",
+                ValueRepresentation.serializeList(
+                        nestedSequences, VirtualValues.list(new IntValue(1), new IntValue(2), new IntValue(3))));
+    }
 }
