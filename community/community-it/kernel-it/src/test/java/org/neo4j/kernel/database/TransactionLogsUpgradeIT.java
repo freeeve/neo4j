@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.automatic_upgrade_enabled;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.kernel.KernelVersion.GLORIOUS_FUTURE;
+import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
 import static org.neo4j.kernel.TxLogValidationUtils.assertLogHeaderExpectedVersion;
 import static org.neo4j.kernel.TxLogValidationUtils.assertWholeTransactionsIn;
 import static org.neo4j.kernel.TxLogValidationUtils.assertWholeTransactionsWithCorrectVersionInSpecificLogVersion;
@@ -56,6 +57,7 @@ import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.api.tracer.DefaultDatabaseTracer;
 import org.neo4j.kernel.impl.coreapi.TransactionImpl;
@@ -86,6 +88,10 @@ class TransactionLogsUpgradeIT {
     private DatabaseManagementService managementService;
     private GraphDatabaseAPI testDb;
     private CommandReaderFactory commandReaderFactory;
+    private static final KernelVersion EXPECTED_HEADER_VERSION_LATEST_FORMAT =
+            LATEST_KERNEL_VERSION.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
+                    ? LATEST_KERNEL_VERSION
+                    : null; /* pre-envelope format doesn't include the version */
 
     @BeforeEach
     void setUp() {
@@ -131,7 +137,7 @@ class TransactionLogsUpgradeIT {
                 fileSystem,
                 logFiles,
                 INITIAL_LOG_VERSION,
-                null /* latest format doesn't include the version */,
+                EXPECTED_HEADER_VERSION_LATEST_FORMAT,
                 TransactionIdStore.BASE_TX_ID);
         AtomicInteger latestChecksum = new AtomicInteger();
         assertWholeTransactionsIn(
@@ -211,7 +217,7 @@ class TransactionLogsUpgradeIT {
                 fileSystem,
                 logFiles,
                 INITIAL_LOG_VERSION,
-                null /* latest format doesn't contain version yet */,
+                EXPECTED_HEADER_VERSION_LATEST_FORMAT,
                 TransactionIdStore.BASE_TX_ID);
         assertWholeTransactionsWithCorrectVersionInSpecificLogVersion(
                 logFiles.getLogFile(),
@@ -298,7 +304,7 @@ class TransactionLogsUpgradeIT {
                 fileSystem,
                 logFiles,
                 INITIAL_LOG_VERSION,
-                null /* latest format doesn't contain version yet */,
+                EXPECTED_HEADER_VERSION_LATEST_FORMAT,
                 TransactionIdStore.BASE_TX_ID);
         AtomicInteger latestChecksum = new AtomicInteger();
         int nbrTxs = assertWholeTransactionsIn(
@@ -368,7 +374,7 @@ class TransactionLogsUpgradeIT {
                 fileSystem,
                 logFiles,
                 INITIAL_LOG_VERSION,
-                null /* latest format doesn't include the version */,
+                EXPECTED_HEADER_VERSION_LATEST_FORMAT,
                 TransactionIdStore.BASE_TX_ID);
         assertLogHeaderExpectedVersion(
                 fileSystem, logFiles, logFiles.getLogFile().getHighestLogVersion(), GLORIOUS_FUTURE);
