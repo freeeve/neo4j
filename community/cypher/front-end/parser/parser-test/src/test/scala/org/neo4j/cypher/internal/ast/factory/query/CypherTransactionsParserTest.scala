@@ -283,9 +283,9 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
       val expectedErrorParams = Some(InTransactionsErrorParameters(errorBehaviour, retryParams)(pos))
       val expectedStatusParams = Some(InTransactionsReportParameters(varFor("status"))(pos))
 
-      test(s"CALL { CREATE (n) } IN TRANSACTIONS $errorString") {
+      test(s"CALL () { CREATE (n) } IN TRANSACTIONS $errorString") {
         val expected =
-          importingWithSubqueryCallInTransactions(
+          scopeClauseSubqueryCallInTransactionsNoImports(
             inTransactionsParameters(
               None,
               None,
@@ -304,9 +304,9 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
       }
 
       errorRowPermutations.foreach(permutation => {
-        test(s"CALL { CREATE (n) } IN TRANSACTIONS ${permutation.head} ${permutation(1)}") {
+        test(s"CALL () { CREATE (n) } IN TRANSACTIONS ${permutation.head} ${permutation(1)}") {
           val expected =
-            importingWithSubqueryCallInTransactions(
+            scopeClauseSubqueryCallInTransactionsNoImports(
               inTransactionsParameters(
                 expectedBatchParams,
                 None,
@@ -323,9 +323,9 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
               )
           }
         }
-        test(s"CALL { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)}") {
+        test(s"CALL () { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)}") {
           val expected =
-            importingWithSubqueryCallInTransactions(
+            scopeClauseSubqueryCallInTransactionsNoImports(
               inTransactionsParameters(
                 expectedBatchParams,
                 expectedConcurrencyParams,
@@ -345,9 +345,9 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
       })
 
       errorStatusPermutations.foreach(permutation => {
-        test(s"CALL { CREATE (n) } IN TRANSACTIONS ${permutation.head} ${permutation(1)}") {
+        test(s"CALL () { CREATE (n) } IN TRANSACTIONS ${permutation.head} ${permutation(1)}") {
           val expected =
-            importingWithSubqueryCallInTransactions(
+            scopeClauseSubqueryCallInTransactionsNoImports(
               inTransactionsParameters(
                 None,
                 None,
@@ -364,9 +364,9 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
               )
           }
         }
-        test(s"CALL { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)}") {
+        test(s"CALL () { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)}") {
           val expected =
-            importingWithSubqueryCallInTransactions(
+            scopeClauseSubqueryCallInTransactionsNoImports(
               inTransactionsParameters(
                 None,
                 expectedConcurrencyParams,
@@ -386,9 +386,9 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
       })
 
       errorRowStatusPermutations.foreach(permutation => {
-        test(s"CALL { CREATE (n) } IN TRANSACTIONS ${permutation.head} ${permutation(1)} ${permutation(2)}") {
+        test(s"CALL () { CREATE (n) } IN TRANSACTIONS ${permutation.head} ${permutation(1)} ${permutation(2)}") {
           val expected =
-            importingWithSubqueryCallInTransactions(
+            scopeClauseSubqueryCallInTransactionsNoImports(
               inTransactionsParameters(
                 expectedBatchParams,
                 None,
@@ -406,10 +406,10 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
           }
         }
         test(
-          s"CALL { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)} ${permutation(2)}"
+          s"CALL () { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)} ${permutation(2)}"
         ) {
           val expected =
-            importingWithSubqueryCallInTransactions(
+            scopeClauseSubqueryCallInTransactionsNoImports(
               inTransactionsParameters(
                 expectedBatchParams,
                 expectedConcurrencyParams,
@@ -430,27 +430,27 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
   }
 
   // Negative tests
-  test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK ON ERROR CONTINUE") {
+  test("CALL () { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK ON ERROR CONTINUE") {
     failsParsing[Statements].withMessageStart("Duplicated ON ERROR parameter")
   }
 
-  test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK CONTINUE") {
+  test("CALL () { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK CONTINUE") {
     failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'CONTINUE'")
   }
 
-  test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR RETRY CONTINUE") {
+  test("CALL () { CREATE (n) } IN TRANSACTIONS ON ERROR RETRY CONTINUE") {
     failsParsing[Statements].withSyntaxErrorContaining("Invalid input ")
   }
 
-  test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR RETRY THEN RETRY") {
+  test("CALL () { CREATE (n) } IN TRANSACTIONS ON ERROR RETRY THEN RETRY") {
     failsParsing[Statements].withSyntaxErrorContaining("Invalid input 'RETRY'")
   }
 
-  test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR RETRY FOR THEN FAIL") {
+  test("CALL () { CREATE (n) } IN TRANSACTIONS ON ERROR RETRY FOR THEN FAIL") {
     failsParsing[Statements].withSyntaxErrorContaining("Invalid input")
   }
 
-  test("CALL { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK REPORT STATUS AS status ON ERROR CONTINUE") {
+  test("CALL () { CREATE (n) } IN TRANSACTIONS ON ERROR BREAK REPORT STATUS AS status ON ERROR CONTINUE") {
     failsParsing[Statements]
       .withSyntaxErrorContaining(
         "Duplicated ON ERROR parameter",
@@ -459,7 +459,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
       )
   }
 
-  test("CALL { CREATE (n) } IN TRANSACTIONS REPORT STATUS AS status REPORT STATUS AS other") {
+  test("CALL () { CREATE (n) } IN TRANSACTIONS REPORT STATUS AS status REPORT STATUS AS other") {
     failsParsing[Statements]
       .withSyntaxErrorContaining(
         "Duplicated REPORT STATUS parameter",
@@ -468,7 +468,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
       )
   }
 
-  test("CALL { CREATE (n) } IN TRANSACTIONS OF 5 ROWS ON ERROR BREAK REPORT STATUS AS status OF 42 ROWS") {
+  test("CALL () { CREATE (n) } IN TRANSACTIONS OF 5 ROWS ON ERROR BREAK REPORT STATUS AS status OF 42 ROWS") {
     failsParsing[Statements]
       .withSyntaxErrorContaining(
         "Duplicated OF ROWS parameter",

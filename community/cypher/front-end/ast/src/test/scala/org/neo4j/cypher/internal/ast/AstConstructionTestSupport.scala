@@ -1031,6 +1031,18 @@ trait AstConstructionTestSupport {
     call.copy(inTransactionsParameters = Some(inTransactionParameters))(pos)
   }
 
+  def scopeClauseSubqueryCallInTransactionsNoImports(
+    inTransactionParameters: SubqueryCall.InTransactionsParameters,
+    cs: Clause*
+  ): SubqueryCall = {
+    scopeClauseSubqueryCallInTransactions(
+      isImportingAll = false,
+      importedVariables = Seq.empty,
+      inTransactionParameters,
+      cs: _*
+    )
+  }
+
   def inTransactionsParameters(
     batchParams: Option[InTransactionsBatchParameters],
     concurrencyParams: Option[InTransactionsConcurrencyParameters],
