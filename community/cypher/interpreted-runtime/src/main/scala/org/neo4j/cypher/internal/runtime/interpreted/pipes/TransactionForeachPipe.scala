@@ -92,7 +92,9 @@ object TransactionForeachPipe {
       case Rollback(transactionId, failure, _, _) =>
         statusMap(Some(transactionId), started = true, committed = false, Some(failure.getMessage))
       case NotRun              => notRunStatus
-      case NonRecoverableError => notRunStatus
+      case NonRecoverableError =>
+        // Non-recoverable exception types are not expected to be caught and handled at this level
+        throw new IllegalArgumentException("Unexpected handling of non-recoverable error status")
     }
   }
 

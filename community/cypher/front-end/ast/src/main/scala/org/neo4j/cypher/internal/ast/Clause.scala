@@ -1887,6 +1887,11 @@ object SubqueryCall {
     case object OnErrorRetryThenContinue extends InTransactionsOnErrorBehaviour
     case object OnErrorRetryThenBreak extends InTransactionsOnErrorBehaviour
     case object OnErrorRetryThenFail extends InTransactionsOnErrorBehaviour
+
+    def hasRetry(behaviour: InTransactionsOnErrorBehaviour): Boolean = behaviour match {
+      case OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail => true
+      case _                                                                       => false
+    }
   }
 
   final case class InTransactionsRetryParameters(timeout: Option[Expression])(val position: InputPosition)

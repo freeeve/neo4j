@@ -405,7 +405,7 @@ class RetryableTransactionBatch(
     nextRetryState.shouldRetryAgain()
   }
 
-  override def retriedCount: Int = retryState.retryCount
+  override def retriedCount: Int = retryState.retryCount + 1
 
   override def abortedReason: String =
     retryState.abortedReason
@@ -609,6 +609,10 @@ object TransactionPipeWrapper {
           ),
           null
         )
+
+      case (NonRecoverableError, _, _) =>
+        // Real non-recoverable exception types are not expected to be caught and handled at this level
+        throw new IllegalStateException("Unexpected handling of non-recoverable error status")
 
       case (status, _, _) =>
         (status, null)
