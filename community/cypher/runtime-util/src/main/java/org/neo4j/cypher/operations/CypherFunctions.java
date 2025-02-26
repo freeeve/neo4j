@@ -2486,14 +2486,24 @@ public final class CypherFunctions {
     }
 
     private static CypherTypeException notAString(String method, AnyValue in) {
-        return new CypherTypeException(format(
-                "Expected a string value for `%s`, but got: %s; consider converting it to a string with "
-                        + "toString().",
-                method, in));
+        return CypherTypeException.functionArgumentWrongType(
+                format(
+                        "Expected a string value for `%s`, but got: %s; consider converting it to a string with "
+                                + "toString().",
+                        method, in),
+                method,
+                in.prettify(),
+                List.of("STRING"),
+                CypherTypeValueMapper.valueType(in));
     }
 
     private static CypherTypeException notAModeString(String method, AnyValue mode) {
-        return new CypherTypeException(format("Expected a string value for `%s`, but got: %s.", method, mode));
+        return CypherTypeException.functionArgumentWrongType(
+                format("Expected a string value for `%s`, but got: %s.", method, mode),
+                method,
+                mode.prettify(),
+                List.of("STRING"),
+                CypherTypeValueMapper.valueType(mode));
     }
 
     private static ListValue toIntegerList(FloatingPointArray array) {
