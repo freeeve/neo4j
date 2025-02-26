@@ -530,8 +530,12 @@ public final class CypherFunctions {
         } else if (anyValue instanceof VirtualRelationshipValue rel) {
             return startNode(rel, access, cursor);
         } else {
-            throw new CypherTypeException(format(
-                    "Invalid input for function 'startNode()': Expected %s to be a RelationshipValue", anyValue));
+            throw CypherTypeException.functionArgumentWrongType(
+                    format("Invalid input for function 'startNode()': Expected %s to be a RelationshipValue", anyValue),
+                    "startNode",
+                    anyValue.prettify(),
+                    List.of("RELATIONSHIP"),
+                    CypherTypeValueMapper.valueType(anyValue));
         }
     }
 
@@ -546,8 +550,12 @@ public final class CypherFunctions {
         } else if (anyValue instanceof VirtualRelationshipValue rel) {
             return endNode(rel, access, cursor);
         } else {
-            throw new CypherTypeException(
-                    format("Invalid input for function 'endNode()': Expected %s to be a RelationshipValue", anyValue));
+            throw CypherTypeException.functionArgumentWrongType(
+                    format("Invalid input for function 'endNode()': Expected %s to be a RelationshipValue", anyValue),
+                    "endNode",
+                    anyValue.prettify(),
+                    List.of("RELATIONSHIP"),
+                    CypherTypeValueMapper.valueType(anyValue));
         }
     }
 
@@ -1391,7 +1399,12 @@ public final class CypherFunctions {
                 return Values.stringValue(access.relationshipTypeName(typeToken));
             }
         } else {
-            throw new CypherTypeException("Invalid input for function 'type()': Expected a Relationship, got: " + item);
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'type()': Expected a Relationship, got: " + item,
+                    "type",
+                    item.prettify(),
+                    List.of("RELATIONSHIP"),
+                    CypherTypeValueMapper.valueType(item));
         }
     }
 

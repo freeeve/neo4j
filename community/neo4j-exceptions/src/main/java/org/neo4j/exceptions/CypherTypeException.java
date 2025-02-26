@@ -29,12 +29,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 
 public class CypherTypeException extends Neo4jException {
 
-    @Deprecated
-    public CypherTypeException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public CypherTypeException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    protected CypherTypeException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
     }
 
@@ -43,7 +38,7 @@ public class CypherTypeException extends Neo4jException {
         super(message);
     }
 
-    public CypherTypeException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    protected CypherTypeException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 

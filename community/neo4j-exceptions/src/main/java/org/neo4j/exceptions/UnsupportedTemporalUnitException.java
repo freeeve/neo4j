@@ -41,10 +41,6 @@ public class UnsupportedTemporalUnitException extends CypherTypeException {
         super(gqlStatusObject, errorMsg);
     }
 
-    public UnsupportedTemporalUnitException(String errorMsg, Throwable cause) {
-        super(errorMsg, cause);
-    }
-
     public UnsupportedTemporalUnitException(ErrorGqlStatusObject gqlStatusObject, String errorMsg, Throwable cause) {
         super(gqlStatusObject, errorMsg, cause);
     }
