@@ -94,6 +94,7 @@ import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFiles;
@@ -337,7 +338,13 @@ class BatchingTransactionAppenderTest {
         long txId = 3;
         String failureMessage = "Forces a failure";
         final var logHeader = LATEST_LOG_FORMAT.newHeader(
-                0, BASE_APPEND_INDEX, StoreId.UNKNOWN, 512, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION);
+                0,
+                BASE_APPEND_INDEX,
+                LogHeader.UNKNOWN_TERM,
+                StoreId.UNKNOWN,
+                512,
+                BASE_TX_CHECKSUM,
+                LATEST_KERNEL_VERSION);
         PhysicalLogVersionedStoreChannel logChannel = mock(PhysicalLogVersionedStoreChannel.class);
         when(logChannel.getLogFormatVersion()).thenReturn(LATEST_LOG_FORMAT);
         FlushableLogPositionAwareChannel channel =

@@ -43,6 +43,7 @@ import org.neo4j.kernel.impl.transaction.log.CheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.v50.LogEntryDetachedCheckpointV5_0;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -265,6 +266,7 @@ class TransactionRangeDiagnosticsTest {
                         .thenReturn(LATEST_LOG_FORMAT.newHeader(
                                 version,
                                 headerAppendIndex,
+                                LogHeader.UNKNOWN_TERM,
                                 new StoreId(12345, 56789, "engine-1", "format-1", 1, 1),
                                 UNKNOWN_LOG_SEGMENT_SIZE,
                                 BASE_TX_CHECKSUM,

@@ -104,6 +104,7 @@ class EnvelopeFuzzerTest {
         LogHeader logHeader = LogFormat.V10.newHeader(
                 INITIAL_LOG_VERSION,
                 BASE_APPEND_INDEX,
+                LogHeader.UNKNOWN_TERM,
                 StoreId.UNKNOWN,
                 segmentSize,
                 initialChecksum,
@@ -241,6 +242,7 @@ class EnvelopeFuzzerTest {
                     LogHeader logHeader = LogFormat.V10.newHeader(
                             currentVersion.intValue(),
                             BASE_APPEND_INDEX,
+                            LogHeader.UNKNOWN_TERM,
                             StoreId.UNKNOWN,
                             segmentSize,
                             previousChecksum,

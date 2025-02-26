@@ -55,6 +55,7 @@ public enum LogFormat {
                     getVersionByte(),
                     logVersion,
                     previousCommittedTx,
+                    LogHeader.UNKNOWN_TERM,
                     null,
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
@@ -71,6 +72,7 @@ public enum LogFormat {
         public LogHeader newHeader(
                 long logVersion,
                 long appendIndex,
+                long lastTerm,
                 StoreId storeId,
                 int segmentBlockSize,
                 int previousLogFileChecksum,
@@ -106,6 +108,7 @@ public enum LogFormat {
                     getVersionByte(),
                     logVersion,
                     previousCommittedTx,
+                    LogHeader.UNKNOWN_TERM,
                     null,
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
@@ -122,6 +125,7 @@ public enum LogFormat {
         public LogHeader newHeader(
                 long logVersion,
                 long appendIndex,
+                long lastTerm,
                 StoreId storeId,
                 int segmentBlockSize,
                 int previousLogFileChecksum,
@@ -153,6 +157,7 @@ public enum LogFormat {
                     getVersionByte(),
                     logVersion,
                     previousCommittedTx,
+                    LogHeader.UNKNOWN_TERM,
                     storeId,
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
@@ -184,6 +189,7 @@ public enum LogFormat {
         public LogHeader newHeader(
                 long logVersion,
                 long appendIndex,
+                long lastTerm,
                 StoreId storeId,
                 int segmentBlockSize,
                 int previousLogFileChecksum,
@@ -192,6 +198,7 @@ public enum LogFormat {
                     getVersionByte(),
                     logVersion,
                     appendIndex,
+                    LogHeader.UNKNOWN_TERM,
                     storeId,
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
@@ -211,6 +218,7 @@ public enum LogFormat {
                     getVersionByte(),
                     logVersion,
                     appendIndex,
+                    LogHeader.UNKNOWN_TERM,
                     storeId,
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
@@ -243,6 +251,7 @@ public enum LogFormat {
         public LogHeader newHeader(
                 long logVersion,
                 long appendIndex,
+                long lastTerm,
                 StoreId storeId,
                 int segmentBlockSize,
                 int previousLogFileChecksum,
@@ -251,6 +260,7 @@ public enum LogFormat {
                     getVersionByte(),
                     logVersion,
                     appendIndex,
+                    LogHeader.UNKNOWN_TERM,
                     storeId,
                     getHeaderSize(),
                     UNKNOWN_LOG_SEGMENT_SIZE,
@@ -288,12 +298,14 @@ public enum LogFormat {
             StoreId storeId = StoreIdSerialization.deserializeWithFixedSize(buffer);
             int segmentBlockSize = buffer.getInt();
             int previousChecksum = buffer.getInt();
+            long lastTerm = buffer.getLong();
             byte kernelVersion = buffer.get();
             buffer.position(getHeaderSize()); // rest is reserved
             return new LogHeader(
                     getVersionByte(),
                     logVersion,
                     lastAppendIndex,
+                    lastTerm,
                     storeId,
                     getHeaderSize(),
                     segmentBlockSize,
@@ -313,6 +325,7 @@ public enum LogFormat {
                 StoreIdSerialization.serializeWithFixedSize(logHeader.getStoreId(), buffer);
                 buffer.putInt(logHeader.getSegmentBlockSize());
                 buffer.putInt(logHeader.getPreviousLogFileChecksum());
+                buffer.putLong(logHeader.getLastTerm());
                 buffer.put(logHeader.getKernelVersion().version());
 
                 // Pad rest with zeroes
@@ -328,6 +341,7 @@ public enum LogFormat {
         public LogHeader newHeader(
                 long logVersion,
                 long appendIndex,
+                long lastTerm,
                 StoreId storeId,
                 int segmentBlockSize,
                 int previousLogFileChecksum,
@@ -336,6 +350,7 @@ public enum LogFormat {
                     getVersionByte(),
                     logVersion,
                     appendIndex,
+                    lastTerm,
                     storeId,
                     getHeaderSize(),
                     segmentBlockSize,
@@ -402,6 +417,7 @@ public enum LogFormat {
     public abstract LogHeader newHeader(
             long logVersion,
             long lastAppendIndex,
+            long lastTerm,
             StoreId storeId,
             int segmentBlockSize,
             int previousLogFileChecksum,

@@ -116,6 +116,7 @@ public class TransactionLogChannelAllocator {
                         .newHeader(
                                 version,
                                 lastAppendIndex,
+                                LogHeader.UNKNOWN_TERM,
                                 logFilesContext.getStoreId(),
                                 logFilesContext.getEnvelopeSegmentBlockSizeBytes(),
                                 previousLogFileChecksum,

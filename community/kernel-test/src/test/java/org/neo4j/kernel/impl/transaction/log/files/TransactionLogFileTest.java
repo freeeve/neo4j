@@ -944,8 +944,8 @@ class TransactionLogFileTest {
         var filesHelper = TransactionLogFilesHelper.forTransactions(fileSystem, filePath);
         try (StoreChannel storeChannel = fileSystem.write(filesHelper.getLogFileForVersion(version))) {
             LogFormat logFormat = LogFormat.fromKernelVersion(kernelVersion);
-            LogHeader logHeader =
-                    logFormat.newHeader(version, lastAppendIndex, STORE_ID, 256, BASE_TX_CHECKSUM, kernelVersion);
+            LogHeader logHeader = logFormat.newHeader(
+                    version, lastAppendIndex, LogHeader.UNKNOWN_TERM, STORE_ID, 256, BASE_TX_CHECKSUM, kernelVersion);
             writeLogHeader(storeChannel, logHeader, INSTANCE);
         }
     }

@@ -84,6 +84,7 @@ class EnvelopedLogFilesTest {
                         .newHeader(
                                 fileVersion,
                                 preFileIndex,
+                                LogHeader.UNKNOWN_TERM,
                                 StoreId.UNKNOWN,
                                 segmentSize,
                                 preFileChecksum,
