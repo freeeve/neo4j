@@ -155,7 +155,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue) {
             return doubleValue(Math.sin(((NumberValue) in).doubleValue()));
         } else {
-            throw needsNumbers("sin()");
+            throw needsNumbers("sin", in);
         }
     }
 
@@ -165,7 +165,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.asin(number.doubleValue()));
         } else {
-            throw needsNumbers("asin()");
+            throw needsNumbers("asin", in);
         }
     }
 
@@ -175,7 +175,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue((1.0 - Math.cos(number.doubleValue())) / 2);
         } else {
-            throw needsNumbers("haversin()");
+            throw needsNumbers("haversin", in);
         }
     }
 
@@ -185,7 +185,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.cos(number.doubleValue()));
         } else {
-            throw needsNumbers("cos()");
+            throw needsNumbers("cos", in);
         }
     }
 
@@ -195,7 +195,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(1.0 / Math.tan(number.doubleValue()));
         } else {
-            throw needsNumbers("cot()");
+            throw needsNumbers("cot", in);
         }
     }
 
@@ -205,7 +205,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.acos(number.doubleValue()));
         } else {
-            throw needsNumbers("acos()");
+            throw needsNumbers("acos", in);
         }
     }
 
@@ -215,7 +215,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.tan(number.doubleValue()));
         } else {
-            throw needsNumbers("tan()");
+            throw needsNumbers("tan", in);
         }
     }
 
@@ -225,7 +225,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.atan(number.doubleValue()));
         } else {
-            throw needsNumbers("atan()");
+            throw needsNumbers("atan", in);
         }
     }
 
@@ -234,8 +234,10 @@ public final class CypherFunctions {
             return NO_VALUE;
         } else if (y instanceof NumberValue yNumber && x instanceof NumberValue xNumber) {
             return doubleValue(Math.atan2(yNumber.doubleValue(), xNumber.doubleValue()));
+        } else if (y instanceof NumberValue) {
+            throw needsNumbers("atan2", x);
         } else {
-            throw needsNumbers("atan2()");
+            throw needsNumbers("atan2", y);
         }
     }
 
@@ -245,7 +247,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.ceil(number.doubleValue()));
         } else {
-            throw needsNumbers("ceil()");
+            throw needsNumbers("ceil", in);
         }
     }
 
@@ -255,7 +257,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.floor(number.doubleValue()));
         } else {
-            throw needsNumbers("floor()");
+            throw needsNumbers("floor", in);
         }
     }
 
@@ -318,7 +320,7 @@ public final class CypherFunctions {
                 }
             }
         } else {
-            throw needsNumbers("round()");
+            throw needsNumbers("round", in);
         }
     }
 
@@ -332,7 +334,7 @@ public final class CypherFunctions {
                 return doubleValue(Math.abs(number.doubleValue()));
             }
         } else {
-            throw needsNumbers("abs()");
+            throw needsNumbers("abs", in);
         }
     }
 
@@ -344,7 +346,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue) {
             return BooleanValue.FALSE;
         } else {
-            throw needsNumbers("isNaN()");
+            throw needsNumbers("isNaN", in);
         }
     }
 
@@ -354,7 +356,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.toDegrees(number.doubleValue()));
         } else {
-            throw needsNumbers("toDegrees()");
+            throw needsNumbers("degrees", in);
         }
     }
 
@@ -364,7 +366,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.exp(number.doubleValue()));
         } else {
-            throw needsNumbers("exp()");
+            throw needsNumbers("exp", in);
         }
     }
 
@@ -374,7 +376,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.log(number.doubleValue()));
         } else {
-            throw needsNumbers("log()");
+            throw needsNumbers("log", in);
         }
     }
 
@@ -384,7 +386,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.log10(number.doubleValue()));
         } else {
-            throw needsNumbers("log10()");
+            throw needsNumbers("log10", in);
         }
     }
 
@@ -394,7 +396,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.toRadians(number.doubleValue()));
         } else {
-            throw needsNumbers("toRadians()");
+            throw needsNumbers("radians", in);
         }
     }
 
@@ -425,7 +427,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return longValue((long) Math.signum(number.doubleValue()));
         } else {
-            throw needsNumbers("signum()");
+            throw needsNumbers("sign", in);
         }
     }
 
@@ -435,7 +437,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(Math.sqrt(number.doubleValue()));
         } else {
-            throw needsNumbers("sqrt()");
+            throw needsNumbers("sqrt", in);
         }
     }
 
@@ -2481,8 +2483,13 @@ public final class CypherFunctions {
         }
     }
 
-    private static CypherTypeException needsNumbers(String method) {
-        return new CypherTypeException(format("%s requires numbers", method));
+    private static CypherTypeException needsNumbers(String method, AnyValue in) {
+        return CypherTypeException.functionArgumentWrongType(
+                format("%s() requires numbers", method),
+                method,
+                in.prettify(),
+                List.of("INTEGER", "FLOAT"),
+                CypherTypeValueMapper.valueType(in));
     }
 
     private static CypherTypeException notAString(String method, AnyValue in) {
