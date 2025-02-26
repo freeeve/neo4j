@@ -965,6 +965,7 @@
               <fork>true</fork>
               <compilerArgs>
                 <arg>-XDcompilePolicy=simple</arg>
+                <arg>--should-stop=ifError=FLOW</arg>
                 <arg>-Xplugin:ErrorProne -Xep:MissingSummary:OFF -Xep:EmptyBlockTag:OFF -Xep:MalformedInlineTag:OFF -Xep:EqualsGetClass:OFF \
                   -Xep:StringSplitter:OFF -Xep:BadImport:OFF -Xep:InvalidBlockTag:OFF -Xep:InvalidInlineTag:OFF -Xep:AnnotateFormatMethod:OFF \
                   -Xep:ImmutableEnumChecker:OFF -Xep:UnescapedEntity:OFF -Xep:InvalidParam:OFF -Xep:JavaLangClash:OFF -Xep:ReturnValueIgnored:OFF \

@@ -325,7 +325,7 @@ class TxStateTransactionDataViewTest {
     private static List<Long> idList(Iterable<? extends Entity> entities) {
         List<Long> out = new ArrayList<>();
         for (Entity entity : entities) {
-            out.add(entity instanceof Node ? entity.getId() : entity.getId());
+            out.add(entity.getId());
         }
         return out;
     }
