@@ -274,4 +274,17 @@ object GqlExceptionMatchers extends GqlExceptionMatchers {
     GqlStatusInfoCodes.STATUS_42002,
     "error: syntax error or access rule violation - invalid reference"
   )
+
+  def functionArgumentGqlException(legacyMsg: String, func: String, msgPart: String): BeMatcher[Exception] = {
+    gqlException(
+      legacyMsg,
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N38,
+        s"error: data exception - invalid function argument. Invalid argument to the function $func."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_22N01,
+        s"error: data exception - invalid type. $msgPart"
+      )
+    )
+  }
 }

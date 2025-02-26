@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.LiteralHelper.literal
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.functionArgumentGqlException
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.DoubleValue
@@ -78,20 +79,11 @@ class ToFloatFunctionTest extends CypherFunSuite with CypherScalaCheckDrivenProp
 
   test("should throw an exception if the argument is an object which cannot be converted to a float") {
     val caughtException = the[CypherTypeException] thrownBy toFloat(true)
-    caughtException.getMessage should startWith(
-      "Invalid input for function 'toFloat()': Expected a String, Float or Integer, got: "
-    )
-    caughtException.gqlStatus() should be("22N38")
-    caughtException.statusDescription() should be(
-      "error: data exception - invalid function argument. Invalid argument to the function toFloat()."
-    )
-    caughtException.cause().isEmpty should be(false)
-    val caughtExceptionCause = caughtException.cause().get()
-    caughtExceptionCause.gqlStatus() should be("22N01")
-    caughtExceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value Boolean('true') to be of type STRING, FLOAT or INTEGER, but was of type Boolean."
-    )
-    caughtExceptionCause.cause().isEmpty should be(true)
+    caughtException should be(functionArgumentGqlException(
+      "Invalid input for function 'toFloat()': Expected a String, Float or Integer, got: Boolean('true')",
+      "toFloat()",
+      "Expected the value true to be of type STRING, FLOAT or INTEGER, but was of type BOOLEAN NOT NULL."
+    ))
   }
 
   // toFloatOrNull

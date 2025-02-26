@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.NumberValue
@@ -37,12 +38,12 @@ trait NumericExpressionOnly extends AggregationFunction {
       case number: NumberValue => f(number)
       case _ =>
         val objTypeLegacy = if (obj == null) "null" else obj.getClass.getName
-        val objType = if (obj == null) "null" else obj.getTypeName
+        val objType = CypherTypeValueMapper.valueType(obj)
         throw CypherTypeException.onlyNumericalValuesOrNullAllowed(
           s"$name($value)",
-          String.valueOf(obj),
-          objType,
-          objTypeLegacy
+          obj.prettify(),
+          objTypeLegacy,
+          objType
         )
     }
   }

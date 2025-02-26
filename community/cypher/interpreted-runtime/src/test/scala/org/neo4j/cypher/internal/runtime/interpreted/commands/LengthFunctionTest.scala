@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.LengthFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Variable
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.functionArgumentGqlException
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
@@ -57,20 +58,11 @@ class LengthFunctionTest extends CypherFunSuite {
 
     // when/then
     val e = intercept[CypherTypeException](lengthFunction.apply(m, QueryStateHelper.empty))
-    e.getMessage should be(
-      "Invalid input for function 'length()': Expected a Path, got: List{String(\"it\"), String(\"was\"), String(\"the\")}"
-    )
-    e.gqlStatus() should be("22N38")
-    e.statusDescription() should be(
-      "error: data exception - invalid function argument. Invalid argument to the function length()."
-    )
-    e.cause().isEmpty should be(false)
-    val eCause = e.cause().get()
-    eCause.gqlStatus() should be("22N01")
-    eCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value List{String(\"it\"), String(\"was\"), String(\"the\")} to be of type PATH, but was of type List."
-    )
-    eCause.cause().isEmpty should be(true)
+    e should be(functionArgumentGqlException(
+      "Invalid input for function 'length()': Expected a Path, got: List{String(\"it\"), String(\"was\"), String(\"the\")}",
+      "length()",
+      "Expected the value [\"it\", \"was\", \"the\"] to be of type PATH, but was of type LIST<STRING NOT NULL> NOT NULL."
+    ))
   }
 
   test("length cannot be used on strings") {
@@ -81,18 +73,11 @@ class LengthFunctionTest extends CypherFunSuite {
 
     // when/then
     val e = intercept[CypherTypeException](lengthFunction.apply(m, QueryStateHelper.empty))
-    e.getMessage should be("Invalid input for function 'length()': Expected a Path, got: String(\"it was the\")")
-    e.gqlStatus() should be("22N38")
-    e.statusDescription() should be(
-      "error: data exception - invalid function argument. Invalid argument to the function length()."
-    )
-    e.cause().isEmpty should be(false)
-    val eCause = e.cause().get()
-    eCause.gqlStatus() should be("22N01")
-    eCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value String(\"it was the\") to be of type PATH, but was of type String."
-    )
-    eCause.cause().isEmpty should be(true)
+    e should be(functionArgumentGqlException(
+      "Invalid input for function 'length()': Expected a Path, got: String(\"it was the\")",
+      "length()",
+      "Expected the value \"it was the\" to be of type PATH, but was of type STRING NOT NULL."
+    ))
   }
 
   private def mockNode() = {

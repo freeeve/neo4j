@@ -167,13 +167,6 @@ public class CypherTypeException extends Neo4jException {
         return new CypherTypeException(gql, msg);
     }
 
-    public static CypherTypeException functionArgumentMustBeNumber(
-            String msg, String functionName, String gotPretty, String gotCypherType) {
-        var gql = GqlHelper.getGql22N38_22N01(
-                GqlParams.StringParam.fun.process(functionName), gotPretty, List.of("INTEGER", "FLOAT"), gotCypherType);
-        return new CypherTypeException(gql, msg);
-    }
-
     public static CypherTypeException functionArgumentWrongType(
             String msg, String functionName, String gotPretty, List<String> expectedList, String gotCypherType) {
         var gql = GqlHelper.getGql22N38_22N01(
@@ -439,27 +432,17 @@ public class CypherTypeException extends Neo4jException {
     }
 
     public static CypherTypeException onlyNumericalValuesOrNullAllowed(
-            String function, String value, String actualType) {
-        var gql = GqlHelper.getGql22N38_22N01(function, value, List.of("INTEGER", "FLOAT", "NULL"), actualType);
+            String function, String value, String actualType, String actualCypherType) {
+        var gql = GqlHelper.getGql22N38_22N01(function, value, List.of("INTEGER", "FLOAT"), actualCypherType);
         return new CypherTypeException(
                 gql,
                 String.format("%s can only handle numerical values or null, but received: %s", function, actualType));
     }
 
-    public static CypherTypeException onlyNumericalValuesOrNullAllowed(
-            String function, String value, String actualType, String actualTypeInLegacyMessage) {
-        var gql = GqlHelper.getGql22N38_22N01(function, value, List.of("INTEGER", "FLOAT", "NULL"), actualType);
-        return new CypherTypeException(
-                gql,
-                String.format(
-                        "%s can only handle numerical values or null, but received: %s",
-                        function, actualTypeInLegacyMessage));
-    }
-
     public static CypherTypeException onlyNumericalValuesDurationsOrNullAllowed(
-            String function, String value, String actualType) {
-        var gql = GqlHelper.getGql22N38_22N01(
-                function, value, List.of("INTEGER", "FLOAT", "DURATION", "NULL"), actualType);
+            String function, String value, String actualType, String actualCypherType) {
+        var gql =
+                GqlHelper.getGql22N38_22N01(function, value, List.of("INTEGER", "FLOAT", "DURATION"), actualCypherType);
         return new CypherTypeException(
                 gql,
                 String.format(
@@ -467,13 +450,15 @@ public class CypherTypeException extends Neo4jException {
                         function, actualType));
     }
 
-    public static CypherTypeException onlyNumericalValuesAllowed(String function, String value, String actualType) {
-        var gql = GqlHelper.getGql22N38_22N01(function, value, List.of("INTEGER", "FLOAT"), actualType);
+    public static CypherTypeException onlyNumericalValuesAllowed(
+            String function, String value, String actualCypherType) {
+        var gql = GqlHelper.getGql22N38_22N01(function, value, List.of("INTEGER", "FLOAT"), actualCypherType);
         return new CypherTypeException(gql, String.format("%s cannot mix number and duration", function));
     }
 
-    public static CypherTypeException onlyDurationValuesAllowed(String function, String value, String actualType) {
-        var gql = GqlHelper.getGql22N38_22N01(function, value, List.of("DURATION"), actualType);
+    public static CypherTypeException onlyDurationValuesAllowed(
+            String function, String value, String actualCypherType) {
+        var gql = GqlHelper.getGql22N38_22N01(function, value, List.of("DURATION"), actualCypherType);
         return new CypherTypeException(gql, String.format("%s cannot mix number and duration", function));
     }
 

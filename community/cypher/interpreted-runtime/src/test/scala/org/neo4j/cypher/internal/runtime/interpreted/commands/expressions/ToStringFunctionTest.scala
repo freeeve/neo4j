@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.LiteralHelper.literal
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.functionArgumentGqlException
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.TextValue
@@ -78,20 +79,11 @@ class ToStringFunctionTest extends CypherFunSuite with CypherScalaCheckDrivenPro
 
   test("should throw an exception if the argument is an object which cannot be converted to a string") {
     val caughtException = the[CypherTypeException] thrownBy toString(List(1, 24))
-    caughtException.getMessage should startWith(
-      "Invalid input for function 'toString()': Expected a String, Float, Integer, Boolean, Temporal or Duration, got: "
-    )
-    caughtException.gqlStatus() should be("22N38")
-    caughtException.statusDescription() should be(
-      "error: data exception - invalid function argument. Invalid argument to the function toString()."
-    )
-    caughtException.cause().isEmpty should be(false)
-    val caughtExceptionCause = caughtException.cause().get()
-    caughtExceptionCause.gqlStatus() should be("22N01")
-    caughtExceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value List{Int(1), Int(24)} to be of type STRING, FLOAT, INTEGER, BOOLEAN, TEMPORAL or DURATION, but was of type List."
-    )
-    caughtExceptionCause.cause().isEmpty should be(true)
+    caughtException should be(functionArgumentGqlException(
+      "Invalid input for function 'toString()': Expected a String, Float, Integer, Boolean, Temporal or Duration, got: List{Int(1), Int(24)}",
+      "toString()",
+      "Expected the value [1, 24] to be of type STRING, FLOAT, INTEGER, BOOLEAN, TEMPORAL or DURATION, but was of type LIST<INTEGER NOT NULL> NOT NULL."
+    ))
   }
 
   // toStringOrNull

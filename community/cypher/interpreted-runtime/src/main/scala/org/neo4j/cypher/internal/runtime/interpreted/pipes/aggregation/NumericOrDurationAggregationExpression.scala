@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
+import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.DurationValue
@@ -53,8 +54,8 @@ trait NumericOrDurationAggregationExpression extends AggregationFunction {
           case Some(AggregatingDurations) =>
             throw CypherTypeException.onlyDurationValuesAllowed(
               "%s(%s)".format(name, value),
-              String.valueOf(vl),
-              vl.getTypeName
+              vl.prettify(),
+              CypherTypeValueMapper.valueType(vl)
             )
           case _ =>
         }
@@ -66,8 +67,8 @@ trait NumericOrDurationAggregationExpression extends AggregationFunction {
           case Some(AggregatingNumbers) =>
             throw CypherTypeException.onlyNumericalValuesAllowed(
               "%s(%s)".format(name, value),
-              String.valueOf(vl),
-              vl.getTypeName
+              vl.prettify(),
+              CypherTypeValueMapper.valueType(vl)
             )
           case _ =>
         }
@@ -75,8 +76,9 @@ trait NumericOrDurationAggregationExpression extends AggregationFunction {
       case _ =>
         throw CypherTypeException.onlyNumericalValuesDurationsOrNullAllowed(
           "%s(%s)".format(name, value),
-          String.valueOf(vl),
-          vl.getTypeName
+          vl.prettify(),
+          vl.getTypeName,
+          CypherTypeValueMapper.valueType(vl)
         )
     }
   }

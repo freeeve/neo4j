@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation
 
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.functionArgumentGqlException
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.storable.DurationValue
 import org.neo4j.values.storable.Values.NO_VALUE
@@ -58,19 +59,11 @@ class AvgFunctionTest extends CypherFunSuite with AggregateTest {
     val exception = intercept[CypherTypeException] {
       aggregateOn(durationValue, numberValue)
     }
-    exception.gqlStatus() should be("22N38")
-    exception.statusDescription() should be(
-      "error: data exception - invalid function argument. Invalid argument to the function AVG(x)."
-    )
-
-    exception.cause().isEmpty should be(false)
-    val exceptionCause = exception.cause().get()
-    exceptionCause.gqlStatus() should be("22N01")
-    exceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value Long(1) to be of type DURATION, but was of type Long."
-    )
-
-    exceptionCause.cause().isEmpty should be(true)
+    exception should be(functionArgumentGqlException(
+      "AVG(x) cannot mix number and duration",
+      "AVG(x)",
+      "Expected the value 1 to be of type DURATION, but was of type INTEGER NOT NULL."
+    ))
   }
 
   test("cantMixDurationAndNumber - duration after number") {
@@ -79,19 +72,11 @@ class AvgFunctionTest extends CypherFunSuite with AggregateTest {
     val exception = intercept[CypherTypeException] {
       aggregateOn(numberValue, durationValue)
     }
-    exception.gqlStatus() should be("22N38")
-    exception.statusDescription() should be(
-      "error: data exception - invalid function argument. Invalid argument to the function AVG(x)."
-    )
-
-    exception.cause().isEmpty should be(false)
-    val exceptionCause = exception.cause().get()
-    exceptionCause.gqlStatus() should be("22N01")
-    exceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value PT1S to be of type INTEGER or FLOAT, but was of type Duration."
-    )
-
-    exceptionCause.cause().isEmpty should be(true)
+    exception should be(functionArgumentGqlException(
+      "AVG(x) cannot mix number and duration",
+      "AVG(x)",
+      "Expected the value PT1S to be of type INTEGER or FLOAT, but was of type DURATION NOT NULL."
+    ))
   }
 
   test("allOnesAvgIsOne") {

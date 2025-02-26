@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CharacterLengthFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Variable
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.functionArgumentGqlException
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
@@ -58,20 +59,11 @@ class CharacterFunctionTest extends CypherFunSuite {
 
     // when/then
     val e = intercept[CypherTypeException](characterLengthFunction.apply(m, QueryStateHelper.empty))
-    e.getMessage should be(
-      "Invalid input for function 'character_length()': Expected a String, got: List{String(\"it\"), String(\"was\"), String(\"the\")}"
-    )
-    e.gqlStatus() should be("22N38")
-    e.statusDescription() should be(
-      "error: data exception - invalid function argument. Invalid argument to the function character_length()."
-    )
-    e.cause().isEmpty should be(false)
-    val eCause = e.cause().get()
-    eCause.gqlStatus() should be("22N01")
-    eCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value List{String(\"it\"), String(\"was\"), String(\"the\")} to be of type STRING, but was of type List."
-    )
-    eCause.cause().isEmpty should be(true)
+    e should be(functionArgumentGqlException(
+      "Invalid input for function 'character_length()': Expected a String, got: List{String(\"it\"), String(\"was\"), String(\"the\")}",
+      "character_length()",
+      "Expected the value [\"it\", \"was\", \"the\"] to be of type STRING, but was of type LIST<STRING NOT NULL> NOT NULL."
+    ))
   }
 
   test("character length cannot be used on paths") {
@@ -82,18 +74,11 @@ class CharacterFunctionTest extends CypherFunSuite {
 
     // when/then
     val e = intercept[CypherTypeException](characterLengthFunction.apply(m, QueryStateHelper.empty))
-    e.getMessage should be("Invalid input for function 'character_length()': Expected a String, got: Path{(0)-[0]-(0)}")
-    e.gqlStatus() should be("22N38")
-    e.statusDescription() should be(
-      "error: data exception - invalid function argument. Invalid argument to the function character_length()."
-    )
-    e.cause().isEmpty should be(false)
-    val eCause = e.cause().get()
-    eCause.gqlStatus() should be("22N01")
-    eCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value Path{(0)-[0]-(0)} to be of type STRING, but was of type Path."
-    )
-    eCause.cause().isEmpty should be(true)
+    e should be(functionArgumentGqlException(
+      "Invalid input for function 'character_length()': Expected a String, got: Path{(0)-[0]-(0)}",
+      "character_length()",
+      "Expected the value (id=0)-[id=1]->(id=0) to be of type STRING, but was of type PATH NOT NULL."
+    ))
   }
 
   test("character length cannot be used on integers") {
@@ -103,18 +88,11 @@ class CharacterFunctionTest extends CypherFunSuite {
 
     // when/then
     val e = intercept[CypherTypeException](characterLengthFunction.apply(m, QueryStateHelper.empty))
-    e.getMessage should be("Invalid input for function 'character_length()': Expected a String, got: Int(33)")
-    e.gqlStatus() should be("22N38")
-    e.statusDescription() should be(
-      "error: data exception - invalid function argument. Invalid argument to the function character_length()."
-    )
-    e.cause().isEmpty should be(false)
-    val eCause = e.cause().get()
-    eCause.gqlStatus() should be("22N01")
-    eCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value Int(33) to be of type STRING, but was of type Integer."
-    )
-    eCause.cause().isEmpty should be(true)
+    e should be(functionArgumentGqlException(
+      "Invalid input for function 'character_length()': Expected a String, got: Int(33)",
+      "character_length()",
+      "Expected the value 33 to be of type STRING, but was of type INTEGER NOT NULL."
+    ))
   }
 
   private def mockNode() = {

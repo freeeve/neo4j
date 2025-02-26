@@ -139,6 +139,11 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
     }
 
     @Override
+    public String prettify() {
+        return toString();
+    }
+
+    @Override
     public ValueRepresentation valueRepresentation() {
         return ValueRepresentation.GEOMETRY;
     }

@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.LiteralHelper.literal
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.functionArgumentGqlException
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.storable.TextValue
 import org.neo4j.values.storable.Values
@@ -83,20 +84,11 @@ class ToStringListFunctionTest extends CypherFunSuite with CypherScalaCheckDrive
 
   test("should throw an exception if the list argument contains a non-list") {
     val caughtException = the[CypherTypeException] thrownBy toStringList("foo")
-    caughtException.getMessage should equal(
-      """Invalid input for function 'toStringList()': Expected a List, got: String("foo")"""
-    )
-    caughtException.gqlStatus() should be("22N38")
-    caughtException.statusDescription() should be(
-      "error: data exception - invalid function argument. Invalid argument to the function toStringList()."
-    )
-    caughtException.cause().isEmpty should be(false)
-    val caughtExceptionCause = caughtException.cause().get()
-    caughtExceptionCause.gqlStatus() should be("22N01")
-    caughtExceptionCause.statusDescription() should be(
-      "error: data exception - invalid type. Expected the value String(\"foo\") to be of type LIST, but was of type String."
-    )
-    caughtExceptionCause.cause().isEmpty should be(true)
+    caughtException should be(functionArgumentGqlException(
+      "Invalid input for function 'toStringList()': Expected a List, got: String(\"foo\")",
+      "toStringList()",
+      "Expected the value \"foo\" to be of type LIST<ANY>, but was of type STRING NOT NULL."
+    ))
   }
 
   test("should not throw an exception for any value in the list") {

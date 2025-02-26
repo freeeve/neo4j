@@ -624,6 +624,11 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
         return str.toString();
     }
 
+    @Override
+    public String prettify() {
+        return prettyPrint();
+    }
+
     private static void nanos(StringBuilder str, int nanos) {
         str.append('.');
         int n = nanos < 0 ? -nanos : nanos;
