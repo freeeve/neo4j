@@ -35,7 +35,7 @@ object NameValidator {
 
   def assertValidUsername(name: String): Boolean = {
     if (name == null || name.isEmpty) {
-      throw InvalidArgumentException.providedFieldEmpty("username")
+      throw InvalidArgumentException.providedStringEmpty("Username")
     }
     if (!usernamePattern.matcher(name).matches)
       throw InvalidArgumentException.inputContainsInvalidCharacters(
@@ -49,7 +49,7 @@ object NameValidator {
 
   def assertValidRoleName(name: String): Boolean = {
     if (name == null || name.isEmpty) {
-      throw InvalidArgumentException.providedFieldEmpty("role name")
+      throw InvalidArgumentException.providedStringEmpty("Role name")
     }
     if (!roleNamePattern.matcher(name).matches)
       throw InvalidArgumentException.inputContainsInvalidCharacters(
@@ -63,7 +63,7 @@ object NameValidator {
 
   def assertValidAliasName(name: String): Boolean = {
     if (name == null || name.isEmpty) {
-      throw InvalidArgumentException.providedFieldEmpty("alias")
+      throw InvalidArgumentException.providedStringEmpty("Alias name", "Alias")
     }
     if (name.length > 65534)
       throw InvalidArgumentException.aliasTooLong(name)
@@ -75,7 +75,7 @@ object NameValidator {
 
   def assertValidTargetName(name: String): Boolean = {
     if (name == null || name.isEmpty) {
-      throw InvalidArgumentException.providedFieldEmpty("target database name")
+      throw InvalidArgumentException.providedStringEmpty("Target database name")
     }
     if (name.length > 65534)
       throw InvalidArgumentException.dbNameTooLong(name)

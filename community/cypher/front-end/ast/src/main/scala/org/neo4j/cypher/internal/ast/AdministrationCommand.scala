@@ -529,9 +529,14 @@ sealed trait AuthImpl extends ASTNode with SemanticAnalysisTooling {
       )
   }.getOrElse(success)
 
-  def checkProviderName: SemanticCheck =
-    if (provider.isEmpty) error("Invalid input. Auth provider is not allowed to be an empty string.", position)
-    else success
+  def checkProviderName: SemanticCheck = {
+    if (provider.isEmpty) {
+      val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
+        .withParam(GqlParams.StringParam.item, "Auth provider")
+        .build()
+      error(gql, "Invalid input. Auth provider is not allowed to be an empty string.", position)
+    } else success
+  }
 
   protected def requiredAttributes(func: AuthAttribute => Boolean, name: String): SemanticCheck =
     authAttributes.find(func) match {

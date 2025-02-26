@@ -41,8 +41,8 @@ class NameValidatorTest extends CypherFunSuite {
       case e: InvalidArgumentException => e should (
           have message "The provided username is empty."
             and be(gqlStatus(
-              GqlStatusInfoCodes.STATUS_22N06,
-              "error: data exception - required input missing or empty. Invalid input. 'username' needs to be specified."
+              GqlStatusInfoCodes.STATUS_22NB6,
+              "error: data exception - input empty. Invalid input. Username is not allowed to be an empty string."
             ))
         )
     }
@@ -55,8 +55,8 @@ class NameValidatorTest extends CypherFunSuite {
       case e: InvalidArgumentException => e should (
           have message "The provided username is empty."
             and be(gqlStatus(
-              GqlStatusInfoCodes.STATUS_22N06,
-              "error: data exception - required input missing or empty. Invalid input. 'username' needs to be specified."
+              GqlStatusInfoCodes.STATUS_22NB6,
+              "error: data exception - input empty. Invalid input. Username is not allowed to be an empty string."
             ))
         )
     }
@@ -99,8 +99,8 @@ class NameValidatorTest extends CypherFunSuite {
       case e: InvalidArgumentException => e should (
           have message "The provided role name is empty."
             and be(gqlStatus(
-              GqlStatusInfoCodes.STATUS_22N06,
-              "error: data exception - required input missing or empty. Invalid input. 'role name' needs to be specified."
+              GqlStatusInfoCodes.STATUS_22NB6,
+              "error: data exception - input empty. Invalid input. Role name is not allowed to be an empty string."
             ))
         )
     }
@@ -113,8 +113,8 @@ class NameValidatorTest extends CypherFunSuite {
       case e: InvalidArgumentException => e should (
           have message "The provided role name is empty."
             and be(gqlStatus(
-              GqlStatusInfoCodes.STATUS_22N06,
-              "error: data exception - required input missing or empty. Invalid input. 'role name' needs to be specified."
+              GqlStatusInfoCodes.STATUS_22NB6,
+              "error: data exception - input empty. Invalid input. Role name is not allowed to be an empty string."
             ))
         )
     }

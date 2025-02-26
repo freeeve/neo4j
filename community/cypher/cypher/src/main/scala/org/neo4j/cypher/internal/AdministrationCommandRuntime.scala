@@ -144,7 +144,7 @@ object AdministrationCommandRuntime {
   private[internal] def internalKey(name: String): String = internalPrefix + name
 
   private[internal] def validatePassword(password: Array[Byte])(config: Config): Array[Byte] = {
-    if (password == null || password.length == 0) throw new InvalidArgumentException("A password cannot be empty.")
+    if (password == null || password.length == 0) throw InvalidArgumentException.providedPasswordEmpty()
 
     val minimumPasswordLength = config.get(GraphDatabaseSettings.auth_minimum_password_length)
     val cb = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(password))
@@ -976,7 +976,7 @@ object AdministrationCommandRuntime {
   }
 
   private def validateAuthId(id: String): Unit =
-    if (id.isEmpty) throw new InvalidArgumentException("Invalid input. Auth id is not allowed to be an empty string.")
+    if (id.isEmpty) throw InvalidArgumentException.notAllowedToBeEmptyString("Auth id")
 
   private case class RenamingStringParameterConverter(
     parameter: String,

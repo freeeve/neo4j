@@ -691,8 +691,9 @@ public class AuthenticationIT {
                 .receivesFailure(
                         Status.Statement.ArgumentError,
                         "A password cannot be empty.",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                        GqlStatusInfoCodes.STATUS_22NB6.getGqlStatus(),
+                        "error: data exception - input empty. Invalid input. Password is not allowed to be an empty string.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .receivesIgnored();
 
         connection

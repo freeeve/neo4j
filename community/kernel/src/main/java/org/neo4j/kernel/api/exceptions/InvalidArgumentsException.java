@@ -108,10 +108,10 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
     }
 
     public static InvalidArgumentsException providedFieldEmpty(String field) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
-                .withParam(GqlParams.ListParam.inputList, List.of(field))
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
+                .withParam(GqlParams.StringParam.item, field)
                 .build();
-        return new InvalidArgumentsException(gql, String.format("The provided %s is empty.", field));
+        return new InvalidArgumentsException(gql, String.format("The provided %s is empty.", field.toLowerCase()));
     }
 
     @Override

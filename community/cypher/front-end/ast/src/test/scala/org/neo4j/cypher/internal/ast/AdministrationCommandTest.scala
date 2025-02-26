@@ -81,6 +81,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
   private val pos3 = InputPosition(23, 7, 6)
   private val pos4 = InputPosition(37, 8, 9)
 
+  private val gqlAuthProviderNotAllowedEmpty = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
+    .withParam(GqlParams.StringParam.item, "Auth provider").build()
+
   private val initialState =
     SemanticState.clean
       .withFeature(SemanticFeature.MultipleDatabases)
@@ -2235,6 +2238,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         pos2
       ).errors
     val error3 = SemanticCheckResult.error(
+      gqlAuthProviderNotAllowedEmpty,
       initialState,
       "Invalid input. Auth provider is not allowed to be an empty string.",
       pos1
@@ -2252,7 +2256,12 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "Invalid input. Auth provider is not allowed to be an empty string.", pos1).errors
+      .error(
+        gqlAuthProviderNotAllowedEmpty,
+        initialState,
+        "Invalid input. Auth provider is not allowed to be an empty string.",
+        pos1
+      ).errors
   }
 
   test("CREATE USER foo SET AUTH '' { SET PASSWORD 'password' }") {
@@ -2287,6 +2296,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         pos2
       ).errors
     val error3 = SemanticCheckResult.error(
+      gqlAuthProviderNotAllowedEmpty,
       initialState,
       "Invalid input. Auth provider is not allowed to be an empty string.",
       pos1
@@ -2304,7 +2314,12 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "Invalid input. Auth provider is not allowed to be an empty string.", pos1).errors
+      .error(
+        gqlAuthProviderNotAllowedEmpty,
+        initialState,
+        "Invalid input. Auth provider is not allowed to be an empty string.",
+        pos1
+      ).errors
   }
 
   test("CREATE USER foo SET AUTH PROVIDER 'foo' { SET ID 42 }") {
@@ -2865,6 +2880,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         pos2
       ).errors
     val error2 = SemanticCheckResult.error(
+      gqlAuthProviderNotAllowedEmpty,
       initialState,
       "Invalid input. Auth provider is not allowed to be an empty string.",
       pos1
@@ -2893,7 +2909,12 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "Invalid input. Auth provider is not allowed to be an empty string.", pos1).errors
+      .error(
+        gqlAuthProviderNotAllowedEmpty,
+        initialState,
+        "Invalid input. Auth provider is not allowed to be an empty string.",
+        pos1
+      ).errors
   }
 
   test("ALTER USER foo SET AUTH '' { SET PASSWORD 'password' }") {
@@ -2922,6 +2943,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         pos2
       ).errors
     val error2 = SemanticCheckResult.error(
+      gqlAuthProviderNotAllowedEmpty,
       initialState,
       "Invalid input. Auth provider is not allowed to be an empty string.",
       pos1
@@ -2947,7 +2969,12 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "Invalid input. Auth provider is not allowed to be an empty string.", pos1).errors
+      .error(
+        gqlAuthProviderNotAllowedEmpty,
+        initialState,
+        "Invalid input. Auth provider is not allowed to be an empty string.",
+        pos1
+      ).errors
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 'foo' { SET ID 42 }") {

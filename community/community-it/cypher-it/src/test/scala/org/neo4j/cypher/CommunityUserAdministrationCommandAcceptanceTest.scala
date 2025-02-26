@@ -590,7 +590,13 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
       // WHEN
       execute("CREATE USER foo SET PASSWORD ''")
       // THEN
-    } should have message "A password cannot be empty."
+    } should (
+      have message "A password cannot be empty."
+        and be(gqlStatus(
+          GqlStatusInfoCodes.STATUS_22NB6,
+          "error: data exception - input empty. Invalid input. Password is not allowed to be an empty string."
+        ))
+    )
 
     execute("SHOW USERS").toSet shouldBe Set(defaultUser)
   }
@@ -783,8 +789,8 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
     } should (
       have message "The provided username is empty."
         and be(gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N06,
-          "error: data exception - required input missing or empty. Invalid input. 'username' needs to be specified."
+          GqlStatusInfoCodes.STATUS_22NB6,
+          "error: data exception - input empty. Invalid input. Username is not allowed to be an empty string."
         ))
     )
 
@@ -795,8 +801,8 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
     } should (
       have message "The provided username is empty."
         and be(gqlStatus(
-          GqlStatusInfoCodes.STATUS_22N06,
-          "error: data exception - required input missing or empty. Invalid input. 'username' needs to be specified."
+          GqlStatusInfoCodes.STATUS_22NB6,
+          "error: data exception - input empty. Invalid input. Username is not allowed to be an empty string."
         ))
     )
 
@@ -1415,7 +1421,13 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
       // WHEN
       execute(s"ALTER USER $username SET PASSWORD '' CHANGE NOT REQUIRED")
       // THEN
-    } should have message "A password cannot be empty."
+    } should (
+      have message "A password cannot be empty."
+        and be(gqlStatus(
+          GqlStatusInfoCodes.STATUS_22NB6,
+          "error: data exception - input empty. Invalid input. Password is not allowed to be an empty string."
+        ))
+    )
 
     // THEN
     testUserLogin(username, password, AuthenticationResult.PASSWORD_CHANGE_REQUIRED)
@@ -1429,7 +1441,13 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
       // WHEN
       execute("ALTER USER $user SET PASSWORD $password", Map("user" -> username, "password" -> ""))
       // THEN
-    } should have message "A password cannot be empty."
+    } should (
+      have message "A password cannot be empty."
+        and be(gqlStatus(
+          GqlStatusInfoCodes.STATUS_22NB6,
+          "error: data exception - input empty. Invalid input. Password is not allowed to be an empty string."
+        ))
+    )
 
     // THEN
     testUserLogin(username, password, AuthenticationResult.PASSWORD_CHANGE_REQUIRED)
@@ -1819,7 +1837,13 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
       // WHEN
       executeOnSystem(username, password, s"ALTER CURRENT USER SET PASSWORD FROM '$password' TO ''")
       // THEN
-    } should have message "A password cannot be empty."
+    } should (
+      have message "A password cannot be empty."
+        and be(gqlStatus(
+          GqlStatusInfoCodes.STATUS_22NB6,
+          "error: data exception - input empty. Invalid input. Password is not allowed to be an empty string."
+        ))
+    )
 
     // THEN
     testUserLogin(username, password, AuthenticationResult.SUCCESS)

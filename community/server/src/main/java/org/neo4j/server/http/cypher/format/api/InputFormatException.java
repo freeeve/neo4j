@@ -83,7 +83,7 @@ public class InputFormatException extends RuntimeException implements ErrorGqlSt
         this.oldMessage = message;
     }
 
-    public static InputFormatException emptyInputString(String requiredOption, String message) {
+    public static InputFormatException missingRequiredInput(String requiredOption, String message) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N11)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
                         .withParam(GqlParams.ListParam.inputList, List.of(requiredOption))

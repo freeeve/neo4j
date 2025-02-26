@@ -32,7 +32,7 @@ object RemoteUrlValidator {
 
   def assertValidRemoteDatabaseUrl(url: String, secure: Boolean): Option[Throwable] = Try {
     if (url == null || url.isEmpty) {
-      throw InvalidArgumentException.providedFieldEmpty("url")
+      throw InvalidArgumentException.providedStringEmpty("URL")
     }
 
     val uriScheme = URI.create(url).getScheme

@@ -394,11 +394,36 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, legacyMessage);
     }
 
-    public static InvalidArgumentException providedFieldEmpty(String field) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
-                .withParam(GqlParams.ListParam.inputList, List.of(field))
+    public static InvalidArgumentException providedStringEmpty(String capitalizedField) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
+                .withParam(GqlParams.StringParam.item, capitalizedField)
                 .build();
-        return new InvalidArgumentException(gql, String.format("The provided %s is empty.", field));
+        return new InvalidArgumentException(
+                gql, String.format("The provided %s is empty.", capitalizedField.toLowerCase()));
+    }
+
+    public static InvalidArgumentException providedStringEmpty(String capitalizedField, String legacyField) {
+        // Only here to provide the legacy message for "The provided Alias is empty.".
+        // Use providedStringEmpty(String capitalizedField) instead.
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
+                .withParam(GqlParams.StringParam.item, capitalizedField)
+                .build();
+        return new InvalidArgumentException(gql, String.format("The provided %s is empty.", legacyField.toLowerCase()));
+    }
+
+    public static InvalidArgumentException providedPasswordEmpty() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
+                .withParam(GqlParams.StringParam.item, "Password")
+                .build();
+        return new InvalidArgumentException(gql, "A password cannot be empty.");
+    }
+
+    public static InvalidArgumentException notAllowedToBeEmptyString(String item) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
+                .withParam(GqlParams.StringParam.item, item)
+                .build();
+        return new InvalidArgumentException(
+                gql, "Invalid input. %s is not allowed to be an empty string.".formatted(item));
     }
 
     public static InvalidArgumentException couldNotGetPassword() {

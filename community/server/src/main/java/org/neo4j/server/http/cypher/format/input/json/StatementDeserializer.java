@@ -109,7 +109,7 @@ class StatementDeserializer {
 
                     if (statement == null) {
                         // DRI-040
-                        throw InputFormatException.emptyInputString("statement", "No statement provided.");
+                        throw InputFormatException.missingRequiredInput("statement", "No statement provided.");
                     }
                     return new InputStatement(
                             statement,

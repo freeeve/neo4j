@@ -1176,13 +1176,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "input failed validation",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N06(
+            // See also 22NB6
             new GqlStatus("22N06"),
             """
                     Invalid input. { %s } needs to be specified.""",
             new GqlParams.GqlParam[] {GqlParams.ListParam.inputList},
             Map.of(GqlParams.ListParam.inputList, GqlParams.JoinStyle.ANDED),
             Condition.DATA_EXCEPTION,
-            "required input missing or empty",
+            "required input missing",
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N07(
             new GqlStatus("22N07"),
@@ -2140,6 +2141,16 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "endpoint label presence verification failed",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_22NB6(
+            // See also 22N06
+            new GqlStatus("22NB6"),
+            """
+                Invalid input. { %s } is not allowed to be an empty string.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.item},
+            Map.of(),
+            Condition.DATA_EXCEPTION,
+            "input empty",
             ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
