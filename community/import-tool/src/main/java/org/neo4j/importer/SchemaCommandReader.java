@@ -27,12 +27,14 @@ import java.util.List;
 import org.eclipse.collections.api.factory.Lists;
 import org.eclipse.collections.api.list.MutableList;
 import org.neo4j.configuration.Config;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.PreParser;
 import org.neo4j.cypher.internal.ast.Statement;
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext;
 import org.neo4j.cypher.internal.ast.semantics.SemanticState;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
 import org.neo4j.cypher.internal.parser.AstParserFactory$;
+import org.neo4j.cypher.internal.util.ErrorMessageProvider;
 import org.neo4j.cypher.internal.util.InputPosition;
 import org.neo4j.cypher.internal.util.InternalNotificationLogger;
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory;
@@ -43,6 +45,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion;
+import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.util.Preconditions;
 import scala.Option;
@@ -97,7 +100,26 @@ public class SchemaCommandReader {
         final var changesBuilder = new SchemaCommandsBuilder(readerConfig, cypherVersion);
 
         final var errors = Lists.mutable.<String>empty();
-        final var checkContext = SemanticCheckContext.empty();
+        // want to set the cypherVersion correctly and not just use default as empty does
+        final var checkContext = new SemanticCheckContext() {
+            final SemanticCheckContext emptyContext = SemanticCheckContext.empty();
+
+            @Override
+            public CypherVersion cypherVersion() {
+                return cypherVersion;
+            }
+
+            @Override
+            public ErrorMessageProvider errorMessageProvider() {
+                return emptyContext.errorMessageProvider();
+            }
+
+            @Override
+            public DatabaseReference sessionDatabaseReference() {
+                return emptyContext.sessionDatabaseReference();
+            }
+        };
+
         for (int i = 0, length = statements.size(); i < length; i++) {
             transform(changesBuilder, statements.get(i), errors, checkContext);
         }

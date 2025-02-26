@@ -101,8 +101,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             properties(0),
             constraintName,
             existsDo,
-            options,
-            fromCypher5 = false
+            options
           )(pos(parent))
         case _: ConstraintTypedContext =>
           CreateConstraint.createNodePropertyTypeConstraint(
@@ -112,8 +111,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             propertyType.get,
             constraintName,
             existsDo,
-            options,
-            fromCypher5 = false
+            options
           )(pos(parent))
         case _: ConstraintIsUniqueContext =>
           CreateConstraint.createNodePropertyUniquenessConstraint(
@@ -147,8 +145,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             properties(0),
             constraintName,
             existsDo,
-            options,
-            fromCypher5 = false
+            options
           )(pos(parent))
         case _: ConstraintTypedContext =>
           CreateConstraint.createRelationshipPropertyTypeConstraint(
@@ -158,8 +155,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             propertyType.get,
             constraintName,
             existsDo,
-            options,
-            fromCypher5 = false
+            options
           )(pos(parent))
         case _: ConstraintIsUniqueContext =>
           CreateConstraint.createRelationshipPropertyUniquenessConstraint(
@@ -242,8 +238,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             indexName,
             existsDo,
             options,
-            fromDefault = token == Cypher25Parser.INDEX,
-            fromCypher5 = false
+            fromDefault = token == Cypher25Parser.INDEX
           )(pos(grandparent))
         } else {
           val relType = labelOrRelType.asInstanceOf[RelTypeName]
@@ -254,8 +249,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             indexName,
             existsDo,
             options,
-            fromDefault = token == Cypher25Parser.INDEX,
-            fromCypher5 = false
+            fromDefault = token == Cypher25Parser.INDEX
           )(pos(grandparent))
         }
       case Cypher25Parser.TEXT =>
@@ -267,8 +261,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             propertyList,
             indexName,
             existsDo,
-            options,
-            fromCypher5 = false
+            options
           )(pos(grandparent))
         } else {
           val relType = labelOrRelType.asInstanceOf[RelTypeName]
@@ -278,8 +271,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             propertyList,
             indexName,
             existsDo,
-            options,
-            fromCypher5 = false
+            options
           )(pos(grandparent))
         }
       case Cypher25Parser.POINT =>
@@ -291,8 +283,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             propertyList,
             indexName,
             existsDo,
-            options,
-            fromCypher5 = false
+            options
           )(pos(grandparent))
         } else {
           val relType = labelOrRelType.asInstanceOf[RelTypeName]
@@ -302,8 +293,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             propertyList,
             indexName,
             existsDo,
-            options,
-            fromCypher5 = false
+            options
           )(pos(grandparent))
         }
       case Cypher25Parser.VECTOR =>
@@ -315,8 +305,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             propertyList,
             indexName,
             existsDo,
-            options,
-            fromCypher5 = false
+            options
           )(pos(grandparent))
         } else {
           val relType = labelOrRelType.asInstanceOf[RelTypeName]
@@ -326,8 +315,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
             propertyList,
             indexName,
             existsDo,
-            options,
-            fromCypher5 = false
+            options
           )(pos(grandparent))
         }
     }
@@ -351,8 +339,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
         propertyList,
         indexName,
         existsDo,
-        options,
-        fromCypher5 = false
+        options
       )(pos(grandparent))
     } else {
       val (variable, relTypes) = ctx.fulltextRelPattern().ast[(Variable, List[RelTypeName])]()
@@ -362,8 +349,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
         propertyList,
         indexName,
         existsDo,
-        options,
-        fromCypher5 = false
+        options
       )(pos(grandparent))
     }
   }
@@ -415,8 +401,7 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
       function,
       indexName,
       existsDo,
-      options,
-      fromCypher5 = false
+      options
     )(pos(grandparent))
   }
 

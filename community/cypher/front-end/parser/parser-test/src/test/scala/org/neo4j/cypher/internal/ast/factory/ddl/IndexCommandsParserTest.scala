@@ -97,17 +97,15 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   // Create index
 
   test("CrEATe INDEX FOR (n1:Person) ON (n2.name)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        rangeNodeIndex(
-          List(prop("n2", "name")),
-          None,
-          posN2(testName),
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromDefault = true,
-          fromCypher5
-        )(pos),
+    assertAst(
+      rangeNodeIndex(
+        List(prop("n2", "name")),
+        None,
+        posN2(testName),
+        ast.IfExistsThrowError,
+        ast.NoOptions,
+        fromDefault = true
+      )(pos),
       comparePosition = false
     )
   }
@@ -121,17 +119,15 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   ).foreach {
     case (pattern, createIndex: CreateRangeIndexFunction) =>
       test(s"CREATE INDEX FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
@@ -145,201 +141,176 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
               posN2(testName),
               ast.IfExistsThrowError,
               ast.NoOptions,
-              true,
-              fromCypher5
+              true
             ).withGraph(Some(use(List("neo4j"), !fromCypher5))),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX my_index FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX `$$my_index` FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some("$my_index"),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some("$my_index"),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX ON FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some("ON"),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some("ON"),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE INDEX FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE INDEX IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX IF NOT EXISTS FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              None,
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            None,
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'range-1.0'}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0"))),
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0"))),
+            true
+          )(pos),
           comparePosition = false
         )
       }
@@ -348,23 +319,21 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         s"CREATE INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'native-btree-1.0', indexConfig : {`spatial.cartesian.max`: [100.0,100.0], `spatial.cartesian.min`: [-100.0,-100.0] }}"
       ) {
         // will fail in options converter
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("native-btree-1.0"),
-                "indexConfig" -> mapOf(
-                  "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
-                  "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
-                )
-              )),
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("native-btree-1.0"),
+              "indexConfig" -> mapOf(
+                "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
+                "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
+              )
+            )),
+            true
+          )(pos),
           comparePosition = false
         )
       }
@@ -373,145 +342,130 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
         s"CREATE INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {`spatial.cartesian.max`: [100.0,100.0], `spatial.cartesian.min`: [-100.0,-100.0] }, indexProvider : 'native-btree-1.0'}"
       ) {
         // will fail in options converter
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("native-btree-1.0"),
-                "indexConfig" -> mapOf(
-                  "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
-                  "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
-                )
-              )),
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("native-btree-1.0"),
+              "indexConfig" -> mapOf(
+                "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
+                "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
+              )
+            )),
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {someConfig: 'toShowItCanBeParsed' }}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed")))),
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed")))),
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX FOR $pattern ON (n2.name) OPTIONS $$options") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsParam(parameter("options", CTMap)),
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsParam(parameter("options", CTMap)),
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX FOR $pattern ON (n2.name) OPTIONS {nonValidOption : 42}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX my_index FOR $pattern ON (n2.name) OPTIONS {}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map.empty),
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map.empty),
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX $$my_index FOR $pattern ON (n.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n", "name")),
-              Some(Right(stringParam("my_index"))),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              true,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n", "name")),
+            Some(Right(stringParam("my_index"))),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            true
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE INDEX FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             None,
             posN1(testName),
             ast.IfExistsThrowError,
             ast.NoOptions,
-            true,
-            fromCypher5
+            true
           )(defaultPos)
         )
       }
 
       test(s"CREATE INDEX my_index FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             Some(Left("my_index")),
             posN1(testName),
             ast.IfExistsThrowError,
             ast.NoOptions,
-            true,
-            fromCypher5
+            true
           )(defaultPos)
         )
       }
 
       test(s"CREATE OR REPLACE INDEX IF NOT EXISTS FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             None,
             posN1(testName),
             ast.IfExistsInvalidSyntax,
             ast.NoOptions,
-            true,
-            fromCypher5
+            true
           )(defaultPos)
         )
       }
@@ -534,17 +488,15 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   ).foreach {
     case (pattern, createIndex: CreateRangeIndexFunction) =>
       test(s"CREATE RANGE INDEX FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
@@ -558,185 +510,162 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
               posN2(testName),
               ast.IfExistsThrowError,
               ast.NoOptions,
-              false,
-              fromCypher5
+              false
             ).withGraph(Some(use(List("neo4j"), !fromCypher5))),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX my_index FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX `$$my_index` FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some("$my_index"),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some("$my_index"),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE RANGE INDEX FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE RANGE INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE RANGE INDEX IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE RANGE INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX IF NOT EXISTS FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              None,
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            None,
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'range-1.0'}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0"))),
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0"))),
+            false
+          )(pos),
           comparePosition = false
         )
       }
@@ -744,20 +673,18 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE RANGE INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'range-1.0', indexConfig : {someConfig: 'toShowItCanBeParsed'}}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("range-1.0"),
-                "indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed"))
-              )),
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("range-1.0"),
+              "indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed"))
+            )),
+            false
+          )(pos),
           comparePosition = false
         )
       }
@@ -765,146 +692,129 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE RANGE INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {someConfig: 'toShowItCanBeParsed'}, indexProvider : 'range-1.0'}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("range-1.0"),
-                "indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed"))
-              )),
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("range-1.0"),
+              "indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed"))
+            )),
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {}}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexConfig" -> mapOf())),
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexConfig" -> mapOf())),
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX FOR $pattern ON (n2.name) OPTIONS $$options") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsParam(parameter("options", CTMap)),
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsParam(parameter("options", CTMap)),
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX FOR $pattern ON (n2.name) OPTIONS {nonValidOption : 42}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX my_index FOR $pattern ON (n2.name) OPTIONS {}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map.empty),
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map.empty),
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX $$my_index FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Right(stringParam("my_index"))),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Right(stringParam("my_index"))),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE RANGE INDEX FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             None,
             posN1(testName),
             ast.IfExistsThrowError,
             ast.NoOptions,
-            false,
-            fromCypher5
+            false
           )(defaultPos)
         )
       }
 
       test(s"CREATE RANGE INDEX my_index FOR $pattern ON n2.name") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              pos,
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            pos,
+            ast.IfExistsThrowError,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE RANGE INDEX IF NOT EXISTS FOR $pattern ON n2.name") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              pos,
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              false,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            pos,
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions,
+            false
+          )(pos),
           comparePosition = false
         )
       }
@@ -1044,9 +954,8 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   ).foreach {
     case (pattern, function, createIndex: CreateLookupIndexFunction) =>
       test(s"CREATE LOOKUP INDEX FOR $pattern ON EACH $function") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(None, posN2(testName), ast.IfExistsThrowError, ast.NoOptions, fromCypher5)(pos),
+        assertAst(
+          createIndex(None, posN2(testName), ast.IfExistsThrowError, ast.NoOptions)(pos),
           comparePosition = false
         )
       }
@@ -1054,132 +963,115 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(s"USE neo4j CREATE LOOKUP INDEX FOR $pattern ON EACH $function") {
         assertAstVersionBased(
           fromCypher5 =>
-            createIndex(None, posN2(testName), ast.IfExistsThrowError, ast.NoOptions, fromCypher5)
+            createIndex(None, posN2(testName), ast.IfExistsThrowError, ast.NoOptions)
               .withGraph(Some(use(List("neo4j"), !fromCypher5))),
           comparePosition = false
         )
       }
 
       test(s"CREATE LOOKUP INDEX my_index FOR $pattern ON EACH $function") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE LOOKUP INDEX `$$my_index` FOR $pattern ON EACH $function") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(Some("$my_index"), posN2(testName), ast.IfExistsThrowError, ast.NoOptions, fromCypher5)(pos),
+        assertAst(
+          createIndex(Some("$my_index"), posN2(testName), ast.IfExistsThrowError, ast.NoOptions)(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE LOOKUP INDEX FOR $pattern ON EACH $function") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(None, posN2(testName), ast.IfExistsReplace, ast.NoOptions, fromCypher5)(pos),
+        assertAst(
+          createIndex(None, posN2(testName), ast.IfExistsReplace, ast.NoOptions)(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE LOOKUP INDEX my_index FOR $pattern ON EACH $function") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(Some(Left("my_index")), posN2(testName), ast.IfExistsReplace, ast.NoOptions, fromCypher5)(pos),
+        assertAst(
+          createIndex(Some(Left("my_index")), posN2(testName), ast.IfExistsReplace, ast.NoOptions)(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE LOOKUP INDEX IF NOT EXISTS FOR $pattern ON EACH $function") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(None, posN2(testName), ast.IfExistsInvalidSyntax, ast.NoOptions, fromCypher5)(pos),
+        assertAst(
+          createIndex(None, posN2(testName), ast.IfExistsInvalidSyntax, ast.NoOptions)(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE LOOKUP INDEX my_index IF NOT EXISTS FOR $pattern ON EACH $function") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE LOOKUP INDEX IF NOT EXISTS FOR $pattern ON EACH $function") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(None, posN2(testName), ast.IfExistsDoNothing, ast.NoOptions, fromCypher5)(pos),
+        assertAst(
+          createIndex(None, posN2(testName), ast.IfExistsDoNothing, ast.NoOptions)(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE LOOKUP INDEX my_index IF NOT EXISTS FOR $pattern ON EACH $function") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE LOOKUP INDEX FOR $pattern ON EACH $function OPTIONS {anyOption : 42}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("anyOption" -> literalInt(42))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("anyOption" -> literalInt(42)))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE LOOKUP INDEX my_index FOR $pattern ON EACH $function OPTIONS {}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map.empty),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map.empty)
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE LOOKUP INDEX $$my_index FOR $pattern ON EACH $function") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              Some(Right(stringParam("my_index"))),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            Some(Right(stringParam("my_index"))),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
@@ -1202,18 +1094,16 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   ).foreach {
     case (pattern, isNodeIndex: Boolean, labelsOrTypes: List[String]) =>
       test(s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [n2.name]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
@@ -1228,196 +1118,173 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
               None,
               posN2(testName),
               ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
+              ast.NoOptions
             ).withGraph(Some(use(List("neo4j"), !fromCypher5))),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [n2.name, n3.age]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name"), prop("n3", "age")),
-              labelsOrTypes,
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name"), prop("n3", "age")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX my_index FOR $pattern ON EACH [n2.name]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX my_index FOR $pattern ON EACH [n2.name, n3.age]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name"), prop("n3", "age")),
-              labelsOrTypes,
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name"), prop("n3", "age")),
+            labelsOrTypes,
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX `$$my_index` FOR $pattern ON EACH [n2.name]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              Some("$my_index"),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            Some("$my_index"),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE FULLTEXT INDEX FOR $pattern ON EACH [n2.name]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              None,
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE FULLTEXT INDEX my_index FOR $pattern ON EACH [n2.name, n3.age]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name"), prop("n3", "age")),
-              labelsOrTypes,
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name"), prop("n3", "age")),
+            labelsOrTypes,
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE FULLTEXT INDEX IF NOT EXISTS FOR $pattern ON EACH [n2.name]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              None,
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE FULLTEXT INDEX my_index IF NOT EXISTS FOR $pattern ON EACH [n2.name]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX IF NOT EXISTS FOR $pattern ON EACH [n2.name, n3.age]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name"), prop("n3", "age")),
-              labelsOrTypes,
-              None,
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name"), prop("n3", "age")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX my_index IF NOT EXISTS FOR $pattern ON EACH [n2.name]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [n2.name] OPTIONS {indexProvider : 'fulltext-1.0'}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexProvider" -> literalString("fulltext-1.0"))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexProvider" -> literalString("fulltext-1.0")))
+          )(pos),
           comparePosition = false
         )
       }
@@ -1425,21 +1292,19 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [n2.name] OPTIONS {indexProvider : 'fulltext-1.0', indexConfig : {`fulltext.analyzer`: 'some_analyzer'}}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("fulltext-1.0"),
-                "indexConfig" -> mapOf("fulltext.analyzer" -> literalString("some_analyzer"))
-              )),
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("fulltext-1.0"),
+              "indexConfig" -> mapOf("fulltext.analyzer" -> literalString("some_analyzer"))
+            ))
+          )(pos),
           comparePosition = false
         )
       }
@@ -1447,21 +1312,19 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [n2.name] OPTIONS {indexConfig : {`fulltext.eventually_consistent`: false}, indexProvider : 'fulltext-1.0'}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("fulltext-1.0"),
-                "indexConfig" -> mapOf("fulltext.eventually_consistent" -> falseLiteral)
-              )),
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("fulltext-1.0"),
+              "indexConfig" -> mapOf("fulltext.eventually_consistent" -> falseLiteral)
+            ))
+          )(pos),
           comparePosition = false
         )
       }
@@ -1469,89 +1332,79 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [n2.name] OPTIONS {indexConfig : {`fulltext.analyzer`: 'some_analyzer', `fulltext.eventually_consistent`: true}}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexConfig" -> mapOf(
-                "fulltext.analyzer" -> literalString("some_analyzer"),
-                "fulltext.eventually_consistent" -> trueLiteral
-              ))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexConfig" -> mapOf(
+              "fulltext.analyzer" -> literalString("some_analyzer"),
+              "fulltext.eventually_consistent" -> trueLiteral
+            )))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX FOR $pattern ON EACH [n2.name] OPTIONS {nonValidOption : 42}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX my_index FOR $pattern ON EACH [n2.name] OPTIONS {}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map.empty),
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map.empty)
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX my_index FOR $pattern ON EACH [n2.name] OPTIONS $$options") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsParam(parameter("options", CTMap)),
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsParam(parameter("options", CTMap))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE FULLTEXT INDEX $$my_index FOR $pattern ON EACH [n2.name]") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            fulltextIndex(
-              isNodeIndex,
-              List(prop("n2", "name")),
-              labelsOrTypes,
-              Some(Right(stringParam("my_index"))),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          fulltextIndex(
+            isNodeIndex,
+            List(prop("n2", "name")),
+            labelsOrTypes,
+            Some(Right(stringParam("my_index"))),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
@@ -1607,16 +1460,14 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   ).foreach {
     case (pattern, createIndex: CreateIndexFunction) =>
       test(s"CREATE TEXT INDEX FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
@@ -1629,8 +1480,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
               None,
               posN2(testName),
               ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
+              ast.NoOptions
             ).withGraph(
               Some(use(List("neo4j"), !fromCypher5))
             ),
@@ -1639,166 +1489,144 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
 
       test(s"CREATE TEXT INDEX FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX my_index FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX `$$my_index` FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some("$my_index"),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some("$my_index"),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE TEXT INDEX FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE TEXT INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE TEXT INDEX IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE TEXT INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX IF NOT EXISTS FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              None,
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            None,
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'text-1.0'}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexProvider" -> literalString("text-1.0"))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexProvider" -> literalString("text-1.0")))
+          )(pos),
           comparePosition = false
         )
       }
@@ -1806,22 +1634,20 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE TEXT INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'text-1.0', indexConfig : {`spatial.cartesian.max`: [100.0,100.0], `spatial.cartesian.min`: [-100.0,-100.0] }}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("text-1.0"),
-                "indexConfig" -> mapOf(
-                  "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
-                  "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
-                )
-              )),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("text-1.0"),
+              "indexConfig" -> mapOf(
+                "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
+                "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
+              )
+            ))
+          )(pos),
           comparePosition = false
         )
       }
@@ -1829,22 +1655,20 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE TEXT INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {`spatial.cartesian.max`: [100.0,100.0], `spatial.cartesian.min`: [-100.0,-100.0] }, indexProvider : 'text-1.0'}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("text-1.0"),
-                "indexConfig" -> mapOf(
-                  "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
-                  "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
-                )
-              )),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("text-1.0"),
+              "indexConfig" -> mapOf(
+                "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
+                "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
+              )
+            ))
+          )(pos),
           comparePosition = false
         )
       }
@@ -1852,118 +1676,105 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE TEXT INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0] }}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexConfig" -> mapOf(
-                "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
-                "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
-              ))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexConfig" -> mapOf(
+              "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
+              "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
+            )))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX FOR $pattern ON (n2.name) OPTIONS $$options") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsParam(parameter("options", CTMap)),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsParam(parameter("options", CTMap))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX FOR $pattern ON (n2.name) OPTIONS {nonValidOption : 42}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX my_index FOR $pattern ON (n2.name) OPTIONS {}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map.empty),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map.empty)
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX $$my_index FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Right(stringParam("my_index"))),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Right(stringParam("my_index"))),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE TEXT INDEX FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             None,
             posN1(testName),
             ast.IfExistsThrowError,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(defaultPos)
         )
       }
 
       test(s"CREATE TEXT INDEX my_index FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             Some(Left("my_index")),
             posN1(testName),
             ast.IfExistsThrowError,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(defaultPos)
         )
       }
 
       test(s"CREATE OR REPLACE TEXT INDEX IF NOT EXISTS FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             None,
             posN1(testName),
             ast.IfExistsInvalidSyntax,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(defaultPos)
         )
       }
@@ -1990,16 +1801,14 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   ).foreach {
     case (pattern, createIndex: CreateIndexFunction) =>
       test(s"CREATE POINT INDEX FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
@@ -2012,8 +1821,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
               None,
               posN2(testName),
               ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
+              ast.NoOptions
             ).withGraph(
               Some(use(List("neo4j"), !fromCypher5))
             ),
@@ -2022,166 +1830,144 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
 
       test(s"CREATE POINT INDEX FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX my_index FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX `$$my_index` FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some("$my_index"),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some("$my_index"),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE POINT INDEX FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE POINT INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE POINT INDEX IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE POINT INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX IF NOT EXISTS FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              None,
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            None,
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'point-1.0'}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexProvider" -> literalString("point-1.0"))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexProvider" -> literalString("point-1.0")))
+          )(pos),
           comparePosition = false
         )
       }
@@ -2189,22 +1975,20 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE POINT INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'point-1.0', indexConfig : {`spatial.cartesian.max`: [100.0,100.0], `spatial.cartesian.min`: [-100.0,-100.0] }}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("point-1.0"),
-                "indexConfig" -> mapOf(
-                  "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
-                  "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
-                )
-              )),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("point-1.0"),
+              "indexConfig" -> mapOf(
+                "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
+                "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
+              )
+            ))
+          )(pos),
           comparePosition = false
         )
       }
@@ -2212,22 +1996,20 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE POINT INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {`spatial.cartesian.max`: [100.0,100.0], `spatial.cartesian.min`: [-100.0,-100.0] }, indexProvider : 'point-1.0'}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("point-1.0"),
-                "indexConfig" -> mapOf(
-                  "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
-                  "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
-                )
-              )),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("point-1.0"),
+              "indexConfig" -> mapOf(
+                "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
+                "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
+              )
+            ))
+          )(pos),
           comparePosition = false
         )
       }
@@ -2235,118 +2017,105 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE POINT INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {`spatial.wgs-84.max`: [60.0,60.0], `spatial.wgs-84.min`: [-40.0,-40.0] }}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexConfig" -> mapOf(
-                "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
-                "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
-              ))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexConfig" -> mapOf(
+              "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
+              "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
+            )))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX FOR $pattern ON (n2.name) OPTIONS $$options") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsParam(parameter("options", CTMap)),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsParam(parameter("options", CTMap))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX FOR $pattern ON (n2.name) OPTIONS {nonValidOption : 42}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX my_index FOR $pattern ON (n2.name) OPTIONS {}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map.empty),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map.empty)
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX $$my_index FOR $pattern ON (n.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n", "name")),
-              Some(Right(stringParam("my_index"))),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n", "name")),
+            Some(Right(stringParam("my_index"))),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE POINT INDEX FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             None,
             posN1(testName),
             ast.IfExistsThrowError,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(defaultPos)
         )
       }
 
       test(s"CREATE POINT INDEX my_index FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             Some(Left("my_index")),
             posN1(testName),
             ast.IfExistsThrowError,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(defaultPos)
         )
       }
 
       test(s"CREATE OR REPLACE POINT INDEX IF NOT EXISTS FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             None,
             posN1(testName),
             ast.IfExistsInvalidSyntax,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(defaultPos)
         )
       }
@@ -2372,16 +2141,14 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   ).foreach {
     case (pattern, createIndex: CreateIndexFunction) =>
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
@@ -2394,8 +2161,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
               None,
               posN2(testName),
               ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
+              ast.NoOptions
             ).withGraph(
               Some(use(List("neo4j"), !fromCypher5))
             ),
@@ -2404,166 +2170,144 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX my_index FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX `$$my_index` FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some("$my_index"),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some("$my_index"),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE VECTOR INDEX FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE VECTOR INDEX my_index FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsReplace,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsReplace,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE VECTOR INDEX IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE OR REPLACE VECTOR INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsInvalidSyntax,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsInvalidSyntax,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX IF NOT EXISTS FOR $pattern ON (n2.name, n3.age)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name"), prop("n3", "age")),
-              None,
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name"), prop("n3", "age")),
+            None,
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX my_index IF NOT EXISTS FOR $pattern ON (n2.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsDoNothing,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsDoNothing,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'vector-1.0'}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexProvider" -> literalString("vector-1.0"))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexProvider" -> literalString("vector-1.0")))
+          )(pos),
           comparePosition = false
         )
       }
@@ -2571,22 +2315,20 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS {indexProvider : 'vector-1.0', indexConfig : {`vector.dimensions`: 50, `vector.similarity_function`: 'euclidean' }}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("vector-1.0"),
-                "indexConfig" -> mapOf(
-                  "vector.dimensions" -> literalInt(50),
-                  "vector.similarity_function" -> literalString("euclidean")
-                )
-              )),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("vector-1.0"),
+              "indexConfig" -> mapOf(
+                "vector.dimensions" -> literalInt(50),
+                "vector.similarity_function" -> literalString("euclidean")
+              )
+            ))
+          )(pos),
           comparePosition = false
         )
       }
@@ -2594,22 +2336,20 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {`vector.dimensions`: 50, `vector.similarity_function`: 'cosine' }, indexProvider : 'vector-1.0'}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map(
-                "indexProvider" -> literalString("vector-1.0"),
-                "indexConfig" -> mapOf(
-                  "vector.dimensions" -> literalInt(50),
-                  "vector.similarity_function" -> literalString("cosine")
-                )
-              )),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map(
+              "indexProvider" -> literalString("vector-1.0"),
+              "indexConfig" -> mapOf(
+                "vector.dimensions" -> literalInt(50),
+                "vector.similarity_function" -> literalString("cosine")
+              )
+            ))
+          )(pos),
           comparePosition = false
         )
       }
@@ -2617,118 +2357,105 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       test(
         s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS {indexConfig : {`vector.dimensions`: 50, `vector.similarity_function`: 'cosine' }}"
       ) {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("indexConfig" -> mapOf(
-                "vector.dimensions" -> literalInt(50),
-                "vector.similarity_function" -> literalString("cosine")
-              ))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("indexConfig" -> mapOf(
+              "vector.dimensions" -> literalInt(50),
+              "vector.similarity_function" -> literalString("cosine")
+            )))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS $$options") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsParam(parameter("options", CTMap)),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsParam(parameter("options", CTMap))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON (n2.name) OPTIONS {nonValidOption : 42}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              None,
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            None,
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX my_index FOR $pattern ON (n2.name) OPTIONS {}") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n2", "name")),
-              Some(Left("my_index")),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.OptionsMap(Map.empty),
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n2", "name")),
+            Some(Left("my_index")),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.OptionsMap(Map.empty)
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX $$my_index FOR $pattern ON (n.name)") {
-        assertAstVersionBased(
-          fromCypher5 =>
-            createIndex(
-              List(prop("n", "name")),
-              Some(Right(stringParam("my_index"))),
-              posN2(testName),
-              ast.IfExistsThrowError,
-              ast.NoOptions,
-              fromCypher5
-            )(pos),
+        assertAst(
+          createIndex(
+            List(prop("n", "name")),
+            Some(Right(stringParam("my_index"))),
+            posN2(testName),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
           comparePosition = false
         )
       }
 
       test(s"CREATE VECTOR INDEX FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             None,
             posN1(testName),
             ast.IfExistsThrowError,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(defaultPos)
         )
       }
 
       test(s"CREATE VECTOR INDEX my_index FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             Some(Left("my_index")),
             posN1(testName),
             ast.IfExistsThrowError,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(defaultPos)
         )
       }
 
       test(s"CREATE OR REPLACE VECTOR INDEX IF NOT EXISTS FOR $pattern ON n2.name") {
-        assertAstVersionBased(fromCypher5 =>
+        assertAst(
           createIndex(
             List(prop("n2", "name", posN2(testName))),
             None,
             posN1(testName),
             ast.IfExistsInvalidSyntax,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(defaultPos)
         )
       }
@@ -2758,177 +2485,155 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   }
 
   test("CREATE LOOKUP INDEX FOR (x1) ON EACH labels(x2)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("x1"),
-          isNodeIndex = true,
-          function(Labels.name, varFor("x2")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("x1"),
+        isNodeIndex = true,
+        function(Labels.name, varFor("x2")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
 
   test("CREATE LOOKUP INDEX FOR ()-[x1]-() ON EACH type(x2)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("x1"),
-          isNodeIndex = false,
-          function(Type.name, varFor("x2")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("x1"),
+        isNodeIndex = false,
+        function(Type.name, varFor("x2")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
 
   test("CREATE LOOKUP INDEX FOR (n1) ON EACH count(n2)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("n1"),
-          isNodeIndex = true,
-          function(Count.name, varFor("n2")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("n1"),
+        isNodeIndex = true,
+        function(Count.name, varFor("n2")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
 
   test("CREATE LOOKUP INDEX FOR (n1) ON EACH type(n2)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("n1"),
-          isNodeIndex = true,
-          function(Type.name, varFor("n2")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("n1"),
+        isNodeIndex = true,
+        function(Type.name, varFor("n2")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
 
   test("CREATE LOOKUP INDEX FOR (n) ON EACH labels(x)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("n"),
-          isNodeIndex = true,
-          function(Labels.name, varFor("x")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("n"),
+        isNodeIndex = true,
+        function(Labels.name, varFor("x")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
 
   test("CREATE LOOKUP INDEX FOR ()-[r1]-() ON EACH count(r2)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("r1"),
-          isNodeIndex = false,
-          function(Count.name, varFor("r2")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("r1"),
+        isNodeIndex = false,
+        function(Count.name, varFor("r2")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
 
   test("CREATE LOOKUP INDEX FOR ()-[r1]-() ON EACH labels(r2)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("r1"),
-          isNodeIndex = false,
-          function(Labels.name, varFor("r2")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("r1"),
+        isNodeIndex = false,
+        function(Labels.name, varFor("r2")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
 
   test("CREATE LOOKUP INDEX FOR ()-[r]-() ON EACH type(x)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("r"),
-          isNodeIndex = false,
-          function(Type.name, varFor("x")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("r"),
+        isNodeIndex = false,
+        function(Type.name, varFor("x")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
 
   test("CREATE LOOKUP INDEX FOR ()-[r1]-() ON type(r2)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("r1"),
-          isNodeIndex = false,
-          function(Type.name, varFor("r2")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("r1"),
+        isNodeIndex = false,
+        function(Type.name, varFor("r2")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
 
   test("CREATE LOOKUP INDEX FOR (x) ON EACH EACH(x)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("x"),
-          isNodeIndex = true,
-          function("EACH", varFor("x")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("x"),
+        isNodeIndex = true,
+        function("EACH", varFor("x")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
 
   test("CREATE LOOKUP INDEX FOR ()-[x]-() ON EACH EACH(x)") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.CreateIndex.createLookupIndex(
-          varFor("x"),
-          isNodeIndex = false,
-          function("EACH", varFor("x")),
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
-        )(pos),
+    assertAst(
+      ast.CreateIndex.createLookupIndex(
+        varFor("x"),
+        isNodeIndex = false,
+        function("EACH", varFor("x")),
+        None,
+        ast.IfExistsThrowError,
+        ast.NoOptions
+      )(pos),
       comparePosition = false
     )
   }
@@ -3687,21 +3392,20 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   }
 
   test("DROP INDEX my_index") {
-    assertAstVersionBased(fromCypher5 => ast.DropIndexOnName(Left("my_index"), ifExists = false, fromCypher5)(pos))
+    assertAst(ast.DropIndexOnName(Left("my_index"), ifExists = false)(pos))
   }
 
   test("DROP INDEX `$my_index`") {
-    assertAstVersionBased(fromCypher5 => ast.DropIndexOnName(Left("$my_index"), ifExists = false, fromCypher5)(pos))
+    assertAst(ast.DropIndexOnName(Left("$my_index"), ifExists = false)(pos))
   }
 
   test("DROP INDEX my_index IF EXISTS") {
-    assertAstVersionBased(fromCypher5 => ast.DropIndexOnName(Left("my_index"), ifExists = true, fromCypher5)(pos))
+    assertAst(ast.DropIndexOnName(Left("my_index"), ifExists = true)(pos))
   }
 
   test("DROP INDEX $my_index") {
-    assertAstVersionBased(
-      fromCypher5 =>
-        ast.DropIndexOnName(Right(stringParam("my_index")), ifExists = false, fromCypher5)(pos),
+    assertAst(
+      ast.DropIndexOnName(Right(stringParam("my_index")), ifExists = false)(pos),
       comparePosition = false
     )
   }
@@ -3835,11 +3539,11 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   }
 
   test("DROP INDEX on IF EXISTS") {
-    assertAstVersionBased(fromCypher5 => ast.DropIndexOnName(Left("on"), ifExists = true, fromCypher5)(pos))
+    assertAst(ast.DropIndexOnName(Left("on"), ifExists = true)(pos))
   }
 
   test("DROP INDEX on") {
-    assertAstVersionBased(fromCypher5 => ast.DropIndexOnName(Left("on"), ifExists = false, fromCypher5)(pos))
+    assertAst(ast.DropIndexOnName(Left("on"), ifExists = false)(pos))
   }
 
   test("DROP INDEX ON :if(exists)") {
@@ -3864,8 +3568,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     Option[Either[String, Parameter]],
     InputPosition,
     ast.IfExistsDo,
-    ast.Options,
-    Boolean // fromCypher5
+    ast.Options
   ) => InputPosition => ast.CreateIndex
 
   type CreateRangeIndexFunction = (
@@ -3874,8 +3577,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     InputPosition,
     ast.IfExistsDo,
     ast.Options,
-    Boolean, // fromDefault
-    Boolean // fromCypher5
+    Boolean // fromDefault
   ) => InputPosition => ast.CreateIndex
 
   private def rangeNodeIndex(
@@ -3884,8 +3586,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options,
-    fromDefault: Boolean,
-    fromCypher5: Boolean
+    fromDefault: Boolean
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createRangeNodeIndex(
       varFor("n1", varPos),
@@ -3894,8 +3595,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       name,
       ifExistsDo,
       options,
-      fromDefault,
-      fromCypher5
+      fromDefault
     )
 
   private def rangeRelIndex(
@@ -3904,8 +3604,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
     options: ast.Options,
-    fromDefault: Boolean,
-    fromCypher5: Boolean
+    fromDefault: Boolean
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createRangeRelationshipIndex(
       varFor("n1", varPos),
@@ -3914,8 +3613,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       name,
       ifExistsDo,
       options,
-      fromDefault,
-      fromCypher5
+      fromDefault
     )
 
   type CreateLookupIndexFunction =
@@ -3923,16 +3621,14 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       Option[Either[String, Parameter]],
       InputPosition,
       ast.IfExistsDo,
-      ast.Options,
-      Boolean // fromCypher5
+      ast.Options
     ) => InputPosition => ast.CreateIndex
 
   private def lookupNodeIndex(
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createLookupIndex(
       varFor("n1", varPos),
@@ -3940,16 +3636,14 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       function(Labels.name, varFor("n2")),
       name,
       ifExistsDo,
-      options,
-      fromCypher5
+      options
     )
 
   private def lookupRelIndex(
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createLookupIndex(
       varFor("r1", varPos),
@@ -3957,8 +3651,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       function(Type.name, varFor("r2")),
       name,
       ifExistsDo,
-      options,
-      fromCypher5
+      options
     )
 
   private def fulltextIndex(
@@ -3968,13 +3661,12 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     if (isNodeIndex) {
-      fulltextNodeIndex(props, labelOrTypes, name, varPos, ifExistsDo, options, fromCypher5)
+      fulltextNodeIndex(props, labelOrTypes, name, varPos, ifExistsDo, options)
     } else {
-      fulltextRelIndex(props, labelOrTypes, name, varPos, ifExistsDo, options, fromCypher5)
+      fulltextRelIndex(props, labelOrTypes, name, varPos, ifExistsDo, options)
     }
 
   private def fulltextNodeIndex(
@@ -3983,8 +3675,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createFulltextNodeIndex(
       varFor("n1", varPos),
@@ -3992,8 +3683,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       props,
       name,
       ifExistsDo,
-      options,
-      fromCypher5
+      options
     )
 
   private def fulltextRelIndex(
@@ -4002,8 +3692,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createFulltextRelationshipIndex(
       varFor("n1", varPos),
@@ -4011,8 +3700,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       props,
       name,
       ifExistsDo,
-      options,
-      fromCypher5
+      options
     )
 
   private def textNodeIndex(
@@ -4020,8 +3708,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createTextNodeIndex(
       varFor("n1", varPos),
@@ -4029,8 +3716,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       props,
       name,
       ifExistsDo,
-      options,
-      fromCypher5
+      options
     )
 
   private def textRelIndex(
@@ -4038,8 +3724,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createTextRelationshipIndex(
       varFor("n1", varPos),
@@ -4047,8 +3732,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       props,
       name,
       ifExistsDo,
-      options,
-      fromCypher5
+      options
     )
 
   private def pointNodeIndex(
@@ -4056,8 +3740,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createPointNodeIndex(
       varFor("n1", varPos),
@@ -4065,8 +3748,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       props,
       name,
       ifExistsDo,
-      options,
-      fromCypher5
+      options
     )
 
   private def pointRelIndex(
@@ -4074,8 +3756,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createPointRelationshipIndex(
       varFor("n1", varPos),
@@ -4083,8 +3764,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       props,
       name,
       ifExistsDo,
-      options,
-      fromCypher5
+      options
     )
 
   private def vectorNodeIndex(
@@ -4092,8 +3772,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createVectorNodeIndex(
       varFor("n1", varPos),
@@ -4101,8 +3780,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       props,
       name,
       ifExistsDo,
-      options,
-      fromCypher5
+      options
     )
 
   private def vectorRelIndex(
@@ -4110,8 +3788,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
     name: Option[Either[String, Parameter]],
     varPos: InputPosition,
     ifExistsDo: ast.IfExistsDo,
-    options: ast.Options,
-    fromCypher5: Boolean
+    options: ast.Options
   ): InputPosition => ast.CreateIndex =
     ast.CreateIndex.createVectorRelationshipIndex(
       varFor("n1", varPos),
@@ -4119,8 +3796,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
       props,
       name,
       ifExistsDo,
-      options,
-      fromCypher5
+      options
     )
 
   private def pos(offset: Int): InputPosition = (1, offset + 1, offset)

@@ -1257,29 +1257,27 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   // Node property existence
 
   test("CREATE CONSTRAINT FOR (node:Label) REQUIRE node.prop IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node"),
         labelName("Label"),
         prop("node", "prop"),
         None,
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
 
   test("CREATE CONSTRAINT FOR (node:Label) REQUIRE (node.prop) IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node"),
         labelName("Label"),
         prop("node", "prop"),
         None,
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1287,15 +1285,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE OR REPLACE CONSTRAINT FOR (node:Label) REQUIRE node.prop IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node"),
         labelName("Label"),
         prop("node", "prop"),
         None,
         ast.IfExistsReplace,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1303,15 +1300,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE OR REPLACE CONSTRAINT IF NOT EXISTS FOR (node:Label) REQUIRE node.prop IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node"),
         labelName("Label"),
         prop("node", "prop"),
         None,
         ast.IfExistsInvalidSyntax,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1319,15 +1315,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE CONSTRAINT IF NOT EXISTS FOR (node:Label) REQUIRE (node.prop) IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node"),
         labelName("Label"),
         prop("node", "prop"),
         None,
         ast.IfExistsDoNothing,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1335,15 +1330,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop) IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node"),
         labelName("Label"),
         prop("node", "prop"),
         Some("my_constraint"),
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1351,15 +1345,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE OR REPLACE CONSTRAINT my_constraint FOR (node:Label) REQUIRE node.prop IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node"),
         labelName("Label"),
         prop("node", "prop"),
         Some("my_constraint"),
         ast.IfExistsReplace,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1367,15 +1360,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE OR REPLACE CONSTRAINT my_constraint IF NOT EXISTS FOR (node:Label) REQUIRE node.prop IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node"),
         labelName("Label"),
         prop("node", "prop"),
         Some("my_constraint"),
         ast.IfExistsInvalidSyntax,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1383,15 +1375,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE CONSTRAINT my_constraint IF NOT EXISTS FOR (node:Label) REQUIRE node.prop IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node"),
         labelName("Label"),
         prop("node", "prop"),
         Some("my_constraint"),
         ast.IfExistsDoNothing,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1399,15 +1390,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE node.prop IS NOT NULL OPTIONS {}"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node"),
         labelName("Label"),
         prop("node", "prop"),
         Some("my_constraint"),
         ast.IfExistsThrowError,
-        ast.OptionsMap(Map.empty),
-        fromCypher5
+        ast.OptionsMap(Map.empty)
       )(pos)
     )
   }
@@ -1421,15 +1411,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   }
 
   test("CREATE CONSTRAINT $name FOR (n:L) REQUIRE n.prop IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("n"),
         labelName("L"),
         prop("n", "prop"),
         Some(Right(stringParam("name"))),
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1437,71 +1426,66 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   // Relationship property existence
 
   test("CREATE CONSTRAINT FOR ()-[r:R]-() REQUIRE r.prop IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         None,
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
 
   test("CREATE CONSTRAINT FOR ()-[r:R]->() REQUIRE r.prop IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         None,
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
 
   test("CREATE CONSTRAINT FOR ()<-[r:R]-() REQUIRE (r.prop) IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         None,
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
 
   test("CREATE CONSTRAINT FOR ()<-[r:R]->() REQUIRE (r.prop) IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         None,
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
 
   test("CREATE OR REPLACE CONSTRAINT FOR ()<-[r:R]-() REQUIRE r.prop IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         None,
         ast.IfExistsReplace,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1509,15 +1493,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE OR REPLACE CONSTRAINT IF NOT EXISTS FOR ()-[r:R]-() REQUIRE r.prop IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         None,
         ast.IfExistsInvalidSyntax,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1525,29 +1508,27 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE CONSTRAINT IF NOT EXISTS FOR ()-[r:R]->() REQUIRE r.prop IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         None,
         ast.IfExistsDoNothing,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
 
   test("CREATE CONSTRAINT FOR ()-[r:R]-() REQUIRE (r.prop) IS NOT NULL OPTIONS {}") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         None,
         ast.IfExistsThrowError,
-        ast.OptionsMap(Map.empty),
-        fromCypher5
+        ast.OptionsMap(Map.empty)
       )(pos)
     )
   }
@@ -1555,15 +1536,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE CONSTRAINT `$my_constraint` FOR ()-[r:R]-() REQUIRE r.prop IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         Some("$my_constraint"),
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1571,15 +1551,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() REQUIRE (r.prop) IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         Some("my_constraint"),
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1587,15 +1566,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE OR REPLACE CONSTRAINT `$my_constraint` FOR ()-[r:R]-() REQUIRE r.prop IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         Some("$my_constraint"),
         ast.IfExistsReplace,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1603,15 +1581,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE OR REPLACE CONSTRAINT `$my_constraint` IF NOT EXISTS FOR ()-[r:R]->() REQUIRE (r.prop) IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         Some("$my_constraint"),
         ast.IfExistsInvalidSyntax,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1619,15 +1596,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE CONSTRAINT `$my_constraint` IF NOT EXISTS FOR ()<-[r:R]-() REQUIRE r.prop IS NOT NULL"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         Some("$my_constraint"),
         ast.IfExistsDoNothing,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1641,15 +1617,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   }
 
   test("CREATE CONSTRAINT $name FOR ()-[r:R]-() REQUIRE r.prop IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r"),
         relTypeName("R"),
         prop("r", "prop"),
         Some(Right(stringParam("name"))),
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -1662,7 +1637,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT FOR (node:Label) REQUIRE node.prop $typeKeyword BOOLEAN"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("node"),
           labelName("Label"),
@@ -1670,8 +1645,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1679,7 +1653,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT FOR (node:Label) REQUIRE (node.prop) $typeKeyword BOOLEAN"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("node"),
           labelName("Label"),
@@ -1687,8 +1661,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1696,7 +1669,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE OR REPLACE CONSTRAINT FOR (node:Label) REQUIRE node.prop $typeKeyword BOOLEAN"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("node"),
           labelName("Label"),
@@ -1704,8 +1677,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsReplace,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1713,7 +1685,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE OR REPLACE CONSTRAINT IF NOT EXISTS FOR (node:Label) REQUIRE node.prop $typeKeyword BOOLEAN"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("node"),
           labelName("Label"),
@@ -1721,8 +1693,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsInvalidSyntax,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1730,7 +1701,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT IF NOT EXISTS FOR (node:Label) REQUIRE (node.prop) $typeKeyword BOOLEAN"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("node"),
           labelName("Label"),
@@ -1738,8 +1709,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsDoNothing,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1747,7 +1717,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop) $typeKeyword STRING"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("node"),
           labelName("Label"),
@@ -1755,8 +1725,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1764,7 +1733,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE OR REPLACE CONSTRAINT my_constraint FOR (node:Label) REQUIRE node.prop $typeKeyword STRING"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("node"),
           labelName("Label"),
@@ -1772,8 +1741,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("my_constraint"),
           ast.IfExistsReplace,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1781,7 +1749,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE OR REPLACE CONSTRAINT my_constraint IF NOT EXISTS FOR (node:Label) REQUIRE node.prop $typeKeyword STRING"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("node"),
           labelName("Label"),
@@ -1789,8 +1757,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("my_constraint"),
           ast.IfExistsInvalidSyntax,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1798,7 +1765,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint IF NOT EXISTS FOR (node:Label) REQUIRE node.prop $typeKeyword STRING"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("node"),
           labelName("Label"),
@@ -1806,8 +1773,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("my_constraint"),
           ast.IfExistsDoNothing,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1815,7 +1781,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR (node:Label) REQUIRE node.prop $typeKeyword STRING OPTIONS {}"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("node"),
           labelName("Label"),
@@ -1823,8 +1789,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty),
-          fromCypher5
+          ast.OptionsMap(Map.empty)
         )(pos)
       )
     }
@@ -1840,7 +1805,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     // Relationship property type
 
     test(s"CREATE CONSTRAINT FOR ()-[r:R]-() REQUIRE r.prop $typeKeyword BOOLEAN") {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -1848,14 +1813,13 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
 
     test(s"CREATE CONSTRAINT FOR ()-[r:R]->() REQUIRE r.prop $typeKeyword BOOLEAN") {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -1863,8 +1827,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1872,7 +1835,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT FOR ()<-[r:R]-() REQUIRE (r.prop) $typeKeyword BOOLEAN"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -1880,8 +1843,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1889,7 +1851,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT FOR ()<-[r:R]->() REQUIRE (r.prop) $typeKeyword BOOLEAN"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -1897,8 +1859,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1906,7 +1867,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE OR REPLACE CONSTRAINT FOR ()<-[r:R]-() REQUIRE r.prop $typeKeyword BOOLEAN"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -1914,8 +1875,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsReplace,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1923,7 +1883,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE OR REPLACE CONSTRAINT IF NOT EXISTS FOR ()-[r:R]-() REQUIRE r.prop $typeKeyword BOOLEAN"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -1931,8 +1891,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsInvalidSyntax,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1940,7 +1899,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT IF NOT EXISTS FOR ()-[r:R]->() REQUIRE r.prop $typeKeyword BOOLEAN"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -1948,8 +1907,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsDoNothing,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1957,7 +1915,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT FOR ()-[r:R]-() REQUIRE (r.prop) $typeKeyword BOOLEAN OPTIONS {}"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -1965,8 +1923,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty),
-          fromCypher5
+          ast.OptionsMap(Map.empty)
         )(pos)
       )
     }
@@ -1974,7 +1931,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT `$$my_constraint` FOR ()-[r:R]-() REQUIRE r.prop $typeKeyword STRING"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -1982,8 +1939,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("$my_constraint"),
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -1991,7 +1947,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() REQUIRE (r.prop) $typeKeyword STRING"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -1999,8 +1955,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -2008,7 +1963,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE OR REPLACE CONSTRAINT `$$my_constraint` FOR ()-[r:R]-() REQUIRE r.prop $typeKeyword STRING"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -2016,8 +1971,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("$my_constraint"),
           ast.IfExistsReplace,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -2025,7 +1979,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE OR REPLACE CONSTRAINT `$$my_constraint` IF NOT EXISTS FOR ()-[r:R]->() REQUIRE (r.prop) $typeKeyword STRING"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -2033,8 +1987,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("$my_constraint"),
           ast.IfExistsInvalidSyntax,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -2042,7 +1995,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT `$$my_constraint` IF NOT EXISTS FOR ()<-[r:R]-() REQUIRE r.prop $typeKeyword STRING"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -2050,8 +2003,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("$my_constraint"),
           ast.IfExistsDoNothing,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -2066,7 +2018,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   })
 
   test("CREATE CONSTRAINT $name FOR (n:L) REQUIRE n.prop IS TYPED STRING") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyTypeConstraint(
         varFor("n"),
         labelName("L"),
@@ -2074,14 +2026,13 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         StringType(isNullable = true)(pos),
         Some(Right(stringParam("name"))),
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
 
   test("CREATE CONSTRAINT $name FOR ()-[r:R]-() REQUIRE r.prop IS TYPED STRING") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
         varFor("r"),
         relTypeName("R"),
@@ -2089,8 +2040,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         StringType(isNullable = true)(pos),
         Some(Right(stringParam("name"))),
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(pos)
     )
   }
@@ -2537,7 +2487,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
 
   allowedNonListSingleTypes.foreach { case (typeString, typeExpr: CypherType) =>
     test(s"CREATE CONSTRAINT FOR (n:Label) REQUIRE r.prop IS TYPED $typeString") {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("n"),
           labelName("Label"),
@@ -2545,8 +2495,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           typeExpr,
           None,
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -2554,7 +2503,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR (n:Label) REQUIRE r.prop IS TYPED ${typeString.toLowerCase}"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("n"),
           labelName("Label"),
@@ -2562,14 +2511,13 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           typeExpr,
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
 
     test(s"CREATE CONSTRAINT FOR ()-[r:R]-() REQUIRE n.prop IS TYPED ${typeString.toLowerCase}") {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -2577,8 +2525,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           typeExpr,
           None,
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -2586,7 +2533,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() REQUIRE n.prop IS TYPED $typeString"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -2594,8 +2541,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           typeExpr,
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -2605,7 +2551,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR (n:Label) REQUIRE r.prop IS TYPED ${typeString.toLowerCase}"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("n"),
           labelName("Label"),
@@ -2613,8 +2559,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           typeExpr,
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -2622,7 +2567,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() REQUIRE n.prop IS TYPED $typeString"
     ) {
-      assertAstVersionBased(fromCypher5 =>
+      assertAst(
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
@@ -2630,8 +2575,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           typeExpr,
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos)
       )
     }
@@ -2641,8 +2585,9 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR (n:Label) REQUIRE r.prop IS TYPED ${listTypeString.toLowerCase}"
     ) {
+      // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
-        fromCypher5 =>
+        _ =>
           ast.Statements(Seq(ast.CreateConstraint.createNodePropertyTypeConstraint(
             varFor("n"),
             labelName("Label"),
@@ -2650,8 +2595,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             listTypeExpr,
             Some("my_constraint"),
             ast.IfExistsThrowError,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(pos))),
         comparePosition = false
       )
@@ -2660,8 +2604,9 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() REQUIRE n.prop IS TYPED $listTypeString"
     ) {
+      // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
-        fromCypher5 =>
+        _ =>
           ast.Statements(Seq(ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
             varFor("r"),
             relTypeName("R"),
@@ -2669,8 +2614,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             listTypeExpr,
             Some("my_constraint"),
             ast.IfExistsThrowError,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(pos))),
         comparePosition = false
       )
@@ -2681,8 +2625,9 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR (n:Label) REQUIRE r.prop IS TYPED ${unionTypeString.toLowerCase}"
     ) {
+      // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
-        fromCypher5 =>
+        _ =>
           ast.Statements(Seq(ast.CreateConstraint.createNodePropertyTypeConstraint(
             varFor("n"),
             labelName("Label"),
@@ -2690,8 +2635,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             unionTypeExpr,
             Some("my_constraint"),
             ast.IfExistsThrowError,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(pos))),
         comparePosition = false
       )
@@ -2700,8 +2644,9 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() REQUIRE n.prop IS TYPED $unionTypeString"
     ) {
+      // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
-        fromCypher5 =>
+        _ =>
           ast.Statements(Seq(ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
             varFor("r"),
             relTypeName("R"),
@@ -2709,8 +2654,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             unionTypeExpr,
             Some("my_constraint"),
             ast.IfExistsThrowError,
-            ast.NoOptions,
-            fromCypher5
+            ast.NoOptions
           )(pos))),
         comparePosition = false
       )
@@ -2722,15 +2666,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test(
     "CREATE CONSTRAINT my_constraint FOR (n:Person) REQUIRE n.prop IS NOT NULL OPTIONS {indexProvider : 'range-1.0'};"
   ) {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("n"),
         labelName("Person"),
         prop("n", "prop"),
         Some("my_constraint"),
         ast.IfExistsThrowError,
-        ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0"))),
-        fromCypher5
+        ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))
       )(pos)
     )
   }
@@ -2746,8 +2689,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           prop("n", "prop"),
           None,
           ast.IfExistsThrowError,
-          ast.NoOptions,
-          fromCypher5
+          ast.NoOptions
         )(pos),
         ast.CreateConstraint.createNodePropertyUniquenessConstraint(
           varFor("n"),
@@ -2791,29 +2733,27 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   }
 
   test("CREATE CONSTRAINT FOR FOR (node:Label) REQUIRE node.prop IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createNodePropertyExistenceConstraint(
         varFor("node", (1, 28, 27)),
         labelName("Label", (1, 33, 32)),
         prop("node", "prop", (1, 48, 47)),
         Some("FOR"),
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(defaultPos)
     )
   }
 
   test("CREATE CONSTRAINT FOR FOR ()-[r:R]-() REQUIRE (r.prop) IS NOT NULL") {
-    assertAstVersionBased(fromCypher5 =>
+    assertAst(
       ast.CreateConstraint.createRelationshipPropertyExistenceConstraint(
         varFor("r", (1, 31, 30)),
         relTypeName("R", (1, 33, 32)),
         prop("r", "prop", (1, 48, 47)),
         Some("FOR"),
         ast.IfExistsThrowError,
-        ast.NoOptions,
-        fromCypher5
+        ast.NoOptions
       )(defaultPos)
     )
   }
@@ -4547,32 +4487,33 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   // Drop constraint by name
 
   test("DROP CONSTRAINT my_constraint") {
-    assertAstVersionBased(fromCypher5 => ast.DropConstraintOnName("my_constraint", ifExists = false, fromCypher5)(pos))
+    assertAst(ast.DropConstraintOnName("my_constraint", ifExists = false)(pos))
   }
 
   test("DROP CONSTRAINT `$my_constraint`") {
-    assertAstVersionBased(fromCypher5 => ast.DropConstraintOnName("$my_constraint", ifExists = false, fromCypher5)(pos))
+    assertAst(ast.DropConstraintOnName("$my_constraint", ifExists = false)(pos))
   }
 
   test("DROP CONSTRAINT my_constraint IF EXISTS") {
-    assertAstVersionBased(fromCypher5 => ast.DropConstraintOnName("my_constraint", ifExists = true, fromCypher5)(pos))
+    assertAst(ast.DropConstraintOnName("my_constraint", ifExists = true)(pos))
   }
 
   test("DROP CONSTRAINT $my_constraint") {
-    assertAstVersionBased(fromCypher5 =>
-      ast.DropConstraintOnName(Right(stringParam("my_constraint")), ifExists = false, fromCypher5)(pos)
+    assertAst(
+      ast.DropConstraintOnName(Right(stringParam("my_constraint")), ifExists = false)(pos)
     )
   }
 
   test("DROP CONSTRAINT my_constraint IF EXISTS;") {
-    assertAstVersionBased(fromCypher5 => ast.DropConstraintOnName("my_constraint", ifExists = true, fromCypher5)(pos))
+    assertAst(ast.DropConstraintOnName("my_constraint", ifExists = true)(pos))
   }
 
   test("DROP CONSTRAINT my_constraint; DROP CONSTRAINT my_constraint2;") {
-    assertAstVersionBased(fromCypher5 =>
+    // kept the version based as it takes in Statements instead of single Statement
+    assertAstVersionBased(_ =>
       ast.Statements(Seq(
-        ast.DropConstraintOnName("my_constraint", ifExists = false, fromCypher5)(pos),
-        ast.DropConstraintOnName("my_constraint2", ifExists = false, fromCypher5)(pos)
+        ast.DropConstraintOnName("my_constraint", ifExists = false)(pos),
+        ast.DropConstraintOnName("my_constraint2", ifExists = false)(pos)
       ))
     )
   }

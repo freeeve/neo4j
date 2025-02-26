@@ -174,7 +174,7 @@ trait DdlBuilder extends Cypher25ParserListener {
   ): Unit = {
     val p = pos(ctx.getParent)
     val constraintName = ctx.symbolicNameOrStringParameter()
-    ctx.ast = DropConstraintOnName(constraintName.ast(), ctx.EXISTS() != null, fromCypher5 = false)(p)
+    ctx.ast = DropConstraintOnName(constraintName.ast(), ctx.EXISTS() != null)(p)
   }
 
   final override def exitDropIndex(
@@ -183,8 +183,7 @@ trait DdlBuilder extends Cypher25ParserListener {
     val indexName = ctx.symbolicNameOrStringParameter()
     ctx.ast = DropIndexOnName(
       indexName.ast[Either[String, Parameter]](),
-      ctx.EXISTS() != null,
-      fromCypher5 = false
+      ctx.EXISTS() != null
     )(pos(ctx.getParent))
   }
 

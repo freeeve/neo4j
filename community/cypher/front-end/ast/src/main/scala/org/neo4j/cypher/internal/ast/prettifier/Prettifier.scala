@@ -408,7 +408,7 @@ case class Prettifier(
         val propertiesString = properties.map(propertyToString).mkString("[", ", ", "]")
         s"${startOfCommand}FOR $pattern ON EACH $propertiesString${asString(options)}"
 
-      case DropIndexOnName(name, ifExists, _, _) =>
+      case DropIndexOnName(name, ifExists, _) =>
         val ifExistsString = if (ifExists) " IF EXISTS" else ""
         s"DROP INDEX ${Prettifier.escapeName(name)}$ifExistsString"
 
@@ -425,7 +425,7 @@ case class Prettifier(
         }
         s"${startOfCommand}FOR $pattern REQUIRE ${propertiesToString(properties)} ${constraintType.predicate}${asString(options)}"
 
-      case DropConstraintOnName(name, ifExists, _, _) =>
+      case DropConstraintOnName(name, ifExists, _) =>
         val ifExistsString = if (ifExists) " IF EXISTS" else ""
         s"DROP CONSTRAINT ${Prettifier.escapeName(name)}$ifExistsString"
 
