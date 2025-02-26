@@ -35,31 +35,31 @@ abstract class WritingSubqueryApplyTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT]
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
 
-  test("rhs should be lazy when there is a limit on top 0") {
+  test("RHS should be lazy when LHS is empty") {
     assertRhsLazy(lhsRows = 0, rhsRows = 2, limit = 1, withSort = false)
   }
 
-  test("rhs should be lazy when there is a limit on top 1") {
+  test("RHS should be lazy when 1024 LHS rows, 2x cardinality increase, and limit 1") {
     assertRhsLazy(lhsRows = 1024, rhsRows = 2, limit = 1, withSort = false)
   }
 
-  test("rhs should be lazy when there is a limit on top 2") {
+  test("RHS should be lazy when 1024 LHS rows, 16x cardinality increase, and limit 1") {
     assertRhsLazy(lhsRows = 1024, rhsRows = 16, limit = 1, withSort = false)
   }
 
-  test("rhs should be lazy when there is a limit on top 3") {
+  test("RHS should be lazy when 1024 LHS rows, 2x cardinality increase, and limit 3") {
     assertRhsLazy(lhsRows = 1024, rhsRows = 2, limit = 3, withSort = false)
   }
 
-  test("rhs should be lazy when there is a limit on top 4") {
+  test("RHS should be lazy when 1024 LHS rows, 16x cardinality increase, and limit 3") {
     assertRhsLazy(lhsRows = 1024, rhsRows = 16, limit = 3, withSort = false)
   }
 
-  test("rhs should be lazy when there is a limit and sort on top 1") {
+  test("RHS should be lazy when 1024 LHS rows, 2x cardinality increase, limit 3, and sort on top") {
     assertRhsLazy(lhsRows = 1024, rhsRows = 2, limit = 3, withSort = true)
   }
 
-  test("rhs should be lazy when there is a limit and sort on top 2") {
+  test("RHS should be lazy when 1024 LHS rows, 16x cardinality increase, limit 3, and sort on top") {
     assertRhsLazy(lhsRows = 1024, rhsRows = 16, limit = 3, withSort = true)
   }
 

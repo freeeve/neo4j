@@ -3092,7 +3092,22 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
     ))
   }
 
-  test("should be lazy when below limit - 1") {
+  test("should be lazy with 2x RHS cardinality increase, and limit 1 on top") {
+    // (n0:START) ↘
+    //              (n2) → (n3) → (n4)
+    // (n1:START) ↗
+    val (n0, n1, n2, n3, n4, r02, r12, r23, r34) = smallDoubleChainGraph
+
+    val expectedResult = Seq(
+      Seq(
+        Array(n0, n2, listOf(n0), listOf(n2), listOf(r02))
+      )
+    )
+
+    assertLazyWhenBelowApply(limit = 1, rhsUnwind = 2, expectedResult)
+  }
+
+  test("should be lazy with 2x RHS cardinality increase, and limit 2 on top") {
     // (n0:START) ↘
     //              (n2) → (n3) → (n4)
     // (n1:START) ↗
@@ -3108,22 +3123,7 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
     assertLazyWhenBelowApply(limit = 2, rhsUnwind = 2, expectedResult)
   }
 
-  test("should be lazy when below limit - 2") {
-    // (n0:START) ↘
-    //              (n2) → (n3) → (n4)
-    // (n1:START) ↗
-    val (n0, n1, n2, n3, n4, r02, r12, r23, r34) = smallDoubleChainGraph
-
-    val expectedResult = Seq(
-      Seq(
-        Array(n0, n2, listOf(n0), listOf(n2), listOf(r02))
-      )
-    )
-
-    assertLazyWhenBelowApply(limit = 1, rhsUnwind = 2, expectedResult)
-  }
-
-  test("should be lazy when below limit - 3") {
+  test("should be lazy with 2x RHS cardinality increase, and limit 3 on top") {
     // (n0:START) ↘
     //              (n2) → (n3) → (n4)
     // (n1:START) ↗
