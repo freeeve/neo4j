@@ -101,7 +101,7 @@ class CommunityPrivilegeAdministrationCommandAcceptanceTest extends CommunityAdm
   privilegeTypes.foreach {
     case (privilegeType, preposition) =>
       test(s"should fail on $privilegeType graph privilege from community") {
-        val command = s"$privilegeType TRAVERSE ON GRAPH * NODES * (*) $preposition custom"
+        val command = s"$privilegeType TRAVERSE ON GRAPH * NODES * $preposition custom"
         assertFailure(command, s"Unsupported administration command: $command")
       }
 
