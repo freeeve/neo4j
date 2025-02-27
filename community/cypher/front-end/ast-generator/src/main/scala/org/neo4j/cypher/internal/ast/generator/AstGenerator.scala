@@ -1652,12 +1652,16 @@ class AstGenerator(
       batchSize <- option(_expression)
       concurrency <- option(option(_expression))
       onErrorBehaviour <- option(oneOf[InTransactionsOnErrorBehaviour](
-        OnErrorContinue,
-        OnErrorBreak,
-        OnErrorFail,
-        OnErrorRetryThenContinue,
-        OnErrorRetryThenBreak,
-        OnErrorRetryThenFail
+        Seq(
+          OnErrorContinue,
+          OnErrorBreak,
+          OnErrorFail
+        ) ++ (if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) Seq.empty
+              else Seq(
+                OnErrorRetryThenContinue,
+                OnErrorRetryThenBreak,
+                OnErrorRetryThenFail
+              ))
       ))
       retryParams <- option(_expression)
       reportAs <- option(string)

@@ -290,6 +290,7 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.REQUIRE -> "'REQUIRE'",
     Cypher25Parser.REQUIRED -> "'REQUIRED'",
     Cypher25Parser.RESTRICT -> "'RESTRICT'",
+    Cypher25Parser.RETRY -> "'RETRY'",
     Cypher25Parser.RETURN -> "'RETURN'",
     Cypher25Parser.REVOKE -> "'REVOKE'",
     Cypher25Parser.ROLE -> "'ROLE'",
