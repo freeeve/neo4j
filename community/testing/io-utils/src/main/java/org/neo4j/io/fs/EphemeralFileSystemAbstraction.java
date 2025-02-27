@@ -481,7 +481,7 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
         return new EphemeralFileSystemAbstraction(directories, copiedFiles, clock);
     }
 
-    private void copyRecursivelyFromOtherFs(Path from, FileSystemAbstraction fromFs, Path to) throws IOException {
+    public void copyRecursivelyFromOtherFs(Path from, FileSystemAbstraction fromFs, Path to) throws IOException {
         copyRecursivelyFromOtherFs(from, fromFs, to, newCopyBuffer());
     }
 
