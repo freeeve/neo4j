@@ -147,4 +147,34 @@ abstract class DirectedRelationshipByIdSeekTestBase[CONTEXT <: RuntimeContext](
     // then
     runtimeResult should beColumns("r", "x", "y").withRows(Seq(Array(toFind, toFind.getStartNode, toFind.getEndNode)))
   }
+
+  test("seek + property read") {
+    // given
+    val relationships = givenGraph {
+      val (_, rels) = circleGraph(sizeHint)
+      rels.zipWithIndex.foreach {
+        case (r, i) => r.setProperty("prop", i)
+      }
+      rels
+    }
+
+    val chosenIndex = random.nextInt(relationships.length)
+    val relToFind = relationships(chosenIndex)
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r", "x", "y")
+      .filter(s"r.prop = $chosenIndex")
+      .directedRelationshipByIdSeek("r", "x", "y", Set.empty, relToFind.getId)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("r", "x", "y").withSingleRow(
+      relToFind,
+      relToFind.getStartNode,
+      relToFind.getEndNode
+    )
+  }
 }
