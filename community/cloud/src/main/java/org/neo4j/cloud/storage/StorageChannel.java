@@ -45,7 +45,7 @@ public class StorageChannel implements StoreChannel {
 
     @Override
     public StorageChannel position(long newPosition) throws IOException {
-        channel.position(newPosition);
+        internalPosition(newPosition);
         return this;
     }
 
@@ -74,8 +74,7 @@ public class StorageChannel implements StoreChannel {
 
     @Override
     public void writeAll(ByteBuffer src, long position) throws IOException {
-        //noinspection resource
-        position(position).writeAll(src);
+        throw new UnsupportedOperationException("Not supported in storage channels");
     }
 
     @Override
@@ -106,7 +105,7 @@ public class StorageChannel implements StoreChannel {
 
     @Override
     public void readAll(ByteBuffer dst, long position) throws IOException {
-        position(position).readAll(dst);
+        throw new UnsupportedOperationException("Not supported in storage channels");
     }
 
     @Override
@@ -205,5 +204,9 @@ public class StorageChannel implements StoreChannel {
             }
         }
         return total;
+    }
+
+    private void internalPosition(long newPosition) throws IOException {
+        channel.position(newPosition);
     }
 }
