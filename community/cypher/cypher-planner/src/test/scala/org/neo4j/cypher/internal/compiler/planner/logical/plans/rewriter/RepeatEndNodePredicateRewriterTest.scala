@@ -136,6 +136,33 @@ class RepeatEndNodePredicateRewriterTest extends CypherFunSuite with LogicalPlan
     rewrite(before) should equal(after)
   }
 
+  test("should not push down trail with Into filter if predicate is not just node equality") {
+
+    val before = subPlanBuilder
+      .filter("b=a", "size(m)>=0")
+      .repeatTrail(`TRAIL (a) ((n)-[r]-(m))+ (b)`)
+      .|.filterExpression(isRepeatTrailUnique("r_i"))
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    assertNotRewritten(before)
+  }
+
+  test("should not push down walk with Into filter if predicate is not just node equality") {
+
+    val before = subPlanBuilder
+      .filter("b=a", "size(m)>=0")
+      .repeatWalk(`WALK (a) ((n)-[r]-(m))+ (b)`)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    assertNotRewritten(before)
+  }
+
   private def assertNotRewritten(p: LogicalPlan): Unit = {
     rewrite(p) should equal(p)
   }

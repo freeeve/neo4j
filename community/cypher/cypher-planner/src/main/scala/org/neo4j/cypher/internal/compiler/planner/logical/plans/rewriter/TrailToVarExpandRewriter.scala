@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.Selection.LabelAndRelTypeInfo
@@ -105,7 +106,8 @@ case class TrailToVarExpandRewriter(
     predicates: Seq[Expression],
     quantifier: VarPatternLength,
     relationship: Option[VariableGrouping],
-    expansionMode: ExpansionMode
+    expansionMode: ExpansionMode,
+    endNodePredicate: Option[EndNodePredicates]
   ): Option[LogicalPlan] = {
     val varExpandRel = relationship.map(_.group).getOrElse(trail.innerRelationships.head)
     convertToInlinedPredicates(
@@ -124,20 +126,29 @@ case class TrailToVarExpandRewriter(
         val varExpand = createVarExpand(trail, expand, quantifier, inlinedPredicates, varExpandRel, expansionMode)
         val expandWithUniqueRel = maybeAddRelUniquenessPredicates(trail, varExpandRel, varExpand)
         val expandWithUniqueGroupRel = maybeAddGroupRelUniquenessPredicates(trail, varExpandRel, expandWithUniqueRel)
-        expandWithUniqueGroupRel
+        val expandWithPostFilter = maybeAddPostFilter(endNodePredicate, expandWithUniqueGroupRel)
+        expandWithPostFilter
     }
   }
 
   override val innerRewriter: Rewriter = Rewriter.lift {
     // Rewrite special cases of Trail into VarLengthExpand(All)
-    case rewritableTrailExtractor(trail, expand, inlinablePredicates, quantifier, relationship)
+    case rewritableTrailExtractor(trail, expand, inlinablePredicates, quantifier, relationship, endNodePredicate)
       if !requiresPropertyAccessFromShards(inlinablePredicates) =>
       // Create the VarLengthExpandAll
-      createVarLengthExpand(trail, expand, inlinablePredicates, quantifier, relationship, ExpandAll).getOrElse(trail)
+      createVarLengthExpand(
+        trail,
+        expand,
+        inlinablePredicates,
+        quantifier,
+        relationship,
+        ExpandAll,
+        endNodePredicate
+      ).getOrElse(trail)
     // Rewrite special cases of Filter+Trail into VarLengthExpand(Into)
     case selection @ Selection(
         Ands(Singleton(predicate)),
-        rewritableTrailExtractor(trail, expand, relationshipPredicates, quantifier, relationship)
+        rewritableTrailExtractor(trail, expand, relationshipPredicates, quantifier, relationship, endNodePredicate)
       )
       if AnonymousVariableNameGenerator.notNamed(trail.end.name) && !requiresPropertyAccessFromShards(Seq(predicate)) =>
       // The trail is going to an unnamed variable, let's call it variableX
@@ -151,7 +162,8 @@ case class TrailToVarExpandRewriter(
             relationshipPredicates,
             quantifier,
             relationship,
-            ExpandInto
+            ExpandInto,
+            endNodePredicate
           )
         case Equals(lhs: Variable, rhs: Variable) if rhs == trail.end && trail.availableSymbols.contains(lhs) =>
           // Now we know that the predicate is: `variableY = variableX`
@@ -162,7 +174,8 @@ case class TrailToVarExpandRewriter(
             relationshipPredicates,
             quantifier,
             relationship,
-            ExpandInto
+            ExpandInto,
+            endNodePredicate
           )
         case _ => None
       }
@@ -255,6 +268,19 @@ case class TrailToVarExpandRewriter(
     }
 
   /**
+   * Move end node predicate to post-filter
+   */
+  private def maybeAddPostFilter(
+    endNodePredicate: Option[EndNodePredicates],
+    source: LogicalPlan
+  ): LogicalPlan = {
+    endNodePredicate match {
+      case Some(EndNodePredicates(predicates, _)) => appendSelection(source, predicates.exprs)
+      case None                                   => source
+    }
+  }
+
+  /**
    * We are able to set empty LabelAndRelTypeInfos. This information is only used by [[SortPredicatesBySelectivity]],
    * which does up look up statistics for relationship uniqueness predicates, even if it exists. Instead, it looks up
    * constant heuristics.
@@ -345,8 +371,14 @@ object TrailToVarExpandRewriter {
 
     protected def rhsBeforeExpandExtractor: PartialFunction[LogicalPlan, ListSet[Expression]]
 
-    def unapply(plan: LogicalPlan)
-      : Option[(RepeatTrail, Expand, Seq[Expression], VarPatternLength, Option[VariableGrouping])] = {
+    def unapply(plan: LogicalPlan): Option[(
+      RepeatTrail,
+      Expand,
+      Seq[Expression],
+      VarPatternLength,
+      Option[VariableGrouping],
+      Option[EndNodePredicates]
+    )] = {
       plan match {
         case trail @ RepeatTrail(
             _,
@@ -365,8 +397,8 @@ object TrailToVarExpandRewriter {
             _,
             _,
             _,
-            None
-          ) => Option((trail, expand, inlinablePredicates, quantifier, relationship))
+            endNodePredicate
+          ) => Option((trail, expand, inlinablePredicates, quantifier, relationship, endNodePredicate))
         case _ => None
       }
     }

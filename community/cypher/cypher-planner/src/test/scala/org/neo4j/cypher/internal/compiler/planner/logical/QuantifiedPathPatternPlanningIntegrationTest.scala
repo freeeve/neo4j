@@ -1473,13 +1473,11 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(EndNodePredicates(
-        ands(hasLabels("c", "C")),
-        ands(hasLabels("y", "C"))
-      ))
+      endNodePredicate = None
     )
 
     plan shouldBe planner.subPlanBuilder()
+      .filter("c:C")
       .repeatTrail(trailParameters)
       .|.filterExpression(isRepeatTrailUnique("r"))
       .|.expandAll("(x)-[r:R]->(y)")
@@ -1548,10 +1546,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set("r2"),
       reverseGroupVariableProjections = true,
-      endNodePredicate = Some(EndNodePredicates(
-        ands(hasLabels("a", "A"), hasLabels("a", "N")),
-        ands(hasLabels("n", "A"), hasLabels("n", "N"))
-      ))
+      endNodePredicate = None
     )
 
     val p_r2_q_trail = TrailParameters(
@@ -1567,18 +1562,17 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(EndNodePredicates(
-        ands(hasLabels("b", "B"), hasLabels("b", "Q")),
-        ands(hasLabels("q", "B"), hasLabels("q", "Q"))
-      ))
+      endNodePredicate = None
     )
 
     plan shouldBe planner.subPlanBuilder()
+      .filter("a:A", "a:N")
       .repeatTrail(n_r1_m_trail)
       .|.filterExpressionOrString("n:N", isRepeatTrailUnique("r1"))
       .|.expandAll("(m)<-[r1:REL]-(n)")
       .|.filter("m:M")
       .|.argument("m")
+      .filter("b:B", "b:Q")
       .repeatTrail(p_r2_q_trail)
       .|.filterExpressionOrString("q:Q", isRepeatTrailUnique("r2"))
       .|.expandAll("(p)-[r2:REL]->(q)")
@@ -1688,14 +1682,12 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = Some(EndNodePredicates(
-          ands(hasLabels("end", "B")),
-          ands(hasLabels("b", "B"))
-        ))
+        endNodePredicate = None
       )
 
     plan shouldEqual planner.subPlanBuilder()
       .create(createNode("c", "C"))
+      .filter("end:B")
       .repeatTrail(`(start)((a)-[r]->(b))*(end)`)
       .|.filterExpressionOrString("b:B", isRepeatTrailUnique("r"))
       .|.expandAll("(a)-[r]->(b)")
@@ -1740,10 +1732,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = Some(EndNodePredicates(
-          ands(hasLabels("end", "B")),
-          ands(hasLabels("c", "B"))
-        ))
+        endNodePredicate = None
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1766,6 +1755,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       ))
       .apply()
       .|.optional("x")
+      .|.filter("end:B")
       .|.repeatTrail(`(start)((a)-[r]->(b))*(end)`)
       .|.|.filterExpressionOrString("NOT r2 = r1", isRepeatTrailUnique("r2"), "c:B")
       .|.|.expandAll("(b)-[r2]->(c)")
@@ -3157,15 +3147,13 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(EndNodePredicates(
-        ands(hasLabels("n2", "A")),
-        ands(hasLabels("inner2", "A"))
-      ))
+      endNodePredicate = None
     )
 
     plan should equal(
       builder.planBuilder()
         .produceResults("n1", "n2", "r", "inner1")
+        .filter("n2:A")
         .repeatTrail(trailParameters)
         .|.filterExpressionOrString(isRepeatTrailUnique("r"), "inner2:A")
         .|.expandAll("(inner1)-[r:R]->(inner2)")
@@ -3265,15 +3253,13 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(EndNodePredicates(
-        ands(hasLabels("n2", "A")),
-        ands(hasLabels("inner2", "A"))
-      ))
+      endNodePredicate = None
     )
 
     plan should equal(
       builder.planBuilder()
         .produceResults("n1", "n2", "r", "inner1")
+        .filter("n2:A")
         .repeatTrail(trailParameters)
         .|.filterExpressionOrString(isRepeatTrailUnique("r"), "inner2:A")
         .|.expandAll("(inner1)-[r:R]->(inner2)")

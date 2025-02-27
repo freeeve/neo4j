@@ -19,12 +19,10 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
-import org.neo4j.cypher.internal.expressions.ASTCachedProperty
 import org.neo4j.cypher.internal.expressions.Ands
+import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.Variable
-import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
@@ -34,6 +32,7 @@ import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.Rewriter.TopDownMergeableRewriter
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.attribution.SameId
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet.Singleton
 import org.neo4j.cypher.internal.util.topDown
 
 /**
@@ -43,18 +42,18 @@ import org.neo4j.cypher.internal.util.topDown
  * will be discarded immediately anyway.
  * 
  * Before
- * EXPLAIN MATCH (a)(()--())+(b:L) RETURN b
+ * EXPLAIN MATCH (a)(()--())+(b) WHERE b=a RETURN b
  * .produceResults(b)
- * .filter("b:L")
+ * .filter("b=a")
  * .repeatTrail("(a) (()--())+ (b)")
  * .|.expand("()--()")
  * .|.argument()
  * .allNodeScan("a")
  * .build()
  *
- * EXPLAIN MATCH (a)(()--())+(b:L) RETURN b
+ * EXPLAIN MATCH (a)(()--())+(b) WHERE b=a RETURN b
  * .produceResults(b)
- * .repeatTrail("(a) (()--())+ (b) WHERE b:L")
+ * .repeatTrail("(a) (()--())+ (b) WHERE b=a")
  * .|.expand("()--()")
  * .|.argument()
  * .allNodeScan("a")
@@ -66,6 +65,11 @@ import org.neo4j.cypher.internal.util.topDown
 case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) extends Rewriter
     with TopDownMergeableRewriter {
 
+  /**
+   * For the predicate that is pushed down into [[Repeat]] it is necessary to rename [[end]] to [[innerEnd]],
+   * this is because [[end]] is only projected into rows that are emitted by [[Repeat]].
+   * Rows moving through operators on the RHS of [[Repeat]] have end node stored in the [[innerEnd]] variable.
+   */
   private def renameEnd(innerEnd: LogicalVariable, end: LogicalVariable, predicates: Ands): Ands = {
     val rewriter = topDown(Rewriter.lift {
       case v @ Variable(name) if name == end.name =>
@@ -95,25 +99,23 @@ case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) e
 
   private def isRewritable(
     predicates: Ands,
-    nodeVariableGroupings: Set[VariableGrouping],
-    relationshipVariableGroupings: Set[VariableGrouping],
     endVariableName: String
   ): Boolean = {
-    // is not rewritable if predicate contains any of the following: group variable, path, cached property
-    val groupVars = (nodeVariableGroupings ++ relationshipVariableGroupings).map(_.group.name)
-    val notRewritable = predicates.contains {
-      // path is not available before Repeat yields output row
-      case _: PathExpression => true
-      // repeat reuses output rows for next repetition rows so cached properties are not safe to evaluate,
-      // unless the runtime took special care to invalidate them on the RHS of Repeat
-      case _: ASTCachedProperty => true
-      // group variables are not available before Repeat yields output row
-      case v: LogicalVariable if groupVars.contains(v.name) => true
-    }
-    !notRewritable &&
-    // it is only worth rewriting if predicate contains end node
-    predicates.contains {
-      case Variable(name) if name == endVariableName => true
+
+    /**
+     * NOTE: in the previous commit more predicates were allowed, including label & property predicates,
+     * but that affected eagerness analysis and at the time of writing the query most affected by this
+     * optimization (uk_railway Q1b) only requires node equality.
+     * 
+     * Support for more predicates is left as an exercise for the reader. 
+     */
+    isOnlyEndNotEquality(endVariableName, predicates)
+  }
+
+  private def isOnlyEndNotEquality(endVariableName: String, predicates: Ands): Boolean = {
+    predicates match {
+      case Ands(Singleton(Equals(Variable(lhs), Variable(rhs)))) => lhs == endVariableName || rhs == endVariableName
+      case _                                                     => false
     }
   }
 
@@ -129,8 +131,8 @@ case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) e
             end,
             _,
             innerEnd,
-            nodeVariableGroupings,
-            relationshipVariableGroupings,
+            _,
+            _,
             _,
             _,
             _,
@@ -138,7 +140,7 @@ case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) e
             existingEndNodePredicate
           )
         ) =>
-        if (isRewritable(predicates, nodeVariableGroupings, relationshipVariableGroupings, end.name)) {
+        if (isRewritable(predicates, end.name)) {
           val rewrittenPredicates = renameEnd(innerEnd, end, predicates)
           val newEndNodePredicates = mergeEndNodePredicates(existingEndNodePredicate, predicates, rewrittenPredicates)
           val id = attributes.copy(s.id).id()
@@ -157,13 +159,13 @@ case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) e
             end,
             _,
             innerEnd,
-            nodeVariableGroupings,
-            relationshipVariableGroupings,
+            _,
+            _,
             _,
             existingEndNodePredicates
           )
         ) =>
-        if (isRewritable(predicates, nodeVariableGroupings, relationshipVariableGroupings, end.name)) {
+        if (isRewritable(predicates, end.name)) {
           val rewrittenPredicates = renameEnd(innerEnd, end, predicates)
           val newEndNodePredicates = mergeEndNodePredicates(existingEndNodePredicates, predicates, rewrittenPredicates)
           val id = attributes.copy(s.id).id()
