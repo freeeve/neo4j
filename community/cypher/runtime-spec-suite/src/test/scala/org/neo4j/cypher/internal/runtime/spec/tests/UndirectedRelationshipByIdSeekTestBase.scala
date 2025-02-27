@@ -342,6 +342,7 @@ abstract class UndirectedRelationshipByIdSeekTestBase[CONTEXT <: RuntimeContext]
       Seq(
         Array(relToFind, relToFind.getStartNode, relToFind.getEndNode),
         Array(relToFind, relToFind.getEndNode, relToFind.getStartNode)
-    ))
+      )
+    )
   }
 }
