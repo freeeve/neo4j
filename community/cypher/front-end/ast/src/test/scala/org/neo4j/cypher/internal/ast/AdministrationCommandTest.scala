@@ -186,12 +186,11 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         )(p)
 
         val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-        result.errors.exists(s =>
-          s.msg == "Failed to administer property rule. The expression: `{prop1: \"val1\", prop2: \"val2\"}` is not supported. Property rules can only contain one property."
-            && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-            && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-            && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA2"
-        ) shouldBe true
+        result.errors.size shouldBe 1
+        val e = result.errors.head
+        e.msg shouldBe "Failed to administer property rule. The expression: `{prop1: \"val1\", prop2: \"val2\"}` is not supported. Property rules can only contain one property."
+        e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+        e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA2.getStatusString
       }
 
       Seq(
@@ -227,13 +226,12 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(s =>
-            s.msg == s"Failed to administer property rule. The expression: `n.prop1 $operator 1 AND n.prop2 $operator 1` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
-              && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().statusDescription() == s"error: data exception - invalid property based access control rule involving nontrivial predicates. The expression: 'n.prop1 $operator 1 AND n.prop2 $operator 1' is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
-          ) shouldBe true
+          result.errors.size shouldBe 1
+          val e = result.errors.head
+          e.msg shouldBe s"Failed to administer property rule. The expression: `n.prop1 $operator 1 AND n.prop2 $operator 1` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
+          e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+          e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
+          e.gqlStatusObject.cause().get().statusDescription() shouldBe s"error: data exception - invalid property based access control rule involving nontrivial predicates. The expression: 'n.prop1 $operator 1 AND n.prop2 $operator 1' is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
         }
 
         // e.g. FOR (n) WHERE n.prop1 = 1 OR n.prop2 = 1
@@ -261,12 +259,11 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(s =>
-            s.msg == s"Failed to administer property rule. The expression: `n.prop1 $operator 1 OR n.prop2 $operator 1` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
-              && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-          ) shouldBe true
+          result.errors.size shouldBe 1
+          val e = result.errors.head
+          e.msg shouldBe s"Failed to administer property rule. The expression: `n.prop1 $operator 1 OR n.prop2 $operator 1` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
+          e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+          e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
         }
 
         // e.g. FOR (n) WHERE n.prop1 = NULL
@@ -283,9 +280,8 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(
-            _.msg == s"Failed to administer property rule. The property value access rule pattern `prop1 $operator NULL` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
-          ) shouldBe true
+          result.errors.size shouldBe 1
+          result.errors.head.msg shouldBe s"Failed to administer property rule. The property value access rule pattern `prop1 $operator NULL` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
         }
 
         // e.g. FOR (n) WHERE NULL = n.prop1
@@ -302,9 +298,8 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(
-            _.msg == s"Failed to administer property rule. The property value access rule pattern `NULL $operator prop1` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
-          ) shouldBe true
+          result.errors.size shouldBe 1
+          result.errors.head.msg shouldBe s"Failed to administer property rule. The property value access rule pattern `NULL $operator prop1` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
         }
 
         // e.g. FOR (n) WHERE NOT n.prop = NULL
@@ -323,9 +318,8 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(
-            _.msg == s"Failed to administer property rule. The property value access rule pattern `prop $operator NULL` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
-          ) shouldBe true
+          result.errors.size shouldBe 1
+          result.errors.head.msg shouldBe s"Failed to administer property rule. The property value access rule pattern `prop $operator NULL` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
         }
 
         // e.g. FOR (n) WHERE NOT NULL = n.prop
@@ -344,9 +338,8 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(
-            _.msg == s"Failed to administer property rule. The property value access rule pattern `NULL $operator prop` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
-          ) shouldBe true
+          result.errors.size shouldBe 1
+          result.errors.head.msg shouldBe s"Failed to administer property rule. The property value access rule pattern `NULL $operator prop` always evaluates to `NULL`.$suggestionPartOfErrorMessage"
         }
 
         // e.g. FOR (n) WHERE n.prop1 = NaN
@@ -365,9 +358,8 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(s => {
-            s.msg == "Failed to administer property rule. `NaN` is not supported for property-based access control."
-          }) shouldBe true
+          result.errors.size shouldBe 1
+          result.errors.head.msg shouldBe "Failed to administer property rule. `NaN` is not supported for property-based access control."
         }
 
         // e.g. FOR (n) WHERE NaN = n.prop1
@@ -386,9 +378,8 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(s => {
-            s.msg == "Failed to administer property rule. `NaN` is not supported for property-based access control."
-          }) shouldBe true
+          result.errors.size shouldBe 1
+          result.errors.head.msg shouldBe "Failed to administer property rule. `NaN` is not supported for property-based access control."
         }
 
         // e.g. FOR (n) WHERE n.prop1 = 1+2
@@ -410,12 +401,11 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(s =>
-            s.msg == s"Failed to administer property rule. The expression: `n.prop1 $operator 1 + 2` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
-              && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-          ) shouldBe true
+          result.errors.size shouldBe 1
+          val e = result.errors.head
+          e.msg shouldBe s"Failed to administer property rule. The expression: `n.prop1 $operator 1 + 2` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
+          e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+          e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
         }
 
         // e.g. FOR (n) WHERE n.prop1 = date.realtime()
@@ -437,12 +427,11 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(s =>
-            s.msg == s"Failed to administer property rule. The expression: `n.prop1 $operator `date.realtime`()` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
-              && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-          ) shouldBe true
+          result.errors.size shouldBe 1
+          val e = result.errors.head
+          e.msg shouldBe s"Failed to administer property rule. The expression: `n.prop1 $operator `date.realtime`()` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
+          e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+          e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
         }
 
         // e.g. FOR (n) WHERE n.prop1 = [1, 2]
@@ -545,13 +534,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
               )(p)
 
               val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-              result.errors.exists(s =>
-                s.msg == "Failed to administer property rule. " +
-                  s"The expression: `${expressionStringifier(expression)}` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
-                  && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-                  && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-                  && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-              ) shouldBe true
+              result.errors.size shouldBe 1
+              val e = result.errors.head
+              e.msg shouldBe "Failed to administer property rule. " +
+                s"The expression: `${expressionStringifier(expression)}` is not supported. " +
+                "Only single, literal-based predicate expressions are allowed for property-based access control."
+              e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+              e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
             }
           }
         }
@@ -639,13 +628,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
               )(p)
 
               val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-              result.errors.exists(s =>
-                s.msg == "Failed to administer property rule. " +
-                  s"The expression: `${expressionStringifier(expression)}` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
-                  && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-                  && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-                  && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-              ) shouldBe true
+              result.errors.size shouldBe 1
+              val e = result.errors.head
+              e.msg shouldBe "Failed to administer property rule. " +
+                s"The expression: `${expressionStringifier(expression)}` is not supported. " +
+                "Only single, literal-based predicate expressions are allowed for property-based access control."
+              e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+              e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
             }
           }
         }
@@ -669,13 +658,11 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(s =>
-            s.msg == s"Failed to administer property rule. The expression: `NOT (NOT n.prop1 $operator 1)` is not supported. " +
-              s"Only single, literal-based predicate expressions are allowed for property-based access control."
-              && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-              && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-          ) shouldBe true
+          result.errors.size shouldBe 1
+          val e = result.errors.head
+          e.msg shouldBe s"Failed to administer property rule. The expression: `NOT (NOT n.prop1 $operator 1)` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
+          e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+          e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
         }
 
         // e.g. FOR (n) WHERE 1 = n.prop1
@@ -694,12 +681,11 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           )(p)
 
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(error =>
-            error.msg == s"Failed to administer property rule. The property `prop1` must appear on the left hand side of the `$operator` operator."
-              && error.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-              && error.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-              && error.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA1"
-          ) shouldBe true
+          result.errors.size shouldBe 1
+          val e = result.errors.head
+          e.msg shouldBe s"Failed to administer property rule. The property `prop1` must appear on the left hand side of the `$operator` operator."
+          e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+          e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA1.getStatusString
         }
       }
 
@@ -714,9 +700,8 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         )(p)
 
         val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-        result.errors.exists(s => {
-          s.msg == "Failed to administer property rule. The property value access rule pattern `{prop1:NULL}` always evaluates to `NULL`. Use `WHERE` syntax in combination with `IS NULL` instead."
-        }) shouldBe true
+        result.errors.size shouldBe 1
+        result.errors.head.msg shouldBe "Failed to administer property rule. The property value access rule pattern `{prop1:NULL}` always evaluates to `NULL`. Use `WHERE` syntax in combination with `IS NULL` instead."
       }
 
       // e.g. FOR ({prop1:1+2})
@@ -738,13 +723,11 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         )(p)
 
         val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-        result.errors.exists(s =>
-          s.msg == "Failed to administer property rule. " +
-            "The expression: `{prop1: 1 + 2}` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
-            && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-            && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-            && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-        ) shouldBe true
+        result.errors.size shouldBe 1
+        val e = result.errors.head
+        e.msg shouldBe "Failed to administer property rule. The expression: `{prop1: 1 + 2}` is not supported. Only single, literal-based predicate expressions are allowed for property-based access control."
+        e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+        e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
       }
 
       // e.g. FOR (n {prop1: [1, 2]})
@@ -865,14 +848,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             )(p)
 
             val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-            result.errors.exists(s =>
-              s.msg == "Failed to administer property rule. " +
-                s"The expression: `${expressionStringifier(expression)}` is not supported. " +
-                "Only single, literal-based predicate expressions are allowed for property-based access control."
-                && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-                && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-                && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-            ) shouldBe true
+            result.errors.size shouldBe 1
+            val e = result.errors.head
+            e.msg shouldBe "Failed to administer property rule. " +
+              s"The expression: `${expressionStringifier(expression)}` is not supported. " +
+              "Only single, literal-based predicate expressions are allowed for property-based access control."
+            e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+            e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
           }
         }
       }
@@ -941,14 +923,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             )(p)
 
             val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-            result.errors.exists(s =>
-              s.msg == "Failed to administer property rule. " +
-                s"The expression: `${expressionStringifier(expression)}` is not supported. " +
-                "Only single, literal-based predicate expressions are allowed for property-based access control."
-                && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-                && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-                && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-            ) shouldBe true
+            result.errors.size shouldBe 1
+            val e = result.errors.head
+            e.msg shouldBe "Failed to administer property rule. " +
+              s"The expression: `${expressionStringifier(expression)}` is not supported. " +
+              "Only single, literal-based predicate expressions are allowed for property-based access control."
+            e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+            e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
           }
         }
       }
@@ -1033,14 +1014,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             )(p)
 
             val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-            result.errors.exists(s =>
-              s.msg == "Failed to administer property rule. " +
-                s"The expression: `${expressionStringifier(expression)}` is not supported. " +
-                "Only single, literal-based predicate expressions are allowed for property-based access control."
-                && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-                && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-                && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-            ) shouldBe false
+            result.errors.isEmpty shouldBe true
           }
         }
       }
@@ -1161,20 +1135,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             )(p)
 
             val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-            result.errors.exists(s =>
-              s.msg == "Failed to administer property rule. " +
-                s"The expression: `${expressionStringifier(expression)}` is not supported. " +
-                "Only single, literal-based predicate expressions are allowed for property-based access control."
-                && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-                && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-                && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-            ) shouldBe false
-
-            result.errors.exists(e => {
-              e.msg == "Failed to administer property rule. " +
-                s"The expression: `${expressionStringifier(expression)}` is not supported. " +
-                "All elements in a list must be literals of the same type for property-based access control."
-            }) shouldBe false
+            result.errors.isEmpty shouldBe true
           }
         }
       }
@@ -1199,9 +1160,10 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         )(p)
 
         val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-        result.errors.exists(_.msg == "Failed to administer property rule. " +
+        result.errors.size shouldBe 1
+        result.errors.head.msg shouldBe "Failed to administer property rule. " +
           s"The expression: `${expressionStringifier(expression)}` is not supported. " +
-          "All elements in a list must be literals of the same type for property-based access control.") shouldBe true
+          "All elements in a list must be literals of the same type for property-based access control."
       }
 
       // e.g. FOR (node) WHERE n.prop1 = 1
@@ -1223,9 +1185,8 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         )(p)
 
         val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-        result.errors.exists(s => {
-          s.msg == "Variable `n` not defined"
-        }) shouldBe true
+        result.errors.size shouldBe 1
+        result.errors.head.msg shouldBe "Variable `n` not defined"
       }
 
       // e.g. FOR () WHERE n.prop1 = 1
@@ -1247,9 +1208,8 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         )(p)
 
         val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-        result.errors.exists(s => {
-          s.msg == "Variable `n` not defined"
-        }) shouldBe true
+        result.errors.size shouldBe 1
+        result.errors.head.msg shouldBe "Variable `n` not defined"
       }
 
       // e.g. FOR (n) WHERE 1 = n.prop1 (foo) TO role
@@ -1316,14 +1276,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         )(p)
 
         val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-        result.errors.exists(s =>
-          s.msg == "Failed to administer property rule. " +
-            "The expression: `EXISTS { MATCH (n) }` is not supported. " +
-            "Only single, literal-based predicate expressions are allowed for property-based access control."
-            && s.asInstanceOf[SemanticError].gqlStatusObject.gqlStatus() == "22NA0"
-            && s.asInstanceOf[SemanticError].gqlStatusObject.cause().isPresent
-            && s.asInstanceOf[SemanticError].gqlStatusObject.cause().get().gqlStatus() == "22NA7"
-        ) shouldBe true
+        result.errors.size shouldBe 1
+        val e = result.errors.head
+        e.msg shouldBe "Failed to administer property rule. " +
+          "The expression: `EXISTS { MATCH (n) }` is not supported. " +
+          "Only single, literal-based predicate expressions are allowed for property-based access control."
+        e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
+        e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
       }
 
       Seq(
@@ -1349,11 +1308,9 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
             ),
             Seq(literalString("role1"))
           )(p)
-
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
-          result.errors.exists(s => {
-            s.msg == s"${invalidAction.name} is not supported for property value access rules."
-          }) shouldBe true
+          result.errors.size shouldBe 1
+          result.errors.head.msg shouldBe s"${invalidAction.name} is not supported for property value access rules."
         }
       })
   }
