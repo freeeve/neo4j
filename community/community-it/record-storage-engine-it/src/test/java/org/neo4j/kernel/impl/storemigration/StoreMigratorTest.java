@@ -51,6 +51,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.function.Suppliers;
 import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
+import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
@@ -567,6 +568,7 @@ class StoreMigratorTest {
                 storageEngineFactory,
                 indexProviderMap,
                 INSTANCE,
-                supplier);
+                supplier,
+                ByteUnit.mebiBytes(80));
     }
 }

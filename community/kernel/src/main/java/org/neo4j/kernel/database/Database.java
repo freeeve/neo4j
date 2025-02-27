@@ -196,6 +196,7 @@ import org.neo4j.storageengine.api.StoreFileMetadata;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.api.enrichment.ApplyEnrichmentStrategy;
+import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.values.DefaultElementIdMapperV1;
@@ -809,7 +810,8 @@ public class Database extends AbstractDatabase {
                 storageEngineFactory,
                 indexProviderMap,
                 memoryTracker,
-                logTailSupplier);
+                logTailSupplier,
+                StoreMigrationParticipant.UNSPECIFIED_MAX_OFF_HEAP_MEMORY);
         storeMigrator.upgradeIfNeeded();
     }
 

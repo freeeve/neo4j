@@ -122,12 +122,12 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
     private String formatToMigrateTo;
 
     @Option(
-            names = "--pagecache",
+            names = {"--pagecache", "--max-off-heap-memory"},
             paramLabel = "<size>",
-            description = "The size of the page cache to use for the migration process. "
-                    + "The general rule is that values up to the size of the database proportionally increase "
-                    + "performance.")
-    private String pagecacheMemory;
+            defaultValue = "90%",
+            converter = Converters.MaxOffHeapMemoryConverter.class,
+            description = Converters.MaxOffHeapMemoryConverter.DESCRIPTION)
+    private long maxOffHeapMemory;
 
     @Option(
             names = "--force-btree-indexes-to-range",
@@ -200,15 +200,28 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
                 LifeSupport life = new LifeSupport();
                 String formatForDb = formatToMigrateTo;
 
-                try (JobScheduler jobScheduler = life.add(JobSchedulerFactory.createInitialisedScheduler());
-                        PageCache pageCache = createPageCache(fs, config, jobScheduler, pageCacheTracer)) {
+                // Regardless of what will take place during migration there's going to be some need for a page cache.
+                // - For minor upgrades only a small page cache is needed generally
+                // - For migration across formats (within same storage engine, or across) there's generally a
+                //   need for reading from the source db and writing a new migrated db. It has been observed
+                //   that the ratio of memory in these scenarios is 1/10th for reading and 9/10ths for writing
+                //   is a good split.
+                // Therefor always starting a "migration" page cache of 1/10th of the max off-heap memory limit
+                // caters for all scenarios, and the remaining 9/10ths limit is given to the migration participants
+                // so that they know how much additional memory they can use if they're doing bigger things
+                // (i.e. full migration of db)
+                long migrationPageCacheSize = Math.max(ByteUnit.mebiBytes(8), maxOffHeapMemory / 10);
+                long remainingMaxOffHeapMemory =
+                        Math.max(ByteUnit.mebiBytes(8), maxOffHeapMemory - migrationPageCacheSize);
 
+                try (JobScheduler jobScheduler = life.add(JobSchedulerFactory.createInitialisedScheduler());
+                        PageCache pageCache = createPageCache(
+                                fs, withPageCacheSize(config, migrationPageCacheSize), jobScheduler, pageCacheTracer)) {
                     DatabaseLayout databaseLayout = Neo4jLayout.of(config).databaseLayout(dbName);
                     checkDatabaseExistence(databaseLayout);
 
                     resultLog.info("Number of CPUs: " + Runtime.getRuntime().availableProcessors());
-                    resultLog.info(
-                            "Page cache size: " + bytesToString(pageCache.maxCachedPages() * pageCache.pageSize()));
+                    resultLog.info("Max off-heap memory: " + bytesToString(maxOffHeapMemory));
                     resultLog.info("Store size: "
                             + bytesToString(FileSystemUtils.size(fs, databaseLayout.databaseDirectory())));
 
@@ -284,7 +297,8 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
                                         currentStorageEngineFactory,
                                         DatabaseTracers.EMPTY,
                                         databaseLayout,
-                                        memoryTracker)));
+                                        memoryTracker)),
+                                remainingMaxOffHeapMemory);
 
                         storeMigrator.migrateIfNeeded(formatForDb, forceBtreeToRange, keepNodeIds);
                     } catch (FileLockException e) {
@@ -327,6 +341,13 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
             resultLog.error(failedDbs.toString());
             throw new CommandFailedException(failedDbs.toString(), exceptions);
         }
+    }
+
+    private static Config withPageCacheSize(Config config, long migrationPageCacheSize) {
+        return Config.newBuilder()
+                .fromConfig(config)
+                .set(pagecache_memory, migrationPageCacheSize)
+                .build();
     }
 
     record FailedMigration(String dbName, Exception e) {}
@@ -416,11 +437,7 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
 
     private Config buildConfig() {
         try {
-            var builder = createPrefilledConfigBuilder();
-            if (pagecacheMemory != null) {
-                builder.set(pagecache_memory, ByteUnit.parse(pagecacheMemory));
-            }
-            return builder.build();
+            return createPrefilledConfigBuilder().build();
         } catch (Exception e) {
             throw new CommandFailedException(e.getMessage(), e);
         }

@@ -224,7 +224,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             MemoryTracker memoryTracker,
             PageCacheTracer pageCacheTracer,
             CursorContextFactory contextFactory,
-            boolean forceBtreeIndexesToRange) {
+            boolean forceBtreeIndexesToRange,
+            long maxOffHeapMemory) {
         BatchImporterFactory batchImporterFactory = BatchImporterFactory.withHighestPriority();
         RecordStorageMigrator recordStorageMigrator = new RecordStorageMigrator(
                 fs,
@@ -236,7 +237,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 contextFactory,
                 batchImporterFactory,
                 memoryTracker,
-                forceBtreeIndexesToRange);
+                forceBtreeIndexesToRange,
+                maxOffHeapMemory);
         return List.of(recordStorageMigrator);
     }
 

@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.storemigration;
 
+import static org.neo4j.io.pagecache.impl.muninn.MuninnPageCache.config;
 import static org.neo4j.kernel.impl.storemigration.FileOperation.DELETE_INCLUDING_DIRS;
 import static org.neo4j.kernel.impl.storemigration.FileOperation.MOVE;
 import static org.neo4j.kernel.impl.storemigration.StoreMigratorFileOperation.fileOperation;
@@ -44,7 +45,6 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.io.pagecache.ExternallyManagedPageCache;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
@@ -82,6 +82,7 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
     private final StorageEngineFactory targetStorageEngine;
     private final boolean forceBtreeIndexesToRange;
     private final boolean keepNodeIds;
+    private final long maxOffHeapMemory;
 
     public AcrossEngineMigrationParticipant(
             FileSystemAbstraction fileSystem,
@@ -95,7 +96,8 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
             StorageEngineFactory srcStorageEngine,
             StorageEngineFactory targetStorageEngine,
             boolean forceBtreeIndexesToRange,
-            boolean keepNodeIds) {
+            boolean keepNodeIds,
+            long maxOffHeapMemory) {
         super(NAME);
         this.fileSystem = fileSystem;
         this.pageCache = pageCache;
@@ -109,6 +111,7 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
         this.targetStorageEngine = targetStorageEngine;
         this.forceBtreeIndexesToRange = forceBtreeIndexesToRange;
         this.keepNodeIds = keepNodeIds;
+        this.maxOffHeapMemory = maxOffHeapMemory;
     }
 
     @Override
@@ -147,8 +150,8 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                     }
 
                     @Override
-                    public ExternallyManagedPageCache providedPageCache() {
-                        return new ExternallyManagedPageCache(pageCache);
+                    public long maxOffHeapMemory() {
+                        return maxOffHeapMemory;
                     }
                 },
                 logService,

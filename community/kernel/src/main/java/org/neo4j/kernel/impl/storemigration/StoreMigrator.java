@@ -119,6 +119,7 @@ public class StoreMigrator {
     private final InternalLog internalLog;
     private Supplier<LogTailMetadata> logTailSupplier;
     private final StorageEngineMigrationAbstraction storageEngineMigrationAbstraction;
+    private final long maxOffHeapMemory;
 
     public StoreMigrator(
             FileSystemAbstraction fs,
@@ -132,7 +133,8 @@ public class StoreMigrator {
             StorageEngineFactory targetStorageEngineFactory,
             IndexProviderMap indexProviderMap,
             MemoryTracker memoryTracker,
-            Supplier<LogTailMetadata> logTailSupplier) {
+            Supplier<LogTailMetadata> logTailSupplier,
+            long maxOffHeapMemory) {
         this.fs = fs;
         this.config = config;
         this.logService = logService;
@@ -151,6 +153,7 @@ public class StoreMigrator {
                 new CursorContextFactory(databaseTracers.getPageCacheTracer(), new LazyVersionContextSupplier());
         this.storageEngineMigrationAbstraction =
                 new StorageEngineMigrationAbstraction(storageEngineFactory, targetStorageEngineFactory);
+        this.maxOffHeapMemory = maxOffHeapMemory;
     }
 
     public void migrateIfNeeded(String formatToMigrateTo, boolean forceBtreeIndexesToRange, boolean keepNodeIds)
@@ -504,7 +507,8 @@ public class StoreMigrator {
                 jobScheduler,
                 contextFactory,
                 memoryTracker,
-                indexProviderMap);
+                indexProviderMap,
+                maxOffHeapMemory);
     }
 
     private void migrateToIsolatedDirectory(

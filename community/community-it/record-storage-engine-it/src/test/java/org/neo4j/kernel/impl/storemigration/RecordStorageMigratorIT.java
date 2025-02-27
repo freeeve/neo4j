@@ -113,7 +113,8 @@ import org.neo4j.test.utils.TestDirectory;
 @Neo4jLayoutExtension
 class RecordStorageMigratorIT {
     private static final String MIGRATION_DIRECTORY = StoreMigrator.MIGRATION_DIRECTORY;
-    private static final Config CONFIG = Config.defaults(GraphDatabaseSettings.pagecache_memory, ByteUnit.mebiBytes(8));
+    private static final long MAX_OFF_HEAP_MEMORY = ByteUnit.mebiBytes(80);
+    private static final Config CONFIG = Config.defaults(GraphDatabaseSettings.pagecache_memory, MAX_OFF_HEAP_MEMORY);
 
     @Inject
     private TestDirectory testDirectory;
@@ -173,7 +174,8 @@ class RecordStorageMigratorIT {
                 contextFactory,
                 batchImporterFactory,
                 INSTANCE,
-                false);
+                false,
+                MAX_OFF_HEAP_MEMORY);
         StoreVersion migrateTo = getVersionToMigrateTo();
         migrator.migrate(
                 databaseLayout,
@@ -230,7 +232,8 @@ class RecordStorageMigratorIT {
                 contextFactory,
                 batchImporterFactory,
                 INSTANCE,
-                false);
+                false,
+                MAX_OFF_HEAP_MEMORY);
         StoreVersion migrateTo = getVersionToMigrateTo();
         migrator.migrate(
                 databaseLayout,
@@ -308,7 +311,8 @@ class RecordStorageMigratorIT {
                 contextFactory,
                 batchImporterFactory,
                 INSTANCE,
-                false);
+                false,
+                MAX_OFF_HEAP_MEMORY);
         migrator.migrate(
                 databaseLayout,
                 migrationLayout,
@@ -373,7 +377,8 @@ class RecordStorageMigratorIT {
                 contextFactory,
                 batchImporterFactory,
                 INSTANCE,
-                false);
+                false,
+                MAX_OFF_HEAP_MEMORY);
 
         // WHEN migrating
         var engineFactory = StorageEngineFactory.defaultStorageEngine();
@@ -478,7 +483,8 @@ class RecordStorageMigratorIT {
                 contextFactory,
                 batchImporterFactory,
                 INSTANCE,
-                false);
+                false,
+                MAX_OFF_HEAP_MEMORY);
         var engineFactory = StorageEngineFactory.defaultStorageEngine();
         var logTailMetadata = loadLogTail(databaseLayout, CONFIG, engineFactory);
         var txIdBeforeMigration = logTailMetadata.getLastCommittedTransaction().id();
@@ -568,7 +574,8 @@ class RecordStorageMigratorIT {
                 contextFactory,
                 batchImporterFactory,
                 INSTANCE,
-                false);
+                false,
+                MAX_OFF_HEAP_MEMORY);
         migrator.migrate(
                 databaseLayout,
                 migrationLayout,
@@ -627,7 +634,8 @@ class RecordStorageMigratorIT {
                 contextFactory,
                 batchImporterFactory,
                 INSTANCE,
-                false);
+                false,
+                MAX_OFF_HEAP_MEMORY);
 
         // when
         migrator.migrate(

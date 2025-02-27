@@ -135,6 +135,7 @@ public interface StorageEngineFactory {
 
     /**
      * Returns a {@link StoreMigrationParticipant} which will be able to participate in a store migration.
+     * @param maxOffHeapMemory max off-heap memory this participant is allowed to allocate.
      * @return StoreMigrationParticipant for migration.
      */
     List<StoreMigrationParticipant> migrationParticipants(
@@ -146,7 +147,8 @@ public interface StorageEngineFactory {
             MemoryTracker memoryTracker,
             PageCacheTracer pageCacheTracer,
             CursorContextFactory contextFactory,
-            boolean forceBtreeIndexesToRange);
+            boolean forceBtreeIndexesToRange,
+            long maxOffHeapMemory);
 
     /**
      * Instantiates a {@link StorageEngine} where all dependencies can be retrieved from the supplied {@code dependencyResolver}.

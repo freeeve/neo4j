@@ -129,7 +129,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             MemoryTracker memoryTracker,
             PageCacheTracer pageCacheTracer,
             CursorContextFactory contextFactory,
-            boolean forceBtreeIndexesToRange) {
+            boolean forceBtreeIndexesToRange,
+            long maxOffHeapMemory) {
         return delegate.migrationParticipants(
                 fs,
                 config,
@@ -139,7 +140,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 memoryTracker,
                 pageCacheTracer,
                 contextFactory,
-                forceBtreeIndexesToRange);
+                forceBtreeIndexesToRange,
+                maxOffHeapMemory);
     }
 
     @Override

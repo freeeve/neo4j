@@ -153,6 +153,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
     private final BatchImporterFactory batchImporterFactory;
     private final MemoryTracker memoryTracker;
     private final boolean forceBtreeIndexesToRange;
+    private final long maxOffHeapMemory;
     private boolean formatsHaveDifferentStoreCapabilities;
 
     public RecordStorageMigrator(
@@ -165,7 +166,8 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
             CursorContextFactory contextFactory,
             BatchImporterFactory batchImporterFactory,
             MemoryTracker memoryTracker,
-            boolean forceBtreeIndexesToRange) {
+            boolean forceBtreeIndexesToRange,
+            long maxOffHeapMemory) {
         super(NAME);
         this.fileSystem = fileSystem;
         this.pageCache = pageCache;
@@ -177,6 +179,7 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
         this.batchImporterFactory = batchImporterFactory;
         this.memoryTracker = memoryTracker;
         this.forceBtreeIndexesToRange = forceBtreeIndexesToRange;
+        this.maxOffHeapMemory = maxOffHeapMemory;
     }
 
     @Override
@@ -340,7 +343,12 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
         prepareBatchImportMigration(sourceDirectoryStructure, migrationDirectoryStructure, oldFormat, newFormat);
 
         try (NeoStores legacyStore = instantiateLegacyStore(oldFormat, sourceDirectoryStructure)) {
-            Configuration importConfig = new Configuration.Overridden(defaultConfiguration(), config);
+            Configuration importConfig = new Configuration.Overridden(defaultConfiguration(), config) {
+                @Override
+                public long maxOffHeapMemory() {
+                    return maxOffHeapMemory;
+                }
+            };
             AdditionalInitialIds additionalInitialIds = readAdditionalIds(
                     lastTxId,
                     lastTxAppendIndex,

@@ -32,6 +32,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.internal.batchimport.BatchImporterFactory;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
+import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
@@ -141,7 +142,8 @@ class RecordStoreMigratorTest {
                 contextFactory,
                 batchImporterFactory,
                 INSTANCE,
-                false);
+                false,
+                ByteUnit.mebiBytes(80));
     }
 
     private static class MyProcessListener extends ProgressListener.Adapter {
