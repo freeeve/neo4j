@@ -28,15 +28,12 @@ import org.neo4j.cypher.internal.MasterCompiler
 import org.neo4j.cypher.internal.ResourceManagerFactory
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.RuntimeContextManager
-import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.options.CypherDebugOptions
-import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.cypher.internal.plandescription.InternalPlanDescription
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionBuilder
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.ImmutablePlanningAttributes
-import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.runtime.InputDataStream
 import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.NoInput
@@ -53,7 +50,6 @@ import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewri
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter.NoRewrites
 import org.neo4j.cypher.internal.runtime.spec.rewriters.TestPlanCombinationRewriter.TestPlanCombinationRewriterHint
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.result.QueryProfile
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.graphdb.GraphDatabaseService
@@ -1056,13 +1052,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
 
   protected def newRuntimeContext(queryContext: QueryContext, dbDefaultLanguage: CypherVersion): CONTEXT = {
 
-    val cypherConfiguration: CypherConfiguration = edition.cypherConfig
-
-    val queryOptions = QueryOptions(
-      offset = InputPosition.NONE,
-      queryOptions = CypherQueryOptions.fromValues(cypherConfiguration, Set.empty),
-      defaultLanguage = dbDefaultLanguage
-    )
+    val queryOptions = edition.defaultQueryOptions.copy(defaultLanguage = dbDefaultLanguage)
 
     runtimeContextManager.create(
       queryOptions.resolvedLanguage,

@@ -23,13 +23,16 @@ import org.neo4j.common.DependencyResolver
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CommunityRuntimeContextManager
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.RuntimeContextManager
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.options.CypherQueryOptions
+import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.runtime.CypherRuntimeConfiguration
 import org.neo4j.cypher.internal.runtime.QueryRuntimeConfig
 import org.neo4j.cypher.internal.runtime.spec.Edition.Dbms
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction
@@ -109,13 +112,21 @@ class Edition[CONTEXT <: RuntimeContext](
     CypherRuntimeConfiguration.fromCypherConfiguration(cypherConfig)
   }
 
-  def cypherConfig: CypherConfiguration = {
+  val cypherConfig: CypherConfiguration = {
     val config = Config.defaults(configs.toMap.asJava)
     CypherConfiguration.fromConfig(config)
   }
 
+  val defaultQueryOptions: QueryOptions = {
+    QueryOptions(
+      offset = InputPosition.NONE,
+      queryOptions = CypherQueryOptions.fromValues(cypherConfig, Set.empty),
+      defaultLanguage = CypherVersion.Default
+    )
+  }
+
   def defaultQueryRuntimeConfig: QueryRuntimeConfig = {
-    QueryRuntimeConfig.createFrom(CypherQueryOptions.defaultOptions, cypherConfig)
+    QueryRuntimeConfig.createFrom(defaultQueryOptions.queryOptions, cypherConfig)
   }
 }
 

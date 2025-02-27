@@ -214,10 +214,7 @@ abstract class MemoryManagementTestBase[CONTEXT <: RuntimeContext](
         GraphDatabaseInternalSettings.initial_transaction_heap_grab_size_per_worker -> Long.box(
           MemoryManagementTestBase.perWorkerGrabSize
         ),
-        GraphDatabaseInternalSettings.heap_estimator_cache_preset -> HeapEstimatorCachePreset.CUSTOM,
-        GraphDatabaseInternalSettings.heap_estimator_cache_large_object_threshold -> Long.box(
-          MemoryManagementTestBase.largeObjectThreshold
-        ),
+        GraphDatabaseInternalSettings.heap_estimator_cache_preset -> HeapEstimatorCachePreset.DEFAULT,
         GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small -> Integer.valueOf(6),
         GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big -> Integer.valueOf(6)
       ),
