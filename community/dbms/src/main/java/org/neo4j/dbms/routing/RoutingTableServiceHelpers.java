@@ -20,7 +20,6 @@
 package org.neo4j.dbms.routing;
 
 import static org.neo4j.kernel.api.exceptions.Status.Database.DatabaseNotFound;
-import static org.neo4j.kernel.api.exceptions.Status.Database.IllegalAliasChain;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.Optional;
@@ -145,13 +144,5 @@ public class RoutingTableServiceHelpers {
 
     public static RoutingException databaseNotAvailableException(String databaseName) {
         return RoutingException.routingTableForUnavailableDb(databaseName);
-    }
-
-    public static RoutingException illegalChain(String databaseName, String sourceAlias) {
-        return new RoutingException(
-                IllegalAliasChain,
-                "Unable to provide a routing table for the database '"
-                        + databaseName + "' because the request came from another alias '"
-                        + sourceAlias + "' and alias chains are not permitted.");
     }
 }

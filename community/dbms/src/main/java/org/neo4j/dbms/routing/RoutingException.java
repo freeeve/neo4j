@@ -20,6 +20,7 @@
 package org.neo4j.dbms.routing;
 
 import static java.lang.String.format;
+import static org.neo4j.kernel.api.exceptions.Status.Database.IllegalAliasChain;
 import static org.neo4j.kernel.api.exceptions.Status.General.DatabaseUnavailable;
 import static org.neo4j.kernel.api.exceptions.Status.Procedure.ProcedureCallFailed;
 
@@ -101,6 +102,19 @@ public class RoutingException extends GqlException implements Status.HasStatus {
                 String.format(
                         "Unable to get a routing table for database '%s' because this database is unavailable",
                         dbName));
+    }
+
+    public static RoutingException aliasChainsNotPermitted(String databaseName, String sourceAlias) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N14)
+                .withParam(GqlParams.StringParam.alias1, databaseName)
+                .withParam(GqlParams.StringParam.alias2, sourceAlias)
+                .build();
+        return new RoutingException(
+                gql,
+                IllegalAliasChain,
+                "Unable to provide a routing table for the database '"
+                        + databaseName + "' because the request came from another alias '"
+                        + sourceAlias + "' and alias chains are not permitted.");
     }
 
     @Override
