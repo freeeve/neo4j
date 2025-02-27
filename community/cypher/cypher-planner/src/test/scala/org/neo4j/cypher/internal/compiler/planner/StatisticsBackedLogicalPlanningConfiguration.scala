@@ -83,9 +83,11 @@ import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cardinality
+import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.PropertyKeyId
+import org.neo4j.cypher.internal.util.RecordingNotificationLogger
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Selectivity
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -111,6 +113,7 @@ import org.neo4j.internal.schema.IndexType.TEXT
 import org.neo4j.internal.schema.IndexType.VECTOR
 import org.neo4j.internal.schema.constraints.SchemaValueType
 import org.neo4j.kernel.database.DatabaseReferenceRepository
+import org.neo4j.notifications.NotificationWrapping
 import org.neo4j.values.storable.Values.NO_VALUE
 import org.neo4j.values.storable.Values.stringValue
 
@@ -143,7 +146,8 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
     txStateHasChanges: Boolean = false,
     deduplicateNames: Boolean = true,
     semanticFeatures: Seq[SemanticFeature] = Seq.empty,
-    databaseReferenceRepository: DatabaseReferenceRepository = ContextHelper.mockDatabaseReferenceRepository
+    databaseReferenceRepository: DatabaseReferenceRepository = ContextHelper.mockDatabaseReferenceRepository,
+    printNotifications: Boolean = false
   )
 
   case class Cardinalities(
@@ -1044,6 +1048,9 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
   ): StatisticsBackedLogicalPlanningConfigurationBuilder =
     this.copy(options = options.copy(databaseReferenceRepository = databaseReferenceRepository))
 
+  def enablePrintNotifications(enabled: Boolean = true): StatisticsBackedLogicalPlanningConfigurationBuilder =
+    this.copy(options = options.copy(printNotifications = enabled))
+
   def setDatabaseFormat(dbFormat: DatabaseFormat): StatisticsBackedLogicalPlanningConfigurationBuilder = {
     withSetting(GraphDatabaseSettings.db_format, dbFormat.settingValue)
   }
@@ -1460,6 +1467,7 @@ class StatisticsBackedLogicalPlanningConfiguration(
       labelInferenceStrategy
     )
 
+    val notificationLogger = new RecordingNotificationLogger()
     val context = ContextHelper.create(
       version = version,
       planContext = planContext,
@@ -1473,20 +1481,36 @@ class StatisticsBackedLogicalPlanningConfiguration(
       statefulShortestPlanningMode = plannerConfiguration.statefulShortestPlanningMode(),
       planVarExpandInto = plannerConfiguration.planVarExpandInto(),
       databaseReferenceRepository = options.databaseReferenceRepository,
-      labelInferenceStrategy = labelInferenceStrategy
+      labelInferenceStrategy = labelInferenceStrategy,
+      notificationLogger = notificationLogger
     )
     val state = InitialState(queryString, IDPPlannerName, new AnonymousVariableNameGenerator)
     val parsingConfig = {
       val cfg = LogicalPlanningTestSupport2.defaultParsingConfig
       cfg.copy(semanticFeatures = cfg.semanticFeatures ++ options.semanticFeatures)
     }
-    LogicalPlanningTestSupport2
+    val finalState = LogicalPlanningTestSupport2
       .pipeLine(
         parsingConfig = parsingConfig,
         deduplicateNames = options.deduplicateNames
       )
       .transform(state, context)
+    if (options.printNotifications) {
+      printOutNotifications(notificationLogger.notifications)
+    }
+    finalState
   }
+
+  private def printOutNotifications(notifications: Set[InternalNotification]): Unit =
+    notifications match {
+      case notifications if notifications.isEmpty => ()
+      case notifications =>
+        println("Notifications occurred:")
+        notifications
+          .map(NotificationWrapping.asKernelNotification(None))
+          .map(_.getDescription)
+          .foreach(println)
+    }
 
   def planBuilder(language: CypherVersion = CypherVersion.Default): LogicalPlanBuilder =
     new LogicalPlanBuilder(wholePlan = true, resolver, language = language)
