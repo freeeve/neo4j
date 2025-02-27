@@ -39,7 +39,6 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.RecordingNotificationLogger
 import org.neo4j.cypher.rendering.QueryOptionsRenderer
-import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup
 import org.neo4j.fabric.cache.FabricQueryCache
 import org.neo4j.fabric.config.FabricConfig
 import org.neo4j.fabric.eval.Catalog
