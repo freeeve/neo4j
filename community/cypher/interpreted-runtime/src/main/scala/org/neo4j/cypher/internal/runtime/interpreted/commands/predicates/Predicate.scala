@@ -596,7 +596,7 @@ case class HasALabelOrType(entity: Expression) extends Predicate {
       throw CypherTypeException.expectedNodeRelWas(
         String.valueOf(value),
         value.getClass.getName,
-        value.prettyPrint(),
+        value.prettify(),
         CypherTypeValueMapper.valueType(value)
       )
 
@@ -604,7 +604,7 @@ case class HasALabelOrType(entity: Expression) extends Predicate {
       throw CypherTypeException.expectedNodeRelWas(
         String.valueOf(other),
         other.getClass.getName,
-        String.valueOf(other),
+        other.prettify(),
         CypherTypeValueMapper.valueType(other)
       )
   }
@@ -643,7 +643,7 @@ case class HasLabelOrType(entity: Expression, labelOrType: String) extends Predi
       throw CypherTypeException.expectedNodeRelWas(
         String.valueOf(value),
         value.getClass.getName,
-        value.prettyPrint(),
+        value.prettify(),
         CypherTypeValueMapper.valueType(value)
       )
 
@@ -651,7 +651,7 @@ case class HasLabelOrType(entity: Expression, labelOrType: String) extends Predi
       throw CypherTypeException.expectedNodeRelWas(
         String.valueOf(other),
         other.getClass.getName,
-        String.valueOf(other),
+        other.prettify(),
         CypherTypeValueMapper.valueType(other)
       )
   }

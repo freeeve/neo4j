@@ -1302,9 +1302,11 @@ public final class CypherFunctions {
         } else if (entity instanceof VirtualRelationshipValue) {
             return true;
         } else {
-            throw new CypherTypeException(format(
-                    "Invalid input for function 'hasALabelOrType()': Expected %s to be a node or relationship, but it was `%s`",
-                    entity, entity.getTypeName()));
+            throw CypherTypeException.invalidTypeForLabelExpression(
+                    entity.toString(),
+                    entity.prettify(),
+                    entity.getTypeName(),
+                    CypherTypeValueMapper.valueType(entity));
         }
     }
 
@@ -1322,9 +1324,11 @@ public final class CypherFunctions {
         } else if (entity instanceof VirtualRelationshipValue relationship) {
             return access.areTypesSetOnRelationship(types, relationship, relationshipScanCursor);
         } else {
-            throw new CypherTypeException(format(
-                    "Invalid input for function 'hasALabelOrType()': Expected %s to be a node or relationship, but it was `%s`",
-                    entity, entity.getTypeName()));
+            throw CypherTypeException.invalidTypeForLabelExpression(
+                    entity.toString(),
+                    entity.prettify(),
+                    entity.getTypeName(),
+                    CypherTypeValueMapper.valueType(entity));
         }
     }
 

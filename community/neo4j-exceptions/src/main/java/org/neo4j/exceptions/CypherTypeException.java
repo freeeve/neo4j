@@ -48,6 +48,16 @@ public class CypherTypeException extends Neo4jException {
         return new CypherTypeException(gql, String.format("Wrong type. Expected %s, got %s", signature, actualType));
     }
 
+    public static CypherTypeException invalidTypeForLabelExpression(
+            String value, String prettyValue, String actualType, String actualCypherType) {
+        var gql = GqlHelper.getGql22G03_22N01(prettyValue, List.of("NODE", "RELATIONSHIP"), actualCypherType);
+        return new CypherTypeException(
+                gql,
+                String.format(
+                        "Invalid input for function 'hasALabelOrType()': Expected %s to be a node or relationship, but it was `%s`",
+                        value, actualType));
+    }
+
     public static CypherTypeException nodeCreationNotAMap(String value, String gotCypherType) {
         var gql = GqlHelper.getGql22G03_22N01(value, List.of("MAP"), gotCypherType);
         return new CypherTypeException(
