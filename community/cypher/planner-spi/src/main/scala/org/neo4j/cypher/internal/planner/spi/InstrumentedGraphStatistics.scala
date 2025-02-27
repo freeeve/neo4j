@@ -19,8 +19,10 @@
  */
 package org.neo4j.cypher.internal.planner.spi
 
+import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.LabelId
+import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Selectivity
 
@@ -123,4 +125,10 @@ case class InstrumentedGraphStatistics(inner: GraphStatistics, snapshot: Mutable
   override def mostCommonLabelGivenRelationshipType(typ: Int): Seq[Int] = {
     inner.mostCommonLabelGivenRelationshipType(typ)
   }
+
+  override def getHistograms(labels: Set[LabelId], propertyKey: Option[PropertyKeyId]): Set[Histogram] =
+    inner.getHistograms(labels, propertyKey)
+
+  override def getHistograms(typeId: RelTypeId, propertyKey: Option[PropertyKeyId]): Set[Histogram] =
+    inner.getHistograms(typeId, propertyKey)
 }

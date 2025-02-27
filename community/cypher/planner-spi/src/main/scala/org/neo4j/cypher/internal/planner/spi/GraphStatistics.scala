@@ -19,8 +19,10 @@
  */
 package org.neo4j.cypher.internal.planner.spi
 
+import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.LabelId
+import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Selectivity
 
@@ -70,6 +72,18 @@ trait GraphStatistics {
    * indexPropertyExistsSelectivity(:X, prop) = s => |MATCH (a:X)| * s = |MATCH (a:X) WHERE x.prop IS NOT NULL|
    */
   def indexPropertyIsNotNullSelectivity(index: IndexDescriptor): Option[Selectivity]
+
+  /**
+   * Multiple histograms might be available due to the presence of multiple label predicates on the variable in the range predicate.
+   * Also, multiple histograms for the same label/type-propertyKey pair may exist with different bucketing strategy schemes.
+   *
+   * @param labels The available labels on the variable of the range predicate
+   * @param propertyKey  The property-key of the range predicate
+   * @return The available histograms that can be used to estimate the range predicate. We currently only implement this for integration testing purposes.
+   */
+  def getHistograms(labels: Set[LabelId], propertyKey: Option[PropertyKeyId]): Set[Histogram] = Set.empty
+
+  def getHistograms(typeId: RelTypeId, propertyKey: Option[PropertyKeyId]): Set[Histogram] = Set.empty
 }
 
 class DelegatingGraphStatistics(delegate: GraphStatistics) extends GraphStatistics {
@@ -94,4 +108,10 @@ class DelegatingGraphStatistics(delegate: GraphStatistics) extends GraphStatisti
 
   override def mostCommonLabelGivenRelationshipType(typ: Int): Seq[Int] =
     delegate.mostCommonLabelGivenRelationshipType(typ)
+
+  override def getHistograms(labels: Set[LabelId], propertyKey: Option[PropertyKeyId]): Set[Histogram] =
+    delegate.getHistograms(labels, propertyKey)
+
+  override def getHistograms(typeId: RelTypeId, propertyKey: Option[PropertyKeyId]): Set[Histogram] =
+    delegate.getHistograms(typeId, propertyKey)
 }

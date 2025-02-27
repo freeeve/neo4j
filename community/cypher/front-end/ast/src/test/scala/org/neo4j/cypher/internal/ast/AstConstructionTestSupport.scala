@@ -335,6 +335,9 @@ trait AstConstructionTestSupport {
   def propLessThan(variable: String, propKey: String, intValue: Int): LessThan =
     LessThan(prop(variable, propKey), literalInt(intValue))(pos)
 
+  def propLessThanEqual(variable: String, propKey: String, intValue: Int): LessThanOrEqual =
+    LessThanOrEqual(prop(variable, propKey), literalInt(intValue))(pos)
+
   def propGreaterThan(variable: String, propKey: String, intValue: Int): GreaterThan =
     greaterThan(prop(variable, propKey), literalInt(intValue))
 

@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.Expression
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.ExpressionSelectivityCalculator.indexSelectivityWithSizeHint
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.ExpressionSelectivityCalculator.selectivityForPropertyEquality
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.ExpressionSelectivityCalculator.subqueryCardinalityToExistsSelectivity
+import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram.EstimateSelectivityUsingHistogram
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsBoundingBoxSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsDistanceSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsElementIdSeekable
@@ -59,6 +60,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompa
 import org.neo4j.cypher.internal.expressions.AssertIsNode
 import org.neo4j.cypher.internal.expressions.Contains
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
+import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.ElementTypeName
 import org.neo4j.cypher.internal.expressions.EndsWith
 import org.neo4j.cypher.internal.expressions.Equals
@@ -82,6 +84,7 @@ import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RegexMatch
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
@@ -540,6 +543,29 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
       combiner
     )
 
+  // Check if all inequality predicates can be handled using histograms.
+  // In the future we might want to use histograms for the parts that can be handled and fallback for the remaining parts.
+  // https://trello.com/c/3SYt6PQe/2993-use-histogram-for-part-of-inequalities-in-the-seekable-when-not-all-inequalities-can-be-handled
+  private def inequalityPredicatesCanBeHandleByHistogram(seekable: InequalityRangeSeekable): Boolean = {
+    seekable.expr.inequalities.forall(inequality => {
+      val literalTypeSupported = inequality.rhs match {
+        case _: SignedDecimalIntegerLiteral => true
+        case _: DoubleLiteral               => true
+        // Enable support for temporal type values: https://trello.com/c/n604vPK5/2978-histograms-support-for-date-values
+        // Enable support for Strings: https://trello.com/c/P9mnTaEl/2855-histograms-support-category-domains
+        case _ => false
+      }
+      val operatorSupported = inequality match {
+        case _: LessThan           => true
+        case _: LessThanOrEqual    => true
+        case _: GreaterThan        => true
+        case _: GreaterThanOrEqual => true
+        case _                     => false
+      }
+      literalTypeSupported && operatorSupported
+    })
+  }
+
   private def calculateSelectivityForValueRangeSeekable(
     seekable: InequalityRangeSeekable,
     labelInfo: LabelInfo,
@@ -557,31 +583,59 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
 
     val indexTypesToConsider = indexTypesForRangeSeeks(seekable.propertyValueType(semanticTable))
 
-    val labels = labelInfo.getOrElse(seekable.ident, Set.empty)
-    val relTypes = relTypeInfo.get(seekable.ident)
+    val labelIds = labelInfo.getOrElse(seekable.ident, Set.empty).map(semanticTable.id)
+    val maybeRelTypeId = relTypeInfo.get(seekable.ident).map(semanticTable.id)
+    val propKeyId = semanticTable.id(seekable.property.propertyKey)
 
-    val idTuples = labels.toIndexedSeq.map { name =>
-      (semanticTable.id(name), semanticTable.id(seekable.expr.property.propertyKey))
-    } ++ relTypes.toIndexedSeq.map { name =>
-      (semanticTable.id(name), semanticTable.id(seekable.expr.property.propertyKey))
-    }
-
-    val indexRangeSelectivities: Seq[Selectivity] = idTuples.flatMap {
-      case (Some(labelOrRelTypeId), Some(propertyKeyId)) =>
-        val selectivities = for {
-          descriptor <- indexTypesToConsider.map(IndexDescriptor.forNameId(_, labelOrRelTypeId, Seq(propertyKeyId)))
-          propertyExistsSelectivity <- stats.indexPropertyIsNotNullSelectivity(descriptor)
-          propEqValueSelectivity <- stats.uniqueValueSelectivity(descriptor)
-        } yield {
-          val pRangeBounded: Selectivity = getPropertyPredicateRangeSelectivity(seekable, propEqValueSelectivity)
-          pRangeBounded * propertyExistsSelectivity
+    // Use histograms to estimate the current inequality predicates if
+    // 1) the feature flag for using histograms during planning is enable.
+    // 2) the values in the inequality predicates are integers or doubles. Other values are not supported.
+    //    When the value has been auto-parameterized, then we cannot use histograms anymore.
+    // 3) the operators are <, <=, >, >=. Other operators are not (yet) supported.
+    val useHistogramsInPlanningConfig =
+      true // https://trello.com/c/esdvGOrL/2987-cypher-option-to-not-use-histograms-during-planning
+    val useHistogramsInPlanning = useHistogramsInPlanningConfig && inequalityPredicatesCanBeHandleByHistogram(seekable)
+    val availableHists =
+      if (useHistogramsInPlanning) {
+        if (maybeRelTypeId.nonEmpty) {
+          stats.getHistograms(maybeRelTypeId.flatten.get, propKeyId)
+        } else {
+          stats.getHistograms(labelIds.flatten, propKeyId)
         }
-        selectivities.headOption
+      } else
+        Set.empty
 
-      case _ => Some(Selectivity.ZERO)
+    if (useHistogramsInPlanning && availableHists.nonEmpty) {
+      // Choose one of the available histograms (for now, just take the first one)
+      // https://trello.com/c/2vsei82Z/2990-selection-which-histogram-to-use-when-multiple-are-applicable
+      val histogram = availableHists.head
+      // Use the histogram to estimate this range predicate
+      EstimateSelectivityUsingHistogram.sumBucketSelectivityEstimates(histogram, seekable.expr.inequalities)
+    } else {
+
+      val idTuples = labelIds.toIndexedSeq.map { labelId =>
+        (labelId, semanticTable.id(seekable.expr.property.propertyKey))
+      } ++ maybeRelTypeId.toIndexedSeq.map { typeId =>
+        (typeId, semanticTable.id(seekable.expr.property.propertyKey))
+      }
+
+      val indexRangeSelectivities: Seq[Selectivity] = idTuples.flatMap {
+        case (Some(labelOrRelTypeId), Some(propertyKeyId)) =>
+          val selectivities = for {
+            descriptor <- indexTypesToConsider.map(IndexDescriptor.forNameId(_, labelOrRelTypeId, Seq(propertyKeyId)))
+            propertyExistsSelectivity <- stats.indexPropertyIsNotNullSelectivity(descriptor)
+            propEqValueSelectivity <- stats.uniqueValueSelectivity(descriptor)
+          } yield {
+            val pRangeBounded: Selectivity = getPropertyPredicateRangeSelectivity(seekable, propEqValueSelectivity)
+            pRangeBounded * propertyExistsSelectivity
+          }
+          selectivities.headOption
+
+        case _ => Some(Selectivity.ZERO)
+      }
+
+      combiner.orTogetherSelectivities(indexRangeSelectivities).getOrElse(default)
     }
-
-    combiner.orTogetherSelectivities(indexRangeSelectivities).getOrElse(default)
   }
 
   private def calculateSelectivityForPointDistanceSeekable(
