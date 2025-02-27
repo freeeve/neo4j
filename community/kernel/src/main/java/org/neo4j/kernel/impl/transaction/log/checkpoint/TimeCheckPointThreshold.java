@@ -28,6 +28,9 @@ import org.neo4j.time.Stopwatch;
 import org.neo4j.time.SystemNanoClock;
 
 class TimeCheckPointThreshold extends AbstractCheckPointThreshold {
+    private static final long NANOS_PER_MILLI = 1_000_000L;
+    private static final long MAX_MILLIS = Long.MAX_VALUE / NANOS_PER_MILLI;
+
     private volatile long lastCheckPointedAppendIndex;
     private volatile Duration timeout;
     private volatile Stopwatch stopWatch;
@@ -40,18 +43,8 @@ class TimeCheckPointThreshold extends AbstractCheckPointThreshold {
         this.timeMillisThreshold = thresholdMillis;
         this.clock = clock;
         // The random start offset means database in a cluster will not all check-point at the same time.
-        long randomStartOffset =
-                thresholdMillis > 0 ? ThreadLocalRandom.current().nextLong(thresholdMillis) : 0;
-        this.timeout = Duration.ofMillis(thresholdMillis + randomStartOffset);
+        this.timeout = randomOffset(thresholdMillis);
         this.stopWatch = clock.startStopWatch();
-    }
-
-    private static String formatDuration(long thresholdMillis) {
-        return Format.duration(
-                thresholdMillis,
-                TimeUnit.DAYS,
-                TimeUnit.MILLISECONDS,
-                unit -> ' ' + unit.name().toLowerCase());
     }
 
     @Override
@@ -74,5 +67,21 @@ class TimeCheckPointThreshold extends AbstractCheckPointThreshold {
     @Override
     public long checkFrequencyMillis() {
         return timeMillisThreshold;
+    }
+
+    private static Duration randomOffset(long millis) {
+        millis += millis > 0 ? ThreadLocalRandom.current().nextLong(millis) : 0;
+        if (millis < 0 || millis > MAX_MILLIS) { // Overflow
+            return Duration.ofMillis(MAX_MILLIS);
+        }
+        return Duration.ofMillis(millis);
+    }
+
+    private static String formatDuration(long thresholdMillis) {
+        return Format.duration(
+                thresholdMillis,
+                TimeUnit.DAYS,
+                TimeUnit.MILLISECONDS,
+                unit -> ' ' + unit.name().toLowerCase());
     }
 }

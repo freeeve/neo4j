@@ -152,12 +152,10 @@ public final class Format {
 
     private static long extractFromDuration(
             long durationMillis, TimeUnit unit, Function<TimeUnit, String> unitFormat, StringBuilder target) {
-        int count = 0;
         long millisPerUnit = unit.toMillis(1);
-        while (durationMillis >= millisPerUnit) {
-            count++;
-            durationMillis -= millisPerUnit;
-        }
+        long count = durationMillis / millisPerUnit;
+        durationMillis %= millisPerUnit;
+
         if (count > 0) {
             target.append(!target.isEmpty() ? " " : "").append(count).append(unitFormat.apply(unit));
         }

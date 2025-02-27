@@ -101,7 +101,7 @@ class CheckPointerIntegrationTest {
             List<CheckpointInfo> checkpointInfos = checkPointsInTxLog(db);
             assertEquals(
                     LatestVersions.LATEST_KERNEL_VERSION,
-                    checkpointInfos.get(checkpointInfos.size() - 1).kernelVersion());
+                    checkpointInfos.getLast().kernelVersion());
         } finally {
             managementService.shutdown();
         }
@@ -270,8 +270,7 @@ class CheckPointerIntegrationTest {
 
             getCheckPointer(databaseAPI).forceCheckPoint(new SimpleTriggerInfo("test"));
             var checkpointInfos = checkPointsInTxLog(databaseAPI);
-            TransactionId lastCheckpointTxId =
-                    checkpointInfos.get(checkpointInfos.size() - 1).transactionId();
+            TransactionId lastCheckpointTxId = checkpointInfos.getLast().transactionId();
             assertEquals(lastClosedTxId, lastCheckpointTxId);
         } finally {
             managementService.shutdown();
@@ -286,7 +285,7 @@ class CheckPointerIntegrationTest {
             GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             getCheckPointer(db).forceCheckPoint(new SimpleTriggerInfo("test"));
             List<CheckpointInfo> checkpointInfos = checkPointsInTxLog(db);
-            CheckpointInfo lastCheckpoint = checkpointInfos.get(checkpointInfos.size() - 1);
+            CheckpointInfo lastCheckpoint = checkpointInfos.getLast();
             assertEquals(
                     lastCheckpoint.oldestNotVisibleTransactionLogPosition(), lastCheckpoint.transactionLogPosition());
         } finally {
@@ -310,7 +309,7 @@ class CheckPointerIntegrationTest {
             }
 
             List<CheckpointInfo> checkpointInfos = checkPointsInTxLog(db);
-            CheckpointInfo lastCheckpoint = checkpointInfos.get(checkpointInfos.size() - 1);
+            CheckpointInfo lastCheckpoint = checkpointInfos.getLast();
             assertEquals(
                     lastCheckpoint.oldestNotVisibleTransactionLogPosition(), lastCheckpoint.transactionLogPosition());
         } finally {
@@ -390,7 +389,7 @@ class CheckPointerIntegrationTest {
             GraphDatabaseAPI databaseAPI = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             var cacheTracer = databaseAPI.getDependencyResolver().resolveDependency(PageCacheTracer.class);
 
-            String property = RandomStringUtils.randomAscii((int) kibiBytes(2));
+            String property = RandomStringUtils.insecure().nextAscii((int) kibiBytes(2));
             for (int i = 0; i < 100; i++) {
                 try (var transaction = databaseAPI.beginTx()) {
                     Node nodeA = transaction.createNode();

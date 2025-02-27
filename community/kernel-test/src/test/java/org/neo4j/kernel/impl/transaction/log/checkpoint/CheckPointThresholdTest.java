@@ -21,12 +21,15 @@ package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.impl.transaction.log.LogPosition.UNSPECIFIED;
 import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointThreshold.DEFAULT_CHECKING_FREQUENCY_MILLIS;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.GraphDatabaseSettings;
 
 class CheckPointThresholdTest extends CheckPointThresholdTestSupport {
 
@@ -208,5 +211,14 @@ class CheckPointThresholdTest extends CheckPointThresholdTestSupport {
 
         withIntervalTime("100ms");
         assertThat(createThreshold().checkFrequencyMillis()).isEqualTo(100L);
+    }
+
+    @Test
+    void timeBasedThresholdShouldNotCrashOnUnreasonableLongIntervals() {
+        config.set(GraphDatabaseSettings.check_point_interval_time, Duration.ofMillis(Long.MAX_VALUE - 10));
+        CheckPointThreshold threshold = createThreshold();
+        threshold.initialize(2, UNSPECIFIED);
+        assertThatCode(() -> threshold.isCheckPointingNeeded(6, ARBITRARY_LOG_POSITION, triggered))
+                .doesNotThrowAnyException();
     }
 }
