@@ -213,7 +213,7 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
             // An invalid position might indicate that offset, line and column is provided in incorrect order
             assert line < 1 // Default/test position
                     || (line == 1 && col == offset + 1)
-                    || (line > 1 && offset > col);
+                    || (line > 1 && offset >= col);
             diagnosticRecordBuilder.atPosition(offset, line, col);
             return this;
         }

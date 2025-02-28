@@ -20,7 +20,9 @@
 package org.neo4j.gqlstatus;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.apache.commons.lang3.SerializationUtils;
 import org.junit.jupiter.api.Test;
@@ -83,5 +85,38 @@ class ErrorGqlStatusObjectImplementationTest {
         ErrorGqlStatusObjectImplementation deserialized = SerializationUtils.deserialize(data);
 
         assertEquals(error, deserialized);
+    }
+
+    @Test
+    void positionAssertShouldWorkForValidPositions() {
+        var errorBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N02);
+
+        // Default/test positions with line -1 or 0
+        assertDoesNotThrow(() -> errorBuilder.atPosition(0, 0, 0));
+        assertDoesNotThrow(() -> errorBuilder.atPosition(1, 0, 1));
+        assertDoesNotThrow(() -> errorBuilder.atPosition(42, 0, 37));
+        assertDoesNotThrow(() -> errorBuilder.atPosition(-1, -1, -1));
+
+        // On line 1, column is always offset + 1
+        assertDoesNotThrow(() -> errorBuilder.atPosition(0, 1, 1));
+        assertDoesNotThrow(() -> errorBuilder.atPosition(10, 1, 11));
+
+        // On line > 1, offset must be at least as big as column
+        assertDoesNotThrow(() -> errorBuilder.atPosition(7, 2, 7));
+        assertDoesNotThrow(() -> errorBuilder.atPosition(47, 2, 37));
+        assertDoesNotThrow(() -> errorBuilder.atPosition(23, 5, 1));
+    }
+
+    @Test
+    void positionAssertShouldFailForInvalidPositions() {
+        var errorBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N02);
+
+        // On line 1, column is always offset + 1
+        assertThrows(AssertionError.class, () -> errorBuilder.atPosition(2, 1, 2));
+        assertThrows(AssertionError.class, () -> errorBuilder.atPosition(2, 1, 1));
+
+        // On line > 1, offset must be at least as big as column
+        assertThrows(AssertionError.class, () -> errorBuilder.atPosition(6, 2, 7));
+        assertThrows(AssertionError.class, () -> errorBuilder.atPosition(0, 5, 1));
     }
 }
