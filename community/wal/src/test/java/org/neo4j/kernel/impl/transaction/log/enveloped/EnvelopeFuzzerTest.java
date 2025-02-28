@@ -23,6 +23,7 @@ import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.io.ByteUnit.mebiBytes;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.KERNEL_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.writeLogHeader;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
@@ -35,8 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.helpers.MathUtil;
 import org.neo4j.internal.nativeimpl.NativeAccess;
@@ -76,6 +76,8 @@ class EnvelopeFuzzerTest {
 
     private static final long PREV_INDEX = -1;
 
+    private static final KernelVersion KERNEL_VERSION = KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+
     @Inject
     private RandomSupport random;
 
@@ -85,8 +87,7 @@ class EnvelopeFuzzerTest {
     @Inject
     private TestDirectory testDirectory;
 
-    @Disabled("Will need a LogFormat V10 to function")
-    @Test
+    @RepeatedTest(100)
     void randomWritesAndReads() throws IOException {
         int segmentSize = 1 << random.intBetween(log2(128), log2(kibiBytes(256))); // Between 128b to 256kb
         int bufferSize =
@@ -108,7 +109,7 @@ class EnvelopeFuzzerTest {
                 StoreId.UNKNOWN,
                 segmentSize,
                 initialChecksum,
-                LatestVersions.LATEST_KERNEL_VERSION);
+                KERNEL_VERSION);
         writeLogHeader(storeChannel, logHeader, INSTANCE);
         storeChannel.position(segmentSize);
 
@@ -123,7 +124,9 @@ class EnvelopeFuzzerTest {
                 LogTracers.NULL,
                 logRotation)) {
             logRotation.bindWriteChannel(envelopeWriteChannel);
-            envelopeWriteChannel.putVersion(LatestVersions.LATEST_KERNEL_VERSION.version());
+            envelopeWriteChannel.putVersion(KERNEL_VERSION.version());
+            envelopeWriteChannel.putContentType(KERNEL_CONTENT_TYPE);
+            envelopeWriteChannel.beginChecksumForWriting();
 
             for (int i = 0; i < sequence.size(); i++) {
                 DataStep dataStep = sequence.get(i);
@@ -206,7 +209,7 @@ class EnvelopeFuzzerTest {
         return new PhysicalLogVersionedStoreChannel(
                 channel,
                 version,
-                LatestVersions.LATEST_LOG_FORMAT,
+                LogFormat.fromKernelVersion(KERNEL_VERSION),
                 logPath,
                 ChannelNativeAccessor.EMPTY_ACCESSOR,
                 LogTracers.NULL);
@@ -246,7 +249,7 @@ class EnvelopeFuzzerTest {
                             StoreId.UNKNOWN,
                             segmentSize,
                             previousChecksum,
-                            LatestVersions.LATEST_KERNEL_VERSION);
+                            KERNEL_VERSION);
                     writeLogHeader(logChannel, logHeader, INSTANCE);
                     logChannel.position(segmentSize);
 
@@ -517,8 +520,9 @@ class EnvelopeFuzzerTest {
 
         @Override
         public void write(EnvelopeWriteChannel channel) throws IOException {
-            channel.endCurrentEntry();
-            value = channel.currentChecksum();
+            value = channel.putChecksum();
+            channel.putContentType(KERNEL_CONTENT_TYPE);
+            channel.beginChecksumForWriting();
         }
 
         @Override
