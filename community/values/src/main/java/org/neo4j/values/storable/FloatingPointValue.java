@@ -24,6 +24,21 @@ import org.neo4j.values.utils.ValueMath;
 
 public abstract class FloatingPointValue extends NumberValue {
     @Override
+    public byte byteValue() {
+        return (byte) doubleValue();
+    }
+
+    @Override
+    public short shortValue() {
+        return (short) doubleValue();
+    }
+
+    @Override
+    public int intValue() {
+        return (int) doubleValue();
+    }
+
+    @Override
     public long longValue() {
         return (long) doubleValue();
     }

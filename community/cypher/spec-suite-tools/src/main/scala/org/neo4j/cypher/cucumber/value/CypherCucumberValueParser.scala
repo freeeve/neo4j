@@ -36,9 +36,11 @@ import org.neo4j.cypher.cucumber.value.ValueRepresentation.Connection
 import org.neo4j.cypher.cucumber.value.ValueRepresentation.NoIdNode
 import org.neo4j.cypher.cucumber.value.ValueRepresentation.NoIdPath
 import org.neo4j.cypher.cucumber.value.ValueRepresentation.NoIdRel
+import org.neo4j.values.storable.Values
+import org.neo4j.values.storable.VectorValue
 
 import java.util.Collections
-
+import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.jdk.CollectionConverters.SetHasAsJava
@@ -67,7 +69,8 @@ object CypherCucumberValueParser {
       path |
       list |
       map |
-      nanValue
+      nanValue |
+      vector
 
   def escape[X: P] = P("\\" ~~ CharIn("'\\\\"))
   def stringChars[X: P] = P(CharsWhile(c => c != '\'' && c != '\\'))
@@ -96,6 +99,19 @@ object CypherCucumberValueParser {
 
   private def nanValue[X: P]: P[java.lang.Double] = P("NaN").!.map(_ => Double.NaN)
 
+  private def vectorCoordinateType[X: P]: P[java.lang.String] = P(CharsWhileIn("A-Za-z0-9")).!
+  private def vector[X: P]: P[VectorValue] = P(vectorCoordinateType ~/ list).map {
+    case (vectorType: String, coordinates: java.util.List[AnyRef]) =>
+      vectorType match {
+        case "Int8Vector" => Values.int8Vector(coordinates.asScala.collect { case i: Number => i.byteValue() }.toArray:_*)
+        case "Int16Vector" => Values.int16Vector(coordinates.asScala.collect { case i: Number => i.shortValue() }.toArray:_*)
+        case "Int32Vector" => Values.int32Vector(coordinates.asScala.collect { case i: Number => i.intValue() }.toArray:_*)
+        case "Int64Vector" => Values.int64Vector(coordinates.asScala.collect { case i: Number => i.longValue() }.toArray:_*)
+        case "Float32Vector" => Values.float32Vector(coordinates.asScala.collect { case i: Number => i.floatValue() }.toArray:_*)
+        case "Float64Vector" => Values.float64Vector(coordinates.asScala.collect { case i: Number => i.doubleValue() }.toArray:_*)
+      }
+  }
+
   private def label[X: P]: P[String] = ":" ~~ symbolicName.!
   private def keyValue[X: P]: P[(String, AnyRef)] = symbolicName ~~ ":" ~ cypherValue
 
@@ -112,7 +128,7 @@ object CypherCucumberValueParser {
     (digits ~~ "." ~~ digits ~~ exponent.?) |
       ("." ~~ digits ~~ exponent.?) |
       (digits ~~ exponent)
-  private def exponent[X: P]: P[Unit] = IgnoreCase("e") ~~ "-".? ~~ digits
+  private def exponent[X: P]: P[Unit] = IgnoreCase("e") ~~ CharsWhileIn("+\\-").? ~~ digits
 
   final object LimitedWhiteSpace extends Whitespace {
 

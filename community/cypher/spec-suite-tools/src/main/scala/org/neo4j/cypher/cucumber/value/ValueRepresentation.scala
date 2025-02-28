@@ -20,6 +20,7 @@
 package org.neo4j.cypher.cucumber.value
 
 import java.util
+import scala.jdk.CollectionConverters.CollectionHasAsScala
 
 /**
  * We represent values as close to embedded API as possible.
