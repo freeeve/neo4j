@@ -1463,7 +1463,7 @@ class MainIntegrationTest extends TestHarness {
                 .outputSatisfies(o -> assertThat(o)
                         .containsOnlyOnce("\"neo4j\"")
                         .containsOnlyOnce("\"system\"")
-                        .containsOnlyOnce("\"Property ID\"")
+                        .containsOnlyOnce("\"Node ID\"")
                         .containsOnlyOnce("\"Relationship ID\"")
                         .containsOnlyOnce("\"Relationship Type ID\"")
                         .containsOnlyOnce("\"Total\"")

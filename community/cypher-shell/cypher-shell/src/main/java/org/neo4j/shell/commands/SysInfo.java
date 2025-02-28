@@ -160,7 +160,7 @@ public class SysInfo implements Command {
             new MetricGroup(
                     "ID Allocation",
                     List.of(
-                            Metric.db("ids_in_use.property", "Property ID"),
+                            Metric.db("ids_in_use.node", "Node ID"),
                             Metric.db("ids_in_use.relationship", "Relationship ID"),
                             Metric.db("ids_in_use.relationship_type", "Relationship Type ID"))),
             new MetricGroup(
