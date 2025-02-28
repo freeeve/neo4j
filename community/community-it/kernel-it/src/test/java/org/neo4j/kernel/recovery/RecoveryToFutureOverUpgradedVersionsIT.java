@@ -59,6 +59,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.internal.event.InternalTransactionEventListener;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -139,6 +140,12 @@ class RecoveryToFutureOverUpgradedVersionsIT {
 
         RecoveryHelpers.removeLastCheckpointRecordFromLogFile(dbLayout, fileSystem, config);
         assertFalse(logsContainCheckpoint(dbLayout, fileSystem));
+
+        // the above processing artificially leaves an empty checkpoint file with a higher kernel version
+        // after the first one, which isn't valid and hits an assert during DB startup
+        TransactionLogFilesHelper checkpointMatcher =
+                TransactionLogFilesHelper.forCheckpoints(fileSystem, dbLayout.getTransactionLogsDirectory());
+        fileSystem.deleteFile(checkpointMatcher.getLogFileForVersion(1));
 
         startDbms(this::configureGloriousFutureAsLatest, true);
         testDb = (GraphDatabaseAPI) managementService.database(dbName);

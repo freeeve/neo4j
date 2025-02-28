@@ -20,10 +20,10 @@
 package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.neo4j.kernel.impl.transaction.log.entry.v57.DetachedCheckpointLogEntrySerializerV5_7.RECORD_LENGTH_BYTES;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.ACTUAL_ROTATION_THRESHOLD;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.fillWithCheckpointsWithCallback;
 import static org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent.NULL;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
-import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledOnOs;
 import org.junit.jupiter.api.condition.OS;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
+import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.test.LatestVersions;
 
@@ -75,35 +76,28 @@ class PreallocatedCheckpointLogFileRotationIT extends CheckpointLogFileRotationI
     void writeCheckpointsIntoSeveralPreallocatedFiles() throws IOException {
         var checkpointFile = logFiles.getCheckpointFile();
         var checkpointAppender = checkpointFile.getCheckpointAppender();
-        LogPosition logPosition = new LogPosition(1000, 12345);
-        var transactionId = new TransactionId(100, 101, LATEST_KERNEL_VERSION, 101, 102, 103);
-        var reason = "checkpoint in preallocated file";
 
         checkpointFile.rotate();
 
-        for (int fileCount = 2; fileCount <= 6; fileCount++) {
-            for (int i = LATEST_LOG_FORMAT.getHeaderSize(); i < ACTUAL_ROTATION_THRESHOLD; i += RECORD_LENGTH_BYTES) {
-                checkpointAppender.checkPoint(
-                        NULL,
-                        transactionId,
-                        transactionId.id() + 7,
-                        LatestVersions.LATEST_KERNEL_VERSION,
-                        logPosition,
-                        logPosition,
-                        Instant.now(),
-                        reason);
-                assertThat(checkpointFile.getMatchedFiles())
-                        .hasSize(fileCount)
-                        .allMatch(this::sizeEqualsToPreallocatedFile);
-            }
-        }
+        fillWithCheckpointsWithCallback(
+                5, checkpointAppender, index -> assertThat(getMatchedFilesUnchecked(checkpointFile))
+                        .hasSize(index + 2)
+                        .allMatch(this::sizeEqualsToPreallocatedFile));
 
         assertThat(checkpointFile.getMatchedFiles()).hasSize(6).allMatch(this::sizeEqualsToPreallocatedFile);
     }
 
+    private Path[] getMatchedFilesUnchecked(CheckpointFile checkpointFile) {
+        try {
+            return checkpointFile.getMatchedFiles();
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+    }
+
     private boolean sizeEqualsToPreallocatedFile(Path path) {
         try {
-            return Files.size(path) < ACTUAL_ROTATION_THRESHOLD + RECORD_LENGTH_BYTES;
+            return Files.size(path) <= CheckpointFillHelper.getMaxCheckpointFileSize();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
