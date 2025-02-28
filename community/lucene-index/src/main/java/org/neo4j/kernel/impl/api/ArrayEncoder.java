@@ -176,6 +176,36 @@ public final class ArrayEncoder {
         }
 
         @Override
+        public void writeInt8Vector(byte[] values) throws RuntimeException {
+            throw new UnsupportedOperationException("vector arrays are not supported");
+        }
+
+        @Override
+        public void writeInt16Vector(short[] values) throws RuntimeException {
+            throw new UnsupportedOperationException("vector arrays are not supported");
+        }
+
+        @Override
+        public void writeInt32Vector(int[] values) throws RuntimeException {
+            throw new UnsupportedOperationException("vector arrays are not supported");
+        }
+
+        @Override
+        public void writeInt64Vector(long[] values) throws RuntimeException {
+            throw new UnsupportedOperationException("vector arrays are not supported");
+        }
+
+        @Override
+        public void writeFloat32Vector(float[] values) throws RuntimeException {
+            throw new UnsupportedOperationException("vector arrays are not supported");
+        }
+
+        @Override
+        public void writeFloat64Vector(double[] values) throws RuntimeException {
+            throw new UnsupportedOperationException("vector arrays are not supported");
+        }
+
+        @Override
         public void beginArray(int size, ArrayType arrayType) {
             if (size > 0) {
                 builder.append(typeChar(arrayType));

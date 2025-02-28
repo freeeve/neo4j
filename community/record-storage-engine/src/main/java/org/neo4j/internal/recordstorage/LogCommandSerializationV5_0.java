@@ -434,6 +434,36 @@ class LogCommandSerializationV5_0 extends LogCommandSerializationV4_4 {
             public void writeDateTime(ZonedDateTime zonedDateTime) throws IOException {
                 throw new IOException("DateTime is not a supported schema map value type.");
             }
+
+            @Override
+            public void writeInt8Vector(byte[] values) throws IOException {
+                throw new IOException("Vector is not a supported schema map value type.");
+            }
+
+            @Override
+            public void writeInt16Vector(short[] values) throws IOException {
+                throw new IOException("Vector is not a supported schema map value type.");
+            }
+
+            @Override
+            public void writeInt32Vector(int[] values) throws IOException {
+                throw new IOException("Vector is not a supported schema map value type.");
+            }
+
+            @Override
+            public void writeInt64Vector(long[] values) throws IOException {
+                throw new IOException("Vector is not a supported schema map value type.");
+            }
+
+            @Override
+            public void writeFloat32Vector(float[] values) throws IOException {
+                throw new IOException("Vector is not a supported schema map value type.");
+            }
+
+            @Override
+            public void writeFloat64Vector(double[] values) throws IOException {
+                throw new IOException("Vector is not a supported schema map value type.");
+            }
         });
     }
 

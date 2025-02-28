@@ -482,6 +482,36 @@ public abstract class GenericKey<KEY extends GenericKey<KEY>> extends NativeInde
         }
     }
 
+    @Override
+    public void writeInt8Vector(byte[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeInt16Vector(short[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeInt32Vector(int[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeInt64Vector(long[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeFloat32Vector(float[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeFloat64Vector(double[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
     // Write byte array is a special case,
     // instead of calling beginArray and writing the bytes one-by-one
     // writeByteArray is called so that the bytes can be written in batches.

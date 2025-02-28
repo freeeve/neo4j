@@ -121,7 +121,7 @@ public final class AuthenticationMetadataUtils {
 
         @Override
         protected Point newPoint(CoordinateReferenceSystem crs, double[] coordinate) {
-            throw new UnsupportedOperationException("Authentication tokens should not contain relationships");
+            throw new UnsupportedOperationException("Authentication tokens should not contain points");
         }
     }
 }

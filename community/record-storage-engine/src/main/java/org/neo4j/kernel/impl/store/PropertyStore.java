@@ -588,6 +588,36 @@ public class PropertyStore extends CommonAbstractStore<PropertyRecord, NoStoreHe
         public void writeDateTime(long epochSecondUTC, int nano, String zoneId) throws IllegalArgumentException {
             block.setValueBlocks(TemporalType.encodeDateTime(keyId, epochSecondUTC, nano, zoneId));
         }
+
+        @Override
+        public void writeInt8Vector(byte[] values) throws RuntimeException {
+            throw new IllegalArgumentException("Cannot write vector values to the property store");
+        }
+
+        @Override
+        public void writeInt16Vector(short[] values) throws RuntimeException {
+            throw new IllegalArgumentException("Cannot write vector values to the property store");
+        }
+
+        @Override
+        public void writeInt32Vector(int[] values) throws RuntimeException {
+            throw new IllegalArgumentException("Cannot write vector values to the property store");
+        }
+
+        @Override
+        public void writeInt64Vector(long[] values) throws RuntimeException {
+            throw new IllegalArgumentException("Cannot write vector values to the property store");
+        }
+
+        @Override
+        public void writeFloat32Vector(float[] values) throws RuntimeException {
+            throw new IllegalArgumentException("Cannot write vector values to the property store");
+        }
+
+        @Override
+        public void writeFloat64Vector(double[] values) throws RuntimeException {
+            throw new IllegalArgumentException("Cannot write vector values to the property store");
+        }
     }
 
     public static void setSingleBlockValue(PropertyBlock block, int keyId, PropertyType type, long longValue) {

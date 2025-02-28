@@ -144,4 +144,34 @@ public abstract class ThrowingValueWriter<E extends Exception> implements ValueW
     public void writeDateTime(ZonedDateTime zonedDateTime) throws E {
         throw exception("writeDateTime");
     }
+
+    @Override
+    public void writeInt8Vector(byte[] values) throws E {
+        throw exception("writeInt8Vector");
+    }
+
+    @Override
+    public void writeInt16Vector(short[] values) throws E {
+        throw exception("writeInt16Vector");
+    }
+
+    @Override
+    public void writeInt32Vector(int[] values) throws E {
+        throw exception("writeInt32Vector");
+    }
+
+    @Override
+    public void writeInt64Vector(long[] values) throws E {
+        throw exception("writeInt64Vector");
+    }
+
+    @Override
+    public void writeFloat32Vector(float[] values) throws E {
+        throw exception("writeFloat32Vector");
+    }
+
+    @Override
+    public void writeFloat64Vector(double[] values) throws E {
+        throw exception("writeFloat64Vector");
+    }
 }

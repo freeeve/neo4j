@@ -30,6 +30,12 @@ import java.util.Deque;
 import java.util.List;
 import org.neo4j.values.AnyValueWriter;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
+import org.neo4j.values.storable.Float32Vector;
+import org.neo4j.values.storable.Float64Vector;
+import org.neo4j.values.storable.Int16Vector;
+import org.neo4j.values.storable.Int32Vector;
+import org.neo4j.values.storable.Int64Vector;
+import org.neo4j.values.storable.Int8Vector;
 import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.virtual.MapValue;
@@ -348,6 +354,45 @@ public class PrettyPrinter implements AnyValueWriter<RuntimeException> {
     @Override
     public void writeString(char value) {
         writeString(Character.toString(value));
+    }
+
+    private void writeVector(String coordinates, int length, String type) {
+        append("vector(");
+        append(coordinates);
+        append(", " + length);
+        append(", ");
+        append(type);
+        append(")");
+    }
+
+    @Override
+    public void writeInt8Vector(byte[] values) throws RuntimeException {
+        writeVector(Arrays.toString(values), values.length, Int8Vector.NESTED_TYPE_NAME);
+    }
+
+    @Override
+    public void writeInt16Vector(short[] values) throws RuntimeException {
+        writeVector(Arrays.toString(values), values.length, Int16Vector.NESTED_TYPE_NAME);
+    }
+
+    @Override
+    public void writeInt32Vector(int[] values) throws RuntimeException {
+        writeVector(Arrays.toString(values), values.length, Int32Vector.NESTED_TYPE_NAME);
+    }
+
+    @Override
+    public void writeInt64Vector(long[] values) throws RuntimeException {
+        writeVector(Arrays.toString(values), values.length, Int64Vector.NESTED_TYPE_NAME);
+    }
+
+    @Override
+    public void writeFloat32Vector(float[] values) throws RuntimeException {
+        writeVector(Arrays.toString(values), values.length, Float32Vector.NESTED_TYPE_NAME);
+    }
+
+    @Override
+    public void writeFloat64Vector(double[] values) throws RuntimeException {
+        writeVector(Arrays.toString(values), values.length, Float64Vector.NESTED_TYPE_NAME);
     }
 
     @Override

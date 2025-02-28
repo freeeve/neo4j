@@ -26,6 +26,9 @@ import org.neo4j.memory.HeapEstimator;
 import org.neo4j.values.ValueMapper;
 
 public final class Int64Vector extends IntegralVector {
+
+    public static final String NESTED_TYPE_NAME = "INTEGER64";
+
     private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(Int64Vector.class);
 
     private final long[] coordinates;
@@ -78,7 +81,9 @@ public final class Int64Vector extends IntegralVector {
     }
 
     @Override
-    public <E extends Exception> void writeTo(ValueWriter<E> writer) throws E {}
+    public <E extends Exception> void writeTo(ValueWriter<E> writer) throws E {
+        writer.writeInt64Vector(coordinates);
+    }
 
     @Override
     public <T> T map(ValueMapper<T> mapper) {

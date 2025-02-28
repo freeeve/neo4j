@@ -183,6 +183,36 @@ public class BufferValueWriter implements ValueWriter<RuntimeException> {
         buffer.add(DateTimeValue.datetime(zonedDateTime));
     }
 
+    @Override
+    public void writeInt8Vector(byte[] values) throws RuntimeException {
+        buffer.add(Values.int8Vector(values));
+    }
+
+    @Override
+    public void writeInt16Vector(short[] values) throws RuntimeException {
+        buffer.add(Values.int16Vector(values));
+    }
+
+    @Override
+    public void writeInt32Vector(int[] values) throws RuntimeException {
+        buffer.add(Values.int32Vector(values));
+    }
+
+    @Override
+    public void writeInt64Vector(long[] values) throws RuntimeException {
+        buffer.add(Values.int64Vector(values));
+    }
+
+    @Override
+    public void writeFloat32Vector(float[] values) throws RuntimeException {
+        buffer.add(Values.float32Vector(values));
+    }
+
+    @Override
+    public void writeFloat64Vector(double[] values) throws RuntimeException {
+        buffer.add(Values.float64Vector(values));
+    }
+
     public static class Specials {
         public static Special byteArray(byte[] value) {
             return new Special(WriteByteArray, Arrays.hashCode(value));

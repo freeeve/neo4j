@@ -97,6 +97,18 @@ public interface ValueWriter<E extends Exception> {
 
     void writeDateTime(ZonedDateTime zonedDateTime) throws E;
 
+    void writeInt8Vector(byte[] values) throws E;
+
+    void writeInt16Vector(short[] values) throws E;
+
+    void writeInt32Vector(int[] values) throws E;
+
+    void writeInt64Vector(long[] values) throws E;
+
+    void writeFloat32Vector(float[] values) throws E;
+
+    void writeFloat64Vector(double[] values) throws E;
+
     class Adapter<E extends Exception> implements ValueWriter<E> {
         @Override
         public void writeNull() throws E { // no-op
@@ -176,6 +188,30 @@ public interface ValueWriter<E extends Exception> {
 
         @Override
         public void writeDateTime(ZonedDateTime zonedDateTime) throws E { // no-op
+        }
+
+        @Override
+        public void writeFloat32Vector(float[] values) throws E { // no-op
+        }
+
+        @Override
+        public void writeInt8Vector(byte[] values) throws E { // no-op
+        }
+
+        @Override
+        public void writeInt16Vector(short[] values) throws E { // no-op
+        }
+
+        @Override
+        public void writeInt32Vector(int[] values) throws E { // no-op
+        }
+
+        @Override
+        public void writeInt64Vector(long[] values) throws E { // no-op
+        }
+
+        @Override
+        public void writeFloat64Vector(double[] values) throws E { // no-op
         }
     }
 }

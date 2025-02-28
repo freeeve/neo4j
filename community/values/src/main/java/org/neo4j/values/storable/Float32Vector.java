@@ -26,6 +26,9 @@ import org.neo4j.memory.HeapEstimator;
 import org.neo4j.values.ValueMapper;
 
 public final class Float32Vector extends FloatingPointVector {
+
+    public static final String NESTED_TYPE_NAME = "FLOAT32";
+
     private static final long SHALLOW_SIZE = HeapEstimator.shallowSizeOfInstance(Float32Vector.class);
 
     private final float[] coordinates;
@@ -78,7 +81,9 @@ public final class Float32Vector extends FloatingPointVector {
     }
 
     @Override
-    public <E extends Exception> void writeTo(ValueWriter<E> writer) throws E {}
+    public <E extends Exception> void writeTo(ValueWriter<E> writer) throws E {
+        writer.writeFloat32Vector(coordinates);
+    }
 
     @Override
     public <T> T map(ValueMapper<T> mapper) {

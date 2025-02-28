@@ -104,6 +104,36 @@ public abstract class PackstreamValueWriter implements AnyValueWriter<RuntimeExc
     }
 
     @Override
+    public void writeInt8Vector(byte[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeInt16Vector(short[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeInt32Vector(int[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeInt64Vector(long[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeFloat32Vector(float[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void writeFloat64Vector(double[] values) throws RuntimeException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public EntityMode entityMode() {
         return EntityMode.FULL;
     }

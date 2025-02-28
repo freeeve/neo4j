@@ -21,6 +21,7 @@ package org.neo4j.internal.recordstorage.idx;
 
 import static java.time.ZoneOffset.UTC;
 import static org.apache.commons.lang3.RandomStringUtils.randomAscii;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -50,10 +51,6 @@ class ValueStreamTest {
     @ParameterizedTest
     @MethodSource("values")
     void testValues(Value value) throws IOException {
-        doTestValue(value);
-    }
-
-    private void doTestValue(Value value) throws IOException {
         ValueStream.write(channel, value);
         AnyValue readValue = ValueStream.readValue(new PeekableChannel(channel));
         assertEquals(value, readValue);
@@ -116,5 +113,23 @@ class ValueStreamTest {
                     PointValue.maxPointValueOf(CoordinateReferenceSystem.CARTESIAN),
                     PointValue.minPointValueOf(CoordinateReferenceSystem.CARTESIAN_3D)
                 }));
+    }
+
+    @ParameterizedTest
+    @MethodSource("vectors")
+    void testVectors(Value value) {
+        assertThatThrownBy(() -> ValueStream.write(channel, value))
+                .isInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Cannot write vectors");
+    }
+
+    private static Stream<Value> vectors() {
+        return Stream.of(
+                Values.int8Vector((byte) 1, (byte) 2),
+                Values.int16Vector((short) 1, (short) 2),
+                Values.int32Vector(1, 2),
+                Values.int64Vector(1, 2),
+                Values.float32Vector(1f, 2f),
+                Values.float64Vector(1d, 2d));
     }
 }

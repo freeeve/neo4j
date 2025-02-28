@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.store;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.eclipse.collections.api.factory.Sets.immutable;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,13 +31,17 @@ import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.imme
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.kernel.impl.store.record.RecordLoad.FORCE;
+import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.test.utils.PageCacheConfig.config;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.id.DefaultIdGeneratorFactory;
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
@@ -55,6 +60,8 @@ import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.pagecache.PageCacheSupportExtension;
+import org.neo4j.values.storable.Value;
+import org.neo4j.values.storable.Values;
 
 @EphemeralNeo4jLayoutExtension
 class PropertyStoreTest {
@@ -137,6 +144,25 @@ class PropertyStoreTest {
                 verify(stringPropertyStore).updateRecord(eq(dynamicRecord), any(), any(), any(), any());
             }
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("vectors")
+    void cannotStoreVectors(Value vector) {
+        PropertyBlock block = new PropertyBlock();
+        assertThatThrownBy(() -> PropertyStore.encodeValue(block, 1, vector, null, null, NULL_CONTEXT, INSTANCE))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Cannot write vector values to the property store");
+    }
+
+    private static Stream<Value> vectors() {
+        return Stream.of(
+                Values.int8Vector((byte) 1, (byte) 2),
+                Values.int16Vector((short) 1, (short) 2),
+                Values.int32Vector(1, 2),
+                Values.int64Vector(1, 2),
+                Values.float32Vector(1f, 2f),
+                Values.float64Vector(1d, 2d));
     }
 
     private static DynamicRecord dynamicRecord() {

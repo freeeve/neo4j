@@ -40,7 +40,11 @@ import static org.neo4j.values.virtual.VirtualValues.list;
 import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DateTimeValue;
@@ -484,6 +488,24 @@ class PrettyPrinterTest {
         datetime.writeTo(printer);
 
         assertEquals("{datetime: \"1988-04-19T10:12:59.112233445+03:15\"}", printer.value());
+    }
+
+    @ParameterizedTest
+    @MethodSource("vectors")
+    void shouldHandleVectors(String expected, Value value) {
+        PrettyPrinter printer = new PrettyPrinter();
+        value.writeTo(printer);
+        assertEquals(expected, printer.value());
+    }
+
+    private static Stream<Arguments> vectors() {
+        return Stream.of(
+                Arguments.of("vector([1, 2], 2, INTEGER8)", Values.int8Vector((byte) 1, (byte) 2)),
+                Arguments.of("vector([1, 2], 2, INTEGER16)", Values.int16Vector((short) 1, (short) 2)),
+                Arguments.of("vector([1, 2], 2, INTEGER32)", Values.int32Vector(1, 2)),
+                Arguments.of("vector([1, 2], 2, INTEGER64)", Values.int64Vector(1, 2)),
+                Arguments.of("vector([1.0, 2.0], 2, FLOAT32)", Values.float32Vector(1f, 2f)),
+                Arguments.of("vector([1.0, 2.0], 2, FLOAT64)", Values.float64Vector(1d, 2d)));
     }
 
     @Test

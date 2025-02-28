@@ -47,6 +47,7 @@ import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
+import org.neo4j.values.storable.Values;
 import org.neo4j.values.virtual.MapValue;
 import org.neo4j.values.virtual.NodeValue;
 import org.neo4j.values.virtual.RelationshipValue;
@@ -334,6 +335,36 @@ public abstract class BaseToObjectValueWriter<E extends Exception> implements An
     @Override
     public void writeDateTime(ZonedDateTime zonedDateTime) {
         writeValue(zonedDateTime);
+    }
+
+    @Override
+    public void writeInt8Vector(byte[] values) {
+        writeValue(Values.int8Vector(values));
+    }
+
+    @Override
+    public void writeInt16Vector(short[] values) {
+        writeValue(Values.int16Vector(values));
+    }
+
+    @Override
+    public void writeInt32Vector(int[] values) {
+        writeValue(Values.int32Vector(values));
+    }
+
+    @Override
+    public void writeInt64Vector(long[] values) {
+        writeValue(Values.int64Vector(values));
+    }
+
+    @Override
+    public void writeFloat32Vector(float[] values) {
+        writeValue(Values.float32Vector(values));
+    }
+
+    @Override
+    public void writeFloat64Vector(double[] values) {
+        writeValue(Values.float64Vector(values));
     }
 
     private static class PathProxy implements Path {
