@@ -19,10 +19,10 @@
  */
 package org.neo4j.cypher.operations;
 
-import static java.lang.Double.parseDouble;
 import static java.lang.Long.parseLong;
 import static java.lang.String.format;
 import static org.neo4j.cypher.operations.CursorUtils.propertyKeys;
+import static org.neo4j.cypher.operations.CypherRuntimeParser.parseAsDoubleOrElseNoValue;
 import static org.neo4j.values.storable.Values.EMPTY_STRING;
 import static org.neo4j.values.storable.Values.FALSE;
 import static org.neo4j.values.storable.Values.NO_VALUE;
@@ -1872,16 +1872,12 @@ public final class CypherFunctions {
     public static Value toFloat(AnyValue in) {
         if (in == NO_VALUE) {
             return NO_VALUE;
-        } else if (in instanceof DoubleValue) {
-            return (DoubleValue) in;
+        } else if (in instanceof DoubleValue d) {
+            return d;
         } else if (in instanceof NumberValue number) {
             return doubleValue(number.doubleValue());
-        } else if (in instanceof TextValue) {
-            try {
-                return doubleValue(parseDouble(((TextValue) in).stringValue()));
-            } catch (NumberFormatException ignore) {
-                return NO_VALUE;
-            }
+        } else if (in instanceof TextValue text) {
+            return parseAsDoubleOrElseNoValue(text.stringValue());
         } else {
             throw CypherTypeException.functionArgumentWrongType(
                     "Invalid input for function 'toFloat()': Expected a String, Float or Integer, got: " + in,

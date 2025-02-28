@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.operations;
 
+import static org.neo4j.values.storable.Values.NO_VALUE;
+import static org.neo4j.values.storable.Values.doubleValue;
 import static org.neo4j.values.storable.Values.numberValue;
 
 import java.util.List;
@@ -31,6 +33,7 @@ import org.neo4j.cypher.internal.parser.AstParserFactory;
 import org.neo4j.cypher.internal.parser.AstParserFactory$;
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory;
 import org.neo4j.exceptions.CypherTypeException;
+import org.neo4j.exceptions.SyntaxException;
 import org.neo4j.kernel.impl.util.ValueUtils;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.ArrayValue;
@@ -154,6 +157,19 @@ abstract class CypherRuntimeParser {
             doubles[i++] = safeAsDouble(iterator.next());
         }
         return Values.float64Vector(doubles);
+    }
+
+    public static Value parseAsDoubleOrElseNoValue(String expression) {
+        try {
+            var res = parse(expression);
+            if (res instanceof NumberLiteral number) {
+                return doubleValue(number.value().doubleValue());
+            } else {
+                return NO_VALUE;
+            }
+        } catch (NumberFormatException | SyntaxException ignore) {
+            return NO_VALUE;
+        }
     }
 
     private static Seq<Expression> asList(String stringList) {
