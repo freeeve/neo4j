@@ -60,6 +60,19 @@ public class InvalidArgumentException extends Neo4jException {
         super(gqlStatusObject, message);
     }
 
+    public static InvalidArgumentException cannotImpersonateUser(String userToImpersonate) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .build();
+        return new InvalidArgumentException(
+                gql, String.format("%s '%s'.", "Cannot impersonate user", userToImpersonate));
+    }
+
+    public static InvalidArgumentException cannotImpersonateFromAnAlreadyImpersonatedContext() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .build();
+        return new InvalidArgumentException(gql, "Cannot impersonate a user from an already impersonated context");
+    }
+
     @Override
     public Status status() {
         return Status.Statement.ArgumentError;
