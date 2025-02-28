@@ -770,20 +770,25 @@ case class Match(
       val allVariablesInSimplePatterns: Set[LogicalVariable] =
         simplePatterns.flatMap(_.allVariables).toSet
 
+      // Restores the user facing position of the variable when throwing errors in QPPs
+      def getActualPos(variable: LogicalVariable, paths: List[QuantifiedPath]): InputPosition = {
+        paths.flatMap(_.part.allVariables).find(_.name == variable.name).getOrElse(variable).position
+      }
+
       val semanticErrors =
         quantifiedPathsPerVariable.flatMap { case (variable, paths) =>
           List(
             Option.when(paths.size > 1) {
               SemanticError.variableAlreadyDeclared(
                 variable.name,
-                variable.position,
+                getActualPos(variable, paths),
                 s"The variable `${variable.name}` occurs in multiple quantified path patterns and needs to be renamed."
               )
             },
             Option.when(allVariablesInSimplePatterns.contains(variable)) {
               SemanticError.variableAlreadyDeclared(
                 variable.name,
-                variable.position,
+                getActualPos(variable, paths),
                 s"The variable `${variable.name}` occurs both inside and outside a quantified path pattern and needs to be renamed."
               )
             },
@@ -791,7 +796,7 @@ case class Match(
               // Because one cannot refer to a variable defined in a subsequent clause, if the variable exists in the semantic state, then it must have been defined in a previous clause.
               SemanticError.variableAlreadyDeclared(
                 variable.name,
-                variable.position,
+                getActualPos(variable, paths),
                 s"The variable `${variable.name}` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern."
               )
             }

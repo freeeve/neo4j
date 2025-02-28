@@ -87,14 +87,11 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
     )
   }
 
-  // A few of the positions of the variable p in the following tests are broken
-  // See https://trello.com/c/UHY0i2h6/1349-position-for-relationship-chain-in-juxtaposition-is-wrong
-
   test("MATCH (p = (a)--(b))+ (p = (c)--(d))+ RETURN p") {
     run().hasErrors(
-      GqlHelper.getGql42001_42N59("p", 6, 1, 7),
+      GqlHelper.getGql42001_42N59("p", 7, 1, 8),
       "The variable `p` occurs in multiple quantified path patterns and needs to be renamed.",
-      InputPosition(6, 1, 7),
+      InputPosition(7, 1, 8),
       GqlHelper.getGql42001_42N34(7, 1, 8),
       "Assigning a path in a quantified path pattern is not yet supported.",
       InputPosition(7, 1, 8),
@@ -129,9 +126,9 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
       GqlHelper.getGql42001_42N34(29, 1, 30),
       "Assigning a path in a quantified path pattern is not yet supported.",
       InputPosition(29, 1, 30),
-      GqlHelper.getGql42001_42N59("p", 28, 1, 29),
+      GqlHelper.getGql42001_42N59("p", 29, 1, 30),
       "The variable `p` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
-      InputPosition(28, 1, 29),
+      InputPosition(29, 1, 30),
       GqlHelper.getGql42001_42N59("p", 28, 1, 29),
       "Variable `p` already declared",
       InputPosition(28, 1, 29)
@@ -459,9 +456,9 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
       "The variable `r` occurs both inside and outside a quantified path pattern and needs to be renamed.",
       "Variable `r` already declared"
     ).hasErrors(
-      GqlHelper.getGql42001_42N59("r", 17, 1, 18),
+      GqlHelper.getGql42001_42N59("r", 22, 1, 23),
       "The variable `r` occurs both inside and outside a quantified path pattern and needs to be renamed.",
-      InputPosition(17, 1, 18),
+      InputPosition(22, 1, 23),
       GqlHelper.getGql42001_42N59("r", 17, 1, 18),
       "Variable `r` already declared",
       InputPosition(17, 1, 18)
@@ -489,9 +486,9 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
       "The variable `a` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
       "Variable `a` already declared"
     ).hasErrors(
-      GqlHelper.getGql42001_42N59("a", 31, 1, 32),
+      GqlHelper.getGql42001_42N59("a", 33, 1, 34),
       "The variable `a` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
-      InputPosition(31, 1, 32),
+      InputPosition(33, 1, 34),
       GqlHelper.getGql42001_42N59("a", 31, 1, 32),
       "Variable `a` already declared",
       InputPosition(31, 1, 32)
@@ -529,13 +526,11 @@ class QuantifiedPathPatternsSemanticAnalysisTest extends NameBasedSemanticAnalys
 
   test("MATCH ((a)-->(b)) (x)-->(y) RETURN x") {
     run().hasError(
-      // This position is broken, but was not tested before
-      // See https://trello.com/c/UHY0i2h6/1349-position-for-relationship-chain-in-juxtaposition-is-wrong
-      GqlHelper.getGql42001_42I46(6, 1, 7),
+      GqlHelper.getGql42001_42I46(18, 1, 19),
       """Juxtaposition is currently only supported for quantified path patterns.
         |In this case, ((a)-->(b)) is a (non-quantified) parenthesized path pattern and (x)-->(y) is a simple path pattern.
         |That is, neither of these is a quantified path pattern.""".stripMargin,
-      InputPosition(6, 1, 7)
+      InputPosition(18, 1, 19)
     )
   }
 

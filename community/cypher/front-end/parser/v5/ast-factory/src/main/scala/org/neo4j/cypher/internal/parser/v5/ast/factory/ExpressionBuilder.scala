@@ -218,7 +218,6 @@ trait ExpressionBuilder extends Cypher5ParserListener {
     if (size == 1) {
       ctx.ast = ctxChild(ctx, 0).ast[PathFactor]()
     } else {
-      val p = pos(ctx)
       val parts = new mutable.ArrayDeque[PathFactor](1)
       var relPattern: RelationshipPattern = null
       var i = 0
@@ -228,7 +227,7 @@ trait ExpressionBuilder extends Cypher5ParserListener {
             val nodePattern = nCtx.ast[NodePattern]()
             if (relPattern != null) {
               val lhs = parts.removeLast().asInstanceOf[SimplePattern]
-              parts.addOne(RelationshipChain(lhs, relPattern, nodePattern)(p))
+              parts.addOne(RelationshipChain(lhs, relPattern, nodePattern)(lhs.position))
               relPattern = null
             } else {
               parts.addOne(nodePattern)
