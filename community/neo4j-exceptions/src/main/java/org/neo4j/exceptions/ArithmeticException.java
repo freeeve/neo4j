@@ -52,6 +52,16 @@ public class ArithmeticException extends Neo4jException {
         return new ArithmeticException(gql, "long overflow");
     }
 
+    public static ArithmeticException floatOverflow(String value, String operation) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, value)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N28)
+                        .withParam(GqlParams.StringParam.operation, operation)
+                        .build())
+                .build();
+        return new ArithmeticException(gql, value + " caused an overflow.");
+    }
+
     public static ArithmeticException divisionByZero() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22012)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N28)

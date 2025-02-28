@@ -32,6 +32,7 @@ sealed trait Literal extends Expression {
 
 sealed trait NumberLiteral extends Literal {
   def stringVal: String
+  override def value: java.lang.Number
   override def asCanonicalStringVal: String = stringVal
 }
 
