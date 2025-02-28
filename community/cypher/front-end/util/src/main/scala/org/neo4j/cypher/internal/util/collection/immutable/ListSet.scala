@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.util.collection.immutable
 
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet.IterableOnceToListSet
+
 import scala.collection.IterableFactory
 import scala.collection.IterableFactoryDefaults
 import scala.collection.immutable.AbstractSet
@@ -131,6 +133,10 @@ object ListSet extends IterableFactory[ListSet] {
       case _ if it.knownSize == 0 => empty[E]
       case _                      => (newBuilder[E] ++= it).result()
     }
+
+  implicit class IterableOnceToListSet[A](private val it: IterableOnce[A]) extends AnyVal {
+    def toListSet: ListSet[A] = ListSet.from(it)
+  }
 
   private object EmptyListSet extends ListSet[Any](new java.util.LinkedHashSet[Any]()) {
     override def knownSize: Int = 0
