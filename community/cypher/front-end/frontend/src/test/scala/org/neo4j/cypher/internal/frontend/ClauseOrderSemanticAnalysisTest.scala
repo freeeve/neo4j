@@ -87,7 +87,8 @@ class ClauseOrderSemanticAnalysisTest
     ("ORDER BY", "ORDER BY u"),
     ("SKIP", "SKIP 5"),
     ("LIMIT", "LIMIT 5"),
-    ("FILTER", "FILTER id(u) > 3")
+    ("FILTER", "FILTER id(u) > 3"),
+    ("LET", "LET x = 123")
   )
 
   val returnClause = "RETURN *"
@@ -101,6 +102,10 @@ class ClauseOrderSemanticAnalysisTest
       run().assertTryIn {
         case CypherVersion.Cypher5 if clause2 == "FILTER" => {
           case Success(_) => fail(new Exception("FILTER is not part of Cypher 5 syntax"))
+          case Failure(_) => ()
+        }
+        case CypherVersion.Cypher5 if clause2 == "LET" => {
+          case Success(_) => fail(new Exception("LET is not part of Cypher 5 syntax"))
           case Failure(_) => ()
         }
         case _ => {
@@ -123,6 +128,10 @@ class ClauseOrderSemanticAnalysisTest
         }
         case CypherVersion.Cypher5 if clause2 == "FILTER" => {
           case Success(_) => fail(new Exception("FILTER is not part of Cypher 5 syntax"))
+          case Failure(_) => ()
+        }
+        case CypherVersion.Cypher5 if clause2 == "LET" => {
+          case Success(_) => fail(new Exception("LET is not part of Cypher 5 syntax"))
           case Failure(_) => ()
         }
         case CypherVersion.Cypher5 => {

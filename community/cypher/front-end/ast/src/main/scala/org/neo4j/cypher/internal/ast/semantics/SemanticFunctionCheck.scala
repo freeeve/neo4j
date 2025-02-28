@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.semantics
 
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.DoubleLiteral
@@ -71,7 +72,13 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
     invocation.function match {
       case f: AggregatingFunction =>
         when(ctx == Expression.SemanticContext.Simple) {
-          error(s"Invalid use of aggregating function ${f.name}(...) in this context", invocation.position)
+          SemanticCheck.error(
+            SemanticError.aggregateExpressionsNotAllowedInSimpleExpressions(
+              invocation.asCanonicalStringVal,
+              f.name,
+              invocation.position
+            )
+          )
         } chain {
           checkNoNestedAggregateFunctions(invocation) chain
             SemanticExpressionCheck.check(ctx, invocation.arguments) chain
@@ -112,7 +119,12 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
     invocation.args.collectFirst {
       case expr if expr.containsAggregate => expr.findAggregate.get
     } foldSemanticCheck {
-      expr => error("Can't use aggregate functions inside of aggregate functions.", expr.position)
+      val prettifier = ExpressionStringifier()
+      expr =>
+        error(SemanticError.aggregateExpressionsNotAllowedInAggregationFunctions(
+          prettifier(expr),
+          expr.position
+        ))
     }
 
   protected def semanticCheck(ctx: Expression.SemanticContext, invocation: FunctionInvocation): SemanticCheck =

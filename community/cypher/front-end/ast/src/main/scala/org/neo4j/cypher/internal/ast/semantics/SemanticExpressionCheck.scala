@@ -495,8 +495,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
       case x: ListComprehension =>
         FilteringExpressions.semanticCheck(ctx, x) chain
-          checkInnerListComprehension(x) chain
-          FilteringExpressions.failIfAggregating(x.extractExpression)
+          checkInnerListComprehension(x)
 
       case x: PatternComprehension =>
         SemanticState.recordCurrentScope(x) chain
@@ -516,7 +515,16 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       case _: ReduceScope  => SemanticCheck.success
 
       case x: CountStar =>
-        specifyType(CTInteger, x)
+        specifyType(CTInteger, x) chain
+          when(ctx == Expression.SemanticContext.Simple) {
+            SemanticCheck.error(
+              SemanticError.aggregateExpressionsNotAllowedInSimpleExpressions(
+                x.asCanonicalStringVal,
+                "count",
+                x.position
+              )
+            )
+          }
 
       case x: PathExpression =>
         specifyType(CTPath, x) chain
@@ -603,8 +611,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
             TypeMismatchContext.ACCUMULATOR,
             AccumulatorExpressionTypeMismatchMessageGenerator
           ) chain
-          specifyType(s => types(x.init)(s) leastUpperBounds types(x.expression)(s), x) chain
-          FilteringExpressions.failIfAggregating(x.expression)
+          specifyType(s => types(x.init)(s) leastUpperBounds types(x.expression)(s), x)
 
       case x: ListLiteral =>
         def possibleTypes: TypeGenerator = state =>
@@ -947,19 +954,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
     def semanticCheck(ctx: SemanticContext, e: FilteringExpression): SemanticCheck =
       SemanticExpressionCheck.check(ctx, e.expression) chain
         expectType(CTList(CTAny).covariant, e.expression) chain
-        checkInnerPredicate(e) chain
-        failIfAggregating(e.innerPredicate)
-
-    def failIfAggregating(expression: Option[Expression]): Option[SemanticError] =
-      expression.flatMap(failIfAggregating)
-
-    def failIfAggregating(expression: Expression): Option[SemanticError] =
-      expression.findAggregate.map(aggregate =>
-        SemanticError(
-          "Can't use aggregating expressions inside of expressions executing over lists",
-          aggregate.position
-        )
-      )
+        checkInnerPredicate(e)
 
     def checkPredicateDefined(e: FilteringExpression): SemanticCheck =
       when(e.innerPredicate.isEmpty) {

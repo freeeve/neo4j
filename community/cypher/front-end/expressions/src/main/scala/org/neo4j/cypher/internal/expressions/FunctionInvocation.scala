@@ -96,7 +96,7 @@ case class FunctionInvocation(
     case _                  => false
   }
 
-  override def asCanonicalStringVal = s"$name(${args.map(_.asCanonicalStringVal).mkString(",")})"
+  override def asCanonicalStringVal = s"$name(${args.map(_.asCanonicalStringVal).mkString(", ")})"
 
   override def isConstantForQuery: Boolean =
     !needsToBeResolved &&

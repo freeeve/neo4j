@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.ast.OnCreate
 import org.neo4j.cypher.internal.ast.OnMatch
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.ParsedAsFilter
+import org.neo4j.cypher.internal.ast.ParsedAsLet
 import org.neo4j.cypher.internal.ast.ParsedAsLimit
 import org.neo4j.cypher.internal.ast.ParsedAsOrderBy
 import org.neo4j.cypher.internal.ast.ParsedAsSkip
@@ -479,6 +480,30 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.UnwindClauseContext
   ): Unit = {
     ctx.ast = Unwind(ctxChild(ctx, 1).ast(), ctxChild(ctx, 3).ast())(pos(ctx))
+  }
+
+  final override def exitLetClause(
+    ctx: Cypher25Parser.LetClauseContext
+  ): Unit = {
+    ctx.ast = With(
+      distinct = false,
+      ReturnItems(
+        includeExisting = true,
+        astSeq(ctx.children, offset = 1, step = 2),
+        overrideExisting = false
+      )(pos(ctx)),
+      None,
+      None,
+      None,
+      None,
+      ParsedAsLet
+    )(pos(ctx))
+  }
+
+  final override def exitLetItem(
+    ctx: Cypher25Parser.LetItemContext
+  ): Unit = {
+    ctx.ast = AliasedReturnItem(ctx.expression().ast(), ctx.variable().ast())(pos(ctx))
   }
 
   final override def exitCallClause(

@@ -256,7 +256,7 @@ object ClauseConverters extends LabelExpressionConversion {
     position: QueryProjection.Position
   ): PlannerQueryBuilder =
     clause match {
-      case Return(distinct, ReturnItems(star, items, _), optOrderBy, skip, limit, _, _, _) if !star =>
+      case Return(distinct, ReturnItems(star, items, _, _), optOrderBy, skip, limit, _, _, _) if !star =>
         val queryPagination = QueryPagination().withSkip(skip).withLimit(limit)
 
         val projection =
@@ -510,9 +510,9 @@ object ClauseConverters extends LabelExpressionConversion {
   }
 
   private def asReturnItems(current: QueryGraph, returnItems: ReturnItems): Seq[AliasedReturnItem] = returnItems match {
-    case ReturnItems(star, items, _) if star =>
+    case ReturnItems(star, items, _, _) if star =>
       (QueryProjection.forVariables(current.allCoveredIds) ++ items).asInstanceOf[Seq[AliasedReturnItem]]
-    case ReturnItems(_, items, _) =>
+    case ReturnItems(_, items, _, _) =>
       items.asInstanceOf[Seq[AliasedReturnItem]]
     case _ =>
       Seq.empty

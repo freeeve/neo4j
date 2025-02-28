@@ -39,7 +39,6 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
-import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck.FilteringExpressions
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.error
@@ -781,23 +780,23 @@ case class Match(
             Option.when(paths.size > 1) {
               SemanticError.variableAlreadyDeclared(
                 variable.name,
-                getActualPos(variable, paths),
-                s"The variable `${variable.name}` occurs in multiple quantified path patterns and needs to be renamed."
+                s"The variable `${variable.name}` occurs in multiple quantified path patterns and needs to be renamed.",
+                getActualPos(variable, paths)
               )
             },
             Option.when(allVariablesInSimplePatterns.contains(variable)) {
               SemanticError.variableAlreadyDeclared(
                 variable.name,
-                getActualPos(variable, paths),
-                s"The variable `${variable.name}` occurs both inside and outside a quantified path pattern and needs to be renamed."
+                s"The variable `${variable.name}` occurs both inside and outside a quantified path pattern and needs to be renamed.",
+                getActualPos(variable, paths)
               )
             },
             Option.when(state.symbol(variable.name).isDefined) {
               // Because one cannot refer to a variable defined in a subsequent clause, if the variable exists in the semantic state, then it must have been defined in a previous clause.
               SemanticError.variableAlreadyDeclared(
                 variable.name,
-                getActualPos(variable, paths),
-                s"The variable `${variable.name}` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern."
+                s"The variable `${variable.name}` is already defined in a previous clause, it cannot be referenced as a node or as a relationship variable inside of a quantified path pattern.",
+                getActualPos(variable, paths)
               )
             }
           ).flatten
@@ -1437,9 +1436,8 @@ case class Unwind(
   override def name = "UNWIND"
 
   override def clauseSpecificSemanticCheck: SemanticCheck =
-    SemanticExpressionCheck.check(SemanticContext.Results, expression) chain
-      expectType(CTList(CTAny).covariant | CTAny.covariant, expression) ifOkChain
-      FilteringExpressions.failIfAggregating(expression) chain {
+    SemanticExpressionCheck.check(SemanticContext.Simple, expression) chain
+      expectType(CTList(CTAny).covariant | CTAny.covariant, expression) ifOkChain {
         val possibleInnerTypes: TypeGenerator = types(expression)(_).unwrapPotentialLists
         declareVariable(variable, possibleInnerTypes)
       }
@@ -1473,21 +1471,23 @@ case class UnresolvedCall(
 
   override def clauseSpecificSemanticCheck: SemanticCheck = {
     val argumentCheck = declaredArguments.map(
+      // could this be checked with SemanticContext.Simple to make the invalidExpressionsCheck obsolete?
       SemanticExpressionCheck.check(SemanticContext.Results, _)
     ).getOrElse(success)
     val resultsCheck = declaredResult.map(_.semanticCheck).getOrElse(success)
-    val invalidExpressionsCheck = declaredArguments.map(_.map {
-      case arg if arg.containsAggregate =>
-        SemanticCheck.error(
-          SemanticError(
-            """Procedure call cannot take an aggregating function as argument, please add a 'WITH' to your statement.
-              |For example:
-              |    MATCH (n:Person) WITH collect(n.name) AS names CALL proc(names) YIELD value RETURN value""".stripMargin,
-            position
+    val invalidExpressionsCheck = declaredArguments.getOrElse(Seq.empty).foldSemanticCheck(arg =>
+      arg.findAggregate match {
+        case Some(agg) =>
+          val prettifier = ExpressionStringifier()
+          SemanticCheck.error(
+            SemanticError.aggregateExpressionsNotAllowedInProcedureCallArgument(
+              prettifier(agg),
+              agg.position
+            )
           )
-        )
-      case _ => success
-    }.foldLeft(success)(_ chain _)).getOrElse(success)
+        case _ => success
+      }
+    )
 
     argumentCheck chain resultsCheck chain invalidExpressionsCheck
   }
@@ -1585,9 +1585,9 @@ sealed trait ProjectionClause extends HorizonClause {
     SemanticCheck.fromState {
       (state: SemanticState) =>
         /**
-       * scopeToImportVariablesFrom will provide the scope to bring over only the variables that are needed from the
-       * previous scope
-       */
+         * scopeToImportVariablesFrom will provide the scope to bring over only the variables that are needed from the
+         * previous scope
+         */
         def runChecks(scopeToImportVariablesFrom: Scope): SemanticCheck = {
           returnItems.declareVariables(scopeToImportVariablesFrom) chain
             orderBy.semanticCheck chain
@@ -1731,6 +1731,7 @@ case object ParsedAsOrderBy extends WithType
 case object ParsedAsSkip extends WithType
 case object ParsedAsLimit extends WithType
 case object ParsedAsFilter extends WithType
+case object ParsedAsLet extends WithType
 case object ParsedAsYield extends WithType
 case object AddedInRewrite extends WithType
 case object AddedInRewriteProcCall extends WithType
@@ -1756,16 +1757,30 @@ case class With(
     case ParsedAsSkip    => skip.get.name
     case ParsedAsLimit   => limit.get.name
     case ParsedAsFilter  => "FILTER"
+    case ParsedAsLet     => "LET"
     case _               => "WITH"
   }
 
   override def clauseSpecificSemanticCheck: SemanticCheck =
-    super.clauseSpecificSemanticCheck chain
-      ProjectionClause.checkAliasedReturnItems(returnItems, name) chain
-      SemanticPatternCheck.checkValidPropertyKeyNamesInReturnItems(returnItems)
+    super.clauseSpecificSemanticCheck chain checkProjectionItems(returnItems)
 
   override def withReturnItems(items: Seq[ReturnItem]): With =
     this.copy(returnItems = ReturnItems(returnItems.includeExisting, items)(returnItems.position))(this.position)
+
+  private def checkProjectionItems(returnItems: ReturnItems): SemanticCheck =
+    withType match {
+      // No user-provided projection items in these variants
+      case ParsedAsFilter | ParsedAsOrderBy | ParsedAsSkip | ParsedAsLimit => SemanticCheck.success
+      // In LET all projection items are aliased by definition of the syntax
+      case ParsedAsLet => checkLetItems(returnItems) chain
+          SemanticPatternCheck.checkValidPropertyKeyNamesInReturnItems(returnItems)
+      // Else
+      case _ => ProjectionClause.checkAliasedReturnItems(returnItems, name) chain
+          SemanticPatternCheck.checkValidPropertyKeyNamesInReturnItems(returnItems)
+    }
+
+  private def checkLetItems(returnItems: ReturnItems): SemanticCheck =
+    SemanticExpressionCheck.simple(returnItems.items.map(_.expression))
 }
 
 case class Finish()(val position: InputPosition) extends Clause with ClauseAllowedOnSystem {
@@ -1819,7 +1834,7 @@ case class Return(
 
   private def checkVariableScope: SemanticState => Seq[SemanticError] = s =>
     returnItems match {
-      case ReturnItems(star, _, _)
+      case ReturnItems(star, _, _, _)
         if star && (s.currentScope.isEmpty && s.currentScope.parent.fold(true)(_.isEmpty)) =>
         Seq(SemanticError.invalidUseOfReturnStar(position))
       case _ =>

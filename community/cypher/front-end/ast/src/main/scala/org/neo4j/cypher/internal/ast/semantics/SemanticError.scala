@@ -655,13 +655,63 @@ object SemanticError {
       "It may be possible to rewrite the query by extracting these grouping/aggregation expressions into a preceding WITH clause. " +
       s"Illegal expression(s): ${variables.mkString(", ")}"
 
+  def aggregateExpressionsNotAllowedInSimpleExpressions(
+    function: String,
+    functionName: String,
+    position: InputPosition
+  ): SemanticError =
+    aggregateExpressionsNotAllowed(
+      function,
+      s"Invalid use of aggregating function $functionName(...) in this context",
+      position
+    )
+
+  def aggregateExpressionsNotAllowedInAggregationFunctions(function: String, position: InputPosition): SemanticError =
+    aggregateExpressionsNotAllowed(
+      function,
+      "Can't use aggregate functions inside of aggregate functions.",
+      position
+    )
+
+  def aggregateExpressionsNotAllowedInProcedureCallArgument(arg: String, position: InputPosition): SemanticError =
+    aggregateExpressionsNotAllowed(
+      arg,
+      """Procedure call cannot take an aggregating function as argument, please add a 'WITH' to your statement.
+        |For example:
+        |    MATCH (n:Person) WITH collect(n.name) AS names CALL proc(names) YIELD value RETURN value""".stripMargin,
+      position
+    )
+
+  def aggregateExpressionsInOrderBy(aggregateExpressions: Seq[String], position: InputPosition): SemanticError =
+    aggregateExpressionsNotAllowed(
+      aggregateExpressions.head,
+      s"Illegal aggregation expression(s) in order by: ${aggregateExpressions.mkString(", ")}. " +
+        "If an aggregation expression is used in order by, it also needs to be a projection item on it's own. " +
+        "For example, in 'RETURN n.a, 1 + count(*) ORDER BY count(*) + 1' the aggregation expression 'count(*) + 1' is not a projection " +
+        "item on its own, but it could be rewritten to 'RETURN n.a, 1 + count(*) AS cnt ORDER BY 1 + count(*)'.",
+      position
+    )
+
+  private def aggregateExpressionsNotAllowed(
+    function: String,
+    legacyMessage: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I24(function, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      legacyMessage,
+      position
+    )
+  }
+
   def accessingMultipleGraphsError(legacyMessage: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA5)
         .atPosition(position.offset, position.line, position.column)
         .build())
-      .build();
+      .build()
     SemanticError(
       gql,
       legacyMessage,
@@ -1089,10 +1139,10 @@ object SemanticError {
   }
 
   def variableAlreadyDeclared(variableName: String, position: InputPosition): SemanticError = {
-    variableAlreadyDeclared(variableName, position, s"Variable `${variableName}` already declared")
+    variableAlreadyDeclared(variableName, s"Variable `${variableName}` already declared", position)
   }
 
-  def variableAlreadyDeclared(variableName: String, position: InputPosition, legacyMessage: String): SemanticError = {
+  def variableAlreadyDeclared(variableName: String, legacyMessage: String, position: InputPosition): SemanticError = {
     SemanticError(
       GqlHelper.getGql42001_42N59(variableName, position.offset, position.line, position.column),
       legacyMessage,
@@ -1119,14 +1169,7 @@ object SemanticError {
   }
 
   def variableNotDefined(variableName: String, legacyMessage: String, position: InputPosition): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.offset, position.line, position.column)
-      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
-        .atPosition(position.offset, position.line, position.column)
-        .withParam(GqlParams.StringParam.variable, variableName)
-        .build())
-      .build()
-
+    val gql = GqlHelper.getGql42001_42N62(variableName, position.offset, position.line, position.column)
     SemanticError(gql, legacyMessage, position)
   }
 

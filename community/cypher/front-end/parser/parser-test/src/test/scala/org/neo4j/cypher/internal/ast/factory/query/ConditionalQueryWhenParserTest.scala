@@ -301,7 +301,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                             |"ELSE RETURN 1 AS x"
                             | ^""".stripMargin)
       case _ =>
-        _.withSyntaxError("""Invalid input 'ELSE': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FILTER', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WHEN', 'WITH' or '{' (line 1, column 1 (offset: 0))
+        _.withSyntaxError("""Invalid input 'ELSE': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FILTER', 'FINISH', 'GRANT', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WHEN', 'WITH' or '{' (line 1, column 1 (offset: 0))
                             |"ELSE RETURN 1 AS x"
                             | ^""".stripMargin)
     }
@@ -314,7 +314,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                             |"THEN RETURN 1 AS x"
                             | ^""".stripMargin)
       case _ =>
-        _.withSyntaxError("""Invalid input 'THEN': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FILTER', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WHEN', 'WITH' or '{' (line 1, column 1 (offset: 0))
+        _.withSyntaxError("""Invalid input 'THEN': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FILTER', 'FINISH', 'GRANT', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WHEN', 'WITH' or '{' (line 1, column 1 (offset: 0))
                             |"THEN RETURN 1 AS x"
                             | ^""".stripMargin)
     }
@@ -340,7 +340,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                             |"WHEN true THEN"
                             | ^""".stripMargin)
       case _ =>
-        _.withSyntaxError("""Invalid input '': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 15 (offset: 14))
+        _.withSyntaxError("""Invalid input '': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 15 (offset: 14))
                             |"WHEN true THEN"
                             |               ^""".stripMargin)
     }
@@ -358,7 +358,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                             |"ELSE RETURN 1 AS x"
                             | ^""".stripMargin)
       case _ =>
-        _.withSyntaxError("""Invalid input 'ELSE': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FILTER', 'FINISH', 'GRANT', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WHEN', 'WITH' or '{' (line 1, column 1 (offset: 0))
+        _.withSyntaxError("""Invalid input 'ELSE': expected 'FOREACH', 'ALTER', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'START DATABASE', 'STOP DATABASE', 'DEALLOCATE', 'DELETE', 'DENY', 'DETACH', 'DROP', 'DRYRUN', 'FILTER', 'FINISH', 'GRANT', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REALLOCATE', 'REMOVE', 'RENAME', 'RETURN', 'REVOKE', 'ENABLE SERVER', 'SET', 'SHOW', 'SKIP', 'TERMINATE', 'UNWIND', 'USE', 'WHEN', 'WITH' or '{' (line 1, column 1 (offset: 0))
                             |"ELSE RETURN 1 AS x"
                             | ^""".stripMargin)
     }
@@ -376,7 +376,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                             |"WHEN true THEN RETURN 1 AS x"
                             | ^""".stripMargin)
       case _ =>
-        _.withSyntaxError("""Invalid input 'WHEN': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or <EOF> (line 3, column 1 (offset: 48))
+        _.withSyntaxError("""Invalid input 'WHEN': expected 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or <EOF> (line 3, column 1 (offset: 48))
                             |"WHEN true THEN RETURN 1 AS x"
                             | ^""".stripMargin)
     }
@@ -396,7 +396,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                             |"WHEN true THEN RETURN 1 AS x"
                             | ^""".stripMargin)
       case _ =>
-        _.withSyntaxError("""Invalid input 'WHEN': expected a graph pattern, 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF> (line 2, column 1 (offset: 9))
+        _.withSyntaxError("""Invalid input 'WHEN': expected a graph pattern, 'FOREACH', ',', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'USING', 'WHERE', 'WITH' or <EOF> (line 2, column 1 (offset: 9))
                             |"WHEN true THEN RETURN 1 AS x"
                             | ^""".stripMargin)
     }
@@ -418,7 +418,7 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
                             |"WHEN true THEN RETURN 1 AS x"
                             | ^""".stripMargin)
       case _ =>
-        _.withSyntaxError("""Invalid input 'WHEN': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF> (line 3, column 1 (offset: 16))
+        _.withSyntaxError("""Invalid input 'WHEN': expected an expression, 'FOREACH', ',', 'AS', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNION', 'UNWIND', 'USE', 'WHERE', 'WITH' or <EOF> (line 3, column 1 (offset: 16))
                             |"WHEN true THEN RETURN 1 AS x"
                             | ^""".stripMargin)
     }

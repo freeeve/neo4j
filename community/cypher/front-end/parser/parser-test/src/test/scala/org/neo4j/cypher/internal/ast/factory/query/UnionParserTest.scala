@@ -147,7 +147,7 @@ class UnionParserTest extends AstParsingTestBase {
             |                     ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'UNION': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 21 (offset: 20))
+          """Invalid input 'UNION': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or '{' (line 1, column 21 (offset: 20))
             |"RETURN 1 AS a UNION UNION RETURN 2 AS a"
             |                     ^""".stripMargin
         )
@@ -169,7 +169,7 @@ class UnionParserTest extends AstParsingTestBase {
             | ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'WHEN': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or '{' (line 6, column 12 (offset: 120))
+          """Invalid input 'WHEN': expected 'FOREACH', 'ORDER BY', 'CALL', 'CREATE', 'LOAD CSV', 'DELETE', 'DETACH', 'FILTER', 'FINISH', 'INSERT', 'LET', 'LIMIT', 'MATCH', 'MERGE', 'NODETACH', 'OFFSET', 'OPTIONAL', 'REMOVE', 'RETURN', 'SET', 'SKIP', 'UNWIND', 'USE', 'WITH' or '{' (line 6, column 12 (offset: 120))
             |"           WHEN true THEN RETURN 2 AS x"
             |            ^""".stripMargin
         )

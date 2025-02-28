@@ -16,12 +16,16 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
+
+import scala.util.Failure
+import scala.util.Success
 
 class LastClauseTest
     extends CypherFunSuite
@@ -195,6 +199,98 @@ class LastClauseTest
          |RETURN a
          |""".stripMargin) {
     run().hasNoErrors
+  }
+
+  test("""MATCH (a)
+         |FILTER true
+         |""".stripMargin) {
+    run().assertTryIn {
+      case CypherVersion.Cypher5 => {
+        case Success(_) => fail(new Exception("FILTER is not part of Cypher 5 syntax"))
+        case Failure(_) => ()
+      }
+      case _ => {
+        case Success(result) =>
+          result.errors should contain theSameElementsAs Seq(errorCannotConcludeWith("FILTER", 10, 2, 1))
+        case Failure(t) => fail(t)
+      }
+    }
+  }
+
+  test("""MATCH (a)
+         |FILTER true
+         |FINISH
+         |""".stripMargin) {
+    run().assertTryIn {
+      case CypherVersion.Cypher5 => {
+        case Success(_) => fail(new Exception("FILTER is not part of Cypher 5 syntax"))
+        case Failure(_) => ()
+      }
+      case _ => {
+        case Success(result) => result.errors shouldBe empty
+        case Failure(t)      => fail(t)
+      }
+    }
+  }
+
+  test("""MATCH (a)
+         |FILTER true
+         |RETURN a
+         |""".stripMargin) {
+    run().assertTryIn {
+      case CypherVersion.Cypher5 => {
+        case Success(_) => fail(new Exception("FILTER is not part of Cypher 5 syntax"))
+        case Failure(_) => ()
+      }
+      case _ => {
+        case Success(result) => result.errors shouldBe empty
+        case Failure(t)      => fail(t)
+      }
+    }
+  }
+
+  test("LET a = 123".stripMargin) {
+    run().assertTryIn {
+      case CypherVersion.Cypher5 => {
+        case Success(_) => fail(new Exception("LET is not part of Cypher 5 syntax"))
+        case Failure(_) => ()
+      }
+      case _ => {
+        case Success(result) =>
+          result.errors should contain theSameElementsAs Seq(errorCannotConcludeWith("LET", 0, 1, 1))
+        case Failure(t) => fail(t)
+      }
+    }
+  }
+
+  test("""LET a = 123
+         |FINISH
+         |""".stripMargin) {
+    run().assertTryIn {
+      case CypherVersion.Cypher5 => {
+        case Success(_) => fail(new Exception("LET is not part of Cypher 5 syntax"))
+        case Failure(_) => ()
+      }
+      case _ => {
+        case Success(result) => result.errors shouldBe empty
+        case Failure(t)      => fail(t)
+      }
+    }
+  }
+
+  test("""LET a = 123
+         |RETURN a
+         |""".stripMargin) {
+    run().assertTryIn {
+      case CypherVersion.Cypher5 => {
+        case Success(_) => fail(new Exception("LET is not part of Cypher 5 syntax"))
+        case Failure(_) => ()
+      }
+      case _ => {
+        case Success(result) => result.errors shouldBe empty
+        case Failure(t)      => fail(t)
+      }
+    }
   }
 
   test("CREATE (a)") {

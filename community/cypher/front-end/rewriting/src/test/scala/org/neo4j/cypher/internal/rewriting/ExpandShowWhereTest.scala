@@ -49,7 +49,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
           _,
           Some(Left((
             Yield(
-              ReturnItems(returnStar, _, Some(columns)),
+              ReturnItems(returnStar, _, Some(columns), _),
               None,
               None,
               None,
@@ -90,7 +90,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
           None,
           Some(Left((
             Yield(
-              ReturnItems(returnStar, _, Some(columns)),
+              ReturnItems(returnStar, _, Some(columns), _),
               None,
               None,
               None,
@@ -119,7 +119,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
           true,
           Some(Left((
             Yield(
-              ReturnItems(returnStar, _, Some(columns)),
+              ReturnItems(returnStar, _, Some(columns), _),
               None,
               None,
               None,
@@ -158,7 +158,7 @@ class ExpandShowWhereTest extends CypherFunSuite with RewriteTest {
           false,
           Some(Left((
             Yield(
-              ReturnItems(returnStar, _, Some(columns)),
+              ReturnItems(returnStar, _, Some(columns), _),
               None,
               None,
               None,

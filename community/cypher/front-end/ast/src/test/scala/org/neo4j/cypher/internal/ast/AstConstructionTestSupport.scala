@@ -347,7 +347,10 @@ trait AstConstructionTestSupport {
     False()(pos)
   }
 
-  def literalInt(value: Long, position: InputPosition = pos): SignedDecimalIntegerLiteral =
+  def literalInt(value: Long): SignedDecimalIntegerLiteral =
+    SignedDecimalIntegerLiteral(value.toString)(pos)
+
+  def literalInt(value: Long, position: InputPosition): SignedDecimalIntegerLiteral =
     SignedDecimalIntegerLiteral(value.toString)(position)
 
   def literalUnsignedInt(intValue: Int): PathLengthQuantifier =
@@ -366,11 +369,10 @@ trait AstConstructionTestSupport {
     ListLiteral(expressions)(position)
 
   def listOfInt(values: Long*): ListLiteral =
-    ListLiteral(values.toSeq.map(i => literalInt(i, pos)))(pos)
+    ListLiteral(values.toSeq.map(literalInt))(pos)
 
-  def listOfFloat(values: Double*): ListLiteral = {
+  def listOfFloat(values: Double*): ListLiteral =
     ListLiteral(values.toSeq.map(literalFloat))(pos)
-  }
 
   def listOfString(stringValues: String*): ListLiteral =
     ListLiteral(stringValues.toSeq.map(literalString))(pos)
@@ -1107,6 +1109,9 @@ trait AstConstructionTestSupport {
   def withAll(items: ReturnItem*): With =
     With(ReturnItems(includeExisting = true, items)(pos))(pos)
 
+  def withAdditionalItemsTyped(withType: WithType, items: ReturnItem*): With =
+    With(distinct = false, returnAdditionalItems(items: _*), None, None, None, None, withType = withType)(pos)
+
   def withAll(where: Option[Where] = None): With =
     With(distinct = false, returnAllItems, None, None, None, where = where)(pos)
 
@@ -1185,6 +1190,9 @@ trait AstConstructionTestSupport {
   def returnAllItems(position: InputPosition): ReturnItems = ReturnItems(includeExisting = true, Seq.empty)(position)
 
   def returnItems(items: ReturnItem*): ReturnItems = ReturnItems(includeExisting = false, items)(pos)
+
+  def returnAdditionalItems(items: ReturnItem*): ReturnItems =
+    ReturnItems(includeExisting = true, items, overrideExisting = false)(pos)
 
   def returnItem(expr: Expression, text: String, position: InputPosition = pos): UnaliasedReturnItem =
     UnaliasedReturnItem(expr, text)(position)

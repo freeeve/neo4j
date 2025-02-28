@@ -76,8 +76,14 @@ class ConditionalQueryWhenSemanticAnalysisTest
 
   test("Predicate expression cannot be an aggregating expression") {
     val query = "WHEN MAX($actor.age) = 1 THEN RETURN 1 AS x"
-    val msg = s"Invalid use of aggregating function max(...) in this context"
-    run(query).hasError(msg, p(5, 1, 6))
+    val pos = p(5, 1, 6)
+    run(query).hasSemanticErrorsIn {
+      case CypherVersion.Cypher5 => Seq()
+      case CypherVersion.Cypher25 =>
+        Seq(
+          SemanticError.aggregateExpressionsNotAllowedInSimpleExpressions("MAX($actor.age)", "max", pos)
+        )
+    }
   }
 
   test("Predicate expression in later branch cannot be an aggregating expression") {
@@ -88,8 +94,14 @@ class ConditionalQueryWhenSemanticAnalysisTest
         |     WHEN false THEN RETURN 3 AS x
         |     WHEN sum(1) > 0 THEN RETURN 4 AS x
         |""".stripMargin
-    val msg = s"Invalid use of aggregating function sum(...) in this context"
-    run(query).hasError(msg, p(116, 5, 11))
+    val pos = p(116, 5, 11)
+    run(query).hasSemanticErrorsIn {
+      case CypherVersion.Cypher5 => Seq()
+      case CypherVersion.Cypher25 =>
+        Seq(
+          SemanticError.aggregateExpressionsNotAllowedInSimpleExpressions("sum(1)", "sum", pos)
+        )
+    }
   }
 
   test("Predicate expression in later branch and else cannot be an aggregating expression") {
@@ -101,8 +113,14 @@ class ConditionalQueryWhenSemanticAnalysisTest
         |     WHEN sum(1) > 0 THEN RETURN 4 AS x
         |     ELSE RETURN 5 AS x
         |""".stripMargin
-    val msg = s"Invalid use of aggregating function sum(...) in this context"
-    run(query).hasError(msg, p(116, 5, 11))
+    val pos = p(116, 5, 11)
+    run(query).hasSemanticErrorsIn {
+      case CypherVersion.Cypher5 => Seq()
+      case CypherVersion.Cypher25 =>
+        Seq(
+          SemanticError.aggregateExpressionsNotAllowedInSimpleExpressions("sum(1)", "sum", pos)
+        )
+    }
   }
 
   test("Multiple non boolean predicates") {

@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.ast
 
-import org.neo4j.cypher.internal.ast.Order.notProjectedAggregations
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
@@ -167,42 +166,45 @@ class OrderTest extends CypherFunSuite with AstConstructionTestSupport {
   }
 
   test("not projected aggregations: should use correct position if there are multiple order items") {
+    // RETURN n.prop1, 1 + count(*)     AS cnt ORDER BY n.prop2, count(*) + 1 DESC
+    val failingPosition = InputPosition(58, 1, 59)
     val sortItems = Seq(
-      sortItem(prop("n", "prop", InputPosition(1, 2, 3)), position = InputPosition(2, 3, 4)),
+      sortItem(prop("n", "prop"), position = InputPosition(49, 1, 50)),
       sortItem(
-        add(literalInt(1), CountStar()(InputPosition(3, 4, 5))),
+        add(literalInt(1), CountStar()(failingPosition)),
         ascending = false,
         position = InputPosition(5, 6, 7)
       )
     )
     val returnItems = Seq(
       autoAliasedReturnItem(prop("n", "prop")),
-      autoAliasedReturnItem(add(countStar(), literalInt(1)))
+      autoAliasedReturnItem(add(CountStar()(InputPosition(20, 1, 21)), literalInt(1)))
     )
     val orderBy = OrderBy(sortItems)(InputPosition.NONE)
     val result = orderBy.checkIllegalOrdering(ReturnItems(includeExisting = false, returnItems)(InputPosition.NONE))
       .run(SemanticState.clean, SemanticCheckContext.default)
     result.errors should equal(Seq(
-      // Reports all offending sort items.
-      // Uses position of the first offending sort item.
-      SemanticError(notProjectedAggregations(Seq("count(*)")), InputPosition(3, 4, 5))
+      // Reports all offending aggregation expressions.
+      // Uses position of the first offending aggregation expressions.
+      SemanticError.aggregateExpressionsInOrderBy(Seq("count(*)"), failingPosition)
     ))
   }
 
   test("should report aggregation not in preceding with/return clause") {
     // RETURN n.prop1, 1 + count(*)     AS cnt ORDER BY n.prop2, count(*) + 1
+    val failingPosition = InputPosition(58, 1, 59)
     val sortItems = Seq(
       sortItem(prop("n", "prop2")),
-      sortItem(add(literalInt(1), countStar()), ascending = false)
+      sortItem(add(literalInt(1), CountStar()(failingPosition)), ascending = false)
     )
     val returnItems = Seq(
       autoAliasedReturnItem(prop("n", "prop1")),
-      autoAliasedReturnItem(add(countStar(), literalInt(1)))
+      autoAliasedReturnItem(add(CountStar()(InputPosition(20, 1, 21)), literalInt(1)))
     )
     val orderBy = OrderBy(sortItems)(InputPosition.NONE)
     val result = orderBy.checkIllegalOrdering(ReturnItems(includeExisting = false, returnItems)(InputPosition.NONE)).get
       .run(SemanticState.clean, SemanticCheckContext.default)
-    val expectedErrorMessage = notProjectedAggregations(Seq("count(*)"))
+    val expectedErrorMessage = SemanticError.aggregateExpressionsInOrderBy(Seq("count(*)"), failingPosition).msg
 
     withClue(s"orderBy expressions [${sortItems.map(_.asCanonicalStringVal).mkString(",")}] " +
       s"with returnItems [${returnItems.map(_.asCanonicalStringVal).mkString(", ")}] did not throw expected error. ") {

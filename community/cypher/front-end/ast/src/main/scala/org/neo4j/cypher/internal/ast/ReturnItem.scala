@@ -47,7 +47,8 @@ import org.neo4j.cypher.internal.util.InputPosition
 final case class ReturnItems(
   includeExisting: Boolean,
   items: Seq[ReturnItem],
-  defaultOrderOnColumns: Option[List[String]] = None
+  defaultOrderOnColumns: Option[List[String]] = None,
+  overrideExisting: Boolean = true
 )(val position: InputPosition) extends ASTNode with SemanticCheckable with SemanticAnalysisTooling {
 
   def withExisting(includeExisting: Boolean): ReturnItems =
@@ -56,7 +57,16 @@ final case class ReturnItems(
   def withDefaultOrderOnColumns(defaultOrderOnColumns: List[String]): ReturnItems =
     copy(defaultOrderOnColumns = Some(defaultOrderOnColumns))(position)
 
-  def semanticCheck: SemanticCheck = items.semanticCheck chain ensureProjectedToUniqueIds
+  def semanticCheck: SemanticCheck = {
+    SemanticCheck.when(!overrideExisting) {
+      SemanticCheck.fromFunction((state: SemanticState) => {
+        items.collectFirst {
+          case AliasedReturnItem(_, variable) if state.currentScope.symbolNames contains variable.name =>
+            SemanticCheckResult.error(state, SemanticError.variableAlreadyDeclared(variable.name, variable.position))
+        }.getOrElse(SemanticCheckResult.success(state))
+      })
+    } chain items.semanticCheck chain ensureProjectedToUniqueIds
+  }
 
   def aliases: Set[LogicalVariable] = items.flatMap(_.alias).toSet
 

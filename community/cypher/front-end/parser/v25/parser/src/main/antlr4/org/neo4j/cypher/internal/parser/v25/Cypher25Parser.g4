@@ -65,6 +65,7 @@ clause
    | withClause
    | filterClause
    | unwindClause
+   | letClause
    | callClause
    | subqueryClause
    | loadCSVClause
@@ -205,6 +206,14 @@ filterClause
 
 unwindClause
    : UNWIND expression AS variable
+   ;
+
+letClause
+   : LET letItem (COMMA letItem)*
+   ;
+
+letItem
+   : variable EQ expression
    ;
 
 callClause
@@ -1907,6 +1916,7 @@ unescapedSymbolicNameString_
    | LABELS
    | LANGUAGE
    | LEADING
+   | LET
    | LIMITROWS
    | LIST
    | LOAD

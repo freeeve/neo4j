@@ -209,6 +209,7 @@ class Cypher25VocabularyTest extends CypherFunSuite {
     Cypher25Parser.LCURLY -> "'{'",
     Cypher25Parser.LE -> "'<='",
     Cypher25Parser.LEADING -> "'LEADING'",
+    Cypher25Parser.LET -> "'LET'",
     Cypher25Parser.LIMITROWS -> "'LIMIT'",
     Cypher25Parser.LIST -> "'LIST'",
     Cypher25Parser.LOAD -> "'LOAD'",

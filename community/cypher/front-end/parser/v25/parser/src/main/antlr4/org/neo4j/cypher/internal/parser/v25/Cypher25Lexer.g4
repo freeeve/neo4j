@@ -651,6 +651,10 @@ LEADING
    : L E A D I N G
    ;
 
+LET
+   : L E T
+   ;
+
 LIMITROWS
    : L I M I T
    ;

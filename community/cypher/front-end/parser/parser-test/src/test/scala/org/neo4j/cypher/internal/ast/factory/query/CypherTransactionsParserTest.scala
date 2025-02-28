@@ -32,13 +32,12 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher25
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
-import org.neo4j.cypher.internal.ast.test.util.LegacyAstParsingTestSupport
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
-class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstParsingTestSupport {
+class CypherTransactionsParserTest extends AstParsingTestBase {
 
   test("CALL { CREATE (n) } IN TRANSACTIONS") {
     parses[SubqueryCall].toAstPositioned {
@@ -50,7 +49,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
           ))
         )(defaultPos),
         Some(InTransactionsParameters(None, None, None, None)((1, 24, 23))),
-        false
+        optional = false
       )(defaultPos)
     }
   }
@@ -140,7 +139,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
   }
 
   test("CALL { CREATE (n) } IN CONCURRENT TRANSACTIONS OF 13 ROWS") {
-    val expected =
+    parses[SubqueryCall].toAst {
       importingWithSubqueryCallInTransactions(
         inTransactionsParameters(
           Some(InTransactionsBatchParameters(literalInt(13))(pos)),
@@ -150,24 +149,25 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
         ),
         create(nodePat(Some("n")))
       )
-    gives[SubqueryCall](expected)
+    }
   }
 
   test("CALL { CREATE (n) } IN 1 CONCURRENT TRANSACTIONS") {
-    val expected = importingWithSubqueryCallInTransactions(
-      inTransactionsParameters(
-        None,
-        Some(InTransactionsConcurrencyParameters(Some(literalInt(1)))(pos)),
-        None,
-        None
-      ),
-      create(nodePat(Some("n")))
-    )
-    gives[SubqueryCall](expected)
+    parses[SubqueryCall].toAst {
+      importingWithSubqueryCallInTransactions(
+        inTransactionsParameters(
+          None,
+          Some(InTransactionsConcurrencyParameters(Some(literalInt(1)))(pos)),
+          None,
+          None
+        ),
+        create(nodePat(Some("n")))
+      )
+    }
   }
 
   test("CALL { CREATE (n) } IN 19 CONCURRENT TRANSACTIONS") {
-    val expected =
+    parses[SubqueryCall].toAst {
       importingWithSubqueryCallInTransactions(
         inTransactionsParameters(
           None,
@@ -177,11 +177,11 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
         ),
         create(nodePat(Some("n")))
       )
-    gives[SubqueryCall](expected)
+    }
   }
 
   test("CALL { CREATE (n) } IN 19 CONCURRENT TRANSACTIONS OF 13 ROWS") {
-    val expected =
+    parses[SubqueryCall].toAst {
       importingWithSubqueryCallInTransactions(
         inTransactionsParameters(
           Some(InTransactionsBatchParameters(literalInt(13))(pos)),
@@ -191,7 +191,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
         ),
         create(nodePat(Some("n")))
       )
-    gives[SubqueryCall](expected)
+    }
   }
 
   test("CALL { CREATE (n) } IN TRANSACTIONS REPORT STATUS AS status") {
@@ -264,9 +264,9 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
     )
   ).foreach {
     case (errorKeyword, errorBehaviour, retryParams) =>
-      def noRetry: Boolean = errorBehaviour match {
-        case OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail => false
-        case _                                                                       => true
+      def withRetry: Boolean = errorBehaviour match {
+        case OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail => true
+        case _                                                                       => false
       }
 
       val errorString = s"ON ERROR $errorKeyword"
@@ -295,11 +295,11 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
             create(nodePat(Some("n")))
           )
         testName should parseIn[SubqueryCall] {
-          case Cypher25     => _.toAst(expected)
-          case _ if noRetry => _.toAst(expected)
-          case _ => _.withSyntaxErrorContaining(
+          case Cypher5 if withRetry =>
+            _.withSyntaxErrorContaining(
               "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
             )
+          case _ => _.toAst(expected)
         }
       }
 
@@ -316,11 +316,11 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
               create(nodePat(Some("n")))
             )
           testName should parseIn[SubqueryCall] {
-            case Cypher25     => _.toAst(expected)
-            case _ if noRetry => _.toAst(expected)
-            case _ => _.withSyntaxErrorContaining(
+            case Cypher5 if withRetry =>
+              _.withSyntaxErrorContaining(
                 "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
               )
+            case _ => _.toAst(expected)
           }
         }
         test(s"CALL () { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)}") {
@@ -335,11 +335,11 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
               create(nodePat(Some("n")))
             )
           testName should parseIn[SubqueryCall] {
-            case Cypher25     => _.toAst(expected)
-            case _ if noRetry => _.toAst(expected)
-            case _ => _.withSyntaxErrorContaining(
+            case Cypher5 if withRetry =>
+              _.withSyntaxErrorContaining(
                 "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
               )
+            case _ => _.toAst(expected)
           }
         }
       })
@@ -357,11 +357,11 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
               create(nodePat(Some("n")))
             )
           testName should parseIn[SubqueryCall] {
-            case Cypher25     => _.toAst(expected)
-            case _ if noRetry => _.toAst(expected)
-            case _ => _.withSyntaxErrorContaining(
+            case Cypher5 if withRetry =>
+              _.withSyntaxErrorContaining(
                 "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
               )
+            case _ => _.toAst(expected)
           }
         }
         test(s"CALL () { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)}") {
@@ -376,11 +376,11 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
               create(nodePat(Some("n")))
             )
           testName should parseIn[SubqueryCall] {
-            case Cypher25     => _.toAst(expected)
-            case _ if noRetry => _.toAst(expected)
-            case _ => _.withSyntaxErrorContaining(
+            case Cypher5 if withRetry =>
+              _.withSyntaxErrorContaining(
                 "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
               )
+            case _ => _.toAst(expected)
           }
         }
       })
@@ -398,11 +398,11 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
               create(nodePat(Some("n")))
             )
           testName should parseIn[SubqueryCall] {
-            case Cypher25     => _.toAst(expected)
-            case _ if noRetry => _.toAst(expected)
-            case _ => _.withSyntaxErrorContaining(
+            case Cypher5 if withRetry =>
+              _.withSyntaxErrorContaining(
                 "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
               )
+            case _ => _.toAst(expected)
           }
         }
         test(
@@ -419,11 +419,11 @@ class CypherTransactionsParserTest extends AstParsingTestBase with LegacyAstPars
               create(nodePat(Some("n")))
             )
           testName should parseIn[SubqueryCall] {
-            case Cypher25     => _.toAst(expected)
-            case _ if noRetry => _.toAst(expected)
-            case _ => _.withSyntaxErrorContaining(
+            case Cypher5 if withRetry =>
+              _.withSyntaxErrorContaining(
                 "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
               )
+            case _ => _.toAst(expected)
           }
         }
       })

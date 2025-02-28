@@ -2776,7 +2776,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42I24(
             new GqlStatus("42I24"),
             """
-                    Aggregate expressions are not allowed inside of { %s }.""",
+                    Aggregate expression { %s } is not allowed in this context.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,

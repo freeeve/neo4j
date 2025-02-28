@@ -1233,13 +1233,23 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   }
 
   test("Should not allow to use aggregate functions inside aggregate functions") {
+    val position = p(23, 1, 24)
     run("WITH 1 AS x RETURN sum(max(x)) AS sumOfMax")
-      .hasError("Can't use aggregate functions inside of aggregate functions.", p(23, 1, 24))
+      .hasErrors(SemanticError(
+        GqlHelper.getGql42001_42I24("max(x)", position.offset, position.line, position.column),
+        "Can't use aggregate functions inside of aggregate functions.",
+        position
+      ))
   }
 
   test("Should not allow to use count(*) inside aggregate functions") {
+    val position = p(23, 1, 24)
     run("WITH 1 AS x RETURN min(count(*)) AS minOfCount")
-      .hasError("Can't use aggregate functions inside of aggregate functions.", p(23, 1, 24))
+      .hasErrors(SemanticError(
+        GqlHelper.getGql42001_42I24("count(*)", position.offset, position.line, position.column),
+        "Can't use aggregate functions inside of aggregate functions.",
+        position
+      ))
   }
 
   test("Should allow repeating rel variable in pattern") {

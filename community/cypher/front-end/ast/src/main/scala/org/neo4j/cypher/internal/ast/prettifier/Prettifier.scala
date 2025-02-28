@@ -117,6 +117,7 @@ import org.neo4j.cypher.internal.ast.OptionsParam
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.ParameterName
 import org.neo4j.cypher.internal.ast.ParsedAsFilter
+import org.neo4j.cypher.internal.ast.ParsedAsLet
 import org.neo4j.cypher.internal.ast.ParsedAsLimit
 import org.neo4j.cypher.internal.ast.ParsedAsOrderBy
 import org.neo4j.cypher.internal.ast.ParsedAsSkip
@@ -1145,6 +1146,13 @@ case class Prettifier(
           s"$INDENT${rewrittenClausesStrWithNlSeparators.trim}"
         case ParsedAsFilter =>
           s"${INDENT}FILTER ${rewrittenClausesStrWithNlSeparators.trim}"
+        case ParsedAsLet =>
+          val items = w.returnItems.items.map {
+            case AliasedReturnItem(e, v) => expr(v) + " = " + expr(e)
+            case UnaliasedReturnItem(_, _) =>
+              new IllegalStateException("A With that is ParsedAsLet shall not contain UnaliasedReturnItem.")
+          }.mkString(", ")
+          s"${INDENT}LET $items"
         case ParsedAsYield | AddedInRewrite =>
           // part of SHOW/TERMINATE TRANSACTION which prettifies the YIELD items part
           // but it no longer knows the subclauses, hence prettifying them here

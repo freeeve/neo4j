@@ -3270,38 +3270,10 @@
     "deprecatedBy": null
   },
   {
-    "name": "startNode",
-    "category": "Scalar",
-    "description": "Returns the start `NODE` of a `RELATIONSHIP`.",
-    "signature": "startNode(input :: RELATIONSHIP) :: NODE",
-    "isBuiltIn": true,
-    "argumentDescription": [
-      {
-        "name": "input",
-        "description" : "A relationship.",
-        "type": "RELATIONSHIP",
-        "isDeprecated": false
-      }
-    ],
-    "returnDescription": "NODE",
-    "aggregating": false,
-    "rolesExecution": [
-      "PUBLIC",
-      "admin",
-      "architect",
-      "editor",
-      "publisher",
-      "reader"
-    ],
-    "rolesBoostedExecution": [],
-    "isDeprecated": false,
-    "deprecatedBy": null
-  },
-  {
-    "name": "stdev",
+    "name": "stDev",
     "category": "Aggregating",
     "description": "Returns the standard deviation for the given value over a group for a sample of a population.",
-    "signature": "stdev(input :: FLOAT) :: FLOAT",
+    "signature": "stDev(input :: FLOAT) :: FLOAT",
     "isBuiltIn": true,
     "argumentDescription": [
       {
@@ -3326,10 +3298,10 @@
     "deprecatedBy": null
   },
   {
-    "name": "stdevp",
+    "name": "stDevP",
     "category": "Aggregating",
     "description": "Returns the standard deviation for the given value over a group for an entire population.",
-    "signature": "stdevp(input :: FLOAT) :: FLOAT",
+    "signature": "stDevP(input :: FLOAT) :: FLOAT",
     "isBuiltIn": true,
     "argumentDescription": [
       {
@@ -3341,6 +3313,34 @@
     ],
     "returnDescription": "FLOAT",
     "aggregating": true,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null
+  },
+  {
+    "name": "startNode",
+    "category": "Scalar",
+    "description": "Returns the start `NODE` of a `RELATIONSHIP`.",
+    "signature": "startNode(input :: RELATIONSHIP) :: NODE",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description" : "A relationship.",
+        "type": "RELATIONSHIP",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "NODE",
+    "aggregating": false,
     "rolesExecution": [
       "PUBLIC",
       "admin",

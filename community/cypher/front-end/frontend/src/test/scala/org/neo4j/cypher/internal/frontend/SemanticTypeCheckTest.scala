@@ -45,18 +45,22 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherV
 
   // PatternExpressionInNonExistenceCheck
   test("should fail if pattern expression is used wherever we don't expect a boolean value") {
-    val queries = Seq(
+    val queries5 = Seq(
       "MATCH (a) RETURN (a)--()",
+      "MATCH (a) WITH a, (a)--() AS hasNeighbor RETURN a, hasNeighbor",
       "MATCH (a) WHERE ANY (x IN (a)--() WHERE 1=1) RETURN a"
+    )
+    val queries25plus = queries5 ++ Seq(
+      "MATCH (a) LET hasNeighbor = (a)--() RETURN a, hasNeighbor"
     )
 
     val expectedStatusDescription =
       "error: syntax error or access rule violation - invalid use of pattern expression. " +
         "A pattern expression can only be used to test the existence of a pattern. Use a pattern comprehension instead."
 
-    queries.foreach { query =>
+    def run(query: String, version: CypherVersion) =
       withClue(s"Failing query: $query") {
-        val errors: Seq[SemanticErrorDef] = runPipeline(query)
+        val errors: Seq[SemanticErrorDef] = runPipeline(version, query)
         errors.map(_.msg) should contain(SemanticError.invalidUseOfPatternExpressionMessage)
         errors.map(_.gqlStatusObject).exists(e =>
           e.gqlStatus() == "42001" &&
@@ -67,7 +71,9 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherV
             e.cause().get().cause().isEmpty
         ) shouldBe true
       }
-    }
+
+    queries5.foreach { query => run(query, CypherVersion.Cypher5) }
+    queries25plus.foreach { query => run(query, CypherVersion.Cypher25) }
   }
 
   test("should fail if pattern expression is used in size()") {
@@ -86,7 +92,7 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherV
   }
 
   test("should not fail if pattern expression is used where we expect a boolean value") {
-    val queries = Seq(
+    val queries5 = Seq(
       "MATCH (a)--() RETURN a",
       "RETURN NOT ()--()",
       "MATCH (a) WHERE (a)--() RETURN a",
@@ -111,11 +117,19 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherV
         |""".stripMargin
     )
 
-    queries.foreach { query =>
+    val queries25plus = queries5 ++ Seq(
+      "MATCH (a) FILTER (a)--() RETURN a",
+      "MATCH (a) FILTER WHERE (a)--() RETURN a",
+      "MATCH (a) LET hasNeighbor = EXISTS { (a)--() } RETURN a, hasNeighbor"
+    )
+
+    def run(query: String, version: CypherVersion) =
       withClue(s"Failing query: $query") {
-        runPipeline(query).size shouldBe 0
+        runPipeline(version, query).size shouldBe 0
       }
-    }
+
+    queries5.foreach { query => run(query, CypherVersion.Cypher5) }
+    queries25plus.foreach { query => run(query, CypherVersion.Cypher25) }
   }
 
   test("should fail if list is coerced to a boolean") {

@@ -272,8 +272,8 @@ private class DefaultExpressionStringifier(
       case Parameter(name, _, _) =>
         s"$$${backtick(name)}"
 
-      case _: CountStar =>
-        s"count(*)"
+      case cs: CountStar =>
+        cs.asCanonicalStringVal
 
       case IsNull(arg) if !isCaseExpression =>
         s"${inner(ast)(arg)} IS NULL"
