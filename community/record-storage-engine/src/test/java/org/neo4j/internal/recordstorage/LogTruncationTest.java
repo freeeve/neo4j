@@ -51,6 +51,7 @@ import org.neo4j.kernel.impl.store.record.RelationshipRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.kernel.impl.store.record.SchemaRecord;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.RelationshipDirection;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.UpdateMode;
@@ -177,7 +178,7 @@ class LogTruncationTest {
         cmd.serialize(inMemoryChannel);
         int bytesSuccessfullyWritten = inMemoryChannel.writerPosition();
         try {
-            StorageCommand command = serialization.read(inMemoryChannel);
+            StorageCommand command = serialization.read(inMemoryChannel, EmptyMemoryTracker.INSTANCE);
             assertThat(cmd).isEqualTo(command);
         } catch (Exception e) {
             throw new AssertionError("Failed to deserialize " + cmd + ", because: ", e);
@@ -189,7 +190,7 @@ class LogTruncationTest {
             inMemoryChannel.truncateTo(bytesSuccessfullyWritten);
             StorageCommand command = null;
             try {
-                command = serialization.read(inMemoryChannel);
+                command = serialization.read(inMemoryChannel, EmptyMemoryTracker.INSTANCE);
             } catch (ReadPastEndException e) {
                 assertNull(
                         command,

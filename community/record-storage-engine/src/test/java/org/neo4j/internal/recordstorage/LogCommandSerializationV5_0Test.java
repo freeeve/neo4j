@@ -22,7 +22,6 @@ package org.neo4j.internal.recordstorage;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.neo4j.internal.recordstorage.LogCommandSerializationV5_8Test.securityContext;
 
 import java.io.IOException;
 import org.junit.jupiter.api.RepeatedTest;
@@ -30,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.recordstorage.Command.RecordEnrichmentCommand;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.enrichment.CaptureMode;
 import org.neo4j.storageengine.api.enrichment.Enrichment;
@@ -85,7 +85,7 @@ public class LogCommandSerializationV5_0Test extends LogCommandSerializationV5Ba
             writer.putLong(13L);
             writer.putChecksum();
 
-            assertThatThrownBy(() -> createReader().read(channel.reader()))
+            assertThatThrownBy(() -> createReader().read(channel.reader(), EmptyMemoryTracker.INSTANCE))
                     .isInstanceOf(IOException.class)
                     .hasMessageContaining("Unsupported in this version");
         }

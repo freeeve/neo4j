@@ -37,6 +37,7 @@ import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.BaseCommandReader;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.CommandReaderFactory;
@@ -61,7 +62,7 @@ public class EnrichmentCommandReaderFactoryTest {
             command.serialize(channel);
 
             final var reader = reader(true);
-            assertThat(reader.read(channel.flip())).isEqualTo(command);
+            assertThat(reader.read(channel.flip(), EmptyMemoryTracker.INSTANCE)).isEqualTo(command);
         }
     }
 
@@ -78,7 +79,7 @@ public class EnrichmentCommandReaderFactoryTest {
             enrichment.serialize(channel);
 
             final var reader = reader(includeUserMetadata);
-            final var readCommand = reader.read(channel.flip());
+            final var readCommand = reader.read(channel.flip(), EmptyMemoryTracker.INSTANCE);
 
             assertThat(readCommand).isInstanceOf(TestEnrichmentCommand.class);
             assertMetadataEquals(enrichment.metadata(), ((TestEnrichmentCommand) readCommand).metadata);
@@ -118,10 +119,10 @@ public class EnrichmentCommandReaderFactoryTest {
             channel.flip();
 
             final var reader = reader(includeUserMetadata);
-            assertThat(reader.read(channel)).isEqualTo(command1);
-            assertThat(reader.read(channel)).isEqualTo(command2);
+            assertThat(reader.read(channel, EmptyMemoryTracker.INSTANCE)).isEqualTo(command1);
+            assertThat(reader.read(channel, EmptyMemoryTracker.INSTANCE)).isEqualTo(command2);
 
-            final var readCommand = reader.read(channel);
+            final var readCommand = reader.read(channel, EmptyMemoryTracker.INSTANCE);
             assertThat(readCommand).isInstanceOf(TestEnrichmentCommand.class);
             assertMetadataEquals(enrichment.metadata(), ((TestEnrichmentCommand) readCommand).metadata);
 
@@ -137,7 +138,7 @@ public class EnrichmentCommandReaderFactoryTest {
                 assertThat(readEnrichment.userMetadata()).isNotPresent();
             }
 
-            assertThat(reader.read(channel)).isEqualTo(command3);
+            assertThat(reader.read(channel, EmptyMemoryTracker.INSTANCE)).isEqualTo(command3);
         }
     }
 
@@ -239,7 +240,8 @@ public class EnrichmentCommandReaderFactoryTest {
         public CommandReader get(KernelVersion version) {
             return new BaseCommandReader() {
                 @Override
-                public StorageCommand read(byte commandType, ReadableChannel channel) throws IOException {
+                public StorageCommand read(byte commandType, ReadableChannel channel, MemoryTracker memoryTracker)
+                        throws IOException {
                     if (commandType == TestCommand.TYPE) {
                         return new TestCommand(channel.getLong());
                     } else if (commandType == EnrichmentCommand.COMMAND_CODE) {

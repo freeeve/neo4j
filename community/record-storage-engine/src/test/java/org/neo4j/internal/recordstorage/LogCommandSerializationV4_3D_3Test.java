@@ -28,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.kernel.impl.store.record.MetaDataRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipGroupRecord;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.test.extension.RandomExtension;
@@ -48,7 +49,7 @@ class LogCommandSerializationV4_3D_3Test extends LogCommandSerializationV4_2Test
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.MetaDataCommand);
 
         Command.MetaDataCommand readCommand = (Command.MetaDataCommand) command;
@@ -78,7 +79,7 @@ class LogCommandSerializationV4_3D_3Test extends LogCommandSerializationV4_2Test
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipGroupCommand);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
@@ -109,7 +110,7 @@ class LogCommandSerializationV4_3D_3Test extends LogCommandSerializationV4_2Test
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipGroupCommand);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;

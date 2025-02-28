@@ -24,12 +24,14 @@ import org.neo4j.internal.recordstorage.indexcommand.IndexUpdateCommand;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.impl.transaction.log.LogPositionAwareChannel;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.BaseCommandReader;
 
 public abstract class LogCommandSerialization extends BaseCommandReader {
 
     @Override
-    public final Command read(byte commandType, ReadableChannel channel) throws IOException {
+    public final Command read(byte commandType, ReadableChannel channel, MemoryTracker memoryTracker)
+            throws IOException {
         return switch (commandType) {
             case NeoCommandType.NODE_COMMAND -> readNodeCommand(channel);
             case NeoCommandType.CREATE_NODE_COMMAND -> readCreatedNodeCommand(channel);

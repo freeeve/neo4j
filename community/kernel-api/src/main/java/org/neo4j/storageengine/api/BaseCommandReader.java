@@ -21,6 +21,7 @@ package org.neo4j.storageengine.api;
 
 import java.io.IOException;
 import org.neo4j.io.fs.ReadableChannel;
+import org.neo4j.memory.MemoryTracker;
 
 /**
  * Basic functionality for {@link CommandReader} for {@link StorageEngine}.
@@ -30,13 +31,13 @@ public abstract class BaseCommandReader implements CommandReader {
      * Handles format back to 1.9 where the command format didn't have a version.
      */
     @Override
-    public final StorageCommand read(ReadableChannel channel) throws IOException {
+    public final StorageCommand read(ReadableChannel channel, MemoryTracker memoryTracker) throws IOException {
         byte commandType;
         do {
             commandType = channel.get();
         } while (commandType == CommandReader.NONE);
 
-        return read(commandType, channel);
+        return read(commandType, channel, memoryTracker);
     }
 
     /**
@@ -47,5 +48,6 @@ public abstract class BaseCommandReader implements CommandReader {
      * @return {@link StorageCommand} or {@code null} if end reached.
      * @throws IOException if channel throws exception.
      */
-    public abstract StorageCommand read(byte commandType, ReadableChannel channel) throws IOException;
+    public abstract StorageCommand read(byte commandType, ReadableChannel channel, MemoryTracker memoryTracker)
+            throws IOException;
 }

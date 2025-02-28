@@ -34,6 +34,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.kernel.impl.store.record.Record;
 import org.neo4j.kernel.impl.store.record.RelationshipGroupRecord;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.StorageCommand;
 
@@ -53,13 +54,14 @@ class PhysicalLogCommandReadersTest {
             throws IOException, IllegalAccessException, InstantiationException, NoSuchMethodException,
                     InvocationTargetException {
         CommandReader reader = readerClass.getDeclaredConstructor().newInstance();
-        StorageCommand command = reader.read(channelWithExtendedRelGroupRecordBefore5_0());
+        StorageCommand command = reader.read(channelWithExtendedRelGroupRecordBefore5_0(), EmptyMemoryTracker.INSTANCE);
         assertValidRelGroupCommand(command);
     }
 
     @Test
     void readRelGroupWithHugeType() throws IOException {
-        StorageCommand command = LogCommandSerializationV5_0.INSTANCE.read(channelWithRelGroupRecord());
+        StorageCommand command =
+                LogCommandSerializationV5_0.INSTANCE.read(channelWithRelGroupRecord(), EmptyMemoryTracker.INSTANCE);
         assertValidRelGroupCommand(command);
     }
 

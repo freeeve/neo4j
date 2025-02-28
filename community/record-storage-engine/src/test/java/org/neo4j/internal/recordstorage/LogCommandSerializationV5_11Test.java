@@ -42,6 +42,7 @@ import org.neo4j.kernel.impl.store.record.PropertyBlock;
 import org.neo4j.kernel.impl.store.record.PropertyRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.values.storable.Values;
 
@@ -70,7 +71,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeCreatedNodeCommand(channel, nodeCommand);
 
             var reader = createReader();
-            var command = reader.read(channel);
+            var command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertThat(command).isInstanceOf(Command.NodeCommand.class);
             assertThat(randomCreated).isEqualTo(((Command.NodeCommand) command).getAfter());
@@ -94,7 +95,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeDeletedNodeCommand(channel, nodeCommand);
 
             var reader = createReader();
-            var command = reader.read(channel);
+            var command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertThat(command).isInstanceOf(Command.NodeCommand.class);
             assertThat(nodeBefore).isEqualTo(((Command.NodeCommand) command).getBefore());
@@ -121,8 +122,8 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeCreatedNodeCommand(channel, createNodeCommand);
 
             var reader = createReader();
-            var oldFullNodeCommand = (Command.NodeCommand) reader.read(channel);
-            var newCreateNodeCommand = (Command.NodeCommand) reader.read(channel);
+            var oldFullNodeCommand = (Command.NodeCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
+            var newCreateNodeCommand = (Command.NodeCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertEquals(oldFullNodeCommand.getBefore(), newCreateNodeCommand.getBefore());
             assertEquals(oldFullNodeCommand.getAfter(), newCreateNodeCommand.getAfter());
@@ -154,8 +155,8 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeDeletedNodeCommand(channel, deletedNodeCommand);
 
             var reader = createReader();
-            var oldFullNodeCommand = (Command.NodeCommand) reader.read(channel);
-            var newDeleteNodeCommand = (Command.NodeCommand) reader.read(channel);
+            var oldFullNodeCommand = (Command.NodeCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
+            var newDeleteNodeCommand = (Command.NodeCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertEquals(oldFullNodeCommand.getBefore(), newDeleteNodeCommand.getBefore());
             assertEquals(oldFullNodeCommand.getAfter(), newDeleteNodeCommand.getAfter());
@@ -174,7 +175,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeCreatedRelationshipCommand(channel, relCommand);
 
             var reader = createReader();
-            var command = reader.read(channel);
+            var command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertThat(command).isInstanceOf(Command.RelationshipCommand.class);
             assertThat(randomCreated).isEqualTo(((Command.RelationshipCommand) command).getAfter());
@@ -199,7 +200,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeDeletedRelationshipCommand(channel, relCommand);
 
             var reader = createReader();
-            var command = reader.read(channel);
+            var command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertThat(command).isInstanceOf(Command.RelationshipCommand.class);
             assertThat(relationshipBefore).isEqualTo(((Command.RelationshipCommand) command).getBefore());
@@ -222,8 +223,8 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeCreatedRelationshipCommand(channel, relCommand);
 
             var reader = createReader();
-            var oldFullRelCommand = (Command.RelationshipCommand) reader.read(channel);
-            var newCreateRelCommand = (Command.RelationshipCommand) reader.read(channel);
+            var oldFullRelCommand = (Command.RelationshipCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
+            var newCreateRelCommand = (Command.RelationshipCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertEquals(oldFullRelCommand.getAfter(), newCreateRelCommand.getAfter());
             assertEquals(oldFullRelCommand.getBefore(), newCreateRelCommand.getBefore());
@@ -244,8 +245,8 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeDeletedRelationshipCommand(channel, deletedRelationshipCommand);
 
             var reader = createReader();
-            var oldFullRelCommand = (Command.RelationshipCommand) reader.read(channel);
-            var newDeleteRelCommand = (Command.RelationshipCommand) reader.read(channel);
+            var oldFullRelCommand = (Command.RelationshipCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
+            var newDeleteRelCommand = (Command.RelationshipCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertEquals(oldFullRelCommand.getBefore(), newDeleteRelCommand.getBefore());
             assertEquals(oldFullRelCommand.getAfter(), newDeleteRelCommand.getAfter());
@@ -263,7 +264,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeCreatedPropertyCommand(channel, propertyCommand);
 
             var reader = createReader();
-            var command = reader.read(channel);
+            var command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertThat(command).isInstanceOf(Command.PropertyCommand.class);
             assertThat(randomCreated).isEqualTo(((Command.PropertyCommand) command).getAfter());
@@ -288,7 +289,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeDeletedPropertyCommand(channel, propertyCommand);
 
             var reader = createReader();
-            var command = reader.read(channel);
+            var command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertThat(command).isInstanceOf(Command.PropertyCommand.class);
             assertThat(propertyBefore).isEqualTo(((Command.PropertyCommand) command).getBefore());
@@ -315,8 +316,8 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeCreatedPropertyCommand(channel, propCommand);
 
             var reader = createReader();
-            var oldFullPropertyCommand = (Command.PropertyCommand) reader.read(channel);
-            var newCreatePropertyCommand = (Command.PropertyCommand) reader.read(channel);
+            var oldFullPropertyCommand = (Command.PropertyCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
+            var newCreatePropertyCommand = (Command.PropertyCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertEquals(oldFullPropertyCommand.getAfter(), newCreatePropertyCommand.getAfter());
             assertEquals(oldFullPropertyCommand.getBefore(), newCreatePropertyCommand.getBefore());
@@ -343,8 +344,8 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
             commandSerialization.writeDeletedPropertyCommand(channel, deletedPropertyCommand);
 
             var reader = createReader();
-            var oldFullPropertyCommand = (Command.PropertyCommand) reader.read(channel);
-            var newDeletePropertyCommand = (Command.PropertyCommand) reader.read(channel);
+            var oldFullPropertyCommand = (Command.PropertyCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
+            var newDeletePropertyCommand = (Command.PropertyCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
             assertEquals(oldFullPropertyCommand.getBefore(), newDeletePropertyCommand.getBefore());
             assertEquals(oldFullPropertyCommand.getAfter(), newDeletePropertyCommand.getAfter());

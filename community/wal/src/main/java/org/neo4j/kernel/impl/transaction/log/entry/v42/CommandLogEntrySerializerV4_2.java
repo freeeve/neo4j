@@ -27,6 +27,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommand;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.StorageCommand;
 
@@ -42,7 +43,7 @@ public class CommandLogEntrySerializerV4_2 extends LogEntrySerializer<LogEntryCo
             LogPositionMarker marker,
             CommandReaderFactory commandReaderFactory)
             throws IOException {
-        StorageCommand command = commandReaderFactory.get(version).read(channel);
+        StorageCommand command = commandReaderFactory.get(version).read(channel, EmptyMemoryTracker.INSTANCE);
         return command == null ? null : new LogEntryCommand(command);
     }
 

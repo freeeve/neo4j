@@ -22,6 +22,7 @@ package org.neo4j.storageengine.api;
 import java.io.IOException;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.kernel.KernelVersionProvider;
+import org.neo4j.memory.MemoryTracker;
 
 /**
  * Reads {@link StorageCommand commands} from a {@link ReadableChannel channel}.
@@ -36,8 +37,9 @@ public interface CommandReader extends KernelVersionProvider {
      * Reads the next {@link StorageCommand} from {@link ReadableChannel channel}.
      *
      * @param channel {@link ReadableChannel} to read from.
+     * @param memoryTracker the {@link MemoryTracker} to use
      * @return {@link StorageCommand} or {@code null} if end reached.
      * @throws IOException if channel throws exception.
      */
-    StorageCommand read(ReadableChannel channel) throws IOException;
+    StorageCommand read(ReadableChannel channel, MemoryTracker memoryTracker) throws IOException;
 }

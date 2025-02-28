@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.recordstorage.Command.RecordEnrichmentCommand;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.enrichment.CaptureMode;
 import org.neo4j.storageengine.api.enrichment.Enrichment;
 import org.neo4j.storageengine.api.enrichment.TxMetadata;
@@ -83,7 +84,7 @@ public class LogCommandSerializationV5_8Test extends LogCommandSerializationV5Ba
             final var afterEnrichment = writer.getCurrentLogPosition();
             writer.putChecksum();
 
-            final var command = serialization.read(channel);
+            final var command = serialization.read(channel, EmptyMemoryTracker.INSTANCE);
             assertThat(command).isInstanceOf(RecordEnrichmentCommand.class);
 
             final var enrichment = (Enrichment.Read) ((RecordEnrichmentCommand) command).enrichment();

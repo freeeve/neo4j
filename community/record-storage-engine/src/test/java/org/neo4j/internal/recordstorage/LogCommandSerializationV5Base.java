@@ -59,6 +59,7 @@ import org.neo4j.kernel.impl.store.record.RelationshipRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.kernel.impl.store.record.SchemaRecord;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.test.LatestVersions;
@@ -87,7 +88,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.PropertyKeyTokenCommand);
 
         Command.PropertyKeyTokenCommand propertyKeyTokenCommand = (Command.PropertyKeyTokenCommand) command;
@@ -109,7 +110,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.PropertyKeyTokenCommand);
 
         Command.PropertyKeyTokenCommand propertyKeyTokenCommand = (Command.PropertyKeyTokenCommand) command;
@@ -130,7 +131,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.LabelTokenCommand);
 
         Command.LabelTokenCommand labelTokenCommand = (Command.LabelTokenCommand) command;
@@ -152,7 +153,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.LabelTokenCommand);
 
         Command.LabelTokenCommand labelTokenCommand = (Command.LabelTokenCommand) command;
@@ -173,7 +174,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipTypeTokenCommand);
 
         Command.RelationshipTypeTokenCommand relationshipTypeTokenCommand =
@@ -196,7 +197,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipTypeTokenCommand);
 
         Command.RelationshipTypeTokenCommand relationshipTypeTokenCommand =
@@ -219,7 +220,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipCommand);
 
         Command.RelationshipCommand relationshipCommand = (Command.RelationshipCommand) command;
@@ -239,7 +240,7 @@ abstract class LogCommandSerializationV5Base {
         new Command.RelationshipCommand(writer(), before, after).serialize(channel);
 
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipCommand);
 
         Command.RelationshipCommand relationshipCommand = (Command.RelationshipCommand) command;
@@ -257,7 +258,7 @@ abstract class LogCommandSerializationV5Base {
         new Command.RelationshipCommand(writer(), before, after).serialize(channel);
 
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipCommand);
 
         Command.RelationshipCommand relationshipCommand = (Command.RelationshipCommand) command;
@@ -276,7 +277,7 @@ abstract class LogCommandSerializationV5Base {
         new Command.RelationshipCommand(writer(), before, after).serialize(channel);
 
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipCommand);
 
         Command.RelationshipCommand relationshipCommand = (Command.RelationshipCommand) command;
@@ -298,7 +299,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipGroupCommand);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
@@ -321,7 +322,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipGroupCommand);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
@@ -344,7 +345,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipGroupCommand);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
@@ -368,7 +369,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipGroupCommand);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
@@ -393,7 +394,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipGroupCommand);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
@@ -415,7 +416,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.NodeCommand);
 
         Command.NodeCommand nodeCommand = (Command.NodeCommand) command;
@@ -437,7 +438,7 @@ abstract class LogCommandSerializationV5Base {
         new Command.PropertyCommand(writer(), before, after).serialize(channel);
 
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.PropertyCommand);
 
         Command.PropertyCommand propertyCommand = (Command.PropertyCommand) command;
@@ -462,12 +463,12 @@ abstract class LogCommandSerializationV5Base {
         CommandReader reader = createReader();
 
         // THEN
-        assertTrue(reader.read(channel) instanceof Command.NodeCommand);
-        assertTrue(reader.read(channel) instanceof Command.NodeCommand);
-        assertTrue(reader.read(channel) instanceof Command.RelationshipTypeTokenCommand);
-        assertTrue(reader.read(channel) instanceof Command.RelationshipCommand);
-        assertTrue(reader.read(channel) instanceof Command.PropertyKeyTokenCommand);
-        assertTrue(reader.read(channel) instanceof Command.PropertyCommand);
+        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.NodeCommand);
+        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.NodeCommand);
+        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.RelationshipTypeTokenCommand);
+        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.RelationshipCommand);
+        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.PropertyKeyTokenCommand);
+        assertTrue(reader.read(channel, EmptyMemoryTracker.INSTANCE) instanceof Command.PropertyCommand);
     }
 
     @Test
@@ -487,7 +488,8 @@ abstract class LogCommandSerializationV5Base {
         writer().writeSchemaRuleCommand(channel, new Command.SchemaRuleCommand(writer(), before, after, rule));
 
         CommandReader reader = createReader();
-        Command.SchemaRuleCommand command = (Command.SchemaRuleCommand) reader.read(channel);
+        Command.SchemaRuleCommand command =
+                (Command.SchemaRuleCommand) reader.read(channel, EmptyMemoryTracker.INSTANCE);
 
         assertBeforeAndAfterEquals(command, before, after);
     }
@@ -503,7 +505,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.MetaDataCommand);
 
         Command.MetaDataCommand readCommand = (Command.MetaDataCommand) command;
@@ -528,7 +530,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipGroupCommand);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
@@ -554,7 +556,7 @@ abstract class LogCommandSerializationV5Base {
 
         // When
         CommandReader reader = createReader();
-        StorageCommand command = reader.read(channel);
+        StorageCommand command = reader.read(channel, EmptyMemoryTracker.INSTANCE);
         assertTrue(command instanceof Command.RelationshipGroupCommand);
 
         Command.RelationshipGroupCommand relationshipGroupCommand = (Command.RelationshipGroupCommand) command;
@@ -834,7 +836,7 @@ abstract class LogCommandSerializationV5Base {
         CommandReader reader = createReader();
         byte readOnceVersion = originalChannel.getVersion();
         assertThat(readOnceVersion).isEqualTo(version);
-        var readOnce = (Command.BaseCommand<?>) reader.read(originalChannel);
+        var readOnce = (Command.BaseCommand<?>) reader.read(originalChannel, EmptyMemoryTracker.INSTANCE);
         assertThat(readOnce).isInstanceOf(type);
 
         var anotherChannel = new InMemoryClosableChannel();
@@ -845,7 +847,7 @@ abstract class LogCommandSerializationV5Base {
 
         byte readTwiceVersion = anotherChannel.getVersion();
         assertThat(readTwiceVersion).isEqualTo(version);
-        var readTwice = (Command.BaseCommand<?>) reader.read(anotherChannel);
+        var readTwice = (Command.BaseCommand<?>) reader.read(anotherChannel, EmptyMemoryTracker.INSTANCE);
         assertThat(readTwice).isInstanceOf(type);
         assertThat(originalChecksum)
                 .as("Checksums must be equal after double serialization \n" + "Original: "

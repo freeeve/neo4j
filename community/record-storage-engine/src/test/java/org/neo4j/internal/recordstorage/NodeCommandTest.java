@@ -217,7 +217,8 @@ class NodeCommandTest {
         // When
         Command.NodeCommand cmd = new Command.NodeCommand(commandSerialization, before, after);
         cmd.serialize(channel);
-        Command.NodeCommand result = (Command.NodeCommand) commandSerialization.read(channel);
+        Command.NodeCommand result =
+                (Command.NodeCommand) commandSerialization.read(channel, EmptyMemoryTracker.INSTANCE);
         // Then
         assertThat(result).isEqualTo(cmd);
         assertThat(result.getMode()).isEqualTo(cmd.getMode());
@@ -240,7 +241,8 @@ class NodeCommandTest {
     private void assertSerializationWorksFor(Command.NodeCommand cmd) throws IOException {
         channel.reset();
         cmd.serialize(channel);
-        Command.NodeCommand result = (Command.NodeCommand) commandSerialization.read(channel);
+        Command.NodeCommand result =
+                (Command.NodeCommand) commandSerialization.read(channel, EmptyMemoryTracker.INSTANCE);
         // Then
         assertThat(result).isEqualTo(cmd);
         assertThat(result.getMode()).isEqualTo(cmd.getMode());

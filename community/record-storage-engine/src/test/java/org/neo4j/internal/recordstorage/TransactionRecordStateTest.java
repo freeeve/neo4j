@@ -1805,7 +1805,7 @@ class TransactionRecordStateTest {
         List<StorageCommand> commands = new ArrayList<>();
         try {
             while (true) {
-                commands.add(reader.read(channel));
+                commands.add(reader.read(channel, EmptyMemoryTracker.INSTANCE));
             }
         } catch (ReadPastEndException e) {
             // reached the end

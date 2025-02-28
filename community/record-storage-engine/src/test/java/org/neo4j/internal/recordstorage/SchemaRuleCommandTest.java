@@ -53,6 +53,7 @@ import org.neo4j.kernel.impl.store.SchemaStore;
 import org.neo4j.kernel.impl.store.record.SchemaRecord;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
 import org.neo4j.lock.LockService;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.IndexUpdateListener;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
@@ -183,7 +184,7 @@ class SchemaRuleCommandTest {
 
         // WHEN
         command.serialize(buffer);
-        StorageCommand readCommand = serialization.read(buffer);
+        StorageCommand readCommand = serialization.read(buffer, EmptyMemoryTracker.INSTANCE);
 
         // THEN
         assertThat(readCommand).isInstanceOf(SchemaRuleCommand.class);
@@ -204,7 +205,7 @@ class SchemaRuleCommandTest {
 
         // WHEN
         command.serialize(buffer);
-        StorageCommand readCommand = serialization.read(buffer);
+        StorageCommand readCommand = serialization.read(buffer, EmptyMemoryTracker.INSTANCE);
 
         // THEN
         assertThat(readCommand).isInstanceOf(SchemaRuleCommand.class);
@@ -233,7 +234,7 @@ class SchemaRuleCommandTest {
 
         // WHEN
         command.serialize(buffer);
-        SchemaRuleCommand readCommand = (SchemaRuleCommand) serialization.read(buffer);
+        SchemaRuleCommand readCommand = (SchemaRuleCommand) serialization.read(buffer, EmptyMemoryTracker.INSTANCE);
 
         // THEN
         assertEquals(ruleId, readCommand.getKey());
