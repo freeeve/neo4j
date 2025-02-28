@@ -206,6 +206,14 @@ preparserOptions
    : option* statement?
    ;
 
+/*
+ This is added just for preparsing cypher shell.
+ This rule will fail in option instead of statement,
+ providing better token candidates
+ */
+strictlyPreparserOptions
+  : option* EOF;
+
 option
    : CYPHER VERSION? (setting)*
    | EXPLAIN

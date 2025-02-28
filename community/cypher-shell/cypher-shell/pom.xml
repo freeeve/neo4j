@@ -40,7 +40,12 @@
 
 
         <!-- Neo4j dependencies -->
-
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>cypher-preparser</artifactId>
+            <version>${project.version}</version>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
@@ -49,6 +54,11 @@
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>cypher-antlr-ast-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>cypher-v25-ast-factory</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -135,18 +145,6 @@
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>cypher-v25-antlr-parser</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.neo4j</groupId>
-            <artifactId>cypher-v25-ast-factory</artifactId>
-            <version>${project.version}</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 

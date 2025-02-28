@@ -31,8 +31,10 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.TokenStream;
@@ -44,6 +46,10 @@ import org.neo4j.cypher.internal.ast.factory.neo4j.completion.CodeCompletionCore
 import org.neo4j.cypher.internal.parser.AstRuleCtx;
 import org.neo4j.cypher.internal.parser.v25.Cypher25Lexer;
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser;
+import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstLexer;
+import org.neo4j.cypher.internal.preparser.CypherPreparserLexer;
+import org.neo4j.cypher.internal.preparser.CypherPreparserParser;
+import org.neo4j.cypher.internal.preparser.PreparserCypherLexer;
 
 public class CompletionEngine {
     public enum ParameterType {
@@ -52,11 +58,6 @@ public class CompletionEngine {
         ANY
     }
 
-    Set<Integer> lexerKeywords;
-    Set<Integer> rulesDefiningVariables;
-    Set<Integer> rulesDefiningOrUsingVariables;
-    Map<Integer, String> customTokenDisplayNames;
-    Vocabulary vocabulary;
     DbInfo dbInfo;
 
     class VariableCollector implements ParseTreeListener {
@@ -88,7 +89,8 @@ public class CompletionEngine {
                         tokenIndex != -1 && tokens.get(tokenIndex + 1).getType() == Cypher25Lexer.EOF;
 
                 var definesVariable = c.getParent() != null
-                        && rulesDefiningOrUsingVariables.contains(c.getParent().getRuleIndex());
+                        && ParserInfo.rulesDefiningOrUsingVariables.contains(
+                                c.getParent().getRuleIndex());
                 if (c.symbolicVariableNameString() != null
                         && c.symbolicVariableNameString().getText() != null
                         && !nextTokenIsEOF
@@ -108,72 +110,21 @@ public class CompletionEngine {
 
     public CompletionEngine(DbInfo dbInfo) {
         this.dbInfo = dbInfo;
-        this.customTokenDisplayNames = Map.of(
-                Cypher25Parser.ALL_SHORTEST_PATHS, "allShortestPaths", Cypher25Parser.SHORTEST_PATH, "shortestPath");
-        this.vocabulary = Cypher25Lexer.VOCABULARY;
-        var ignoreFromLexer = Set.of(
-                Cypher25Lexer.DECIMAL_DOUBLE,
-                Cypher25Lexer.UNSIGNED_DECIMAL_INTEGER,
-                Cypher25Lexer.UNSIGNED_HEX_INTEGER,
-                Cypher25Lexer.UNSIGNED_OCTAL_INTEGER,
-                Cypher25Lexer.STRING_LITERAL1,
-                Cypher25Lexer.STRING_LITERAL2,
-                Cypher25Lexer.ErrorChar,
-                Cypher25Lexer.EOF,
-                Cypher25Lexer.SPACE,
-                Cypher25Lexer.IDENTIFIER,
-                Cypher25Lexer.ESCAPED_SYMBOLIC_NAME,
-                Cypher25Lexer.MULTI_LINE_COMMENT,
-                Cypher25Lexer.SINGLE_LINE_COMMENT);
-        this.lexerKeywords = new HashSet<>();
-        for (int i = 0; i < Cypher25Lexer.VOCABULARY.getMaxTokenType(); ++i) {
-            if (vocabulary.getLiteralName(i) == null && !ignoreFromLexer.contains(i)) {
-                this.lexerKeywords.add(i);
-            }
-        }
-
-        rulesDefiningVariables = Set.of(
-                Cypher25Parser.RULE_returnItem,
-                Cypher25Parser.RULE_unwindClause,
-                Cypher25Parser.RULE_subqueryInTransactionsReportParameters,
-                Cypher25Parser.RULE_procedureResultItem,
-                Cypher25Parser.RULE_foreachClause,
-                Cypher25Parser.RULE_loadCSVClause,
-                Cypher25Parser.RULE_reduceExpression,
-                Cypher25Parser.RULE_listItemsPredicate,
-                Cypher25Parser.RULE_listComprehension);
-
-        rulesDefiningOrUsingVariables = new HashSet(rulesDefiningVariables);
-        rulesDefiningOrUsingVariables.addAll(List.of(
-                Cypher25Parser.RULE_pattern, Cypher25Parser.RULE_nodePattern, Cypher25Parser.RULE_relationshipPattern));
     }
 
-    public List<Suggestion> completeQuery(String incompleteQuery) throws IOException {
-        var lexer = org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstLexer.fromString(incompleteQuery, true);
-        var tokenStream = new CommonTokenStream(lexer);
-        var parser = new Cypher25Parser(tokenStream);
-        var vocabulary = Cypher25Lexer.VOCABULARY;
-        var variableCollector = new VariableCollector(tokenStream);
-        parser.addParseListener(variableCollector);
+    private record CompletionResolution(
+            ParserInfo parserInfo,
+            PreParserInfo preparserInfo,
+            boolean completeWithPreparser,
+            boolean completeWithParser) {}
 
-        lexer.removeErrorListeners();
-        parser.removeErrorListeners();
-
-        var rootCtx = parser.statements();
-        var stopNode = findStopNode(rootCtx);
-        var tokens = tokenStream.getTokens();
-        var collectedVariables = variableCollector.variables;
-        // The query is always going to have the EOF
-        var caretIndex = tokens.size() - 1;
-        var previousToken = tokens.size() > 1 ? tokens.get(caretIndex - 1) : null;
-
-        if (previousToken != null
-                && (previousToken.getType() == Cypher25Lexer.IDENTIFIER
-                        || lexerKeywords.contains(previousToken.getType()))) {
-            caretIndex--;
-        }
-
-        Set<Integer> preferredRules = Set.of(
+    private record ParserInfo(
+            Cypher25Parser parser,
+            Cypher25Parser.StatementsContext parserCtx,
+            VariableCollector variableCollector,
+            List<Token> tokens) {
+        static Set<Integer> keywords;
+        static Set<Integer> preferredRules = Set.of(
                 Cypher25Parser.RULE_functionName,
                 Cypher25Parser.RULE_procedureName,
                 Cypher25Parser.RULE_labelExpression1,
@@ -186,23 +137,266 @@ public class CompletionEngine {
                 Cypher25Parser.RULE_commandNameExpression,
                 Cypher25Parser.RULE_symbolicNameString,
                 Cypher25Parser.RULE_procedureResultItem);
-        Set<Integer> ignoredTokens = new HashSet<>();
+        static Set<Integer> rulesDefiningVariables = Set.of(
+                Cypher25Parser.RULE_returnItem,
+                Cypher25Parser.RULE_unwindClause,
+                Cypher25Parser.RULE_subqueryInTransactionsReportParameters,
+                Cypher25Parser.RULE_procedureResultItem,
+                Cypher25Parser.RULE_foreachClause,
+                Cypher25Parser.RULE_loadCSVClause,
+                Cypher25Parser.RULE_reduceExpression,
+                Cypher25Parser.RULE_listItemsPredicate,
+                Cypher25Parser.RULE_listComprehension);
+        static Set<Integer> rulesDefiningOrUsingVariables;
+        static Map<Integer, String> customTokenDisplayNames = Map.of(
+                Cypher25Parser.ALL_SHORTEST_PATHS, "allShortestPaths", Cypher25Parser.SHORTEST_PATH, "shortestPath");
+        static Vocabulary vocabulary = Cypher25Lexer.VOCABULARY;
 
-        for (int i = Cypher25Lexer.EOF; i <= vocabulary.getMaxTokenType(); ++i) {
-            if (!lexerKeywords.contains(i)) {
-                ignoredTokens.add(i);
+        static {
+            rulesDefiningOrUsingVariables = new HashSet(rulesDefiningVariables);
+            rulesDefiningOrUsingVariables.addAll(List.of(
+                    Cypher25Parser.RULE_pattern,
+                    Cypher25Parser.RULE_nodePattern,
+                    Cypher25Parser.RULE_relationshipPattern));
+            var ignoreFromLexer = Set.of(
+                    Cypher25Lexer.DECIMAL_DOUBLE,
+                    Cypher25Lexer.UNSIGNED_DECIMAL_INTEGER,
+                    Cypher25Lexer.UNSIGNED_HEX_INTEGER,
+                    Cypher25Lexer.UNSIGNED_OCTAL_INTEGER,
+                    Cypher25Lexer.STRING_LITERAL1,
+                    Cypher25Lexer.STRING_LITERAL2,
+                    Cypher25Lexer.ErrorChar,
+                    Cypher25Lexer.EOF,
+                    Cypher25Lexer.SPACE,
+                    Cypher25Lexer.IDENTIFIER,
+                    Cypher25Lexer.ESCAPED_SYMBOLIC_NAME,
+                    Cypher25Lexer.MULTI_LINE_COMMENT,
+                    Cypher25Lexer.SINGLE_LINE_COMMENT);
+            keywords = new HashSet<>();
+            for (int i = 0; i < Cypher25Lexer.VOCABULARY.getMaxTokenType(); ++i) {
+                if (vocabulary.getLiteralName(i) == null && !ignoreFromLexer.contains(i)) {
+                    keywords.add(i);
+                }
             }
         }
-        var completionEngine = new CodeCompletionCore(parser, preferredRules, ignoredTokens);
+    }
+
+    private record PreParserInfo(
+            CypherPreparserParser preparser,
+            CypherPreparserParser.StrictlyPreparserOptionsContext preparserCtx,
+            List<Token> preparserTokens,
+            CypherPreparserParser.StatementContext preparserStmt) {
+        static Vocabulary vocabulary = PreparserCypherLexer.VOCABULARY;
+        static Set<Integer> keywords = new HashSet<>();
+
+        static {
+            var ignoreFromPreparserLexer = Set.of(
+                    CypherPreparserLexer.VERSION,
+                    CypherPreparserLexer.ErrorChar,
+                    CypherPreparserLexer.EOF,
+                    CypherPreparserLexer.SPACE,
+                    CypherPreparserLexer.IDENTIFIER,
+                    CypherPreparserLexer.MULTI_LINE_COMMENT,
+                    CypherPreparserLexer.SINGLE_LINE_COMMENT);
+            for (int i = 0; i < CypherPreparserLexer.VOCABULARY.getMaxTokenType(); ++i) {
+                if (vocabulary.getLiteralName(i) == null && !ignoreFromPreparserLexer.contains(i)) {
+                    keywords.add(i);
+                }
+            }
+        }
+
+        static Set<Integer> preferredRules = Set.of();
+    }
+
+    /*
+    Using this new rule:
+    preparserOption
+      : option* EOF;
+    We try to parse with preparserOption
+    - If there are no errors, complete with the completePreparser(query) and completeParser("")
+    - If there are errors:
+      p = parse(cypher statement part of query) <- get cypher statement part by parsing with old rule preparserOptions
+      cypher runtime =  -> we want to complete with preparser only
+        preparser.statement() is empty
+      PROF -> we want to complete with preparser and parser
+      PROFILE EXPL
+        preparser.statement() is not empty
+        p.statement().regularQuery() is empty
+      PROFILE MATCH (n) RETURN n C -> we want to complete with parser only
+        preparser.statement() is not empty
+        p.statement().regularQuery() is non empty
+     */
+
+    private PreParserInfo getPreParserInfo(String incompleteQuery) throws IOException {
+        PreparserCypherLexer preLexer = PreparserCypherLexer.fromString(incompleteQuery, true);
+        CommonTokenStream preparserTokenStream = new CommonTokenStream(preLexer);
+        var preparser = new CypherPreparserParser(preparserTokenStream);
+        preLexer.removeErrorListeners();
+        preparser.removeErrorListeners();
+
+        var preparserCtx = preparser.strictlyPreparserOptions();
+        preparserTokenStream.seek(0);
+        var preparserStmt = preparser.preparserOptions().statement();
+        var preparserTokens = preparserTokenStream.getTokens();
+
+        return new PreParserInfo(preparser, preparserCtx, preparserTokens, preparserStmt);
+    }
+
+    private ParserInfo getParserInfo(String incompleteQuery, CypherPreparserParser.StatementContext preparserStmt)
+            throws IOException {
+        Optional<Integer> stmtPos =
+                Optional.ofNullable(preparserStmt).map(x -> x.start).map(Token::getStartIndex);
+        var cypherStmt = stmtPos.map(incompleteQuery::substring).orElse("");
+        var lexer = Cypher25AstLexer.fromString(cypherStmt, true);
+        var tokenStream = new CommonTokenStream(lexer);
+        var parser = new Cypher25Parser(tokenStream);
+        var variableCollector = new VariableCollector(tokenStream);
+        parser.addParseListener(variableCollector);
+
+        lexer.removeErrorListeners();
+        parser.removeErrorListeners();
+
+        var parserCtx = parser.statements();
+        var tokens = tokenStream.getTokens();
+
+        return new ParserInfo(parser, parserCtx, variableCollector, tokens);
+    }
+
+    private CompletionResolution resolveCompletionWork(String incompleteQuery) throws IOException {
+        var preparserInfo = getPreParserInfo(incompleteQuery);
+        var parserInfo = getParserInfo(incompleteQuery, preparserInfo.preparserStmt);
+
+        if (preparserInfo.preparser.getNumberOfSyntaxErrors() == 0) {
+            return new CompletionResolution(parserInfo, preparserInfo, true, true);
+        } else {
+            if (preparserInfo.preparserStmt == null) {
+                return new CompletionResolution(parserInfo, preparserInfo, true, false);
+            } else if (parserInfo.parserCtx.statement().stream()
+                    .anyMatch(statement -> statement.regularQuery() != null)) {
+                return new CompletionResolution(parserInfo, preparserInfo, false, true);
+            } else {
+                return new CompletionResolution(parserInfo, preparserInfo, true, true);
+            }
+        }
+    }
+
+    public List<Suggestion> completeQuery(String incompleteQuery) throws IOException {
+        var completionResolution = resolveCompletionWork(incompleteQuery);
+        ArrayList<Suggestion> suggestions = new ArrayList<>();
+
+        if (completionResolution.completeWithParser) {
+            var parserCompletions = completeStatement(
+                    completionResolution.parserInfo.parser,
+                    completionResolution.parserInfo.parserCtx,
+                    completionResolution.parserInfo.tokens,
+                    completionResolution.parserInfo.variableCollector.variables);
+            suggestions.addAll(parserCompletions);
+        }
+
+        if (completionResolution.completeWithPreparser) {
+            var preparserCompletions = completePreparser(
+                    completionResolution.preparserInfo.preparser,
+                    completionResolution.preparserInfo.preparserCtx,
+                    completionResolution.preparserInfo.preparserTokens);
+            suggestions.addAll(preparserCompletions);
+        }
+
+        return suggestions.stream().toList();
+    }
+
+    private List<Suggestion> complete(
+            Parser parser,
+            Set<Integer> ignoredTokens,
+            int caretIndex,
+            List<String> collectedVariables,
+            List<Token> tokens,
+            ParserRuleContext stopNode) {
+
+        boolean isPreParserCompletion = parser instanceof CypherPreparserParser;
+        Set<Integer> parserPreferredRules =
+                isPreParserCompletion ? PreParserInfo.preferredRules : ParserInfo.preferredRules;
+
+        var completionEngine = new CodeCompletionCore(parser, parserPreferredRules, ignoredTokens);
         var candidates = completionEngine.collectCandidates(caretIndex, null);
-        var tokenCompletions = getTokenCompletions(candidates, ignoredTokens, lexer);
-        var ruleCompletions = getRuleCompletions(candidates, collectedVariables, tokens, stopNode);
+        var tokenCompletions = getTokenCompletions(candidates, ignoredTokens, isPreParserCompletion);
+        List<Suggestion> ruleCompletions = isPreParserCompletion
+                ? List.of()
+                : getRuleCompletions(candidates, collectedVariables, tokens, stopNode);
         var result = new ArrayList<Suggestion>();
 
         result.addAll(tokenCompletions);
         result.addAll(ruleCompletions);
-
         return result;
+    }
+
+    private Set<Integer> getIgnoredTokens(boolean forPreParser) {
+        int startToken;
+        int endToken;
+        Set<Integer> keywords;
+
+        if (forPreParser) {
+            startToken = CypherPreparserParser.EOF;
+            endToken = PreParserInfo.vocabulary.getMaxTokenType();
+            keywords = PreParserInfo.keywords;
+        } else {
+            startToken = Cypher25Parser.EOF;
+            endToken = ParserInfo.vocabulary.getMaxTokenType();
+            keywords = ParserInfo.keywords;
+        }
+
+        return IntStream.rangeClosed(startToken, endToken)
+                .filter(i -> !keywords.contains(i))
+                .boxed()
+                .collect(Collectors.toSet());
+    }
+
+    private int getCaretIndex(List<Token> tokens, boolean forPreParser) {
+        var caretIndex = tokens.size() - 1;
+        var previousToken = tokens.size() > 1 ? tokens.get(caretIndex - 1) : null;
+
+        if (previousToken != null) {
+            boolean previousIsIdentifier;
+            boolean previousIsLexerKeyword;
+            if (forPreParser) {
+                previousIsIdentifier = previousToken.getType() == CypherPreparserLexer.IDENTIFIER;
+                previousIsLexerKeyword = PreParserInfo.keywords.contains(previousToken.getType());
+            } else {
+                previousIsIdentifier = previousToken.getType() == Cypher25Lexer.IDENTIFIER;
+                previousIsLexerKeyword = ParserInfo.keywords.contains(previousToken.getType());
+            }
+            if (previousIsIdentifier || previousIsLexerKeyword) {
+                caretIndex--;
+            }
+        }
+
+        return caretIndex;
+    }
+
+    private List<Suggestion> completePreparser(
+            CypherPreparserParser preparser,
+            CypherPreparserParser.StrictlyPreparserOptionsContext rootCtx,
+            List<Token> tokens) {
+        var stopNode = findStopNode(rootCtx, rootCtx.EOF());
+        // The query is always going to have the EOF
+        var caretIndex = getCaretIndex(tokens, true);
+
+        Set<Integer> ignoredTokens = getIgnoredTokens(true);
+
+        return complete(preparser, ignoredTokens, caretIndex, List.of(), tokens, stopNode);
+    }
+
+    private List<Suggestion> completeStatement(
+            Cypher25Parser parser,
+            Cypher25Parser.StatementsContext rootCtx,
+            List<Token> tokens,
+            List<String> collectedVariables) {
+        var stopNode = findStopNode(rootCtx, rootCtx.EOF());
+        // The query is always going to have the EOF
+        var caretIndex = getCaretIndex(tokens, false);
+
+        Set<Integer> ignoredTokens = getIgnoredTokens(false);
+
+        return complete(parser, ignoredTokens, caretIndex, collectedVariables, tokens, stopNode);
     }
 
     private static String backtickIfNeeded(String e) {
@@ -249,7 +443,7 @@ public class CompletionEngine {
                 .map(property -> Suggestion.property(backtickIfNeeded(property), property));
     }
 
-    private ParserRuleContext findStopNode(Cypher25Parser.StatementsContext root) {
+    private ParserRuleContext findStopNode(ParserRuleContext root, TerminalNode endToken) {
         var children = root.children;
         ParserRuleContext current = root;
 
@@ -258,7 +452,7 @@ public class CompletionEngine {
             var child = children.get(index);
 
             while (index > 0
-                    && (child == root.EOF()
+                    && (child == endToken
                             || child.getText().isEmpty()
                             || child.getText().startsWith("<missing"))) {
                 index--;
@@ -370,7 +564,7 @@ public class CompletionEngine {
                         if (!ruleList.isEmpty()) {
                             var parentRule = ruleList.get(ruleList.size() - 1);
 
-                            if (!rulesDefiningVariables.contains(parentRule)) {
+                            if (!ParserInfo.rulesDefiningVariables.contains(parentRule)) {
                                 return collectedVariables.stream().map(Suggestion::identifier);
                             }
                         }
@@ -661,22 +855,30 @@ public class CompletionEngine {
         return result;
     }
 
-    private String getTokenName(int token) {
-        if (this.customTokenDisplayNames.containsKey(token)) {
-            return this.customTokenDisplayNames.get(token);
+    private String getTokenName(int token, boolean usePreparserTokens) {
+        if (usePreparserTokens) {
+            return PreParserInfo.vocabulary.getDisplayName(token);
+        }
+        if (ParserInfo.customTokenDisplayNames.containsKey(token)) {
+            return ParserInfo.customTokenDisplayNames.get(token);
         } else {
-            return vocabulary.getDisplayName(token);
+            return ParserInfo.vocabulary.getDisplayName(token);
         }
     }
 
     private List<Suggestion> getTokenCompletions(
-            CodeCompletionCore.CandidatesCollection candidates, Set<Integer> ignoredTokens, Cypher25Lexer cypherLexer) {
+            CodeCompletionCore.CandidatesCollection candidates,
+            Set<Integer> ignoredTokens,
+            boolean usePreparserTokens) {
         var tokenEntries = candidates.tokens.entrySet();
         Stream<String> completions = tokenEntries.stream().flatMap((value) -> {
             var tokenNumber = value.getKey();
             var followUpList = value.getValue();
-            if (!ignoredTokens.contains(tokenNumber)) {
-                var firstToken = getTokenName(tokenNumber);
+            // Note this is because antlr4-c3 code seems to be entering into an invalid state in some cases but no token
+            // should
+            // have a type lower than -1 (EOF), all of the token types are supposed to be greater or equal than 0
+            if (!ignoredTokens.contains(tokenNumber) && tokenNumber >= -1) {
+                var firstToken = getTokenName(tokenNumber, usePreparserTokens);
                 var lastIndexToSlice = followUpList.size();
 
                 for (int i = 0; i < followUpList.size() && lastIndexToSlice == followUpList.size(); ++i) {
@@ -686,8 +888,9 @@ public class CompletionEngine {
                 }
 
                 var followUpTokens = followUpList.subList(0, lastIndexToSlice);
-                var followUpString =
-                        followUpTokens.stream().map(this::getTokenName).collect(Collectors.joining("  "));
+                var followUpString = followUpTokens.stream()
+                        .map(token -> this.getTokenName(token, usePreparserTokens))
+                        .collect(Collectors.joining("  "));
 
                 if (!followUpString.isEmpty()) {
                     return Stream.of(firstToken + " " + followUpString);

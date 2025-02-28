@@ -277,6 +277,43 @@ class JlineCompleterTest {
     }
 
     @Test
+    void completesStatementsWithPreparserPart() {
+        assertThat(complete("CYPHER 5 ")).contains(keyword("EXPLAIN"), keyword("MATCH"));
+        assertThat(complete("CYPHER ")).contains(keyword("EXPLAIN"), keyword("MATCH"));
+        assertThat(complete("CYPHER runtime=slotted ")).contains(keyword("EXPLAIN"), keyword("MATCH"));
+        assertThat(complete("CYPHER runtime=")).doesNotContain(keyword("EXPLAIN"), keyword("MATCH"));
+        assertThat(complete("CYPHER 5 CYPHER EXPLAIN PROFILE CYPHER runtime= "))
+                .doesNotContain(keyword("EXPLAIN"), keyword("MATCH"));
+        // Note the -2 is because antlr4-c3 code seems to be entering into an invalid state in some cases but no token
+        // should
+        // have a type lower than -1 (EOF), all of the token types are supposed to be greater or equal than 0
+        assertThat(complete("PROF"))
+                .contains(keyword("PROFILE"), keyword("MATCH"))
+                .doesNotContain(keyword("-2"));
+        assertThat(complete("EXPLAIN PROF"))
+                .contains(keyword("PROFILE"), keyword("MATCH"))
+                .doesNotContain(keyword("-2"));
+        assertThat(complete("CYPHER 5 runtime = slotted planner = cost operatorEngine = compiled EXPLAIN PROF"))
+                .contains(keyword("PROFILE"), keyword("MATCH"))
+                .doesNotContain(keyword("-2"));
+        assertThat(complete("PROFILE MATCH (n) RETURN n C"))
+                .contains(keyword("CALL"))
+                .doesNotContain(keyword("CYPHER"));
+        assertThat(complete("CYPHER planner = cost operatorEngine = compiled PROFILE MATCH (n) RETURN n C"))
+                .contains(keyword("CALL"))
+                .doesNotContain(keyword("CYPHER"));
+    }
+
+    @Test
+    void completesMultiStatementsWithPreparserPart() {
+        assertThat(complete("EXPLAIN PROFILE MATCH (n) RETURN n; EXPL")).contains(keyword("EXPLAIN"));
+        assertThat(complete("EXPLAIN PROFILE MATCH (n) RETURN n; CYPHER 5 MATCH (n) RET"))
+                .contains(keyword("RETURN"));
+        assertThat(complete("EXPLAIN PROFILE MATCH (n) RETURN n; CYPHER 5 runtime = slotted engineType = compiled MA"))
+                .contains(keyword("MATCH"), keyword("EXPLAIN"));
+    }
+
+    @Test
     void completesProcedureReturnNames() {
         assertThat(complete("CALL dbms.components() YIELD "))
                 .containsExactlyInAnyOrder(identifier("name"), identifier("versions"), identifier("edition"));
