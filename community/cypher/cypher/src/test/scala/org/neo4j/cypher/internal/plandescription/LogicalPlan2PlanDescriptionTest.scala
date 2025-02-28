@@ -7725,7 +7725,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
             NamespacedName("db1")(pos)
           ),
           NamespacedName("db1")(pos),
-          IndefiniteWait
+          IndefiniteWait()(pos)
         ),
         1.0
       ),

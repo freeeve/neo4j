@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
@@ -58,6 +59,7 @@ import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.expressions.StringDecimalInteger
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.expressions.SubqueryExpression
 import org.neo4j.cypher.internal.expressions.Variable
@@ -1612,7 +1614,10 @@ final case class AlterDatabase(
       defaultLanguage.map(_ => "SET DEFAULT LANGUAGE"),
       if (options != NoOptions) Some("SET OPTION") else None,
       if (optionsToRemove.nonEmpty) Some("REMOVE OPTION") else None,
-      if (waitUntilComplete != NoWait) Some("WAIT") else None
+      waitUntilComplete match {
+        case _: NoWait => None
+        case _         => Some("WAIT")
+      }
     ).flatten.mkString(" ")
 
   override def semanticCheck: SemanticCheck =
@@ -1648,28 +1653,39 @@ sealed trait WaitableAdministrationCommand extends WriteAdministrationCommand {
   val waitUntilComplete: WaitUntilComplete
 
   override def returnColumns: List[LogicalVariable] = waitUntilComplete match {
-    case NoWait => List.empty
-    case _      => List("address", "state", "message", "success").map(Variable(_)(position, Variable.isIsolatedDefault))
+    case NoWait() => List.empty
+    case _ => List("address", "state", "message", "success").map(Variable(_)(position, Variable.isIsolatedDefault))
   }
+
+  override def semanticCheck: SemanticCheck = super.semanticCheck chain waitUntilComplete.semanticCheck
 }
 
-sealed trait WaitUntilComplete {
+sealed trait WaitUntilComplete extends ASTNode with SemanticCheckable {
   val DEFAULT_TIMEOUT = 300L
   val name: String
   def timeout: Long = DEFAULT_TIMEOUT
+
+  override def semanticCheck: SemanticCheck = success
 }
 
-case object NoWait extends WaitUntilComplete {
+case class NoWait()(val position: InputPosition) extends WaitUntilComplete {
   override val name: String = ""
 }
 
-case object IndefiniteWait extends WaitUntilComplete {
+case class IndefiniteWait()(val position: InputPosition) extends WaitUntilComplete {
   override val name: String = " WAIT"
 }
 
-case class TimeoutAfter(timoutSeconds: Long) extends WaitUntilComplete {
-  override val name: String = s" WAIT $timoutSeconds SECONDS"
-  override def timeout: Long = timoutSeconds
+case class TimeoutAfter(stringVal: String)(val position: InputPosition) extends Expression with StringDecimalInteger
+    with WaitUntilComplete {
+  override val name: String = s" WAIT $stringVal SECONDS"
+  override def timeout: Long = value
+
+  override def semanticCheck: SemanticCheck = {
+    super.semanticCheck chain SemanticExpressionCheck.simple(this)
+  }
+
+  override def isConstantForQuery: Boolean = true
 }
 
 sealed trait Access

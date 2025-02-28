@@ -29,43 +29,46 @@ class StartAndStopDatabaseAdministrationCommandParserTest extends Administration
   // START DATABASE
 
   test("START DATABASE foo") {
-    parsesTo[Statements](StartDatabase(literalFoo, NoWait)(pos))
+    parsesTo[Statements](StartDatabase(literalFoo, NoWait()(defaultPos))(pos))
   }
 
   test("START DATABASE $foo") {
-    parsesTo[Statements](StartDatabase(stringParamName("foo"), NoWait)(pos))
+    parsesTo[Statements](StartDatabase(stringParamName("foo"), NoWait()(defaultPos))(pos))
   }
 
   test("START DATABASE foo WAIT") {
-    parsesTo[Statements](StartDatabase(literalFoo, IndefiniteWait)(pos))
+    parsesTo[Statements](StartDatabase(literalFoo, IndefiniteWait()(defaultPos))(pos))
   }
 
   test("START DATABASE foo WAIT 5") {
-    parsesTo[Statements](StartDatabase(literal("foo"), TimeoutAfter(5))(pos))
+    parsesTo[Statements](StartDatabase(literal("foo"), TimeoutAfter("5")(defaultPos))(pos))
   }
 
   test("START DATABASE foo WAIT 5 SEC") {
-    parsesTo[Statements](StartDatabase(literal("foo"), TimeoutAfter(5))(pos))
+    parsesTo[Statements](StartDatabase(literal("foo"), TimeoutAfter("5")(defaultPos))(pos))
   }
 
   test("START DATABASE foo WAIT 5 SECOND") {
-    parsesTo[Statements](StartDatabase(literal("foo"), TimeoutAfter(5))(pos))
+    parsesTo[Statements](StartDatabase(literal("foo"), TimeoutAfter("5")(defaultPos))(pos))
   }
 
   test("START DATABASE foo WAIT 5 SECONDS") {
-    parsesTo[Statements](StartDatabase(literal("foo"), TimeoutAfter(5))(pos))
+    parsesTo[Statements](StartDatabase(literal("foo"), TimeoutAfter("5")(defaultPos))(pos))
   }
 
   test("START DATABASE foo NOWAIT") {
-    parsesTo[Statements](StartDatabase(literalFoo, NoWait)(pos))
+    parsesTo[Statements](StartDatabase(literalFoo, NoWait()(defaultPos))(pos))
   }
 
   test("START DATABASE `foo.bar`") {
-    parsesTo[Statements](StartDatabase(literal("foo.bar"), NoWait)(pos))
+    parsesTo[Statements](StartDatabase(literal("foo.bar"), NoWait()(defaultPos))(pos))
   }
 
   test("START DATABASE foo.bar") {
-    parsesTo[Statements](StartDatabase(NamespacedName(List("bar"), Some("foo"))((1, 16, 15)), NoWait)(pos))
+    parsesTo[Statements](StartDatabase(
+      NamespacedName(List("bar"), Some("foo"))((1, 16, 15)),
+      NoWait()(defaultPos)
+    )(pos))
   }
 
   test("START DATABASE") {
@@ -85,43 +88,43 @@ class StartAndStopDatabaseAdministrationCommandParserTest extends Administration
   // STOP DATABASE
 
   test("STOP DATABASE foo") {
-    parsesTo[Statements](StopDatabase(literalFoo, NoWait)(pos))
+    parsesTo[Statements](StopDatabase(literalFoo, NoWait()(defaultPos))(pos))
   }
 
   test("STOP DATABASE $foo") {
-    parsesTo[Statements](StopDatabase(stringParamName("foo"), NoWait)(pos))
+    parsesTo[Statements](StopDatabase(stringParamName("foo"), NoWait()(defaultPos))(pos))
   }
 
   test("STOP DATABASE foo WAIT") {
-    parsesTo[Statements](StopDatabase(literalFoo, IndefiniteWait)(pos))
+    parsesTo[Statements](StopDatabase(literalFoo, IndefiniteWait()(defaultPos))(pos))
   }
 
   test("STOP DATABASE foo WAIT 99") {
-    parsesTo[Statements](StopDatabase(literal("foo"), TimeoutAfter(99))(pos))
+    parsesTo[Statements](StopDatabase(literal("foo"), TimeoutAfter("99")(defaultPos))(pos))
   }
 
   test("STOP DATABASE foo WAIT 99 SEC") {
-    parsesTo[Statements](StopDatabase(literal("foo"), TimeoutAfter(99))(pos))
+    parsesTo[Statements](StopDatabase(literal("foo"), TimeoutAfter("99")(defaultPos))(pos))
   }
 
   test("STOP DATABASE foo WAIT 99 SECOND") {
-    parsesTo[Statements](StopDatabase(literal("foo"), TimeoutAfter(99))(pos))
+    parsesTo[Statements](StopDatabase(literal("foo"), TimeoutAfter("99")(defaultPos))(pos))
   }
 
   test("STOP DATABASE foo WAIT 99 SECONDS") {
-    parsesTo[Statements](StopDatabase(literal("foo"), TimeoutAfter(99))(pos))
+    parsesTo[Statements](StopDatabase(literal("foo"), TimeoutAfter("99")(defaultPos))(pos))
   }
 
   test("STOP DATABASE foo NOWAIT") {
-    parsesTo[Statements](StopDatabase(literalFoo, NoWait)(pos))
+    parsesTo[Statements](StopDatabase(literalFoo, NoWait()(defaultPos))(pos))
   }
 
   test("STOP DATABASE `foo.bar`") {
-    parsesTo[Statements](StopDatabase(literal("foo.bar"), NoWait)(pos))
+    parsesTo[Statements](StopDatabase(literal("foo.bar"), NoWait()(defaultPos))(pos))
   }
 
   test("STOP DATABASE foo.bar") {
-    parsesTo[Statements](StopDatabase(NamespacedName(List("bar"), Some("foo"))((1, 16, 15)), NoWait)(pos))
+    parsesTo[Statements](StopDatabase(NamespacedName(List("bar"), Some("foo"))((1, 16, 15)), NoWait()(defaultPos))(pos))
   }
 
   test("STOP DATABASE `foo`.bar.`baz`") {

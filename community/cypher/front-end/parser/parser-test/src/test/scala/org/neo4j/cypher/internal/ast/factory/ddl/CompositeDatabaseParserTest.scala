@@ -39,19 +39,19 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
 
   test("CREATE COMPOSITE DATABASE name") {
     parsesTo[Statements](
-      CreateCompositeDatabase(namespacedName("name"), IfExistsThrowError, NoOptions, NoWait, None)(pos)
+      CreateCompositeDatabase(namespacedName("name"), IfExistsThrowError, NoOptions, NoWait()(pos), None)(pos)
     )
   }
 
   test("CREATE COMPOSITE DATABASE $name") {
     parsesTo[Statements](
-      CreateCompositeDatabase(stringParamName("name"), IfExistsThrowError, NoOptions, NoWait, None)(pos)
+      CreateCompositeDatabase(stringParamName("name"), IfExistsThrowError, NoOptions, NoWait()(pos), None)(pos)
     )
   }
 
   test("CREATE COMPOSITE DATABASE `db.name`") {
     parsesTo[Statements](
-      CreateCompositeDatabase(namespacedName("db.name"), IfExistsThrowError, NoOptions, NoWait, None)(pos)
+      CreateCompositeDatabase(namespacedName("db.name"), IfExistsThrowError, NoOptions, NoWait()(pos), None)(pos)
     )
   }
 
@@ -62,7 +62,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
             namespacedName("db", "name"),
             IfExistsThrowError,
             NoOptions,
-            NoWait,
+            NoWait()(pos),
             None
           )(pos)
         )
@@ -80,7 +80,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
             namespacedName("foo", "bar"),
             IfExistsThrowError,
             NoOptions,
-            NoWait,
+            NoWait()(pos),
             None
           )(pos)
         )
@@ -99,7 +99,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
             namespacedName("graph.db", "db.db"),
             IfExistsThrowError,
             NoOptions,
-            NoWait,
+            NoWait()(pos),
             None
           )(pos)
         )
@@ -115,13 +115,19 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       namespacedName("name"),
       IfExistsDoNothing,
       NoOptions,
-      NoWait,
+      NoWait()(pos),
       None
     )(pos))
   }
 
   test("CREATE OR REPLACE COMPOSITE DATABASE name") {
-    parsesTo[Statements](CreateCompositeDatabase(namespacedName("name"), IfExistsReplace, NoOptions, NoWait, None)(pos))
+    parsesTo[Statements](CreateCompositeDatabase(
+      namespacedName("name"),
+      IfExistsReplace,
+      NoOptions,
+      NoWait()(pos),
+      None
+    )(pos))
   }
 
   test("CREATE COMPOSITE DATABASE name OPTIONS {}") {
@@ -129,7 +135,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       namespacedName("name"),
       IfExistsThrowError,
       OptionsMap(Map.empty),
-      NoWait,
+      NoWait()(pos),
       None
     )(pos))
   }
@@ -141,7 +147,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       OptionsMap(Map(
         "someKey" -> literalString("someValue")
       )),
-      NoWait,
+      NoWait()(pos),
       None
     )(pos))
   }
@@ -166,14 +172,14 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       namespacedName("name"),
       IfExistsThrowError,
       NoOptions,
-      IndefiniteWait,
+      IndefiniteWait()(defaultPos),
       None
     )(pos))
   }
 
   test("CREATE COMPOSITE DATABASE name NOWAIT") {
     parsesTo[Statements](
-      CreateCompositeDatabase(namespacedName("name"), IfExistsThrowError, NoOptions, NoWait, None)(pos)
+      CreateCompositeDatabase(namespacedName("name"), IfExistsThrowError, NoOptions, NoWait()(pos), None)(pos)
     )
   }
 
@@ -182,7 +188,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       namespacedName("name"),
       IfExistsThrowError,
       NoOptions,
-      TimeoutAfter(10),
+      TimeoutAfter("10")(defaultPos),
       None
     )(pos))
   }
@@ -194,7 +200,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       literalFoo,
       IfExistsThrowError,
       NoOptions,
-      NoWait,
+      NoWait()(pos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher5)
     )(pos))
   }
@@ -204,7 +210,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       literalFoo,
       IfExistsThrowError,
       NoOptions,
-      NoWait,
+      NoWait()(pos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
     )(pos))
   }
@@ -214,7 +220,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       literalFoo,
       IfExistsDoNothing,
       NoOptions,
-      IndefiniteWait,
+      IndefiniteWait()(defaultPos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
     )(pos))
   }
@@ -224,7 +230,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       literalFoo,
       IfExistsThrowError,
       NoOptions,
-      IndefiniteWait,
+      IndefiniteWait()(defaultPos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
     )(pos))
   }
@@ -236,7 +242,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       OptionsMap(Map(
         "someKey" -> literalString("someValue")
       )),
-      NoWait,
+      NoWait()(pos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
     )(pos))
   }
@@ -290,7 +296,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(pos)
     )(pos))
   }
 
@@ -301,7 +307,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(pos)
     )(pos))
   }
 
@@ -312,7 +318,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(pos)
     )(pos))
   }
 
@@ -323,7 +329,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(pos)
     )(pos))
   }
 
@@ -334,7 +340,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(pos)
     )(pos))
   }
 
@@ -345,7 +351,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       Restrict,
       DestroyData,
-      IndefiniteWait
+      IndefiniteWait()(defaultPos)
     )(pos))
   }
 
@@ -356,7 +362,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       Restrict,
       DestroyData,
-      TimeoutAfter(10)
+      TimeoutAfter("10")(defaultPos)
     )(pos))
   }
 
@@ -367,19 +373,19 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(pos)
     )(pos))
   }
 
   test("DROP COMPOSITE DATABASE foo DUMP DATA") {
     parsesTo[Statements](
-      DropDatabase(literalFoo, ifExists = false, composite = true, Restrict, DumpData, NoWait)(pos)
+      DropDatabase(literalFoo, ifExists = false, composite = true, Restrict, DumpData, NoWait()(pos))(pos)
     )
   }
 
   test("DROP COMPOSITE DATABASE foo DESTROY DATA") {
     parsesTo[Statements](
-      DropDatabase(literalFoo, ifExists = false, composite = true, Restrict, DestroyData, NoWait)(pos)
+      DropDatabase(literalFoo, ifExists = false, composite = true, Restrict, DestroyData, NoWait()(pos))(pos)
     )
   }
 
@@ -390,7 +396,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(pos)
     )(pos))
   }
 
@@ -401,7 +407,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       CascadeAliases,
       DestroyData,
-      NoWait
+      NoWait()(pos)
     )(pos))
   }
 
@@ -412,7 +418,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       CascadeAliases,
       DestroyData,
-      NoWait
+      NoWait()(pos)
     )(pos))
   }
 
@@ -423,7 +429,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       Restrict,
       DumpData,
-      NoWait
+      NoWait()(pos)
     )(pos))
   }
 
@@ -434,7 +440,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
       composite = true,
       CascadeAliases,
       DestroyData,
-      IndefiniteWait
+      IndefiniteWait()(defaultPos)
     )(pos))
   }
 }

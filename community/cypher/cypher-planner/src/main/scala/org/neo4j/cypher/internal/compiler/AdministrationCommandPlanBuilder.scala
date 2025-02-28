@@ -249,8 +249,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
       databaseName: DatabaseName,
       waitUntilComplete: WaitUntilComplete
     ): plans.DatabaseAdministrationLogicalPlan = waitUntilComplete match {
-      case NoWait => logicalPlan
-      case _      => plans.WaitForCompletion(logicalPlan, databaseName, waitUntilComplete)
+      case _: NoWait => logicalPlan
+      case _         => plans.WaitForCompletion(logicalPlan, databaseName, waitUntilComplete)
     }
 
     def planSystemProcedureCall(resolved: ResolvedCall, returns: Option[Return]): plans.LogicalPlan = {

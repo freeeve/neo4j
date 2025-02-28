@@ -98,6 +98,7 @@ import org.neo4j.cypher.internal.parser.ast.util.Util.pos
 import org.neo4j.cypher.internal.parser.ast.util.Util.rangePos
 import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.parser.v25.Cypher25ParserListener
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTString
 
 import java.nio.charset.StandardCharsets
@@ -416,7 +417,7 @@ trait DdlBuilder extends Cypher25ParserListener {
       ctx.COMPOSITE() != null,
       aliasAction,
       additionalAction,
-      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait)
+      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait()(InputPosition.NONE))
     )(pos(ctx.getParent))
   }
 
@@ -432,7 +433,7 @@ trait DdlBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.AlterDatabaseContext
   ): Unit = {
     val dbName = ctx.symbolicAliasNameOrParameter().ast[DatabaseName]()
-    val waitUntilComplete = astOpt[WaitUntilComplete](ctx.waitClause(), NoWait)
+    val waitUntilComplete = astOpt[WaitUntilComplete](ctx.waitClause(), NoWait()(InputPosition.NONE))
     ctx.ast = if (!ctx.REMOVE().isEmpty) {
       val optionsToRemove = Set.from(astSeq[String](ctx.symbolicNameString()))
       AlterDatabase(
@@ -509,7 +510,7 @@ trait DdlBuilder extends Cypher25ParserListener {
   ): Unit = {
     ctx.ast = StartDatabase(
       ctx.symbolicAliasNameOrParameter().ast(),
-      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait)
+      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait()(InputPosition.NONE))
     )(pos(ctx))
   }
 
@@ -518,7 +519,7 @@ trait DdlBuilder extends Cypher25ParserListener {
   ): Unit = {
     ctx.ast = StopDatabase(
       ctx.symbolicAliasNameOrParameter().ast(),
-      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait)
+      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait()(InputPosition.NONE))
     )(pos(ctx))
   }
 
@@ -526,10 +527,10 @@ trait DdlBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.WaitClauseContext
   ): Unit = {
     ctx.ast = nodeChild(ctx, 0).getSymbol.getType match {
-      case Cypher25Parser.NOWAIT => NoWait
+      case Cypher25Parser.NOWAIT => NoWait()(pos(ctx))
       case Cypher25Parser.WAIT => ctx.UNSIGNED_DECIMAL_INTEGER() match {
-          case null    => IndefiniteWait
-          case seconds => TimeoutAfter(seconds.getText.toLong)
+          case null    => IndefiniteWait()(pos(ctx))
+          case seconds => TimeoutAfter(seconds.getText)(pos(ctx.UNSIGNED_DECIMAL_INTEGER()))
         }
     }
   }

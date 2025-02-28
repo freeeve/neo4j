@@ -64,6 +64,7 @@ import org.neo4j.cypher.internal.parser.v5.Cypher5Parser.ConstraintTypedContext
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser.CreateCommandContext
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser.CreateIndexContext
 import org.neo4j.cypher.internal.parser.v5.Cypher5ParserListener
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CypherType
 
 import scala.collection.immutable.ArraySeq
@@ -472,7 +473,7 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
       ctx.symbolicAliasNameOrParameter().ast[DatabaseName](),
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
       astOpt[Options](ctx.commandOptions(), NoOptions),
-      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait),
+      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait()(InputPosition.NONE)),
       astOpt[CypherVersion](ctx.defaultLanguageSpecification())
     )(pos(parent))
   }
@@ -491,7 +492,7 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
       ctx.symbolicAliasNameOrParameter().ast[DatabaseName](),
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
       astOpt[Options](ctx.commandOptions(), NoOptions),
-      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait),
+      astOpt[WaitUntilComplete](ctx.waitClause(), NoWait()(InputPosition.NONE)),
       topology,
       astOpt[CypherVersion](ctx.defaultLanguageSpecification())
     )(pos(parent))

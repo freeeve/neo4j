@@ -36,7 +36,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -47,7 +47,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -58,7 +58,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      IndefiniteWait
+      IndefiniteWait()(defaultPos)
     )(pos))
   }
 
@@ -69,7 +69,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -80,7 +80,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -91,7 +91,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      IndefiniteWait
+      IndefiniteWait()(defaultPos)
     )(pos))
   }
 
@@ -102,7 +102,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      TimeoutAfter(10)
+      TimeoutAfter("10")(defaultPos)
     )(pos))
   }
 
@@ -113,7 +113,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      TimeoutAfter(10)
+      TimeoutAfter("10")(defaultPos)
     )(pos))
   }
 
@@ -124,7 +124,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      TimeoutAfter(10)
+      TimeoutAfter("10")(defaultPos)
     )(pos))
   }
 
@@ -135,19 +135,26 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      TimeoutAfter(10)
+      TimeoutAfter("10")(defaultPos)
     )(pos))
   }
 
   test("DROP DATABASE foo NOWAIT") {
     parsesTo[Statements](
-      DropDatabase(literalFoo, ifExists = false, composite = false, Restrict, DestroyData, NoWait)(pos)
+      DropDatabase(literalFoo, ifExists = false, composite = false, Restrict, DestroyData, NoWait()(defaultPos))(pos)
     )
   }
 
   test("DROP DATABASE `foo.bar`") {
     parsesTo[Statements](
-      DropDatabase(literal("foo.bar"), ifExists = false, composite = false, Restrict, DestroyData, NoWait)(pos)
+      DropDatabase(
+        literal("foo.bar"),
+        ifExists = false,
+        composite = false,
+        Restrict,
+        DestroyData,
+        NoWait()(defaultPos)
+      )(pos)
     )
   }
 
@@ -159,14 +166,14 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
         composite = false,
         Restrict,
         DestroyData,
-        NoWait
+        NoWait()(defaultPos)
       )(pos)
     )
   }
 
   test("DROP DATABASE foo IF EXISTS") {
     parsesTo[Statements](
-      DropDatabase(literalFoo, ifExists = true, composite = false, Restrict, DestroyData, NoWait)(pos)
+      DropDatabase(literalFoo, ifExists = true, composite = false, Restrict, DestroyData, NoWait()(defaultPos))(pos)
     )
   }
 
@@ -177,37 +184,37 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      IndefiniteWait
+      IndefiniteWait()(defaultPos)
     )(pos))
   }
 
   test("DROP DATABASE foo IF EXISTS NOWAIT") {
     parsesTo[Statements](
-      DropDatabase(literalFoo, ifExists = true, composite = false, Restrict, DestroyData, NoWait)(pos)
+      DropDatabase(literalFoo, ifExists = true, composite = false, Restrict, DestroyData, NoWait()(defaultPos))(pos)
     )
   }
 
   test("DROP DATABASE foo DUMP DATA") {
     parsesTo[Statements](
-      DropDatabase(literalFoo, ifExists = false, composite = false, Restrict, DumpData, NoWait)(pos)
+      DropDatabase(literalFoo, ifExists = false, composite = false, Restrict, DumpData, NoWait()(defaultPos))(pos)
     )
   }
 
   test("DROP DATABASE foo DESTROY DATA") {
     parsesTo[Statements](
-      DropDatabase(literalFoo, ifExists = false, composite = false, Restrict, DestroyData, NoWait)(pos)
+      DropDatabase(literalFoo, ifExists = false, composite = false, Restrict, DestroyData, NoWait()(defaultPos))(pos)
     )
   }
 
   test("DROP DATABASE foo IF EXISTS DUMP DATA") {
     parsesTo[Statements](
-      DropDatabase(literalFoo, ifExists = true, composite = false, Restrict, DumpData, NoWait)(pos)
+      DropDatabase(literalFoo, ifExists = true, composite = false, Restrict, DumpData, NoWait()(defaultPos))(pos)
     )
   }
 
   test("DROP DATABASE foo IF EXISTS DESTROY DATA") {
     parsesTo[Statements](
-      DropDatabase(literalFoo, ifExists = true, composite = false, Restrict, DestroyData, NoWait)(pos)
+      DropDatabase(literalFoo, ifExists = true, composite = false, Restrict, DestroyData, NoWait()(defaultPos))(pos)
     )
   }
 
@@ -218,7 +225,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      IndefiniteWait
+      IndefiniteWait()(defaultPos)
     )(pos))
   }
 
@@ -229,7 +236,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -240,7 +247,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       CascadeAliases,
       DestroyData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -251,7 +258,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -262,7 +269,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       CascadeAliases,
       DestroyData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -273,7 +280,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DumpData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -284,7 +291,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       CascadeAliases,
       DestroyData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -295,7 +302,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       Restrict,
       DestroyData,
-      NoWait
+      NoWait()(defaultPos)
     )(pos))
   }
 
@@ -306,7 +313,7 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
       composite = false,
       CascadeAliases,
       DestroyData,
-      IndefiniteWait
+      IndefiniteWait()(defaultPos)
     )(pos))
   }
 

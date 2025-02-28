@@ -46,7 +46,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             None,
             NoOptions,
             Set.empty,
-            NoWait,
+            NoWait()(pos),
             None
           )(defaultPos)
         )
@@ -60,7 +60,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
           None,
           NoOptions,
           Set.empty,
-          NoWait,
+          NoWait()(pos),
           None
         )(defaultPos))
       }
@@ -74,7 +74,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             None,
             NoOptions,
             Set.empty,
-            NoWait,
+            NoWait()(pos),
             None
           )(defaultPos)
         )
@@ -90,7 +90,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             None,
             NoOptions,
             Set.empty,
-            NoWait,
+            NoWait()(pos),
             None
           )((1, 12, 11)).withGraph(Some(use(List("system"), !cypherVersion5)))
         )
@@ -105,7 +105,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
             None,
             NoOptions,
             Set.empty,
-            NoWait,
+            NoWait()(pos),
             None
           )(defaultPos)
         )
@@ -218,7 +218,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         None,
         OptionsMap(Map("txLogEnrichment" -> StringLiteral("FULL")(pos.withInputLength(0)))),
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -233,7 +233,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         None,
         OptionsMap(Map("key" -> SignedDecimalIntegerLiteral("1")(pos))),
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -248,7 +248,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         None,
         OptionsMap(Map("key" -> SignedDecimalIntegerLiteral("-1")(pos))),
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -263,7 +263,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         None,
         OptionsMap(Map("key" -> Null()(pos))),
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -281,7 +281,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
           "key2" -> StringLiteral("two")(pos.withInputLength(0))
         )),
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -296,7 +296,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), None)),
         OptionsMap(Map("txLogEnrichment" -> StringLiteral("FULL")(pos.withInputLength(0)))),
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -311,7 +311,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         None,
         NoOptions,
         Set("key", "key2"),
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -326,7 +326,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), None)),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -341,7 +341,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -356,7 +356,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -371,7 +371,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Right(intParam("param"))), None)),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -386,7 +386,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Right(intParam("param"))))),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -401,7 +401,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Right(intParam("param2"))), Some(Right(intParam("param"))))),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -416,7 +416,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -431,7 +431,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -446,7 +446,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        IndefiniteWait,
+        IndefiniteWait()(pos),
         None
       )(pos)
     )
@@ -461,7 +461,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        TimeoutAfter(5),
+        TimeoutAfter("5")(pos),
         None
       )(pos)
     )
@@ -476,7 +476,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        TimeoutAfter(5),
+        TimeoutAfter("5")(pos),
         None
       )(pos)
     )
@@ -491,7 +491,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        TimeoutAfter(5),
+        TimeoutAfter("5")(pos),
         None
       )(pos)
     )
@@ -506,7 +506,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        TimeoutAfter(5),
+        TimeoutAfter("5")(pos),
         None
       )(pos)
     )
@@ -521,7 +521,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(Some(Left(1)), Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -536,7 +536,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(None, Some(Left(1)))),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -551,7 +551,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         Some(Topology(None, Some(Right(intParam("param"))))),
         NoOptions,
         Set.empty,
-        NoWait,
+        NoWait()(pos),
         None
       )(pos)
     )
@@ -567,7 +567,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       None,
       NoOptions,
       Set.empty,
-      NoWait,
+      NoWait()(pos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher5)
     )(pos))
   }
@@ -580,7 +580,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       None,
       NoOptions,
       Set.empty,
-      NoWait,
+      NoWait()(pos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
     )(pos))
   }
@@ -593,7 +593,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       None,
       NoOptions,
       Set.empty,
-      NoWait,
+      NoWait()(pos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
     )(pos))
   }
@@ -606,7 +606,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       None,
       NoOptions,
       Set.empty,
-      NoWait,
+      NoWait()(pos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
     )(pos))
   }
@@ -619,7 +619,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       None,
       OptionsMap(Map("badger" -> literalString("snake"))),
       Set.empty,
-      IndefiniteWait,
+      IndefiniteWait()(pos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
     )(pos))
   }
@@ -632,7 +632,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
       Some(Topology(Some(Left(1)), None)),
       NoOptions,
       Set.empty,
-      NoWait,
+      NoWait()(pos),
       Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
     )(pos))
   }

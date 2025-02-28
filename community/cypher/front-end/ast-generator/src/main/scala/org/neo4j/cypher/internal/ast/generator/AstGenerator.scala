@@ -3251,8 +3251,8 @@ class AstGenerator(
   } yield access
 
   def _waitUntilComplete: Gen[WaitUntilComplete] = for {
-    timeout <- posNum[Long]
-    wait <- oneOf(NoWait, IndefiniteWait, TimeoutAfter(timeout))
+    timeout <- posNum[Long].map(_.toString)
+    wait <- oneOf(NoWait()(pos), IndefiniteWait()(pos), TimeoutAfter(timeout)(pos))
   } yield wait
 
   def _createLocalDatabaseAlias: Gen[CreateLocalDatabaseAlias] = for {
