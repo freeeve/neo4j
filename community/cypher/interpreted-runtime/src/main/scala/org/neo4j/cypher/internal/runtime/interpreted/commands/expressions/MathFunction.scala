@@ -337,13 +337,8 @@ case class RangeFunction(start: Expression, end: Expression, step: Expression) e
 
 case class SignFunction(argument: Expression) extends MathFunction(argument) {
 
-  override def apply(row: ReadableRow, state: QueryState): AnyValue = {
-    val value = argument(row, state)
-    if (NO_VALUE eq value) NO_VALUE
-    else {
-      Values.longValue(Math.signum(NumericHelper.asDouble(value).doubleValue()).toLong)
-    }
-  }
+  override def apply(row: ReadableRow, state: QueryState): AnyValue =
+    CypherFunctions.signum(argument(row, state))
 
   override def rewrite(f: Expression => Expression): Expression = f(SignFunction(argument.rewrite(f)))
 
