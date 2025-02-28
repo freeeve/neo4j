@@ -598,7 +598,10 @@ public class Database extends AbstractDatabase {
 
         this.checkpointerLifecycle = new CheckpointerLifecycle(transactionLogModule.checkPointer(), databaseHealth);
 
-        life.add(onStop(() -> this.executionEngine.clearQueryCaches()));
+        life.add(onStop(() -> {
+            this.executionEngine.clearQueryCaches();
+            this.executionEngine.closeQueryCaches();
+        }));
         life.add(onStart(this::registerUpgradeListener));
         life.add(databaseHealth);
 

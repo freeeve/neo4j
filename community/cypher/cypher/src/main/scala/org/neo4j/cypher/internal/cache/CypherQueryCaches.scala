@@ -73,6 +73,7 @@ import org.neo4j.logging.InternalLogProvider
 import org.neo4j.monitoring.Monitors
 import org.neo4j.values.virtual.MapValue
 
+import java.io.Closeable
 import java.time.Clock
 import java.util.concurrent.CopyOnWriteArrayList
 
@@ -188,7 +189,7 @@ object CypherQueryCaches {
     }
   }
 
-  trait CacheCommon {
+  trait CacheCommon extends Closeable {
     def kind: String = companion.kind
 
     def companion: CacheCompanion
@@ -436,7 +437,7 @@ class CypherQueryCaches(
   clock: Clock,
   kernelMonitors: Monitors,
   logProvider: InternalLogProvider
-) {
+) extends Closeable {
 
   private val log = logProvider.getLog(getClass)
 
@@ -538,6 +539,11 @@ class CypherQueryCaches(
         Some(new InnerCache(cacheFactory.resolveCacheKind(kind), CacheSize.Static(cacheSize), tracer))
     }
 
+    def close(): Unit = maybeCache match {
+      case Some(closable: java.io.Closeable) => closable.close()
+      case _                                 => ()
+    }
+
     def computeIfAbsent(
       cacheWhen: => Boolean,
       key: => ExecutionPlanCache.Key,
@@ -596,6 +602,9 @@ class CypherQueryCaches(
     allCaches.add(cache)
     cache
   }
+
+  def close(): Unit =
+    allCaches.forEach(_.close())
 
   private object stats extends QueryCacheStatistics {
 

@@ -186,6 +186,11 @@ public class ExecutionEngine implements InternalQueryExecutionEngine {
     }
 
     @Override
+    public void closeQueryCaches() {
+        cypherExecutionEngine.queryCaches().close();
+    }
+
+    @Override
     public long clearExecutableQueryCache() {
         return cypherExecutionEngine.clearExecutableQueryCache();
     }
