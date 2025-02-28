@@ -188,12 +188,25 @@ public abstract class AbstractPointReaderTest {
             buf.writeFloat(coord);
         }
 
-        assertThatThrownBy(() -> this.getReader().read(null, buf, new StructHeader(this.getStructSize(), (short) 0x42)))
+        var assertion = ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> this.getReader().read(null, buf, new StructHeader(this.getStructSize(), (short) 0x42)))
                 .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"crs\": Illegal coordinate reference system: \"42\"")
-                .hasCauseInstanceOf(InvalidArgumentException.class)
-                .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
-                        .isEqualTo("crs"));
+                .hasMessage("Illegal value for field \"crs\": Illegal coordinate reference system: \"42\"");
+
+        assertion
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
+                .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22000)
+                .hasStatusDescription("error: data exception")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N21)
+                .hasStatusDescription(
+                        "error: data exception - unsupported coordinate reference system. Unsupported coordinate reference system (CRS): code=42.");
+
+        assertion.hasCauseInstanceOf(InvalidArgumentException.class).satisfies(ex -> assertThat(
+                        ((IllegalStructArgumentException) ex).getFieldName())
+                .isEqualTo("crs"));
     }
 
     @Test

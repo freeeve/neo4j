@@ -1108,6 +1108,11 @@ public class GqlHelper {
                 .build();
     }
 
+    public static boolean causeChainContains(ErrorGqlStatusObject gso, GqlStatusInfoCodes gqlStatusCode) {
+        return gso.gqlStatus().equals(gqlStatusCode.getStatusString())
+                || (gso.cause().isPresent() && causeChainContains(gso.cause().get(), gqlStatusCode));
+    }
+
     /**
      * Append the exception cause as the bottom GQL cause of the inner ErrorGqlStatusObject if the following applies
      * - the exception cause is an ErrorGqlStatusObject (and not e.g. a generic Java exception)

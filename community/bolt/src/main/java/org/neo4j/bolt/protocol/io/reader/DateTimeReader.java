@@ -19,7 +19,6 @@
  */
 package org.neo4j.bolt.protocol.io.reader;
 
-import static java.lang.String.format;
 import static org.neo4j.internal.helpers.TimeUtil.zoneOffsetOfTotalSeconds;
 
 import java.time.DateTimeException;
@@ -82,8 +81,7 @@ public final class DateTimeReader<CTX> implements StructReader<CTX, DateTimeValu
             offset = zoneOffsetOfTotalSeconds((int) offsetSeconds);
             instant = Instant.ofEpochSecond(epochSecond, nanos);
         } catch (DateTimeException | ArithmeticException ex) {
-            throw new IllegalStructArgumentException(
-                    "seconds", format("Illegal epoch adjustment epoch seconds: %d+%d", epochSecond, nanos), ex);
+            throw IllegalStructArgumentException.invalidTemporalComponent("seconds", epochSecond, nanos, ex);
         }
 
         return DateTimeValue.datetime(OffsetDateTime.ofInstant(instant, offset));

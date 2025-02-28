@@ -62,10 +62,22 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                         .writeFloat(3.15) // X
                         .writeFloat(4.012), // Y
                 "Illegal value for field \"params\": Illegal value for field \"crs\": Illegal coordinate reference system: \"5\"",
-                BoltConnectionAssertions.assertErrorCause(
-                        "50N42: Unexpected error has occurred. See debug log for details.",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details."));
+                BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                        "08N06: General network protocol error.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22000",
+                                GqlStatusInfoCodes.STATUS_22000.getGqlStatus(),
+                                "error: data exception",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "22N21: Unsupported coordinate reference system (CRS): code=5.",
+                                        GqlStatusInfoCodes.STATUS_22N21.getGqlStatus(),
+                                        "error: data exception - unsupported coordinate reference system. Unsupported coordinate reference system (CRS): code=5.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR")))));
     }
 
     @ProtocolTest
@@ -92,10 +104,22 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                         .writeFloat(4.012)
                         .writeFloat(5.905),
                 "Illegal value for field \"params\": Illegal value for field \"crs\": Illegal coordinate reference system: \"1200\"",
-                BoltConnectionAssertions.assertErrorCause(
-                        "50N42: Unexpected error has occurred. See debug log for details.",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details."));
+                BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                        "08N06: General network protocol error.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22000",
+                                GqlStatusInfoCodes.STATUS_22000.getGqlStatus(),
+                                "error: data exception",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "22N21: Unsupported coordinate reference system (CRS): code=1200.",
+                                        GqlStatusInfoCodes.STATUS_22N21.getGqlStatus(),
+                                        "error: data exception - unsupported coordinate reference system. Unsupported coordinate reference system (CRS): code=1200.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR")))));
     }
 
     @ProtocolTest
@@ -200,9 +224,15 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                         .writeInt(0)
                         .writeString("Europe/Marmaris"),
                 "Illegal value for field \"params\": Illegal value for field \"tz_id\": Illegal zone identifier: \"Europe/Marmaris\"",
-                BoltConnectionAssertions.assertErrorCause(
-                        "50N42: Unexpected error has occurred. See debug log for details.",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details."));
+                BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                        "08N06: General network protocol error.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "22NB5: Unknown time zone identifier 'Europe/Marmaris'.",
+                                GqlStatusInfoCodes.STATUS_22NB5.getGqlStatus(),
+                                "error: data exception - unsupported time zone identifier. Unknown time zone identifier 'Europe/Marmaris'.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))));
     }
 }

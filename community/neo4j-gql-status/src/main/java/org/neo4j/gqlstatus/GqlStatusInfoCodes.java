@@ -2142,6 +2142,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "endpoint label presence verification failed",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NB5(
+            new GqlStatus("22NB5"),
+            """
+                    Unknown time zone identifier { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "unsupported time zone identifier",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22NB6(
             // See also 22N06
             new GqlStatus("22NB6"),

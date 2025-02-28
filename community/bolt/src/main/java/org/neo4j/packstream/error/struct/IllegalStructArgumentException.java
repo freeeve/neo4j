@@ -23,6 +23,7 @@ import static java.lang.String.format;
 
 import java.util.Arrays;
 import java.util.List;
+import org.neo4j.exceptions.Neo4jException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -33,14 +34,6 @@ import org.neo4j.packstream.error.reader.PackstreamReaderException;
 
 public class IllegalStructArgumentException extends PackstreamStructException {
     private final String fieldName;
-
-    private IllegalStructArgumentException(String fieldName, PackstreamReaderException cause) {
-        // In case of Packstream exceptions, we'll copy the cause message in order to make it available to the client
-        // as well - in all other cases this information will be suppressed as we do not wish to accidentally leak any
-        // information that could provide information about internal processes
-        super(String.format("Illegal value for field \"%s\": %s", fieldName, cause.getMessage()), cause);
-        this.fieldName = fieldName;
-    }
 
     private IllegalStructArgumentException(
             ErrorGqlStatusObject gqlStatusObject, String fieldName, PackstreamReaderException cause) {
@@ -54,27 +47,10 @@ public class IllegalStructArgumentException extends PackstreamStructException {
         this.fieldName = fieldName;
     }
 
-    public static IllegalStructArgumentException protocolError(String fieldName, PackstreamReaderException cause) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N06)
-                .build();
-        return new IllegalStructArgumentException(gql, fieldName, cause);
-    }
-
-    private IllegalStructArgumentException(String fieldName, Throwable cause) {
-        super(String.format("Illegal value for field \"%s\"", fieldName), cause);
-        this.fieldName = fieldName;
-    }
-
     private IllegalStructArgumentException(ErrorGqlStatusObject gqlStatusObject, String fieldName, Throwable cause) {
         super(gqlStatusObject, String.format("Illegal value for field \"%s\"", fieldName), cause);
 
         this.fieldName = fieldName;
-    }
-
-    public static IllegalStructArgumentException invalidInput(
-            String fieldName, String input, String context, List<String> expectedInputList, Throwable cause) {
-        return new IllegalStructArgumentException(
-                GqlHelper.getGql08N06_22N04(input, context, expectedInputList), fieldName, cause);
     }
 
     public IllegalStructArgumentException(String fieldName, String message, Throwable cause) {
@@ -82,11 +58,32 @@ public class IllegalStructArgumentException extends PackstreamStructException {
         this.fieldName = fieldName;
     }
 
-    public IllegalStructArgumentException(
+    private IllegalStructArgumentException(
             ErrorGqlStatusObject gqlStatusObject, String fieldName, String message, Throwable cause) {
         super(gqlStatusObject, String.format("Illegal value for field \"%s\": %s", fieldName, message), cause);
 
         this.fieldName = fieldName;
+    }
+
+    // Make this constructor private once the different PRs are merged
+    public IllegalStructArgumentException(String fieldName, String message) {
+        this(fieldName, message, null);
+    }
+
+    private IllegalStructArgumentException(ErrorGqlStatusObject gqlStatusObject, String fieldName, String message) {
+        this(gqlStatusObject, fieldName, message, null);
+    }
+
+    public static IllegalStructArgumentException protocolError(String fieldName, PackstreamReaderException cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N06)
+                .build();
+        return new IllegalStructArgumentException(gql, fieldName, cause);
+    }
+
+    public static IllegalStructArgumentException invalidInput(
+            String fieldName, String input, String context, List<String> expectedInputList, Throwable cause) {
+        return new IllegalStructArgumentException(
+                GqlHelper.getGql08N06_22N04(input, context, expectedInputList), fieldName, cause);
     }
 
     public static IllegalStructArgumentException invalidCoordinateArguments(
@@ -98,6 +95,23 @@ public class IllegalStructArgumentException extends PackstreamStructException {
                         .build())
                 .build();
         return new IllegalStructArgumentException(gql, fieldName, message, cause);
+    }
+
+    public static IllegalStructArgumentException invalidCRS(String crsCode, Neo4jException cause) {
+        ErrorGqlStatusObject gql;
+
+        // Only add 22N21 explicitly if it did not already exist in the exception cause from the server
+        if (GqlHelper.causeChainContains(cause, GqlStatusInfoCodes.STATUS_22N21)) {
+            gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N06)
+                    .build();
+        } else {
+            ErrorGqlStatusObject gqlCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N21)
+                    .withParam(GqlParams.StringParam.crs, crsCode)
+                    .build();
+            gql = GqlHelper.getGql08N06(gqlCause);
+        }
+        return new IllegalStructArgumentException(
+                gql, "crs", format("Illegal coordinate reference system: \"%s\"", crsCode), cause);
     }
 
     public static IllegalStructArgumentException invalidTemporalComponent(
@@ -113,14 +127,12 @@ public class IllegalStructArgumentException extends PackstreamStructException {
                 cause);
     }
 
-    // Make this constructor private once the different PRs are merged
-    public IllegalStructArgumentException(String fieldName, String message) {
-        this(fieldName, message, null);
-    }
-
-    // Make this constructor private once the different PRs are merged
-    public IllegalStructArgumentException(ErrorGqlStatusObject gqlStatusObject, String fieldName, String message) {
-        this(gqlStatusObject, fieldName, message, null);
+    public static IllegalStructArgumentException invalidZoneId(String zoneName, Throwable cause) {
+        ErrorGqlStatusObject gqlCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB5)
+                .withParam(GqlParams.StringParam.input, zoneName)
+                .build();
+        return new IllegalStructArgumentException(
+                GqlHelper.getGql08N06(gqlCause), "tz_id", format("Illegal zone identifier: \"%s\"", zoneName), cause);
     }
 
     public static IllegalStructArgumentException wrongTypeForFieldName(

@@ -19,8 +19,6 @@
  */
 package org.neo4j.bolt.protocol.io.reader;
 
-import static java.lang.String.format;
-
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -71,10 +69,9 @@ public final class DateTimeZoneIdReader<CTX> implements StructReader<CTX, DateTi
             instant = Instant.ofEpochSecond(epochSecond, nanos);
             zoneId = ZoneId.of(zoneName);
         } catch (ZoneRulesException ex) {
-            throw new IllegalStructArgumentException("tz_id", format("Illegal zone identifier: \"%s\"", zoneName), ex);
+            throw IllegalStructArgumentException.invalidZoneId(zoneName, ex);
         } catch (DateTimeException | ArithmeticException ex) {
-            throw new IllegalStructArgumentException(
-                    "seconds", format("Illegal epoch adjustment epoch seconds: %d+%d", epochSecond, nanos), ex);
+            throw IllegalStructArgumentException.invalidTemporalComponent("seconds", epochSecond, nanos, ex);
         }
 
         return DateTimeValue.datetime(ZonedDateTime.ofInstant(instant, zoneId));

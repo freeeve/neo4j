@@ -66,8 +66,7 @@ public final class Point2dReader<CTX> implements StructReader<CTX, PointValue> {
         try {
             crs = CoordinateReferenceSystem.get((int) crsCode);
         } catch (InvalidSpatialArgumentException ex) {
-            throw new IllegalStructArgumentException(
-                    "crs", format("Illegal coordinate reference system: \"%s\"", crsCode), ex);
+            throw IllegalStructArgumentException.invalidCRS(String.valueOf(crsCode), ex);
         }
 
         try {
