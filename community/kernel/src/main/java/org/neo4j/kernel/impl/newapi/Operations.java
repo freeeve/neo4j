@@ -791,15 +791,12 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         // existing data even from non visible transactions
         var unboundedRelatedContext = ktx.cursorContext().createUnboundedRelatedContext();
         try (var r = ktx.overrideWith(ktx.securityContext().withMode(Static.FULL));
-                var valueCursor = cursors.allocateNodeValueIndexCursor(unboundedRelatedContext, memoryTracker);
-                IndexReaders indexReaders = new IndexReaders(index, kernelRead)) {
+                var valueCursor = cursors.allocateNodeValueIndexCursor(unboundedRelatedContext, memoryTracker)) {
             assertOnlineAndLock(constraint, index, propertyValues);
 
-            kernelRead.nodeIndexSeekWithFreshIndexReader(
-                    (EntityIndexSeekClient) valueCursor,
-                    unboundedRelatedContext,
-                    indexReaders.createReader(),
-                    propertyValues);
+            ((IndexSeekExactProperty) ktx.dataRead())
+                    .nodeIndexSeekForExactProperty(valueCursor, unboundedRelatedContext, index, propertyValues);
+
             while (valueCursor.next()) {
                 if (valueCursor.nodeReference() != modifiedNode) {
                     existingNodeId = valueCursor.nodeReference();
@@ -895,15 +892,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         // existing data even from non visible transactions
         var unboundedRelatedContext = ktx.cursorContext().createUnboundedRelatedContext();
         try (var r = ktx.overrideWith(ktx.securityContext().withMode(Static.FULL));
-                var valueCursor = cursors.allocateRelationshipValueIndexCursor(unboundedRelatedContext, memoryTracker);
-                IndexReaders indexReaders = new IndexReaders(index, kernelRead)) {
+                var valueCursor =
+                        cursors.allocateRelationshipValueIndexCursor(unboundedRelatedContext, memoryTracker)) {
             assertOnlineAndLock(constraint, index, propertyValues);
 
-            kernelRead.relationshipIndexSeekWithFreshIndexReader(
-                    (EntityIndexSeekClient) valueCursor,
-                    unboundedRelatedContext,
-                    indexReaders.createReader(),
-                    propertyValues);
+            ((IndexSeekExactProperty) ktx.dataRead())
+                    .relationshipIndexSeekForExactProperty(valueCursor, unboundedRelatedContext, index, propertyValues);
+
             while (valueCursor.next()) {
                 if (valueCursor.relationshipReference() != modifiedRel) {
                     existingRelationshipId = valueCursor.relationshipReference();

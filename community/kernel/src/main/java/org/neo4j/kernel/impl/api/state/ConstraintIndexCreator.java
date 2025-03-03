@@ -67,6 +67,10 @@ public class ConstraintIndexCreator {
         this.log = logProvider.getLog(ConstraintIndexCreator.class);
     }
 
+    public Supplier<Kernel> getKernelSupplier() {
+        return kernelSupplier;
+    }
+
     @FunctionalInterface
     public interface PropertyExistenceEnforcer {
         void existenceEnforcement(SchemaDescriptor schemaDescriptor) throws KernelException;
@@ -137,7 +141,7 @@ public class ConstraintIndexCreator {
                 locks.acquireExclusive(transaction.lockTracer(), keyType, lockingKeys);
                 reacquiredLock = true;
 
-                indexingService.getIndexProxy(index).validate();
+                validateIndex(index, constraint, transaction);
             } catch (IncompleteConstraintValidationException e) {
                 throw e.turnIntoRealException(constraint, transaction.tokenRead());
             } catch (IndexNotFoundKernelException e) {
@@ -183,6 +187,14 @@ public class ConstraintIndexCreator {
                 }
             }
         }
+    }
+
+    protected void validateIndex(
+            IndexDescriptor index,
+            IndexBackedConstraintDescriptor constraint,
+            KernelTransactionImplementation transaction)
+            throws KernelException, IncompleteConstraintValidationException {
+        indexingService.getIndexProxy(index).validate();
     }
 
     private static boolean indexStillExists(SchemaRead schemaRead, IndexDescriptor index) {

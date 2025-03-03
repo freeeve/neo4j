@@ -91,7 +91,7 @@ import org.neo4j.values.storable.Value;
  * transaction.
  * Transaction scoped and thread context scoped resources CANNOT be mixed.
  */
-public final class KernelRead implements Read {
+public final class KernelRead implements Read, IndexSeekExactProperty {
     private final StorageReader storageReader;
     private final CursorFactory cursors;
     private final IndexingService indexingService;
@@ -331,7 +331,20 @@ public final class KernelRead implements Read {
         }
     }
 
-    public void nodeIndexSeekWithFreshIndexReader(
+    @Override
+    public void nodeIndexSeekForExactProperty(
+            NodeValueIndexCursor valueCursor,
+            CursorContext cursorContext,
+            IndexDescriptor index,
+            PropertyIndexQuery.ExactPredicate... query)
+            throws IndexNotFoundKernelException, IndexNotApplicableKernelException {
+        try (IndexReaders indexReaders = new IndexReaders(index, this)) {
+            nodeIndexSeekWithFreshIndexReader(
+                    (EntityIndexSeekClient) valueCursor, cursorContext, indexReaders.createReader(), query);
+        }
+    }
+
+    private void nodeIndexSeekWithFreshIndexReader(
             EntityIndexSeekClient cursor,
             CursorContext cursorContext,
             ValueIndexReader indexReader,
@@ -341,7 +354,20 @@ public final class KernelRead implements Read {
         indexReader.query(cursor, queryContext, cursorContext, unconstrained(), query);
     }
 
-    public void relationshipIndexSeekWithFreshIndexReader(
+    @Override
+    public void relationshipIndexSeekForExactProperty(
+            RelationshipValueIndexCursor valueCursor,
+            CursorContext cursorContext,
+            IndexDescriptor index,
+            PropertyIndexQuery.ExactPredicate... query)
+            throws IndexNotFoundKernelException, IndexNotApplicableKernelException {
+        try (IndexReaders indexReaders = new IndexReaders(index, this)) {
+            relationshipIndexSeekWithFreshIndexReader(
+                    (EntityIndexSeekClient) valueCursor, cursorContext, indexReaders.createReader(), query);
+        }
+    }
+
+    private void relationshipIndexSeekWithFreshIndexReader(
             EntityIndexSeekClient cursor,
             CursorContext cursorContext,
             ValueIndexReader indexReader,
