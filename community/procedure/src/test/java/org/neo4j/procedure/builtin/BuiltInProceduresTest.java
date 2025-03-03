@@ -22,7 +22,6 @@ package org.neo4j.procedure.builtin;
 import static java.util.Collections.emptyIterator;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -68,6 +67,8 @@ import org.neo4j.dbms.database.SystemGraphComponent.Status;
 import org.neo4j.dbms.database.SystemGraphComponents;
 import org.neo4j.dbms.database.SystemGraphComponents.UpgradeChecker;
 import org.neo4j.dbms.database.TestSystemGraphComponent;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
@@ -395,10 +396,13 @@ class BuiltInProceduresTest {
         when(resolver.resolveDependency(Config.class)).thenReturn(config);
         when(callContext.isSystemDatabase()).thenReturn(false);
 
-        assertThatThrownBy(() -> call("dbms.upgradeStatus"))
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> call("dbms.upgradeStatus"))
                 .isInstanceOf(ProcedureException.class)
                 .hasMessage(
-                        "This is an administration command and it should be executed against the system database: dbms.upgradeStatus");
+                        "This is an administration command and it should be executed against the system database: dbms.upgradeStatus")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N28)
+                .hasStatusDescription(
+                        "error: system configuration or operation exception - not supported by this database. This Cypher command must be executed against the database `system`.");
     }
 
     @Test
@@ -451,10 +455,13 @@ class BuiltInProceduresTest {
 
         when(callContext.isSystemDatabase()).thenReturn(false);
 
-        assertThatThrownBy(() -> call("dbms.upgrade"))
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> call("dbms.upgrade"))
                 .isInstanceOf(ProcedureException.class)
                 .hasMessage(
-                        "This is an administration command and it should be executed against the system database: dbms.upgrade");
+                        "This is an administration command and it should be executed against the system database: dbms.upgrade")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N28)
+                .hasStatusDescription(
+                        "error: system configuration or operation exception - not supported by this database. This Cypher command must be executed against the database `system`.");
     }
 
     @Test

@@ -26,7 +26,6 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.upgrade_proc
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.dbms.database.SystemGraphComponent.Status.REQUIRES_UPGRADE;
 import static org.neo4j.dbms.database.SystemGraphComponent.Status.UNINITIALIZED;
-import static org.neo4j.kernel.api.exceptions.Status.Procedure.ProcedureCallFailed;
 import static org.neo4j.procedure.Mode.DBMS;
 import static org.neo4j.procedure.Mode.READ;
 import static org.neo4j.procedure.Mode.WRITE;
@@ -263,9 +262,7 @@ public class BuiltInDbmsProcedures {
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5})
     public Stream<SystemGraphComponentStatusResult> upgradeStatus() throws ProcedureException {
         if (!callContext.isSystemDatabase()) {
-            throw new ProcedureException(
-                    ProcedureCallFailed,
-                    "This is an administration command and it should be executed against the system database: dbms.upgradeStatus");
+            throw ProcedureException.shouldBeExecutedAgainstSystemDb("dbms.upgradeStatus");
         }
         return Stream.of(getAggregateUpgradeStatus(systemGraphComponents, resolver, transaction));
     }
@@ -278,9 +275,7 @@ public class BuiltInDbmsProcedures {
     @QueryLanguageScope(scope = {QueryLanguage.CYPHER_5})
     public Stream<SystemGraphComponentUpgradeResult> upgrade() throws ProcedureException {
         if (!callContext.isSystemDatabase()) {
-            throw new ProcedureException(
-                    ProcedureCallFailed,
-                    "This is an administration command and it should be executed against the system database: dbms.upgrade");
+            throw ProcedureException.shouldBeExecutedAgainstSystemDb("dbms.upgrade");
         }
         var upgradeCheckResult =
                 resolver.resolveDependency(UpgradeChecker.class).upgradeCheck();

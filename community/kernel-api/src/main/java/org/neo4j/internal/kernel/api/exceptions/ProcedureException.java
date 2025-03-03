@@ -944,4 +944,25 @@ public class ProcedureException extends KernelException {
                 .build();
         return new ProcedureException(gql, ProcedureCallFailed, legacyMessage);
     }
+
+    public static ProcedureException shouldBeExecutedAgainstSystemDb() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N28)
+                .withParam(GqlParams.StringParam.db, "system")
+                .build();
+        return new ProcedureException(
+                gql,
+                ProcedureCallFailed,
+                "This is an administration command and it should be executed against the system database");
+    }
+
+    public static ProcedureException shouldBeExecutedAgainstSystemDb(String procedure) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N28)
+                .withParam(GqlParams.StringParam.db, "system")
+                .build();
+        return new ProcedureException(
+                gql,
+                ProcedureCallFailed,
+                "This is an administration command and it should be executed against the system database: %s",
+                procedure);
+    }
 }

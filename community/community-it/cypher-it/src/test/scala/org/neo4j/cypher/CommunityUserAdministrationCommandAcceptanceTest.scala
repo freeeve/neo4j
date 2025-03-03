@@ -2037,8 +2037,13 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
         s"ALTER CURRENT USER SET PASSWORD FROM '$password' TO '$newPassword'"
       )
       // THEN
-    } should have message
+    } should (have message
       "This is an administration command and it should be executed against the system database: ALTER CURRENT USER SET PASSWORD"
+      and be(gqlStatus(
+        GqlStatusInfoCodes.STATUS_51N28,
+        "error: system configuration or operation exception - not supported by this database. This Cypher command must be executed against the database `system`."
+      )))
+
   }
 
   // Run commands
