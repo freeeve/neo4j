@@ -34,6 +34,7 @@ import org.neo4j.dbms.database.DefaultSystemGraphComponent
 import org.neo4j.dbms.database.DefaultSystemGraphInitializer
 import org.neo4j.dbms.database.SystemGraphComponents
 import org.neo4j.dbms.systemgraph.CommunityTopologyGraphComponent
+import org.neo4j.dbms.systemgraph.SystemGraphTestHelper
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -42,7 +43,6 @@ import org.neo4j.internal.kernel.api.security.CommunitySecurityLog
 import org.neo4j.kernel.internal.GraphDatabaseAPI
 import org.neo4j.logging.NullLogProvider
 import org.neo4j.server.security.auth.InMemoryUserRepository
-import org.neo4j.server.security.systemgraph.SecurityGraphHelper
 import org.neo4j.server.security.systemgraph.UserSecurityGraphComponent
 import org.neo4j.storageengine.api.MetadataProvider
 import org.scalatest.OptionValues
@@ -1080,7 +1080,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
 
     val databaseContextProvider =
       graph.getDependencyResolver.resolveDependency(classOf[DatabaseContextProvider[DatabaseContext]])
-    val systemSupplier = SecurityGraphHelper.makeSystemSupplier(databaseContextProvider)
+    val systemSupplier = SystemGraphTestHelper.makeSystemSupplier(databaseContextProvider)
     val systemGraphInitializer = new DefaultSystemGraphInitializer(
       systemSupplier,
       systemGraphComponentsBuilder.build()

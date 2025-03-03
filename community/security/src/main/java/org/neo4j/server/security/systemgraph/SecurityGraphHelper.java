@@ -19,8 +19,6 @@
  */
 package org.neo4j.server.security.systemgraph;
 
-import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
-import static org.neo4j.kernel.database.NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID;
 import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_CREDENTIALS;
 import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_EXPIRED;
 import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_ID;
@@ -30,11 +28,9 @@ import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecur
 import java.util.Collections;
 import java.util.Set;
 import java.util.function.Supplier;
-import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
-import org.neo4j.graphdb.security.AuthProviderFailedException;
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
 import org.neo4j.kernel.api.security.AuthToken;
 import org.neo4j.kernel.impl.security.Credential;
@@ -42,7 +38,6 @@ import org.neo4j.kernel.impl.security.User;
 import org.neo4j.server.security.FormatException;
 import org.neo4j.server.security.SecureHasher;
 import org.neo4j.server.security.SystemGraphCredential;
-import org.neo4j.util.VisibleForTesting;
 
 public class SecurityGraphHelper {
     public static final String NATIVE_AUTH = AuthToken.NATIVE_REALM;
@@ -60,16 +55,6 @@ public class SecurityGraphHelper {
 
     public GraphDatabaseService getSystemDb() {
         return systemSupplier.get();
-    }
-
-    @VisibleForTesting
-    public static Supplier<GraphDatabaseService> makeSystemSupplier(
-            DatabaseContextProvider<?> databaseContextProvider) {
-        return () -> databaseContextProvider
-                .getDatabaseContext(NAMED_SYSTEM_DATABASE_ID)
-                .orElseThrow(() ->
-                        new AuthProviderFailedException("No database called `" + SYSTEM_DATABASE_NAME + "` was found."))
-                .databaseFacade();
     }
 
     /**

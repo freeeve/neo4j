@@ -36,6 +36,7 @@ import org.neo4j.dbms.database.DefaultSystemGraphComponent;
 import org.neo4j.dbms.database.DefaultSystemGraphInitializer;
 import org.neo4j.dbms.database.SystemGraphComponents;
 import org.neo4j.dbms.database.SystemGraphInitializer;
+import org.neo4j.dbms.systemgraph.SystemGraphTestHelper;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.server.security.SecureHasher;
@@ -67,7 +68,7 @@ class UserSecurityGraphInitializationIT {
         dbManager = new BasicSystemGraphRealmTestHelper.TestDatabaseContextProvider(testDirectory);
         SecureHasher secureHasher = new SecureHasher();
         realmHelper = new SecurityGraphHelper(
-                SecurityGraphHelper.makeSystemSupplier(dbManager), secureHasher, CommunitySecurityLog.NULL_LOG);
+                SystemGraphTestHelper.makeSystemSupplier(dbManager), secureHasher, CommunitySecurityLog.NULL_LOG);
         initialPassword = new InMemoryUserRepository();
     }
 
@@ -166,7 +167,7 @@ class UserSecurityGraphInitializationIT {
         systemGraphComponentsBuilder.register(new UserSecurityGraphComponent(
                 initialPassword, config, NullLogProvider.getInstance(), CommunitySecurityLog.NULL_LOG));
 
-        var systemGraphSupplier = SecurityGraphHelper.makeSystemSupplier(dbManager);
+        var systemGraphSupplier = SystemGraphTestHelper.makeSystemSupplier(dbManager);
         systemGraphInitializer =
                 new DefaultSystemGraphInitializer(systemGraphSupplier, systemGraphComponentsBuilder.build());
         systemGraphInitializer.start();
