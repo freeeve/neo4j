@@ -20,15 +20,20 @@
 package org.neo4j.kernel.impl.newapi;
 
 import org.eclipse.collections.api.iterator.LongIterator;
+import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.security.AccessMode;
+import org.neo4j.internal.kernel.api.security.ReadSecurityPropertyProvider;
 import org.neo4j.kernel.api.AccessModeProvider;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.storageengine.api.AllRelationshipsScan;
 import org.neo4j.storageengine.api.LongReference;
+import org.neo4j.storageengine.api.PropertySelection;
+import org.neo4j.storageengine.api.StorageProperty;
+import org.neo4j.storageengine.api.StoragePropertyCursor;
 import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
 
 public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<DefaultRelationshipScanCursor>
@@ -40,6 +45,10 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
     private boolean isSingle;
     private LongIterator addedRelationships;
     private DefaultNodeCursor securityNodeCursor;
+    private StoragePropertyCursor securityPropertyCursor;
+    private AccessMode accessMode;
+    private boolean allowAllRelationships;
+    private boolean allowAllNodes;
 
     protected DefaultRelationshipScanCursor(
             CursorPool<DefaultRelationshipScanCursor> pool,
@@ -57,6 +66,7 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
         this.single = LongReference.NULL;
         this.isSingle = false;
         init(read, txStateHolder, accessModeProvider);
+        initAccessMode(accessModeProvider);
         this.addedRelationships = ImmutableEmptyLongIterator.INSTANCE;
     }
 
@@ -71,6 +81,7 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
         this.read = read;
         this.txStateHolder = txStateHolder;
         this.accessModeProvider = accessModeProvider;
+        initAccessMode(accessModeProvider);
         this.single = LongReference.NULL;
         this.isSingle = false;
         this.currentAddedInTx = LongReference.NULL;
@@ -86,6 +97,8 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
         this.single = reference;
         this.isSingle = true;
         init(read, txStateHolder, accessModeProvider);
+        initAccessMode(accessModeProvider);
+        this.accessMode = accessModeProvider.getAccessMode();
         this.addedRelationships = ImmutableEmptyLongIterator.INSTANCE;
     }
 
@@ -101,7 +114,18 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
         this.single = reference;
         this.isSingle = true;
         init(read, txStateHolder, accessModeProvider);
+        initAccessMode(accessModeProvider);
+        this.accessMode = accessModeProvider.getAccessMode();
         this.addedRelationships = ImmutableEmptyLongIterator.INSTANCE;
+    }
+
+    /**
+     * It is expected that accessMode is stable while cursor is in use, so we cache accessMode and couple shortcuts
+     */
+    private void initAccessMode(AccessModeProvider accessModeProvider) {
+        this.accessMode = accessModeProvider.getAccessMode();
+        this.allowAllRelationships = accessMode.allowsTraverseAllRelTypes();
+        this.allowAllNodes = accessMode.allowsTraverseAllLabels();
     }
 
     @Override
@@ -115,9 +139,7 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
                 txStateHolder.txState().relationshipVisit(next, relationshipTxStateDataVisitor);
 
                 if (!applyAccessModeToTxState || allowed()) {
-                    if (tracer != null) {
-                        tracer.onRelationship(relationshipReference());
-                    }
+                    trace();
                     return true;
                 }
             }
@@ -125,47 +147,84 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
         }
 
         while (storeCursor.next()) {
-            boolean skip = hasChanges
-                    && txStateHolder.txState().relationshipIsDeletedInThisBatch(storeCursor.entityReference());
-            if (!skip && allowed()) {
-                if (tracer != null) {
-                    tracer.onRelationship(relationshipReference());
-                }
+            if (!deletedInThisBatch(hasChanges) && allowed()) {
+                trace();
                 return true;
             }
         }
         return false;
     }
 
-    protected boolean allowed() {
-        AccessMode accessMode = accessModeProvider.getAccessMode();
-        return accessMode.allowsTraverseRelType(type()) && allowedToSeeEndNode(accessMode);
+    private boolean deletedInThisBatch(boolean hasChanges) {
+        return hasChanges && txStateHolder.txState().relationshipIsDeletedInThisBatch(storeCursor.entityReference());
     }
 
-    private boolean allowedToSeeEndNode(AccessMode mode) {
-        if (mode.allowsTraverseAllLabels()) {
+    private void trace() {
+        if (tracer != null) {
+            tracer.onRelationship(relationshipReference());
+        }
+    }
+
+    protected boolean allowed() {
+        assert accessMode == accessModeProvider.getAccessMode() : "access mode changed while cursor is in use";
+        return allowedTraverseRelationship() && allowedToTraverseEndNodes();
+    }
+
+    private boolean allowedTraverseRelationship() {
+        if (allowAllRelationships) {
             return true;
         }
-        if (securityNodeCursor == null) {
-            securityNodeCursor = internalCursors.allocateNodeCursor();
+        return accessMode.allowsTraverseRelationship(
+                type(), properties -> getSecurityPropertyProvider(storeCursor, properties));
+    }
+
+    private ReadSecurityPropertyProvider getSecurityPropertyProvider(
+            StorageRelationshipScanCursor storageCursor, IntSet securityProperties) {
+        var propertyCursor = getSecurityPropertyCursor();
+        var propertySelection = PropertySelection.selection(securityProperties.toArray());
+        storageCursor.properties(propertyCursor, propertySelection);
+        Iterable<StorageProperty> txStateChangedProperties = applyAccessModeToTxState
+                ? txStateHolder
+                        .txState()
+                        .getNodeState(this.relationshipReference())
+                        .addedAndChangedProperties()
+                : null;
+
+        return new ReadSecurityPropertyProvider.LazyReadSecurityPropertyProvider(
+                propertyCursor, txStateChangedProperties, propertySelection);
+    }
+
+    private boolean allowedToTraverseEndNodes() {
+        if (allowAllNodes) {
+            return true;
         }
 
-        if (applyAccessModeToTxState && currentAddedInTx != LongReference.NULL) {
-            read.singleNode(txStateSourceNodeReference, securityNodeCursor);
-        } else {
-            read.singleNode(storeCursor.sourceNodeReference(), securityNodeCursor);
-        }
+        var nodeCursor = getSecurityNodeCursor();
 
-        if (securityNodeCursor.next()) {
-            if (applyAccessModeToTxState && currentAddedInTx != LongReference.NULL) {
-                read.singleNode(txStateTargetNodeReference, securityNodeCursor);
-            } else {
-                read.singleNode(storeCursor.targetNodeReference(), securityNodeCursor);
-            }
-            return securityNodeCursor.next();
+        boolean useTxStateRef = applyAccessModeToTxState && currentAddedInTx != LongReference.NULL;
+        long sourceNode = useTxStateRef ? txStateSourceNodeReference : storeCursor.sourceNodeReference();
+        read.singleNode(sourceNode, nodeCursor);
+        if (nodeCursor.next()) {
+            long targetNode = useTxStateRef ? txStateTargetNodeReference : storeCursor.targetNodeReference();
+            read.singleNode(targetNode, nodeCursor);
+            return nodeCursor.next();
         }
 
         return false;
+    }
+
+    private StoragePropertyCursor getSecurityPropertyCursor() {
+        if (securityPropertyCursor == null) {
+            securityPropertyCursor = internalCursors.allocateStoragePropertyCursor();
+        }
+        return securityPropertyCursor;
+    }
+
+    private DefaultNodeCursor getSecurityNodeCursor() {
+        if (securityNodeCursor == null) {
+            securityNodeCursor = internalCursors.allocateNodeCursor();
+        }
+        return securityNodeCursor;
     }
 
     @Override
@@ -174,9 +233,13 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
             read = null;
             txStateHolder = null;
             accessModeProvider = null;
+            accessMode = null;
             storeCursor.reset();
             if (securityNodeCursor != null) {
                 securityNodeCursor.close();
+            }
+            if (securityPropertyCursor != null) {
+                securityPropertyCursor.close();
             }
         }
         super.closeInternal();
@@ -191,11 +254,10 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
     public String toString() {
         if (isClosed()) {
             return "RelationshipScanCursor[closed state]";
-        } else {
-            return "RelationshipScanCursor[id=" + storeCursor.entityReference() + ", open state with: single="
-                    + single + ", "
-                    + storeCursor + "]";
         }
+        return "RelationshipScanCursor[id=" + storeCursor.entityReference() + ", open state with: single="
+                + single + ", "
+                + storeCursor + "]";
     }
 
     @Override
@@ -220,6 +282,10 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
             securityNodeCursor.close();
             securityNodeCursor.release();
             securityNodeCursor = null;
+        }
+        if (securityPropertyCursor != null) {
+            securityPropertyCursor.close();
+            securityPropertyCursor = null;
         }
     }
 }

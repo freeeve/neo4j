@@ -23,6 +23,7 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
@@ -181,7 +182,8 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean allowsTraverseRelWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int type) {
+        public boolean allowsTraverseRelationship(
+                int type, Function<IntSet, ReadSecurityPropertyProvider> propertyProviderSupplier) {
             return read;
         }
 
@@ -498,13 +500,16 @@ public interface AccessMode {
     boolean hasApplicableTraverseRelAllowPropertyRules(int type);
 
     /**
-     * Uses the {@code propertyProvider} to get the relationship property values and the {@code type} to get the relevant property rules,
+     * Checks whether traversal of the relationship is allowed based on its type and properties.
+     * Checks type-based traverse rules and the property based traverse rules.
+     * Uses the {@code propertyProviderFacroty} to get the relationship property values and the {@code type} to get the relevant property rules,
      * and then evaluates the property rules to determine whether the relationship can be traversed. Also checks type-based traverse rules.
-     * @param propertyProvider provider of the scrutinee relationship's properties
      * @param type the type of the relationship. Used to determine which property rules need to be checked.
+     * @param propertyProviderFactory provider of the scrutinee relationship's properties
      * @return {@code true} if traversal of this relationship is allowed
      */
-    boolean allowsTraverseRelWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int type);
+    boolean allowsTraverseRelationship(
+            int type, Function<IntSet, ReadSecurityPropertyProvider> propertyProviderFactory);
 
     /**
      * Determines whether there are any property rules controlling traversal of any relationship types

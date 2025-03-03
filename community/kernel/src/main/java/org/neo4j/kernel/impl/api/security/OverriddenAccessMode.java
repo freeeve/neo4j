@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.api.security;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.neo4j.internal.kernel.api.RelTypeSupplier;
@@ -137,8 +138,9 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean allowsTraverseRelWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int type) {
-        return wrapping.allowsTraverseRelWithPropertyRules(propertyProvider, type);
+    public boolean allowsTraverseRelationship(
+            int type, Function<IntSet, ReadSecurityPropertyProvider> propertyProviderSupplier) {
+        return wrapping.allowsTraverseRelationship(type, propertyProviderSupplier);
     }
 
     @Override

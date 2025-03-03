@@ -21,6 +21,7 @@ package org.neo4j.internal.kernel.api.security;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
@@ -141,7 +142,8 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean allowsTraverseRelWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int type) {
+    public boolean allowsTraverseRelationship(
+            int type, Function<IntSet, ReadSecurityPropertyProvider> propertyProviderSupplier) {
         return allowRead;
     }
 
