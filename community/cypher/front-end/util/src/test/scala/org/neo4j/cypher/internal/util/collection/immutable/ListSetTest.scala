@@ -213,4 +213,36 @@ class ListSetTest extends CypherFunSuite with CypherScalaCheckDrivenPropertyChec
       removedAllTest(xs, xs2)
     }
   }
+
+  test("distinctBy should return a ListSet with distinct elements based on the given function") {
+    val listSet = ListSet.from(1 to 5)
+    val result = listSet.distinctBy(_ % 2)
+    result shouldEqual ListSet.from(Seq(1, 2))
+  }
+
+  test("distinctBy should return an empty ListSet when called on an empty ListSet") {
+    val listSet = ListSet.empty
+    val result = listSet.distinctBy(identity)
+    result shouldEqual ListSet.empty
+  }
+
+  test("distinctBy should return the same ListSet when all elements are distinct by the given function") {
+    val listSet = ListSet.from(1 to 5)
+    val result = listSet.distinctBy(identity)
+    result shouldEqual listSet
+  }
+
+  test("distinctBy should return a single element when all elements are mapped to the same value") {
+    val listSet = ListSet.from(1 to 5)
+    val result = listSet.distinctBy(_ => ())
+    result shouldEqual ListSet.from(Seq(1))
+  }
+
+  test("distinctBy should handle complex objects and functions correctly") {
+    case class Person(name: String, age: Int)
+
+    val listSet = ListSet.from(Seq(Person("Alice", 30), Person("Bob", 30), Person("Charlie", 25)))
+    val result = listSet.distinctBy(_.age)
+    result shouldEqual ListSet.from(Seq(Person("Alice", 30), Person("Charlie", 25)))
+  }
 }

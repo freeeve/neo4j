@@ -23,6 +23,7 @@ import scala.collection.IterableFactoryDefaults
 import scala.collection.immutable.AbstractSet
 import scala.collection.immutable.StrictOptimizedSetOps
 import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 /**
@@ -97,6 +98,25 @@ class ListSet[A](private val underlying: java.util.LinkedHashSet[A])
    * e.g. Ands.
    */
   override val hashCode: Int = super.hashCode()
+
+  def distinctBy[B](f: A => B): ListSet[A] = {
+    case class Acc(seenElement: Set[B] = Set.empty, elementsToInclude: ListBuffer[A] = ListBuffer.empty) {
+      def incl(elem: A): Acc = {
+        val b = f(elem)
+        if (seenElement.contains(b)) {
+          this
+        } else {
+          Acc(seenElement.incl(b), elementsToInclude.appended(elem))
+        }
+      }
+    }
+
+    iterator
+      .foldLeft(Acc())(_.incl(_))
+      .elementsToInclude
+      .toListSet
+  }
+
 }
 
 /**
