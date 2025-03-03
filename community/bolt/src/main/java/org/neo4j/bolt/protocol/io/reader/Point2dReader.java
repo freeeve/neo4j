@@ -59,7 +59,7 @@ public final class Point2dReader<CTX> implements StructReader<CTX, PointValue> {
         var y = buffer.readFloat();
 
         if (crsCode > Integer.MAX_VALUE || crsCode < Integer.MIN_VALUE) {
-            throw new IllegalStructArgumentException("crs", "crs code exceeds valid bounds");
+            throw IllegalStructArgumentException.crsOutOfBounds();
         }
 
         CoordinateReferenceSystem crs;

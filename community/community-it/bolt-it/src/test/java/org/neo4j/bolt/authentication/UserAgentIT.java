@@ -67,11 +67,23 @@ public class UserAgentIT {
                 .getTarget());
 
         BoltConnectionAssertions.assertThat(connection)
-                .receivesFailure(
+                .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Illegal value for field \"user_agent\": Expected value to be non-null",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.");
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCauseWithInnerCause(
+                                "22N05: Invalid input 'null' for field 'user_agent'.",
+                                GqlStatusInfoCodes.STATUS_22N05.getGqlStatus(),
+                                "error: data exception - input failed validation. Invalid input 'null' for field 'user_agent'.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                                BoltConnectionAssertions.assertErrorCause(
+                                        "22004",
+                                        GqlStatusInfoCodes.STATUS_22004.getGqlStatus(),
+                                        "error: data exception - null value not allowed",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR"))));
     }
 
     @ProtocolTest
@@ -104,7 +116,7 @@ public class UserAgentIT {
                                 // Instead a default diagnostic record is created on driver side.
                                 null,
                                 BoltConnectionAssertions.assertErrorCause(
-                                        "",
+                                        "22N01: Expected the value 42 to be of type STRING, but was of type Long.",
                                         GqlStatusInfoCodes.STATUS_22N01.getGqlStatus(),
                                         "error: data exception - invalid type. Expected the value 42 to be of type STRING, but was of type Long.",
                                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(

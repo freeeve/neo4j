@@ -31,6 +31,7 @@ import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
+import org.neo4j.util.VisibleForTesting;
 
 public class IllegalStructArgumentException extends PackstreamStructException {
     private final String fieldName;
@@ -53,21 +54,12 @@ public class IllegalStructArgumentException extends PackstreamStructException {
         this.fieldName = fieldName;
     }
 
-    public IllegalStructArgumentException(String fieldName, String message, Throwable cause) {
-        super(String.format("Illegal value for field \"%s\": %s", fieldName, message), cause);
-        this.fieldName = fieldName;
-    }
-
-    private IllegalStructArgumentException(
+    @VisibleForTesting
+    public IllegalStructArgumentException(
             ErrorGqlStatusObject gqlStatusObject, String fieldName, String message, Throwable cause) {
         super(gqlStatusObject, String.format("Illegal value for field \"%s\": %s", fieldName, message), cause);
 
         this.fieldName = fieldName;
-    }
-
-    // Make this constructor private once the different PRs are merged
-    public IllegalStructArgumentException(String fieldName, String message) {
-        this(fieldName, message, null);
     }
 
     private IllegalStructArgumentException(ErrorGqlStatusObject gqlStatusObject, String fieldName, String message) {
@@ -112,6 +104,15 @@ public class IllegalStructArgumentException extends PackstreamStructException {
         }
         return new IllegalStructArgumentException(
                 gql, "crs", format("Illegal coordinate reference system: \"%s\"", crsCode), cause);
+    }
+
+    public static IllegalStructArgumentException crsOutOfBounds() {
+        var gql = GqlHelper.getGql08N06(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N29)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                        .withParam(GqlParams.StringParam.value, "crs")
+                        .build())
+                .build());
+        return new IllegalStructArgumentException(gql, "crs", "crs code exceeds valid bounds");
     }
 
     public static IllegalStructArgumentException invalidTemporalComponent(
@@ -164,6 +165,39 @@ public class IllegalStructArgumentException extends PackstreamStructException {
             String fieldName, String input, String context, List<String> expectedInputList, String message) {
         return new IllegalStructArgumentException(
                 GqlHelper.getGql08N06_22N04(input, context, expectedInputList), fieldName, message);
+    }
+
+    public static IllegalStructArgumentException expectedMapToHaveKey(String mapKey, String field) {
+        var gql = GqlHelper.getGql08N06(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N55)
+                .withParam(GqlParams.StringParam.mapKey, mapKey)
+                .withParam(GqlParams.StringParam.field, field)
+                .build());
+        return new IllegalStructArgumentException(
+                gql, field, String.format("Expected map to contain key: '%s'.", mapKey));
+    }
+
+    public static IllegalStructArgumentException expectedIntegerButGotNull(String fieldName) {
+        return new IllegalStructArgumentException(
+                GqlHelper.getGql08N06(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                        .withParam(GqlParams.StringParam.input, "null")
+                        .withParam(GqlParams.StringParam.context, String.format("field '%s'", fieldName))
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22004)
+                                .build())
+                        .build()),
+                fieldName,
+                "Expected Integer but nothing was sent with the message");
+    }
+
+    public static IllegalStructArgumentException expectedNonNullValue(String fieldName) {
+        return new IllegalStructArgumentException(
+                GqlHelper.getGql08N06(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+                        .withParam(GqlParams.StringParam.input, "null")
+                        .withParam(GqlParams.StringParam.context, String.format("field '%s'", fieldName))
+                        .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22004)
+                                .build())
+                        .build()),
+                fieldName,
+                "Expected value to be non-null");
     }
 
     public String getFieldName() {

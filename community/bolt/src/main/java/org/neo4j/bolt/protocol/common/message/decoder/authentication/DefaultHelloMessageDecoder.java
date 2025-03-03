@@ -138,7 +138,7 @@ public class DefaultHelloMessageDecoder implements MessageDecoder<HelloMessage> 
                     "Must be a map with string keys and string values.");
         }
         if (!map.containsKey("product")) {
-            throw new IllegalStructArgumentException(FIELD_BOLT_AGENT, "Expected map to contain key: 'product'.");
+            throw IllegalStructArgumentException.expectedMapToHaveKey("product", FIELD_BOLT_AGENT);
         }
         return map;
     }

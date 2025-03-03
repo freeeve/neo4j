@@ -105,7 +105,7 @@ public final class PackstreamConversions {
      */
     public static long asLongValue(String fieldName, AnyValue fieldValue) throws IllegalStructArgumentException {
         if (fieldValue == Values.NO_VALUE) {
-            throw new IllegalStructArgumentException(fieldName, "Expected value to be non-null");
+            throw IllegalStructArgumentException.expectedNonNullValue(fieldName);
         }
 
         return asNullableLongValue(fieldName, fieldValue)

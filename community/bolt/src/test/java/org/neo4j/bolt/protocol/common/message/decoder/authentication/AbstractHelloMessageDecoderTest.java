@@ -34,6 +34,8 @@ import org.neo4j.bolt.protocol.common.message.decoder.NonEmptyMessageDecoderTest
 import org.neo4j.bolt.protocol.common.message.request.authentication.HelloMessage;
 import org.neo4j.bolt.protocol.common.message.request.connection.RoutingContext;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.packstream.io.PackstreamBuf;
@@ -212,8 +214,19 @@ public abstract class AbstractHelloMessageDecoderTest<D extends MessageDecoder<H
         var connection =
                 ConnectionMockFactory.newFactory().withValueReader(reader).build();
 
-        assertThatExceptionOfType(IllegalStructArgumentException.class)
-                .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
-                .withMessage("Illegal value for field \"user_agent\": Expected value to be non-null");
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
+                .isInstanceOf(IllegalStructArgumentException.class)
+                .hasMessage("Illegal value for field \"user_agent\": Expected value to be non-null")
+                .hasNoCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
+                .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N05)
+                .hasStatusDescription(
+                        "error: data exception - input failed validation. Invalid input 'null' for field 'user_agent'.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22004)
+                .hasStatusDescription("error: data exception - null value not allowed");
     }
 }

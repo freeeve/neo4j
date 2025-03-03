@@ -136,13 +136,7 @@ public abstract class AbstractPointReaderTest {
         for (var coord : coords) {
             buf.writeFloat(coord);
         }
-
-        assertThatThrownBy(() -> this.getReader().read(null, buf, new StructHeader(this.getStructSize(), (short) 0x42)))
-                .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"crs\": crs code exceeds valid bounds")
-                .hasNoCause()
-                .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
-                        .isEqualTo("crs"));
+        assertFailsWithCrsOutOfBounds(buf);
     }
 
     @Test
@@ -153,13 +147,7 @@ public abstract class AbstractPointReaderTest {
         for (var coord : coords) {
             buf.writeFloat(coord);
         }
-
-        assertThatThrownBy(() -> this.getReader().read(null, buf, new StructHeader(this.getStructSize(), (short) 0x42)))
-                .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"crs\": crs code exceeds valid bounds")
-                .hasNoCause()
-                .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
-                        .isEqualTo("crs"));
+        assertFailsWithCrsOutOfBounds(buf);
     }
 
     @Test
@@ -170,13 +158,7 @@ public abstract class AbstractPointReaderTest {
         for (var coord : coords) {
             buf.writeFloat(coord);
         }
-
-        assertThatThrownBy(() -> this.getReader().read(null, buf, new StructHeader(this.getStructSize(), (short) 0x42)))
-                .isInstanceOf(IllegalStructArgumentException.class)
-                .hasMessage("Illegal value for field \"crs\": crs code exceeds valid bounds")
-                .hasNoCause()
-                .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
-                        .isEqualTo("crs"));
+        assertFailsWithCrsOutOfBounds(buf);
     }
 
     @Test
@@ -235,5 +217,25 @@ public abstract class AbstractPointReaderTest {
                 .hasCauseInstanceOf(InvalidSpatialArgumentException.class)
                 .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
                         .isEqualTo("coords"));
+    }
+
+    private void assertFailsWithCrsOutOfBounds(PackstreamBuf buf) {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> this.getReader().read(null, buf, new StructHeader(this.getStructSize(), (short) 0x42)))
+                .isInstanceOf(IllegalStructArgumentException.class)
+                .hasMessage("Illegal value for field \"crs\": crs code exceeds valid bounds")
+                .hasNoCause()
+                .satisfies(ex -> assertThat(((IllegalStructArgumentException) ex).getFieldName())
+                        .isEqualTo("crs"))
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
+                .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N29)
+                .hasStatusDescription(
+                        "error: data exception - unknown coordinate reference system. Unknown coordinate reference system (CRS).")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22003)
+                .hasStatusDescription(
+                        "error: data exception - numeric value out of range. The numeric value crs is outside the required range.");
     }
 }

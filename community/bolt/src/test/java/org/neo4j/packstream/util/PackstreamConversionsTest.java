@@ -27,6 +27,8 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.Values;
@@ -72,10 +74,19 @@ class PackstreamConversionsTest {
 
     @Test
     void asLongShouldRejectNullValues() {
-        Assertions.assertThatExceptionOfType(IllegalStructArgumentException.class)
-                .isThrownBy(() -> PackstreamConversions.asLong("someField", null))
-                .withMessage("Illegal value for field \"someField\": Expected value to be non-null")
-                .withNoCause();
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> PackstreamConversions.asLong("someField", null))
+                .isInstanceOf(IllegalStructArgumentException.class)
+                .hasMessage("Illegal value for field \"someField\": Expected value to be non-null")
+                .hasNoCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
+                .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N05)
+                .hasStatusDescription(
+                        "error: data exception - input failed validation. Invalid input 'null' for field 'someField'.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22004)
+                .hasStatusDescription("error: data exception - null value not allowed");
     }
 
     @TestFactory
@@ -131,10 +142,20 @@ class PackstreamConversionsTest {
 
     @Test
     void asLongValueShouldRejectNoneValues() {
-        Assertions.assertThatExceptionOfType(IllegalStructArgumentException.class)
-                .isThrownBy(() -> PackstreamConversions.asLongValue("someField", Values.NO_VALUE))
-                .withMessage("Illegal value for field \"someField\": Expected value to be non-null")
-                .withNoCause();
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> PackstreamConversions.asLongValue("someField", Values.NO_VALUE))
+                .isInstanceOf(IllegalStructArgumentException.class)
+                .hasMessage("Illegal value for field \"someField\": Expected value to be non-null")
+                .hasNoCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
+                .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N05)
+                .hasStatusDescription(
+                        "error: data exception - input failed validation. Invalid input 'null' for field 'someField'.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22004)
+                .hasStatusDescription("error: data exception - null value not allowed");
     }
 
     @TestFactory

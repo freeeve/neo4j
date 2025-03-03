@@ -192,10 +192,16 @@ public class BoltAgentIT {
         connection.send(wire.hello(x -> x.withScheme("none").withBadBoltAgent(Map.of("invalid", "value"))));
 
         BoltConnectionAssertions.assertThat(connection)
-                .receivesFailure(
+                .receivesFailureWithCause(
                         Status.Request.Invalid,
                         "Illegal value for field \"bolt_agent\": Expected map to contain key: 'product'.",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.");
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "22N55: Map requires key 'product' but was missing from field `bolt_agent`.",
+                                GqlStatusInfoCodes.STATUS_22N55.getGqlStatus(),
+                                "error: data exception - required key missing from map. Map requires key 'product' but was missing from field `bolt_agent`.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
     }
 }

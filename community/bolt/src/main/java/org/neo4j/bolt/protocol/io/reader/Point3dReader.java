@@ -60,7 +60,7 @@ public final class Point3dReader<CTX> implements StructReader<CTX, PointValue> {
         var z = buffer.readFloat();
 
         if (crsCode > Integer.MAX_VALUE || crsCode < Integer.MIN_VALUE) {
-            throw new IllegalStructArgumentException("crs", "crs code exceeds valid bounds");
+            throw IllegalStructArgumentException.crsOutOfBounds();
         }
 
         CoordinateReferenceSystem crs;

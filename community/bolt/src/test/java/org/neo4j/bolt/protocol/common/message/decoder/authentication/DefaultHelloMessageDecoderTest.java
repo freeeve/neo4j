@@ -28,6 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.neo4j.bolt.protocol.common.message.notifications.SelectiveNotificationsConfig;
 import org.neo4j.bolt.testing.mock.ConnectionMockFactory;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.error.reader.PackstreamReaderException;
 import org.neo4j.packstream.error.struct.IllegalStructArgumentException;
 import org.neo4j.packstream.io.PackstreamBuf;
@@ -166,8 +168,15 @@ public class DefaultHelloMessageDecoderTest extends AbstractHelloMessageDecoderT
         var connection =
                 ConnectionMockFactory.newFactory().withValueReader(reader).build();
 
-        assertThatExceptionOfType(IllegalStructArgumentException.class)
-                .isThrownBy(() -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
-                .withMessage("Illegal value for field \"bolt_agent\": Expected map to contain key: 'product'.");
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> this.getDecoder().read(connection, buf, new StructHeader(1, (short) 0x42)))
+                .isInstanceOf(IllegalStructArgumentException.class)
+                .hasMessage("Illegal value for field \"bolt_agent\": Expected map to contain key: 'product'.")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
+                .hasStatusDescription("error: connection exception - protocol error. General network protocol error.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N55)
+                .hasStatusDescription(
+                        "error: data exception - required key missing from map. Map requires key 'product' but was missing from field `bolt_agent`.");
     }
 }

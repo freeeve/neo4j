@@ -105,24 +105,46 @@ class PackstreamConditionsTest {
     @TestFactory
     Stream<DynamicTest> requireNonNullShouldRejectNullValues() {
         return Stream.of("foo", "bar", "baz")
-                .map(fieldName ->
-                        DynamicTest.dynamicTest(fieldName + " = null", () -> Assertions.assertThatExceptionOfType(
-                                        IllegalStructArgumentException.class)
-                                .isThrownBy(() -> PackstreamConditions.requireNonNull(fieldName, null))
-                                .withMessage(
+                .map(fieldName -> DynamicTest.dynamicTest(
+                        fieldName + " = null", () -> ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                                        () -> PackstreamConditions.requireNonNull(fieldName, null))
+                                .isInstanceOf(IllegalStructArgumentException.class)
+                                .hasMessage(
                                         "Illegal value for field \"" + fieldName + "\": Expected value to be non-null")
-                                .withNoCause()));
+                                .hasNoCause()
+                                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
+                                .hasStatusDescription(
+                                        "error: connection exception - protocol error. General network protocol error.")
+                                .gqlCause()
+                                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N05)
+                                .hasStatusDescription(
+                                        "error: data exception - input failed validation. Invalid input 'null' for field '"
+                                                + fieldName + "'.")
+                                .gqlCause()
+                                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22004)
+                                .hasStatusDescription("error: data exception - null value not allowed")));
     }
 
     @TestFactory
     Stream<DynamicTest> requireNonNullShouldRejectNoneValues() {
         return Stream.of("foo", "bar", "baz")
-                .map(fieldName ->
-                        DynamicTest.dynamicTest(fieldName + " = null", () -> Assertions.assertThatExceptionOfType(
-                                        IllegalStructArgumentException.class)
-                                .isThrownBy(() -> PackstreamConditions.requireNonNullValue(fieldName, Values.NO_VALUE))
-                                .withMessage(
+                .map(fieldName -> DynamicTest.dynamicTest(
+                        fieldName + " = null", () -> ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                                        () -> PackstreamConditions.requireNonNullValue(fieldName, Values.NO_VALUE))
+                                .isInstanceOf(IllegalStructArgumentException.class)
+                                .hasMessage(
                                         "Illegal value for field \"" + fieldName + "\": Expected value to be non-null")
-                                .withNoCause()));
+                                .hasNoCause()
+                                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N06)
+                                .hasStatusDescription(
+                                        "error: connection exception - protocol error. General network protocol error.")
+                                .gqlCause()
+                                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N05)
+                                .hasStatusDescription(
+                                        "error: data exception - input failed validation. Invalid input 'null' for field '"
+                                                + fieldName + "'.")
+                                .gqlCause()
+                                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22004)
+                                .hasStatusDescription("error: data exception - null value not allowed")));
     }
 }

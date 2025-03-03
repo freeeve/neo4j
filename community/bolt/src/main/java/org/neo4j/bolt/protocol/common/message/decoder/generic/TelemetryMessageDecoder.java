@@ -56,7 +56,7 @@ public class TelemetryMessageDecoder implements MessageDecoder<TelemetryMessage>
             var driverInterfaceTypeUsage = TelemetryMessage.DriverInterfaceType.fromLong(apiType.value());
             return new TelemetryMessage(driverInterfaceTypeUsage);
         } else {
-            throw new IllegalStructArgumentException(apiKey, "Expected Integer but nothing was sent with the message");
+            throw IllegalStructArgumentException.expectedIntegerButGotNull(apiKey);
         }
     }
 }

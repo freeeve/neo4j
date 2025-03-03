@@ -78,7 +78,8 @@ class RequestHandlerTest {
                 })
                 .attachTo(channel, new RequestHandler(NullLogProvider.getInstance()));
 
-        channel.pipeline().fireExceptionCaught(new IllegalStructArgumentException("foo", "Something went wrong! :("));
+        channel.pipeline()
+                .fireExceptionCaught(new IllegalStructArgumentException(null, "foo", "Something went wrong! :(", null));
 
         // invoked through mock
         verify(responseHandler).onFailure(any(Error.class));
