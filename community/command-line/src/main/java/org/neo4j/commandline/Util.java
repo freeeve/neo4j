@@ -25,6 +25,7 @@ import static org.neo4j.io.fs.FileUtils.getCanonicalFile;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Path;
+import org.apache.commons.io.output.CloseShieldOutputStream;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.logging.Level;
 import org.neo4j.logging.log4j.Log4jLogProvider;
@@ -44,6 +45,6 @@ public final class Util {
     }
 
     public static Log4jLogProvider configuredLogProvider(OutputStream out, boolean verbose) {
-        return new Log4jLogProvider(out, verbose ? Level.DEBUG : Level.INFO);
+        return new Log4jLogProvider(CloseShieldOutputStream.wrap(out), verbose ? Level.DEBUG : Level.INFO);
     }
 }

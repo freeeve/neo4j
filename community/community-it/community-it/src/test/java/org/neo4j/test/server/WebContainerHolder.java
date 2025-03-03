@@ -23,7 +23,7 @@ import org.neo4j.server.helpers.CommunityWebContainerBuilder;
 import org.neo4j.server.helpers.TestWebContainer;
 import org.neo4j.server.helpers.WebContainerHelper;
 
-final class WebContainerHolder extends Thread {
+final class WebContainerHolder {
     private static AssertionError allocation;
     private static TestWebContainer testWebContainer;
     private static CommunityWebContainerBuilder builder;
@@ -85,10 +85,5 @@ final class WebContainerHolder extends Thread {
         if (builder == null) {
             builder = CommunityWebContainerBuilder.builder();
         }
-    }
-
-    @Override
-    public void run() {
-        shutdown();
     }
 }

@@ -69,12 +69,12 @@ class ReadAheadChannelTest {
             storeChannel.force(false);
         }
 
-        ReadAheadChannel<StoreChannel> channel =
-                constructor.apply(fileSystem.read(bytesReadTestFile), DEFAULT_READ_AHEAD_SIZE);
-        assertEquals((byte) 1, channel.get());
+        try (var channel = constructor.apply(fileSystem.read(bytesReadTestFile), DEFAULT_READ_AHEAD_SIZE)) {
+            assertEquals((byte) 1, channel.get());
 
-        assertThrows(ReadPastEndException.class, channel::get);
-        assertThrows(ReadPastEndException.class, channel::get);
+            assertThrows(ReadPastEndException.class, channel::get);
+            assertThrows(ReadPastEndException.class, channel::get);
+        }
     }
 
     @ParameterizedTest
@@ -91,11 +91,11 @@ class ReadAheadChannelTest {
             storeChannel.force(false);
         }
 
-        ReadAheadChannel<StoreChannel> channel =
-                constructor.apply(fileSystem.read(shortReadTestFile), DEFAULT_READ_AHEAD_SIZE);
-        assertThrows(ReadPastEndException.class, channel::getShort);
-        assertEquals((byte) 1, channel.get());
-        assertThrows(ReadPastEndException.class, channel::get);
+        try (var channel = constructor.apply(fileSystem.read(shortReadTestFile), DEFAULT_READ_AHEAD_SIZE)) {
+            assertThrows(ReadPastEndException.class, channel::getShort);
+            assertEquals((byte) 1, channel.get());
+            assertThrows(ReadPastEndException.class, channel::get);
+        }
     }
 
     @ParameterizedTest
@@ -123,12 +123,13 @@ class ReadAheadChannelTest {
             storeChannel2.force(false);
         }
 
-        HookedReadAheadChannel channel = constructor.apply(fileSystem.read(file1), DEFAULT_READ_AHEAD_SIZE);
-        channel.nextChannelHook = fileSystem.read(file2);
+        try (var channel = constructor.apply(fileSystem.read(file1), DEFAULT_READ_AHEAD_SIZE)) {
+            channel.nextChannelHook = fileSystem.read(file2);
 
-        assertThrows(ReadPastEndException.class, channel::getLong);
-        assertEquals(0x0100_0001, channel.getInt());
-        assertThrows(ReadPastEndException.class, channel::get);
+            assertThrows(ReadPastEndException.class, channel::getLong);
+            assertEquals(0x0100_0001, channel.getInt());
+            assertThrows(ReadPastEndException.class, channel::get);
+        }
     }
 
     @ParameterizedTest
@@ -141,17 +142,17 @@ class ReadAheadChannelTest {
         int fileSize = readAheadSize * 8;
 
         createFile(fileSystem, file, fileSize);
-        ReadAheadChannel<StoreChannel> bufferedReader = constructor.apply(fileSystem.read(file), readAheadSize);
+        try (var bufferedReader = constructor.apply(fileSystem.read(file), readAheadSize)) {
+            // when
+            for (int i = 0; i < fileSize / Long.BYTES; i++) {
+                assertEquals(Long.BYTES * i, bufferedReader.position());
+                bufferedReader.getLong();
+            }
 
-        // when
-        for (int i = 0; i < fileSize / Long.BYTES; i++) {
-            assertEquals(Long.BYTES * i, bufferedReader.position());
-            bufferedReader.getLong();
+            assertEquals(fileSize, bufferedReader.position());
+            assertThrows(ReadPastEndException.class, bufferedReader::getLong);
+            assertEquals(fileSize, bufferedReader.position());
         }
-
-        assertEquals(fileSize, bufferedReader.position());
-        assertThrows(ReadPastEndException.class, bufferedReader::getLong);
-        assertEquals(fileSize, bufferedReader.position());
     }
 
     @ParameterizedTest
@@ -174,13 +175,13 @@ class ReadAheadChannelTest {
             storeChannel.force(false);
         }
 
-        ReadAheadChannel<StoreChannel> bufferedReader =
-                constructor.apply(fileSystem.read(file), DEFAULT_READ_AHEAD_SIZE);
+        try (var bufferedReader = constructor.apply(fileSystem.read(file), DEFAULT_READ_AHEAD_SIZE)) {
 
-        assertEquals(1, bufferedReader.get());
-        assertEquals(2, bufferedReader.get());
-        assertEquals(checksumValue, bufferedReader.endChecksumAndValidate());
-        assertEquals(6, bufferedReader.position());
+            assertEquals(1, bufferedReader.get());
+            assertEquals(2, bufferedReader.get());
+            assertEquals(checksumValue, bufferedReader.endChecksumAndValidate());
+            assertEquals(6, bufferedReader.position());
+        }
     }
 
     @ParameterizedTest
@@ -202,12 +203,12 @@ class ReadAheadChannelTest {
             storeChannel.force(false);
         }
 
-        ReadAheadChannel<StoreChannel> bufferedReader =
-                constructor.apply(fileSystem.read(file), DEFAULT_READ_AHEAD_SIZE);
+        try (var bufferedReader = constructor.apply(fileSystem.read(file), DEFAULT_READ_AHEAD_SIZE)) {
 
-        assertEquals(1, bufferedReader.get());
-        assertEquals(2, bufferedReader.get());
-        assertThrows(ChecksumMismatchException.class, bufferedReader::endChecksumAndValidate);
+            assertEquals(1, bufferedReader.get());
+            assertEquals(2, bufferedReader.get());
+            assertThrows(ChecksumMismatchException.class, bufferedReader::endChecksumAndValidate);
+        }
     }
 
     @ParameterizedTest
@@ -231,14 +232,15 @@ class ReadAheadChannelTest {
             storeChannel.force(false);
         }
 
-        ReadAheadChannel<StoreChannel> bufferedReader = constructor.apply(fileSystem.read(file), testSize / 2);
+        try (var bufferedReader = constructor.apply(fileSystem.read(file), testSize / 2)) {
 
-        byte[] in = new byte[testSize];
-        bufferedReader.get(in, testSize);
-        for (int i = 0; i < testSize; i++) {
-            assertEquals(i, in[i]);
+            byte[] in = new byte[testSize];
+            bufferedReader.get(in, testSize);
+            for (int i = 0; i < testSize; i++) {
+                assertEquals(i, in[i]);
+            }
+            assertEquals(checksumValue, bufferedReader.endChecksumAndValidate());
         }
-        assertEquals(checksumValue, bufferedReader.endChecksumAndValidate());
     }
 
     @ParameterizedTest
@@ -269,18 +271,17 @@ class ReadAheadChannelTest {
             storeChannel.force(false);
         }
 
-        ReadAheadChannel<StoreChannel> bufferedReader =
-                constructor.apply(fileSystem.read(file), DEFAULT_READ_AHEAD_SIZE);
-
-        assertEquals(b1, bufferedReader.get());
-        assertEquals(b2, bufferedReader.get());
-        byte[] readBytes = new byte[chunkSize];
-        ByteBuffer buffer = ByteBuffer.wrap(readBytes);
-        bufferedReader.read(buffer);
-        assertThat(readBytes).containsExactly(randomBytes);
-        assertThat(buffer.position()).isEqualTo(readBytes.length);
-        assertEquals(checksumValue, bufferedReader.endChecksumAndValidate());
-        assertEquals(totalSize, bufferedReader.position());
+        try (var bufferedReader = constructor.apply(fileSystem.read(file), DEFAULT_READ_AHEAD_SIZE)) {
+            assertEquals(b1, bufferedReader.get());
+            assertEquals(b2, bufferedReader.get());
+            byte[] readBytes = new byte[chunkSize];
+            ByteBuffer buffer = ByteBuffer.wrap(readBytes);
+            bufferedReader.read(buffer);
+            assertThat(readBytes).containsExactly(randomBytes);
+            assertThat(buffer.position()).isEqualTo(readBytes.length);
+            assertEquals(checksumValue, bufferedReader.endChecksumAndValidate());
+            assertEquals(totalSize, bufferedReader.position());
+        }
     }
 
     @ParameterizedTest
@@ -311,18 +312,17 @@ class ReadAheadChannelTest {
             storeChannel.force(false);
         }
 
-        ReadAheadChannel<StoreChannel> bufferedReader =
-                constructor.apply(fileSystem.read(file), DEFAULT_READ_AHEAD_SIZE);
-
-        assertEquals(b1, bufferedReader.get());
-        assertEquals(b2, bufferedReader.get());
-        byte[] readBytes = new byte[chunkSize];
-        ByteBuffer buffer = ByteBuffer.wrap(readBytes);
-        bufferedReader.read(buffer);
-        assertThat(readBytes).containsExactly(randomBytes);
-        assertThat(buffer.position()).isEqualTo(readBytes.length);
-        assertEquals(checksumValue, bufferedReader.endChecksumAndValidate());
-        assertEquals(totalSize, bufferedReader.position());
+        try (var bufferedReader = constructor.apply(fileSystem.read(file), DEFAULT_READ_AHEAD_SIZE)) {
+            assertEquals(b1, bufferedReader.get());
+            assertEquals(b2, bufferedReader.get());
+            byte[] readBytes = new byte[chunkSize];
+            ByteBuffer buffer = ByteBuffer.wrap(readBytes);
+            bufferedReader.read(buffer);
+            assertThat(readBytes).containsExactly(randomBytes);
+            assertThat(buffer.position()).isEqualTo(readBytes.length);
+            assertEquals(checksumValue, bufferedReader.endChecksumAndValidate());
+            assertEquals(totalSize, bufferedReader.position());
+        }
     }
 
     @ParameterizedTest
@@ -365,17 +365,18 @@ class ReadAheadChannelTest {
             storeChannel.force(false);
         }
 
-        HookedReadAheadChannel bufferedReader = constructor.apply(fileSystem.read(file1), DEFAULT_READ_AHEAD_SIZE);
-        bufferedReader.nextChannelHook = fileSystem.read(file2);
+        try (var bufferedReader = constructor.apply(fileSystem.read(file1), DEFAULT_READ_AHEAD_SIZE)) {
+            bufferedReader.nextChannelHook = fileSystem.read(file2);
 
-        assertEquals(b1, bufferedReader.get());
-        assertEquals(b2, bufferedReader.get());
-        byte[] readBytes = new byte[chunkSize];
-        ByteBuffer buffer = ByteBuffer.wrap(readBytes);
-        bufferedReader.read(buffer);
-        assertThat(readBytes).containsExactly(randomBytes);
-        assertThat(buffer.position()).isEqualTo(readBytes.length);
-        assertEquals(checksumValue, bufferedReader.endChecksumAndValidate());
+            assertEquals(b1, bufferedReader.get());
+            assertEquals(b2, bufferedReader.get());
+            byte[] readBytes = new byte[chunkSize];
+            ByteBuffer buffer = ByteBuffer.wrap(readBytes);
+            bufferedReader.read(buffer);
+            assertThat(readBytes).containsExactly(randomBytes);
+            assertThat(buffer.position()).isEqualTo(readBytes.length);
+            assertEquals(checksumValue, bufferedReader.endChecksumAndValidate());
+        }
     }
 
     private static void createFile(EphemeralFileSystemAbstraction fsa, Path name, int bufferSize) throws IOException {

@@ -601,11 +601,13 @@ public class EncodingIdMapper implements IdMapper {
 
         collisionTrackerCache = trackerFactory.create(cacheFactory, pessimisticNumberOfCollisions);
 
-        // Detect input id duplicates within the same group, with source information, line number and the works
-        detectDuplicateInputIds(radix, collector, progress);
+        try {
+            // Detect input id duplicates within the same group, with source information, line number and the works
+            detectDuplicateInputIds(radix, collector, progress);
+        } finally {
+            collisionTrackerCache.close();
+        }
 
-        // We won't be needing these anymore
-        collisionTrackerCache.close();
         collisionTrackerCache = null;
     }
 

@@ -95,6 +95,9 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
             monitor.transactionalLogRecordReadFailure(
                     first ? EMPTY_LONG_ARRAY : new long[] {entryStartPositions.getLast()}, first ? 0 : 1, logVersion);
             if (failOnCorruptedLogFiles) {
+                // we fail to sketch out offsets and no one will close this cursor since construction was never
+                // completed
+                currentChannel.close();
                 throw e;
             }
         }

@@ -1203,6 +1203,9 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
             withCheckpointAndWriterLock(() -> {
                 try {
                     if (closed) {
+                        if (structureWriteLog != null) {
+                            structureWriteLog.close();
+                        }
                         return;
                     }
                     try (var flushEvent = pageCacheTracer.beginFileFlush()) {

@@ -76,6 +76,7 @@ public class SharedWebContainerTestBase {
         try {
             suppressAll().call((Callable<Void>) () -> {
                 release(testWebContainer);
+                WebContainerHolder.ensureNotRunning();
                 return null;
             });
         } finally {

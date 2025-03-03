@@ -356,7 +356,9 @@ class EnvelopedLogFilesTest {
         byte[] data = {1, 2, 3};
         writeData(envelopedLogFiles.currentWriteChannel(), data);
         envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
-        readData(data, envelopedLogFiles.openReadChannel(), 0);
+        try (EnvelopeReadChannel channel = envelopedLogFiles.openReadChannel()) {
+            readData(data, channel, 0);
+        }
     }
 
     @Test

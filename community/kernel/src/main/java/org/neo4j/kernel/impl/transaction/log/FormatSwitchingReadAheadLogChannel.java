@@ -45,6 +45,7 @@ public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
                 if (!next.getLogFormatVersion().usesSegments()) {
                     return next;
                 }
+                delegate.close();
                 delegate = getEnvelopeReadChannel(next, bridge, memoryTracker, raw);
                 throw FormatSwitchingReadAheadLogChannelException.INSTANCE;
             }

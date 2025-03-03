@@ -85,14 +85,23 @@ public final class DefaultReverseCommandBatchCursors implements CommandBatchCurs
 
     private CommandBatchCursor createCursor(LogPosition position) throws IOException {
         ReadableLogChannel channel = logFile.getReader(position, NO_MORE_CHANNELS);
-        return switch (channel) {
-            case ReadAheadLogChannel aheadChannel -> new ReversedSingleFileCommandBatchCursor(
-                    aheadChannel, reader, failOnCorruptedLogFiles, monitor);
-            case EnvelopeReadChannel readChannel -> new ReversedEnvelopedCommandBatchCursor(
-                    readChannel, reader, failOnCorruptedLogFiles, monitor, (EnvelopeReadChannel)
-                            logFile.getReader(position));
-            default -> eagerlyReverse(new CommittedCommandBatchCursor(channel, reader));
-        };
+        try {
+            return switch (channel) {
+                case ReadAheadLogChannel aheadChannel -> new ReversedSingleFileCommandBatchCursor(
+                        aheadChannel, reader, failOnCorruptedLogFiles, monitor);
+                case EnvelopeReadChannel readChannel -> new ReversedEnvelopedCommandBatchCursor(
+                        readChannel, reader, failOnCorruptedLogFiles, monitor, (EnvelopeReadChannel)
+                                logFile.getReader(position));
+                default -> eagerlyReverse(new CommittedCommandBatchCursor(channel, reader));
+            };
+        } catch (Exception e) {
+            // sketchOut may fail as part of construction of reversed channels, and if that is happening channel will
+            // never be closed otherwise
+            if (channel != null) {
+                channel.close();
+            }
+            throw e;
+        }
     }
 
     @Override

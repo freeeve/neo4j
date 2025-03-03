@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.javacompat.ResultSubscriber
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.graphdb.Result.ResultRow
 import org.neo4j.kernel.GraphDatabaseQueryService
 import org.neo4j.kernel.api.query.ExecutingQuery
@@ -211,12 +212,14 @@ class QueryExecutionMonitorTest extends CypherFunSuite with GraphIcing with Grap
   }
 
   var db: GraphDatabaseQueryService = _
+  var databaseManagementService: DatabaseManagementService = _
   var monitor: QueryExecutionMonitor = _
   var engine: ExecutionEngine = _
 
   override protected def beforeEach(): Unit = {
+    databaseManagementService = new TestDatabaseManagementServiceBuilder().impermanent().build()
     db = new GraphDatabaseCypherService(
-      new TestDatabaseManagementServiceBuilder().impermanent().build().database(DEFAULT_DATABASE_NAME)
+      databaseManagementService.database(DEFAULT_DATABASE_NAME)
     )
     monitor = mock[QueryExecutionMonitor]
     val monitors = db.getDependencyResolver.resolveDependency(classOf[Monitors])
@@ -226,6 +229,9 @@ class QueryExecutionMonitorTest extends CypherFunSuite with GraphIcing with Grap
 
   override protected def afterEach(): Unit = {
     super.afterEach()
+    if (databaseManagementService != null) {
+      databaseManagementService.shutdown()
+    }
     if (managementService != null) {
       managementService.shutdown()
     }

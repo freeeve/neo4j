@@ -101,7 +101,13 @@ public class CommunityWebContainerBuilder {
                 .fromFile(configFile)
                 .build();
         config.setLogger(log);
-        return new TestWebContainer(build(config), logProvider);
+        var managementService = build(config);
+        try {
+            return new TestWebContainer(managementService, logProvider);
+        } catch (RuntimeException e) {
+            managementService.shutdown();
+            throw e;
+        }
     }
 
     private DatabaseManagementService build(Config config) {

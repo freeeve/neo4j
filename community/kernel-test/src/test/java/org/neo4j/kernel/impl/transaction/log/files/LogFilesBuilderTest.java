@@ -277,20 +277,24 @@ class LogFilesBuilderTest {
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
                 .withStoreId(new StoreId(1, 2, "engine-1", "format-1", 3, 4))
                 .build();
+        try {
+            logFiles.init();
+            logFiles.start();
 
-        logFiles.init();
-        logFiles.start();
+            final var logFile = logFiles.getLogFile();
+            logFile.rotate();
 
-        final var logFile = logFiles.getLogFile();
-        logFile.rotate();
+            final var lowestLogVersion = logFile.getLowestLogVersion();
+            final var logPosition = new LogPosition(
+                    lowestLogVersion, fileSystem.getFileSize(logFile.getLogFileForVersion(lowestLogVersion)));
+            logFile.delete(lowestLogVersion);
 
-        final var lowestLogVersion = logFile.getLowestLogVersion();
-        final var logPosition = new LogPosition(
-                lowestLogVersion, fileSystem.getFileSize(logFile.getLogFileForVersion(lowestLogVersion)));
-        logFile.delete(lowestLogVersion);
-
-        verify(tracker).logDeleted(eq(lowestLogVersion));
-        verify(tracker).logCompleted(eq(logPosition));
+            verify(tracker).logDeleted(eq(lowestLogVersion));
+            verify(tracker).logCompleted(eq(logPosition));
+        } finally {
+            logFiles.stop();
+            logFiles.shutdown();
+        }
     }
 
     @Test

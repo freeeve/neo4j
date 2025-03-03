@@ -90,7 +90,7 @@ class FileImporterTest {
         }
 
         assertTrue(Files.exists(reportLocation));
-        assertThat(Files.readString(logFilePath).contains("[foodb] Import starting"));
+        assertThat(Files.readString(logFilePath)).contains("[foodb] Import starting");
     }
 
     @Test

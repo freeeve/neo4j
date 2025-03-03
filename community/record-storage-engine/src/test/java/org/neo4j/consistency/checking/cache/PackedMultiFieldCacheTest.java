@@ -31,67 +31,74 @@ class PackedMultiFieldCacheTest {
     @Test
     void shouldPutValuesIntoSlots() {
         // GIVEN
-        PackedMultiFieldCache cache = new PackedMultiFieldCache(defaultByteArray(20, INSTANCE), 8, 16, 24, 32, 1);
-        int index = 10;
-        long[] values = new long[] {3, 100, 12345, 67890, 0};
+        try (var byteArray = defaultByteArray(20, INSTANCE)) {
+            PackedMultiFieldCache cache = new PackedMultiFieldCache(byteArray, 8, 16, 24, 32, 1);
+            int index = 10;
+            long[] values = new long[] {3, 100, 12345, 67890, 0};
 
-        // WHEN
-        cache.put(index, values);
+            // WHEN
+            cache.put(index, values);
 
-        // THEN
-        for (int i = 0; i < values.length; i++) {
-            assertEquals(values[i], cache.get(index, i));
+            // THEN
+            for (int i = 0; i < values.length; i++) {
+                assertEquals(values[i], cache.get(index, i));
+            }
         }
     }
 
     @Test
     void shouldHaveCorrectDefaultValues() {
         // GIVEN
-        PackedMultiFieldCache cache = new PackedMultiFieldCache(defaultByteArray(10, INSTANCE), ID_SLOT_SIZE, 5, 1);
-        int index = 0;
+        try (var byteArray = defaultByteArray(10, INSTANCE)) {
+            PackedMultiFieldCache cache = new PackedMultiFieldCache(byteArray, ID_SLOT_SIZE, 5, 1);
+            int index = 0;
 
-        // WHEN
-        cache.clear(index);
+            // WHEN
+            cache.clear(index);
 
-        // THEN
-        assertEquals(-1, cache.get(index, 0));
-        assertEquals(0, cache.get(index, 1));
-        assertEquals(0, cache.get(index, 2));
+            // THEN
+            assertEquals(-1, cache.get(index, 0));
+            assertEquals(0, cache.get(index, 1));
+            assertEquals(0, cache.get(index, 2));
+        }
     }
 
     @Test
     void shouldBeAbleToChangeSlotSize() {
         // GIVEN
-        PackedMultiFieldCache cache = new PackedMultiFieldCache(defaultByteArray(20, INSTANCE), 5, 1);
-        int index = 10;
-        assertThrows(IllegalArgumentException.class, () -> cache.put(index, 2, 0));
+        try (var byteArray = defaultByteArray(20, INSTANCE)) {
+            PackedMultiFieldCache cache = new PackedMultiFieldCache(byteArray, 5, 1);
+            int index = 10;
+            assertThrows(IllegalArgumentException.class, () -> cache.put(index, 2, 0));
 
-        // WHEN
-        cache.setSlotSizes(8, 8, 10);
+            // WHEN
+            cache.setSlotSizes(8, 8, 10);
 
-        // THEN
-        cache.put(index, 2, 10);
-        assertEquals(10, cache.get(index, 2));
+            // THEN
+            cache.put(index, 2, 10);
+            assertEquals(10, cache.get(index, 2));
+        }
     }
 
     @Test
     void shouldHandleTwoIdsAndFourBooleans() {
         // given
-        PackedMultiFieldCache cache =
-                new PackedMultiFieldCache(defaultByteArray(10, INSTANCE), ID_SLOT_SIZE, ID_SLOT_SIZE, 1, 1, 1, 1);
-        int index = 3;
+        try (var byteArray = defaultByteArray(10, INSTANCE)) {
+            PackedMultiFieldCache cache = new PackedMultiFieldCache(byteArray, ID_SLOT_SIZE, ID_SLOT_SIZE, 1, 1, 1, 1);
+            int index = 3;
 
-        // when
-        long v1 = (1L << ID_SLOT_SIZE) - 10;
-        long v2 = (1L << ID_SLOT_SIZE) - 100;
-        cache.put(index, v1, v2, 0, 1, 0, 1);
+            // when
+            long v1 = (1L << ID_SLOT_SIZE) - 10;
+            long v2 = (1L << ID_SLOT_SIZE) - 100;
+            cache.put(index, v1, v2, 0, 1, 0, 1);
 
-        // then
-        assertEquals(v1, cache.get(index, 0));
-        assertEquals(v2, cache.get(index, 1));
-        assertEquals(0, cache.get(index, 2));
-        assertEquals(-1, cache.get(index, 3));
-        assertEquals(0, cache.get(index, 4));
-        assertEquals(-1, cache.get(index, 5));
+            // then
+            assertEquals(v1, cache.get(index, 0));
+            assertEquals(v2, cache.get(index, 1));
+            assertEquals(0, cache.get(index, 2));
+            assertEquals(-1, cache.get(index, 3));
+            assertEquals(0, cache.get(index, 4));
+            assertEquals(-1, cache.get(index, 5));
+        }
     }
 }

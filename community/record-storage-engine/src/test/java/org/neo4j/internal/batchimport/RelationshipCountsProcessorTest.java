@@ -90,13 +90,19 @@ class RelationshipCountsProcessorTest {
         when(nodeLabelCache.get(eq(client), eq(3L))).thenReturn(new int[] {1, 2});
         when(nodeLabelCache.get(eq(client), eq(4L))).thenReturn(new int[] {});
 
-        RelationshipCountsProcessor countsProcessor = new RelationshipCountsProcessor(
-                nodeLabelCache, labels, relationTypes, countsUpdater, NumberArrayFactories.AUTO_WITHOUT_SWAP, INSTANCE);
+        try (RelationshipCountsProcessor countsProcessor = new RelationshipCountsProcessor(
+                nodeLabelCache,
+                labels,
+                relationTypes,
+                countsUpdater,
+                NumberArrayFactories.AUTO_WITHOUT_SWAP,
+                INSTANCE)) {
 
-        countsProcessor.process(record(1, 0, 3), StoreCursors.NULL, EmptyMemoryTracker.INSTANCE);
-        countsProcessor.process(record(2, 1, 4), StoreCursors.NULL, EmptyMemoryTracker.INSTANCE);
+            countsProcessor.process(record(1, 0, 3), StoreCursors.NULL, EmptyMemoryTracker.INSTANCE);
+            countsProcessor.process(record(2, 1, 4), StoreCursors.NULL, EmptyMemoryTracker.INSTANCE);
 
-        countsProcessor.done();
+            countsProcessor.done();
+        }
 
         // wildcard counts
         verify(countsUpdater).incrementRelationshipCount(ANY, ANY, ANY, 2L);

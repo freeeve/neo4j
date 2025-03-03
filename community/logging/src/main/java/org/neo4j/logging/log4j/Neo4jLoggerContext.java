@@ -67,10 +67,6 @@ public class Neo4jLoggerContext implements Closeable {
         return ctx;
     }
 
-    boolean haveExternalResources() {
-        return additionalClosable != null;
-    }
-
     @Override
     public void close() {
         LogManager.shutdown(ctx);

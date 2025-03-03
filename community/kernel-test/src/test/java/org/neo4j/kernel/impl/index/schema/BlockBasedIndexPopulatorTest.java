@@ -398,57 +398,59 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
     void shouldBuildNonUniqueSampleAsPartOfScanCompleted() throws IndexEntryConflictException, IOException {
         // given
         ThreadSafePeakMemoryTracker memoryTracker = new ThreadSafePeakMemoryTracker();
-        ByteBufferFactory bufferFactory = new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, 100);
-        BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(NO_MONITOR, bufferFactory, memoryTracker);
-        Collection<IndexEntryUpdate> populationUpdates = batchOfUpdates();
-        populator.add(populationUpdates, NULL_CONTEXT);
+        try (ByteBufferFactory bufferFactory = new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, 100)) {
+            BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(NO_MONITOR, bufferFactory, memoryTracker);
+            Collection<IndexEntryUpdate> populationUpdates = batchOfUpdates();
+            populator.add(populationUpdates, NULL_CONTEXT);
 
-        // when
-        populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);
-        // Also a couple of updates afterwards
-        int numberOfUpdatesAfterCompleted = 4;
-        try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
-            for (int i = 0; i < numberOfUpdatesAfterCompleted; i++) {
-                updater.process(IndexEntryUpdate.add(10_000 + i, INDEX_DESCRIPTOR, supportedValue(i)));
+            // when
+            populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);
+            // Also a couple of updates afterwards
+            int numberOfUpdatesAfterCompleted = 4;
+            try (IndexUpdater updater = populator.newPopulatingUpdater(NULL_CONTEXT)) {
+                for (int i = 0; i < numberOfUpdatesAfterCompleted; i++) {
+                    updater.process(IndexEntryUpdate.add(10_000 + i, INDEX_DESCRIPTOR, supportedValue(i)));
+                }
             }
-        }
-        populator.close(true, NULL_CONTEXT);
+            populator.close(true, NULL_CONTEXT);
 
-        // then
-        IndexSample sample = populator.sample(NULL_CONTEXT);
-        assertEquals(populationUpdates.size(), sample.indexSize());
-        assertEquals(populationUpdates.size(), sample.sampleSize());
-        assertEquals(populationUpdates.size(), sample.uniqueValues());
-        assertEquals(numberOfUpdatesAfterCompleted, sample.updates());
+            // then
+            IndexSample sample = populator.sample(NULL_CONTEXT);
+            assertEquals(populationUpdates.size(), sample.indexSize());
+            assertEquals(populationUpdates.size(), sample.sampleSize());
+            assertEquals(populationUpdates.size(), sample.uniqueValues());
+            assertEquals(numberOfUpdatesAfterCompleted, sample.updates());
+        }
     }
 
     @Test
     void shouldFlushTreeOnScanCompleted() throws IndexEntryConflictException, IOException {
         // given
         ThreadSafePeakMemoryTracker memoryTracker = new ThreadSafePeakMemoryTracker();
-        ByteBufferFactory bufferFactory = new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, 100);
-        AtomicInteger checkpoints = new AtomicInteger();
-        GBPTree.Monitor treeMonitor = new GBPTree.Monitor.Adaptor() {
-            @Override
-            public void checkpointCompleted() {
-                checkpoints.incrementAndGet();
-            }
-        };
-        Monitors monitors = new Monitors(databaseIndexContext.monitors, NullLogProvider.getInstance());
-        monitors.addMonitorListener(treeMonitor);
-        databaseIndexContext = DatabaseIndexContext.builder(databaseIndexContext)
-                .withMonitors(monitors)
-                .build();
-        BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(NO_MONITOR, bufferFactory, memoryTracker);
-        try {
-            // when
-            int numberOfCheckPointsBeforeScanCompleted = checkpoints.get();
-            populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);
+        try (ByteBufferFactory bufferFactory = new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, 100)) {
+            AtomicInteger checkpoints = new AtomicInteger();
+            GBPTree.Monitor treeMonitor = new GBPTree.Monitor.Adaptor() {
+                @Override
+                public void checkpointCompleted() {
+                    checkpoints.incrementAndGet();
+                }
+            };
+            Monitors monitors = new Monitors(databaseIndexContext.monitors, NullLogProvider.getInstance());
+            monitors.addMonitorListener(treeMonitor);
+            databaseIndexContext = DatabaseIndexContext.builder(databaseIndexContext)
+                    .withMonitors(monitors)
+                    .build();
+            BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(NO_MONITOR, bufferFactory, memoryTracker);
+            try {
+                // when
+                int numberOfCheckPointsBeforeScanCompleted = checkpoints.get();
+                populator.scanCompleted(nullInstance, populationWorkScheduler, NULL_CONTEXT);
 
-            // then
-            assertEquals(numberOfCheckPointsBeforeScanCompleted + 1, checkpoints.get());
-        } finally {
-            populator.close(true, NULL_CONTEXT);
+                // then
+                assertEquals(numberOfCheckPointsBeforeScanCompleted + 1, checkpoints.get());
+            } finally {
+                populator.close(true, NULL_CONTEXT);
+            }
         }
     }
 

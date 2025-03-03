@@ -19,12 +19,19 @@
  */
 package org.neo4j.io.memory;
 
+import static org.neo4j.io.memory.BufferLeakTracker.DISABLED_TRACKER;
+import static org.neo4j.io.memory.BufferLeakTracker.ENABLED_TRACKER;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import org.neo4j.internal.unsafe.UnsafeUtil;
 import org.neo4j.memory.MemoryTracker;
 
 public final class ByteBuffers {
+
+    public static final BufferLeakTracker BUFFER_LEAK_TRACKER =
+            Boolean.getBoolean("org.neo4j.ByteBuffers.TRACK_BUFFERS") ? ENABLED_TRACKER : DISABLED_TRACKER;
+
     private ByteBuffers() {}
 
     /**
@@ -55,9 +62,11 @@ public final class ByteBuffers {
      */
     public static ByteBuffer allocateDirect(int capacity, ByteOrder order, MemoryTracker memoryTracker) {
         if (UnsafeUtil.unsafeByteBufferAccessAvailable()) {
-            return UnsafeUtil.allocateByteBuffer(capacity, memoryTracker).order(order);
+            return BUFFER_LEAK_TRACKER.track(
+                    UnsafeUtil.allocateByteBuffer(capacity, memoryTracker).order(order));
         } else {
-            return allocateDirectFallback(capacity, memoryTracker).order(order);
+            return BUFFER_LEAK_TRACKER.track(
+                    allocateDirectFallback(capacity, memoryTracker).order(order));
         }
     }
 
@@ -66,6 +75,7 @@ public final class ByteBuffers {
      * @param byteBuffer byte buffer to release
      */
     public static void releaseBuffer(ByteBuffer byteBuffer, MemoryTracker memoryTracker) {
+        BUFFER_LEAK_TRACKER.release(byteBuffer);
         if (UnsafeUtil.unsafeByteBufferAccessAvailable()) {
             UnsafeUtil.releaseBuffer(byteBuffer, memoryTracker);
         } else {

@@ -101,13 +101,14 @@ public final class LogTestUtils {
             assert logHeader != null : "Looks like we tried to read a log header of an empty pre-allocated file.";
             var inChannel = new PhysicalLogVersionedStoreChannel(
                     in, logHeader, file, ChannelNativeAccessor.EMPTY_ACCESSOR, DatabaseTracer.NULL);
-            ReadableLogChannel inBuffer = ReadAheadUtils.newChannel(inChannel, logHeader, INSTANCE);
-            LogEntryReader entryReader =
-                    new VersionAwareLogEntryReader(commandReaderFactory, LatestVersions.BINARY_VERSIONS);
+            try (ReadableLogChannel inBuffer = ReadAheadUtils.newChannel(inChannel, logHeader, INSTANCE)) {
+                LogEntryReader entryReader =
+                        new VersionAwareLogEntryReader(commandReaderFactory, LatestVersions.BINARY_VERSIONS);
 
-            LogEntry entry;
-            while ((entry = entryReader.readLogEntry(inBuffer)) != null) {
-                filter.test(entry);
+                LogEntry entry;
+                while ((entry = entryReader.readLogEntry(inBuffer)) != null) {
+                    filter.test(entry);
+                }
             }
         }
     }

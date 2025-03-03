@@ -55,7 +55,11 @@ public class StoreMigrationTestUtils {
         var err = new Output();
 
         var ctx = new ExecutionContext(
-                homeDir, configDir, out.printStream, err.printStream, new DefaultFileSystemAbstraction());
+                homeDir,
+                configDir,
+                new UncloaseablePrintStream(out.printStream),
+                new UncloaseablePrintStream(err.printStream),
+                new DefaultFileSystemAbstraction());
 
         var command = CommandLine.populateCommand(commandFactory.apply(ctx), args);
 
@@ -99,4 +103,13 @@ public class StoreMigrationTestUtils {
     }
 
     public record Result(int exitCode, String out, String err) {}
+
+    private static class UncloaseablePrintStream extends PrintStream {
+        public UncloaseablePrintStream(PrintStream printStream) {
+            super(printStream);
+        }
+
+        @Override
+        public void close() {}
+    }
 }

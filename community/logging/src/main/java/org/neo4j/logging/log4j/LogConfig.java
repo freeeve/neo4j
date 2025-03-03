@@ -313,7 +313,7 @@ public final class LogConfig {
                 }
             }
 
-            return new Neo4jLoggerContext(context, null, configSourceInfo);
+            return new Neo4jLoggerContext(context, outputStream, configSourceInfo);
         }
 
         private ConfigurationSource getConfigurationSource() throws IOException {

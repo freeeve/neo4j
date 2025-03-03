@@ -226,13 +226,9 @@ class ReversedMultiFileCommandBatchCursorTest {
     }
 
     private CommandBatchCursor txCursor(LogPosition position, boolean presketch) throws IOException {
-        ReadableLogChannel fileReader =
-                logFile.getReader(logFiles.getLogFile().extractHeader(0).getStartPosition());
-        try {
+        try (ReadableLogChannel fileReader =
+                logFile.getReader(logFiles.getLogFile().extractHeader(0).getStartPosition())) {
             return fromLogFile(logFile, position, logEntryReader(), false, monitor, presketch);
-        } catch (Exception e) {
-            fileReader.close();
-            throw e;
         }
     }
 

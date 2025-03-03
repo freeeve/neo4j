@@ -1117,13 +1117,16 @@ class TransactionLogServiceIT {
     }
 
     private long getTxStartOffset(long txId) throws IOException {
-        return transactionStore.getCommandBatches(txId).position().getByteOffset();
+        try (var commandBatches = transactionStore.getCommandBatches(txId)) {
+            return commandBatches.position().getByteOffset();
+        }
     }
 
     private long getTxEndOffset(long txId) throws IOException {
-        var commandBatches = transactionStore.getCommandBatches(txId);
-        commandBatches.next();
-        return commandBatches.position().getByteOffset();
+        try (var commandBatches = transactionStore.getCommandBatches(txId)) {
+            commandBatches.next();
+            return commandBatches.position().getByteOffset();
+        }
     }
 
     private void verifyReportedPositions(int txId, long expectedOffset) throws IOException {

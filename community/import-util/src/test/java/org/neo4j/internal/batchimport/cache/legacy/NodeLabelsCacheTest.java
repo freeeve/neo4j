@@ -41,33 +41,35 @@ class NodeLabelsCacheTest {
     @Test
     void shouldCacheSmallSetOfLabelsPerNode() {
         // GIVEN
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 5, 4, INSTANCE);
-        NodeLabelsCache.Client client = cache.newClient();
-        long nodeId = 0;
+        try (NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 5, 4, INSTANCE)) {
+            NodeLabelsCache.Client client = cache.newClient();
+            long nodeId = 0;
 
-        // WHEN
-        cache.put(nodeId, new int[] {1, 2, 3});
+            // WHEN
+            cache.put(nodeId, new int[] {1, 2, 3});
 
-        // THEN
-        int[] readLabels = cache.get(client, nodeId);
-        assertArrayEquals(new int[] {1, 2, 3}, shrunk(readLabels));
+            // THEN
+            int[] readLabels = cache.get(client, nodeId);
+            assertArrayEquals(new int[] {1, 2, 3}, shrunk(readLabels));
+        }
     }
 
     @Test
     void shouldHandleLargeAmountOfLabelsPerNode() {
         // GIVEN
         int highLabelId = 1000;
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 10, highLabelId, INSTANCE);
-        NodeLabelsCache.Client client = cache.newClient();
-        long nodeId = 0;
+        try (NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 10, highLabelId, INSTANCE)) {
+            NodeLabelsCache.Client client = cache.newClient();
+            long nodeId = 0;
 
-        // WHEN
-        int[] labels = randomLabels(200, 1000);
-        cache.put(nodeId, labels);
+            // WHEN
+            int[] labels = randomLabels(200, 1000);
+            cache.put(nodeId, labels);
 
-        // THEN
-        int[] readLabels = cache.get(client, nodeId);
-        assertArrayEquals(labels, readLabels);
+            // THEN
+            int[] readLabels = cache.get(client, nodeId);
+            assertArrayEquals(labels, readLabels);
+        }
     }
 
     @Test
@@ -75,51 +77,54 @@ class NodeLabelsCacheTest {
         // GIVEN a really weird scenario where we have 5000 different labels
         int highLabelId = 1_000;
         int numberOfNodes = 100_000;
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, numberOfNodes, highLabelId, INSTANCE);
-        NodeLabelsCache.Client client = cache.newClient();
-        int[][] expectedLabels = new int[numberOfNodes][];
-        for (int i = 0; i < numberOfNodes; i++) {
-            int[] labels = randomLabels(random.nextInt(30) + 1, highLabelId);
-            expectedLabels[i] = labels;
-            cache.put(i, labels);
-        }
+        try (NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, numberOfNodes, highLabelId, INSTANCE)) {
+            NodeLabelsCache.Client client = cache.newClient();
+            int[][] expectedLabels = new int[numberOfNodes][];
+            for (int i = 0; i < numberOfNodes; i++) {
+                int[] labels = randomLabels(random.nextInt(30) + 1, highLabelId);
+                expectedLabels[i] = labels;
+                cache.put(i, labels);
+            }
 
-        // THEN
-        for (int i = 0; i < numberOfNodes; i++) {
-            int[] labels = cache.get(client, i);
-            assertArrayEquals(expectedLabels[i], shrunk(labels), "For node " + i);
+            // THEN
+            for (int i = 0; i < numberOfNodes; i++) {
+                int[] labels = cache.get(client, i);
+                assertArrayEquals(expectedLabels[i], shrunk(labels), "For node " + i);
+            }
         }
     }
 
     @Test
     void shouldEndTargetArrayWithMinusOne() {
         // GIVEN
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 20, 10, INSTANCE);
-        NodeLabelsCache.Client client = cache.newClient();
-        cache.put(10, new int[] {5, 6, 7, 8});
+        try (NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 20, 10, INSTANCE)) {
+            NodeLabelsCache.Client client = cache.newClient();
+            cache.put(10, new int[] {5, 6, 7, 8});
 
-        // WHEN
-        int[] target = cache.get(client, 10);
-        assertEquals(5, target[0]);
-        assertEquals(6, target[1]);
-        assertEquals(7, target[2]);
-        assertEquals(8, target[3]);
+            // WHEN
+            int[] target = cache.get(client, 10);
+            assertEquals(5, target[0]);
+            assertEquals(6, target[1]);
+            assertEquals(7, target[2]);
+            assertEquals(8, target[3]);
 
-        // THEN
-        assertEquals(-1, target[4]);
+            // THEN
+            assertEquals(-1, target[4]);
+        }
     }
 
     @Test
     void shouldReturnEmptyArrayForNodeWithNoLabelsAndNoLabelsWhatsoever() {
         // GIVEN
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 10, 0, INSTANCE);
-        NodeLabelsCache.Client client = cache.newClient();
+        try (NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, 10, 0, INSTANCE)) {
+            NodeLabelsCache.Client client = cache.newClient();
 
-        // WHEN
-        int[] target = cache.get(client, 0);
+            // WHEN
+            int[] target = cache.get(client, 0);
 
-        // THEN
-        assertEquals(-1, target[0]);
+            // THEN
+            assertEquals(-1, target[0]);
+        }
     }
 
     @Test
@@ -128,19 +133,20 @@ class NodeLabelsCacheTest {
         int highLabelId = 10;
         int numberOfNodes = 100;
         int[][] expectedLabels = new int[numberOfNodes][];
-        NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, numberOfNodes, highLabelId, INSTANCE);
-        for (int i = 0; i < numberOfNodes; i++) {
-            cache.put(i, expectedLabels[i] = randomLabels(random.nextInt(5), highLabelId));
-        }
+        try (NodeLabelsCache cache = new NodeLabelsCache(AUTO_WITHOUT_SWAP, numberOfNodes, highLabelId, INSTANCE)) {
+            for (int i = 0; i < numberOfNodes; i++) {
+                cache.put(i, expectedLabels[i] = randomLabels(random.nextInt(5), highLabelId));
+            }
 
-        // WHEN
-        Race getRace = new Race();
-        for (int i = 0; i < 10; i++) {
-            getRace.addContestant(new LabelGetter(cache, expectedLabels, numberOfNodes));
-        }
+            // WHEN
+            Race getRace = new Race();
+            for (int i = 0; i < 10; i++) {
+                getRace.addContestant(new LabelGetter(cache, expectedLabels, numberOfNodes));
+            }
 
-        // THEN expected labels should be had (asserted in LabelGetter), and no exceptions (propagated by go())
-        getRace.go();
+            // THEN expected labels should be had (asserted in LabelGetter), and no exceptions (propagated by go())
+            getRace.go();
+        }
     }
 
     private static class LabelGetter implements Runnable {

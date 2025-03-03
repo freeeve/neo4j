@@ -194,48 +194,49 @@ class CuckooIdMapperTest {
     public void shouldPutFromMultipleThreads(int processors) throws Throwable {
         // GIVEN
         long countPerThread = 30_000;
-        IdMapper idMapper =
-                new StringCuckooIdMapper(countPerThread * processors, OFF_HEAP, ReadableGroups.EMPTY, INSTANCE, null);
-        AtomicLong highNodeId = new AtomicLong();
-        long batchSize = 1234;
-        Race race = new Race();
-        race.addContestants(processors, () -> {
-            long cursor = batchSize;
-            long nextNodeId = 0;
-            IdMapper.Setter setter = idMapper.newSetter();
-            for (int j = 0; j < countPerThread; j++) {
-                if (cursor == batchSize) {
-                    nextNodeId = highNodeId.getAndAdd(batchSize);
-                    cursor = 0;
-                }
-                long nodeId = nextNodeId++;
-                cursor++;
+        try (IdMapper idMapper =
+                new StringCuckooIdMapper(countPerThread * processors, OFF_HEAP, ReadableGroups.EMPTY, INSTANCE, null)) {
+            AtomicLong highNodeId = new AtomicLong();
+            long batchSize = 1234;
+            Race race = new Race();
+            race.addContestants(processors, () -> {
+                long cursor = batchSize;
+                long nextNodeId = 0;
+                IdMapper.Setter setter = idMapper.newSetter();
+                for (int j = 0; j < countPerThread; j++) {
+                    if (cursor == batchSize) {
+                        nextNodeId = highNodeId.getAndAdd(batchSize);
+                        cursor = 0;
+                    }
+                    long nodeId = nextNodeId++;
+                    cursor++;
 
-                try {
-                    setter.put(String.valueOf(nodeId), nodeId, emptyGroup);
-                } catch (KeyCollisionException e) {
-                    throw new RuntimeException(e);
+                    try {
+                        setter.put(String.valueOf(nodeId), nodeId, emptyGroup);
+                    } catch (KeyCollisionException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+
+            // WHEN
+            race.go();
+
+            // THEN
+            long count = processors * countPerThread;
+            long countWithGapsWorstCase = count + batchSize * processors;
+            int correctHits = 0;
+            try (var getter = idMapper.newGetter()) {
+                for (long nodeId = 0; nodeId < countWithGapsWorstCase; nodeId++) {
+                    long result = getter.get(String.valueOf(nodeId), emptyGroup);
+                    if (result != -1) {
+                        assertThat(result).isEqualTo(nodeId);
+                        correctHits++;
+                    }
                 }
             }
-        });
-
-        // WHEN
-        race.go();
-
-        // THEN
-        long count = processors * countPerThread;
-        long countWithGapsWorstCase = count + batchSize * processors;
-        int correctHits = 0;
-        try (var getter = idMapper.newGetter()) {
-            for (long nodeId = 0; nodeId < countWithGapsWorstCase; nodeId++) {
-                long result = getter.get(String.valueOf(nodeId), emptyGroup);
-                if (result != -1) {
-                    assertThat(result).isEqualTo(nodeId);
-                    correctHits++;
-                }
-            }
+            assertThat(correctHits).isEqualTo(count);
         }
-        assertThat(correctHits).isEqualTo(count);
     }
 
     private static CuckooIdMapper getCuckooIdMapperForLongs() {

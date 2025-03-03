@@ -36,21 +36,22 @@ class DynamicNodeLabelsCacheTest {
     @Test
     void shouldPutAndGetLabels() {
         // given
-        DynamicNodeLabelsCache cache = new DynamicNodeLabelsCache(INSTANCE);
-        long[] indexes = new long[1_000];
-        int[][] expectedLabels = new int[indexes.length][];
+        try (DynamicNodeLabelsCache cache = new DynamicNodeLabelsCache(INSTANCE)) {
+            long[] indexes = new long[1_000];
+            int[][] expectedLabels = new int[indexes.length][];
 
-        // when
-        for (int i = 0; i < indexes.length; i++) {
-            int[] labels = expectedLabels[i] = randomSortedLabels();
-            indexes[i] = cache.put(labels);
-        }
+            // when
+            for (int i = 0; i < indexes.length; i++) {
+                int[] labels = expectedLabels[i] = randomSortedLabels();
+                indexes[i] = cache.put(labels);
+            }
 
-        // then
-        for (int i = 0; i < indexes.length; i++) {
-            int[] expected = expectedLabels[i];
-            int[] actual = cache.get(indexes[i], new int[expected.length]);
-            assertArrayEquals(expected, actual);
+            // then
+            for (int i = 0; i < indexes.length; i++) {
+                int[] expected = expectedLabels[i];
+                int[] actual = cache.get(indexes[i], new int[expected.length]);
+                assertArrayEquals(expected, actual);
+            }
         }
     }
 

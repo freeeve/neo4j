@@ -30,6 +30,7 @@ import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService.TestApiKin
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.test.TestDatabaseManagementServiceBuilder
+import org.scalatest.BeforeAndAfterAll
 
 import java.time.Duration
 
@@ -45,10 +46,16 @@ class TransactionalQueryErrorHttpAcceptanceTest extends TransactionalQueryErrorA
 abstract class TransactionalQueryErrorAcceptanceTestBase
     extends CypherFunSuite
     with FeatureDatabaseManagementService.TestBase
-    with CreateTempFileTestSupport {
+    with CreateTempFileTestSupport
+    with BeforeAndAfterAll {
+
+  val db: FeatureDatabaseManagementService = dbms
+
+  override def afterAll(): Unit = {
+    db.shutdown()
+  }
 
   // This is an absolute mess...
-
   test("disallows CALL IN TRANSACTIONS in explicit transaction") {
     def code = executeInExplicitTx("CALL { CREATE () } IN TRANSACTIONS")
 
@@ -82,7 +89,7 @@ abstract class TransactionalQueryErrorAcceptanceTestBase
   }
 
   def executeInExplicitTx(statement: String): StatementResult = {
-    val tx = dbms.begin()
+    val tx = db.begin()
     try {
       tx.execute(statement)
     } finally {
@@ -91,7 +98,7 @@ abstract class TransactionalQueryErrorAcceptanceTestBase
   }
 
   def executeInImplicitTx(statement: String): StatementResult =
-    dbms.execute(statement, Map.empty, identity)
+    db.execute(statement, Map.empty, identity)
 
   def expectNoError(code: => Any): Unit =
     noException.shouldBe(thrownBy(code))
