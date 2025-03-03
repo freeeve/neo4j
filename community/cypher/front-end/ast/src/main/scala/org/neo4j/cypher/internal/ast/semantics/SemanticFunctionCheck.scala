@@ -60,6 +60,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.gqlstatus.GqlHelper
 
 import java.util.Locale
 
@@ -94,9 +95,11 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
         ) =>
         SemanticCheck.fromState(state =>
           if (state.workingGraph.nonEmpty) { // We are targeting a constituent graph.
+            val pos = invocation.position
             SemanticError.apply(
+              GqlHelper.getGql42001_42N72(pos.offset, pos.line, pos.column),
               "Calling %s() is only supported on composite databases.".formatted(invocation.name),
-              invocation.position
+              pos
             )
           } else {
             SemanticExpressionCheck.check(ctx, invocation.arguments) chain semanticCheck(

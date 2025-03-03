@@ -133,6 +133,7 @@ import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.NormalizedDatabaseName
 
@@ -570,6 +571,7 @@ final case class UseGraph(graphReference: GraphReference)(val position: InputPos
           case _ =>
             SemanticCheck.fromFunctionWithContext { (semanticState, context) =>
               SemanticCheckResult.error(
+                GqlHelper.getGql42001_42N72(position.offset, position.line, position.column),
                 semanticState,
                 context.errorMessageProvider.createDynamicGraphReferenceUnsupportedError(graphReference.print),
                 position

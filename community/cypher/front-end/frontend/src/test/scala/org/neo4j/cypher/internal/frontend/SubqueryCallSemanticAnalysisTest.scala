@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.SubqueryVariableShadowing
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N07
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
 import org.neo4j.gqlstatus.GqlParams
@@ -604,6 +605,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN a
         |""".stripMargin
     run(query, withSingleGraph).hasError(
+      GqlHelper.getGql42001_42N72(37, 4, 3),
       messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName(g, w(k))"),
       p(37, 4, 3)
     )
@@ -620,6 +622,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN a
         |""".stripMargin
     run(query, withSingleGraph).hasError(
+      GqlHelper.getGql42001_42N72(30, 4, 3),
       messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName(g, w(k))"),
       p(30, 4, 3)
     )

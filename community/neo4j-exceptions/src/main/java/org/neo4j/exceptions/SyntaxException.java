@@ -25,6 +25,7 @@ import static java.util.Objects.nonNull;
 import java.util.Optional;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -59,11 +60,6 @@ public class SyntaxException extends Neo4jException {
 
     public SyntaxException(ErrorGqlStatusObject gqlStatusObject, String message, String query, int offset) {
         this(gqlStatusObject, message, query, offset, null);
-    }
-
-    @Deprecated
-    public SyntaxException(String message, Throwable cause) {
-        this(message, "", null, cause);
     }
 
     public SyntaxException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
@@ -159,6 +155,12 @@ public class SyntaxException extends Neo4jException {
                         .build())
                 .build();
         return new SyntaxException(gql, "Cannot yield value from void procedure.");
+    }
+
+    public static SyntaxException dynamicGraphReferenceUnsupported(
+            String legacyMsg, String query, int offset, int line, int column) {
+        var gql = GqlHelper.getGql42001_42N72(offset, line, column);
+        return new SyntaxException(gql, legacyMsg, query, offset);
     }
 
     @Override

@@ -248,7 +248,7 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
           !graphSelection.leading
         )
       // Semantic analysis should make sure we don't end up here, so the error does not have to be super descriptive
-      case _ => throw new InvalidSemanticsException("Expected static graph selection")
+      case _ => throw InvalidSemanticsException.expectedStaticGraphSelection()
     }
 
   @tailrec

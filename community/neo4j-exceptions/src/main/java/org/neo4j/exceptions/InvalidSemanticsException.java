@@ -152,6 +152,14 @@ public class InvalidSemanticsException extends Neo4jException {
                 "Query routing is not available in embedded sessions. Try running the query using a Neo4j driver or the HTTP API.");
     }
 
+    public static InvalidSemanticsException expectedStaticGraphSelection() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N72)
+                        .build())
+                .build();
+        return new InvalidSemanticsException(gql, "Expected static graph selection");
+    }
+
     @Override
     public Status status() {
         return Status.Statement.SemanticError;

@@ -26,7 +26,10 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.messages.MessageUtilProvider
 import org.neo4j.cypher.testing.api.CypherExecutorException
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
+import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService.TestApiKind
 import org.neo4j.dbms.api.DatabaseManagementService
+import org.neo4j.driver.exceptions.Neo4jException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.test.TestDatabaseManagementServiceBuilder
 import org.scalatest.BeforeAndAfterAll
@@ -97,9 +100,14 @@ abstract class CommunityQueryRoutingAcceptanceTest extends CypherFunSuite
       SYSTEM_DATABASE_NAME,
       query,
       Status.Statement.SyntaxError,
-      MessageUtilProvider.createDynamicGraphReferenceUnsupportedError("graph.byElementId(g)")
+      MessageUtilProvider.createDynamicGraphReferenceUnsupportedError("graph.byElementId(g)"),
+      Some((
+        GqlStatusInfoCodes.STATUS_42001,
+        "error: syntax error or access rule violation - invalid syntax",
+        GqlStatusInfoCodes.STATUS_42N72,
+        "error: syntax error or access rule violation - graph function only supported on composite databases. Calling graph functions is only supported on composite databases. Use the name directly or connect to a composite database with the desired constituents."
+      ))
     )
-
   }
 
   test("should route a query with multiple USE targeting the same graph") {
@@ -204,11 +212,37 @@ abstract class CommunityQueryRoutingAcceptanceTest extends CypherFunSuite
     db.executorFactory.executor(sessionDatabaseName).execute(query, Map.empty, result => result.records())
   }
 
-  def failWithError(sessionDatabaseName: String, query: String, status: Status, messageSubstring: String): Unit = {
+  def failWithError(
+    sessionDatabaseName: String,
+    query: String,
+    status: Status,
+    messageSubstring: String,
+    gqlInfo: Option[(GqlStatusInfoCodes, String, GqlStatusInfoCodes, String)] = None
+  ): Unit = {
     val ex = the[CypherExecutorException]
       .thrownBy(execute(sessionDatabaseName, query))
 
     ex.status.shouldEqual(status)
     ex.getMessage.should(include(messageSubstring))
+
+    if (gqlInfo.isDefined) {
+      // CypherExecutorException is a test-only construct wrapping driver errors.
+      // Its ErrorGqlStatusObject will be null, as there is no logic (yet) for recreating server ErrorGqlStatusObjects
+      // from the driver exception.
+      // Therefore, we are doing GQLSTATUS checks on the underlying driver exception only.
+      ex.original match {
+        case e: Neo4jException =>
+          e.gqlStatus() should be(gqlInfo.get._1.getStatusString)
+          e.statusDescription() should be(gqlInfo.get._2)
+          e.gqlCause() should not be empty
+          val gqlCause = e.gqlCause().get()
+          gqlCause.gqlStatus() should be(gqlInfo.get._3.getStatusString)
+          gqlCause.statusDescription() should be(gqlInfo.get._4)
+
+        case _ if testApiKind.equals(TestApiKind.Http) => // Query API is not ported to GQL yet, so do nothing
+        case e => fail(s"Expected driver error with GQLSTATUS but was ${e.getClass}")
+
+      }
+    }
   }
 }

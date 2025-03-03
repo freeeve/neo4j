@@ -310,12 +310,15 @@ case class FabricStitcher(
     Fragment.Exec(input, statement, local, remote, sensitive, outputColumns)
   }
 
-  private def failDynamicGraph(use: Use): Nothing =
-    throw new SyntaxException(
+  private def failDynamicGraph(use: Use): Nothing = {
+    throw SyntaxException.dynamicGraphReferenceUnsupported(
       MessageUtilProvider.createDynamicGraphReferenceUnsupportedError(Use.show(use)).stripMargin,
       queryString,
-      use.position.offset
+      use.position.offset,
+      use.position.line,
+      use.position.column
     )
+  }
 
   private def failMultipleGraphs(use: Use): Nothing =
     throw SyntaxException.accessingMultipleGraphsOnlySupportedOnCompositeDatabases(

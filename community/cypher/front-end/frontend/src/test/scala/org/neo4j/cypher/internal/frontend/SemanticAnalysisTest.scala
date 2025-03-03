@@ -554,6 +554,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN 1
         |""".stripMargin
     run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      GqlHelper.getGql42001_42N72(1, 2, 1),
       messageProvider.createDynamicGraphReferenceUnsupportedError("graph.byName($g, w($k))"),
       p(1, 2, 1)
     )
