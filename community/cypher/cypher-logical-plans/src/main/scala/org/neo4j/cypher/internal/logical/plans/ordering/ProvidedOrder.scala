@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.logical.plans.PartialTop
 import org.neo4j.cypher.internal.logical.plans.ProduceResult
 import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
+import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.Skip
 import org.neo4j.cypher.internal.logical.plans.Sort
@@ -157,14 +158,15 @@ case object ParallelExecutionProvidedOrderFactory extends ProvidedOrderFactory {
       case p if p.distinctness == AtMostOneRow => true
 
       // Propagates order
-      case _: Skip                  => true
-      case _: Limit                 => true
-      case _: Selection             => true
-      case _: Projection            => true
-      case _: ProduceResult         => true
-      case Apply(_, _: Argument)    => true
-      case _: RemoteBatchProperties => true
-      case _                        => false
+      case _: Skip                            => true
+      case _: Limit                           => true
+      case _: Selection                       => true
+      case _: Projection                      => true
+      case _: ProduceResult                   => true
+      case Apply(_, _: Argument)              => true
+      case _: RemoteBatchProperties           => true
+      case _: RemoteBatchPropertiesWithFilter => true
+      case _                                  => false
     }
   }
 

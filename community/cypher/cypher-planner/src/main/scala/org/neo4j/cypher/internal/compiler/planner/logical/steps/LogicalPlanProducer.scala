@@ -3888,7 +3888,7 @@ case class LogicalPlanProducer(
         )
       case _ => RemoteBatchPropertiesWithFilter(newInner, inlinablePredicates.toSet, properties.map(identity))
     }
-    annotate(plan, solved, ProvidedOrder.empty, cachedProperties, context)
+    annotate(plan, solved, ProvidedOrder.Left, cachedProperties, context)
   }
 
   def addMissingStandaloneArgumentPatternNodes(
