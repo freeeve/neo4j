@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.util.UpperBound.Unlimited
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class RepeatEndNodePredicateRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
+class RepeatTrailAndWalkEndNodePredicateRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport {
   private def subPlanBuilder = new LogicalPlanBuilder(wholePlan = false)
 
   private val `TRAIL (a) ((n)-[r]-(m))+ (b)`: TrailParameters = TrailParameters(
@@ -168,5 +168,5 @@ class RepeatEndNodePredicateRewriterTest extends CypherFunSuite with LogicalPlan
   }
 
   private def rewrite(p: LogicalPlan): LogicalPlan =
-    p.endoRewrite(repeatEndNodePredicateRewriter(Attributes(idGen)))
+    p.endoRewrite(repeatTrailAndWalkEndNodePredicateRewriter(Attributes(idGen)))
 }

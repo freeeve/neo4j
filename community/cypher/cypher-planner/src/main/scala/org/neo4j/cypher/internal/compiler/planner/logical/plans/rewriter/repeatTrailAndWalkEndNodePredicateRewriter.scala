@@ -62,7 +62,7 @@ import org.neo4j.cypher.internal.util.topDown
  * Should run after [[pruningVarExpander]] & [[TrailToVarExpandRewriter]] in order to rewrite as many (pruning) 
  * VarExpand as possible.
  */
-case class repeatEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) extends Rewriter
+case class repeatTrailAndWalkEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) extends Rewriter
     with TopDownMergeableRewriter {
 
   /**

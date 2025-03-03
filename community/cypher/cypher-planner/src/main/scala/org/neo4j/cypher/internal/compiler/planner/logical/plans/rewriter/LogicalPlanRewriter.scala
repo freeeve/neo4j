@@ -139,7 +139,7 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
       Some(inSequence(
         pruningVarExpanderRewriter,
         trailWithTwoFiltersToPruningVarExpandRewriter,
-        repeatEndNodePredicateRewriter(otherAttributes.withAlso(
+        repeatTrailAndWalkEndNodePredicateRewriter(otherAttributes.withAlso(
           solveds,
           cardinalities,
           effectiveCardinalities,
