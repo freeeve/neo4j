@@ -121,25 +121,17 @@ case class repeatTrailAndWalkEndNodePredicateRewriter(attributes: Attributes[Log
 
   override val innerRewriter: Rewriter = {
     Rewriter.lift {
-      case s @ Selection(predicates, r: RepeatTrail) =>
-        if (isRewritable(predicates, r.end.name)) {
-          val rewrittenPredicates = renameEnd(r.innerEnd, r.end, predicates)
-          val newEndNodePredicates = mergeEndNodePredicates(r.endNodePredicate, predicates, rewrittenPredicates)
-          val id = attributes.copy(s.id).id()
-          r.copy(endNodePredicate = Some(newEndNodePredicates))(SameId(id))
-        } else {
-          s
-        }
+      case s @ Selection(predicates, r: RepeatTrail) if isRewritable(predicates, r.end.name) =>
+        val rewrittenPredicates = renameEnd(r.innerEnd, r.end, predicates)
+        val newEndNodePredicates = mergeEndNodePredicates(r.endNodePredicate, predicates, rewrittenPredicates)
+        val id = attributes.copy(s.id).id()
+        r.copy(endNodePredicate = Some(newEndNodePredicates))(SameId(id))
 
-      case s @ Selection(predicates, r: RepeatWalk) =>
-        if (isRewritable(predicates, r.end.name)) {
-          val rewrittenPredicates = renameEnd(r.innerEnd, r.end, predicates)
-          val newEndNodePredicates = mergeEndNodePredicates(r.endNodePredicate, predicates, rewrittenPredicates)
-          val id = attributes.copy(s.id).id()
-          r.copy(endNodePredicate = Some(newEndNodePredicates))(SameId(id))
-        } else {
-          s
-        }
+      case s @ Selection(predicates, r: RepeatWalk) if isRewritable(predicates, r.end.name) =>
+        val rewrittenPredicates = renameEnd(r.innerEnd, r.end, predicates)
+        val newEndNodePredicates = mergeEndNodePredicates(r.endNodePredicate, predicates, rewrittenPredicates)
+        val id = attributes.copy(s.id).id()
+        r.copy(endNodePredicate = Some(newEndNodePredicates))(SameId(id))
     }
   }
 
