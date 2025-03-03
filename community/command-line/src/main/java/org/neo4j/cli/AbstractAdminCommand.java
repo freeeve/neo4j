@@ -25,6 +25,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.logs_directory;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import org.eclipse.collections.impl.set.mutable.MutableSetFactoryImpl;
 import org.neo4j.cloud.storage.StoragePath;
 import org.neo4j.configuration.Config;
@@ -47,6 +49,7 @@ import org.neo4j.kernel.internal.Version;
 import org.neo4j.logging.Level;
 import org.neo4j.logging.log4j.LogConfig;
 import org.neo4j.logging.log4j.Neo4jLoggerContext;
+import org.neo4j.time.Stopwatch;
 import picocli.CommandLine;
 
 /**
@@ -68,6 +71,7 @@ public abstract class AbstractAdminCommand extends AbstractCommand {
 
     public static final String COMMAND_CONFIG_FILE_NAME_PATTERN = "neo4j-admin-%s.conf";
     public static final String ADMIN_CONFIG_FILE_NAME = "neo4j-admin.conf";
+    public static final String CRASH_INFO_TIMEOUT = "NEO4J_ADMIN_CRASH_INFO_DUMP_TIMEOUT_SECONDS";
     private static final DateTimeFormatter SPACELESS_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd.HH.mm.ss").withZone(ZoneId.systemDefault());
     private static final String EXCEPTION_FILE_NAME_TEMPLATE = "neo4j-admin-exception-trace-%s.log";
@@ -199,16 +203,21 @@ public abstract class AbstractAdminCommand extends AbstractCommand {
     // hook the raw execute to log info
     @Override
     protected void wrappedExecute() throws Exception {
+        Stopwatch start = Stopwatch.start();
         try {
             execute();
         } catch (Throwable ex) {
-            logCrashInformation(ex);
+            logCrashInformation(ex, start.elapsed());
             throw ex;
         }
     }
 
-    private void logCrashInformation(Throwable ex) {
+    private void logCrashInformation(Throwable ex, Duration elapsed) {
         try {
+            int timeout = Integer.parseInt(System.getenv().getOrDefault(CRASH_INFO_TIMEOUT, "3"));
+            if (elapsed.toMillis() < TimeUnit.SECONDS.toMillis(timeout)) {
+                return;
+            }
             var config = createPrefilledConfigBuilder().build();
             var exceptionFile = config.get(logs_directory)
                     .resolve(format(EXCEPTION_FILE_NAME_TEMPLATE, SPACELESS_DATE_FORMATTER.format(Instant.now())));

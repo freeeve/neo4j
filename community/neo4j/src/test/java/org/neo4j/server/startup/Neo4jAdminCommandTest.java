@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.spy;
+import static org.neo4j.cli.AbstractAdminCommand.CRASH_INFO_TIMEOUT;
 import static org.neo4j.configuration.GraphDatabaseSettings.logs_directory;
 import static org.neo4j.server.startup.Bootloader.EXIT_CODE_OK;
 import static org.neo4j.server.startup.ServerCommandIT.isCurrentlyRunningAsWindowsAdmin;
@@ -165,12 +166,23 @@ class Neo4jAdminCommandTest {
                                 .contains("neo4j-admin-exception-trace"))[0];
                         assertThat(FileSystemUtils.readString(fs, trace, EmptyMemoryTracker.INSTANCE))
                                 .contains(CommandFailedException.class.getName());
-                    })) {
+                    },
+                    Map.of(CRASH_INFO_TIMEOUT, "0"))) {
                 assertThat(err.toString()).containsSubsequence("Full exception details written to:");
                 // No exception in console
                 assertThat(err.toString()).doesNotContain(CommandFailedException.class.getName());
                 // but we do get the error message
                 assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
+            }
+        }
+
+        @Test
+        @DisabledOnOs(OS.WINDOWS)
+        void shouldNotWriteExceptionToFileOnFastFailure() throws Exception {
+            if (fork.run(() -> execute("dbms", "test-command", "--throw"), Map.of(CRASH_INFO_TIMEOUT, "60"))) {
+                assertThat(err.toString()).contains(TestCommand.THROW_MSG);
+                assertThat(err.toString()).doesNotContain("Full exception details written to:");
+                assertThat(err.toString()).doesNotContain(CommandFailedException.class.getName());
             }
         }
 
@@ -184,7 +196,8 @@ class Neo4jAdminCommandTest {
                                 .contains("neo4j-admin-exception-trace"))[0];
                         assertThat(FileSystemUtils.readString(fs, trace, EmptyMemoryTracker.INSTANCE))
                                 .contains(CommandFailedException.class.getName());
-                    })) {
+                    },
+                    Map.of(CRASH_INFO_TIMEOUT, "0"))) {
                 assertThat(err.toString()).containsSubsequence("Full exception details written to:");
                 // get the exception
                 assertThat(err.toString()).containsSubsequence(CommandFailedException.class.getName());
@@ -216,7 +229,8 @@ class Neo4jAdminCommandTest {
             Path badLogsDir = home.resolve("not_a_folder");
             Files.writeString(badLogsDir, "Dummy");
             addConf(logs_directory, badLogsDir.toString());
-            if (fork.run(() -> execute("dbms", "test-command", "--verbose", "--throw"))) {
+            if (fork.run(
+                    () -> execute("dbms", "test-command", "--verbose", "--throw"), Map.of(CRASH_INFO_TIMEOUT, "0"))) {
                 assertThat(out.toString()).doesNotContain("Full exception details written to:");
                 assertThat(err.toString()).containsSubsequence(CommandFailedException.class.getName());
                 assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
