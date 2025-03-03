@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
+import org.neo4j.gqlstatus.GqlHelper
 
 object ProcedureResultItem {
 
@@ -49,5 +50,9 @@ case class ProcedureResultItem(output: Option[ProcedureOutput], variable: Logica
     types
       .get(outputName)
       .map { typ => declareVariable(variable, typ.covariant): SemanticCheck }
-      .getOrElse(error(s"Unknown procedure output: `$outputName`", position))
+      .getOrElse(error(
+        GqlHelper.getGql42002_42N50(outputName, position.offset, position.line, position.column),
+        s"Unknown procedure output: `$outputName`",
+        position
+      ))
 }

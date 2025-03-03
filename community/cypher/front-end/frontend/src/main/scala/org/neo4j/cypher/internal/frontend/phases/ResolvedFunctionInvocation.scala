@@ -91,12 +91,8 @@ case class ResolvedFunctionInvocation(
     case None =>
       qualifiedName match {
         case QualifiedName(Seq(), qn) if qn.equalsIgnoreCase("not") =>
-          SemanticError(
-            s"Unknown function '$qualifiedName'. " +
-              s"If you intended to use the negation expression, surround it with parentheses.",
-            position
-          )
-        case _ => SemanticError(s"Unknown function '$qualifiedName'", position)
+          SemanticError.unknownFunctionNamedNot(position)
+        case _ => SemanticError.unknownFunction(qualifiedName.toString, position)
       }
     case Some(signature) =>
       val expectedNumArgs = signature.inputSignature.length

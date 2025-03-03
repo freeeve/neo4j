@@ -93,7 +93,7 @@ object UseEvaluation {
         val resolved = ResolvedFunctionInvocation(signatureResolver.functionSignature)(f).coerceArguments
 
         if (resolved.fcnSignature.isEmpty) {
-          Errors.openCypherFailure(Errors.openCypherSemantic(s"Unknown function '${resolved.qualifiedName}'", resolved))
+          Errors.unknownFunction(resolved.qualifiedName.toString, resolved.position)
         }
 
         return resolved

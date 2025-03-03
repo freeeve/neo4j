@@ -421,7 +421,7 @@ public class ProcedureException extends KernelException {
         return new ProcedureException(
                 gql,
                 Status.Procedure.ProcedureRegistrationFailed,
-                "Procedures with zero output fields must be declared as VOID");
+                "Procedures with zero return columns must be declared as VOID");
     }
 
     public static ProcedureException procedureNameAlreadyInUse(String name) {

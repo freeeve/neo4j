@@ -3114,11 +3114,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N08(
             new GqlStatus("42N08"),
             """
-                    The procedure or function { %s } was not registered for this database instance. Verify that the spelling is correct.""",
+                    The procedure { %s } was not found. Verify that the spelling is correct.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procFun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "no such procedure or function",
+            "no such procedure",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N09(
             new GqlStatus("42N09"),
@@ -3499,11 +3499,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N50(
             new GqlStatus("42N50"),
             """
-                    The procedure { %s } was not found. Verify that the spelling is correct.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
+                    The procedure return column { %s } is not defined for this procedure. Verify that the spelling is correct.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "no such procedure",
+            "procedure return column not defined",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N51(
             new GqlStatus("42N51"),
@@ -4324,7 +4324,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_51N12(
             new GqlStatus("51N12"),
             """
-                    The procedure { %s } has zero output fields and must be defined as void.""",
+                    The procedure { %s } has zero return columns and must be defined as void.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,

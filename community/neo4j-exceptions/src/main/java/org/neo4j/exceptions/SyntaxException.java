@@ -157,6 +157,11 @@ public class SyntaxException extends Neo4jException {
         return new SyntaxException(gql, "Cannot yield value from void procedure.");
     }
 
+    public static SyntaxException unknownFunction(String functionName, int offset, int line, int column) {
+        var gql = GqlHelper.getGql42002_42N48(functionName, offset, line, column);
+        return new SyntaxException(gql, String.format("Unknown function '%s'", functionName));
+    }
+
     public static SyntaxException dynamicGraphReferenceUnsupported(
             String legacyMsg, String query, int offset, int line, int column) {
         var gql = GqlHelper.getGql42001_42N72(offset, line, column);

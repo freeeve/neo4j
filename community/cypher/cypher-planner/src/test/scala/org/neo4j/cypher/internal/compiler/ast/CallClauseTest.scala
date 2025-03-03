@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.gqlstatus.GqlHelper
 
 class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
 
@@ -303,9 +304,11 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     val unresolved = UnresolvedCall(ns, name, Some(callArguments), Some(ProcedureResult(callResults)(pos)))(pos)
     val resolved = ResolvedCall(_ => signature)(unresolved)
 
-    errorTexts(resolved.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)) should equal(Seq(
+    val result = resolved.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
+    errorTexts(result) should equal(Seq(
       "Unknown procedure output: `p` (line 0, column 0 (offset: 0))"
     ))
+    result.errors.head.gqlStatusObject should equal(GqlHelper.getGql42002_42N50("p", 0, 0, 0))
   }
 
   test("should verify result types during semantic checking of resolved calls") {

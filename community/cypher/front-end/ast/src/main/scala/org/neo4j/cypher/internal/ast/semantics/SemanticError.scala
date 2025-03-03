@@ -48,7 +48,8 @@ object SemanticError {
 
   def apply(msg: String, position: InputPosition): SemanticError = new SemanticError(null, msg, position)
 
-  def unapply(errorDef: SemanticErrorDef): Option[(String, InputPosition)] = Some((errorDef.msg, errorDef.position))
+  def unapply(errorDef: SemanticErrorDef): Option[(ErrorGqlStatusObject, String, InputPosition)] =
+    Some((errorDef.gqlStatusObject, errorDef.msg, errorDef.position))
 
   def invalidOption(
     invalidOptionsString: String,
@@ -1118,6 +1119,23 @@ object SemanticError {
     SemanticError(gql, "CALL { ... } IN TRANSACTIONS in a UNION is not supported", position)
   }
 
+  def unknownFunction(functionName: String, position: InputPosition): SemanticError = {
+    unknownFunction(functionName, s"Unknown function '$functionName'", position)
+  }
+
+  def unknownFunctionNamedNot(position: InputPosition): SemanticError = {
+    unknownFunction(
+      "not",
+      "Unknown function 'not'. If you intended to use the negation expression, surround it with parentheses.",
+      position
+    )
+  }
+
+  private def unknownFunction(functionName: String, legacyMessage: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42002_42N48(functionName, position.offset, position.line, position.column)
+    SemanticError(gql, legacyMessage, position)
+  }
+
   def invalidDelete(position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
@@ -1657,14 +1675,12 @@ object SemanticError {
   }
 }
 
-sealed trait UnsupportedOpenCypher extends SemanticErrorDef
-
 final case class FeatureError(
   override val gqlStatusObject: ErrorGqlStatusObject,
   override val msg: String,
   feature: SemanticFeature,
   override val position: InputPosition
-) extends UnsupportedOpenCypher {
+) extends SemanticErrorDef {
 
   def this(msg: String, featureError: SemanticFeature, position: InputPosition) =
     this(null, msg, featureError, position)
@@ -1676,6 +1692,6 @@ object FeatureError {
   def apply(msg: String, featureError: SemanticFeature, position: InputPosition): FeatureError =
     new FeatureError(null, msg, featureError, position)
 
-  def unapply(errorDef: FeatureError): Option[(String, SemanticFeature, InputPosition)] =
-    Some((errorDef.msg, errorDef.feature, errorDef.position))
+  def unapply(errorDef: FeatureError): Option[(ErrorGqlStatusObject, String, SemanticFeature, InputPosition)] =
+    Some((errorDef.gqlStatusObject, errorDef.msg, errorDef.feature, errorDef.position))
 }

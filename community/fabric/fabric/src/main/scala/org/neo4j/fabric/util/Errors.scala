@@ -28,17 +28,14 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.fabric.eval.Catalog
+import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Value
 
 /**
- * The errors in this file are in 2 categories: "Open Cypher" and "Neo4j".
- * <p>
  * The main feature of "Neo4j" errors is that they have status codes. Any error without a status code that occurs during cypher statement execution
  * and makes to Bolt server will be mapped to a generic [[org.neo4j.kernel.api.exceptions.Status.Statement.ExecutionFailed]] that is an equivalent of HTTP 500
  * and indicates a generic failure on the server side.
- * <p>
- * "Open Cypher" errors can be used, but they need to be mapped to "Neo4j" ones unless "Statement Execution Failed" is a desirable outcome.
  */
 object Errors {
 
@@ -46,16 +43,8 @@ object Errors {
     def update(upd: SemanticErrorDef => SemanticErrorDef): HasErrors
   }
 
-  case class EvaluationFailedException(errors: Seq[SemanticErrorDef]) extends RuntimeException(
-        s"Evaluation failed\n${errors.map(e => s"- ${e.msg} [at ${e.position}]").mkString("\n")}"
-      ) with HasErrors {
-    override def update(upd: SemanticErrorDef => SemanticErrorDef): EvaluationFailedException = copy(errors.map(upd))
-  }
-  def openCypherSemantic(msg: String, node: ASTNode): SemanticError = SemanticError(msg, node.position)
-
-  def openCypherFailure(errors: Seq[SemanticErrorDef]): Nothing = throw EvaluationFailedException(errors)
-
-  def openCypherFailure(error: SemanticErrorDef): Nothing = openCypherFailure(Seq(error))
+  def unknownFunction(functionName: String, position: InputPosition): Nothing =
+    throw SyntaxException.unknownFunction(functionName, position.offset, position.line, position.column)
 
   def invalidType(value: String, expectedType: String, actualType: String, signature: String): Nothing = {
     val expectedTypeList: java.util.List[String] = java.util.List.of(expectedType)
@@ -71,19 +60,19 @@ object Errors {
       s"Wrong arity. Expected $exp argument(s), got $got argument(s)"
     )
 
-  def syntax(msg: String, query: String, pos: InputPosition): Nothing =
-    throw new SyntaxException(msg, query, pos.offset)
+  def syntax(gql: ErrorGqlStatusObject, msg: String, query: String, pos: InputPosition): Nothing =
+    throw new SyntaxException(gql, msg, query, pos.offset)
 
   /** Attaches position and query info to exceptions, if it is missing */
   def errorContext[T](query: String, node: ASTNode)(block: => T): T =
     try block
     catch {
       case e: HasErrors => throw e.update {
-          case SemanticError(msg, InputPosition.NONE)   => syntax(msg, query, node.position)
-          case SemanticError(msg, pos)                  => syntax(msg, query, pos)
-          case FeatureError(msg, _, InputPosition.NONE) => syntax(msg, query, node.position)
-          case FeatureError(msg, _, pos)                => syntax(msg, query, pos)
-          case o                                        => o
+          case SemanticError(gql, msg, InputPosition.NONE)   => syntax(gql, msg, query, node.position)
+          case SemanticError(gql, msg, pos)                  => syntax(gql, msg, query, pos)
+          case FeatureError(gql, msg, _, InputPosition.NONE) => syntax(gql, msg, query, node.position)
+          case FeatureError(gql, msg, _, pos)                => syntax(gql, msg, query, pos)
+          case o                                             => o
         }
     }
 

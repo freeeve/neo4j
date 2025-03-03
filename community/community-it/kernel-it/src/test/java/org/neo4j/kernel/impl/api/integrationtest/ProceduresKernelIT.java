@@ -121,7 +121,10 @@ class ProceduresKernelIT extends KernelIntegrationTest {
         var e = assertThrows(ProcedureException.class, () -> internalKernel()
                 .registerProcedure(procedure(procedureSignature(new QualifiedName("example", "exampleProc2"))
                         .build())));
-        assertThat(e.getMessage()).isEqualTo("Procedures with zero output fields must be declared as VOID");
+        assertThat(e.getMessage()).isEqualTo("Procedures with zero return columns must be declared as VOID");
+        assertThat(e.gqlStatus()).isEqualTo("51N00");
+        assertThat(e.cause()).isPresent();
+        assertThat(e.cause().get().gqlStatus()).isEqualTo("51N12");
     }
 
     @Test
