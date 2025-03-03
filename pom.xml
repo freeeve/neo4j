@@ -1116,6 +1116,24 @@
         <directory>${build.service.target.dir}</directory>
       </build>
     </profile>
+
+    <!-- Profile for running tests with Cypher 25 as the default query language -->
+    <profile>
+      <id>default-query-lang-cypher-25</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <property>
+          <name>NEO4J_OVERRIDE_QUERY_LANGUAGE</name>
+          <value>cypher_25</value>
+        </property>
+      </activation>
+      <properties>
+        <test.runner.jvm.settings.db.format>
+          -DNEO4J_OVERRIDE_QUERY_LANGUAGE=cypher_25
+        </test.runner.jvm.settings.db.format>
+        <excludedTestGroups>exclude-default-query-lang-override</excludedTestGroups>
+      </properties>
+    </profile>
   </profiles>
 
   <dependencyManagement>

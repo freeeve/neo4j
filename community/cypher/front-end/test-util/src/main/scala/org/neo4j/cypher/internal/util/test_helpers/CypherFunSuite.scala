@@ -22,6 +22,7 @@ import org.scalatest.Assertions
 import org.scalatest.BeforeAndAfterEach
 import org.scalatest.Status
 import org.scalatest.Suite
+import org.scalatest.Tag
 import org.scalatest.funsuite.AnyFunSuiteLike
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
@@ -34,6 +35,15 @@ abstract class CypherFunSuite
     with Matchers
     with BeforeAndAfterEach
     with CompareAsPrettyStrings {
+
+  object Tags {
+
+    /**
+     * Use this tag to exclude tests from running with overridden default query language.
+     * See the default-query-lang-cypher-25 maven profile.
+     */
+    val NoQueryLangOverride = Tag("exclude-default-query-lang-override")
+  }
 
   def argCaptor[T <: AnyRef](implicit manifest: Manifest[T]): ArgumentCaptor[T] = {
     ArgumentCaptor.forClass(manifest.runtimeClass.asInstanceOf[Class[T]])

@@ -19,6 +19,7 @@
  */
 package org.neo4j.test.query.language;
 
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.enable_experimental_cypher_versions;
 import static org.neo4j.configuration.GraphDatabaseSettings.default_language;
 
 import java.util.Map;
@@ -36,6 +37,7 @@ public class DefaultQueryLanguageOverrideMigrator implements SettingMigrator {
         if (overrideQueryLang != null && !values.containsKey(default_language.name())) {
             try {
                 defaultValues.put(default_language.name(), overrideQueryLang);
+                defaultValues.put(enable_experimental_cypher_versions.name(), "true");
             } catch (RuntimeException ex) {
                 log.warn("Unable to override the query language to " + overrideQueryLang, ex);
             }
