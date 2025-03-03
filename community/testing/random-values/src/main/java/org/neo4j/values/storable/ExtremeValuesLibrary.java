@@ -28,6 +28,7 @@ import static org.apache.commons.lang3.ArrayUtils.EMPTY_INT_ARRAY;
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_SHORT_ARRAY;
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_STRING_ARRAY;
+import static org.neo4j.values.storable.VectorValue.MAX_VECTOR_DIMENSIONS;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -99,6 +100,19 @@ class ExtremeValuesLibrary {
             new Value[] {PointValue.MIN_VALUE_WGS_84, PointValue.MAX_VALUE_WGS_84};
     static final Value[] EXTREME_GEOGRAPHIC_POINT_3D =
             new Value[] {PointValue.MIN_VALUE_WGS_84_3D, PointValue.MAX_VALUE_WGS_84_3D};
+    static final Value[] EXTREME_INT8_VECTOR =
+            new Value[] {Values.int8Vector((byte) 0), Values.int8Vector(new byte[MAX_VECTOR_DIMENSIONS])};
+    static final Value[] EXTREME_INT16_VECTOR =
+            new Value[] {Values.int16Vector((short) 0), Values.int16Vector(new short[MAX_VECTOR_DIMENSIONS])};
+    static final Value[] EXTREME_INT32_VECTOR =
+            new Value[] {Values.int32Vector(0), Values.int32Vector(new int[MAX_VECTOR_DIMENSIONS])};
+    static final Value[] EXTREME_INT64_VECTOR =
+            new Value[] {Values.int64Vector(0), Values.int64Vector(new long[MAX_VECTOR_DIMENSIONS])};
+    static final Value[] EXTREME_FLOAT32_VECTOR =
+            new Value[] {Values.float32Vector(0), Values.float32Vector(new float[MAX_VECTOR_DIMENSIONS])};
+    static final Value[] EXTREME_FLOAT64_VECTOR =
+            new Value[] {Values.float64Vector(0), Values.float64Vector(new double[MAX_VECTOR_DIMENSIONS])};
+
     static final Value[] EXTREME_BOOLEAN_ARRAY =
             new Value[] {Values.of(EMPTY_BOOLEAN_ARRAY), Values.of(new boolean[] {true})};
     static final Value[] EXTREME_BYTE_ARRAY =

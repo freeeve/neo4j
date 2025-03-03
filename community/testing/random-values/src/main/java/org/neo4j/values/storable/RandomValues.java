@@ -37,6 +37,8 @@ import static org.neo4j.values.storable.Values.floatValue;
 import static org.neo4j.values.storable.Values.intValue;
 import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.storable.Values.shortValue;
+import static org.neo4j.values.storable.VectorValue.MAX_VECTOR_DIMENSIONS;
+import static org.neo4j.values.storable.VectorValue.MIN_VECTOR_DIMENSIONS;
 
 import java.lang.reflect.Array;
 import java.time.Duration;
@@ -361,9 +363,51 @@ public class RandomValues {
                 return nextGeographicPointArray();
             case GEOGRAPHIC_POINT_3D_ARRAY:
                 return nextGeographic3DPointArray();
+            case INT8VECTOR:
+                return nextInt8Vector();
+            case INT16VECTOR:
+                return nextInt16Vector();
+            case INT32VECTOR:
+                return nextInt32Vector();
+            case INT64VECTOR:
+                return nextInt64Vector();
+            case FLOAT32VECTOR:
+                return nextFloat32Vector();
+            case FLOAT64VECTOR:
+                return nextFloat64Vector();
             default:
                 throw new IllegalArgumentException("Unknown value type: " + type);
         }
+    }
+
+    private Int8Vector nextInt8Vector() {
+        byte[] array = nextByteArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.int8Vector(array);
+    }
+
+    private Int16Vector nextInt16Vector() {
+        short[] array = nextShortArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.int16Vector(array);
+    }
+
+    private Int32Vector nextInt32Vector() {
+        int[] array = nextIntArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.int32Vector(array);
+    }
+
+    private Int64Vector nextInt64Vector() {
+        long[] array = nextLongArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.int64Vector(array);
+    }
+
+    private Float32Vector nextFloat32Vector() {
+        float[] array = nextFloatArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.float32Vector(array);
+    }
+
+    private Float64Vector nextFloat64Vector() {
+        double[] array = nextDoubleArrayRaw(MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS);
+        return Values.float64Vector(array);
     }
 
     /**

@@ -38,12 +38,18 @@ import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_DOUBLE_ARRA
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_DURATION;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_DURATION_ARRAY;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_FLOAT;
+import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_FLOAT32_VECTOR;
+import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_FLOAT64_VECTOR;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_FLOAT_ARRAY;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_GEOGRAPHIC_POINT;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_GEOGRAPHIC_POINT_3D;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_GEOGRAPHIC_POINT_3D_ARRAY;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_GEOGRAPHIC_POINT_ARRAY;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_INT;
+import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_INT16_VECTOR;
+import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_INT32_VECTOR;
+import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_INT64_VECTOR;
+import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_INT8_VECTOR;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_INT_ARRAY;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_LOCAL_DATE_TIME;
 import static org.neo4j.values.storable.ExtremeValuesLibrary.EXTREME_LOCAL_DATE_TIME_ARRAY;
@@ -118,7 +124,13 @@ public enum ValueType {
             ValueRepresentation.GEOMETRY_ARRAY, PointArray.class, true, EXTREME_CARTESIAN_POINT_3D_ARRAY),
     GEOGRAPHIC_POINT_ARRAY(ValueRepresentation.GEOMETRY_ARRAY, PointArray.class, true, EXTREME_GEOGRAPHIC_POINT_ARRAY),
     GEOGRAPHIC_POINT_3D_ARRAY(
-            ValueRepresentation.GEOMETRY_ARRAY, PointArray.class, true, EXTREME_GEOGRAPHIC_POINT_3D_ARRAY);
+            ValueRepresentation.GEOMETRY_ARRAY, PointArray.class, true, EXTREME_GEOGRAPHIC_POINT_3D_ARRAY),
+    INT8VECTOR(ValueRepresentation.INT8, Int8Vector.class, EXTREME_INT8_VECTOR),
+    INT16VECTOR(ValueRepresentation.INT16, Int16Vector.class, EXTREME_INT16_VECTOR),
+    INT32VECTOR(ValueRepresentation.INT32, Int32Vector.class, EXTREME_INT32_VECTOR),
+    INT64VECTOR(ValueRepresentation.INT64, Int64Vector.class, EXTREME_INT64_VECTOR),
+    FLOAT32VECTOR(ValueRepresentation.FLOAT32, Float32Vector.class, EXTREME_FLOAT32_VECTOR),
+    FLOAT64VECTOR(ValueRepresentation.FLOAT64, Float64Vector.class, EXTREME_FLOAT64_VECTOR);
 
     public final ValueRepresentation valueRepresentation;
     public final ValueGroup valueGroup;
