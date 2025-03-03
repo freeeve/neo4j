@@ -27,6 +27,9 @@ import org.neo4j.values.utils.PrettyPrinter;
 public abstract sealed class VectorValue extends HashMemoizingScalarValue implements Vector, VectorCandidate
         permits IntegralVector, FloatingPointVector {
 
+    public static final int MIN_VECTOR_DIMENSIONS = 1;
+    public static final int MAX_VECTOR_DIMENSIONS = 4096;
+
     @Override
     public Vector asObjectCopy() {
         // Similar to PointValue, all VectorValues implement the public interface Vector,
