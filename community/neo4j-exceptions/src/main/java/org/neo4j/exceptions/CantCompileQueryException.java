@@ -19,6 +19,7 @@
  */
 package org.neo4j.exceptions;
 
+import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -43,15 +44,39 @@ public class CantCompileQueryException extends Neo4jException {
         super(gqlStatusObject, message);
     }
 
-    public static CantCompileQueryException unsupportedRuntimeInThisVersion(String runtime) {
+    public static CantCompileQueryException unsupportedRuntimeInCommunityEdition(String runtime) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
-                        .withParam(GqlParams.StringParam.component, runtime)
+                        .withParam(GqlParams.StringParam.feat, "'%s'".formatted(runtime))
                         .withParam(GqlParams.StringParam.edition, "community edition")
                         .build())
                 .build();
         return new CantCompileQueryException(
                 gql, String.format("This version of Neo4j does not support the requested runtime: `%s`", runtime));
+    }
+
+    public static CantCompileQueryException actionUserUnsupportedInCommunityEdition(
+            String feature, String action, String user, List<String> commands) {
+        var verb = commands.size() == 1 ? "is" : "are";
+        var commandString = String.join(", ", commands);
+        var legacyMessage = "Failed to %s the specified user '%s': %s %s not available in community edition."
+                .formatted(action, user, commandString, verb);
+
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
+                .withParam(GqlParams.StringParam.feat, feature)
+                .withParam(GqlParams.StringParam.edition, "community edition")
+                .build();
+        return new CantCompileQueryException(gql, legacyMessage);
+    }
+
+    public static CantCompileQueryException planUnsupportedInCommunityEdition(String planName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
+                .withParam(GqlParams.StringParam.feat, "'%s'".formatted(planName))
+                .withParam(GqlParams.StringParam.edition, "community edition")
+                .build();
+        return new CantCompileQueryException(
+                "Plan is not a recognized database administration command in community edition: %s"
+                        .formatted(planName));
     }
 
     public static CantCompileQueryException planNotRecognisedInAdminCommand(String unknownPlan) {

@@ -42,7 +42,7 @@ public class SecurityAdministrationException extends CypherExecutionException {
 
     public static SecurityAdministrationException unsupportedInCommunity(String queryText, String component) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
-                .withParam(GqlParams.StringParam.component, component)
+                .withParam(GqlParams.StringParam.feat, "'%s'".formatted(component))
                 .withParam(GqlParams.StringParam.edition, "community edition")
                 .build();
         return new SecurityAdministrationException(gql, "Unsupported administration command: " + queryText);

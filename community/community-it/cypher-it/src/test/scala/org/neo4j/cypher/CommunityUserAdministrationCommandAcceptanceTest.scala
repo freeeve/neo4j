@@ -698,9 +698,11 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
 
   test("should not be able to create user with explicit status active in community") {
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "CREATE USER foo SET PASSWORD 'password' SET STATUS ACTIVE",
-      "Failed to create the specified user 'foo': 'SET STATUS' is not available in community edition."
+      "Failed to create the specified user 'foo': 'SET STATUS' is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'SET STATUS' is not supported in community edition."
     )
 
     // THEN
@@ -709,9 +711,11 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
 
   test("should not be able to create user with status suspended in community") {
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "CREATE USER foo SET PASSWORD 'password' SET STATUS SUSPENDED",
-      "Failed to create the specified user 'foo': 'SET STATUS' is not available in community edition."
+      "Failed to create the specified user 'foo': 'SET STATUS' is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'SET STATUS' is not supported in community edition."
     )
 
     // THEN
@@ -720,9 +724,11 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
 
   test("should not be able to create user with a default database in community") {
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "CREATE USER foo SET PASSWORD 'password' SET HOME DATABASE foo",
-      "Failed to create the specified user 'foo': 'HOME DATABASE' is not available in community edition."
+      "Failed to create the specified user 'foo': 'HOME DATABASE' is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'HOME DATABASE' is not supported in community edition."
     )
 
     // THEN
@@ -731,21 +737,27 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
 
   test("should not be able to create user with an external auth in community") {
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "CREATE USER foo SET AUTH 'bar' { SET ID 'baz' }",
-      "Failed to create the specified user 'foo': `SET AUTH 'bar'` is not available in community edition."
+      "Failed to create the specified user 'foo': `SET AUTH 'bar'` is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. External auth provider is not supported in community edition."
     )
 
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "CREATE USER foo SET AUTH 'bar' { SET ID 'baz' } SET AUTH 'baz' { SET ID 'qux' }",
-      "Failed to create the specified user 'foo': `SET AUTH 'bar'`, `SET AUTH 'baz'` are not available in community edition."
+      "Failed to create the specified user 'foo': `SET AUTH 'bar'`, `SET AUTH 'baz'` are not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. External auth provider is not supported in community edition."
     )
 
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "CREATE USER foo SET AUTH 'bar' { SET ID 'baz' } SET AUTH 'native' { SET PASSWORD 'password' }",
-      "Failed to create the specified user 'foo': `SET AUTH 'bar'` is not available in community edition."
+      "Failed to create the specified user 'foo': `SET AUTH 'bar'` is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. External auth provider is not supported in community edition."
     )
 
     // THEN
@@ -1703,27 +1715,35 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
   }
 
   test("should not be able to alter user status in community") {
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"ALTER USER $defaultUsername SET STATUS ACTIVE",
-      s"Failed to alter the specified user '$defaultUsername': 'SET STATUS' is not available in community edition."
+      s"Failed to alter the specified user '$defaultUsername': 'SET STATUS' is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'SET STATUS' is not supported in community edition."
     )
-    assertFailure(
+    assertFailureWithGQLStatus(
       s"ALTER USER $defaultUsername SET PASSWORD 'xxx' SET STATUS SUSPENDED",
-      s"Failed to alter the specified user '$defaultUsername': 'SET STATUS' is not available in community edition."
+      s"Failed to alter the specified user '$defaultUsername': 'SET STATUS' is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'SET STATUS' is not supported in community edition."
     )
   }
 
   test("should not be able to alter a users home database in community") {
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER USER foo SET HOME DATABASE foo",
-      "Failed to alter the specified user 'foo': 'HOME DATABASE' is not available in community edition."
+      "Failed to alter the specified user 'foo': 'HOME DATABASE' is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'HOME DATABASE' is not supported in community edition."
     )
 
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER USER foo REMOVE HOME DATABASE",
-      "Failed to alter the specified user 'foo': 'HOME DATABASE' is not available in community edition."
+      "Failed to alter the specified user 'foo': 'HOME DATABASE' is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'HOME DATABASE' is not supported in community edition."
     )
 
     // THEN
@@ -1732,21 +1752,27 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
 
   test("should not be able to alter external auths in community") {
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER USER foo SET AUTH 'bar' { SET ID 'baz' }",
-      "Failed to alter the specified user 'foo': `SET AUTH 'bar'` is not available in community edition."
+      "Failed to alter the specified user 'foo': `SET AUTH 'bar'` is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. External auth provider is not supported in community edition."
     )
 
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER USER foo SET AUTH 'bar' { SET ID 'baz' } SET AUTH 'baz' { SET ID 'qux' }",
-      "Failed to alter the specified user 'foo': `SET AUTH 'bar'`, `SET AUTH 'baz'` are not available in community edition."
+      "Failed to alter the specified user 'foo': `SET AUTH 'bar'`, `SET AUTH 'baz'` are not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. External auth provider is not supported in community edition."
     )
 
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER USER foo SET AUTH 'bar' { SET ID 'baz' } SET AUTH 'native' { SET PASSWORD 'password' }",
-      "Failed to alter the specified user 'foo': `SET AUTH 'bar'` is not available in community edition."
+      "Failed to alter the specified user 'foo': `SET AUTH 'bar'` is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. External auth provider is not supported in community edition."
     )
 
     // THEN
@@ -1755,32 +1781,42 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
 
   test("should not be able to remove auths in community") {
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER USER foo REMOVE AUTH 'bar'",
-      "Failed to alter the specified user 'foo': `REMOVE AUTH` is not available in community edition."
+      "Failed to alter the specified user 'foo': `REMOVE AUTH` is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'REMOVE AUTH' is not supported in community edition."
     )
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER USER foo REMOVE AUTH 'native'",
-      "Failed to alter the specified user 'foo': `REMOVE AUTH` is not available in community edition."
+      "Failed to alter the specified user 'foo': `REMOVE AUTH` is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'REMOVE AUTH' is not supported in community edition."
     )
 
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER USER foo REMOVE AUTH ['bar', 'baz']",
-      "Failed to alter the specified user 'foo': `REMOVE AUTH` is not available in community edition."
+      "Failed to alter the specified user 'foo': `REMOVE AUTH` is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'REMOVE AUTH' is not supported in community edition."
     )
 
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER USER foo REMOVE AUTH ['bar', 'native']",
-      "Failed to alter the specified user 'foo': `REMOVE AUTH` is not available in community edition."
+      "Failed to alter the specified user 'foo': `REMOVE AUTH` is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'REMOVE AUTH' is not supported in community edition."
     )
 
     // WHEN
-    assertFailure(
+    assertFailureWithGQLStatus(
       "ALTER USER foo REMOVE ALL AUTH",
-      "Failed to alter the specified user 'foo': `REMOVE AUTH` is not available in community edition."
+      "Failed to alter the specified user 'foo': `REMOVE AUTH` is not available in community edition.",
+      GqlStatusInfoCodes.STATUS_51N27,
+      "error: system configuration or operation exception - not supported in this edition. 'REMOVE AUTH' is not supported in community edition."
     )
 
     // THEN

@@ -123,9 +123,7 @@ case class CommunityAdministrationCommandRuntime(
     resolver.resolveDependency(classOf[UserSecurityGraphComponent])
 
   def throwCantCompile(unknownPlan: LogicalPlan): Nothing = {
-    throw new CantCompileQueryException(
-      s"Plan is not a recognized database administration command in community edition: ${unknownPlan.getClass.getSimpleName}"
-    )
+    throw CantCompileQueryException.planUnsupportedInCommunityEdition(unknownPlan.getClass.getSimpleName)
   }
 
   override def compileToExecutable(

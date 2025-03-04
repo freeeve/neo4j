@@ -21,6 +21,7 @@ package org.neo4j.cypher
 
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.exceptions.NotSystemDatabaseException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -47,17 +48,17 @@ abstract class CommunityAdministrationCommandAcceptanceTestBase extends Executio
   def assertFailureWithGQLStatus(
     command: String,
     errorMsg: String,
-    gqlStatus: GqlStatusInfoCodes,
+    gqlStatusCode: GqlStatusInfoCodes,
     statusDescription: String
   ): Unit = {
+    val gqlMatcher = gqlStatus(gqlStatusCode, statusDescription)
     val exception = the[Neo4jException] thrownBy {
       // WHEN
       execute(command)
     }
     // THEN
     exception should have message errorMsg
-    exception.gqlStatusObject().gqlStatus() should be(gqlStatus.getStatusString)
-    exception.gqlStatusObject().statusDescription() should be(statusDescription)
+    exception shouldBe gqlMatcher
   }
 
   def assertFailWhenNotOnSystem(command: String, errorMsgCommand: String): Unit = {

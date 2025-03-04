@@ -71,7 +71,7 @@ public class BasicSystemGraphRealm extends AuthManager {
 
     @Override
     public LoginContext impersonate(LoginContext originalAuth, String userToImpersonate) {
-        throw new InvalidArgumentException("Impersonation is not supported in community edition.");
+        throw InvalidArgumentException.unsupportedInCommunity("Impersonation");
     }
 
     private static void assertValidScheme(Map<String, Object> token) throws InvalidAuthTokenException {

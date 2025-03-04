@@ -31,6 +31,8 @@ import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.server.security.systemgraph.UserSecurityGraphComponent
 
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 case class AlterUserExecutionPlanner(
   normalExecutionEngine: ExecutionEngine,
   securityAuthorizationHandler: SecurityAuthorizationHandler,
@@ -39,30 +41,31 @@ case class AlterUserExecutionPlanner(
 ) {
 
   def planAlterUser(alterUser: AlterUser, sourcePlan: Option[ExecutionPlan]): ExecutionPlan = {
-    def failWithError(commands: String*): PredicateExecutionPlan = {
-      val commandString = commands.mkString(", ")
-      val verb = if (commands.size == 1) "is" else "are"
+    def failWithError(feature: String, commands: String*): PredicateExecutionPlan = {
       new PredicateExecutionPlan(
         (_, _) => false,
         sourcePlan,
         (params, _, _) => {
           val user = runtimeStringValue(alterUser.userName, params)
-          throw new CantCompileQueryException(
-            s"Failed to alter the specified user '$user': $commandString $verb not available in community edition."
+          throw CantCompileQueryException.actionUserUnsupportedInCommunityEdition(
+            feature,
+            "alter",
+            user,
+            commands.asJava
           )
         }
       )
     }
 
     if (alterUser.suspended.isDefined) { // Users are always active in community
-      failWithError("'SET STATUS'")
+      failWithError("'SET STATUS'", "'SET STATUS'")
     } else if (alterUser.defaultDatabase.isDefined) {
-      failWithError("'HOME DATABASE'")
+      failWithError("'HOME DATABASE'", "'HOME DATABASE'")
     } else if (alterUser.externalAuths.nonEmpty) { // There is no external auth in community
       val disallowedAuths = alterUser.externalAuths.map(e => s"`SET AUTH '${e.provider}'`")
-      failWithError(disallowedAuths: _*)
+      failWithError("External auth provider", disallowedAuths: _*)
     } else if (!alterUser.removeAuth.isEmpty) { // Not allowed to remove auth in community
-      failWithError("`REMOVE AUTH`")
+      failWithError("'REMOVE AUTH'", "`REMOVE AUTH`")
     } else {
       makeAlterUserExecutionPlan(
         userName = alterUser.userName,

@@ -73,6 +73,14 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, "Cannot impersonate a user from an already impersonated context");
     }
 
+    public static InvalidArgumentException unsupportedInCommunity(String feature) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
+                .withParam(GqlParams.StringParam.feat, feature)
+                .withParam(GqlParams.StringParam.edition, "community edition")
+                .build();
+        return new InvalidArgumentException(gql, "%s is not supported in community edition.".formatted(feature));
+    }
+
     @Override
     public Status status() {
         return Status.Statement.ArgumentError;

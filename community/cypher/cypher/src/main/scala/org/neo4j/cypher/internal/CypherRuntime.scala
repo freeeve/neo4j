@@ -183,7 +183,7 @@ case class UnknownRuntime(requestedRuntime: String) extends CypherRuntime[Runtim
     context: RuntimeContext,
     databaseMode: DatabaseMode
   ): ExecutionPlan = {
-    throw CantCompileQueryException.unsupportedRuntimeInThisVersion(String.valueOf(requestedRuntime))
+    throw CantCompileQueryException.unsupportedRuntimeInCommunityEdition(String.valueOf(requestedRuntime))
   }
 }
 
