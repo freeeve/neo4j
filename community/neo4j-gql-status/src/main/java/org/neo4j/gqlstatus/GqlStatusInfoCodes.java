@@ -1430,8 +1430,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N34(
             new GqlStatus("22N34"),
             """
-                    Cannot use the { %s } function inside an aggregate function.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
+                    Cannot use { %s } function inside an aggregate function.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.funType},
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "invalid use of aggregate function",

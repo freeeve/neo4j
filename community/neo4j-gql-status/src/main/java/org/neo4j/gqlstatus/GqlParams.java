@@ -76,6 +76,7 @@ public class GqlParams {
         format(new STRLIT()), // Duration format
         fun(new CALLABLE_IDENT()), // Function name
         funClass(new IDENT()), // Function implementation class name
+        funType(new VERBATIM()), // Function type, e.g. non-deterministic or aggregate
         graph(new IDENT()), // Graph name | myGrap
         graphTypeDependence1(new VERBATIM()), // GraphTypeDependence | independent
         graphTypeDependence2(new VERBATIM()),

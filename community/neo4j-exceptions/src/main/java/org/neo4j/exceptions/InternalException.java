@@ -45,6 +45,11 @@ public class InternalException extends Neo4jException {
         super(gqlStatusObject, message);
     }
 
+    public static InternalException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new InternalException(gql, message);
+    }
+
     public static InternalException foundNoSolutionForBlock(int blockSize, String blockCandidates, String table) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N24)
                 .build();

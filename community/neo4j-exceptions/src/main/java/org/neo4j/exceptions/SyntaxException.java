@@ -168,6 +168,15 @@ public class SyntaxException extends Neo4jException {
         return new SyntaxException(gql, legacyMsg, query, offset);
     }
 
+    public static SyntaxException invalidUseOfAggregateFunction(String functionType, String legacyMessage) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N34)
+                        .withParam(GqlParams.StringParam.funType, functionType)
+                        .build())
+                .build();
+        return new SyntaxException(gql, legacyMessage);
+    }
+
     @Override
     public Status status() {
         return Status.Statement.SyntaxError;
