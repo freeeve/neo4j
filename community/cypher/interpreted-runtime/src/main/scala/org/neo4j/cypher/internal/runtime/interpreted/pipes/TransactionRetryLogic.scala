@@ -32,7 +32,7 @@ import java.text.DecimalFormatSymbols
 import java.util.Locale
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.TimeUnit.SECONDS
-
+import scala.concurrent.duration.Duration
 import scala.concurrent.duration.MILLISECONDS
 
 /**
@@ -48,7 +48,7 @@ object TransactionRetryLogic {
     def shouldRetryAgain(): Boolean
     def nanosUntilRetry(): Long
 
-    def abortedReason: String
+    def retryTimeout: Duration
 
     override def compareTo(other: RetryState): Int = {
       java.lang.Long.compare(retryTimestamp, other.retryTimestamp)
@@ -58,7 +58,6 @@ object TransactionRetryLogic {
 
 trait TransactionRetryLogic {
   def newRetryState(): RetryState
-  def abortedReason: String
 }
 
 /**
@@ -93,14 +92,6 @@ case class ExponentialBackoffRetryLogic(
     val min = delayNanos - jitter
     val max = delayNanos + jitter
     ThreadLocalRandom.current.nextLong(min, max + 1)
-  }
-
-  private[this] val decimalFormat = new DecimalFormat("0.###", DecimalFormatSymbols.getInstance(Locale.ROOT))
-
-  override def abortedReason: String = {
-    val timeoutInSeconds = maxRetryTimeNanos.toDouble / SECONDS.toNanos(1)
-    val timeoutString = decimalFormat.format(timeoutInSeconds)
-    String.format("Retry timed out with a maximum retry duration of %s seconds", timeoutString)
   }
 }
 
@@ -147,7 +138,6 @@ object ExponentialBackoffRetryLogic {
       nanosUntilRetry
     }
 
-    override def abortedReason: String =
-      config.abortedReason
+    override def retryTimeout: Duration = Duration.fromNanos(config.maxRetryTimeNanos)
   }
 }

@@ -53,6 +53,8 @@ import org.neo4j.kernel.impl.util.collection.EagerBuffer
 import org.neo4j.kernel.impl.util.collection.EagerBuffer.createEagerBuffer
 import org.neo4j.memory.MemoryTracker
 
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.Duration
 import scala.util.Try
 import scala.util.control.NonFatal
 
@@ -366,7 +368,7 @@ sealed trait TransactionBatch {
   def computeNextRetryState(retryLogic: TransactionRetryLogic): RetryableTransactionBatch
   def shouldRetryAgain(): Boolean
   def retriedCount: Int
-  def abortedReason: String
+  def retryTimeout: Duration
 }
 
 class FreshTransactionBatch(val rows: EagerBuffer[CypherRow]) extends TransactionBatch {
@@ -384,8 +386,8 @@ class FreshTransactionBatch(val rows: EagerBuffer[CypherRow]) extends Transactio
 
   override def retriedCount: Int = 0
 
-  override def abortedReason: String =
-    throw new UnsupportedOperationException("abortedReason is not supported for FreshTransactionBatch")
+  override def retryTimeout: Duration =
+    throw new UnsupportedOperationException("retryTimeout is not supported for FreshTransactionBatch")
 }
 
 class RetryableTransactionBatch(
@@ -408,8 +410,8 @@ class RetryableTransactionBatch(
 
   override def retriedCount: Int = retryState.retryCount + 1
 
-  override def abortedReason: String =
-    retryState.abortedReason
+  override def retryTimeout: Duration =
+    retryState.retryTimeout
 
   override def toString: String =
     s"RetryableTransactionBatch(rowCount=${rows.size()}, retryState=$retryState, nextRetryState=$nextRetryState)"
@@ -583,7 +585,7 @@ object TransactionPipeWrapper {
           TransactionRetryAbortedException.transactionRetryAborted(
             failure,
             batch.retriedCount,
-            batch.abortedReason
+            batch.retryTimeout.toUnit(TimeUnit.SECONDS)
           )
         )
 
@@ -608,7 +610,7 @@ object TransactionPipeWrapper {
             TransactionRetryAbortedException.transactionRetryAborted(
               failure,
               batch.retriedCount,
-              batch.abortedReason
+              batch.retryTimeout.toUnit(TimeUnit.SECONDS)
             )
           ),
           null

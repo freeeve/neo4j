@@ -20,6 +20,8 @@
 package org.neo4j.gqlstatus;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 public class GqlHelper {
 
@@ -1113,6 +1115,16 @@ public class GqlHelper {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N22)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withParam(GqlParams.StringParam.db, database)
+                .build();
+    }
+
+    public static ErrorGqlStatusObject get50N23(int retries, double timeoutInSeconds) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N23)
+                .withParam(GqlParams.NumberParam.count, retries)
+                .withParam(GqlParams.NumberParam.timeAmount, timeoutInSeconds)
+                .withParam(
+                        GqlParams.StringParam.timeUnit,
+                        TimeUnit.SECONDS.toString().toLowerCase(Locale.ROOT))
                 .build();
     }
 

@@ -4202,6 +4202,17 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.GENERAL_PROCESSING_EXCEPTION,
             "invalid graph name",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_50N23(
+            new GqlStatus("50N23"),
+            """
+                    Transaction retry aborted after { %s } attempts. Retry timed out with a maximum retry duration of { %s } { %s }.""",
+            new GqlParams.GqlParam[] {
+                GqlParams.NumberParam.count, GqlParams.NumberParam.timeAmount, GqlParams.StringParam.timeUnit
+            },
+            emptyMap(),
+            Condition.GENERAL_PROCESSING_EXCEPTION,
+            "transaction retry timed out",
+            ErrorClassification.DATABASE_ERROR),
     STATUS_50N42(
             new GqlStatus("50N42"),
             """

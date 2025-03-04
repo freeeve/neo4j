@@ -20,19 +20,18 @@
 package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
-public class TransactionRetryAbortedException extends Neo4jException {
-    private TransactionRetryAbortedException(String message, Throwable cause) {
-        super(message, cause);
-    }
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
+public class TransactionRetryAbortedException extends Neo4jException {
     private TransactionRetryAbortedException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
-    }
-
-    private TransactionRetryAbortedException(String message) {
-        super(message);
     }
 
     private TransactionRetryAbortedException(ErrorGqlStatusObject gqlStatusObject, String message) {
@@ -44,13 +43,14 @@ public class TransactionRetryAbortedException extends Neo4jException {
         return Status.Statement.ExecutionTimeout;
     }
 
-    public static TransactionRetryAbortedException transactionRetryAborted(
-            Throwable cause, int retriedCount, String reason) {
-        // TODO: Add GQL status object
+    public static TransactionRetryAbortedException transactionRetryAborted(Throwable cause, int retriedCount, double timeoutInSeconds) {
+        var decimalFormat = new DecimalFormat("0.###", DecimalFormatSymbols.getInstance(Locale.ROOT));
+        var timeoutString = decimalFormat.format(timeoutInSeconds);
         return new TransactionRetryAbortedException(
+                GqlHelper.get50N23(retriedCount, timeoutInSeconds),
                 String.format(
-                        "Transaction retry aborted after %d attempts. %s. Last failed with cause: %s",
-                        retriedCount, reason, cause.getMessage()),
+                        "Transaction retry aborted after %d attempts. Retry timed out with a maximum retry duration of %s seconds. Last failed with cause: %s",
+                        retriedCount, timeoutString, cause.getMessage()),
                 cause);
     }
 }
