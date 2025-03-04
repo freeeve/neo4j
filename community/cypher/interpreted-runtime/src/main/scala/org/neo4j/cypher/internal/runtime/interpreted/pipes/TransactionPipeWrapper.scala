@@ -54,6 +54,7 @@ import org.neo4j.kernel.impl.util.collection.EagerBuffer.createEagerBuffer
 import org.neo4j.memory.MemoryTracker
 
 import java.util.concurrent.TimeUnit
+
 import scala.concurrent.duration.Duration
 import scala.util.Try
 import scala.util.control.NonFatal

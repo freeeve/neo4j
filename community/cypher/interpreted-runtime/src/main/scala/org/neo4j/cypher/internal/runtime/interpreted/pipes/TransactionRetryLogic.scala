@@ -27,11 +27,9 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExponentialBackoffRet
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExponentialBackoffRetryLogic.RETRY_DELAY_MULTIPLIER
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.TransactionRetryLogic.RetryState
 
-import java.text.DecimalFormat
-import java.text.DecimalFormatSymbols
-import java.util.Locale
 import java.util.concurrent.ThreadLocalRandom
 import java.util.concurrent.TimeUnit.SECONDS
+
 import scala.concurrent.duration.Duration
 import scala.concurrent.duration.MILLISECONDS
 
