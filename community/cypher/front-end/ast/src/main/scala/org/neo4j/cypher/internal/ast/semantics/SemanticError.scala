@@ -917,16 +917,17 @@ object SemanticError {
   }
 
   def invalidPlacementOfUseClause(pos: InputPosition): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(pos.offset, pos.line, pos.column)
-      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N73)
-        .atPosition(pos.offset, pos.line, pos.column)
-        .build())
-      .build()
-
     new SemanticError(
-      gql,
+      GqlHelper.getGql42001_42N73(pos.offset, pos.line, pos.column),
       "USE clause must be the first clause in a (sub-)query.",
+      pos
+    )
+  }
+
+  def invalidPlacementOfUseClauseVerboseLegacyMsg(pos: InputPosition): SemanticError = {
+    new SemanticError(
+      GqlHelper.getGql42001_42N73(pos.offset, pos.line, pos.column),
+      "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       pos
     )
   }

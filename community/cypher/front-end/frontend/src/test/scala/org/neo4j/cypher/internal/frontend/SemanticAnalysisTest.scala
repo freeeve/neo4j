@@ -695,6 +695,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN n
         |""".stripMargin
     run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      GqlHelper.getGql42001_42N73(11, 3, 1),
       "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       p(11, 3, 1)
     )
@@ -712,6 +713,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |""".stripMargin
 
     run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      GqlHelper.getGql42001_42N73(13, 3, 1),
       "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       p(13, 3, 1)
     )
@@ -728,6 +730,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |RETURN n
         |""".stripMargin
     run(query, pipelineWithUseAsSingleGraphSelector).hasError(
+      GqlHelper.getGql42001_42N73(11, 3, 1),
       "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       p(11, 3, 1)
     )

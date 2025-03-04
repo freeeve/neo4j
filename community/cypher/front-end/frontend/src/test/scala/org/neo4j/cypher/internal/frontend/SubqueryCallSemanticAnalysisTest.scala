@@ -779,6 +779,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN n
         |""".stripMargin
     run(query, withSingleGraph).hasError(
+      GqlHelper.getGql42001_42N73(34, 5, 3),
       "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       p(34, 5, 3)
     )
@@ -796,6 +797,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN a
         |""".stripMargin
     run(query, withSingleGraph).hasError(
+      GqlHelper.getGql42001_42N73(36, 5, 3),
       "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
       p(36, 5, 3)
     )

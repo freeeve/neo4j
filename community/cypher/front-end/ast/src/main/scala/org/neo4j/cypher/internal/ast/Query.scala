@@ -599,16 +599,10 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   private def checkUsePosition(): SemanticCheck = {
     val clauses = partitionedClauses.clausesExceptImportingWithAndLeadingGraphSelection
 
-    val message =
-      "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query."
-
     clauses.collect {
       case useGraph: UseGraph => useGraph
     }.foldSemanticCheck { clause =>
-      error(
-        message,
-        clause.position
-      )
+      error(SemanticError.invalidPlacementOfUseClauseVerboseLegacyMsg(clause.position))
     }
   }
 

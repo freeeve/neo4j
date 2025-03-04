@@ -32,6 +32,8 @@ import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.fabric.FabricTest
 import org.neo4j.fabric.FragmentTestUtils
@@ -40,6 +42,7 @@ import org.neo4j.fabric.planning.Fragment.Apply
 import org.neo4j.fabric.planning.Fragment.Leaf
 import org.neo4j.fabric.planning.Use.Declared
 import org.neo4j.fabric.planning.Use.Inherited
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.Inside
 
 class FabricFragmenterTest
@@ -56,7 +59,8 @@ class FabricFragmenterTest
   "USE handling: " - {
 
     "disallow USE inside fragment" in {
-      the[SyntaxException]
+
+      val e = the[SyntaxException]
         .thrownBy(
           fragment(
             """WITH 1 AS x
@@ -65,11 +69,18 @@ class FabricFragmenterTest
               |""".stripMargin
           )
         )
-        .getMessage
-        .should(include(
-          "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query."
-        ))
 
+      e should be(gqlException(
+        "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_42001,
+          "error: syntax error or access rule violation - invalid syntax"
+        ).withCause(
+          GqlStatusInfoCodes.STATUS_42N73,
+          "error: syntax error or access rule violation - invalid placement of USE clause. The USE clause must be the first clause of a query or an operand to '... UNION ...' . In a CALL sub-query, it can also be the second clause if the first clause is an importing WITH."
+        ),
+        fuzzyMsg = true
+      ))
     }
 
     "not propagate USE out" in {
@@ -261,7 +272,7 @@ class FabricFragmenterTest
     }
 
     "disallow USE at start of non-initial fragment" in {
-      the[SyntaxException]
+      val e = the[SyntaxException]
         .thrownBy(
           fragment(
             """WITH 1 AS x
@@ -273,10 +284,18 @@ class FabricFragmenterTest
               |""".stripMargin
           )
         )
-        .getMessage
-        .should(include(
-          "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query."
-        ))
+
+      e should be(gqlException(
+        "USE clause must be either the first clause in a (sub-)query or preceded by an importing WITH clause in a sub-query.",
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_42001,
+          "error: syntax error or access rule violation - invalid syntax"
+        ).withCause(
+          GqlStatusInfoCodes.STATUS_42N73,
+          "error: syntax error or access rule violation - invalid placement of USE clause. The USE clause must be the first clause of a query or an operand to '... UNION ...' . In a CALL sub-query, it can also be the second clause if the first clause is an importing WITH."
+        ),
+        fuzzyMsg = true
+      ))
     }
 
     "allow USE to reference outer variable" in {
