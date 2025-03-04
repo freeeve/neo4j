@@ -340,7 +340,8 @@ class CommunityShowFuncProcAcceptanceTest extends ExecutionEngineFunSuite with G
 
   private val allProceduresVerboseCypher5: List[Map[String, Any]] = readAll(procResourceUrl)
     .filterNot(m => m("enterpriseOnly").asInstanceOf[Boolean])
-    .map(m => m.view.filterKeys(k => !Seq("enterpriseOnly", "removedInCypher25").contains(k)).toMap)
+    .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(5))
+    .map(m => m.view.filterKeys(k => !Seq("enterpriseOnly", "cypherVersionScope").contains(k)).toMap)
     .map(m =>
       m.map {
         case ("rolesExecution", _)        => ("rolesExecution", null)
@@ -351,8 +352,8 @@ class CommunityShowFuncProcAcceptanceTest extends ExecutionEngineFunSuite with G
 
   private val allProceduresVerboseCypher25: List[Map[String, Any]] = readAll(procResourceUrl)
     .filterNot(m => m("enterpriseOnly").asInstanceOf[Boolean])
-    .filterNot(m => m("removedInCypher25").asInstanceOf[Boolean])
-    .map(m => m.view.filterKeys(k => !Seq("enterpriseOnly", "removedInCypher25").contains(k)).toMap)
+    .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(25))
+    .map(m => m.view.filterKeys(k => !Seq("enterpriseOnly", "cypherVersionScope").contains(k)).toMap)
     .map(m =>
       m.map {
         case ("rolesExecution", _)        => ("rolesExecution", null)

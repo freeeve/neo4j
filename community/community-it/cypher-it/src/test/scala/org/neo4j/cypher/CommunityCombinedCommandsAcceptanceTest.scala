@@ -69,12 +69,13 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
   private val allProceduresNamesCypher5 =
     readAll(procResourceUrl)
       .filterNot(m => m("enterpriseOnly").asInstanceOf[Boolean])
+      .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(5))
       .map(m => m("name").asInstanceOf[String])
 
   private val allProceduresNamesCypher25 =
     readAll(procResourceUrl)
       .filterNot(m => m("enterpriseOnly").asInstanceOf[Boolean])
-      .filterNot(m => m("removedInCypher25").asInstanceOf[Boolean])
+      .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(25))
       .map(m => m("name").asInstanceOf[String])
 
   private val defaultUsesCypher5 = dbmsDefaultQueryLanguage == CypherVersion.Cypher5

@@ -28,7 +28,7 @@
       "deprecated": true
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "cdc.earliest",
@@ -59,7 +59,7 @@
       "deprecated": true
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "cdc.query",
@@ -128,7 +128,7 @@
       "deprecated": true
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.awaitIndex",
@@ -166,7 +166,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.awaitIndexes",
@@ -198,7 +198,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.cdc.current",
@@ -229,7 +229,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.cdc.earliest",
@@ -260,7 +260,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.cdc.query",
@@ -329,7 +329,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.checkpoint",
@@ -366,7 +366,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.clearQueryCaches",
@@ -396,7 +396,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.create.setNodeVectorProperty",
@@ -439,7 +439,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.create.setRelationshipVectorProperty",
@@ -482,7 +482,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.create.setVectorProperty",
@@ -532,7 +532,7 @@
       "deprecated": true
     },
     "enterpriseOnly": false,
-    "removedInCypher25": true
+    "cypherVersionScope": [5]
   },
   {
     "name": "db.createLabel",
@@ -563,7 +563,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.createProperty",
@@ -594,7 +594,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.createRelationshipType",
@@ -625,7 +625,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.index.fulltext.awaitEventuallyConsistentIndexRefresh",
@@ -649,7 +649,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.index.fulltext.listAvailableAnalyzers",
@@ -692,7 +692,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.index.fulltext.queryNodes",
@@ -749,7 +749,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.index.fulltext.queryRelationships",
@@ -806,7 +806,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.index.vector.createNodeIndex",
@@ -861,7 +861,7 @@
       "deprecated": true
     },
     "enterpriseOnly": false,
-    "removedInCypher25": true
+    "cypherVersionScope": [5]
   },
   {
     "name": "db.index.vector.queryNodes",
@@ -917,7 +917,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.index.vector.queryRelationships",
@@ -973,7 +973,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.info",
@@ -1016,7 +1016,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.labels",
@@ -1047,7 +1047,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.listLocks",
@@ -1095,7 +1095,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.ping",
@@ -1126,7 +1126,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.prepareForReplanning",
@@ -1157,7 +1157,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.propertyKeys",
@@ -1188,7 +1188,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.relationshipTypes",
@@ -1219,7 +1219,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.resampleIndex",
@@ -1250,7 +1250,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.resampleOutdatedIndexes",
@@ -1274,7 +1274,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.schema.nodeTypeProperties",
@@ -1329,7 +1329,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.schema.relTypeProperties",
@@ -1378,7 +1378,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.schema.visualization",
@@ -1415,7 +1415,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.stats.clear",
@@ -1464,7 +1464,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.stats.collect",
@@ -1520,7 +1520,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.stats.retrieve",
@@ -1570,7 +1570,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.stats.retrieveAllAnonymized",
@@ -1620,7 +1620,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.stats.status",
@@ -1662,7 +1662,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.stats.stop",
@@ -1711,7 +1711,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.checkConfigValue",
@@ -1760,7 +1760,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": true,
@@ -1841,7 +1841,7 @@
     ],
     "mode": "DBMS",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": false,
@@ -1872,7 +1872,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.cluster.protocols",
@@ -1927,7 +1927,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": true,
@@ -1970,7 +1970,7 @@
     ],
     "mode": "DBMS",
     "enterpriseOnly": true,
-    "removedInCypher25": true
+    "cypherVersionScope": [5]
   },
   {
     "name": "dbms.cluster.routing.getRoutingTable",
@@ -2021,7 +2021,7 @@
       "deprecated": true
     },
     "enterpriseOnly": false,
-    "removedInCypher25": true
+    "cypherVersionScope": [5]
   },
   {
     "admin": true,
@@ -2064,7 +2064,7 @@
     ],
     "mode": "DBMS",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": false,
@@ -2095,7 +2095,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": true,
@@ -2193,7 +2193,7 @@
     },
     "mode": "DBMS",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": false,
@@ -2224,7 +2224,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": true
+    "cypherVersionScope": [5]
   },
 
   {
@@ -2306,7 +2306,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": false,
@@ -2387,7 +2387,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
 
   {
@@ -2469,7 +2469,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": false,
@@ -2544,7 +2544,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": false,
@@ -2619,7 +2619,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.components",
@@ -2662,7 +2662,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.info",
@@ -2705,7 +2705,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.killConnection",
@@ -2755,7 +2755,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.killConnections",
@@ -2805,7 +2805,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.listActiveLocks",
@@ -2855,7 +2855,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.listCapabilities",
@@ -2898,7 +2898,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.listConfig",
@@ -2978,7 +2978,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.listConnections",
@@ -3045,7 +3045,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.listPools",
@@ -3130,7 +3130,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.quarantineDatabase",
@@ -3192,7 +3192,7 @@
       "deprecated": true
     },
     "enterpriseOnly": true,
-    "removedInCypher25": true
+    "cypherVersionScope": [5]
   },
   {
     "name": "dbms.queryJmx",
@@ -3242,7 +3242,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.routing.getRoutingTable",
@@ -3293,7 +3293,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.scheduler.failedJobs",
@@ -3377,7 +3377,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.scheduler.groups",
@@ -3413,7 +3413,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.scheduler.jobs",
@@ -3503,7 +3503,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.security.clearAuthCache",
@@ -3526,7 +3526,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.setConfigValue",
@@ -3562,7 +3562,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": true,
@@ -3598,7 +3598,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": true,
@@ -3635,7 +3635,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": false,
@@ -3673,7 +3673,7 @@
     ],
     "mode": "WRITE",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.showCurrentUser",
@@ -3716,7 +3716,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "admin": true,
@@ -3770,7 +3770,7 @@
     "argumentDescription": [],
     "mode": "READ",
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.upgrade",
@@ -3806,7 +3806,7 @@
       "deprecated": true
     },
     "enterpriseOnly": false,
-    "removedInCypher25": true
+    "cypherVersionScope": [5]
   },
   {
     "name": "dbms.unquarantineDatabase",
@@ -3849,7 +3849,7 @@
       "deprecated": false
     },
     "enterpriseOnly": true,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "dbms.upgradeStatus",
@@ -3891,7 +3891,7 @@
       "deprecated": true
     },
     "enterpriseOnly": false,
-    "removedInCypher25": true
+    "cypherVersionScope": [5]
   },
   {
     "name": "tx.getMetaData",
@@ -3922,7 +3922,7 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "tx.setMetaData",
@@ -3953,6 +3953,6 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
-    "removedInCypher25": false
+    "cypherVersionScope": [5, 25]
   }
 ]
