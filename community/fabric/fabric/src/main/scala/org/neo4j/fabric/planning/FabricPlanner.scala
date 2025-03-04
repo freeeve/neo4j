@@ -158,7 +158,7 @@ case class FabricPlanner(
       val prepared = pipeline.parseAndPrepare.process()
 
       val fragmenter =
-        new FabricFragmenter(sessionDatabaseAlias, query.statement, prepared.statement(), prepared.semantics())
+        new FabricFragmenter(sessionDatabaseAlias, prepared.statement(), prepared.semantics())
       val fragments = fragmenter.fragment
 
       val compositeContext = useHelper.rootTargetsCompositeContext(fragments)

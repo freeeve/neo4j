@@ -36,7 +36,6 @@ import org.neo4j.fabric.planning.Fragment.Union
 
 class FabricFragmenter(
   defaultGraphName: String,
-  queryString: String,
   queryStatement: ast.Statement,
   semantics: ast.semantics.SemanticState
 ) {

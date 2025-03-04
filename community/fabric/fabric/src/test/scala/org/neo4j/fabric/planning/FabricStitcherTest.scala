@@ -19,9 +19,12 @@
  */
 package org.neo4j.fabric.planning
 
+import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.configuration.helpers.QueryLanguageConverter
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
+import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.fabric.FabricTest
 import org.neo4j.fabric.FragmentTestUtils
@@ -49,6 +52,9 @@ class FabricStitcherTest
 
   private val dummyQuery = ""
   private val dummyPipeline = pipeline("RETURN 1")
+
+  val systemDefaultLanguage: CypherVersion =
+    QueryLanguageConverter.toInternal(GraphDatabaseSettings.default_language.defaultValue)
 
   "Single-graph:" - {
 
@@ -491,4 +497,6 @@ class FabricStitcherTest
       }
     }
   }
+
+  override def scopedSignatures: ScopedProcedureSignatureResolver = scopedSignatures(systemDefaultLanguage)
 }

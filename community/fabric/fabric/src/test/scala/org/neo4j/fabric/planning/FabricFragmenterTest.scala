@@ -19,6 +19,8 @@
  */
 package org.neo4j.fabric.planning
 
+import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.configuration.helpers.QueryLanguageConverter
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
@@ -28,6 +30,7 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
+import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.fabric.FabricTest
@@ -46,7 +49,9 @@ class FabricFragmenterTest
     with FragmentTestUtils
     with AstConstructionTestSupport {
 
-  val resolveStrictly: Boolean = cypherConfig.systemDefaultLanguage != CypherVersion.Cypher5
+  val systemDefaultLanguage: CypherVersion =
+    QueryLanguageConverter.toInternal(GraphDatabaseSettings.default_language.defaultValue)
+  val resolveStrictly: Boolean = systemDefaultLanguage != CypherVersion.Cypher5
 
   "USE handling: " - {
 
@@ -906,4 +911,6 @@ class FabricFragmenterTest
 
   private def resolved(unresolved: FunctionInvocation): ResolvedFunctionInvocation =
     ResolvedFunctionInvocation(scopedSignatures.functionSignature)(unresolved)
+
+  override def scopedSignatures: ScopedProcedureSignatureResolver = scopedSignatures(systemDefaultLanguage)
 }

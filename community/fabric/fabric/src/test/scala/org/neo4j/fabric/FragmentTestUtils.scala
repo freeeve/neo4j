@@ -187,7 +187,7 @@ trait FragmentTestUtils {
 
   def fragment(query: String): Fragment = {
     val state = pipeline(query).parseAndPrepare.process()
-    val fragmenter = new FabricFragmenter(defaultGraphName, query, state.statement(), state.semantics())
+    val fragmenter = new FabricFragmenter(defaultGraphName, state.statement(), state.semantics())
     fragmenter.fragment
   }
 

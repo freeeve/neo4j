@@ -34,6 +34,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.configuration.helpers.QueryLanguageConverter;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.DefaultQueryLanguageScope;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
@@ -62,6 +64,8 @@ import scala.collection.immutable.HashSet;
 class ConstituentTransactionFactoryImplTest {
     private final String NL = System.lineSeparator();
     private final String validTargetDatabase = "target";
+    private final CypherVersion systemDefaultLanguage =
+            QueryLanguageConverter.toInternal(GraphDatabaseSettings.default_language.defaultValue());
 
     @Test
     void testWithoutPreParserOptions() throws QueryExecutionKernelException {
@@ -117,7 +121,7 @@ class ConstituentTransactionFactoryImplTest {
     }
 
     @Test
-    void testWhenTargetDatabaseIsNotAConstituentOfSessionDatabase() throws QueryExecutionKernelException {
+    void testWhenTargetDatabaseIsNotAConstituentOfSessionDatabase() {
         CypherQueryOptions queryOptions = CypherQueryOptions.defaultOptions();
         DatabaseTransaction innerTransaction = mock(DatabaseTransaction.class);
         var constituentTransactionFactory = getConstituentTransactionFactory(queryOptions, innerTransaction);
@@ -156,7 +160,7 @@ class ConstituentTransactionFactoryImplTest {
 
         QueryProcessor queryProcessor = mock(QueryProcessor.class);
         QueryOptions queryOptions =
-                QueryOptions.apply(InputPosition.NONE(), cypherQueryOptions, false, false, CypherVersion.Default);
+                QueryOptions.apply(InputPosition.NONE(), cypherQueryOptions, false, false, systemDefaultLanguage);
         StatementType statementType = StatementType.of(StatementType.Query());
         QueryProcessor.ProcessedQueryInfo processedQueryInfo = mock(QueryProcessor.ProcessedQueryInfo.class);
         when(queryProcessor.processQuery(any(), any(), any(), any(), any(), any()))

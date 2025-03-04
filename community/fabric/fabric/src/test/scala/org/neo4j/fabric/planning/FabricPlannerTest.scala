@@ -21,6 +21,8 @@ package org.neo4j.fabric.planning
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.CypherParallelRuntimeSupport
+import org.neo4j.configuration.GraphDatabaseSettings
+import org.neo4j.configuration.helpers.QueryLanguageConverter
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.CreateIndex
@@ -33,6 +35,7 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.expressions.NodePattern
 import org.neo4j.cypher.internal.expressions.SensitiveParameter
 import org.neo4j.cypher.internal.expressions.SensitiveStringLiteral
+import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
 import org.neo4j.cypher.internal.options.CypherDebugOption
 import org.neo4j.cypher.internal.options.CypherDebugOptions
@@ -104,6 +107,9 @@ class FabricPlannerTest
   private val planner = FabricPlanner(config, cypherConfig, monitors, cacheFactory)
   private val fabricName = "fabric"
   private val sessionGraphName = "session"
+
+  private val systemDefaultCypherVersion =
+    QueryLanguageConverter.toInternal(GraphDatabaseSettings.default_language.defaultValue)
 
   val fabricRef = new DatabaseReferenceImpl.Composite(
     new NormalizedDatabaseName(fabricName),
@@ -1845,4 +1851,6 @@ class FabricPlannerTest
         s"Expectation failed, got exception: ${exception.getMessage}"
       )
   }
+
+  override def scopedSignatures: ScopedProcedureSignatureResolver = scopedSignatures(systemDefaultCypherVersion)
 }

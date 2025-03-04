@@ -30,7 +30,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
-import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.compiler.helpers.SignatureResolver;
 import org.neo4j.cypher.internal.evaluator.StaticEvaluation;
 import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats;
@@ -111,7 +110,6 @@ public class FabricExecutor {
 
         var procedures = fabricTransaction.contextlessProcedures();
         var signatureResolver = SignatureResolver.from(procedures);
-        var evaluator = StaticEvaluation.from(procedures, CypherVersion.Default);
 
         try {
             var defaultGraphName = fabricTransaction.getTransactionInfo().getSessionDatabaseReference();
@@ -144,6 +142,8 @@ public class FabricExecutor {
                 log.debug(String.format("Fabric plan: %s", Fragment.pretty().asString(query)));
             }
 
+            var evaluator =
+                    StaticEvaluation.from(procedures, plannerInstance.query().resolvedLanguage());
             var statementResult = fabricTransaction.execute(ctx -> {
                 var useEvaluator =
                         useEvaluation.instance(evaluator, plannerInstance.signatureResolver(), statement, catalog);

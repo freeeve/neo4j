@@ -94,8 +94,8 @@ trait ProcedureSignatureResolverTestSupport {
     override def signatureVersion: Long = -1
   })
 
-  val scopedSignatures: ScopedProcedureSignatureResolver =
-    ScopedProcedureSignatureResolver.from(signatures, QueryLanguage.from(CypherVersion.Default))
+  def scopedSignatures(cypherVersion: CypherVersion): ScopedProcedureSignatureResolver =
+    ScopedProcedureSignatureResolver.from(signatures, QueryLanguage.from(cypherVersion))
 
   private def mkFunction(
     name: Seq[String],
