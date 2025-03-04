@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.automatic_upgrade_enabled;
 import static org.neo4j.dbms.database.ComponentVersion.DBMS_RUNTIME_COMPONENT;
 import static org.neo4j.dbms.database.SystemGraphComponent.VERSION_LABEL;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -131,27 +132,21 @@ public class FailingDatabaseUpgradeTransactionIT {
             }
         }
 
-        String dbNamePrefix = "["
-                + db.getDependencyResolver()
-                        .resolveDependency(NamedDatabaseId.class)
-                        .logPrefix() + "]";
+        String dbNamePrefix = db.getDependencyResolver()
+                .resolveDependency(NamedDatabaseId.class)
+                .logPrefix();
         LogAssertions.assertThat(logProvider)
-                .containsMessageWithArguments(
-                        dbNamePrefix
-                                + " Upgrade transaction from %s to %s not possible right now because maximum concurrently "
-                                + "executed transactions was reached, will retry on next write. If this persists "
-                                + "see setting %s.",
-                        oldKernelVersion,
-                        LatestVersions.LATEST_KERNEL_VERSION,
-                        GraphDatabaseSettings.max_concurrent_transactions.name())
-                .containsMessageWithArguments(
-                        dbNamePrefix + " Upgrade transaction from %s to %s started",
-                        oldKernelVersion,
-                        LatestVersions.LATEST_KERNEL_VERSION)
-                .doesNotContainMessageWithArguments(
-                        dbNamePrefix + " Upgrade transaction from %s to %s completed",
-                        oldKernelVersion,
-                        LatestVersions.LATEST_KERNEL_VERSION);
+                .containsMessages(
+                        "[%s] Upgrade transaction from %s to %s not possible right now because maximum concurrently executed transactions was reached, will retry on next write. If this persists see setting %s."
+                                .formatted(
+                                        dbNamePrefix,
+                                        oldKernelVersion,
+                                        LATEST_KERNEL_VERSION,
+                                        GraphDatabaseSettings.max_concurrent_transactions.name()),
+                        "[%s] Upgrade transaction from %s to %s started"
+                                .formatted(dbNamePrefix, oldKernelVersion, LATEST_KERNEL_VERSION))
+                .doesNotContainMessage("[%s] Upgrade transaction from %s to %s completed"
+                        .formatted(dbNamePrefix, oldKernelVersion, LATEST_KERNEL_VERSION));
 
         final var originalNodeCount = originalNodeCount();
         assertThat(getNodeCount()).as("tx triggering upgrade succeeded").isEqualTo(originalNodeCount + 1);
@@ -164,11 +159,9 @@ public class FailingDatabaseUpgradeTransactionIT {
         }
         assertThat(getNodeCount()).as("tx triggering upgrade succeeded").isEqualTo(originalNodeCount + 2);
         LogAssertions.assertThat(logProvider)
-                .containsMessageWithArguments(
-                        dbNamePrefix + " Upgrade transaction from %s to %s completed",
-                        oldKernelVersion,
-                        LatestVersions.LATEST_KERNEL_VERSION);
-        assertThat(kernelVersion()).isEqualTo(LatestVersions.LATEST_KERNEL_VERSION);
+                .containsMessages("[%s] Upgrade transaction from %s to %s completed"
+                        .formatted(dbNamePrefix, oldKernelVersion, LATEST_KERNEL_VERSION));
+        assertThat(kernelVersion()).isEqualTo(LATEST_KERNEL_VERSION);
     }
 
     private long getNodeCount() {

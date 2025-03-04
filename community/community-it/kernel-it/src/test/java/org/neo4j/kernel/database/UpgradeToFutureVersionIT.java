@@ -268,12 +268,11 @@ class UpgradeToFutureVersionIT {
 
         // Then
         LogAssertions.assertThat(logProvider)
-                .containsMessageWithArguments(
-                        "Upgrade transaction from %s to %s not possible right now due to conflicting transaction, will retry on next write",
-                        LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE)
-                .doesNotContainMessageWithArguments(
-                        "Upgrade transaction from %s to %s started",
-                        LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE);
+                .containsMessages(
+                        "Upgrade transaction from %s to %s not possible right now due to conflicting transaction, will retry on next write"
+                                .formatted(LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE))
+                .doesNotContainMessage("Upgrade transaction from %s to %s started"
+                        .formatted(LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE));
 
         assertThat(getNodeCount()).as("Both transactions succeeded").isEqualTo(numNodesBefore + 2);
         assertThat(kernelVersion()).isEqualTo(LatestVersions.LATEST_KERNEL_VERSION);
@@ -284,12 +283,11 @@ class UpgradeToFutureVersionIT {
         // Then
         assertThat(kernelVersion()).isEqualTo(KernelVersion.GLORIOUS_FUTURE);
         LogAssertions.assertThat(logProvider)
-                .containsMessageWithArguments(
-                        "Upgrade transaction from %s to %s started",
-                        LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE)
-                .containsMessageWithArguments(
-                        "Upgrade transaction from %s to %s completed",
-                        LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE);
+                .containsMessages(
+                        "Upgrade transaction from %s to %s started"
+                                .formatted(LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE),
+                        "Upgrade transaction from %s to %s completed"
+                                .formatted(LatestVersions.LATEST_KERNEL_VERSION, KernelVersion.GLORIOUS_FUTURE));
     }
 
     private long getNodeCount() {

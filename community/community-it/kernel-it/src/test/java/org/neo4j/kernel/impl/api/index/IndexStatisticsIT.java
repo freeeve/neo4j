@@ -111,7 +111,7 @@ class IndexStatisticsIT {
         assertThat(logProvider)
                 .forClass(IndexSamplingController.class)
                 .forLevel(DEBUG)
-                .containsMessages("Recovering index sampling for index %s", labelAndProperty);
+                .containsMessages("Recovering index sampling for index %s".formatted(labelAndProperty));
     }
 
     private int labelId(Label alien) {

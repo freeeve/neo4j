@@ -71,8 +71,9 @@ class SchemaLoggingIT {
 
         assertThat(logProvider)
                 .forLevel(INFO)
-                .containsMessageWithArguments("Index population started: [%s]", indexDescription)
-                .containsMessageWithArguments(CREATION_FINISHED, indexDescription);
+                .containsMessages(
+                        "Index population started: [%s]".formatted(indexDescription),
+                        CREATION_FINISHED.formatted(indexDescription));
     }
 
     private static long createIndex(GraphDatabaseAPI db, String labelName, String property, String name) {

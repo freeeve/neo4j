@@ -156,7 +156,7 @@ public class Neo4jConfigValidator implements ConfigValidator {
 
         @Override
         public void warn(String message) {
-            warn(Neo4jMessageSupplier.forMessage(message));
+            warn(message, (Throwable) null);
         }
 
         @Override
@@ -166,12 +166,12 @@ public class Neo4jConfigValidator implements ConfigValidator {
 
         @Override
         public void warn(String format, Object... arguments) {
-            warn(Neo4jMessageSupplier.forMessage(format, arguments));
+            warn(String.format(format, arguments), (Throwable) null);
         }
 
         @Override
         public void error(String message) {
-            error(Neo4jMessageSupplier.forMessage(message));
+            error(message, (Throwable) null);
         }
 
         @Override
@@ -181,7 +181,7 @@ public class Neo4jConfigValidator implements ConfigValidator {
 
         @Override
         public void error(String format, Object... arguments) {
-            error(Neo4jMessageSupplier.forMessage(format, arguments));
+            error(String.format(format, arguments), (Throwable) null);
         }
     }
 }

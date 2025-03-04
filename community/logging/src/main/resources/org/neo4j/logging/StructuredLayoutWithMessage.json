@@ -16,7 +16,9 @@
     "stackTraceEnabled": false
   },
   "message": {
-    "$resolver": "message"
+    "$resolver": "pattern",
+    "pattern": "%m",
+    "stackTraceEnabled": false
   },
   "includeFullMap": {
     "$resolver": "map",
