@@ -21,8 +21,8 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStatsNoOp
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.util._
 import org.neo4j.kernel.database.DatabaseReference
@@ -58,7 +58,7 @@ class ErrorCollectingContext(
 
   override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
 
-  override def internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStatsNoOp
+  override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
 
   override def sessionDatabase: DatabaseReference = {
     val outerComposite = isComposite

@@ -42,7 +42,7 @@ import org.neo4j.cypher.internal.cache.ExecutorBasedCaffeineCacheFactory;
 import org.neo4j.cypher.internal.compiler.CypherParsing;
 import org.neo4j.cypher.internal.compiler.CypherParsingConfig;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats;
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
@@ -163,9 +163,7 @@ public class CommunityQueryRouterBootstrap extends CommonQueryRouterBootstrap {
                 monitors.newMonitor(CacheTracer.class, MONITOR_TAG));
         var preParser = new PreParser(cypherConfig);
         var parsing = new CypherParsing(
-                null,
-                CypherParsingConfig.fromCypherConfiguration(cypherConfig),
-                resolve(InternalSyntaxUsageStats.class));
+                null, CypherParsingConfig.fromCypherConfiguration(cypherConfig), resolve(InternalUsageStats.class));
         DefaultDatabaseReferenceResolver databaseReferenceResolver =
                 new DefaultDatabaseReferenceResolver(databaseReferenceRepo);
         var databaseManager = (DatabaseContextProvider<DatabaseContext>) resolve(DatabaseContextProvider.class);

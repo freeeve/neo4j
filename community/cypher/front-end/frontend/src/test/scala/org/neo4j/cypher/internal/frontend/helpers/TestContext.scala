@@ -19,8 +19,8 @@ package org.neo4j.cypher.internal.frontend.helpers
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStatsNoOp
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
@@ -45,5 +45,5 @@ case class TestContext(
   override def errorHandler = _ => ()
   override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
   override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
-  override def internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStatsNoOp
+  override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
 }

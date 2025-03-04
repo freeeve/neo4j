@@ -32,7 +32,7 @@ import java.util.stream.Stream;
 import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.cypher.internal.compiler.helpers.SignatureResolver;
 import org.neo4j.cypher.internal.evaluator.StaticEvaluation;
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats;
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats;
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery;
 import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup;
 import org.neo4j.exceptions.InvalidSemanticsException;
@@ -77,7 +77,7 @@ public class FabricExecutor {
     private final QueryStatementLifecycles statementLifecycles;
     private final CallableExecutor fabricWorkerExecutor;
     private final QueryRoutingMonitor queryRoutingMonitor;
-    private final InternalSyntaxUsageStats internalSyntaxUsageStats;
+    private final InternalUsageStats internalUsageStats;
     private final DefaultQueryLanguageLookup defaultQueryLanguageLookup;
 
     public FabricExecutor(
@@ -88,7 +88,7 @@ public class FabricExecutor {
             QueryStatementLifecycles statementLifecycles,
             CallableExecutor fabricWorkerExecutor,
             Monitors monitors,
-            InternalSyntaxUsageStats internalSyntaxUsageStats,
+            InternalUsageStats internalUsageStats,
             DefaultQueryLanguageLookup defaultQueryLanguageLookup) {
         this.dataStreamConfig = config.getDataStream();
         this.planner = planner;
@@ -97,7 +97,7 @@ public class FabricExecutor {
         this.statementLifecycles = statementLifecycles;
         this.fabricWorkerExecutor = fabricWorkerExecutor;
         this.queryRoutingMonitor = monitors.newMonitor(QueryRoutingMonitor.class);
-        this.internalSyntaxUsageStats = internalSyntaxUsageStats;
+        this.internalUsageStats = internalUsageStats;
         this.defaultQueryLanguageLookup = defaultQueryLanguageLookup;
     }
 
@@ -126,7 +126,7 @@ public class FabricExecutor {
                     parameters,
                     defaultGraphName,
                     catalog,
-                    internalSyntaxUsageStats,
+                    internalUsageStats,
                     fabricTransaction.cancellationChecker(),
                     defaultLanguage);
             lifecycle.donePreParsing(plannerInstance.query());

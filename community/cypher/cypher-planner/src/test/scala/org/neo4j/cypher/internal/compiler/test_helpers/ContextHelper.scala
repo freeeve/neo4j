@@ -34,7 +34,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeInde
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy.NoInference
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.NO_TRACING
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
@@ -85,7 +85,7 @@ object ContextHelper extends MockitoSugar {
     databaseReferenceRepository: DatabaseReferenceRepository = mockDatabaseReferenceRepository,
     databaseId: NamedDatabaseId = mockDatabaseId,
     internalNotificationStats: InternalNotificationStats = new InternalNotificationStats(),
-    internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStats.newImpl(),
+    internalSyntaxUsageStats: InternalUsageStats = InternalUsageStats.newImpl(),
     labelInferenceStrategy: LabelInferenceStrategy = NoInference,
     sessionDatabase: DatabaseReference = null
   ): PlannerContext = {

@@ -32,7 +32,7 @@ import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InitialState
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.macros.AssertMacros
@@ -50,7 +50,7 @@ import org.neo4j.values.virtual.MapValue
 class CypherParsing(
   monitors: Monitors,
   config: CypherParsingConfig,
-  internalSyntaxUsageStats: InternalSyntaxUsageStats
+  internalSyntaxUsageStats: InternalUsageStats
 ) {
 
   def parseQuery(

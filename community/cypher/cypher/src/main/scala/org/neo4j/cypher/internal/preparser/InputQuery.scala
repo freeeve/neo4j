@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
+import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
 import org.neo4j.cypher.internal.options.CypherQueryOptions
 import org.neo4j.cypher.internal.options.CypherReplanOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
@@ -153,6 +154,11 @@ case class QueryOptions(
   def withQueryLanguage(language: CypherVersion): QueryOptions =
     copy(queryOptions =
       queryOptions.copy(cypherVersion = CypherVersionOption.values.find(_.explicitVersion.contains(language)).get)
+    )
+
+  def withInferSchemaPartsOption(inferSchemaPartsOption: CypherInferSchemaPartsOption): QueryOptions =
+    copy(queryOptions =
+      queryOptions.copy(inferSchemaParts = inferSchemaPartsOption)
     )
 
   /**

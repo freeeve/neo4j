@@ -19,18 +19,31 @@ package org.neo4j.cypher.internal.frontend.phases;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 
-public final class InternalSyntaxUsageStatsImpl implements InternalSyntaxUsageStats {
+public final class InternalUsageStatsImpl implements InternalUsageStats {
 
-    private final ConcurrentHashMap<SyntaxUsageMetricKey, LongAdder> counts = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<SyntaxUsageMetricKey, LongAdder> syntaxUsageCounts = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<SchemaInferenceUsageMetricKey, LongAdder> labelInferenceUsageCounts =
+            new ConcurrentHashMap<>();
 
     @Override
     public void incrementSyntaxUsageCount(SyntaxUsageMetricKey key) {
-        counts.computeIfAbsent(key, k -> new LongAdder()).increment();
+        syntaxUsageCounts.computeIfAbsent(key, k -> new LongAdder()).increment();
     }
 
     @Override
     public long getSyntaxUsageCount(SyntaxUsageMetricKey key) {
-        var count = counts.get(key);
+        var count = syntaxUsageCounts.get(key);
+        return count == null ? 0L : count.longValue();
+    }
+
+    @Override
+    public void incrementSchemaInferenceUsageCount(SchemaInferenceUsageMetricKey key) {
+        labelInferenceUsageCounts.computeIfAbsent(key, k -> new LongAdder()).increment();
+    }
+
+    @Override
+    public long getSchemaInferenceUsageCount(SchemaInferenceUsageMetricKey key) {
+        var count = labelInferenceUsageCounts.get(key);
         return count == null ? 0L : count.longValue();
     }
 }

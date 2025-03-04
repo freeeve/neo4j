@@ -129,13 +129,13 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
     stats.getSyntaxUsageCount(SyntaxUsageMetricKey.QUANTIFIED_PATH_PATTERN) should be(1)
   }
 
-  private def runPipeline(version: CypherVersion, query: String): InternalSyntaxUsageStats = {
+  private def runPipeline(version: CypherVersion, query: String): InternalUsageStats = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
     val context = new ErrorCollectingContext(version) {
-      override val internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStats.newImpl()
+      override val internalUsageStats: InternalUsageStats = InternalUsageStats.newImpl()
     }
     pipeline.transform(startState, context)
 
-    context.internalSyntaxUsageStats
+    context.internalUsageStats
   }
 }

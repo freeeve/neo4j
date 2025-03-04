@@ -51,7 +51,7 @@ object ContextHelper extends MockitoSugar {
 
       override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
 
-      override def internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStatsNoOp
+      override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
 
       override def sessionDatabase: DatabaseReference = sessionDatabaseReference
     }

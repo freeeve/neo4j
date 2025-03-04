@@ -32,7 +32,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.QueryGraphSolver
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInferSchemaPartsOption
@@ -63,7 +63,7 @@ class BaseContextImpl(
   override val notificationLogger: InternalNotificationLogger,
   override val monitors: Monitors,
   override val cancellationChecker: CancellationChecker,
-  override val internalSyntaxUsageStats: InternalSyntaxUsageStats,
+  override val internalUsageStats: InternalUsageStats,
   val sessionDatabase: DatabaseReference
 ) extends BaseContext {
 
@@ -83,7 +83,7 @@ object BaseContextImpl {
     offset: Option[InputPosition],
     monitors: Monitors,
     cancellationChecker: CancellationChecker,
-    internalSyntaxUsageStats: InternalSyntaxUsageStats,
+    internalSyntaxUsageStats: InternalUsageStats,
     sessionDatabase: DatabaseReference
   ): BaseContextImpl = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
@@ -124,7 +124,7 @@ class PlannerContext(
   val databaseId: NamedDatabaseId,
   val log: Log,
   val internalNotificationStats: InternalNotificationStats,
-  internalSyntaxUsageStats: InternalSyntaxUsageStats,
+  internalSyntaxUsageStats: InternalUsageStats,
   val labelInferenceStrategy: LabelInferenceStrategy,
   override val sessionDatabase: DatabaseReference
 ) extends BaseContextImpl(
@@ -203,7 +203,7 @@ object PlannerContext {
     databaseId: NamedDatabaseId,
     log: Log,
     internalNotificationStats: InternalNotificationStats,
-    internalSyntaxUsageStats: InternalSyntaxUsageStats,
+    internalUsageStats: InternalUsageStats,
     sessionDatabase: DatabaseReference
   ): PlannerContext = {
     val exceptionFactory = Neo4jCypherExceptionFactory(queryText, offset)
@@ -242,7 +242,7 @@ object PlannerContext {
       databaseId,
       log,
       internalNotificationStats,
-      internalSyntaxUsageStats,
+      internalUsageStats,
       labelInferenceStrategy,
       sessionDatabase
     )

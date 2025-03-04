@@ -28,7 +28,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.cypher.internal.cache.ExecutorBasedCaffeineCacheFactory;
 import org.neo4j.cypher.internal.config.CypherConfiguration;
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats;
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
@@ -132,7 +132,7 @@ public abstract class FabricServicesBootstrap extends CommonQueryRouterBootstrap
 
         var globalProcedures = resolve(GlobalProcedures.class);
 
-        var internalSyntaxUsageStats = resolve(InternalSyntaxUsageStats.class);
+        var internalSyntaxUsageStats = resolve(InternalUsageStats.class);
 
         var executor = jobScheduler.executor(Group.FABRIC_WORKER);
 

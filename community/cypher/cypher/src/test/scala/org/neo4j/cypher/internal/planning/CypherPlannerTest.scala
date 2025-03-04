@@ -40,6 +40,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.steps.ExistsSubqueryPl
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.NO_TRACING
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsImpl
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.options.CypherConnectComponentsPlannerOption
 import org.neo4j.cypher.internal.options.CypherPlannerOption
@@ -288,7 +289,7 @@ class CypherPlannerTest extends CypherFunSuite {
       CypherPlannerOption.default,
       null,
       null,
-      null
+      new InternalUsageStatsImpl
     )
 
     val query =

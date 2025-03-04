@@ -16,8 +16,12 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
-case object InternalSyntaxUsageStatsNoOp extends InternalSyntaxUsageStats {
+case object InternalUsageStatsNoOp extends InternalUsageStats {
   override def incrementSyntaxUsageCount(key: SyntaxUsageMetricKey): Unit = ()
 
   override def getSyntaxUsageCount(key: SyntaxUsageMetricKey): Long = 0
+
+  override def incrementSchemaInferenceUsageCount(key: SchemaInferenceUsageMetricKey): Unit = ()
+
+  override def getSchemaInferenceUsageCount(key: SchemaInferenceUsageMetricKey): Long = 0
 }

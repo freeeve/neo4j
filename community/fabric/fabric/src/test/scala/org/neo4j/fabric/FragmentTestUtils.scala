@@ -37,7 +37,7 @@ import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.phases.BaseState
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStatsNoOp
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
@@ -181,7 +181,7 @@ trait FragmentTestUtils {
       params,
       CancellationChecker.NeverCancelled,
       devNullLogger,
-      InternalSyntaxUsageStatsNoOp,
+      InternalUsageStatsNoOp,
       null
     )
 

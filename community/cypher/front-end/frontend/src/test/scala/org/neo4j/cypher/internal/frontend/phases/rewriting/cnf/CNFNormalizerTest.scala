@@ -35,8 +35,8 @@ import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InitialState
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStatsNoOp
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting.SemanticAnalysisPossible
@@ -283,6 +283,6 @@ class TestContext(
   override def errorHandler: Seq[SemanticErrorDef] => Unit = _ => ()
   override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
   override def cancellationChecker: CancellationChecker = CancellationChecker.NeverCancelled
-  override def internalSyntaxUsageStats: InternalSyntaxUsageStats = InternalSyntaxUsageStatsNoOp
+  override def internalUsageStats: InternalUsageStats = InternalUsageStatsNoOp
   override def sessionDatabase: DatabaseReference = null
 }

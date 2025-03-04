@@ -100,7 +100,7 @@ object LabelInferenceStrategy {
     ): (LabelInfo, QueryGraphCardinalityContext) = (labelInfo, context)
   }
 
-  final private class InferOnlyIfNoOtherLabel(planContext: PlanContext) extends LabelInferenceStrategy {
+  final class InferOnlyIfNoOtherLabel(planContext: PlanContext) extends LabelInferenceStrategy {
 
     private val cachedLabelName: Int => String = CachedFunction(planContext.getLabelName)
 

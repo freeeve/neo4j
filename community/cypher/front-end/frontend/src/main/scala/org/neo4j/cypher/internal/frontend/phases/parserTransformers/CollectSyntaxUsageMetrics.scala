@@ -52,7 +52,7 @@ case object CollectSyntaxUsageMetrics
 
   override def visit(state: BaseState, context: BaseContext): Unit = {
     def increaseMetric(key: SyntaxUsageMetricKey): Unit = {
-      context.internalSyntaxUsageStats.incrementSyntaxUsageCount(key)
+      context.internalUsageStats.incrementSyntaxUsageCount(key)
     }
 
     state.statement().folder.treeForeach {

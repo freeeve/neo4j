@@ -39,7 +39,7 @@ import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.InitialState
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.options.CypherExecutionMode
 import org.neo4j.cypher.internal.planner.spi.PlannerNameFor
@@ -105,7 +105,7 @@ case class FabricFrontEnd(
     params: MapValue,
     cancellationChecker: CancellationChecker,
     notificationLogger: InternalNotificationLogger,
-    internalSyntaxUsageStats: InternalSyntaxUsageStats,
+    internalSyntaxUsageStats: InternalUsageStats,
     sessionDatabase: DatabaseReference
   ) {
 

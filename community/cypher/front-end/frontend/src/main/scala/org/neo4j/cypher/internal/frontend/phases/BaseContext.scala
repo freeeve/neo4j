@@ -33,6 +33,6 @@ trait BaseContext {
   def errorHandler: Seq[SemanticErrorDef] => Unit
   def errorMessageProvider: ErrorMessageProvider
   def cancellationChecker: CancellationChecker
-  def internalSyntaxUsageStats: InternalSyntaxUsageStats
+  def internalUsageStats: InternalUsageStats
   def sessionDatabase: DatabaseReference
 }

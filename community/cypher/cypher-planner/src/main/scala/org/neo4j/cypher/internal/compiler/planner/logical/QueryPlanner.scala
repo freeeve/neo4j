@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.compiler.planner.ResolveTokens
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext.Settings
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext.StaticComponents
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolverInput
+import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPLogger
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CostComparisonListener
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProducer
@@ -39,6 +40,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.LOGICAL_PLANNING
 import org.neo4j.cypher.internal.frontend.phases.CopyQuantifiedPathPatternPredicatesToJuxtaposedNodes
 import org.neo4j.cypher.internal.frontend.phases.Phase
+import org.neo4j.cypher.internal.frontend.phases.SchemaInferenceUsageMetricKey
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
 import org.neo4j.cypher.internal.ir.PlannerQuery
@@ -64,6 +66,14 @@ case object QueryPlanner
 
   override def process(from: LogicalPlanState, context: PlannerContext): LogicalPlanState = {
     val logicalPlanningContext = getLogicalPlanningContext(from, context)
+
+    // Update the schema inference usage metrics
+    val maybeLabelInferenceMetricKey = context.labelInferenceStrategy match {
+      case _: LabelInferenceStrategy.NoInference.type        => Some(SchemaInferenceUsageMetricKey.OFF)
+      case _: LabelInferenceStrategy.InferOnlyIfNoOtherLabel => Some(SchemaInferenceUsageMetricKey.MOST_SELECTIVE_LABEL)
+      case _                                                 => None
+    }
+    maybeLabelInferenceMetricKey.foreach(context.internalUsageStats.incrementSchemaInferenceUsageCount)
 
     // Not using from.returnColumns, since they are the original ones given by the user,
     // whereas the one in the statement might have been rewritten and contain the variables

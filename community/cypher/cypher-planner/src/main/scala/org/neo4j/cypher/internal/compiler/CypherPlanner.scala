@@ -36,7 +36,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.debug.DebugPrinter
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
 import org.neo4j.cypher.internal.frontend.phases.Monitors
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
@@ -60,7 +60,7 @@ object CypherPlanner {
     parsingConfig: CypherParsingConfig,
     plannerConfig: CypherPlannerConfiguration,
     clock: Clock,
-    internalSyntaxUsageStats: InternalSyntaxUsageStats
+    internalSyntaxUsageStats: InternalUsageStats
   ): CypherPlanner[Context] = {
     val metricsFactory = CachedSimpleMetricsFactory
     CypherPlanner(monitors, metricsFactory, parsingConfig, plannerConfig, clock, internalSyntaxUsageStats)
@@ -73,7 +73,7 @@ case class CypherPlanner[Context <: PlannerContext](
   parsingConfig: CypherParsingConfig,
   plannerConfig: CypherPlannerConfiguration,
   clock: Clock,
-  internalSyntaxUsageStats: InternalSyntaxUsageStats
+  internalSyntaxUsageStats: InternalUsageStats
 ) {
 
   private val parsing = new CypherParsing(monitors, parsingConfig, internalSyntaxUsageStats)

@@ -24,8 +24,8 @@ import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.cache.CacheSize
 import org.neo4j.cypher.internal.cache.CaffeineCacheFactory
 import org.neo4j.cypher.internal.config.CypherConfiguration
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStats
-import org.neo4j.cypher.internal.frontend.phases.InternalSyntaxUsageStatsNoOp
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStats
+import org.neo4j.cypher.internal.frontend.phases.InternalUsageStatsNoOp
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignatureResolver
 import org.neo4j.cypher.internal.frontend.phases.QueryLanguage
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
@@ -78,7 +78,7 @@ case class FabricPlanner(
       queryParams,
       sessionDatabase,
       catalog,
-      InternalSyntaxUsageStatsNoOp,
+      InternalUsageStatsNoOp,
       CancellationChecker.NeverCancelled,
       defaultLanguage
     )
@@ -89,7 +89,7 @@ case class FabricPlanner(
     queryParams: MapValue,
     sessionDatabase: DatabaseReference,
     catalog: Catalog,
-    internalSyntaxUsageStats: InternalSyntaxUsageStats,
+    internalSyntaxUsageStats: InternalUsageStats,
     cancellationChecker: CancellationChecker,
     defaultLanguage: CypherVersion
   ): PlannerInstance = {
@@ -120,7 +120,7 @@ case class FabricPlanner(
     catalog: Catalog,
     cancellationChecker: CancellationChecker,
     notificationLogger: InternalNotificationLogger,
-    internalSyntaxUsageStats: InternalSyntaxUsageStats
+    internalSyntaxUsageStats: InternalUsageStats
   ) {
 
     private lazy val pipeline =

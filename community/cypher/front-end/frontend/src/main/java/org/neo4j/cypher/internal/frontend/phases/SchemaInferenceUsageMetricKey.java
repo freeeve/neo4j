@@ -16,12 +16,13 @@
  */
 package org.neo4j.cypher.internal.frontend.phases;
 
-public interface InternalSyntaxUsageStats {
-    void incrementSyntaxUsageCount(SyntaxUsageMetricKey key);
+public enum SchemaInferenceUsageMetricKey {
+    OFF("OFF"),
+    MOST_SELECTIVE_LABEL("MOST_SELECTIVE_LABEL");
 
-    long getSyntaxUsageCount(SyntaxUsageMetricKey key);
+    public final String key;
 
-    static InternalSyntaxUsageStats newImpl() {
-        return new InternalSyntaxUsageStatsImpl();
+    SchemaInferenceUsageMetricKey(String key) {
+        this.key = key;
     }
 }
