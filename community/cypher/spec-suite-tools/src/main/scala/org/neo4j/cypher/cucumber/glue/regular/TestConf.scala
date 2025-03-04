@@ -34,8 +34,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
  * @param useEnterprise true if enterprise edition should be used
  * @param useSpd true if spd should be used
  * @param preparserOptions pre-parser options
- * @param expectFailureTags scenarios with these tags are expected to fail
- * @param ignoreTags scenarios with these tags are expected to pass
+ * @param tagContext base for fails: and ignore: tags
  */
 case class TestConf(
   neo4jConf: Settings,
@@ -43,10 +42,15 @@ case class TestConf(
   useEnterprise: Boolean,
   useSpd: Boolean,
   preparserOptions: Map[String, String],
-  expectFailureTags: Set[String],
-  ignoreTags: Set[String]
+  private val tagContext: Set[String]
 ) {
   val preparserPrefix: String = TestConf.preParserPrefix(preparserOptions)
+
+  /** Scenarios with these tags are expected to fail. */
+  val expectFailureTags = tagContext.map(name => Tag.FailsPrefix + name) + Tag.FailsAll
+
+  /** Scenarios with these tags are not run. */
+  val ignoreTags = tagContext.map(name => Tag.IgnorePrefix + name) + Tag.IgnoreAll
 }
 
 object TestConf {
@@ -58,7 +62,7 @@ object TestConf {
     useEnterprise: Boolean = true,
     useSpd: Boolean = false,
     preparserOptions: Map[String, String] = Map.empty,
-    tagContext: Set[String]
+    tagContext: Set[String] = Set.empty
   ): TestConf = {
     val fullNeo4jConf = Seq(
       Some("server.memory.query_cache.per_db_cache_num_entries" -> "64"),
@@ -72,152 +76,197 @@ object TestConf {
       .setRaw(fullNeo4jConf.view.filterKeys(_ == GraphDatabaseSettings.db_format.name()).toMap.asJava)
       .build()
       .get(GraphDatabaseSettings.db_format)
-    val dbFormatFailsTag = s"${Tag.FailsPrefix}db-format-$dbFormat"
-    val dbFormatIgnoreTag = s"${Tag.IgnorePrefix}db-format-$dbFormat"
+    val dbFormatTagContext = s"db-format-$dbFormat"
 
-    val failureTags = tagContext.map(name => Tag.FailsPrefix + name) + Tag.FailsAll + dbFormatFailsTag
-    val ignoreTags = tagContext.map(name => Tag.IgnorePrefix + name) + Tag.IgnoreAll + dbFormatIgnoreTag
-    new TestConf(fullNeo4jConf, useBolt, useEnterprise, useSpd, preparserOptions, failureTags, ignoreTags)
+    new TestConf(fullNeo4jConf, useBolt, useEnterprise, useSpd, preparserOptions, tagContext + dbFormatTagContext)
   }
 
-  // Cypher 25
-  // =========
+  def withCypher5(base: TestConf): TestConf = base.copy(
+    tagContext = base.tagContext.incl("cypher-5")
+  )
 
-  object Cypher25 extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Cypher25$ObjectFactory"
+  def withCypher25(base: TestConf): TestConf = base.copy(
+    neo4jConf = base.neo4jConf ++ Seq(
+      "internal.db.query.default_language" -> "cypher_25",
+      "internal.dbms.cypher.enable_experimental_versions" -> "true"
+    ),
+    tagContext = base.tagContext.incl("cypher-25")
+  )
 
-    final override val conf: TestConf = TestConf(
-      neo4jConf = Map(
-        "internal.db.query.default_language" -> "cypher_25",
-        "internal.dbms.cypher.enable_experimental_versions" -> "true"
-      ),
-      tagContext = Set("cypher-25")
-    )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+  object Default {
+    private def baseConf: TestConf = TestConf()
+
+    object Cypher25 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Default$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Default$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
   }
 
-  object Cypher25Bolt extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Cypher25Bolt$ObjectFactory"
+  object DefaultBolt {
 
-    final override val conf: TestConf = TestConf(
-      neo4jConf = Map(
-        "server.bolt.enabled" -> "true",
-        "internal.db.query.default_language" -> "cypher_25",
-        "internal.dbms.cypher.enable_experimental_versions" -> "true"
-      ),
-      useBolt = true,
-      tagContext = Set("cypher-25")
-    )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
-  }
-
-  object Cypher25Parallel extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Cypher25Parallel$ObjectFactory"
-
-    final override val conf: TestConf = TestConf(
-      neo4jConf = Map(
-        "internal.db.query.default_language" -> "cypher_25",
-        "internal.dbms.cypher.enable_experimental_versions" -> "true"
-      ),
-      preparserOptions = Map("runtime" -> "parallel"),
-      tagContext = Set("cypher-25", "parallel-runtime")
-    )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
-  }
-
-  // Cypher 5
-  // ========
-
-  object Default extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Default$ObjectFactory"
-
-    final override val conf: TestConf = TestConf(
-      tagContext = Set("cypher-5")
-    )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
-  }
-
-  object DefaultBolt extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$DefaultBolt$ObjectFactory"
-
-    final override val conf: TestConf = TestConf(
+    private def baseConf: TestConf = TestConf(
       neo4jConf = Map("server.bolt.enabled" -> "true"),
-      useBolt = true,
-      tagContext = Set("cypher-5")
+      useBolt = true
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+
+    object Cypher25 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$DefaultBolt$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$DefaultBolt$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
   }
 
-  object Pipelined extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Pipelined$ObjectFactory"
+  object Pipelined {
 
-    final override val conf: TestConf = TestConf(
+    private def baseConf: TestConf = TestConf(
       preparserOptions = Map("runtime" -> "pipelined"),
-      tagContext = Set("cypher-5", "pipelined-runtime")
+      tagContext = Set("pipelined-runtime")
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+
+    object Cypher25 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Pipelined$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Pipelined$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
   }
 
-  object PipelinedFallback extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$PipelinedFallback$ObjectFactory"
+  object PipelinedFallback {
 
-    final override val conf: TestConf = TestConf(
+    private def baseConf: TestConf = TestConf(
       preparserOptions = Map(
         "runtime" -> "pipelined",
         "interpretedPipesFallback" -> "all"
       ),
-      tagContext = Set("cypher-5", "pipelined-runtime", "pipelined-fallback")
+      tagContext = Set("pipelined-runtime", "pipelined-fallback")
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+
+    object Cypher25 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$PipelinedFallback$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$PipelinedFallback$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
   }
 
-  object Slotted extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Slotted$ObjectFactory"
+  object Slotted {
 
-    final override val conf: TestConf = TestConf(
-      preparserOptions = Map("runtime" -> "slotted"),
-      tagContext = Set("cypher-5")
+    private def baseConf: TestConf = TestConf(
+      preparserOptions = Map("runtime" -> "slotted")
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+
+    object Cypher25 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Slotted$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Slotted$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
   }
 
-  object SlottedCompiled extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SlottedCompiled$ObjectFactory"
+  object SlottedCompiled {
 
-    final override val conf: TestConf = TestConf(
+    private def baseConf: TestConf = TestConf(
       preparserOptions = Map(
         "runtime" -> "slotted",
         "expressionEngine" -> "compiled"
-      ),
-      tagContext = Set("cypher-5")
+      )
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+
+    object Cypher25 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$SlottedCompiled$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$SlottedCompiled$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
   }
 
-  object Parallel extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Parallel$ObjectFactory"
+  object Parallel {
 
-    final override val conf: TestConf = TestConf(
+    private def baseConf: TestConf = TestConf(
       preparserOptions = Map("runtime" -> "parallel"),
-      tagContext = Set("cypher-5", "parallel-runtime")
+      tagContext = Set("parallel-runtime")
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+
+    object Cypher25 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Parallel$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Parallel$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
   }
 
-  object ParallelBolt extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelBolt$ObjectFactory"
+  object ParallelBolt {
 
-    final override val conf: TestConf = TestConf(
+    private def baseConf: TestConf = TestConf(
       neo4jConf = Map("server.bolt.enabled" -> "true"),
       useBolt = true,
       preparserOptions = Map("runtime" -> "parallel"),
-      tagContext = Set("cypher-5", "parallel-runtime")
+      tagContext = Set("parallel-runtime")
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+
+    object Cypher25 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelBolt$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelBolt$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends GuiceObjectFactory(injector)
+    }
   }
 
   object SpdBolt extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdBolt$ObjectFactory"
+    final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdBolt$ObjectFactory"
 
     final override val conf: TestConf = TestConf(
       neo4jConf = Map(
@@ -238,7 +287,7 @@ object TestConf {
   }
 
   object SpdParallel extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdParallel$ObjectFactory"
+    final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdParallel$ObjectFactory"
 
     final override val conf: TestConf = TestConf(
       neo4jConf = Map(
@@ -258,7 +307,7 @@ object TestConf {
   }
 
   object Legacy extends InjectedTestConf {
-    final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Legacy$ObjectFactory"
+    final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Legacy$ObjectFactory"
 
     final override val conf: TestConf = TestConf(
       // Avoid multiversion store format override (NEO4J_OVERRIDE_STORE_FORMAT) in community

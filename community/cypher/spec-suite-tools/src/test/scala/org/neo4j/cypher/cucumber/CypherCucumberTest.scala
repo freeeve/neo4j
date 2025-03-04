@@ -223,43 +223,59 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       .map(f => f.getClass.getName -> f.getInstance(classOf[TestConf]))
       .toMap
 
-    // It's important that the ObjectFactoryName match the correct config.
-    testConfs shouldBe Map(
+    val expected = Map(
       classOf[CypherCucumberTest.TestConfiguration.ObjectFactory].getName -> CypherCucumberTest.TestConfiguration.conf,
-      TestConf.Cypher25Bolt.ObjectFactoryName -> TestConf.Cypher25Bolt.conf,
-      TestConf.Cypher25.ObjectFactoryName -> TestConf.Cypher25.conf,
-      TestConf.Cypher25Parallel.ObjectFactoryName -> TestConf.Cypher25Parallel.conf,
-      TestConf.Default.ObjectFactoryName -> TestConf.Default.conf,
-      TestConf.DefaultBolt.ObjectFactoryName -> TestConf.DefaultBolt.conf,
-      TestConf.Legacy.ObjectFactoryName -> TestConf.Legacy.conf,
-      TestConf.Parallel.ObjectFactoryName -> TestConf.Parallel.conf,
-      TestConf.ParallelBolt.ObjectFactoryName -> TestConf.ParallelBolt.conf,
-      TestConf.Pipelined.ObjectFactoryName -> TestConf.Pipelined.conf,
-      TestConf.PipelinedFallback.ObjectFactoryName -> TestConf.PipelinedFallback.conf,
-      TestConf.Slotted.ObjectFactoryName -> TestConf.Slotted.conf,
-      TestConf.SlottedCompiled.ObjectFactoryName -> TestConf.SlottedCompiled.conf,
-      TestConf.SpdBolt.ObjectFactoryName -> TestConf.SpdBolt.conf,
-      TestConf.SpdParallel.ObjectFactoryName -> TestConf.SpdParallel.conf
+      TestConf.Default.Cypher25.FactoryName -> TestConf.Default.Cypher25.conf,
+      TestConf.Default.Cypher5.FactoryName -> TestConf.Default.Cypher5.conf,
+      TestConf.DefaultBolt.Cypher25.FactoryName -> TestConf.DefaultBolt.Cypher25.conf,
+      TestConf.DefaultBolt.Cypher5.FactoryName -> TestConf.DefaultBolt.Cypher5.conf,
+      TestConf.Pipelined.Cypher25.FactoryName -> TestConf.Pipelined.Cypher25.conf,
+      TestConf.Pipelined.Cypher5.FactoryName -> TestConf.Pipelined.Cypher5.conf,
+      TestConf.PipelinedFallback.Cypher25.FactoryName -> TestConf.PipelinedFallback.Cypher25.conf,
+      TestConf.PipelinedFallback.Cypher5.FactoryName -> TestConf.PipelinedFallback.Cypher5.conf,
+      TestConf.Parallel.Cypher25.FactoryName -> TestConf.Parallel.Cypher25.conf,
+      TestConf.Parallel.Cypher5.FactoryName -> TestConf.Parallel.Cypher5.conf,
+      TestConf.ParallelBolt.Cypher25.FactoryName -> TestConf.ParallelBolt.Cypher25.conf,
+      TestConf.ParallelBolt.Cypher5.FactoryName -> TestConf.ParallelBolt.Cypher5.conf,
+      TestConf.Slotted.Cypher25.FactoryName -> TestConf.Slotted.Cypher25.conf,
+      TestConf.Slotted.Cypher5.FactoryName -> TestConf.Slotted.Cypher5.conf,
+      TestConf.SlottedCompiled.Cypher25.FactoryName -> TestConf.SlottedCompiled.Cypher25.conf,
+      TestConf.SlottedCompiled.Cypher5.FactoryName -> TestConf.SlottedCompiled.Cypher5.conf,
+      TestConf.SpdBolt.FactoryName -> TestConf.SpdBolt.conf,
+      TestConf.SpdParallel.FactoryName -> TestConf.SpdParallel.conf,
+      TestConf.Legacy.FactoryName -> TestConf.Legacy.conf
     )
 
+    // It's important that the ObjectFactoryName match the correct config.
+    expected.foreach { case (className, conf) => withClue(className)(testConfs.get(className) shouldBe Some(conf)) }
+    testConfs shouldBe expected
+
     // Additional smoke test
-    testConfs.view.mapValues(_.preparserPrefix.trim).toMap shouldBe Map(
+    val expectedPrefix = Map(
       classOf[CypherCucumberTest.TestConfiguration.ObjectFactory].getName -> "CYPHER runtime=legacy",
-      TestConf.Cypher25Bolt.ObjectFactoryName -> "",
-      TestConf.Cypher25.ObjectFactoryName -> "",
-      TestConf.Cypher25Parallel.ObjectFactoryName -> "CYPHER runtime=parallel",
-      TestConf.Default.ObjectFactoryName -> "",
-      TestConf.DefaultBolt.ObjectFactoryName -> "",
-      TestConf.Legacy.ObjectFactoryName -> "CYPHER runtime=legacy",
-      TestConf.Parallel.ObjectFactoryName -> "CYPHER runtime=parallel",
-      TestConf.ParallelBolt.ObjectFactoryName -> "CYPHER runtime=parallel",
-      TestConf.Pipelined.ObjectFactoryName -> "CYPHER runtime=pipelined",
-      TestConf.PipelinedFallback.ObjectFactoryName -> "CYPHER runtime=pipelined interpretedPipesFallback=all",
-      TestConf.Slotted.ObjectFactoryName -> "CYPHER runtime=slotted",
-      TestConf.SlottedCompiled.ObjectFactoryName -> "CYPHER runtime=slotted expressionEngine=compiled",
-      TestConf.SpdBolt.ObjectFactoryName -> "",
-      TestConf.SpdParallel.ObjectFactoryName -> "CYPHER runtime=parallel"
+      TestConf.Default.Cypher25.FactoryName -> "",
+      TestConf.Default.Cypher5.FactoryName -> "",
+      TestConf.DefaultBolt.Cypher25.FactoryName -> "",
+      TestConf.DefaultBolt.Cypher5.FactoryName -> "",
+      TestConf.Pipelined.Cypher25.FactoryName -> "CYPHER runtime=pipelined",
+      TestConf.Pipelined.Cypher5.FactoryName -> "CYPHER runtime=pipelined",
+      TestConf.PipelinedFallback.Cypher25.FactoryName -> "CYPHER runtime=pipelined interpretedPipesFallback=all",
+      TestConf.PipelinedFallback.Cypher5.FactoryName -> "CYPHER runtime=pipelined interpretedPipesFallback=all",
+      TestConf.Parallel.Cypher25.FactoryName -> "CYPHER runtime=parallel",
+      TestConf.Parallel.Cypher5.FactoryName -> "CYPHER runtime=parallel",
+      TestConf.ParallelBolt.Cypher25.FactoryName -> "CYPHER runtime=parallel",
+      TestConf.ParallelBolt.Cypher5.FactoryName -> "CYPHER runtime=parallel",
+      TestConf.Slotted.Cypher25.FactoryName -> "CYPHER runtime=slotted",
+      TestConf.Slotted.Cypher5.FactoryName -> "CYPHER runtime=slotted",
+      TestConf.SlottedCompiled.Cypher25.FactoryName -> "CYPHER runtime=slotted expressionEngine=compiled",
+      TestConf.SlottedCompiled.Cypher5.FactoryName -> "CYPHER runtime=slotted expressionEngine=compiled",
+      TestConf.SpdBolt.FactoryName -> "",
+      TestConf.SpdParallel.FactoryName -> "CYPHER runtime=parallel",
+      TestConf.Legacy.FactoryName -> "CYPHER runtime=legacy"
     )
+    expectedPrefix.foreach { case (className, prefix) =>
+      withClue(className)(testConfs.get(className).map(_.preparserPrefix.trim) shouldBe Some(prefix))
+    }
   }
 
   test("remember to add test coverage of the glue to avoid false positives") {

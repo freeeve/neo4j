@@ -146,7 +146,7 @@ object PrettifierSteps {
     sensitiveParamsAsParams = true
   ))
 
-  final val ObjectFactoryName = "org.neo4j.cypher.cucumber.glue.prettifier.PrettifierSteps$ObjectFactory"
+  final val FactoryName = "org.neo4j.cypher.cucumber.glue.prettifier.PrettifierSteps$ObjectFactory"
   class ObjectFactory extends GuiceObjectFactory(GuiceObjectFactory.injector(new NoOpBeforeAndAfterAllModule()))
 
   def expectFailure(scenario: Scenario): Boolean = scenariosExpectedToFail.get(scenario.getName) match {
