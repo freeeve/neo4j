@@ -19,7 +19,6 @@
  */
 package org.neo4j.router.impl.query;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -46,6 +45,8 @@ import org.neo4j.cypher.internal.util.InputPosition;
 import org.neo4j.cypher.internal.util.ObfuscationMetadata;
 import org.neo4j.fabric.executor.Location;
 import org.neo4j.fabric.executor.QueryStatementLifecycles;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
@@ -126,9 +127,19 @@ class ConstituentTransactionFactoryImplTest {
         DatabaseTransaction innerTransaction = mock(DatabaseTransaction.class);
         var constituentTransactionFactory = getConstituentTransactionFactory(queryOptions, innerTransaction);
 
-        assertThatThrownBy(() -> constituentTransactionFactory.transactionFor(getTargetDatabase("invalid")))
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> constituentTransactionFactory.transactionFor(getTargetDatabase("invalid")))
                 .hasMessage(
-                        "When connected to a composite database, access is allowed only to its constituents. Attempted to access 'invalid' while connected to 'composite'");
+                        "When connected to a composite database, access is allowed only to its constituents. Attempted to access 'invalid' while connected to 'composite'")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_42002)
+                .hasStatusDescription("error: syntax error or access rule violation - invalid reference")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_42N05)
+                .hasStatusDescription(
+                        "error: syntax error or access rule violation - unsupported access of standard database. "
+                                + "Failed to access database identified by `invalid` while connected to composite session database `composite`. "
+                                + "Connect to `invalid` directly or create an alias in the composite database.");
+        ;
     }
 
     private DatabaseReference getTargetDatabase(String name) {

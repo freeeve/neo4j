@@ -42,9 +42,5 @@ object Errors {
     )
 
   def cantAccessOutsideCompositeMessage(target: DatabaseReference, sessionDatabase: DatabaseReference): Nothing =
-    throw new InvalidSemanticsException(
-      s"When connected to a composite database, access is allowed only to its constituents. " +
-        s"Attempted to access '${target.toPrettyString}' while connected to '${sessionDatabase.toPrettyString}'"
-    );
-
+    throw InvalidSemanticsException.unsupportedAccessOfStandardDb(target.toPrettyString, sessionDatabase.toPrettyString)
 }

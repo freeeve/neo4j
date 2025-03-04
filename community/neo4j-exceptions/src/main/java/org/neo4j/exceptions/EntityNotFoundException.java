@@ -26,10 +26,6 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class EntityNotFoundException extends Neo4jException {
-    @Deprecated
-    public EntityNotFoundException(String message) {
-        super(message);
-    }
 
     private EntityNotFoundException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
@@ -76,6 +72,23 @@ public class EntityNotFoundException extends Neo4jException {
                 .build();
         return new EntityNotFoundException(
                 gql, "Relationship with id %s has been deleted in this transaction".formatted(relId));
+    }
+
+    public static EntityNotFoundException unsupportedAccessOfStandardDb(String graph, String composite) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N05)
+                        .withParam(GqlParams.StringParam.db1, graph)
+                        .withParam(GqlParams.StringParam.db2, composite)
+                        .withParam(GqlParams.StringParam.db3, graph)
+                        .build())
+                .build();
+
+        return new EntityNotFoundException(
+                gql,
+                String.format(
+                        "When connected to a composite database, access is allowed only to its constituents. "
+                                + "Attempted to access '%s' while connected to '%s'",
+                        graph, composite));
     }
 
     @Override

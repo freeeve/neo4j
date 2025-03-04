@@ -27,10 +27,6 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class InvalidSemanticsException extends Neo4jException {
-    @Deprecated
-    public InvalidSemanticsException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     public InvalidSemanticsException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
@@ -158,6 +154,23 @@ public class InvalidSemanticsException extends Neo4jException {
                         .build())
                 .build();
         return new InvalidSemanticsException(gql, "Expected static graph selection");
+    }
+
+    public static InvalidSemanticsException unsupportedAccessOfStandardDb(String graph, String composite) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N05)
+                        .withParam(GqlParams.StringParam.db1, graph)
+                        .withParam(GqlParams.StringParam.db2, composite)
+                        .withParam(GqlParams.StringParam.db3, graph)
+                        .build())
+                .build();
+
+        return new InvalidSemanticsException(
+                gql,
+                String.format(
+                        "When connected to a composite database, access is allowed only to its constituents. "
+                                + "Attempted to access '%s' while connected to '%s'",
+                        graph, composite));
     }
 
     @Override

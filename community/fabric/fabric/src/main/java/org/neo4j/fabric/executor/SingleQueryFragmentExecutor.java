@@ -279,7 +279,9 @@ abstract class SingleQueryFragmentExecutor {
         if (sessionGraph instanceof Catalog.Composite) {
             if (!useEvaluator.isConstituentOrSelf(accessedGraph, sessionGraph)) {
                 if (!useEvaluator.isSystem(accessedGraph)) {
-                    throw new InvalidSemanticsException(cantAccessOutsideCompositeMessage(sessionGraph, accessedGraph));
+                    throw InvalidSemanticsException.unsupportedAccessOfStandardDb(
+                            useEvaluator.qualifiedNameString(accessedGraph),
+                            useEvaluator.qualifiedNameString(sessionGraph));
                 }
             }
         } else {
@@ -289,14 +291,6 @@ abstract class SingleQueryFragmentExecutor {
                         useEvaluator.qualifiedNameString(sessionGraph));
             }
         }
-    }
-
-    private String cantAccessOutsideCompositeMessage(Catalog.Graph sessionDatabase, Catalog.Graph accessed) {
-        return "When connected to a composite database, access is allowed only to its constituents. "
-                + "Attempted to access '%s' while connected to '%s'"
-                        .formatted(
-                                useEvaluator.qualifiedNameString(accessed),
-                                useEvaluator.qualifiedNameString(sessionDatabase));
     }
 
     private TransactionMode getTransactionMode(QueryType queryType, String graph) {

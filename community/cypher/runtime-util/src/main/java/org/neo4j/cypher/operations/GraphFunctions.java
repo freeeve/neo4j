@@ -84,8 +84,6 @@ public final class GraphFunctions {
     }
 
     private static EntityNotFoundException graphNotFound(String compositeGraph, String graph) {
-        return new EntityNotFoundException(String.format(
-                "When connected to a composite database, access is allowed only to its constituents. Attempted to access '%s' while connected to '%s'",
-                graph, compositeGraph));
+        return EntityNotFoundException.unsupportedAccessOfStandardDb(graph, compositeGraph);
     }
 }
