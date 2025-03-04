@@ -20,6 +20,7 @@
 package org.neo4j.dbms.routing;
 
 import static java.lang.String.format;
+import static org.neo4j.kernel.api.exceptions.Status.Database.DatabaseNotFound;
 import static org.neo4j.kernel.api.exceptions.Status.Database.IllegalAliasChain;
 import static org.neo4j.kernel.api.exceptions.Status.General.DatabaseUnavailable;
 import static org.neo4j.kernel.api.exceptions.Status.Procedure.ProcedureCallFailed;
@@ -32,6 +33,7 @@ import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.util.VisibleForTesting;
 
 public class RoutingException extends GqlException implements Status.HasStatus {
     private final Status status;
@@ -42,7 +44,8 @@ public class RoutingException extends GqlException implements Status.HasStatus {
         this.status = status;
     }
 
-    private RoutingException(ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
+    @VisibleForTesting
+    public RoutingException(ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
         super(gqlStatusObject, message);
         this.status = status;
     }
@@ -102,6 +105,13 @@ public class RoutingException extends GqlException implements Status.HasStatus {
                 String.format(
                         "Unable to get a routing table for database '%s' because this database is unavailable",
                         dbName));
+    }
+
+    public static RoutingException routingTableForNonExistingDb(String dbName) {
+        return new RoutingException(
+                GqlHelper.getGql22000_22N51(dbName),
+                DatabaseNotFound,
+                "Unable to get a routing table for database '" + dbName + "' because this database does not exist");
     }
 
     public static RoutingException aliasChainsNotPermitted(String databaseName, String sourceAlias) {

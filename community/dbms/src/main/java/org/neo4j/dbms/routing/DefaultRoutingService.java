@@ -20,7 +20,6 @@
 package org.neo4j.dbms.routing;
 
 import static org.neo4j.dbms.routing.RoutingTableServiceHelpers.FROM_ALIAS_KEY;
-import static org.neo4j.kernel.api.exceptions.Status.Database.IllegalAliasChain;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.time.Clock;
@@ -206,11 +205,8 @@ public class DefaultRoutingService implements RoutingService, PanicEventHandler 
         var sourceAliasIsPresent = sourceAlias != null && sourceAlias != NO_VALUE;
         if (refIsRemoteAlias && sourceAliasIsPresent) {
             var sourceAliasString = ((TextValue) sourceAlias).stringValue();
-            throw new RoutingException(
-                    IllegalAliasChain,
-                    "Unable to provide a routing table for the database '"
-                            + databaseReference.alias().name() + "' because the request came from another alias '"
-                            + sourceAliasString + "' and alias chains " + "are not permitted.");
+            throw RoutingException.aliasChainsNotPermitted(
+                    databaseReference.alias().name(), sourceAliasString);
         }
     }
 

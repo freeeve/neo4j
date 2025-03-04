@@ -128,7 +128,7 @@ class RouteStateTransitionTest extends AbstractStateTransitionTest<RouteMessage,
     void shouldFailWithInternalStateTransitionExceptionOnGenericGetterError() throws RoutingException {
         var request = new RouteMessage(MapValue.EMPTY, List.of(), "databaseName", null);
 
-        Mockito.doThrow(new RoutingException(General.UnknownError, "Something went wrong!"))
+        Mockito.doThrow(new RoutingException(null, General.UnknownError, "Something went wrong!"))
                 .when(this.routingService)
                 .route(Mockito.any(), Mockito.any(), Mockito.any());
 
