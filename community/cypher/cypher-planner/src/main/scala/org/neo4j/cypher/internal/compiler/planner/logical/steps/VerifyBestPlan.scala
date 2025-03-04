@@ -68,11 +68,11 @@ object VerifyBestPlan {
     val constructed: PlannerQuery = context.staticComponents.planningAttributes.solveds.get(plan.id)
 
     if (expected != constructed) {
-      val unfulfillableIndexHints = findUnfulfillableIndexHints(expected, context)
-      val unfulfillableJoinHints = findUnfulfillableJoinHints(expected)
-      val expectedWithoutUnfulfillableHints =
-        expected.withoutHints(unfulfillableIndexHints.hints ++ unfulfillableJoinHints)
-      if (expectedWithoutUnfulfillableHints != constructed) {
+      val UnfulfillableHints(unfulfillableIndexHints, expectedJoinHints, expectedWithoutUnfulfillableHints) =
+        withoutUnfulfillableHints(expected, context)
+      val UnfulfillableHints(_, actualJoinHints, constructedWithoutUnfulfillableHints) =
+        withoutUnfulfillableHints(constructed, context)
+      if (expectedWithoutUnfulfillableHints != constructedWithoutUnfulfillableHints) {
         val a: PlannerQuery = expected.withoutHints(expected.allHints)
         val b: PlannerQuery = constructed.withoutHints(constructed.allHints)
         if (a != b) {
@@ -118,9 +118,26 @@ object VerifyBestPlan {
         }
       } else {
         processUnfulfilledIndexHints(context, unfulfillableIndexHints)
-        processUnfulfilledJoinHints(plan, context, unfulfillableJoinHints)
+        processUnfulfilledJoinHints(plan, context, expectedJoinHints -- actualJoinHints)
       }
     }
+  }
+
+  private case class UnfulfillableHints(
+    unfulfillableIndexHints: UnfulfillableIndexHints,
+    unfulfillableJoinHints: ListSet[UsingJoinHint],
+    plannerQuery: PlannerQuery
+  )
+
+  private def withoutUnfulfillableHints(
+    plannerQuery: PlannerQuery,
+    context: LogicalPlanningContext
+  ): UnfulfillableHints = {
+    val unfulfillableIndexHints = findUnfulfillableIndexHints(plannerQuery, context)
+    val unfulfillableJoinHints = findUnfulfillableJoinHints(plannerQuery)
+    val expectedWithoutUnfulfillableHints =
+      plannerQuery.withoutHints(unfulfillableIndexHints.hints ++ unfulfillableJoinHints)
+    UnfulfillableHints(unfulfillableIndexHints, unfulfillableJoinHints, expectedWithoutUnfulfillableHints)
   }
 
   private def processUnfulfilledIndexHints(
@@ -171,7 +188,7 @@ object VerifyBestPlan {
    * @param hint the original hint
    * @param entityType the type of the entity this hint refers to
    */
-  case class MissingIndexHint(hint: UsingIndexHint, entityType: EntityType) {
+  private case class MissingIndexHint(hint: UsingIndexHint, entityType: EntityType) {
 
     def toNotification: IndexHintUnfulfillableNotification =
       IndexHintUnfulfillableNotification(
@@ -211,7 +228,7 @@ object VerifyBestPlan {
    * The given hint cannot be fulfilled because the properties used for this hint are not of the correct type.
    * @param hint the offending hint
    */
-  case class WrongPropertyTypeHint(hint: UsingIndexHint, foundPredicates: Set[IndexCompatiblePredicate]) {
+  private case class WrongPropertyTypeHint(hint: UsingIndexHint, foundPredicates: Set[IndexCompatiblePredicate]) {
 
     def toException(entity: String): Neo4jException = {
       val prettifiedHint = prettifier.asString(hint)
