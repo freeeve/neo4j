@@ -50,7 +50,9 @@ import org.neo4j.cypher.internal.expressions.functions.CharacterLength
 import org.neo4j.cypher.internal.expressions.functions.Coalesce
 import org.neo4j.cypher.internal.expressions.functions.Collect
 import org.neo4j.cypher.internal.expressions.functions.Cos
+import org.neo4j.cypher.internal.expressions.functions.Cosh
 import org.neo4j.cypher.internal.expressions.functions.Cot
+import org.neo4j.cypher.internal.expressions.functions.Coth
 import org.neo4j.cypher.internal.expressions.functions.Count
 import org.neo4j.cypher.internal.expressions.functions.Degrees
 import org.neo4j.cypher.internal.expressions.functions.Distance
@@ -97,6 +99,7 @@ import org.neo4j.cypher.internal.expressions.functions.Right
 import org.neo4j.cypher.internal.expressions.functions.Round
 import org.neo4j.cypher.internal.expressions.functions.Sign
 import org.neo4j.cypher.internal.expressions.functions.Sin
+import org.neo4j.cypher.internal.expressions.functions.Sinh
 import org.neo4j.cypher.internal.expressions.functions.Size
 import org.neo4j.cypher.internal.expressions.functions.Split
 import org.neo4j.cypher.internal.expressions.functions.Sqrt
@@ -107,6 +110,7 @@ import org.neo4j.cypher.internal.expressions.functions.Substring
 import org.neo4j.cypher.internal.expressions.functions.Sum
 import org.neo4j.cypher.internal.expressions.functions.Tail
 import org.neo4j.cypher.internal.expressions.functions.Tan
+import org.neo4j.cypher.internal.expressions.functions.Tanh
 import org.neo4j.cypher.internal.expressions.functions.ToBoolean
 import org.neo4j.cypher.internal.expressions.functions.ToBooleanList
 import org.neo4j.cypher.internal.expressions.functions.ToBooleanOrNull
@@ -543,8 +547,10 @@ case class CommunityExpressionConverter(
         else
           command
 
-      case Cos => commands.expressions.CosFunction(self.toCommandExpression(id, invocation.arguments.head))
-      case Cot => commands.expressions.CotFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case Cos  => commands.expressions.CosFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case Cosh => commands.expressions.CoshFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case Cot  => commands.expressions.CotFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case Coth => commands.expressions.CothFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Count =>
         val inner = self.toCommandExpression(id, invocation.arguments.head)
         val command = commands.expressions.Count(inner)
@@ -709,6 +715,7 @@ case class CommunityExpressionConverter(
         )
       case Sign => commands.expressions.SignFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Sin  => commands.expressions.SinFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case Sinh => commands.expressions.SinhFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Size => commands.expressions.SizeFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Split =>
         commands.expressions.SplitFunction(
@@ -750,6 +757,7 @@ case class CommunityExpressionConverter(
           self.toCommandExpression(id, invocation.arguments.head)
         )
       case Tan       => commands.expressions.TanFunction(self.toCommandExpression(id, invocation.arguments.head))
+      case Tanh      => commands.expressions.TanhFunction(self.toCommandExpression(id, invocation.arguments.head))
       case ToBoolean => commands.expressions.ToBooleanFunction(self.toCommandExpression(id, invocation.arguments.head))
       case ToBooleanList =>
         commands.expressions.ToBooleanListFunction(self.toCommandExpression(id, invocation.arguments.head))

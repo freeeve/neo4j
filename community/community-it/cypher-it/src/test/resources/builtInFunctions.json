@@ -25,7 +25,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "acos",
@@ -53,7 +54,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "all",
@@ -87,7 +89,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "any",
@@ -121,7 +124,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "asin",
@@ -149,7 +153,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "atan",
@@ -177,7 +182,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "atan2",
@@ -211,7 +217,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "avg",
@@ -239,7 +246,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "btrim",
@@ -267,7 +275,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "btrim",
@@ -300,7 +309,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "ceil",
@@ -328,7 +338,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "char_length",
@@ -356,7 +367,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "character_length",
@@ -384,7 +396,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "coalesce",
@@ -412,7 +425,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "collect",
@@ -440,7 +454,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "cos",
@@ -468,7 +483,37 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "cosh",
+    "category": "Trigonometric",
+    "description": "Returns the hyperbolic cosine of a `FLOAT`.",
+    "signature": "cosh(input :: FLOAT) :: FLOAT",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description" : "A value.",
+        "type": "FLOAT",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "FLOAT",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [25]
   },
   {
     "name": "cot",
@@ -496,7 +541,37 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "coth",
+    "category": "Trigonometric",
+    "description": "Returns the hyperbolic cotangent of a `FLOAT`.",
+    "signature": "coth(input :: FLOAT) :: FLOAT",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description" : "A value.",
+        "type": "FLOAT",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "FLOAT",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [25]
   },
   {
     "name": "count",
@@ -524,7 +599,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "date",
@@ -553,7 +629,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "date.realtime",
@@ -582,7 +659,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "date.statement",
@@ -611,7 +689,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "date.transaction",
@@ -640,7 +719,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "date.truncate",
@@ -682,7 +762,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "datetime",
@@ -711,7 +792,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "datetime.fromepoch",
@@ -745,7 +827,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "datetime.fromepochmillis",
@@ -773,7 +856,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "datetime.realtime",
@@ -802,7 +886,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "datetime.statement",
@@ -831,7 +916,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "datetime.transaction",
@@ -860,7 +946,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "datetime.truncate",
@@ -902,7 +989,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "db.nameFromElementId",
@@ -931,7 +1019,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "degrees",
@@ -959,7 +1048,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "duration",
@@ -987,7 +1077,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "duration.between",
@@ -1021,7 +1112,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "duration.inDays",
@@ -1055,7 +1147,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "duration.inMonths",
@@ -1089,7 +1182,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "duration.inSeconds",
@@ -1123,7 +1217,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "e",
@@ -1144,7 +1239,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "elementId",
@@ -1172,7 +1268,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "endNode",
@@ -1200,7 +1297,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "exists",
@@ -1228,7 +1326,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "exp",
@@ -1256,7 +1355,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "file",
@@ -1277,7 +1377,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "floor",
@@ -1305,7 +1406,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "graph.byElementId",
@@ -1334,7 +1436,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "graph.byName",
@@ -1363,7 +1466,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "graph.names",
@@ -1385,7 +1489,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "graph.propertiesByName",
@@ -1414,7 +1519,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "haversin",
@@ -1442,7 +1548,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "head",
@@ -1470,7 +1577,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "id",
@@ -1498,7 +1606,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": true,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "isEmpty",
@@ -1526,7 +1635,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "isNaN",
@@ -1554,7 +1664,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "keys",
@@ -1582,7 +1693,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "labels",
@@ -1610,7 +1722,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "last",
@@ -1638,7 +1751,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "left",
@@ -1672,7 +1786,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "length",
@@ -1700,7 +1815,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "linenumber",
@@ -1721,7 +1837,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "localdatetime",
@@ -1750,7 +1867,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "localdatetime.realtime",
@@ -1779,7 +1897,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "localdatetime.statement",
@@ -1808,7 +1927,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "localdatetime.transaction",
@@ -1837,7 +1957,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "localdatetime.truncate",
@@ -1879,7 +2000,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "localtime",
@@ -1908,7 +2030,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "localtime.realtime",
@@ -1937,7 +2060,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "localtime.statement",
@@ -1966,7 +2090,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "localtime.transaction",
@@ -1995,7 +2120,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "localtime.truncate",
@@ -2037,7 +2163,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "log",
@@ -2065,7 +2192,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "log10",
@@ -2093,9 +2221,9 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
-
   {
     "name": "lower",
     "category": "String",
@@ -2122,7 +2250,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "ltrim",
@@ -2150,7 +2279,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "ltrim",
@@ -2183,7 +2313,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "max",
@@ -2211,7 +2342,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "min",
@@ -2239,7 +2371,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "nodes",
@@ -2267,7 +2400,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "none",
@@ -2301,7 +2435,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "normalize",
@@ -2329,7 +2464,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "normalize",
@@ -2363,7 +2499,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "nullIf",
@@ -2397,7 +2534,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "percentileCont",
@@ -2431,7 +2569,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "percentileDisc",
@@ -2465,7 +2604,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "pi",
@@ -2486,7 +2626,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "point",
@@ -2514,7 +2655,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "point.distance",
@@ -2548,7 +2690,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "point.withinBBox",
@@ -2588,7 +2731,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "properties",
@@ -2616,7 +2760,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "radians",
@@ -2644,7 +2789,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "rand",
@@ -2665,7 +2811,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "randomUUID",
@@ -2686,7 +2833,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "range",
@@ -2720,7 +2868,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "range",
@@ -2760,7 +2909,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "reduce",
@@ -2794,7 +2944,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "relationships",
@@ -2822,7 +2973,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "replace",
@@ -2862,7 +3014,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "reverse",
@@ -2890,7 +3043,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "right",
@@ -2924,7 +3078,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "round",
@@ -2952,7 +3107,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "round",
@@ -2986,7 +3142,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "round",
@@ -3026,7 +3183,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "rtrim",
@@ -3054,7 +3212,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "rtrim",
@@ -3087,7 +3246,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "sign",
@@ -3115,7 +3275,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "sin",
@@ -3143,7 +3304,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "single",
@@ -3177,7 +3339,37 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "sinh",
+    "category": "Trigonometric",
+    "description": "Returns the hyperbolic sine of a `FLOAT`.",
+    "signature": "sinh(input :: FLOAT) :: FLOAT",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description" : "A value.",
+        "type": "FLOAT",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "FLOAT",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [25]
   },
   {
     "name": "size",
@@ -3205,7 +3397,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "split",
@@ -3239,7 +3432,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "sqrt",
@@ -3267,7 +3461,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "stDev",
@@ -3295,7 +3490,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "stDevP",
@@ -3323,7 +3519,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "startNode",
@@ -3351,7 +3548,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "substring",
@@ -3385,7 +3583,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "substring",
@@ -3425,7 +3624,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "sum",
@@ -3453,7 +3653,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "tail",
@@ -3481,7 +3682,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "tan",
@@ -3509,7 +3711,37 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "tanh",
+    "category": "Trigonometric",
+    "description": "Returns the hyperbolic tangent of a `FLOAT`.",
+    "signature": "tanh(input :: FLOAT) :: FLOAT",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "input",
+        "description" : "A value.",
+        "type": "FLOAT",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "FLOAT",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [25]
   },
   {
     "name": "time",
@@ -3538,7 +3770,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "time.realtime",
@@ -3567,7 +3800,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "time.statement",
@@ -3596,7 +3830,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "time.transaction",
@@ -3625,7 +3860,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "time.truncate",
@@ -3667,7 +3903,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "timestamp",
@@ -3688,7 +3925,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toBoolean",
@@ -3716,7 +3954,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toBooleanList",
@@ -3744,7 +3983,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toBooleanOrNull",
@@ -3772,7 +4012,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toFloat",
@@ -3800,7 +4041,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toFloatList",
@@ -3828,7 +4070,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toFloatOrNull",
@@ -3856,7 +4099,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toInteger",
@@ -3884,7 +4128,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toIntegerList",
@@ -3912,7 +4157,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toIntegerOrNull",
@@ -3940,7 +4186,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toLower",
@@ -3968,7 +4215,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toString",
@@ -3996,7 +4244,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toStringList",
@@ -4024,7 +4273,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toStringOrNull",
@@ -4052,7 +4302,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "toUpper",
@@ -4080,7 +4331,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "trim",
@@ -4113,7 +4365,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "trim",
@@ -4150,7 +4403,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "type",
@@ -4178,9 +4432,9 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
-
   {
     "name": "upper",
     "category": "String",
@@ -4207,7 +4461,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "valueType",
@@ -4235,7 +4490,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "vector.similarity.cosine",
@@ -4269,7 +4525,8 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   },
   {
     "name": "vector.similarity.euclidean",
@@ -4303,6 +4560,7 @@
     ],
     "rolesBoostedExecution": [],
     "isDeprecated": false,
-    "deprecatedBy": null
+    "deprecatedBy": null,
+    "cypherVersionScope": [5, 25]
   }
 ]

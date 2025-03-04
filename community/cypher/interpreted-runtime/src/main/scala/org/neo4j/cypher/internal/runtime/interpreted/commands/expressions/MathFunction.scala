@@ -183,12 +183,32 @@ case class CosFunction(argument: Expression) extends MathFunction(argument) {
   override def children: Seq[AstNode[_]] = Seq(argument)
 }
 
+case class CoshFunction(argument: Expression) extends MathFunction(argument) {
+
+  override def apply(row: ReadableRow, state: QueryState): AnyValue =
+    CypherFunctions.cosh(argument(row, state))
+
+  override def rewrite(f: Expression => Expression): Expression = f(CoshFunction(argument.rewrite(f)))
+
+  override def children: Seq[AstNode[_]] = Seq(argument)
+}
+
 case class CotFunction(argument: Expression) extends MathFunction(argument) {
 
   override def apply(row: ReadableRow, state: QueryState): AnyValue =
     CypherFunctions.cot(argument(row, state))
 
   override def rewrite(f: Expression => Expression): Expression = f(CotFunction(argument.rewrite(f)))
+
+  override def children: Seq[AstNode[_]] = Seq(argument)
+}
+
+case class CothFunction(argument: Expression) extends MathFunction(argument) {
+
+  override def apply(row: ReadableRow, state: QueryState): AnyValue =
+    CypherFunctions.coth(argument(row, state))
+
+  override def rewrite(f: Expression => Expression): Expression = f(CothFunction(argument.rewrite(f)))
 
   override def children: Seq[AstNode[_]] = Seq(argument)
 }
@@ -290,6 +310,16 @@ case class SinFunction(argument: Expression) extends MathFunction(argument) {
   override def children: Seq[AstNode[_]] = Seq(argument)
 }
 
+case class SinhFunction(argument: Expression) extends MathFunction(argument) {
+
+  override def apply(row: ReadableRow, state: QueryState): AnyValue =
+    CypherFunctions.sinh(argument(row, state))
+
+  override def rewrite(f: Expression => Expression): Expression = f(SinhFunction(argument.rewrite(f)))
+
+  override def children: Seq[AstNode[_]] = Seq(argument)
+}
+
 case class HaversinFunction(argument: Expression) extends MathFunction(argument) {
 
   override def apply(row: ReadableRow, state: QueryState): AnyValue =
@@ -306,6 +336,16 @@ case class TanFunction(argument: Expression) extends MathFunction(argument) {
     CypherFunctions.tan(argument(row, state))
 
   override def rewrite(f: Expression => Expression): Expression = f(TanFunction(argument.rewrite(f)))
+
+  override def children: Seq[AstNode[_]] = Seq(argument)
+}
+
+case class TanhFunction(argument: Expression) extends MathFunction(argument) {
+
+  override def apply(row: ReadableRow, state: QueryState): AnyValue =
+    CypherFunctions.tanh(argument(row, state))
+
+  override def rewrite(f: Expression => Expression): Expression = f(TanhFunction(argument.rewrite(f)))
 
   override def children: Seq[AstNode[_]] = Seq(argument)
 }

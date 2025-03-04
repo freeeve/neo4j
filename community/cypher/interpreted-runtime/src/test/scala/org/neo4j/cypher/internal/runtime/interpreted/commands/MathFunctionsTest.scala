@@ -29,7 +29,9 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Atan2F
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.AtanFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CeilFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CosFunction
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CoshFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CotFunction
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CothFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.DegreesFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.EFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.ExpFunction
@@ -45,8 +47,10 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Radian
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.RoundFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SignFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SinFunction
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SinhFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SqrtFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.TanFunction
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.TanhFunction
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.values.storable.BooleanValue
@@ -106,10 +110,32 @@ class MathFunctionsTest extends CypherFunSuite {
     intercept[CypherTypeException](calc(CosFunction(literal("wut"))))
   }
 
+  test("coshTests") {
+    asDouble(calc(CoshFunction(literal(0.0)))).doubleValue() should equal(1.0 +- 0.00001)
+    asDouble(calc(CoshFunction(literal(Double.PositiveInfinity)))).doubleValue() should equal(
+      Double.PositiveInfinity +- 0.00001
+    )
+    asDouble(calc(CoshFunction(literal(Double.NegativeInfinity)))).doubleValue() should equal(
+      Double.PositiveInfinity +- 0.00001
+    )
+    asDouble(calc(CoshFunction(literal(Double.NaN)))).doubleValue().isNaN should equal(true)
+    asDouble(calc(CoshFunction(literal(.7)))).doubleValue() should equal(1.255169005630943 +- 0.00001)
+    intercept[CypherTypeException](calc(CoshFunction(literal("wut"))))
+  }
+
   test("cotTests") {
     asDouble(calc(CotFunction(literal(.7)))).doubleValue() should equal(1.18724183212668 +- 0.00001)
     asDouble(calc(CotFunction(literal(0.0)))).doubleValue() should equal(Double.PositiveInfinity +- 0.00001)
     intercept[CypherTypeException](calc(CotFunction(literal("wut"))))
+  }
+
+  test("cothTests") {
+    asDouble(calc(CothFunction(literal(0.0)))).doubleValue().isNaN should equal(true)
+    asDouble(calc(CothFunction(literal(Double.PositiveInfinity)))).doubleValue() should equal(1.0 +- 0.00001)
+    asDouble(calc(CothFunction(literal(Double.NegativeInfinity)))).doubleValue() should equal(-1.0 +- 0.00001)
+    asDouble(calc(CothFunction(literal(Double.NaN)))).doubleValue().isNaN should equal(true)
+    asDouble(calc(CothFunction(literal(.7)))).doubleValue() should equal(1.654621635803 +- 0.00001)
+    intercept[CypherTypeException](calc(CothFunction(literal("wut"))))
   }
 
   test("degreesTests") {
@@ -175,9 +201,31 @@ class MathFunctionsTest extends CypherFunSuite {
     intercept[CypherTypeException](calc(SinFunction(literal("wut"))))
   }
 
+  test("sinhTests") {
+    asDouble(calc(SinhFunction(literal(0.0)))).doubleValue() should equal(0.0 +- 0.00001)
+    asDouble(calc(SinhFunction(literal(Double.PositiveInfinity)))).doubleValue() should equal(
+      Double.PositiveInfinity +- 0.00001
+    )
+    asDouble(calc(SinhFunction(literal(Double.NegativeInfinity)))).doubleValue() should equal(
+      Double.NegativeInfinity +- 0.00001
+    )
+    asDouble(calc(SinhFunction(literal(Double.NaN)))).doubleValue().isNaN should equal(true)
+    asDouble(calc(SinhFunction(literal(0.7)))).doubleValue() should equal(0.75858370184 +- 0.00001)
+    intercept[CypherTypeException](calc(SinhFunction(literal("wut"))))
+  }
+
   test("tanTests") {
     asDouble(calc(TanFunction(literal(0.7)))).doubleValue() should equal(0.8422883804630794 +- 0.00001)
     intercept[CypherTypeException](calc(TanFunction(literal("wut"))))
+  }
+
+  test("tanhTests") {
+    asDouble(calc(TanhFunction(literal(0.0)))).doubleValue() should equal(0.0 +- 0.00001)
+    asDouble(calc(TanhFunction(literal(Double.PositiveInfinity)))).doubleValue() should equal(1.0 +- 0.00001)
+    asDouble(calc(TanhFunction(literal(Double.NegativeInfinity)))).doubleValue() should equal(-1.0 +- 0.00001)
+    asDouble(calc(TanhFunction(literal(Double.NaN)))).doubleValue().isNaN should equal(true)
+    asDouble(calc(TanhFunction(literal(0.7)))).doubleValue() should equal(0.604367777117 +- 0.00001)
+    intercept[CypherTypeException](calc(TanhFunction(literal("wut"))))
   }
 
   test("roundTests") {

@@ -46,14 +46,22 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
   private val funcResourceUrl = getClass.getResource("/builtInFunctions.json")
   if (funcResourceUrl == null) throw new NoSuchFileException(s"File not found: builtInFunctions.json")
 
-  private val builtInFunctionsNames =
+  private val builtInFunctionsNamesCypher5 =
     readAll(funcResourceUrl)
       .filterNot(m => m.getOrElse("enterpriseOnly", false).asInstanceOf[Boolean])
+      .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(5))
+      .map(m => m("name").asInstanceOf[String])
+
+  private val builtInFunctionsNamesCypher25 =
+    readAll(funcResourceUrl)
+      .filterNot(m => m.getOrElse("enterpriseOnly", false).asInstanceOf[Boolean])
+      .filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(25))
       .map(m => m("name").asInstanceOf[String])
 
   private val userDefinedFunctionsNames = List("test.function", "test.functionWithInput", "test.return.latest")
 
-  private val allFunctionsNames = (builtInFunctionsNames ++ userDefinedFunctionsNames).sorted
+  private val allFunctionsNamesCypher5 = (builtInFunctionsNamesCypher5 ++ userDefinedFunctionsNames).sorted
+  private val allFunctionsNamesCypher25 = (builtInFunctionsNamesCypher25 ++ userDefinedFunctionsNames).sorted
 
   private val procResourceUrl = getClass.getResource("/procedures.json")
   if (procResourceUrl == null) throw new NoSuchFileException(s"File not found: procedures.json")
@@ -70,6 +78,10 @@ class CommunityCombinedCommandsAcceptanceTest extends TransactionCommandAcceptan
       .map(m => m("name").asInstanceOf[String])
 
   private val defaultUsesCypher5 = dbmsDefaultQueryLanguage == CypherVersion.Cypher5
+
+  private val builtInFunctionsNames =
+    if (defaultUsesCypher5) builtInFunctionsNamesCypher5 else builtInFunctionsNamesCypher25
+  private val allFunctionsNames = if (defaultUsesCypher5) allFunctionsNamesCypher5 else allFunctionsNamesCypher25
 
   // Tests
 

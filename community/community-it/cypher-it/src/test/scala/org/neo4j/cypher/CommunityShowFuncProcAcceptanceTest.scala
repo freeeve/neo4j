@@ -93,6 +93,14 @@ class CommunityShowFuncProcAcceptanceTest extends ExecutionEngineFunSuite with G
         }
       )
 
+  protected val builtInFunctionsVerboseCypher5: List[Map[String, Any]] =
+    builtInFunctionsVerbose.filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(5))
+      .map(m => m.view.filterKeys(k => !k.equals("cypherVersionScope")).toMap)
+
+  protected val builtInFunctionsVerboseCypher25: List[Map[String, Any]] =
+    builtInFunctionsVerbose.filter(m => m("cypherVersionScope").asInstanceOf[List[Int]].contains(25))
+      .map(m => m.view.filterKeys(k => !k.equals("cypherVersionScope")).toMap)
+
   private val userDefinedFunctionsVerbose = List(
     Map[String, Any](
       "name" -> "test.function",
@@ -156,16 +164,29 @@ class CommunityShowFuncProcAcceptanceTest extends ExecutionEngineFunSuite with G
     )
   )
 
-  private val allFunctionsVerbose =
-    (builtInFunctionsVerbose ++ userDefinedFunctionsVerbose).sortBy(m => m("name").asInstanceOf[String])
+  private val allFunctionsVerboseCypher5 =
+    (builtInFunctionsVerboseCypher5 ++ userDefinedFunctionsVerbose).sortBy(m => m("name").asInstanceOf[String])
 
+  private val allFunctionsVerboseCypher25 =
+    (builtInFunctionsVerboseCypher25 ++ userDefinedFunctionsVerbose).sortBy(m => m("name").asInstanceOf[String])
+
+  private val allFunctionsVerbose = if (defaultsToCypher5) allFunctionsVerboseCypher5 else allFunctionsVerboseCypher25
   // Brief output
 
-  private val builtInFunctionsBrief =
-    builtInFunctionsVerbose.map(m =>
+  private val builtInFunctionsBriefCypher5 =
+    builtInFunctionsVerboseCypher5.map(m =>
       m.view.filterKeys(k => Seq("name", "category", "description").contains(k)).toMap
         .map { case (key, value) => (key, value.asInstanceOf[String]) }
     ) // All brief columns are String columns
+
+  private val builtInFunctionsBriefCypher25 =
+    builtInFunctionsVerboseCypher25.map(m =>
+      m.view.filterKeys(k => Seq("name", "category", "description").contains(k)).toMap
+        .map { case (key, value) => (key, value.asInstanceOf[String]) }
+    ) // All brief columns are String columns
+
+  private val builtInFunctionsBrief =
+    if (defaultsToCypher5) builtInFunctionsBriefCypher5 else builtInFunctionsBriefCypher25
 
   private val userDefinedFunctionsBrief = List(
     Map("name" -> "test.function", "category" -> "", "description" -> ""),
@@ -177,7 +198,13 @@ class CommunityShowFuncProcAcceptanceTest extends ExecutionEngineFunSuite with G
     )
   )
 
-  private val allFunctionsBrief = (builtInFunctionsBrief ++ userDefinedFunctionsBrief).sortBy(m => m("name"))
+  private val allFunctionsBriefCypher5 =
+    (builtInFunctionsBriefCypher5 ++ userDefinedFunctionsBrief).sortBy(m => m("name"))
+
+  private val allFunctionsBriefCypher25 =
+    (builtInFunctionsBriefCypher25 ++ userDefinedFunctionsBrief).sortBy(m => m("name"))
+
+  private val allFunctionsBrief = if (defaultsToCypher5) allFunctionsBriefCypher5 else allFunctionsBriefCypher25
 
   // Tests
 
@@ -283,14 +310,15 @@ class CommunityShowFuncProcAcceptanceTest extends ExecutionEngineFunSuite with G
   }
 
   test("show functions with Cypher versions") {
-    cypherVersions.foreach { case (cypherVersionString, _) =>
+    cypherVersions.foreach { case (cypherVersionString, usesCypher5) =>
       selectDatabase(DEFAULT_DATABASE_NAME)
       withClue(cypherVersionString + "user database") {
         // WHEN
         val result = execute(cypherVersionString + "SHOW FUNCTIONS")
 
         // THEN
-        result.toList should be(allFunctionsBrief)
+        val allFunctions = if (usesCypher5) allFunctionsBriefCypher5 else allFunctionsBriefCypher25
+        result.toList should be(allFunctions)
       }
 
       selectDatabase(SYSTEM_DATABASE_NAME)
@@ -299,7 +327,8 @@ class CommunityShowFuncProcAcceptanceTest extends ExecutionEngineFunSuite with G
         val result = execute(cypherVersionString + "SHOW FUNCTIONS")
 
         // THEN
-        result.toList should be(allFunctionsBrief)
+        val allFunctions = if (usesCypher5) allFunctionsBriefCypher5 else allFunctionsBriefCypher25
+        result.toList should be(allFunctions)
       }
     }
   }

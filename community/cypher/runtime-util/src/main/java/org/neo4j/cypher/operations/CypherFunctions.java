@@ -26,6 +26,7 @@ import static org.neo4j.cypher.operations.CursorUtils.propertyKeys;
 import static org.neo4j.values.storable.Values.EMPTY_STRING;
 import static org.neo4j.values.storable.Values.FALSE;
 import static org.neo4j.values.storable.Values.NO_VALUE;
+import static org.neo4j.values.storable.Values.NaN;
 import static org.neo4j.values.storable.Values.TRUE;
 import static org.neo4j.values.storable.Values.booleanValue;
 import static org.neo4j.values.storable.Values.doubleValue;
@@ -152,10 +153,20 @@ public final class CypherFunctions {
     public static AnyValue sin(AnyValue in) {
         if (in == NO_VALUE) {
             return NO_VALUE;
-        } else if (in instanceof NumberValue) {
-            return doubleValue(Math.sin(((NumberValue) in).doubleValue()));
+        } else if (in instanceof NumberValue number) {
+            return doubleValue(Math.sin(number.doubleValue()));
         } else {
             throw needsNumbers("sin", in);
+        }
+    }
+
+    public static AnyValue sinh(AnyValue in) {
+        if (in == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof NumberValue number) {
+            return doubleValue(Math.sinh(number.doubleValue()));
+        } else {
+            throw needsNumbers("sinh", in);
         }
     }
 
@@ -189,6 +200,16 @@ public final class CypherFunctions {
         }
     }
 
+    public static AnyValue cosh(AnyValue in) {
+        if (in == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof NumberValue number) {
+            return doubleValue(Math.cosh(number.doubleValue()));
+        } else {
+            throw needsNumbers("cosh", in);
+        }
+    }
+
     public static AnyValue cot(AnyValue in) {
         if (in == NO_VALUE) {
             return NO_VALUE;
@@ -196,6 +217,25 @@ public final class CypherFunctions {
             return doubleValue(1.0 / Math.tan(number.doubleValue()));
         } else {
             throw needsNumbers("cot", in);
+        }
+    }
+
+    public static AnyValue coth(AnyValue in) {
+        if (in == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof NumberValue number) {
+            double inDouble = number.doubleValue();
+            if (Double.isInfinite(inDouble)) {
+                if (Math.signum(inDouble) == -1) {
+                    return doubleValue(-1.0);
+                }
+                return doubleValue(1.0);
+            } else if (inDouble == 0.0) {
+                return NaN;
+            }
+            return doubleValue(Math.cosh(inDouble) / Math.sinh(inDouble));
+        } else {
+            throw needsNumbers("coth", in);
         }
     }
 
@@ -216,6 +256,16 @@ public final class CypherFunctions {
             return doubleValue(Math.tan(number.doubleValue()));
         } else {
             throw needsNumbers("tan", in);
+        }
+    }
+
+    public static AnyValue tanh(AnyValue in) {
+        if (in == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof NumberValue number) {
+            return doubleValue(Math.tanh(number.doubleValue()));
+        } else {
+            throw needsNumbers("tanh", in);
         }
     }
 
