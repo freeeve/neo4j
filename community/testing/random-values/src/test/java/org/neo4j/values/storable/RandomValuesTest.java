@@ -239,7 +239,7 @@ abstract class RandomValuesTest {
     @Test
     void nextValueOfTypes() {
         assertTimeoutPreemptively(TIMEOUT, () -> {
-            ValueType[] allTypes = ValueType.values();
+            ValueType[] allTypes = ValueType.ALL_TYPES;
             ValueType[] including = randomValues.selection(allTypes, 1, allTypes.length, false);
             Set<Class<? extends AnyValue>> seen = new HashSet<>();
             for (ValueType type : including) {
@@ -255,7 +255,7 @@ abstract class RandomValuesTest {
 
     @Test
     void excluding() {
-        ValueType[] allTypes = ValueType.values();
+        ValueType[] allTypes = ValueType.ALL_TYPES;
         ValueType[] excluding = randomValues.selection(allTypes, 1, allTypes.length, false);
         ValueType[] including = RandomValues.excluding(excluding);
         for (ValueType excludedType : excluding) {

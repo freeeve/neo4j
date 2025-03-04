@@ -39,7 +39,7 @@ object FuzzTestGraphCreation {
     "long" -> Seq(ValueType.LONG),
     "boolean" -> Seq(ValueType.BOOLEAN),
     "string" -> Seq(ValueType.STRING),
-    "rand" -> ValueType.values()
+    "rand" -> ValueType.ALL_TYPES
   )
 
   object GraphType extends Enumeration {

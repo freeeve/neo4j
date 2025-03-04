@@ -76,11 +76,11 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
 
     private static final PointLayout LAYOUT = new PointLayout(SPACE_FILLING_CURVE_SETTINGS);
 
-    private static final ValueType[] SUPPORTED_TYPES = Stream.of(ValueType.values())
+    private static final ValueType[] SUPPORTED_TYPES = Stream.of(ValueType.ALL_TYPES)
             .filter(type -> type.valueGroup.category() == ValueCategory.GEOMETRY)
             .toArray(ValueType[]::new);
 
-    private static final ValueType[] UNSUPPORTED_TYPES = Stream.of(ValueType.values())
+    private static final ValueType[] UNSUPPORTED_TYPES = Stream.of(ValueType.ALL_TYPES)
             .filter(type -> type.valueGroup.category() != ValueCategory.GEOMETRY)
             .toArray(ValueType[]::new);
 

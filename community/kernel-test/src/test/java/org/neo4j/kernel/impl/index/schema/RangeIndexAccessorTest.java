@@ -68,7 +68,7 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
             .withIndexProvider(AllIndexProviderDescriptors.RANGE_DESCRIPTOR)
             .withName("index")
             .materialise(0);
-    private static final ValueType[] SUPPORTED_TYPES = ValueType.values();
+    private static final ValueType[] SUPPORTED_TYPES = ValueType.ALL_TYPES;
     private static final RangeLayout LAYOUT = new RangeLayout(1);
 
     private final AssertableLogProvider logProvider = new AssertableLogProvider();

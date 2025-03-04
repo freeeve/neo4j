@@ -114,7 +114,7 @@ class ListValueFuzzTest {
         for (int i = 0; i < ITERATIONS; i++) {
             boolean seenStorable = false;
             boolean seenNonStorable = false;
-            for (ValueType valueType : ValueType.values()) {
+            for (ValueType valueType : ValueType.ALL_TYPES) {
                 AnyValue value = random.nextValue(valueType);
                 if (value.valueRepresentation().canCreateArrayOfValueGroup()) {
                     ListValue list = VirtualValues.list(value, value, value);
@@ -133,7 +133,7 @@ class ListValueFuzzTest {
     }
 
     private Value nextCompatible(ArrayValue value) {
-        ValueType[] types = ValueType.values();
+        ValueType[] types = ValueType.ALL_TYPES;
         while (true) {
             Value nextValue = random.nextValue(types[random.nextInt(types.length)]);
             if (value.hasCompatibleType(nextValue)) {
@@ -143,7 +143,7 @@ class ListValueFuzzTest {
     }
 
     private Value nextIncompatible(ArrayValue value) {
-        ValueType[] types = ValueType.values();
+        ValueType[] types = ValueType.ALL_TYPES;
         while (true) {
             Value nextValue = random.nextValue(types[random.nextInt(types.length)]);
             if (value.isEmpty()) {

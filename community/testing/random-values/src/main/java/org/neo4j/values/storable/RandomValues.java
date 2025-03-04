@@ -31,6 +31,7 @@ import static org.neo4j.values.storable.DurationValue.duration;
 import static org.neo4j.values.storable.LocalDateTimeValue.localDateTime;
 import static org.neo4j.values.storable.LocalTimeValue.localTime;
 import static org.neo4j.values.storable.TimeValue.time;
+import static org.neo4j.values.storable.ValueType.ALL_TYPES;
 import static org.neo4j.values.storable.Values.byteValue;
 import static org.neo4j.values.storable.Values.doubleValue;
 import static org.neo4j.values.storable.Values.floatValue;
@@ -128,7 +129,7 @@ public class RandomValues {
     public static final int MAX_BMP_CODE_POINT = 0xFFFF;
     public static final Configuration DEFAULT_CONFIGURATION = new Default();
     static final int MAX_ASCII_CODE_POINT = 0x7F;
-    private static final ValueType[] ALL_TYPES = ValueType.values();
+
     private static final ValueType[] ARRAY_TYPES = ValueType.arrayTypes();
     private static final long NANOS_PER_SECOND = 1_000_000_000L;
 
@@ -239,14 +240,14 @@ public class RandomValues {
     }
 
     public static ValueType[] including(Predicate<ValueType> include) {
-        return Arrays.stream(ValueType.values()).filter(include).toArray(ValueType[]::new);
+        return Arrays.stream(ALL_TYPES).filter(include).toArray(ValueType[]::new);
     }
 
     /**
      * Create an array containing all value types, excluding provided types.
      */
     public static ValueType[] excluding(ValueType... exclude) {
-        return excluding(ValueType.values(), exclude);
+        return excluding(ALL_TYPES, exclude);
     }
 
     public static ValueType[] excluding(ValueType[] among, ValueType... exclude) {
@@ -259,9 +260,7 @@ public class RandomValues {
     }
 
     public static ValueType[] typesOfGroup(ValueGroup valueGroup) {
-        return Arrays.stream(ValueType.values())
-                .filter(t -> t.valueGroup == valueGroup)
-                .toArray(ValueType[]::new);
+        return Arrays.stream(ALL_TYPES).filter(t -> t.valueGroup == valueGroup).toArray(ValueType[]::new);
     }
 
     /**

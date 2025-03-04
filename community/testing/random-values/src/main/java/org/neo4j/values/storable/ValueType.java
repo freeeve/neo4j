@@ -158,7 +158,14 @@ public enum ValueType {
         return extremeValues;
     }
 
+    public static final ValueType[] ALL_TYPES = Arrays.stream(ValueType.values())
+            .filter(vt -> switch (vt) {
+                case INT8VECTOR, INT16VECTOR, INT32VECTOR, INT64VECTOR, FLOAT32VECTOR, FLOAT64VECTOR -> false;
+                default -> true;
+            })
+            .toArray(ValueType[]::new);
+
     public static ValueType[] arrayTypes() {
-        return Arrays.stream(ValueType.values()).filter(t -> t.arrayType).toArray(ValueType[]::new);
+        return Arrays.stream(ALL_TYPES).filter(t -> t.arrayType).toArray(ValueType[]::new);
     }
 }

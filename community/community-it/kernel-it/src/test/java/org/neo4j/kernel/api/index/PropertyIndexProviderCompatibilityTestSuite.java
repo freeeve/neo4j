@@ -100,7 +100,7 @@ abstract class PropertyIndexProviderCompatibilityTestSuite extends IndexProvider
                     ValueType.GEOGRAPHIC_POINT_3D,
                     ValueType.GEOGRAPHIC_POINT_3D_ARRAY);
         }
-        return ValueType.values();
+        return ValueType.ALL_TYPES;
     }
 
     @Nested

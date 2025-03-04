@@ -71,7 +71,7 @@ public class PointBlockBasedIndexPopulatorUpdatesTest extends BlockBasedIndexPop
             IndexSpecificSpaceFillingCurveSettings.fromConfig(CONFIG);
     private static final PointLayout LAYOUT = new PointLayout(SPATIAL_SETTINGS);
     private static final Set<ValueType> UNSUPPORTED_TYPES =
-            Collections.unmodifiableSet(Arrays.stream(ValueType.values())
+            Collections.unmodifiableSet(Arrays.stream(ValueType.ALL_TYPES)
                     .filter(type -> type.valueGroup.category() != ValueCategory.GEOMETRY)
                     .collect(Collectors.toCollection(() -> EnumSet.noneOf(ValueType.class))));
 

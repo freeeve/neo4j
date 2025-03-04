@@ -26,7 +26,7 @@ import org.neo4j.values.storable.ValueType;
 
 class BlockBasedNonUniqueRangeIndexPopulatorTest extends NativeNonUniqueIndexPopulatorTest<RangeKey> {
     BlockBasedNonUniqueRangeIndexPopulatorTest() {
-        super(rangeBlockBasedPopulatorFactory(), ValueType.values(), new RangeLayout(1));
+        super(rangeBlockBasedPopulatorFactory(), ValueType.ALL_TYPES, new RangeLayout(1));
     }
 
     @Override

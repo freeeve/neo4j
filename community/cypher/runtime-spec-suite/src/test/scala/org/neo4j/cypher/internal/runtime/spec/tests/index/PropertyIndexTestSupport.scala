@@ -39,7 +39,7 @@ trait PropertyIndexTestSupport[CONTEXT <: RuntimeContext] {
 
   private val defaultSupportedTypes: Seq[ValueType] = {
     val unsupportedTypes = Set(ValueType.CHAR, ValueType.CHAR_ARRAY, ValueType.BYTE, ValueType.BYTE_ARRAY)
-    ValueType.values().toSeq.filterNot(unsupportedTypes.contains)
+    ValueType.ALL_TYPES.toSeq.filterNot(unsupportedTypes.contains)
   }
 
   // Parallel has no support for functions so we are limited to values that have literals

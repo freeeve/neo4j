@@ -48,7 +48,7 @@ class ProcedureHeapEstimatorTest {
 
     @Test
     void shallowSizeRandomNeo4jValues() {
-        for (final var type : ValueType.values()) {
+        for (final var type : ValueType.ALL_TYPES) {
             final var value = rand.nextValue(type);
 
             assertThat(estimator.shallowSize(value))
@@ -60,7 +60,7 @@ class ProcedureHeapEstimatorTest {
     @Test
     void shallowSizeRandomJavaValues() {
         for (final var type :
-                Arrays.stream(ValueType.values()).filter(t -> !t.arrayType).toList()) {
+                Arrays.stream(ValueType.ALL_TYPES).filter(t -> !t.arrayType).toList()) {
             final var value = rand.nextValue(type).asObjectCopy();
 
             assertThat(estimator.shallowSize(value))

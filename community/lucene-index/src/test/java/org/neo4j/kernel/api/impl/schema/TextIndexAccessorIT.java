@@ -100,11 +100,11 @@ import org.neo4j.values.storable.ValueType;
 @TestDirectoryExtension
 public class TextIndexAccessorIT {
 
-    private static final ValueType[] SUPPORTED_TYPES = Stream.of(ValueType.values())
+    private static final ValueType[] SUPPORTED_TYPES = Stream.of(ValueType.ALL_TYPES)
             .filter(type -> type.valueGroup.category() == ValueCategory.TEXT)
             .toArray(ValueType[]::new);
 
-    private static final ValueType[] UNSUPPORTED_TYPES = Stream.of(ValueType.values())
+    private static final ValueType[] UNSUPPORTED_TYPES = Stream.of(ValueType.ALL_TYPES)
             .filter(type -> type.valueGroup.category() != ValueCategory.TEXT)
             .toArray(ValueType[]::new);
 

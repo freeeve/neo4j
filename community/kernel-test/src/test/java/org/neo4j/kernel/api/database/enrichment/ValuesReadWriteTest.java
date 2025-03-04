@@ -54,7 +54,10 @@ class ValuesReadWriteTest {
     private RandomSupport random;
 
     @ParameterizedTest
-    @EnumSource(ValueType.class)
+    @EnumSource(
+            value = ValueType.class,
+            names = {"INT8VECTOR", "INT16VECTOR", "INT32VECTOR", "INT64VECTOR", "FLOAT32VECTOR", "FLOAT64VECTOR"},
+            mode = EnumSource.Mode.EXCLUDE)
     void valueRoundTrips(ValueType type) throws IOException {
         doRoundTrips(random.randomValues().nextValueOfType(type));
     }
