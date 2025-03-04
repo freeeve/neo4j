@@ -346,7 +346,9 @@ public class RecordStorageMigrator extends AbstractStoreMigrationParticipant {
             Configuration importConfig = new Configuration.Overridden(defaultConfiguration(), config) {
                 @Override
                 public long maxOffHeapMemory() {
-                    return maxOffHeapMemory;
+                    return maxOffHeapMemory == UNSPECIFIED_MAX_OFF_HEAP_MEMORY
+                            ? super.maxOffHeapMemory()
+                            : maxOffHeapMemory;
                 }
             };
             AdditionalInitialIds additionalInitialIds = readAdditionalIds(

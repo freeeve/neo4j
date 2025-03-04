@@ -30,6 +30,8 @@ import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StoreVersion;
 
 public interface StoreMigrationParticipant {
+    long UNSPECIFIED_MAX_OFF_HEAP_MEMORY = -1;
+
     /**
      * Default empty implementation of StoreMigrationParticipant
      */

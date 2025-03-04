@@ -75,6 +75,7 @@ public interface Converters {
                 "Maximum memory that neo4j-admin can use for various data structures and caching to improve performance. "
                         + "Values can be plain numbers, such as 10000000, or 20G for 20 gigabytes. "
                         + "It can also be specified as a percentage of the available memory, for example 70%%.";
+        public static final String OPTION_NAME = "--max-off-heap-memory";
 
         @Override
         public Long convert(String value) throws Exception {

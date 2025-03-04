@@ -1,0 +1,176 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.kernel.impl.storemigration;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+import static org.neo4j.configuration.Config.defaults;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.internal.helpers.progress.ProgressListener.NONE;
+import static org.neo4j.io.ByteUnit.mebiBytes;
+import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
+import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
+import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
+
+import java.io.IOException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.neo4j.batchimport.api.BatchImporter;
+import org.neo4j.batchimport.api.Configuration;
+import org.neo4j.exceptions.KernelException;
+import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.io.layout.Neo4jLayout;
+import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
+import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
+import org.neo4j.logging.internal.NullLogService;
+import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.StorageEngineFactory;
+import org.neo4j.storageengine.api.StoreVersion;
+import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
+import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
+import org.neo4j.test.utils.TestDirectory;
+
+@EphemeralPageCacheExtension
+class AcrossEngineMigrationParticipantTest {
+    @Inject
+    private PageCache pageCache;
+
+    @Inject
+    private TestDirectory directory;
+
+    @Inject
+    private FileSystemAbstraction fs;
+
+    private JobScheduler scheduler;
+    private DatabaseLayout fromLayout;
+    private DatabaseLayout toLayout;
+    private StorageEngineFactory sourceSef;
+    private StorageEngineFactory targetSef;
+    private ArgumentCaptor<Configuration> importerConfigurationCaptor;
+
+    @BeforeEach
+    void start() {
+        scheduler = new ThreadPoolJobScheduler();
+        fromLayout = Neo4jLayout.of(directory.directory("from")).databaseLayout(DEFAULT_DATABASE_NAME);
+        toLayout = Neo4jLayout.of(directory.directory("to")).databaseLayout(DEFAULT_DATABASE_NAME);
+        sourceSef = mock(StorageEngineFactory.class);
+        targetSef = mock(StorageEngineFactory.class);
+        var importer = mock(BatchImporter.class);
+        importerConfigurationCaptor = ArgumentCaptor.forClass(Configuration.class);
+        when(targetSef.batchImporter(
+                        any(),
+                        any(),
+                        any(),
+                        importerConfigurationCaptor.capture(),
+                        any(),
+                        any(),
+                        anyBoolean(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any()))
+                .thenReturn(importer);
+    }
+
+    @AfterEach
+    void stop() {
+        scheduler.close();
+    }
+
+    @Test
+    void shouldPassThroughPageCacheToImporterOnNullMaxOffHeapMemory() throws IOException, KernelException {
+        // given
+        var participant = new AcrossEngineMigrationParticipant(
+                fs,
+                pageCache,
+                NULL,
+                defaults(),
+                NullLogService.getInstance(),
+                scheduler,
+                NULL_CONTEXT_FACTORY,
+                INSTANCE,
+                sourceSef,
+                targetSef,
+                false,
+                false,
+                -1);
+
+        // when
+        participant.migrate(
+                fromLayout,
+                toLayout,
+                NONE,
+                mock(StoreVersion.class),
+                mock(StoreVersion.class),
+                new IndexImporterFactoryImpl(),
+                mock(LogTailMetadata.class));
+
+        // then
+        assertThat(importerConfigurationCaptor.getValue().providedPageCache()).isNotNull();
+    }
+
+    @Test
+    void shouldPassThroughMaxOffHeapMemoryOnNonNullMaxOffHeapMemory() throws IOException, KernelException {
+        // given
+        long maxOffHeapMemory = mebiBytes(80);
+        var participant = new AcrossEngineMigrationParticipant(
+                fs,
+                pageCache,
+                NULL,
+                defaults(),
+                NullLogService.getInstance(),
+                scheduler,
+                NULL_CONTEXT_FACTORY,
+                INSTANCE,
+                sourceSef,
+                targetSef,
+                false,
+                false,
+                maxOffHeapMemory);
+
+        // when
+        participant.migrate(
+                fromLayout,
+                toLayout,
+                NONE,
+                mock(StoreVersion.class),
+                mock(StoreVersion.class),
+                new IndexImporterFactoryImpl(),
+                mock(LogTailMetadata.class));
+
+        // then
+        assertThat(importerConfigurationCaptor.getValue().providedPageCache()).isNull();
+        assertThat(importerConfigurationCaptor.getValue().maxOffHeapMemory()).isEqualTo(maxOffHeapMemory);
+    }
+}

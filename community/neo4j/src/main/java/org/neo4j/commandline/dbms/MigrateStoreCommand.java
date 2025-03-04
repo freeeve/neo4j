@@ -39,6 +39,7 @@ import java.util.StringJoiner;
 import org.neo4j.cli.AbstractAdminCommand;
 import org.neo4j.cli.CommandFailedException;
 import org.neo4j.cli.Converters;
+import org.neo4j.cli.Converters.MaxOffHeapMemoryConverter;
 import org.neo4j.cli.ExecutionContext;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -103,6 +104,8 @@ import picocli.CommandLine.Parameters;
                 + "It always migrates the database to the latest combination of major and minor "
                 + "version of the target format.")
 public class MigrateStoreCommand extends AbstractAdminCommand {
+    private static final String OPTION_PAGECACHE = "--pagecache";
+
     @Parameters(
             arity = "1",
             paramLabel = "<database>",
@@ -122,11 +125,20 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
     private String formatToMigrateTo;
 
     @Option(
-            names = {"--pagecache", "--max-off-heap-memory"},
+            names = OPTION_PAGECACHE,
+            paramLabel = "<size>",
+            description =
+                    "(Deprecated in favor of --max-off-heap-memory) The size of the page cache to use for the migration process. "
+                            + "The general rule is that values up to the size of the database proportionally increase "
+                            + "performance.")
+    private String pagecacheMemory;
+
+    @Option(
+            names = MaxOffHeapMemoryConverter.OPTION_NAME,
             paramLabel = "<size>",
             defaultValue = "90%",
             converter = Converters.MaxOffHeapMemoryConverter.class,
-            description = Converters.MaxOffHeapMemoryConverter.DESCRIPTION)
+            description = MaxOffHeapMemoryConverter.DESCRIPTION)
     private long maxOffHeapMemory;
 
     @Option(
@@ -166,6 +178,13 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
 
     @Override
     protected void execute() {
+        if (pagecacheMemory != null) {
+            ctx.err()
+                    .printf(
+                            "%s option is deprecated in favor of %s",
+                            OPTION_PAGECACHE, MaxOffHeapMemoryConverter.OPTION_NAME);
+        }
+
         Config config = buildConfig();
         try (Log4jLogProvider logProvider = new Log4jLogProvider(ctx.out(), verbose ? Level.DEBUG : Level.INFO)) {
             migrateStore(config, logProvider);
@@ -200,19 +219,36 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
                 LifeSupport life = new LifeSupport();
                 String formatForDb = formatToMigrateTo;
 
-                // Regardless of what will take place during migration there's going to be some need for a page cache.
-                // - For minor upgrades only a small page cache is needed generally
-                // - For migration across formats (within same storage engine, or across) there's generally a
-                //   need for reading from the source db and writing a new migrated db. It has been observed
-                //   that the ratio of memory in these scenarios is 1/10th for reading and 9/10ths for writing
-                //   is a good split.
-                // Therefor always starting a "migration" page cache of 1/10th of the max off-heap memory limit
-                // caters for all scenarios, and the remaining 9/10ths limit is given to the migration participants
-                // so that they know how much additional memory they can use if they're doing bigger things
-                // (i.e. full migration of db)
-                long migrationPageCacheSize = Math.max(ByteUnit.mebiBytes(8), maxOffHeapMemory / 10);
-                long remainingMaxOffHeapMemory =
-                        Math.max(ByteUnit.mebiBytes(8), maxOffHeapMemory - migrationPageCacheSize);
+                long migrationPageCacheSize;
+                long remainingMaxOffHeapMemory;
+
+                resultLog.info("Number of CPUs: " + Runtime.getRuntime().availableProcessors());
+
+                if (pagecacheMemory == null) {
+                    // Page cache sizing reasoning unless --pagecache option is provided:
+                    // Regardless of what will take place during migration there's going to be some need for a page
+                    // cache.
+                    // - For minor upgrades only a small page cache is needed generally
+                    // - For migration across formats (within same storage engine, or across) there's generally a
+                    //   need for reading from the source db and writing a new migrated db. It has been observed
+                    //   that the ratio of memory in these scenarios is 1/10th for reading and 9/10ths for writing
+                    //   is a good split.
+                    // Therefor always starting a "migration" page cache of 1/10th of the max off-heap memory limit
+                    // caters for all scenarios, and the remaining 9/10ths limit is given to the migration participants
+                    // so that they know how much additional memory they can use if they're doing bigger things
+                    // (i.e. full migration of db)
+                    migrationPageCacheSize = Math.max(ByteUnit.mebiBytes(8), maxOffHeapMemory / 10);
+                    remainingMaxOffHeapMemory =
+                            Math.max(ByteUnit.mebiBytes(8), maxOffHeapMemory - migrationPageCacheSize);
+                    resultLog.info("Max off-heap memory: " + bytesToString(maxOffHeapMemory));
+                } else {
+                    // Deprecated and legacy behavior:
+                    // This command will allocate a page cache of the specified size and use it for everything
+                    // during migration, i.e. for reading and for writing (even the importer case)
+                    migrationPageCacheSize = ByteUnit.parse(pagecacheMemory);
+                    remainingMaxOffHeapMemory = -1;
+                    resultLog.info("Page cache size: " + bytesToString(migrationPageCacheSize));
+                }
 
                 try (JobScheduler jobScheduler = life.add(JobSchedulerFactory.createInitialisedScheduler());
                         PageCache pageCache = createPageCache(
@@ -220,8 +256,6 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
                     DatabaseLayout databaseLayout = Neo4jLayout.of(config).databaseLayout(dbName);
                     checkDatabaseExistence(databaseLayout);
 
-                    resultLog.info("Number of CPUs: " + Runtime.getRuntime().availableProcessors());
-                    resultLog.info("Max off-heap memory: " + bytesToString(maxOffHeapMemory));
                     resultLog.info("Store size: "
                             + bytesToString(FileSystemUtils.size(fs, databaseLayout.databaseDirectory())));
 

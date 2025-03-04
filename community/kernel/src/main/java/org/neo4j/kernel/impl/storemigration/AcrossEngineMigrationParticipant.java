@@ -45,6 +45,7 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.helpers.progress.ProgressListener;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.io.pagecache.ExternallyManagedPageCache;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
@@ -149,9 +150,22 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                         return IndexConfig.create().withLabelIndex().withRelationshipTypeIndex();
                     }
 
+                    // These two methods below has logic for accommodating both the current behavior of
+                    // only providing max-off-heap-memory, and also the legacy behavior of passing in an
+                    // external page cache (which is mostly due the existence of migrate command --pagecache option).
+
+                    @Override
+                    public ExternallyManagedPageCache providedPageCache() {
+                        return maxOffHeapMemory == UNSPECIFIED_MAX_OFF_HEAP_MEMORY
+                                ? new ExternallyManagedPageCache(pageCache)
+                                : null;
+                    }
+
                     @Override
                     public long maxOffHeapMemory() {
-                        return maxOffHeapMemory;
+                        return maxOffHeapMemory == UNSPECIFIED_MAX_OFF_HEAP_MEMORY
+                                ? super.maxOffHeapMemory()
+                                : maxOffHeapMemory;
                     }
                 },
                 logService,
