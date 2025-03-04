@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.ir.helpers.ExpressionConverters.PredicateConver
 import org.neo4j.cypher.internal.util.Foldable
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
 sealed trait QueryHorizon extends Foldable {
 
@@ -46,8 +47,8 @@ sealed trait QueryHorizon extends Foldable {
 
   def readOnly = true
 
-  def allHints: Set[Hint]
-  def withoutHints(hintsToIgnore: Set[Hint]): QueryHorizon
+  def allHints: ListSet[Hint]
+  def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon
 
   /**
    * @return whether this horizon is the final projection of a single top-level planner query.
@@ -108,9 +109,9 @@ final case class PassthroughAllHorizon() extends QueryHorizon {
 
   override lazy val allQueryGraphs: Seq[QgWithLeafInfo] = Seq.empty
 
-  override def allHints: Set[Hint] = Set.empty
+  override def allHints: ListSet[Hint] = ListSet.empty
 
-  override def withoutHints(hintsToIgnore: Set[Hint]): QueryHorizon = this
+  override def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon = this
 }
 
 case class UnwindProjection(variable: LogicalVariable, exp: Expression) extends QueryHorizon {
@@ -118,9 +119,9 @@ case class UnwindProjection(variable: LogicalVariable, exp: Expression) extends 
 
   override def dependingExpressions: Seq[Expression] = Seq(exp)
 
-  override def allHints: Set[Hint] = Set.empty
+  override def allHints: ListSet[Hint] = ListSet.empty
 
-  override def withoutHints(hintsToIgnore: Set[Hint]): QueryHorizon = this
+  override def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon = this
 }
 
 case class LoadCSVProjection(
@@ -133,9 +134,9 @@ case class LoadCSVProjection(
 
   override def dependingExpressions: Seq[Expression] = Seq(url)
 
-  override def allHints: Set[Hint] = Set.empty
+  override def allHints: ListSet[Hint] = ListSet.empty
 
-  override def withoutHints(hintsToIgnore: Set[Hint]): QueryHorizon = this
+  override def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon = this
 }
 
 case class CallSubqueryHorizon(
@@ -156,9 +157,9 @@ case class CallSubqueryHorizon(
 
   override def readOnly: Boolean = callSubquery.readOnly
 
-  override def allHints: Set[Hint] = callSubquery.allHints
+  override def allHints: ListSet[Hint] = callSubquery.allHints
 
-  override def withoutHints(hintsToIgnore: Set[Hint]): QueryHorizon =
+  override def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon =
     copy(callSubquery = callSubquery.withoutHints(hintsToIgnore))
 
   /**
@@ -196,9 +197,9 @@ sealed abstract class QueryProjection extends QueryHorizon {
     withSelection(selections = selections ++ newSelections)
   }
 
-  override def allHints: Set[Hint] = Set.empty
+  override def allHints: ListSet[Hint] = ListSet.empty
 
-  override def withoutHints(hintsToIgnore: Set[Hint]): QueryHorizon = this
+  override def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon = this
 }
 
 object QueryProjection {
@@ -402,9 +403,9 @@ case class CommandProjection(clause: CommandClause) extends QueryHorizon {
 
   override def dependingExpressions: Seq[Expression] = Seq()
 
-  override def allHints: Set[Hint] = Set.empty
+  override def allHints: ListSet[Hint] = ListSet.empty
 
-  override def withoutHints(hintsToIgnore: Set[Hint]): QueryHorizon = this
+  override def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon = this
 }
 
 abstract class AbstractProcedureCallProjection extends QueryHorizon {

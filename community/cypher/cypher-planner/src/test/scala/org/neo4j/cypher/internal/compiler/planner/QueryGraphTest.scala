@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.ir.QueryGraph
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class QueryGraphTest extends CypherFunSuite with AstConstructionTestSupport {
@@ -43,32 +44,32 @@ class QueryGraphTest extends CypherFunSuite with AstConstructionTestSupport {
     UsingIndexHint(varFor("m"), LabelOrRelTypeName("Label")(pos), Seq(PropertyKeyName("prop2")(pos)))(pos)
 
   test("addHints should add new hints") {
-    val qg1 = QueryGraph(hints = Set(hint1))
-    val qg2 = QueryGraph(hints = Set(hint1, hint2))
+    val qg1 = QueryGraph(hints = ListSet(hint1))
+    val qg2 = QueryGraph(hints = ListSet(hint1, hint2))
 
-    qg1.addHints(Set(hint2)) should equal(qg2)
+    qg1.addHints(ListSet(hint2)) should equal(qg2)
   }
 
   test("addHint should not add already existing hint") {
-    val qg1 = QueryGraph(hints = Set(hint1))
-    val qg2 = QueryGraph(hints = Set(hint1, hint2))
+    val qg1 = QueryGraph(hints = ListSet(hint1))
+    val qg2 = QueryGraph(hints = ListSet(hint1, hint2))
 
-    qg1.addHints(Set(hint1, hint2)) should equal(qg2)
+    qg1.addHints(ListSet(hint1, hint2)) should equal(qg2)
   }
 
   test("withoutHints should remove hints") {
-    val qg1 = QueryGraph(hints = Set(hint1, hint2))
-    val qg2 = QueryGraph(hints = Set(hint1))
+    val qg1 = QueryGraph(hints = ListSet(hint1, hint2))
+    val qg2 = QueryGraph(hints = ListSet(hint1))
 
-    qg1.removeHints(Set(hint2)) should equal(qg2)
+    qg1.removeHints(ListSet(hint2)) should equal(qg2)
   }
 
   test("should not get duplicate hints when combining query graphs") {
     val hint3 =
       UsingIndexHint(varFor("o"), LabelOrRelTypeName("Label")(pos), Seq(PropertyKeyName("prop3")(pos)))(pos)
-    val qg1 = QueryGraph(hints = Set(hint1, hint2))
-    val qg2 = QueryGraph(hints = Set(hint1, hint3))
-    val qg3 = QueryGraph(hints = Set(hint1, hint2, hint3))
+    val qg1 = QueryGraph(hints = ListSet(hint1, hint2))
+    val qg2 = QueryGraph(hints = ListSet(hint1, hint3))
+    val qg3 = QueryGraph(hints = ListSet(hint1, hint2, hint3))
 
     qg1 ++ qg2 should equal(qg3)
   }

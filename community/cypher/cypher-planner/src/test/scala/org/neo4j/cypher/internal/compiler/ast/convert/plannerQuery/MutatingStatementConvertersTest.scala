@@ -50,6 +50,7 @@ import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.AppendedClues
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -176,7 +177,7 @@ class MutatingStatementConvertersTest extends CypherFunSuite with LogicalPlannin
             Set.empty,
             Selections(Set.empty),
             Vector.empty,
-            Set.empty,
+            ListSet.empty,
             Set.empty,
             IndexedSeq(CreatePattern(nodes("a")))
           ),

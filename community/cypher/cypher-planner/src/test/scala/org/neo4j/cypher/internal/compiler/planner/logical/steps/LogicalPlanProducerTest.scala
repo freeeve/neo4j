@@ -2084,7 +2084,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ),
         solvedPredicates = Seq.empty,
         reverseGroupVariableProjections = false,
-        hints = Set.empty,
+        hints = ListSet.empty,
         context = ctx.context,
         pathLength = PathLength.none,
         Trail

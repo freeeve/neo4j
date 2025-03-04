@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.frontend.phases.ResolvedCall
 import org.neo4j.cypher.internal.ir.AbstractProcedureCallProjection
 import org.neo4j.cypher.internal.ir.QueryHorizon
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
 case class ProcedureCallProjection(call: ResolvedCall) extends AbstractProcedureCallProjection {
 
@@ -37,7 +38,7 @@ case class ProcedureCallProjection(call: ResolvedCall) extends AbstractProcedure
 
   override def readOnly: Boolean = call.containsNoUpdates
 
-  override def allHints: Set[Hint] = Set.empty
+  override def allHints: ListSet[Hint] = ListSet.empty
 
-  override def withoutHints(hintsToIgnore: Set[Hint]): QueryHorizon = this
+  override def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon = this
 }

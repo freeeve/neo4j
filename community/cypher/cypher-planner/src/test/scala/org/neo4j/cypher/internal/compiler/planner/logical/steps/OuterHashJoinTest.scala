@@ -50,6 +50,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Cardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Cost
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class OuterHashJoinTest extends CypherFunSuite with LogicalPlanningTestSupport with PlanMatchHelp {
@@ -116,7 +117,7 @@ class OuterHashJoinTest extends CypherFunSuite with LogicalPlanningTestSupport w
   }
 
   test("solve optional match with hint") {
-    val theHint: Set[Hint] = Set(UsingJoinHint(Seq(aNode))(pos))
+    val theHint: ListSet[Hint] = ListSet(UsingJoinHint(Seq(aNode))(pos))
     // MATCH a OPTIONAL MATCH a-->b
     val optionalQg = QueryGraph(
       patternNodes = Set(aNode, bNode),

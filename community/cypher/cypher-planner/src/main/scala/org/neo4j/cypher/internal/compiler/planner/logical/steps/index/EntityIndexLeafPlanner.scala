@@ -57,6 +57,7 @@ import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor.IndexType
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTPointNotNull
@@ -394,7 +395,7 @@ trait PredicateSet {
         )
     }
 
-  private def matchingHints(hints: Set[Hint]): Set[UsingIndexHint] = {
+  private def matchingHints(hints: ListSet[Hint]): Set[UsingIndexHint] = {
     val propertyNames = propertyPredicates.map(_.indexCompatiblePredicate.propertyKeyName.name)
     val localVariableName = variable
     val entityTypeName = symbolicName.name
@@ -418,7 +419,7 @@ trait PredicateSet {
       case _                                      => false
     }
 
-  def fulfilledHints(allHints: Set[Hint], indexType: IndexType, planIsScan: Boolean): Set[UsingIndexHint] =
+  def fulfilledHints(allHints: ListSet[Hint], indexType: IndexType, planIsScan: Boolean): Set[UsingIndexHint] =
     matchingHints(allHints)
       .filter(fulfilledByIndexType(indexType))
       .filter(!planIsScan || _.spec.fulfilledByScan)

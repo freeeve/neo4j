@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
 import org.neo4j.cypher.internal.logical.plans.RangeQueryExpression
 import org.neo4j.cypher.internal.logical.plans.SingleQueryExpression
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.internal.kernel.api.PropertyIndexQuery.allEntries
 
 object RelationshipIndexSeekPlanProvider extends RelationshipIndexPlanProvider {
@@ -80,7 +81,7 @@ object RelationshipIndexSeekPlanProvider extends RelationshipIndexPlanProvider {
   private def constructPlan(
     predicateSet: PredicateSet,
     indexMatch: RelationshipIndexMatch,
-    hints: Set[Hint],
+    hints: ListSet[Hint],
     argumentIds: Set[LogicalVariable],
     context: LogicalPlanningContext
   ): LogicalPlan = {

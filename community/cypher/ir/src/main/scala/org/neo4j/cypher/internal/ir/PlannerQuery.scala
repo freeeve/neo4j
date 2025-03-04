@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery.extractLabelInfo
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery.reverseProjectedInterestingOrder
 import org.neo4j.cypher.internal.ir.ordering.InterestingOrder
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.helpers.MapSupport.PowerMap
 import org.neo4j.exceptions.InternalException
 
@@ -41,8 +42,8 @@ sealed trait PlannerQuery {
   def readOnly: Boolean
   def returns: Set[LogicalVariable]
 
-  def allHints: Set[Hint]
-  def withoutHints(hintsToIgnore: Set[Hint]): PlannerQuery
+  def allHints: ListSet[Hint]
+  def withoutHints(hintsToIgnore: ListSet[Hint]): PlannerQuery
   def numHints: Int
   def visitHints[A](acc: A)(f: (A, Hint, QueryGraph) => A): A
 
@@ -88,9 +89,9 @@ case class UnionQuery(
     }.get
   }
 
-  override def allHints: Set[Hint] = lhs.allHints ++ rhs.allHints
+  override def allHints: ListSet[Hint] = lhs.allHints ++ rhs.allHints
 
-  override def withoutHints(hintsToIgnore: Set[Hint]): PlannerQuery = copy(
+  override def withoutHints(hintsToIgnore: ListSet[Hint]): PlannerQuery = copy(
     lhs = lhs.withoutHints(hintsToIgnore),
     rhs = rhs.withoutHints(hintsToIgnore)
   )
@@ -175,7 +176,7 @@ sealed trait SinglePlannerQuery extends PlannerQuery {
       queryGraph = queryGraph.withArgumentIds(queryGraph.argumentIds ++ queryInput)
     )
 
-  override def withoutHints(hintsToIgnore: Set[Hint]): SinglePlannerQuery = {
+  override def withoutHints(hintsToIgnore: ListSet[Hint]): SinglePlannerQuery = {
     copy(
       queryGraph = queryGraph.removeHints(hintsToIgnore),
       horizon = horizon.withoutHints(hintsToIgnore),
@@ -229,7 +230,7 @@ sealed trait SinglePlannerQuery extends PlannerQuery {
 
   def isCoveredByHints(other: SinglePlannerQuery): Boolean = allHints.forall(other.allHints.contains)
 
-  override def allHints: Set[Hint] = {
+  override def allHints: ListSet[Hint] = {
     val headHints = queryGraph.allHints ++ horizon.allHints
     tail.fold(headHints)(_.allHints ++ headHints)
   }

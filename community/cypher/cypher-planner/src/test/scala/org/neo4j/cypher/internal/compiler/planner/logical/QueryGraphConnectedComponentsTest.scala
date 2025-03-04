@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.UpperBound.Unlimited
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class QueryGraphConnectedComponentsTest
@@ -210,10 +211,10 @@ class QueryGraphConnectedComponentsTest
 
   test("two disconnected pattern relationships with hints on one side") {
     val usingScanHint = UsingScanHint(A, labelOrRelTypeName("A"))(pos)
-    val graph = QueryGraph(patternNodes = Set(A, B), hints = Set(usingScanHint))
+    val graph = QueryGraph(patternNodes = Set(A, B), hints = ListSet(usingScanHint))
 
     graph.connectedComponents should equal(Seq(
-      QueryGraph(patternNodes = Set(A), hints = Set(usingScanHint)),
+      QueryGraph(patternNodes = Set(A), hints = ListSet(usingScanHint)),
       QueryGraph(patternNodes = Set(B))
     ))
   }

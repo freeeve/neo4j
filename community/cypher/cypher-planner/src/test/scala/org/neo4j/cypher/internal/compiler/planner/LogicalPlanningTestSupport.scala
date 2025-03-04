@@ -128,6 +128,7 @@ import org.neo4j.cypher.internal.util.PropertyKeyId
 import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.devNullLogger
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -455,7 +456,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   def newMockedLogicalPlan(
     idNames: Set[String],
     planningAttributes: PlanningAttributes = PlanningAttributes.newAttributes,
-    hints: Set[Hint] = Set[Hint](),
+    hints: ListSet[Hint] = ListSet[Hint](),
     selections: Selections = Selections()
   ): LogicalPlan = {
     val solved = RegularSinglePlannerQuery(
@@ -487,7 +488,7 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     planningAttributes: PlanningAttributes,
     idNames: Set[String],
     patterns: Set[PatternRelationship] = Set.empty,
-    hints: Set[Hint] = Set[Hint](),
+    hints: ListSet[Hint] = ListSet[Hint](),
     selections: Selections = Selections()
   ): LogicalPlan = {
     val solved =

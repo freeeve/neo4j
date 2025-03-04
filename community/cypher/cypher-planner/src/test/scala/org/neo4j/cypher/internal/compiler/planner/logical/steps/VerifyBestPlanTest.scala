@@ -51,6 +51,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.RecordingNotificationLogger
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
@@ -387,7 +388,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       newMockedLogicalPlan(
         Set("a", "b"),
         context.staticComponents.planningAttributes,
-        hints = Set[Hint](newNodeIndexHint())
+        hints = ListSet[Hint](newNodeIndexHint())
       )
 
     VerifyBestPlan(plan, newQueryWithNodeIndexHint(), context) // should not throw
@@ -405,7 +406,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       context.staticComponents.planningAttributes,
       Set("a", "b"),
       Set(PatternRelationship(v"r", (v"a", v"b"), BOTH, Seq.empty, SimplePatternLength)),
-      hints = Set[Hint](newRelationshipIndexHint())
+      hints = ListSet[Hint](newRelationshipIndexHint())
     )
 
     VerifyBestPlan(plan, newQueryWithRelationshipIndexHint(), context) // should not throw
@@ -420,7 +421,11 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       useErrorsOverWarnings = false
     )
     val plan: LogicalPlan =
-      newMockedLogicalPlan(Set("a", "b"), context.staticComponents.planningAttributes, hints = Set[Hint](newJoinHint()))
+      newMockedLogicalPlan(
+        Set("a", "b"),
+        context.staticComponents.planningAttributes,
+        hints = ListSet[Hint](newJoinHint())
+      )
 
     VerifyBestPlan(plan, newQueryWithJoinHint(), context) // should not throw
     notificationLogger.notifications should be(empty)
@@ -481,7 +486,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
   }
 
   test("should throw when finding unfulfillable index hint in a subquery") {
-    def plannerQueryWithSubquery(hints: Set[Hint]): PlannerQuery = {
+    def plannerQueryWithSubquery(hints: ListSet[Hint]): PlannerQuery = {
       RegularSinglePlannerQuery(
         horizon = CallSubqueryHorizon(
           callSubquery = RegularSinglePlannerQuery(
@@ -499,8 +504,8 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       )
     }
 
-    val expected = plannerQueryWithSubquery(Set(newNodeIndexHint()))
-    val solved = plannerQueryWithSubquery(Set.empty)
+    val expected = plannerQueryWithSubquery(ListSet(newNodeIndexHint()))
+    val solved = plannerQueryWithSubquery(ListSet.empty)
 
     val context =
       newMockedLogicalPlanningContext(planContext = getPlanContext(hasIndex = false), useErrorsOverWarnings = true)
@@ -512,7 +517,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
   }
 
   test("should throw when finding unfulfillable text index hint in a subquery") {
-    def plannerQueryWithSubquery(hints: Set[Hint]): PlannerQuery = {
+    def plannerQueryWithSubquery(hints: ListSet[Hint]): PlannerQuery = {
       RegularSinglePlannerQuery(
         horizon = CallSubqueryHorizon(
           callSubquery = RegularSinglePlannerQuery(
@@ -530,8 +535,8 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       )
     }
 
-    val expected = plannerQueryWithSubquery(Set(newNodeIndexHint(indexType = UsingTextIndexType)))
-    val solved = plannerQueryWithSubquery(Set.empty)
+    val expected = plannerQueryWithSubquery(ListSet(newNodeIndexHint(indexType = UsingTextIndexType)))
+    val solved = plannerQueryWithSubquery(ListSet.empty)
 
     val context =
       newMockedLogicalPlanningContext(planContext = getPlanContext(hasIndex = true), useErrorsOverWarnings = true)
@@ -543,7 +548,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
   }
 
   test("should throw when finding unfulfillable text index hint in UNION") {
-    def plannerUnionQuery(hints: Set[Hint]): PlannerQuery = {
+    def plannerUnionQuery(hints: ListSet[Hint]): PlannerQuery = {
       UnionQuery(
         rhs = RegularSinglePlannerQuery(
           QueryGraph(
@@ -559,8 +564,8 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       )
     }
 
-    val expected = plannerUnionQuery(Set(newNodeIndexHint(indexType = UsingTextIndexType)))
-    val solved = plannerUnionQuery(Set.empty)
+    val expected = plannerUnionQuery(ListSet(newNodeIndexHint(indexType = UsingTextIndexType)))
+    val solved = plannerUnionQuery(ListSet.empty)
 
     val context =
       newMockedLogicalPlanningContext(planContext = getPlanContext(hasIndex = true), useErrorsOverWarnings = true)
@@ -572,7 +577,7 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
   }
 
   test("should throw when finding unfulfillable text index hint in OPTIONAL MATCH") {
-    def plannerQueryWithOptionalMatch(hints: Set[Hint]): PlannerQuery = {
+    def plannerQueryWithOptionalMatch(hints: ListSet[Hint]): PlannerQuery = {
       RegularSinglePlannerQuery(
         QueryGraph.empty.addOptionalMatch(
           QueryGraph(
@@ -583,8 +588,8 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
       )
     }
 
-    val expected = plannerQueryWithOptionalMatch(Set(newNodeIndexHint(indexType = UsingTextIndexType)))
-    val solved = plannerQueryWithOptionalMatch(Set.empty)
+    val expected = plannerQueryWithOptionalMatch(ListSet(newNodeIndexHint(indexType = UsingTextIndexType)))
+    val solved = plannerQueryWithOptionalMatch(ListSet.empty)
 
     val context =
       newMockedLogicalPlanningContext(planContext = getPlanContext(hasIndex = true), useErrorsOverWarnings = true)

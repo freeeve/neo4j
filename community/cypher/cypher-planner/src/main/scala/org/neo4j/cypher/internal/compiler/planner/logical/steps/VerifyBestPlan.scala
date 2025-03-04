@@ -43,6 +43,7 @@ import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
@@ -94,7 +95,7 @@ object VerifyBestPlan {
           val solvedInAddition = actualHints.diff(expectedHints)
           val inventedHintsAndThenSolvedThem = solvedInAddition.exists(!expectedHints.contains(_))
           if (missing.nonEmpty || inventedHintsAndThenSolvedThem) {
-            def out(h: Set[Hint]) = h.map(prettifier.asString).mkString("`", ", ", "`")
+            def out(h: ListSet[Hint]) = h.map(prettifier.asString).mkString("`", ", ", "`")
 
             val details =
               if (missing.isEmpty)
@@ -149,7 +150,7 @@ object VerifyBestPlan {
   private def processUnfulfilledJoinHints(
     plan: LogicalPlan,
     context: LogicalPlanningContext,
-    hints: Set[UsingJoinHint]
+    hints: ListSet[UsingJoinHint]
   ): Unit = {
     if (hints.nonEmpty) {
       // we were unable to plan hash join on some requested nodes
@@ -226,7 +227,7 @@ object VerifyBestPlan {
     missingIndexHints: Set[MissingIndexHint],
     wrongPropertyTypeHints: collection.Seq[WrongPropertyTypeHint]
   ) {
-    def hints: Set[Hint] = Set[Hint]() ++ missingIndexHints.map(_.hint) ++ wrongPropertyTypeHints.map(_.hint)
+    def hints: ListSet[Hint] = ListSet[Hint]() ++ missingIndexHints.map(_.hint) ++ wrongPropertyTypeHints.map(_.hint)
   }
 
   private def findUnfulfillableIndexHints(
@@ -309,7 +310,7 @@ object VerifyBestPlan {
     UnfulfillableIndexHints(hintsWithoutIndex, hintsForWrongType.toVector)
   }
 
-  private def findUnfulfillableJoinHints(query: PlannerQuery): Set[UsingJoinHint] = {
+  private def findUnfulfillableJoinHints(query: PlannerQuery): ListSet[UsingJoinHint] = {
     query.allHints.collect {
       case hint: UsingJoinHint => hint
     }

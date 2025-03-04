@@ -139,6 +139,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.Leaf
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet.IterableOnceToListSet
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.exceptions.InternalException
@@ -608,7 +609,7 @@ object ClauseConverters extends LabelExpressionConversion {
           // It's either all or nothing per match clause.
           QueryGraph(
             selections = remainingSelections,
-            hints = clause.hints.toSet
+            hints = clause.hints.toListSet
           ).addPathPatterns(pathPatterns)
         )
       }
