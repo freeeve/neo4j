@@ -600,7 +600,7 @@ public class Database extends AbstractDatabase {
 
         life.add(onStop(() -> {
             this.executionEngine.clearQueryCaches();
-            this.executionEngine.closeQueryCaches();
+            this.executionEngine.close();
         }));
         life.add(onStart(this::registerUpgradeListener));
         life.add(databaseHealth);

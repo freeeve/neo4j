@@ -60,6 +60,7 @@ import org.neo4j.logging.InternalLogProvider
 import org.neo4j.monitoring.Monitors
 import org.neo4j.values.virtual.MapValue
 
+import java.io.Closeable
 import java.lang
 import java.time.Clock
 import java.util.Optional
@@ -81,7 +82,7 @@ abstract class ExecutionEngine(
   val queryCaches: CypherQueryCaches,
   val logProvider: InternalLogProvider,
   val clock: Clock = Clock.systemUTC()
-) {
+) extends Closeable {
 
   // HELPER OBJECTS
   protected val defaultQueryExecutionMonitor = kernelMonitors.newMonitor(classOf[QueryExecutionMonitor])
@@ -502,6 +503,9 @@ abstract class ExecutionEngine(
       org.neo4j.cypher.internal.expressions.IterablePredicateExpression.functionInfo.map(FunctionWithInformation)
     (informations ++ predicateInformations).asJava
   }
+
+  override def close(): Unit =
+    queryCaches.close()
 
   // HELPERS
 
