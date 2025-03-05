@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
+import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.RecoverableCypherError
 import org.neo4j.cypher.internal.RetryableCypherError
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
@@ -33,7 +34,6 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.EntityTransformer
 import org.neo4j.cypher.internal.runtime.QueryStatistics
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.ExponentialBackoffRetryLogic.DEFAULT_MAX_RETRY_TIME_NANOS
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.NotApplicable
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.NotRetryable
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RetryDecision.RetryTimeout
@@ -528,9 +528,7 @@ object TransactionPipeWrapper {
     case OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail =>
       retryPolicy match {
         case TransactionRetryPolicy.RetryFor(maybeDurationInSeconds) =>
-          // TODO: Integrate with config setting from QueryRuntimeConfig when that is merged
-          // state.query.getConfig.get("...")
-          val maxRetryTimeNanos = evaluateRetryTimeoutNanos(maybeDurationInSeconds, state, DEFAULT_MAX_RETRY_TIME_NANOS)
+          val maxRetryTimeNanos = evaluateRetryTimeoutNanos(maybeDurationInSeconds, state)
           Some(new ExponentialBackoffRetryLogic(maxRetryTimeNanos))
 
         case _ =>
@@ -542,8 +540,7 @@ object TransactionPipeWrapper {
 
   def evaluateRetryTimeoutNanos(
     retryTimeout: Option[Expression],
-    state: QueryState,
-    defaultTimeoutInNanos: Long
+    state: QueryState
   ): Long = {
     retryTimeout match {
       case Some(t) =>
@@ -556,7 +553,7 @@ object TransactionPipeWrapper {
         )
 
       case None =>
-        defaultTimeoutInNanos
+        state.query.getConfig.get(GraphDatabaseSettings.cypher_default_subquery_transaction_retry_timeout).toNanos
     }
   }
 

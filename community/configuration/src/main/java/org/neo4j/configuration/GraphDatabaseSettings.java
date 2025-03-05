@@ -239,6 +239,17 @@ public class GraphDatabaseSettings implements SettingsDeclaration {
         COST
     }
 
+    @Description(
+            "The default maximum amount of time to attempt retries of a subquery transaction that fails with a transient error "
+                    + "in a query with a `CALL () { ... } IN TRANSACTIONS ... ON ERROR RETRY ...` clause. "
+                    + "This setting is only used when no retry timeout is explicitly specified in the query."
+                    + "E.g. `CALL () { ... } IN TRANSACTIONS ... ON ERROR RETRY FOR 10 SECONDS` would override this setting "
+                    + "with a 10 second retry timeout for that particular query.")
+    public static final Setting<Duration> cypher_default_subquery_transaction_retry_timeout = newBuilder(
+                    "dbms.cypher.transactions.default_subquery_retry_timeout", DURATION, Duration.ofSeconds(30))
+            .dynamic()
+            .build();
+
     @Description("Set this to specify the default planner for the default language version.")
     public static final Setting<CypherPlanner> cypher_planner = newBuilder(
                     "dbms.cypher.planner", ofEnum(CypherPlanner.class), CypherPlanner.DEFAULT)
