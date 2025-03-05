@@ -109,10 +109,10 @@ case class repeatTrailAndWalkEndNodePredicateRewriter(attributes: Attributes[Log
      * 
      * Support for more predicates is left as an exercise for the reader. 
      */
-    isOnlyEndNotEquality(endVariableName, predicates)
+    isOnlyEndNodeEquality(endVariableName, predicates)
   }
 
-  private def isOnlyEndNotEquality(endVariableName: String, predicates: Ands): Boolean = {
+  private def isOnlyEndNodeEquality(endVariableName: String, predicates: Ands): Boolean = {
     predicates match {
       case Ands(Singleton(Equals(Variable(lhs), Variable(rhs)))) => lhs == endVariableName || rhs == endVariableName
       case _                                                     => false
@@ -121,53 +121,20 @@ case class repeatTrailAndWalkEndNodePredicateRewriter(attributes: Attributes[Log
 
   override val innerRewriter: Rewriter = {
     Rewriter.lift {
-      case s @ Selection(
-          predicates,
-          r @ RepeatTrail(
-            _,
-            _,
-            _,
-            _,
-            end,
-            _,
-            innerEnd,
-            _,
-            _,
-            _,
-            _,
-            _,
-            _,
-            existingEndNodePredicate
-          )
-        ) =>
-        if (isRewritable(predicates, end.name)) {
-          val rewrittenPredicates = renameEnd(innerEnd, end, predicates)
-          val newEndNodePredicates = mergeEndNodePredicates(existingEndNodePredicate, predicates, rewrittenPredicates)
+      case s @ Selection(predicates, r: RepeatTrail) =>
+        if (isRewritable(predicates, r.end.name)) {
+          val rewrittenPredicates = renameEnd(r.innerEnd, r.end, predicates)
+          val newEndNodePredicates = mergeEndNodePredicates(r.endNodePredicate, predicates, rewrittenPredicates)
           val id = attributes.copy(s.id).id()
           r.copy(endNodePredicate = Some(newEndNodePredicates))(SameId(id))
         } else {
           s
         }
 
-      case s @ Selection(
-          predicates,
-          r @ RepeatWalk(
-            _,
-            _,
-            _,
-            _,
-            end,
-            _,
-            innerEnd,
-            _,
-            _,
-            _,
-            existingEndNodePredicates
-          )
-        ) =>
-        if (isRewritable(predicates, end.name)) {
-          val rewrittenPredicates = renameEnd(innerEnd, end, predicates)
-          val newEndNodePredicates = mergeEndNodePredicates(existingEndNodePredicates, predicates, rewrittenPredicates)
+      case s @ Selection(predicates, r: RepeatWalk) =>
+        if (isRewritable(predicates, r.end.name)) {
+          val rewrittenPredicates = renameEnd(r.innerEnd, r.end, predicates)
+          val newEndNodePredicates = mergeEndNodePredicates(r.endNodePredicate, predicates, rewrittenPredicates)
           val id = attributes.copy(s.id).id()
           r.copy(endNodePredicate = Some(newEndNodePredicates))(SameId(id))
         } else {
