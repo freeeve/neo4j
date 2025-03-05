@@ -336,20 +336,17 @@ public class EphemeralFileSystemAbstraction implements FileSystemAbstraction {
             directories.add(to);
             // Rename the directory, meaning all its files instead
             for (var child : listFiles(from)) {
+                Path childTarget = to.resolve(child.getFileName().toString());
                 if (isDirectory(child)) {
-                    internalRenameDirectory(to, child);
+                    renameFile(child, childTarget, copyOptions);
                 } else {
-                    internalRenameFile(child, to.resolve(child.getFileName().toString()), copyOptions);
+                    internalRenameFile(child, childTarget, copyOptions);
                 }
             }
+            directories.remove(from);
         } else {
             internalRenameFile(from, to, copyOptions);
         }
-    }
-
-    private void internalRenameDirectory(Path to, Path child) {
-        directories.remove(child);
-        directories.add(to.resolve(child.getFileName().toString()));
     }
 
     private void internalRenameFile(Path from, Path to, CopyOption[] copyOptions)

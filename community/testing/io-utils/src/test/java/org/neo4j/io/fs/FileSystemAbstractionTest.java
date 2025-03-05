@@ -827,6 +827,33 @@ public abstract class FileSystemAbstractionTest {
         assertDoesNotThrow(() -> fsa.delete(path.resolve("c")));
     }
 
+    @Test
+    void mustRenameDirectoryRecursively() throws IOException {
+        Path from = path.resolve("from");
+        Path to = path.resolve("to");
+
+        Path a = Path.of("a");
+        Path a1 = a.resolve("1");
+        Path b = a.resolve("b");
+        Path b1 = b.resolve("1");
+        ensureDirectoryExists(from.resolve(a));
+        ensureDirectoryExists(from.resolve(b));
+        ensureExists(from.resolve(a1));
+        ensureExists(from.resolve(b1));
+
+        fsa.renameFile(from, to);
+
+        assertThat(fsa.isDirectory(from.resolve(a))).isFalse();
+        assertThat(fsa.isDirectory(from.resolve(b))).isFalse();
+        assertThat(fsa.fileExists(from.resolve(a1))).isFalse();
+        assertThat(fsa.fileExists(from.resolve(b1))).isFalse();
+
+        assertThat(fsa.isDirectory(to.resolve(a))).isTrue();
+        assertThat(fsa.isDirectory(to.resolve(b))).isTrue();
+        assertThat(fsa.fileExists(to.resolve(a1))).isTrue();
+        assertThat(fsa.fileExists(to.resolve(b1))).isTrue();
+    }
+
     private void generateFileWithRecords(Path file, int recordCount) throws IOException {
         try (StoreChannel channel = fsa.write(file)) {
             ByteBuffer buf = ByteBuffers.allocate(recordSize, ByteOrder.LITTLE_ENDIAN, INSTANCE);
