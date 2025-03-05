@@ -44,8 +44,9 @@ class MigrateStoreCommandTest {
                          USAGE
 
                          migrate [-h] [--expand-commands] [--force-btree-indexes-to-range] [--verbose]
-                                 [--additional-config=<file>] [--pagecache=<size>]
-                                 [--to-format=standard|high_limit|aligned|block] <database>
+                                 [--additional-config=<file>] [--max-off-heap-memory=<size>]
+                                 [--pagecache=<size>] [--to-format=standard|high_limit|aligned|block]
+                                 <database>
 
                          DESCRIPTION
 
@@ -77,7 +78,16 @@ class MigrateStoreCommandTest {
                                                       start up following the migration and users should
                                                       monitor the successful completion of that process.
                            -h, --help               Show this help message and exit.
-                               --pagecache=<size>   The size of the page cache to use for the migration
+                               --max-off-heap-memory=<size>
+                                                    Maximum memory that neo4j-admin can use for various
+                                                      data structures and caching to improve
+                                                      performance. Values can be plain numbers, such as
+                                                      10000000, or 20G for 20 gigabytes. It can also be
+                                                      specified as a percentage of the available memory,
+                                                      for example 70%.
+                                                      Default: 90%
+                               --pagecache=<size>   (Deprecated in favor of --max-off-heap-memory) The
+                                                      size of the page cache to use for the migration
                                                       process. The general rule is that values up to the
                                                       size of the database proportionally increase
                                                       performance.
