@@ -19,10 +19,10 @@
  */
 package org.neo4j.cypher.operations;
 
-import static java.lang.Long.parseLong;
 import static java.lang.String.format;
 import static org.neo4j.cypher.operations.CursorUtils.propertyKeys;
 import static org.neo4j.cypher.operations.CypherRuntimeParser.parseAsDoubleOrElseNoValue;
+import static org.neo4j.cypher.operations.CypherRuntimeParser.parseAsLongOrElseNoValue;
 import static org.neo4j.values.storable.Values.EMPTY_STRING;
 import static org.neo4j.values.storable.Values.FALSE;
 import static org.neo4j.values.storable.Values.NO_VALUE;
@@ -1916,14 +1916,14 @@ public final class CypherFunctions {
     public static Value toInteger(AnyValue in) {
         if (in == NO_VALUE) {
             return NO_VALUE;
-        } else if (in instanceof IntegralValue) {
-            return (IntegralValue) in;
+        } else if (in instanceof IntegralValue integer) {
+            return integer;
         } else if (in instanceof NumberValue number) {
             return longValue(number.longValue());
-        } else if (in instanceof TextValue) {
-            return stringToLongValue((TextValue) in);
-        } else if (in instanceof BooleanValue) {
-            if (((BooleanValue) in).booleanValue()) {
+        } else if (in instanceof TextValue text) {
+            return stringToLongValue(text);
+        } else if (in instanceof BooleanValue bool) {
+            if (bool.booleanValue()) {
                 return longValue(1L);
             } else {
                 return longValue(0L);
@@ -2099,7 +2099,7 @@ public final class CypherFunctions {
 
     private static Value stringToLongValue(TextValue in) {
         try {
-            return longValue(parseLong(in.stringValue()));
+            return parseAsLongOrElseNoValue(in.stringValue());
         } catch (Exception e) {
             try {
                 BigDecimal bigDecimal = new BigDecimal(in.stringValue());
