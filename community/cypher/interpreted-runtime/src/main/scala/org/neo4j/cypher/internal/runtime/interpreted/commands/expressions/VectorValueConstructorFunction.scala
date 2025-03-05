@@ -27,28 +27,17 @@ import org.neo4j.values.AnyValue
 
 case class VectorValueConstructorFunction(
   vector: Expression,
-  dimension: Option[Expression] = None,
-  coordinateType: Option[Expression] = None
+  dimension: Expression,
+  coordinateType: Expression
 ) extends Expression {
 
-  override def apply(ctx: ReadableRow, state: QueryState): AnyValue = (dimension, coordinateType) match {
-    case (Some(d), Some(c)) => CypherFunctions.vectorValueConstructor(vector(ctx, state), d(ctx, state), c(ctx, state))
-    case (Some(d), None)    => CypherFunctions.vectorValueConstructor(vector(ctx, state), d(ctx, state))
-    case _                  => CypherFunctions.vectorValueConstructor(vector(ctx, state))
-  }
+  override def apply(ctx: ReadableRow, state: QueryState): AnyValue =
+    CypherFunctions.vectorValueConstructor(vector(ctx, state), dimension(ctx, state), coordinateType(ctx, state))
 
-  override def arguments: Seq[Expression] = (dimension, coordinateType) match {
-    case (Some(d), Some(c)) => Seq(vector, d, c)
-    case (Some(d), None)    => Seq(vector, d)
-    case _                  => Seq(vector)
-  }
+  override def arguments: Seq[Expression] = Seq(vector, dimension, coordinateType)
 
-  override def rewrite(f: Expression => Expression): Expression = (dimension, coordinateType) match {
-    case (Some(d), Some(c)) =>
-      f(VectorValueConstructorFunction(vector.rewrite(f), Some(d.rewrite(f)), Some(c.rewrite(f))))
-    case (Some(d), None) => f(VectorValueConstructorFunction(vector.rewrite(f), Some(d.rewrite(f))))
-    case _               => f(VectorValueConstructorFunction(vector.rewrite(f)))
-  }
+  override def rewrite(f: Expression => Expression): Expression =
+      f(VectorValueConstructorFunction(vector.rewrite(f), dimension.rewrite(f), coordinateType.rewrite(f)))
 
   override def children: Seq[AstNode[_]] = arguments
 }
