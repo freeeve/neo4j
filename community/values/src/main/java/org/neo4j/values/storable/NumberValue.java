@@ -48,12 +48,6 @@ public abstract class NumberValue extends ScalarValue {
         return numberValue.doubleValue();
     }
 
-    public abstract byte byteValue();
-
-    public abstract short shortValue();
-
-    public abstract int intValue();
-
     public abstract long longValue();
 
     public abstract float floatValue();

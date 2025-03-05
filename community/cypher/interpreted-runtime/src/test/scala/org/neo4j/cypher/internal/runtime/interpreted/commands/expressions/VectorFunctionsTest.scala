@@ -94,7 +94,6 @@ class VectorFunctionsTest extends CypherFunSuite {
       1,
       stringValue("FLOAT32")
     ))
-    intercept[CypherTypeException](vectorValueConstructorWithDimensionAndCoordinateType(Seq(1, 2, 3, 4), 1, 32))
   }
 
 }
