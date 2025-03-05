@@ -25,12 +25,16 @@ import static org.neo4j.values.storable.Values.numberValue;
 
 import java.util.List;
 import org.neo4j.cypher.internal.CypherVersion;
+import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral;
 import org.neo4j.cypher.internal.expressions.Expression;
+import org.neo4j.cypher.internal.expressions.IntegerLiteral;
 import org.neo4j.cypher.internal.expressions.ListLiteral;
 import org.neo4j.cypher.internal.expressions.Literal;
 import org.neo4j.cypher.internal.expressions.NumberLiteral;
+import org.neo4j.cypher.internal.expressions.StringLiteral;
 import org.neo4j.cypher.internal.parser.AstParserFactory;
 import org.neo4j.cypher.internal.parser.AstParserFactory$;
+import org.neo4j.cypher.internal.util.InputPosition;
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory;
 import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.exceptions.SyntaxException;
@@ -168,6 +172,16 @@ abstract class CypherRuntimeParser {
                 return NO_VALUE;
             }
         } catch (NumberFormatException | SyntaxException ignore) {
+            //NOTE: This is here because of backwards compatability so that we support some
+            //      extra formats not supported by Cypher itself, i.e. 0000046
+            return parseWithJava(expression);
+        }
+    }
+
+    private static Value parseWithJava(String expression) {
+        try{
+            return doubleValue(Double.parseDouble(expression));
+        } catch (NumberFormatException e) {
             return NO_VALUE;
         }
     }
