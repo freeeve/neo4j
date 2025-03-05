@@ -94,6 +94,7 @@ public class GqlParams {
         keyword(new STRLIT()), // Pattern keyword
         label(new IDENT()), // Label name | Person
         labelExpr(new STRLIT()), // Label expression | Person&Human
+        lower(new VERBATIM()), // Lower bound e.g. number out of range (StringParam to handle Durations)
         mapKey(new STRLIT()), // Map key
         matchMode(new VERBATIM()), // A GPM match mode
         msg(new VERBATIM()), // Freeform message | Howdy, Partner
@@ -151,6 +152,7 @@ public class GqlParams {
         transactionId(new STRLIT()), // Transaction id
         transactionId1(new STRLIT()),
         transactionId2(new STRLIT()),
+        upper(new VERBATIM()), // Upper bound e.g. number out of range (StringParam to handle Durations)
         url(new VERBATIM()), // URL
         user(new IDENT()), // User name
         value(new VAL()), // Value

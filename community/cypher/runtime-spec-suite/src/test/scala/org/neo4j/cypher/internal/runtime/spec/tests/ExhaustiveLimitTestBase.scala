@@ -25,8 +25,10 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.ArithmeticException
 import org.neo4j.exceptions.InvalidArgumentException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 object ExhaustiveLimitTestBase
 
@@ -68,6 +70,16 @@ abstract class ExhaustiveLimitTestBase[CONTEXT <: RuntimeContext](
       consume(execute(logicalQuery, runtime, input))
     }
     exception.getMessage should include("Must be a non-negative integer")
+    exception should be(
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22003,
+        "error: data exception - numeric value out of range. The numeric value -1 is outside the required range."
+      )
+        .withCause(
+          GqlStatusInfoCodes.STATUS_22N03,
+          "error: data exception - specified numeric value out of range. Expected 'value' to be of type INTEGER and in the range 0 to 9223372036854775807 but found -1."
+        )
+    )
   }
 
   test("exhaustive limit -1 on an empty input") {

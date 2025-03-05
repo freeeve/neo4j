@@ -153,9 +153,7 @@ object AliasMapSettingsEvaluator {
       settings.getOption(key).map {
         case duration: DurationValue =>
           if (!allowNegative && duration.compareTo(DurationValue.ZERO) < 0) {
-            throw new InvalidArgumentsException(
-              s"Failed to $operation: Invalid driver settings value for '$key'. Negative duration is not allowed."
-            )
+            throw InvalidArgumentsException.driverSettingDurationNotPositive(operation, key, duration)
           } else {
             key -> duration
           }

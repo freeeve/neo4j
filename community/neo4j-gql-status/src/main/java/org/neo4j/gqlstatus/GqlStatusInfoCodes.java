@@ -1147,8 +1147,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.component,
                 GqlParams.StringParam.valueType,
-                GqlParams.NumberParam.lower,
-                GqlParams.NumberParam.upper,
+                GqlParams.StringParam.lower,
+                GqlParams.StringParam.upper,
                 GqlParams.StringParam.value
             },
             emptyMap(),

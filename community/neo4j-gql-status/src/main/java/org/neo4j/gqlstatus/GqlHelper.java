@@ -34,8 +34,8 @@ public class GqlHelper {
         return GqlHelper.getGql08N06(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
                 .withParam(GqlParams.StringParam.component, component)
                 .withParam(GqlParams.StringParam.valueType, valueType)
-                .withParam(GqlParams.NumberParam.lower, lower)
-                .withParam(GqlParams.NumberParam.upper, upper)
+                .withParam(GqlParams.StringParam.lower, String.valueOf(lower))
+                .withParam(GqlParams.StringParam.upper, String.valueOf(upper))
                 .withParam(GqlParams.StringParam.value, String.valueOf(value))
                 .build());
     }
@@ -92,13 +92,14 @@ public class GqlHelper {
     public static ErrorGqlStatusObject getGql22003_22N03(
             String component, String valueType, Number lower, Number upper, String value) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, value)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
                         .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.StringParam.component, component)
                         .withParam(GqlParams.StringParam.valueType, valueType)
-                        .withParam(GqlParams.NumberParam.lower, lower)
-                        .withParam(GqlParams.NumberParam.upper, upper)
+                        .withParam(GqlParams.StringParam.lower, String.valueOf(lower))
+                        .withParam(GqlParams.StringParam.upper, String.valueOf(upper))
                         .withParam(GqlParams.StringParam.value, value)
                         .build())
                 .build();
@@ -113,8 +114,8 @@ public class GqlHelper {
                         .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.StringParam.component, component)
                         .withParam(GqlParams.StringParam.valueType, valueType)
-                        .withParam(GqlParams.NumberParam.lower, lower)
-                        .withParam(GqlParams.NumberParam.upper, upper)
+                        .withParam(GqlParams.StringParam.lower, String.valueOf(lower))
+                        .withParam(GqlParams.StringParam.upper, String.valueOf(upper))
                         .withParam(GqlParams.StringParam.value, String.valueOf(value))
                         .build())
                 .build();
@@ -128,8 +129,8 @@ public class GqlHelper {
                         .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.StringParam.component, component)
                         .withParam(GqlParams.StringParam.valueType, valueType)
-                        .withParam(GqlParams.NumberParam.lower, lower)
-                        .withParam(GqlParams.NumberParam.upper, upper)
+                        .withParam(GqlParams.StringParam.lower, String.valueOf(lower))
+                        .withParam(GqlParams.StringParam.upper, String.valueOf(upper))
                         .withParam(GqlParams.StringParam.value, String.valueOf(value))
                         .build())
                 .build();
@@ -301,8 +302,8 @@ public class GqlHelper {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
                         .withParam(GqlParams.StringParam.component, component)
                         .withParam(GqlParams.StringParam.valueType, valueType)
-                        .withParam(GqlParams.NumberParam.lower, lower)
-                        .withParam(GqlParams.NumberParam.upper, upper)
+                        .withParam(GqlParams.StringParam.lower, String.valueOf(lower))
+                        .withParam(GqlParams.StringParam.upper, String.valueOf(upper))
                         .withParam(GqlParams.StringParam.value, String.valueOf(value))
                         .build())
                 .build();

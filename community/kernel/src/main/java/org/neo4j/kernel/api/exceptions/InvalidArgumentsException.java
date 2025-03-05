@@ -23,6 +23,7 @@ import static org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27;
 
 import java.util.List;
 import java.util.stream.Collectors;
+import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlException;
@@ -30,6 +31,7 @@ import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.values.AnyValue;
+import org.neo4j.values.storable.DurationValue;
 import org.neo4j.values.utils.PrettyPrinter;
 import org.neo4j.values.virtual.MapValue;
 
@@ -505,6 +507,25 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
     public static InvalidArgumentsException expectedListOfDatabaseNames(String action, String list, AnyValue input) {
         var oldMsg = String.format("%s expects a list of database names but got '%s'.", action, list);
         return invalidInput(input, action, List.of("LIST<STRING>"), oldMsg);
+    }
+
+    public static InvalidArgumentsException driverSettingDurationNotPositive(
+            String operation, String key, DurationValue duration) {
+        var legacyMessage = "Failed to %s: Invalid driver settings value for '%s'. Negative duration is not allowed."
+                .formatted(operation, key);
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, duration.prettyPrint())
+                .withClassification(ErrorClassification.CLIENT_ERROR)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
+                        .withClassification(ErrorClassification.CLIENT_ERROR)
+                        .withParam(GqlParams.StringParam.component, key)
+                        .withParam(GqlParams.StringParam.valueType, "DURATION")
+                        .withParam(GqlParams.StringParam.lower, DurationValue.ZERO.prettyPrint())
+                        .withParam(GqlParams.StringParam.upper, DurationValue.MAX_VALUE.prettyPrint())
+                        .withParam(GqlParams.StringParam.value, duration.prettyPrint())
+                        .build())
+                .build();
+        return new InvalidArgumentsException(gql, legacyMessage);
     }
 
     private static InvalidArgumentsException invalidInput(

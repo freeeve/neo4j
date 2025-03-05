@@ -154,8 +154,8 @@ public class IllegalStructArgumentException extends PackstreamStructException {
         var gql = GqlHelper.getGql08N06(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
                 .withParam(GqlParams.StringParam.component, fieldName)
                 .withParam(GqlParams.StringParam.valueType, expectedType)
-                .withParam(GqlParams.NumberParam.lower, lowerLimit)
-                .withParam(GqlParams.NumberParam.upper, upperLimit)
+                .withParam(GqlParams.StringParam.lower, String.valueOf(lowerLimit))
+                .withParam(GqlParams.StringParam.upper, String.valueOf(upperLimit))
                 .withParam(GqlParams.StringParam.value, String.valueOf(actualValue))
                 .build());
         return new IllegalStructArgumentException(gql, fieldName, message);
