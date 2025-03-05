@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.CypherExecutionInterruptedException
 import org.neo4j.exceptions.InternalException
 import org.neo4j.exceptions.TransactionRetryAbortedException
+import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.impl.util.collection.EagerBuffer
 import org.neo4j.kernel.impl.util.collection.EagerBuffer.createEagerBuffer
 import org.neo4j.memory.MemoryTracker
@@ -578,10 +579,10 @@ object TransactionPipeWrapper {
   ): (TransactionStatus, Throwable) = {
     // NOTE: It is very important that these match cases correctly propagate non-recoverable errors
     (resultStatus, onErrorBehaviour, retryDecision) match {
-      case (r @ Rollback(_, failure, _, _), OnErrorRetryThenFail, RetryTimeout) =>
+      case (Rollback(_, failure, _, _), OnErrorRetryThenFail, RetryTimeout) =>
         // Non-recoverable failure
         (
-          r,
+          resultStatus,
           TransactionRetryAbortedException.transactionRetryAborted(
             failure,
             batch.retriedCount,
@@ -589,13 +590,19 @@ object TransactionPipeWrapper {
           )
         )
 
-      case (r @ Rollback(_, failure, _, _), OnErrorRetryThenFail, NotRetryable | NotApplicable) =>
-        // Non-recoverable failure
-        (r, failure)
+      case (Rollback(_, ex: CypherExecutionInterruptedException, _, _), OnErrorRetryThenFail, _)
+        if ex.status() == Status.Transaction.QueryExecutionFailedOnTransaction =>
+        // CypherExecutionInterruptedException means this batch was cancelled due to another batch failing,
+        // so we wait for the actual failed batch to be retried in order to throw the failure
+        (resultStatus, null)
 
-      case (r @ Rollback(_, failure, _, _), OnErrorFail, _) =>
+      case (Rollback(_, failure, _, _), OnErrorRetryThenFail, NotRetryable | NotApplicable) =>
         // Non-recoverable failure
-        (r, failure)
+        (resultStatus, failure)
+
+      case (Rollback(_, failure, _, _), OnErrorFail, _) =>
+        // Non-recoverable failure
+        (resultStatus, failure)
 
       case (r @ Rollback(_, failure, _, _), OnErrorRetryThenBreak | OnErrorRetryThenContinue, RetryTimeout) =>
         // Recoverable failure
@@ -614,8 +621,8 @@ object TransactionPipeWrapper {
         // Real non-recoverable exception types are not expected to be caught and handled at this level
         throw new IllegalStateException("Unexpected handling of non-recoverable error status")
 
-      case (status, _, _) =>
-        (status, null)
+      case _ =>
+        (resultStatus, null)
     }
   }
 
