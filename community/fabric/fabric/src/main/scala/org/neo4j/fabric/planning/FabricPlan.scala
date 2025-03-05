@@ -39,7 +39,8 @@ case class FabricPlan(
   obfuscationMetadata: ObfuscationMetadata,
   inCompositeContext: Boolean,
   internalNotifications: Set[InternalNotification],
-  queryOptionsOffset: InputPosition
+  queryOptionsOffset: InputPosition,
+  maybeResolvedParameters: Option[Set[String]]
 ) {
 
   def notifications: Seq[NotificationImplementation] =

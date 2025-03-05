@@ -64,6 +64,7 @@ import org.neo4j.cypher.messages.MessageUtilProvider
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.monitoring.Monitors
+import org.neo4j.values.virtual.MapValue
 
 class FabricParsingPropertyTest extends CypherFunSuite
     with CypherScalaCheckDrivenPropertyChecks
@@ -100,7 +101,7 @@ class FabricParsingPropertyTest extends CypherFunSuite
     ParsingConfig(
       semanticFeatures = defaultSemanticFeatures ++ Seq(MultipleGraphs, UseAsMultipleGraphsSelector)
     )
-  private val fabricParsing = CompilationPhases.fabricParsing(fabricParsingConfig, resolver)
+  private val fabricParsing = CompilationPhases.fabricParsing(fabricParsingConfig, resolver, MapValue.EMPTY)
 
   private val prettifier: Prettifier =
     Prettifier(ExpressionStringifier(alwaysParens = true, alwaysBacktick = true, sensitiveParamsAsParams = true))

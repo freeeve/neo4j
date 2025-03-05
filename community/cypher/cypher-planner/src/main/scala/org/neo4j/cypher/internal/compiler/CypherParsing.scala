@@ -91,9 +91,11 @@ class CypherParsing(
         extractLiterals = config.extractLiterals,
         parameterTypeMapping = paramTypes,
         semanticFeatures = features,
-        obfuscateLiterals = config.obfuscateLiterals()
+        obfuscateLiterals = config.obfuscateLiterals(),
+        resolveSimpleDynamicExpressions = config.resolveSimpleDynamicExpressions
       ),
-      resolver = resolver
+      resolver = resolver,
+      parameters = params
     ).transform(startState, context)
   }
 
@@ -113,7 +115,8 @@ case class CypherParsingConfig(
   useParameterSizeHint: Boolean = true,
   semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
   obfuscateLiterals: () => Boolean = () => false,
-  queryRouterForCompositeEnabled: Boolean = false
+  queryRouterForCompositeEnabled: Boolean = false,
+  resolveSimpleDynamicExpressions: Boolean = false
 )
 
 object CypherParsingConfig {
@@ -138,6 +141,13 @@ object CypherParsingConfig {
       cypherConfiguration.useParameterSizeHint
     }
 
+    val resolveSimpleDynamicExpressions: Boolean = {
+      AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+        !GraphDatabaseInternalSettings.resolve_simple_dynamic_expressions.dynamic()
+      )
+      cypherConfiguration.resolveSimpleDynamicExpressions
+    }
+
     val enabledSemanticFeatures: Seq[SemanticFeature] = {
       AssertMacros.checkOnlyWhenAssertionsAreEnabled(
         !GraphDatabaseInternalSettings.cypher_enable_extra_semantic_features.dynamic()
@@ -159,7 +169,8 @@ object CypherParsingConfig {
       useParameterSizeHint,
       enabledSemanticFeatures,
       () => obfuscateLiterals(),
-      queryRouterForCompositeQueriesEnabled
+      queryRouterForCompositeQueriesEnabled,
+      resolveSimpleDynamicExpressions
     )
   }
 

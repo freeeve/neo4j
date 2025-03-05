@@ -141,7 +141,8 @@ case class FabricFrontEnd(
             GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> SemanticFeature.ExperimentalCypherVersions.productPrefix
           ))
         ) ++ semanticFeatures,
-      obfuscateLiterals = cypherConfig.obfuscateLiterals
+      obfuscateLiterals = cypherConfig.obfuscateLiterals,
+      resolveSimpleDynamicExpressions = cypherConfig.resolveSimpleDynamicExpressions
     )
 
     object parseAndPrepare {
@@ -154,7 +155,7 @@ case class FabricFrontEnd(
 
       private val transformer =
         CompilationPhases
-          .fabricParsing(parsingConfig, signatures)
+          .fabricParsing(parsingConfig, signatures, params)
 
       def process(): BaseState =
         transformer.transform(

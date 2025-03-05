@@ -182,12 +182,13 @@ case class FabricPlanner(
         obfuscationMetadata = prepared.obfuscationMetadata(),
         inCompositeContext = compositeContext,
         internalNotifications = pipeline.internalNotifications,
-        queryOptionsOffset = query.options.offset
+        queryOptionsOffset = query.options.offset,
+        maybeResolvedParameters = prepared.maybeResolvedParams
       )
     }
 
     private def shouldCache(plan: FabricPlan): Boolean =
-      !QueryType.sensitive(plan.query)
+      !QueryType.sensitive(plan.query) && plan.maybeResolvedParameters.isEmpty
 
     private def optionsFor(fragment: Fragment) = {
       val languageOption = query.resolvedLanguage match {

@@ -182,6 +182,9 @@ class CypherConfiguration private (val config: Config) {
 
   val useParameterSizeHint: Boolean = config.get(GraphDatabaseInternalSettings.cypher_size_hint_parameters)
 
+  val resolveSimpleDynamicExpressions: Boolean =
+    config.get(GraphDatabaseInternalSettings.resolve_simple_dynamic_expressions)
+
   val freeMemoryOfUnusedColumns: Boolean =
     config.get(GraphDatabaseInternalSettings.cypher_free_memory_of_unused_columns)
 

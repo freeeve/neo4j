@@ -45,6 +45,8 @@ case class TestState(override val maybeStatement: Option[ast.Statement]) extends
 
   override def maybeExtractedParams = None
 
+  override def maybeResolvedParams: Option[Set[String]] = None
+
   override def maybeSemanticTable = None
 
   override def maybeObfuscationMetadata: Option[ObfuscationMetadata] = None
@@ -61,6 +63,8 @@ case class TestState(override val maybeStatement: Option[ast.Statement]) extends
   override def withSemanticState(s: SemanticState) = fail("not implemented")
 
   override def withParams(p: Map[AutoExtractedParameter, Expression]) = fail("not implemented")
+
+  override def withResolvedParams(p: Set[String]) = fail("not implemented")
 
   override def withObfuscationMetadata(o: ObfuscationMetadata) = fail("not implemented")
 

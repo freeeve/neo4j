@@ -34,6 +34,7 @@ trait BaseState {
   def maybeReturnColumns: Option[Seq[String]]
   def maybeSemantics: Option[SemanticState]
   def maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]]
+  def maybeResolvedParams: Option[Set[String]]
   def maybeSemanticTable: Option[SemanticTable]
   def maybeObfuscationMetadata: Option[ObfuscationMetadata]
   def anonymousVariableNameGenerator: AnonymousVariableNameGenerator
@@ -56,6 +57,7 @@ trait BaseState {
   def withSemanticTable(s: SemanticTable): BaseState
   def withSemanticState(s: SemanticState): BaseState
   def withParams(p: Map[AutoExtractedParameter, Expression]): BaseState
+  def withResolvedParams(p: Set[String]): BaseState
   def withObfuscationMetadata(o: ObfuscationMetadata): BaseState
 }
 
@@ -67,6 +69,7 @@ case class InitialState(
   maybeStatement: Option[Statement] = None,
   maybeSemantics: Option[SemanticState] = None,
   maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]] = None,
+  maybeResolvedParams: Option[Set[String]] = None,
   maybeSemanticTable: Option[SemanticTable] = None,
   accumulatedConditions: Set[StepSequencer.Condition] = Set.empty,
   maybeReturnColumns: Option[Seq[String]] = None,
@@ -83,6 +86,8 @@ case class InitialState(
 
   override def withParams(p: Map[AutoExtractedParameter, Expression]): InitialState =
     copy(maybeExtractedParams = Some(p))
+
+  override def withResolvedParams(p: Set[String]): InitialState = copy(maybeResolvedParams = Some(p))
 
   override def withObfuscationMetadata(o: ObfuscationMetadata): InitialState = copy(maybeObfuscationMetadata = Some(o))
 

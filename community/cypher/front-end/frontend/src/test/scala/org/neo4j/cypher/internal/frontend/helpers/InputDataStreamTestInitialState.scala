@@ -37,6 +37,7 @@ case class InputDataStreamTestInitialState(
   maybeStatement: Option[ast.Statement] = None,
   maybeSemantics: Option[SemanticState] = None,
   maybeExtractedParams: Option[Map[AutoExtractedParameter, Expression]] = None,
+  maybeResolvedParams: Option[Set[String]] = None,
   maybeSemanticTable: Option[SemanticTable] = None,
   accumulatedConditions: Set[StepSequencer.Condition] = Set.empty,
   maybeReturnColumns: Option[Seq[String]] = None,
@@ -59,6 +60,8 @@ case class InputDataStreamTestInitialState(
 
   override def withParams(p: Map[AutoExtractedParameter, Expression]): InputDataStreamTestInitialState =
     copy(maybeExtractedParams = Some(p))
+
+  override def withResolvedParams(p: Set[String]): InputDataStreamTestInitialState = copy(maybeResolvedParams = Some(p))
 
   override def withReturnColumns(cols: Seq[String]): InputDataStreamTestInitialState =
     copy(maybeReturnColumns = Some(cols))

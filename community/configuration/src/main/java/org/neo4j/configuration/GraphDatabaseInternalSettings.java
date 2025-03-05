@@ -1229,6 +1229,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.cypher.use_parameter_size", BOOL, true).build();
 
     @Internal
+    @Description("Resolve simple dynamic expressions during AST rewriting")
+    public static final Setting<Boolean> resolve_simple_dynamic_expressions = newBuilder(
+                    "internal.cypher.resolve_simple_dynamic_expressions", BOOL, false)
+            .build();
+
+    @Internal
     @Description("Multi versioned store transaction chunk size.")
     public static final Setting<Long> multi_version_transaction_chunk_size = newBuilder(
                     "internal.db.multiversion.transaction.chunk.size", BYTES, mebiBytes(10))

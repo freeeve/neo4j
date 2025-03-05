@@ -244,7 +244,8 @@ case class CypherPlanner(
         sessionDatabase
       )
       val value = AstCache.AstCacheValue(parsedQuery, notificationLogger.notifications)
-      if (!plannerConfig.planSystemCommands) caches.astCache.put(key, value)
+      // We don't want to cache any query when a parameter has been solved
+      if (!plannerConfig.planSystemCommands && parsedQuery.maybeResolvedParams.isEmpty) caches.astCache.put(key, value)
       value
     }
     value.notifications.foreach(notificationLogger.log)
@@ -257,7 +258,8 @@ case class CypherPlanner(
     parsedQuery: BaseState,
     parsingNotifications: Set[InternalNotification]
   ): Unit = {
-    if (plannerConfig.planSystemCommands) {
+    // We don't want to cache any query when a parameter has been solved
+    if (plannerConfig.planSystemCommands || parsedQuery.maybeResolvedParams.nonEmpty) {
       return
     }
     val key = AstCache.key(preParsedQuery, params, parsingConfig.useParameterSizeHint)
@@ -458,7 +460,8 @@ case class CypherPlanner(
       queryParamNames.size == filteredParams.size // this is relevant if the query has parameters
 
     val compilerWithExpressionCodeGenOption = new CompilerWithExpressionCodeGenOption[CacheableLogicalPlan] {
-      override def compile(): CacheableLogicalPlan = createPlan(shouldBeCached = true)
+      override def compile(): CacheableLogicalPlan =
+        createPlan(shouldBeCached = syntacticQuery.maybeResolvedParams.isEmpty)
       override def compileWithExpressionCodeGen(): CacheableLogicalPlan = compile()
       override def maybeCompileWithExpressionCodeGen(
         hitCount: Int,

@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqu
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.LiteralExtraction
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ResolveSimpleDynamicExpressions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SyntaxDeprecationWarningsAndReplacements
@@ -35,6 +36,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.IfNoParameter
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.Never
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
+import org.neo4j.values.virtual.MapValue
 
 trait FrontEndCompilationPhases {
 
@@ -50,7 +52,8 @@ trait FrontEndCompilationPhases {
     /* TODO: This is not part of configuration - Move to BaseState */
     parameterTypeMapping: Map[String, ParameterTypeInfo] = Map.empty,
     semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures,
-    obfuscateLiterals: Boolean = false
+    obfuscateLiterals: Boolean = false,
+    resolveSimpleDynamicExpressions: Boolean = false
   ) {
 
     def literalExtractionStrategy: LiteralExtractionStrategy = extractLiterals match {
@@ -75,20 +78,25 @@ trait FrontEndCompilationPhases {
       RemoveDuplicateUseClauses andThen
       SemanticTypeCheck andThen
       SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures) andThen
-      IsolateSubqueriesInMutatingPatterns andThen
-      SemanticAnalysis(warn = false, config.semanticFeatures: _*)
+      IsolateSubqueriesInMutatingPatterns
   }
 
-  def parsingBase(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
-    Parse andThen postParsingBase(config)
+  def parsingBase(config: ParsingConfig, parameters: MapValue): Transformer[BaseContext, BaseState, BaseState] = {
+    Parse andThen postParsingBase(config) andThen
+      If((_: BaseState) => config.resolveSimpleDynamicExpressions)(ResolveSimpleDynamicExpressions(parameters)) andThen
+      SemanticAnalysis(
+        warn = false,
+        config.semanticFeatures: _*
+      )
   }
 
   // Phase 1
   def parsing(
     config: ParsingConfig,
-    resolver: Option[ScopedProcedureSignatureResolver] = None
+    resolver: Option[ScopedProcedureSignatureResolver] = None,
+    parameters: MapValue = MapValue.EMPTY
   ): Transformer[BaseContext, BaseState, BaseState] = {
-    parsingBase(config) andThen
+    parsingBase(config, parameters) andThen
       AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
       LiteralExtraction(config.literalExtractionStrategy) andThen
       /*
@@ -103,9 +111,10 @@ trait FrontEndCompilationPhases {
   // Phase 1 (Fabric)
   def fabricParsing(
     config: ParsingConfig,
-    resolver: ScopedProcedureSignatureResolver
+    resolver: ScopedProcedureSignatureResolver,
+    parameters: MapValue
   ): Transformer[BaseContext, BaseState, BaseState] = {
-    parsingBase(config) andThen
+    parsingBase(config, parameters) andThen
       ExpandStarRewriter andThen
       TryRewriteProcedureCalls(resolver) andThen
       ObfuscationMetadataCollection andThen

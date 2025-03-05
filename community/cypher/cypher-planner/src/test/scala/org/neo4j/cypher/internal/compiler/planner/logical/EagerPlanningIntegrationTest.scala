@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
@@ -28,7 +29,6 @@ import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThan
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
-import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.ir.EagernessReason
 import org.neo4j.cypher.internal.ir.EagernessReason.Conflict
 import org.neo4j.cypher.internal.ir.EagernessReason.LabelReadSetConflict
@@ -62,6 +62,8 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+
+import java.lang.Boolean.TRUE
 
 class EagerPlanningIntegrationTest extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport
@@ -1790,10 +1792,8 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setLabelCardinality("Z", 10)
+      .withSetting(GraphDatabaseInternalSettings.resolve_simple_dynamic_expressions, TRUE)
       .build()
-
-    val expression =
-      not(hasDynamicLabels(varFor("n"), ListLiteral(List(StringLiteral("Z")(pos.withInputLength(1))))(pos)))
 
     val query = """WITH ["A", "B"] as labels
                   |MATCH (n:!$(["Z"])), (m:!Z)
@@ -1815,7 +1815,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         .|.cartesianProduct()
         .|.|.filter("NOT m:Z")
         .|.|.allNodeScan("m", "labels")
-        .|.filterExpression(expression)
+        .|.filter("NOT n:Z")
         .|.allNodeScan("n", "labels")
         .projection("['A', 'B'] AS labels")
         .argument()
@@ -1869,8 +1869,10 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .setAllNodesCardinality(100)
       .setLabelCardinality("Z", 10)
       .setRelationshipCardinality("()-[]->()", 10)
+      .setRelationshipCardinality("()-[Z]->()", 10)
       .setLabelCardinality("A", 10)
       .setLabelCardinality("C", 10)
+      .withSetting(GraphDatabaseInternalSettings.resolve_simple_dynamic_expressions, TRUE)
       .build()
 
     val query = """WITH ["A", "B"] as types
@@ -1880,7 +1882,6 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query)
 
-    val dynExpr = hasDynamicType(varFor("r1"), ListLiteral(List(StringLiteral("Z")(pos.withInputLength(1))))(pos))
     val notExpr = not(hasTypes("r1", "B"))
     val andsExpr = andsReorderable("NOT n:A", "NOT m:C")
 
@@ -1892,9 +1893,9 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           LabelReadSetConflict(labelName("C")).withConflict(Conflict(Id(1), Id(5))),
           LabelReadSetConflict(labelName("A")).withConflict(Conflict(Id(1), Id(5)))
         ))
-        .filterExpression(dynExpr, notExpr, andsExpr)
+        .filterExpression(notExpr, andsExpr)
         .apply()
-        .|.allRelationshipsScan("(n)-[r1]->(m)", "types")
+        .|.relationshipTypeScan("(n)-[r1:Z]->(m)", "types")
         .projection("['A', 'B'] AS types")
         .argument()
         .build()
