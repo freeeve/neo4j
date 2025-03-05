@@ -1655,13 +1655,11 @@ class AstGenerator(
         Seq(
           OnErrorContinue,
           OnErrorBreak,
-          OnErrorFail
-        ) ++ (if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) Seq.empty
-              else Seq(
-                OnErrorRetryThenContinue,
-                OnErrorRetryThenBreak,
-                OnErrorRetryThenFail
-              ))
+          OnErrorFail,
+          OnErrorRetryThenContinue,
+          OnErrorRetryThenBreak,
+          OnErrorRetryThenFail
+        )
       ))
       retryParams <- option(_expression)
       reportAs <- option(string)

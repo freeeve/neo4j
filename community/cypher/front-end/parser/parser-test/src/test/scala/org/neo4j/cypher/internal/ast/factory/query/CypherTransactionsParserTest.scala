@@ -32,7 +32,6 @@ import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsReportParameters
 import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsRetryParameters
-import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -264,11 +263,6 @@ class CypherTransactionsParserTest extends AstParsingTestBase {
     )
   ).foreach {
     case (errorKeyword, errorBehaviour, retryParams) =>
-      def withRetry: Boolean = errorBehaviour match {
-        case OnErrorRetryThenContinue | OnErrorRetryThenBreak | OnErrorRetryThenFail => true
-        case _                                                                       => false
-      }
-
       val errorString = s"ON ERROR $errorKeyword"
       val rowString = "OF 50 ROWS"
       val concurrencyString = "7 CONCURRENT"
@@ -294,13 +288,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase {
             ),
             create(nodePat(Some("n")))
           )
-        testName should parseIn[SubqueryCall] {
-          case Cypher5 if withRetry =>
-            _.withSyntaxErrorContaining(
-              "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
-            )
-          case _ => _.toAst(expected)
-        }
+        parses[SubqueryCall].toAst(expected)
       }
 
       errorRowPermutations.foreach(permutation => {
@@ -315,13 +303,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase {
               ),
               create(nodePat(Some("n")))
             )
-          testName should parseIn[SubqueryCall] {
-            case Cypher5 if withRetry =>
-              _.withSyntaxErrorContaining(
-                "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
-              )
-            case _ => _.toAst(expected)
-          }
+          parses[SubqueryCall].toAst(expected)
         }
         test(s"CALL () { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)}") {
           val expected =
@@ -334,13 +316,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase {
               ),
               create(nodePat(Some("n")))
             )
-          testName should parseIn[SubqueryCall] {
-            case Cypher5 if withRetry =>
-              _.withSyntaxErrorContaining(
-                "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
-              )
-            case _ => _.toAst(expected)
-          }
+          parses[SubqueryCall].toAst(expected)
         }
       })
 
@@ -356,13 +332,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase {
               ),
               create(nodePat(Some("n")))
             )
-          testName should parseIn[SubqueryCall] {
-            case Cypher5 if withRetry =>
-              _.withSyntaxErrorContaining(
-                "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
-              )
-            case _ => _.toAst(expected)
-          }
+          parses[SubqueryCall].toAst(expected)
         }
         test(s"CALL () { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)}") {
           val expected =
@@ -375,13 +345,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase {
               ),
               create(nodePat(Some("n")))
             )
-          testName should parseIn[SubqueryCall] {
-            case Cypher5 if withRetry =>
-              _.withSyntaxErrorContaining(
-                "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
-              )
-            case _ => _.toAst(expected)
-          }
+          parses[SubqueryCall].toAst(expected)
         }
       })
 
@@ -397,13 +361,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase {
               ),
               create(nodePat(Some("n")))
             )
-          testName should parseIn[SubqueryCall] {
-            case Cypher5 if withRetry =>
-              _.withSyntaxErrorContaining(
-                "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
-              )
-            case _ => _.toAst(expected)
-          }
+          parses[SubqueryCall].toAst(expected)
         }
         test(
           s"CALL () { CREATE (n) } IN $concurrencyString TRANSACTIONS ${permutation.head} ${permutation(1)} ${permutation(2)}"
@@ -418,13 +376,7 @@ class CypherTransactionsParserTest extends AstParsingTestBase {
               ),
               create(nodePat(Some("n")))
             )
-          testName should parseIn[SubqueryCall] {
-            case Cypher5 if withRetry =>
-              _.withSyntaxErrorContaining(
-                "Invalid input 'RETRY': expected 'BREAK', 'CONTINUE' or 'FAIL'"
-              )
-            case _ => _.toAst(expected)
-          }
+          parses[SubqueryCall].toAst(expected)
         }
       })
   }

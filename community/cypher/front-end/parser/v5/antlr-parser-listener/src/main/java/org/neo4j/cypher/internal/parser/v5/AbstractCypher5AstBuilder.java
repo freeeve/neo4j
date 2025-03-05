@@ -84,6 +84,8 @@ public abstract class AbstractCypher5AstBuilder implements Cypher5ParserListener
                     (Cypher5Parser.SubqueryInTransactionsBatchParametersContext) ctx);
             case Cypher5Parser.RULE_subqueryInTransactionsErrorParameters -> exitSubqueryInTransactionsErrorParameters(
                     (Cypher5Parser.SubqueryInTransactionsErrorParametersContext) ctx);
+            case Cypher5Parser.RULE_subqueryInTransactionsRetryParameters -> exitSubqueryInTransactionsRetryParameters(
+                    (Cypher5Parser.SubqueryInTransactionsRetryParametersContext) ctx);
             case Cypher5Parser
                     .RULE_subqueryInTransactionsReportParameters -> exitSubqueryInTransactionsReportParameters(
                     (Cypher5Parser.SubqueryInTransactionsReportParametersContext) ctx);

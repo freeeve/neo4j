@@ -296,6 +296,7 @@ class Cypher5VocabularyTest extends CypherFunSuite {
     Cypher5Parser.REQUIRE -> "'REQUIRE'",
     Cypher5Parser.REQUIRED -> "'REQUIRED'",
     Cypher5Parser.RESTRICT -> "'RESTRICT'",
+    Cypher5Parser.RETRY -> "'RETRY'",
     Cypher5Parser.RETURN -> "'RETURN'",
     Cypher5Parser.REVOKE -> "'REVOKE'",
     Cypher5Parser.ROLE -> "'ROLE'",

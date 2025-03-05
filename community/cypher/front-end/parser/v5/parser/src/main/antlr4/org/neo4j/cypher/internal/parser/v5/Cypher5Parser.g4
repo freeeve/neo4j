@@ -231,7 +231,12 @@ subqueryInTransactionsBatchParameters
    ;
 
 subqueryInTransactionsErrorParameters
-   : ON ERROR (CONTINUE | BREAK | FAIL)
+   : ON ERROR RETRY (subqueryInTransactionsRetryParameters)? (THEN (CONTINUE | BREAK | FAIL))?
+   | ON ERROR (CONTINUE | BREAK | FAIL)
+   ;
+
+subqueryInTransactionsRetryParameters
+   : FOR? expression secondsToken
    ;
 
 subqueryInTransactionsReportParameters
@@ -2008,6 +2013,7 @@ unescapedLabelSymbolicNameString_
    | REQUIRE
    | REQUIRED
    | RESTRICT
+   | RETRY
    | RETURN
    | REVOKE
    | ROLE

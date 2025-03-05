@@ -994,6 +994,10 @@ RESTRICT
    : R E S T R I C T
    ;
 
+RETRY
+   : R E T R Y
+   ;
+
 RETURN
    : R E T U R N
    ;
