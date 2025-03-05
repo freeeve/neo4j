@@ -60,6 +60,8 @@ import org.neo4j.kernel.impl.api.tracer.DefaultDatabaseTracer;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFileChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
@@ -307,16 +309,26 @@ class PhysicalFlushableChannelTest {
                 storeChannel, 1, LATEST_LOG_FORMAT, file, nativeChannelAccessor, databaseTracer);
         final var logHeader = LATEST_LOG_FORMAT.newHeader(
                 1, 1, LogHeader.UNKNOWN_TERM, StoreId.UNKNOWN, 1024, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION);
+        LogFormat.writeLogHeader(versionedStoreChannel, logHeader, INSTANCE);
+        versionedStoreChannel.position(logHeader.getStartPosition().getByteOffset());
         try (var channel = new PhysicalFlushableLogPositionAwareChannel(versionedStoreChannel, logHeader, INSTANCE)) {
             LogPosition initialPosition = channel.getCurrentLogPosition();
-
+            channel.beginChecksumForWriting();
+            channel.putVersion(LATEST_KERNEL_VERSION.version());
+            channel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
             // WHEN
             channel.putLong(67);
             channel.putInt(1234);
+            channel.putChecksum();
             LogPosition positionAfterSomeData = channel.getCurrentLogPosition();
 
             // THEN
-            assertEquals(12, positionAfterSomeData.getByteOffset() - initialPosition.getByteOffset());
+            var expectedSize = logHeader.getLogFormatVersion().usesSegments()
+                    // Enveloped size = enveloped header + payload Long & Int
+                    ? LogEnvelopeHeader.HEADER_SIZE + Long.BYTES + Integer.BYTES
+                    // Non-enveloped size = Version Byte + payload Long & Int + Checksum Int
+                    : Byte.BYTES + Long.BYTES + Integer.BYTES + Integer.BYTES;
+            assertEquals(expectedSize, positionAfterSomeData.getByteOffset() - initialPosition.getByteOffset());
         }
     }
 

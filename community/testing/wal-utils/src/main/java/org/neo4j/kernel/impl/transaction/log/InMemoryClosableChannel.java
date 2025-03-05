@@ -467,6 +467,11 @@ public class InMemoryClosableChannel
 
         @Override
         public int endChecksumAndValidate() throws IOException {
+            if (currentVersion.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+                int fakeChecksum = (int) this.checksum.getValue();
+                beginChecksum();
+                return fakeChecksum;
+            }
             ensureAvailableToRead(Integer.BYTES);
             int checksum = (int) this.checksum.getValue();
             int storedChecksum = buffer.getInt();

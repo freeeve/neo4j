@@ -23,11 +23,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.checkpoint_logical_log_keep_threshold;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.checkpoint_logical_log_rotation_threshold;
-import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.CHECKPOINT_REASON;
-import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.CONFIG_ROTATION_THRESHOLD;
-import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.LOG_POSITION;
-import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.TRANSACTION_ID;
-import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.fillWithCheckpoints;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.CHECKPOINT_REASON;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.CONFIG_ROTATION_THRESHOLD;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.LOG_POSITION;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.TRANSACTION_ID;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.fillWithCheckpoints;
 import static org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent.NULL;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 
@@ -63,7 +63,7 @@ public class CheckpointLogFileRotationIT {
         assertThat(matchedFiles).hasSize(5); // 5 filled
         for (var fileWithCheckpoints : matchedFiles) {
             assertThat(fileWithCheckpoints.toFile().length())
-                    .isLessThanOrEqualTo(CheckpointFillHelper.getMaxCheckpointFileSize());
+                    .isLessThanOrEqualTo(CheckpointLogSerializationHelper.getMaxCheckpointFileSize());
         }
     }
 
@@ -74,10 +74,11 @@ public class CheckpointLogFileRotationIT {
         fillWithCheckpoints(1, checkpointAppender);
         assertThat(checkpointFile.getMatchedFiles()).hasSize(1);
         var logFile = checkpointFile.getMatchedFiles()[0];
-        assertThat(logFile.toFile().length()).isLessThanOrEqualTo(CheckpointFillHelper.getMaxCheckpointFileSize());
         assertThat(logFile.toFile().length())
-                .isGreaterThanOrEqualTo(CheckpointFillHelper.getMaxCheckpointFileSize()
-                        - CheckpointFillHelper.getCheckpointRecordLengthBytes());
+                .isLessThanOrEqualTo(CheckpointLogSerializationHelper.getMaxCheckpointFileSize());
+        assertThat(logFile.toFile().length())
+                .isGreaterThanOrEqualTo(CheckpointLogSerializationHelper.getMaxCheckpointFileSize()
+                        - CheckpointLogSerializationHelper.getCheckpointRecordLengthBytes());
     }
 
     @Test
@@ -110,7 +111,7 @@ public class CheckpointLogFileRotationIT {
     }
 
     protected long expectedNewFileSize() {
-        return CheckpointFillHelper.expectedNewCheckpointFileSize();
+        return CheckpointLogSerializationHelper.expectedNewCheckpointFileSize();
     }
 
     protected boolean preallocateLogs() {

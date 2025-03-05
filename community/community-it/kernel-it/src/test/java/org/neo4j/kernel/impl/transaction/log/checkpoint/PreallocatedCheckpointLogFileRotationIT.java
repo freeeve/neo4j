@@ -20,8 +20,8 @@
 package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.ACTUAL_ROTATION_THRESHOLD;
-import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.fillWithCheckpointsWithCallback;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.ACTUAL_ROTATION_THRESHOLD;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.fillWithCheckpointsWithCallback;
 import static org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent.NULL;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 
@@ -97,7 +97,7 @@ class PreallocatedCheckpointLogFileRotationIT extends CheckpointLogFileRotationI
 
     private boolean sizeEqualsToPreallocatedFile(Path path) {
         try {
-            return Files.size(path) <= CheckpointFillHelper.getMaxCheckpointFileSize();
+            return Files.size(path) <= CheckpointLogSerializationHelper.getMaxCheckpointFileSize();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

@@ -22,9 +22,9 @@ package org.neo4j.kernel.impl.transaction.log.checkpoint;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.checkpoint_logical_log_keep_threshold;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.checkpoint_logical_log_rotation_threshold;
-import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.CHECKPOINT_REASON;
-import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.CONFIG_ROTATION_THRESHOLD;
-import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointFillHelper.fillWithCheckpoints;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.CHECKPOINT_REASON;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.CONFIG_ROTATION_THRESHOLD;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.fillWithCheckpoints;
 
 import java.io.IOException;
 import java.nio.file.Path;

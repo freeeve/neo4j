@@ -34,10 +34,13 @@ import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import org.apache.commons.io.FilenameUtils;
@@ -53,12 +56,14 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemUtils;
+import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.FlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
@@ -85,6 +90,7 @@ class CorruptedLogsTruncatorTest {
     private static final int TOTAL_NUMBER_OF_LOG_FILES = 13;
     private static final int ROTATION_THRESHOLD = 1024;
     private static final int PAYLOAD_LENGTH = ROTATION_THRESHOLD / 2;
+    private static final int SEGMENT_SIZE = ROTATION_THRESHOLD / 4;
 
     @Inject
     private FileSystemAbstraction fs;
@@ -114,7 +120,7 @@ class CorruptedLogsTruncatorTest {
         logFiles = LogFilesBuilder.logFilesBasedOnlyBuilder(databaseDirectory, fs)
                 .withBufferSizeBytes(ROTATION_THRESHOLD)
                 .withRotationThreshold(ROTATION_THRESHOLD)
-                .withEnvelopeSegmentBlockSizeBytes(ROTATION_THRESHOLD / 4)
+                .withEnvelopeSegmentBlockSizeBytes(SEGMENT_SIZE)
                 .withKernelVersionProvider(LATEST_KERNEL_VERSION_PROVIDER)
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
@@ -164,12 +170,13 @@ class CorruptedLogsTruncatorTest {
         LogPosition logPosAfterGeneratingLogs = generateTransactionLogFiles(logFiles);
 
         var logFile = logFiles.getLogFile();
-        FlushableLogPositionAwareChannel channel =
-                logFile.getTransactionLogWriter().getChannel();
-        int zeroes = random.nextInt(100, 10240);
-        channel.put(new byte[zeroes], zeroes);
-        channel.prepareForFlush().flush();
-        assertNotEquals(logPosAfterGeneratingLogs, channel.getCurrentLogPosition());
+        try (StoreChannel raw = fs.open(
+                logFile.getLogFileForVersion(logPosAfterGeneratingLogs.getLogVersion()),
+                Set.of(StandardOpenOption.APPEND, StandardOpenOption.WRITE))) {
+            int zeroes = random.nextInt(100, 10240);
+            raw.write(ByteBuffer.wrap(new byte[zeroes]));
+            assertNotEquals(logPosAfterGeneratingLogs.getByteOffset(), raw.position());
+        }
 
         long expectedFileSizeAfterTruncate = Files.size(logFile.getHighestLogFile());
         logPruner.truncate(logPosAfterGeneratingLogs, null);
@@ -190,12 +197,15 @@ class CorruptedLogsTruncatorTest {
                 logFile.getTransactionLogWriter().getChannel();
         // Pad with zeroes before the corrupted byte
         int beforeZeroes = random.nextInt(100, 10240);
+        channel.putVersion(LATEST_KERNEL_VERSION.version());
+        channel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         channel.put(new byte[beforeZeroes], beforeZeroes);
         // corruption byte
         channel.put((byte) 7);
         // After corrupted byte, pad with a few more zeroes.
         int afterZeroes = random.nextInt(10, 1024);
         channel.put(new byte[afterZeroes], afterZeroes);
+        channel.putChecksum();
         channel.prepareForFlush().flush();
         assertNotEquals(logPosAfterGeneratingLogs, channel.getCurrentLogPosition());
 
@@ -366,6 +376,7 @@ class CorruptedLogsTruncatorTest {
         while (logFile.getHighestLogVersion() < TOTAL_NUMBER_OF_TRANSACTION_LOG_FILES - 1) {
             writer.beginChecksumForWriting();
             writer.putVersion(LATEST_KERNEL_VERSION.version());
+            writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
 
             writer.put(payload, PAYLOAD_LENGTH);
             writer.putChecksum();
@@ -376,6 +387,7 @@ class CorruptedLogsTruncatorTest {
         // Write a small entry to the last log
         writer.beginChecksumForWriting();
         writer.putVersion(LATEST_KERNEL_VERSION.version());
+        writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         writer.put((byte) 42);
         writer.putChecksum();
         writer.prepareForFlush().flush();

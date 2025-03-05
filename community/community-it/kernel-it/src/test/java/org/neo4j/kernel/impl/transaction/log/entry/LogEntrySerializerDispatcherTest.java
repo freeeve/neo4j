@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor.EMPTY_ACCESSOR;
 import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newCommitEntry;
@@ -33,25 +32,21 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializationS
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.BINARY_VERSIONS;
-import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
-import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 
 import java.io.IOException;
-import java.nio.ByteOrder;
 import java.nio.file.Path;
 import java.util.HashMap;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.io.fs.PhysicalFlushableLogChannel;
 import org.neo4j.io.fs.StoreChannel;
-import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
+import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadAheadUtils;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
@@ -81,50 +76,55 @@ class LogEntrySerializerDispatcherTest {
     @ParameterizedTest
     @KernelVersionSource(atLeast = "5.7") // chunks added in 5.7
     void writeAndParseChunksEntries(KernelVersion version) throws IOException {
-        try (var buffer = new HeapScopedBuffer((int) kibiBytes(1), ByteOrder.LITTLE_ENDIAN, INSTANCE)) {
-            Path path = directory.createFile("a");
-            StoreChannel storeChannel = fs.write(path);
-            try (PhysicalFlushableLogChannel writeChannel = new PhysicalFlushableLogChannel(storeChannel, buffer)) {
-                var entryWriter = new LogEntryWriter<>(writeChannel, BINARY_VERSIONS);
-                entryWriter.writeStartEntry(version, 1, 2, 3, 4, EMPTY_BYTE_ARRAY);
-                entryWriter.writeChunkEndEntry(version, 17, 13);
-                entryWriter.writeChunkStartEntry(version, 11, 13, 14, 15);
-                entryWriter.writeCommitEntry(version, 7, 8);
-            }
+        Path path = directory.createFile("a");
+        StoreChannel storeChannel = fs.write(path);
+        LogFormat logFormat = LogFormat.fromKernelVersion(version);
+        LogHeader logHeader = logFormat.newHeader(
+                1,
+                1,
+                LogHeader.UNKNOWN_TERM,
+                StoreId.UNKNOWN,
+                logFormat.getDefaultSegmentBlockSize(),
+                BASE_TX_CHECKSUM,
+                version);
+        LogFormat.writeLogHeader(storeChannel, logHeader, INSTANCE);
+        try (PhysicalLogVersionedStoreChannel versionedStoreChannel = new PhysicalLogVersionedStoreChannel(
+                        storeChannel, logHeader, path, EMPTY_ACCESSOR, DatabaseTracer.NULL);
+                var writeChannel =
+                        new PhysicalFlushableLogPositionAwareChannel(versionedStoreChannel, logHeader, INSTANCE)) {
+            var entryWriter = new LogEntryWriter<>(writeChannel, BINARY_VERSIONS);
+            entryWriter.writeStartEntry(version, 1, 2, 3, 4, EMPTY_BYTE_ARRAY);
+            entryWriter.writeChunkEndEntry(version, 17, 13);
+            entryWriter.writeChunkStartEntry(version, 11, 13, 14, 15);
+            entryWriter.writeCommitEntry(version, 7, 8);
+        }
 
-            VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
-                    StorageEngineFactory.defaultStorageEngine().commandReaderFactory(), BINARY_VERSIONS);
-            try (var readChannel = ReadAheadUtils.newChannel(
-                    new PhysicalLogVersionedStoreChannel(
-                            fs.read(path), 1, LATEST_LOG_FORMAT, path, EMPTY_ACCESSOR, DatabaseTracer.NULL),
-                    NO_MORE_CHANNELS,
-                    LATEST_LOG_FORMAT.newHeader(
-                            1,
-                            1,
-                            LogHeader.UNKNOWN_TERM,
-                            StoreId.UNKNOWN,
-                            LogSegments.DEFAULT_LOG_SEGMENT_SIZE,
-                            BASE_TX_CHECKSUM,
-                            LATEST_KERNEL_VERSION),
-                    INSTANCE)) {
-                var startEntry = entryReader.readLogEntry(readChannel);
-                var chunkEnd = entryReader.readLogEntry(readChannel);
-                var chunkStart = entryReader.readLogEntry(readChannel);
-                var commitEnd = entryReader.readLogEntry(readChannel);
+        VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
+                StorageEngineFactory.defaultStorageEngine().commandReaderFactory(), BINARY_VERSIONS);
+        try (var readChannel = ReadAheadUtils.newChannel(
+                new PhysicalLogVersionedStoreChannel(
+                        fs.read(path), 1, logFormat, path, EMPTY_ACCESSOR, DatabaseTracer.NULL),
+                NO_MORE_CHANNELS,
+                logHeader,
+                INSTANCE)) {
+            readChannel.position(logHeader.getStartPosition().getByteOffset());
+            var startEntry = entryReader.readLogEntry(readChannel);
+            var chunkEnd = entryReader.readLogEntry(readChannel);
+            var chunkStart = entryReader.readLogEntry(readChannel);
+            var commitEnd = entryReader.readLogEntry(readChannel);
 
-                assertThat(startEntry).isInstanceOf(LogEntryStart.class);
-                assertThat(commitEnd).isInstanceOf(LogEntryCommit.class);
+            assertThat(startEntry).isInstanceOf(LogEntryStart.class);
+            assertThat(commitEnd).isInstanceOf(LogEntryCommit.class);
 
-                assertThat(chunkEnd).isInstanceOf(LogEntryChunkEnd.class);
-                var chunkEndEntry = (LogEntryChunkEnd) chunkEnd;
-                assertEquals(17, chunkEndEntry.getTransactionId());
-                assertEquals(13, chunkEndEntry.getChunkId());
+            assertThat(chunkEnd).isInstanceOf(LogEntryChunkEnd.class);
+            var chunkEndEntry = (LogEntryChunkEnd) chunkEnd;
+            assertEquals(17, chunkEndEntry.getTransactionId());
+            assertEquals(13, chunkEndEntry.getChunkId());
 
-                assertThat(chunkStart).isInstanceOf(LogEntryChunkStart.class);
-                var chunkStartEntry = (LogEntryChunkStart) chunkStart;
-                assertEquals(11, chunkStartEntry.getTimeWritten());
-                assertEquals(13, chunkStartEntry.getChunkId());
-            }
+            assertThat(chunkStart).isInstanceOf(LogEntryChunkStart.class);
+            var chunkStartEntry = (LogEntryChunkStart) chunkStart;
+            assertEquals(11, chunkStartEntry.getTimeWritten());
+            assertEquals(13, chunkStartEntry.getChunkId());
         }
     }
 
@@ -215,7 +215,11 @@ class LogEntrySerializerDispatcherTest {
         expectedChecksums.put(KernelVersion.V5_20, -1055657255);
         expectedChecksums.put(KernelVersion.V5_22, 557749816);
         expectedChecksums.put(KernelVersion.V5_23, 2128235111);
-        expectedChecksums.put(KernelVersion.V5_25, -460838645);
+        if (version.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
+            expectedChecksums.put(KernelVersion.V5_25, -361070784);
+        } else {
+            expectedChecksums.put(KernelVersion.V5_25, -460838645);
+        }
 
         final LogEntryCommit commit = newCommitEntry(version, 42, 21, expectedChecksums.get(version));
         final InMemoryClosableChannel channel = new InMemoryClosableChannel();

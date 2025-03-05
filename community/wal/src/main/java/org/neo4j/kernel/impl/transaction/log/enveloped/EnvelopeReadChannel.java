@@ -351,8 +351,10 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
         checkState(payloadVersion != IGNORE_KERNEL_VERSION, "Could not find a valid envelope header.");
 
-        // set the marker now an entry has been found in the envelope
-        marker.mark(channel.getLogVersion(), position());
+        if (!marker.isMarkerInLog(channel.getLogVersion())) {
+            // reading the header forced the channel to move to the next log - let's re-mark at the correct location
+            marker.mark(channel.getLogVersion(), position() - HEADER_SIZE);
+        }
         return payloadVersion;
     }
 

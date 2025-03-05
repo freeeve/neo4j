@@ -347,6 +347,7 @@ class BatchingTransactionAppenderTest {
                 LATEST_KERNEL_VERSION);
         PhysicalLogVersionedStoreChannel logChannel = mock(PhysicalLogVersionedStoreChannel.class);
         when(logChannel.getLogFormatVersion()).thenReturn(LATEST_LOG_FORMAT);
+        when(logChannel.position()).thenReturn(logHeader.getStartPosition().getByteOffset());
         FlushableLogPositionAwareChannel channel =
                 spy(new PhysicalFlushableLogPositionAwareChannel(logChannel, logHeader, INSTANCE));
         IOException failure = new IOException(failureMessage);

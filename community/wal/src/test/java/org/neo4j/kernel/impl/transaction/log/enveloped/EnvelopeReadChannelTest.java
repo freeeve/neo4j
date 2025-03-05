@@ -53,10 +53,13 @@ import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor;
+import org.neo4j.kernel.impl.transaction.log.LogPosition;
+import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.EnvelopeType;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -1317,6 +1320,323 @@ class EnvelopeReadChannelTest {
         }
     }
 
+    @Test
+    void markAndGetVersionShouldReturnPreEnvelopePosition() throws IOException {
+        int segmentSize = 256;
+        final var bytes = bytes(random, TEST_DATA_SIZE);
+        final var bytes2 = bytes(random, TEST_DATA_SIZE);
+        final byte TEST_VERSION_1 = (byte) 0x50;
+        final byte TEST_VERSION_2 = (byte) 0x51;
+
+        writeSomeData(buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+            var checksum = writeHeaderAndPayload(
+                    buffer, EnvelopeType.FULL, BASE_TX_CHECKSUM, TEST_VERSION_1, bytes, START_INDEX + 1, CONTENT_TYPE);
+            writeHeaderAndPayload(
+                    buffer, EnvelopeType.FULL, checksum, TEST_VERSION_2, bytes2, START_INDEX + 2, CONTENT_TYPE);
+        });
+
+        try (var channel = new EnvelopeReadChannel(
+                logChannel(), segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            // immediately after open we expect the position to be ready to read
+            // first envelope at position = segmentSize
+            var marker1 = new LogPositionMarker();
+            var logPosition1 = channel.getCurrentLogPosition();
+            var version1 = channel.markAndGetVersion(marker1);
+            assertThat(version1).isEqualTo(TEST_VERSION_1);
+            var expected = new LogPosition(0L, segmentSize);
+            assertThat(marker1.newPosition()).isEqualTo(expected);
+            assertThat(logPosition1).isEqualTo(expected);
+
+            // read first envelope
+            final var bytesRead = new byte[TEST_DATA_SIZE];
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytesRead).isEqualTo(bytes);
+
+            // capture position of second envelope
+            var marker2 = new LogPositionMarker();
+            var logPosition3 = channel.getCurrentLogPosition();
+            assertThat(logPosition3.getByteOffset()).isEqualTo(logPosition1.getByteOffset() + TEST_ENTRY_SIZE);
+            var version2 = channel.markAndGetVersion(marker2);
+            assertThat(version2).isEqualTo(TEST_VERSION_2);
+            assertThat(marker2.newPosition()).isEqualTo(logPosition3);
+
+            // read second envelope as last envelope of file
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytesRead).isEqualTo(bytes2);
+
+            var marker3 = new LogPositionMarker();
+            // read ahead off end of file should fail
+            assertThatThrownBy(() -> channel.markAndGetVersion(marker3)).isInstanceOf(ReadPastEndException.class);
+
+            // rewind to second position
+            channel.setLogPosition(marker2);
+            // reread second envelope again
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytesRead).isEqualTo(bytes2);
+
+            // rewind to first position
+            channel.setLogPosition(marker1);
+            // reread first envelope again
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytesRead).isEqualTo(bytes);
+        }
+    }
+
+    @Test
+    void markAndGetVersionShouldWorkOverFileBoundaries() throws IOException {
+        int segmentSize = 256;
+        final var bytes = bytes(random, TEST_DATA_SIZE);
+        final var bytes2 = bytes(random, TEST_DATA_SIZE);
+        final var bytes3 = bytes(random, TEST_DATA_SIZE);
+        final var bytes4 = bytes(random, TEST_DATA_SIZE);
+        final byte TEST_VERSION_1 = (byte) 0x50;
+        final byte TEST_VERSION_2 = (byte) 0x51;
+        final byte TEST_VERSION_3 = (byte) 0x52;
+        final byte TEST_VERSION_4 = (byte) 0x53;
+
+        final var checksum = new MutableInt(BASE_TX_CHECKSUM);
+        var path1 = file(0);
+        writeSomeData(path1, buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+            checksum.setValue(writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.FULL,
+                    checksum.getValue(),
+                    TEST_VERSION_1,
+                    bytes,
+                    START_INDEX + 1,
+                    CONTENT_TYPE));
+            checksum.setValue(writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.FULL,
+                    checksum.getValue(),
+                    TEST_VERSION_2,
+                    bytes2,
+                    START_INDEX + 2,
+                    CONTENT_TYPE));
+        });
+
+        var path2 = file(1);
+        writeSomeData(path2, buffer -> {
+            writeZeroSegment(buffer, segmentSize, checksum.getValue());
+            checksum.setValue(writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.FULL,
+                    checksum.getValue(),
+                    TEST_VERSION_3,
+                    bytes3,
+                    START_INDEX + 3,
+                    CONTENT_TYPE));
+            checksum.setValue(writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.FULL,
+                    checksum.getValue(),
+                    TEST_VERSION_4,
+                    bytes4,
+                    START_INDEX + 4,
+                    CONTENT_TYPE));
+        });
+
+        try (var channel = new EnvelopeReadChannel(
+                logChannel(), segmentSize, new TwoFileLogVersionBridge(path2), EmptyMemoryTracker.INSTANCE, false)) {
+
+            var marker1 = new LogPositionMarker();
+            var version1 = channel.markAndGetVersion(marker1);
+            assertThat(version1).isEqualTo(TEST_VERSION_1);
+            assertThat(marker1.getByteOffset()).isEqualTo(segmentSize);
+            assertThat(marker1.getLogVersion()).isEqualTo(0);
+
+            // read first envelope
+            final var bytesRead = new byte[TEST_DATA_SIZE];
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytesRead).isEqualTo(bytes);
+
+            var marker2 = new LogPositionMarker();
+            var version2 = channel.markAndGetVersion(marker2);
+            assertThat(version2).isEqualTo(TEST_VERSION_2);
+            assertThat(marker2.getByteOffset()).isEqualTo(marker1.getByteOffset() + TEST_ENTRY_SIZE);
+            assertThat(marker2.getLogVersion()).isEqualTo(0);
+
+            // read second envelope as last envelope of file
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytesRead).isEqualTo(bytes2);
+
+            var marker3 = new LogPositionMarker();
+            var version3 = channel.markAndGetVersion(marker3);
+            assertThat(version3).isEqualTo(TEST_VERSION_3);
+            assertThat(marker3.getByteOffset()).isEqualTo(segmentSize);
+            assertThat(marker3.getLogVersion()).isEqualTo(1);
+
+            // read third envelope in new file
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytesRead).isEqualTo(bytes3);
+
+            var marker4 = new LogPositionMarker();
+            var version4 = channel.markAndGetVersion(marker4);
+            assertThat(version4).isEqualTo(TEST_VERSION_4);
+            assertThat(marker4.getByteOffset()).isEqualTo(marker3.getByteOffset() + TEST_ENTRY_SIZE);
+            assertThat(marker4.getLogVersion()).isEqualTo(1);
+
+            // read fourth envelope in new file
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytesRead).isEqualTo(bytes4);
+
+            // read ahead off end of file should fail
+            assertThatThrownBy(() -> channel.markAndGetVersion(marker3)).isInstanceOf(ReadPastEndException.class);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {128, 256})
+    void shouldFailWhenChecksumMismatchesInFirstEnvelope(int segmentSize) throws Exception {
+        // GIVEN
+        final var bytes = bytes(random, segmentSize - HEADER_SIZE);
+
+        writeSomeData(buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+            int checksum = writeHeaderAndPayload(buffer, EnvelopeType.FULL, BASE_TX_CHECKSUM, bytes, START_INDEX);
+            // ensure we don't reach end of file in read
+            var zero = new byte[1];
+            writeHeaderAndPayload(buffer, EnvelopeType.FULL, checksum, zero, START_INDEX + 1);
+        });
+
+        // Then corrupt data in first envelope
+        try (var channel = fileSystem.write(file(0))) {
+            int randomPayloadPosition = random.nextInt(bytes.length);
+            int modificationOffset = segmentSize // skip file header
+                    + LogEnvelopeHeader.HEADER_SIZE // skip envelope header
+                    + randomPayloadPosition;
+            var buffer = ByteBuffer.allocate(1);
+            // xor a modified value
+            byte corrupted = (byte) (random.nextInt(1, 256) ^ bytes[randomPayloadPosition]);
+            buffer.put(corrupted);
+            buffer.flip();
+            // modify file data
+            channel.position(modificationOffset);
+            channel.write(buffer);
+        }
+
+        final var logChannel = logChannel();
+        try (var channel = new EnvelopeReadChannel(
+                logChannel, segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            // THEN
+            final var bytesRead = new byte[bytes.length];
+            assertThatThrownBy(() -> channel.get(bytesRead, bytesRead.length))
+                    .isInstanceOf(ChecksumMismatchException.class)
+                    .hasMessageContaining("checksum");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {128, 256})
+    void shouldFailWhenChecksumMismatchesInLaterEnvelope(int segmentSize) throws Exception {
+        // GIVEN
+        final var bytes = bytes(random, segmentSize - HEADER_SIZE);
+        final var numberOfGoodEnvelopes = 5;
+        var envelopeStartPosition = new MutableInt();
+
+        writeSomeData(buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+            int checksum = BASE_TX_CHECKSUM;
+            for (int i = 0; i < numberOfGoodEnvelopes; ++i) {
+                checksum = writeHeaderAndPayload(buffer, EnvelopeType.FULL, checksum, bytes, START_INDEX + i);
+            }
+            // capture start of envelope we will corrupt
+            envelopeStartPosition.setValue(buffer.position());
+            // write the data we will modify
+            checksum = writeHeaderAndPayload(
+                    buffer, EnvelopeType.FULL, checksum, bytes, START_INDEX + numberOfGoodEnvelopes);
+
+            // ensure we don't reach end of file in read
+            var zero = new byte[1];
+            writeHeaderAndPayload(buffer, EnvelopeType.FULL, checksum, zero, START_INDEX + 1);
+        });
+
+        // Then corrupt data
+        try (var channel = fileSystem.write(file(0))) {
+            int randomPayloadPosition = random.nextInt(bytes.length);
+            int modificationOffset = envelopeStartPosition.intValue() + randomPayloadPosition;
+            var buffer = ByteBuffer.allocate(1);
+            // xor a modified value
+            byte corrupted = (byte) (random.nextInt(1, 256) ^ bytes[randomPayloadPosition]);
+            buffer.put(corrupted);
+            buffer.flip();
+            // modify file data
+            channel.position(modificationOffset);
+            channel.write(buffer);
+        }
+
+        final var logChannel = logChannel();
+        try (var channel = new EnvelopeReadChannel(
+                logChannel, segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            // THEN
+            final var bytesRead = new byte[bytes.length];
+            // earlier envelopes read ok
+            for (int i = 0; i < numberOfGoodEnvelopes; ++i) {
+                channel.get(bytesRead, bytesRead.length);
+                assertThat(bytesRead).isEqualTo(bytes);
+            }
+            // should spot checksum mismatch
+            assertThatThrownBy(() -> channel.get(bytesRead, bytesRead.length))
+                    .isInstanceOf(ChecksumMismatchException.class)
+                    .hasMessageContaining("checksum");
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {128, 256})
+    void shouldRestartChecksumValidationAfterSetPosition(int segmentSize) throws Exception {
+        // GIVEN
+        final var bytes = bytes(random, segmentSize - HEADER_SIZE);
+        final var numberOfGoodEnvelopes = 5;
+        var envelopeStartPosition = new MutableInt();
+
+        writeSomeData(buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+            int checksum = BASE_TX_CHECKSUM;
+            for (int i = 0; i < numberOfGoodEnvelopes; ++i) {
+                checksum = writeHeaderAndPayload(buffer, EnvelopeType.FULL, checksum, bytes, START_INDEX + i);
+            }
+            // capture start of envelope we will corrupt
+            envelopeStartPosition.setValue(buffer.position());
+            // write the data we will modify
+            checksum = writeHeaderAndPayload(
+                    buffer, EnvelopeType.FULL, checksum, bytes, START_INDEX + numberOfGoodEnvelopes);
+
+            // ensure we don't reach end of file in read
+            var zero = new byte[1];
+            writeHeaderAndPayload(buffer, EnvelopeType.FULL, checksum, zero, START_INDEX + 1);
+        });
+
+        // Then corrupt data
+        try (var channel = fileSystem.write(file(0))) {
+            int randomPayloadPosition = random.nextInt(bytes.length);
+            int modificationOffset = envelopeStartPosition.intValue() + randomPayloadPosition;
+            var buffer = ByteBuffer.allocate(1);
+            // xor a modified value
+            byte corrupted = (byte) (random.nextInt(1, 256) ^ bytes[randomPayloadPosition]);
+            buffer.put(corrupted);
+            buffer.flip();
+            // modify file data
+            channel.position(modificationOffset);
+            channel.write(buffer);
+        }
+
+        final var logChannel = logChannel();
+        try (var channel = new EnvelopeReadChannel(
+                logChannel, segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            // THEN
+            final var bytesRead = new byte[bytes.length];
+            // jump to just before corrupted envelope
+            channel.position(envelopeStartPosition.intValue());
+            // should spot checksum mismatch
+            assertThatThrownBy(() -> channel.get(bytesRead, bytesRead.length))
+                    .isInstanceOf(ChecksumMismatchException.class)
+                    .hasMessageContaining("checksum");
+        }
+    }
+
     private Path file(int index) {
         return directory.homePath().resolve(String.valueOf(index));
     }
@@ -1506,9 +1826,13 @@ class EnvelopeReadChannelTest {
     }
 
     private PhysicalLogVersionedStoreChannel logChannel(Path file) throws IOException {
+        return logChannel(file, 0L);
+    }
+
+    private PhysicalLogVersionedStoreChannel logChannel(Path file, long fileVersion) throws IOException {
         return new PhysicalLogVersionedStoreChannel(
                 fileSystem.write(file),
-                0,
+                fileVersion,
                 LatestVersions.LATEST_LOG_FORMAT,
                 file,
                 ChannelNativeAccessor.EMPTY_ACCESSOR,
@@ -1531,7 +1855,7 @@ class EnvelopeReadChannelTest {
                 returned = true;
                 channel.close();
 
-                return logChannel(path);
+                return logChannel(path, 1L);
             }
             return channel;
         }

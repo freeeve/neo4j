@@ -38,11 +38,10 @@ import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
 import static org.neo4j.kernel.database.DatabaseIdFactory.from;
 import static org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor.EMPTY_ACCESSOR;
 import static org.neo4j.kernel.impl.transaction.log.LogIndexEncoding.encodeLogIndex;
+import static org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointLogSerializationHelper.getExpectedPositionAfterOneCheckpoint;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newCommitEntry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newStartEntry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.writeLogHeader;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.UNKNOWN_LOG_SEGMENT_SIZE;
-import static org.neo4j.kernel.impl.transaction.log.entry.v57.DetachedCheckpointLogEntrySerializerV5_7.RECORD_LENGTH_BYTES;
 import static org.neo4j.kernel.recovery.RecoveryStartInformation.NO_RECOVERY_REQUIRED;
 import static org.neo4j.kernel.recovery.RecoveryStartInformationProvider.NO_MONITOR;
 import static org.neo4j.kernel.recovery.RecoveryStartupChecker.EMPTY_CHECKER;
@@ -90,6 +89,7 @@ import org.neo4j.kernel.impl.transaction.log.TransactionMetadataCache;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.DetachedCheckpointAppender;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -439,7 +439,7 @@ class TransactionLogsRecoveryTest {
 
         assertThat(file).hasSize(marker.getByteOffset());
         assertEquals(
-                LATEST_LOG_FORMAT.getHeaderSize() + RECORD_LENGTH_BYTES /* one checkpoint */,
+                getExpectedPositionAfterOneCheckpoint() /* one checkpoint */,
                 ((DetachedCheckpointAppender) logFiles.getCheckpointFile().getCheckpointAppender())
                         .getCurrentPosition());
 
@@ -449,7 +449,7 @@ class TransactionLogsRecoveryTest {
                     Files.size(logFiles.getCheckpointFile().getCurrentFile()));
         } else {
             assertEquals(
-                    LATEST_LOG_FORMAT.getHeaderSize() + RECORD_LENGTH_BYTES /* one checkpoint */,
+                    getExpectedPositionAfterOneCheckpoint() /* one checkpoint */,
                     Files.size(logFiles.getCheckpointFile().getCurrentFile()));
         }
     }
@@ -489,13 +489,14 @@ class TransactionLogsRecoveryTest {
 
             // incomplete tx
             writer.writeStartEntry(LATEST_KERNEL_VERSION, 5L, 4L, 27, 1, EMPTY_BYTE_ARRAY);
+            writer.getChannel().putChecksum();
             return true;
         });
         assertTrue(recovery(storeDir));
 
         assertEquals(marker.getByteOffset(), Files.size(file));
         assertEquals(
-                LATEST_LOG_FORMAT.getHeaderSize() + RECORD_LENGTH_BYTES /* one checkpoint */,
+                getExpectedPositionAfterOneCheckpoint() /* one checkpoint */,
                 Files.size(logFiles.getCheckpointFile().getCurrentFile()));
     }
 
@@ -695,30 +696,22 @@ class TransactionLogsRecoveryTest {
     }
 
     private void writeSomeData(Path file, Visitor<DataWriters, IOException> visitor) throws IOException {
-
+        LogHeader logHeader = LATEST_LOG_FORMAT.newHeader(
+                logVersion,
+                3L,
+                LogEnvelopeHeader.UNSPECIFIED_TERM,
+                storeId,
+                LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
+                BASE_TX_CHECKSUM,
+                LATEST_KERNEL_VERSION);
         try (var versionedStoreChannel = new PhysicalLogVersionedStoreChannel(
-                        fileSystem.write(file),
-                        logVersion,
-                        LATEST_LOG_FORMAT,
-                        file,
-                        EMPTY_ACCESSOR,
-                        DatabaseTracer.NULL);
-                var writableLogChannel =
-                        new PhysicalFlushableLogPositionAwareChannel(versionedStoreChannel, null, INSTANCE)) {
-            writeLogHeader(
-                    versionedStoreChannel,
-                    LATEST_LOG_FORMAT.newHeader(
-                            logVersion,
-                            3L,
-                            LogHeader.UNKNOWN_TERM,
-                            storeId,
-                            UNKNOWN_LOG_SEGMENT_SIZE,
-                            BASE_TX_CHECKSUM,
-                            LATEST_KERNEL_VERSION),
-                    INSTANCE);
-            writableLogChannel.beginChecksumForWriting();
-            LogEntryWriter<?> first = new LogEntryWriter<>(writableLogChannel, LatestVersions.BINARY_VERSIONS);
-            visitor.visit(new DataWriters(first, writableLogChannel));
+                fileSystem.write(file), logVersion, LATEST_LOG_FORMAT, file, EMPTY_ACCESSOR, DatabaseTracer.NULL)) {
+            writeLogHeader(versionedStoreChannel, logHeader, INSTANCE);
+            try (var writableLogChannel =
+                    new PhysicalFlushableLogPositionAwareChannel(versionedStoreChannel, logHeader, INSTANCE)) {
+                LogEntryWriter<?> first = new LogEntryWriter<>(writableLogChannel, LatestVersions.BINARY_VERSIONS);
+                visitor.visit(new DataWriters(first, writableLogChannel));
+            }
         }
     }
 

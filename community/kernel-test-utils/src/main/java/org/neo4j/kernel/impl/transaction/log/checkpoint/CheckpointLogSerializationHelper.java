@@ -36,7 +36,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.v520.DetachedCheckpointLogEnt
 import org.neo4j.kernel.impl.transaction.log.entry.v522.DetachedCheckpointLogEntrySerializerV5_22;
 import org.neo4j.storageengine.api.TransactionId;
 
-public class CheckpointFillHelper {
+public class CheckpointLogSerializationHelper {
     static final long CONFIG_ROTATION_THRESHOLD = kibiBytes(1);
 
     // Checkpoint log files should always have space for at least 2 envelop segments, so even if the
@@ -53,6 +53,14 @@ public class CheckpointFillHelper {
                     LATEST_KERNEL_VERSION);
         }
         return DetachedCheckpointLogEntrySerializerV5_20.RECORD_LENGTH_BYTES;
+    }
+
+    public static int getExpectedPositionAfterOneCheckpoint() {
+        if (LATEST_LOG_FORMAT.usesSegments()) {
+            return LATEST_LOG_FORMAT.getDefaultSegmentBlockSize() + getCheckpointRecordLengthBytes();
+        } else {
+            return LATEST_LOG_FORMAT.getHeaderSize() + getCheckpointRecordLengthBytes();
+        }
     }
 
     public static long getMaxCheckpointFileSize() {

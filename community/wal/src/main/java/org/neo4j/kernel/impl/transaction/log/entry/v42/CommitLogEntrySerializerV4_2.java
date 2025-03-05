@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry.v42;
 
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newCommitEntry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_COMMIT;
 
 import java.io.IOException;
@@ -84,7 +85,7 @@ public class CommitLogEntrySerializerV4_2 extends LogEntrySerializer<LogEntryCom
         long txId = channel.getLong();
         long timeWritten = channel.getLong();
         int checksum = channel.endChecksumAndValidate();
-        return new LogEntryCommitV4_2(version, txId, timeWritten, checksum);
+        return newCommitEntry(version, txId, timeWritten, checksum);
     }
 
     @Override
