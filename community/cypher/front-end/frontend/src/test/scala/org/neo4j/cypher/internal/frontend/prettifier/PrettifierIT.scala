@@ -2494,6 +2494,10 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE DATABASE foo IF NOT EXISTS DEFAULT LANGUAGE CYPHER 25 TOPOLOGY 1 PRIMARY 2 SECONDARIES WAIT",
     "create database foo default language cypher 25 OPTIONS {`backticked key`: \"use\"} wait" ->
       "CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25 OPTIONS {`backticked key`: \"use\"} WAIT",
+    FailsInCypher5(
+      "create database foo if not exists set default language cypher 25 set topology 1 PRIMARY 2 secondaries options {key: 'value'} wait",
+      "CREATE DATABASE foo IF NOT EXISTS DEFAULT LANGUAGE CYPHER 25 TOPOLOGY 1 PRIMARY 2 SECONDARIES OPTIONS {key: \"value\"} WAIT"
+    ),
     "create composite database composite" ->
       "CREATE COMPOSITE DATABASE composite",
     "create composite database `composite.DB`" ->
