@@ -251,15 +251,14 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
         @Override
         public PhysicalLogChannel create(LogVersionedStoreChannel logChannel, LogHeader logHeader) throws IOException {
             if (logChannel.getLogFormatVersion().usesSegments()) {
-                int previousChecksum = figureOutPreviousChecksumForEnvelopeChannel(logChannel, logHeader);
+                PreviousInfo previous = figureOutPreviousChecksumForEnvelopeChannel(logChannel, logHeader);
 
                 return new EnvelopeWriteChannel(
                         logChannel,
                         buffer,
                         logHeader.getSegmentBlockSize(),
-                        previousChecksum,
-                        EnvelopeWriteChannel
-                                .START_INDEX, // Not correct index from cluster perspective -  not needed yet.
+                        previous.previousChecksum,
+                        previous.previousAppendIndex,
                         databaseTracer,
                         logRotation);
             } else {
@@ -279,15 +278,14 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
         @Override
         public PhysicalLogChannel create(LogVersionedStoreChannel logChannel, LogHeader logHeader) throws IOException {
             if (logChannel.getLogFormatVersion().usesSegments()) {
-                int previousChecksum = figureOutPreviousChecksumForEnvelopeChannel(logChannel, logHeader);
+                PreviousInfo previous = figureOutPreviousChecksumForEnvelopeChannel(logChannel, logHeader);
 
                 return new EnvelopeWriteChannel(
                         logChannel,
                         new HeapScopedBuffer(logHeader.getSegmentBlockSize(), ByteOrder.LITTLE_ENDIAN, memoryTracker),
                         logHeader.getSegmentBlockSize(),
-                        previousChecksum,
-                        EnvelopeWriteChannel
-                                .START_INDEX, // Not correct index from cluster perspective -  not needed yet.
+                        previous.previousChecksum,
+                        previous.previousAppendIndex,
                         DatabaseTracer.NULL,
                         LogRotation.NO_ROTATION);
             } else {
@@ -297,9 +295,12 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
         }
     }
 
-    private static int figureOutPreviousChecksumForEnvelopeChannel(
+    record PreviousInfo(int previousChecksum, long previousAppendIndex) {}
+
+    private static PreviousInfo figureOutPreviousChecksumForEnvelopeChannel(
             LogVersionedStoreChannel logChannel, LogHeader logHeader) throws IOException {
         int previousChecksum = logHeader.getPreviousLogFileChecksum();
+        long previousAppendIndex = logHeader.getLastAppendIndex();
 
         // Apparently not at the start of the file - must update to the correct checksum
         long position = logChannel.position();
@@ -311,9 +312,10 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
                 EnvelopeReadChannel envelopeReadChannel = new EnvelopeReadChannel(
                         logChannel, logHeader.getSegmentBlockSize(), LogVersionBridge.NO_MORE_CHANNELS, true, buffer);
                 previousChecksum = envelopeReadChannel.temporaryFindPreviousChecksumBeforePosition(position);
+                previousAppendIndex = envelopeReadChannel.entryIndex();
                 logChannel.position(position);
             }
         }
-        return previousChecksum;
+        return new PreviousInfo(previousChecksum, previousAppendIndex);
     }
 }
