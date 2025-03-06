@@ -130,6 +130,28 @@ public final class Suppliers {
         return () -> nanoTime() <= endTimeInNanos;
     }
 
+    /**
+     * Creates a lazy initialized {@link Supplier} of a single object.
+     * Unlike {@link #lazySingleton(Supplier)} returned object isn't thread safe.
+     *
+     * @param supplier A supplier that will provide the object when required
+     * @param <T> The object type
+     * @return A {@link Supplier} returning the specified object instance
+     */
+    public static <T> Supplier<T> lazyInstance(Supplier<T> supplier) {
+        return new Supplier<T>() {
+            private T instance;
+
+            @Override
+            public T get() {
+                if (instance == null) {
+                    instance = supplier.get();
+                }
+                return instance;
+            }
+        };
+    }
+
     static class ThrowingCapturingSupplier<T, E extends Exception> implements ThrowingSupplier<Boolean, E> {
         private final ThrowingSupplier<T, ? extends E> input;
         private final ThrowingPredicate<T, ? extends E> predicate;

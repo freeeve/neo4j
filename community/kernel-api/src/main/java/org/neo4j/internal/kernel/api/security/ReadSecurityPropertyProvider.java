@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.kernel.api.security;
 
+import java.util.function.Supplier;
 import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
@@ -27,8 +28,12 @@ import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.storageengine.api.StoragePropertyCursor;
 import org.neo4j.values.storable.Value;
 
-public interface ReadSecurityPropertyProvider {
+public interface ReadSecurityPropertyProvider extends Supplier<IntObjectMap<Value>> {
     IntObjectMap<Value> getSecurityProperties();
+
+    default IntObjectMap<Value> get() {
+        return getSecurityProperties();
+    }
 
     class LazyReadSecurityPropertyProvider implements ReadSecurityPropertyProvider {
         private final StoragePropertyCursor securityPropCursor;

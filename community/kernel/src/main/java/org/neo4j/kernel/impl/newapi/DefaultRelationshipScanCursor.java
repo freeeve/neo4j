@@ -20,20 +20,16 @@
 package org.neo4j.kernel.impl.newapi;
 
 import org.eclipse.collections.api.iterator.LongIterator;
-import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.security.AccessMode;
-import org.neo4j.internal.kernel.api.security.ReadSecurityPropertyProvider;
 import org.neo4j.kernel.api.AccessModeProvider;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.storageengine.api.AllRelationshipsScan;
 import org.neo4j.storageengine.api.LongReference;
-import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.StorageProperty;
-import org.neo4j.storageengine.api.StoragePropertyCursor;
 import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
 
 public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<DefaultRelationshipScanCursor>
@@ -45,10 +41,10 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
     private boolean isSingle;
     private LongIterator addedRelationships;
     private DefaultNodeCursor securityNodeCursor;
-    private StoragePropertyCursor securityPropertyCursor;
     private AccessMode accessMode;
     private boolean allowAllRelationships;
     private boolean allowAllNodes;
+    private AccessControlPropertiesProvider accessControlPropertiesProvider;
 
     protected DefaultRelationshipScanCursor(
             CursorPool<DefaultRelationshipScanCursor> pool,
@@ -174,24 +170,22 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
         if (allowAllRelationships) {
             return true;
         }
-        return accessMode.allowsTraverseRelationship(
-                type(), properties -> getSecurityPropertyProvider(storeCursor, properties));
+        return accessMode.allowsTraverseRelationship(type(), getSelectedPropertiesProvider());
     }
 
-    private ReadSecurityPropertyProvider getSecurityPropertyProvider(
-            StorageRelationshipScanCursor storageCursor, IntSet securityProperties) {
-        var propertyCursor = getSecurityPropertyCursor();
-        var propertySelection = PropertySelection.selection(securityProperties.toArray());
-        storageCursor.properties(propertyCursor, propertySelection);
-        Iterable<StorageProperty> txStateChangedProperties = applyAccessModeToTxState
-                ? txStateHolder
-                        .txState()
-                        .getNodeState(this.relationshipReference())
-                        .addedAndChangedProperties()
-                : null;
+    private AccessControlPropertiesProvider getSelectedPropertiesProvider() {
+        if (accessControlPropertiesProvider == null) {
+            accessControlPropertiesProvider = new AccessControlPropertiesProvider(
+                    storeCursor, internalCursors, applyAccessModeToTxState, this::txStateProperties);
+        }
+        return accessControlPropertiesProvider;
+    }
 
-        return new ReadSecurityPropertyProvider.LazyReadSecurityPropertyProvider(
-                propertyCursor, txStateChangedProperties, propertySelection);
+    private Iterable<StorageProperty> txStateProperties() {
+        return txStateHolder
+                .txState()
+                .getRelationshipState(this.relationshipReference())
+                .addedAndChangedProperties();
     }
 
     private boolean allowedToTraverseEndNodes() {
@@ -213,13 +207,6 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
         return false;
     }
 
-    private StoragePropertyCursor getSecurityPropertyCursor() {
-        if (securityPropertyCursor == null) {
-            securityPropertyCursor = internalCursors.allocateStoragePropertyCursor();
-        }
-        return securityPropertyCursor;
-    }
-
     private DefaultNodeCursor getSecurityNodeCursor() {
         if (securityNodeCursor == null) {
             securityNodeCursor = internalCursors.allocateNodeCursor();
@@ -238,8 +225,8 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
             if (securityNodeCursor != null) {
                 securityNodeCursor.close();
             }
-            if (securityPropertyCursor != null) {
-                securityPropertyCursor.close();
+            if (accessControlPropertiesProvider != null) {
+                accessControlPropertiesProvider.close();
             }
         }
         super.closeInternal();
@@ -283,9 +270,9 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
             securityNodeCursor.release();
             securityNodeCursor = null;
         }
-        if (securityPropertyCursor != null) {
-            securityPropertyCursor.close();
-            securityPropertyCursor = null;
+        if (accessControlPropertiesProvider != null) {
+            accessControlPropertiesProvider.close();
+            accessControlPropertiesProvider = null;
         }
     }
 }
