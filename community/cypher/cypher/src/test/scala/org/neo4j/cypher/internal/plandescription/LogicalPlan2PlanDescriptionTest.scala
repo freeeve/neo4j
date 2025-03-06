@@ -8109,7 +8109,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       planDescription(
         id,
         "TransactionApply",
-        TwoChildren(lhsPD, rhsPD),
+        Seq(lhsPD, rhsPD),
         Seq(details("IN TRANSACTIONS OF 100 ROWS ON ERROR RETRY THEN FAIL")),
         Set("a", "b")
       )
@@ -8133,7 +8133,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       planDescription(
         id,
         "TransactionApply",
-        TwoChildren(lhsPD, rhsPD),
+        Seq(lhsPD, rhsPD),
         Seq(details("IN TRANSACTIONS OF 100 ROWS ON ERROR RETRY FOR 1.5 SECONDS THEN BREAK")),
         Set("a", "b")
       )
@@ -8157,7 +8157,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       planDescription(
         id,
         "TransactionForeach",
-        TwoChildren(lhsPD, rhsPD),
+        Seq(lhsPD, rhsPD),
         Seq(details("IN TRANSACTIONS OF 100 ROWS ON ERROR RETRY THEN FAIL")),
         Set("a")
       )
@@ -8181,7 +8181,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       planDescription(
         id,
         "TransactionForeach",
-        TwoChildren(lhsPD, rhsPD),
+        Seq(lhsPD, rhsPD),
         Seq(
           details("IN TRANSACTIONS OF 100 ROWS ON ERROR RETRY FOR 1.5 SECONDS THEN CONTINUE REPORT STATUS AS status")
         ),
