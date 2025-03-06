@@ -225,10 +225,14 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
 
     private def verifyTimeoutException(result: RecordingRuntimeResult): Unit = {
       val exception = intercept[StatusWrapCypherException](result.awaitAll())
+      exception.getMessage should include("Retry timed out with a maximum retry duration of 0.2 seconds")
+
       exception.getCause shouldBe a[TransactionRetryAbortedException]
+      val retryAbortedException = exception.getCause.asInstanceOf[TransactionRetryAbortedException]
+      retryAbortedException.gqlStatus() shouldBe "50N23"
+
       exception.getCause.getCause shouldBe a[TestTransientError]
       exception.getCause.getMessage should include(testTransientErrorPrefix)
-      // TODO: Verify that the maximum duration is correctly present in the message
     }
 
     private def verifyNonRetryableException(result: RecordingRuntimeResult): Unit = {
