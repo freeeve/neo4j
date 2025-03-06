@@ -33,8 +33,12 @@ class VectorFunctionsTest extends CypherFunSuite {
   private val expectedNull = Values.NO_VALUE
 
   test("vectorValueConstructor") {
+    def vectorValueConstructor(x: Any) =
+      VectorValueConstructorFunction(literal(x))(CypherRow.empty, QueryStateHelper.empty)
+    def vectorValueConstructorWithDimension(x: Any, y: Any) =
+      VectorValueConstructorFunction(literal(x), Some(literal(y)))(CypherRow.empty, QueryStateHelper.empty)
     def vectorValueConstructorWithDimensionAndCoordinateType(x: Any, y: Any, z: Any) =
-      VectorValueConstructorFunction(literal(x), literal(y), literal(z))(
+      VectorValueConstructorFunction(literal(x), Some(literal(y)), Some(literal(z)))(
         CypherRow.empty,
         QueryStateHelper.empty
       )
@@ -42,6 +46,8 @@ class VectorFunctionsTest extends CypherFunSuite {
     // TODO: ADD cases checking the actual use cases
 
     // Dimension size handling
+    intercept[InvalidArgumentException](vectorValueConstructorWithDimension(Seq(1, 2, 3, 4), -1))
+    intercept[InvalidArgumentException](vectorValueConstructorWithDimension(Seq(1, 2, 3, 4), 4097))
     intercept[InvalidArgumentException](vectorValueConstructorWithDimensionAndCoordinateType(
       Seq(1, 2, 3, 4),
       -1,
@@ -54,6 +60,12 @@ class VectorFunctionsTest extends CypherFunSuite {
     ))
 
     // Null handling
+    vectorValueConstructor(null) should equal(expectedNull)
+
+    vectorValueConstructorWithDimension(null, null) should equal(expectedNull)
+    vectorValueConstructorWithDimension(Seq(1, 2, 3, 4), null) should equal(expectedNull)
+    vectorValueConstructorWithDimension(null, 1) should equal(expectedNull)
+
     vectorValueConstructorWithDimensionAndCoordinateType(null, null, null) should equal(expectedNull)
     vectorValueConstructorWithDimensionAndCoordinateType(null, 1, null) should equal(expectedNull)
     vectorValueConstructorWithDimensionAndCoordinateType(null, null, stringValue("FLOAT32")) should equal(expectedNull)
@@ -66,6 +78,12 @@ class VectorFunctionsTest extends CypherFunSuite {
     vectorValueConstructorWithDimensionAndCoordinateType(Seq(1, 2, 3, 4), 1, null) should equal(expectedNull)
 
     // Type Exceptions
+    intercept[CypherTypeException](vectorValueConstructor(1042))
+    intercept[CypherTypeException](vectorValueConstructor(true))
+
+    intercept[CypherTypeException](vectorValueConstructorWithDimension(Seq(1, 2, 3, 4), "1"))
+    intercept[CypherTypeException](vectorValueConstructorWithDimension(1042, 1))
+
     intercept[CypherTypeException](vectorValueConstructorWithDimensionAndCoordinateType(
       Seq(1, 2, 3, 4),
       "1",

@@ -807,11 +807,23 @@ case class CommunityExpressionConverter(
           firstArg,
           secondArg
         )
-      case VectorValueConstructor =>
+      case VectorValueConstructor if invocation.arguments.size == 1 =>
         commands.expressions.VectorValueConstructorFunction(
           self.toCommandExpression(id, invocation.arguments.head),
-          self.toCommandExpression(id, invocation.arguments(1)),
-          self.toCommandExpression(id, invocation.arguments(2))
+          None,
+          None
+        )
+      case VectorValueConstructor if invocation.arguments.size == 2 =>
+        commands.expressions.VectorValueConstructorFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          Some(self.toCommandExpression(id, invocation.arguments(1))),
+          None
+        )
+      case VectorValueConstructor if invocation.arguments.size == 3 =>
+        commands.expressions.VectorValueConstructorFunction(
+          self.toCommandExpression(id, invocation.arguments.head),
+          Some(self.toCommandExpression(id, invocation.arguments(1))),
+          Some(self.toCommandExpression(id, invocation.arguments(2)))
         )
       case VectorSimilarityCosine =>
         val firstArg = self.toCommandExpression(id, invocation.arguments.head)

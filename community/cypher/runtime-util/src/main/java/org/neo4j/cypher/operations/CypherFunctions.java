@@ -524,21 +524,22 @@ public final class CypherFunctions {
         }
     }
 
+    public static AnyValue vectorValueConstructor(AnyValue vector) {
+        return vectorValueConstructor(vector, null, null);
+    }
+
+    public static AnyValue vectorValueConstructor(AnyValue vector, AnyValue dimension) {
+        return vectorValueConstructor(vector, dimension, null);
+    }
+
     public static AnyValue vectorValueConstructor(AnyValue vector, AnyValue dimension, AnyValue typeString) {
         if (vector == NO_VALUE || dimension == NO_VALUE || typeString == NO_VALUE) {
             return NO_VALUE;
         }
 
-        VectorCoordinateType coordinateType;
+        VectorCoordinateType coordinateType = null;
         if (typeString instanceof TextValue typeStringAsTextValue) {
             coordinateType = VectorCoordinateType.valueOf(typeStringAsTextValue.stringValue());
-        } else {
-            throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'vector()': Expected a string but got %s", vector),
-                    "vector",
-                    vector.toString(),
-                    List.of("STRING"),
-                    vector.getTypeName());
         }
 
         VectorValue vectorValue;
@@ -555,10 +556,12 @@ public final class CypherFunctions {
                     vector.getTypeName());
         }
 
-        long dimensionsLong = getDimensions(dimension);
-        if (vectorValue.dimensions() != dimensionsLong) {
-            throw new CypherTypeException(format(
-                    "Expected a vector of dimension %d, but got: %d;", dimensionsLong, vectorValue.dimensions()));
+        if (dimension != null) {
+            long dimensionValue = getDimension(dimension);
+            if (vectorValue.dimensions() != dimensionValue) {
+                throw new CypherTypeException(format(
+                        "Expected a vector of dimension %d, but got: %d;", dimensionValue, vectorValue.dimensions()));
+            }
         }
 
         return vectorValue;
@@ -666,23 +669,22 @@ public final class CypherFunctions {
         };
     }
 
-    private static long getDimensions(AnyValue dimensions) {
-        if (!(dimensions instanceof IntegralValue dimensionIntegral)) {
+    private static long getDimension(AnyValue dimension) {
+        if (!(dimension instanceof IntegralValue dimensionValue)) {
             throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'vector()': Expected an integer but got %s", dimensions),
+                    format("Invalid input for function 'vector()': Expected an integer but got %s", dimension),
                     "vector",
-                    dimensions.toString(),
+                    dimension.toString(),
                     List.of("INTEGER"),
-                    dimensions.getTypeName());
+                    dimension.getTypeName());
         }
 
-        long dimensionsLongValue = dimensionIntegral.longValue();
-        if (dimensionsLongValue < 0 || dimensionsLongValue > 4096) {
+        if (dimensionValue.longValue() < 0 || dimensionValue.longValue() > 4096) {
             throw InvalidArgumentException.argumentOutOfRange(
-                    "vector", "dimension", 0, 4096, dimensionsLongValue);
+                    "vector", "dimension", 0, 4096, dimensionValue.longValue());
         }
 
-        return dimensionsLongValue;
+        return dimensionValue.longValue();
     }
 
     @CalledFromGeneratedCode
