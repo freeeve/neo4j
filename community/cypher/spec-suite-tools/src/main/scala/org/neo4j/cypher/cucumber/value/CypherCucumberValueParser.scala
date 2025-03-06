@@ -40,6 +40,7 @@ import org.neo4j.values.storable.Values
 import org.neo4j.values.storable.VectorValue
 
 import java.util.Collections
+
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.jdk.CollectionConverters.SeqHasAsJava
@@ -100,15 +101,28 @@ object CypherCucumberValueParser {
   private def nanValue[X: P]: P[java.lang.Double] = P("NaN").!.map(_ => Double.NaN)
 
   private def vectorCoordinateType[X: P]: P[java.lang.String] = P(CharsWhileIn("A-Za-z0-9")).!
+
   private def vector[X: P]: P[VectorValue] = P(vectorCoordinateType ~/ list).map {
     case (vectorType: String, coordinates: java.util.List[AnyRef]) =>
       vectorType match {
-        case "Int8Vector" => Values.int8Vector(coordinates.asScala.collect { case i: Number => i.byteValue() }.toArray:_*)
-        case "Int16Vector" => Values.int16Vector(coordinates.asScala.collect { case i: Number => i.shortValue() }.toArray:_*)
-        case "Int32Vector" => Values.int32Vector(coordinates.asScala.collect { case i: Number => i.intValue() }.toArray:_*)
-        case "Int64Vector" => Values.int64Vector(coordinates.asScala.collect { case i: Number => i.longValue() }.toArray:_*)
-        case "Float32Vector" => Values.float32Vector(coordinates.asScala.collect { case i: Number => i.floatValue() }.toArray:_*)
-        case "Float64Vector" => Values.float64Vector(coordinates.asScala.collect { case i: Number => i.doubleValue() }.toArray:_*)
+        case "Int8Vector" => Values.int8Vector(coordinates.asScala.collect { case i: Number =>
+            i.byteValue()
+          }.toArray: _*)
+        case "Int16Vector" => Values.int16Vector(coordinates.asScala.collect { case i: Number =>
+            i.shortValue()
+          }.toArray: _*)
+        case "Int32Vector" => Values.int32Vector(coordinates.asScala.collect { case i: Number =>
+            i.intValue()
+          }.toArray: _*)
+        case "Int64Vector" => Values.int64Vector(coordinates.asScala.collect { case i: Number =>
+            i.longValue()
+          }.toArray: _*)
+        case "Float32Vector" => Values.float32Vector(coordinates.asScala.collect { case i: Number =>
+            i.floatValue()
+          }.toArray: _*)
+        case "Float64Vector" => Values.float64Vector(coordinates.asScala.collect { case i: Number =>
+            i.doubleValue()
+          }.toArray: _*)
       }
   }
 

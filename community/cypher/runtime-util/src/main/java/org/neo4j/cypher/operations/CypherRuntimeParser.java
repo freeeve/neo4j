@@ -23,6 +23,7 @@ import static java.lang.String.format;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.storable.Values.doubleValue;
 import static org.neo4j.values.storable.Values.longValue;
+import static org.neo4j.cypher.operations.VectorUtils.vectorFromListValue;
 import static org.neo4j.values.storable.Values.numberValue;
 
 import java.math.BigDecimal;
@@ -39,16 +40,9 @@ import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory;
 import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.exceptions.SyntaxException;
 import org.neo4j.kernel.impl.util.ValueUtils;
-import org.neo4j.values.AnyValue;
-import org.neo4j.values.storable.ArrayValue;
-import org.neo4j.values.storable.ByteArray;
-import org.neo4j.values.storable.DoubleArray;
-import org.neo4j.values.storable.FloatArray;
-import org.neo4j.values.storable.IntArray;
-import org.neo4j.values.storable.LongArray;
-import org.neo4j.values.storable.ShortArray;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValueBuilder;
 import scala.Option;
 import scala.collection.immutable.Seq;
@@ -58,7 +52,6 @@ import scala.collection.immutable.Seq;
  * <p>
  * Internally uses the cypher parser so that we can make sure we are consistent with the language itself
  */
-@SuppressWarnings("deprecation")
 abstract class CypherRuntimeParser {
     private static final BigDecimal MAX_LONG = BigDecimal.valueOf(Long.MAX_VALUE);
     private static final BigDecimal MIN_LONG = BigDecimal.valueOf(Long.MIN_VALUE);
@@ -72,7 +65,7 @@ abstract class CypherRuntimeParser {
     //      version we will probably need to make this a dynamic class and provide the version as a dependency.
     private static final AstParserFactory parserFactory = AstParserFactory$.MODULE$.apply(CypherVersion.Cypher25);
 
-    static Value parseVector(String expression) {
+    static VectorValue parseVector(String expression) {
         var expressions = asList(expression);
         int length = expressions.size();
         var builder = ListValueBuilder.newListBuilder(length);
@@ -81,20 +74,10 @@ abstract class CypherRuntimeParser {
             builder.add(numberValue(asNumber(iterator.next())));
         }
 
-        var list = builder.build();
-        ArrayValue array = list.toStorableArray();
-        return switch (array) {
-            case ByteArray byteArray -> Values.int8Vector(byteArray.asObject());
-            case ShortArray shortArray -> Values.int16Vector(shortArray.asObject());
-            case IntArray intArray -> Values.int32Vector(intArray.asObject());
-            case LongArray longArray -> Values.int64Vector(longArray.asObject());
-            case FloatArray floatArray -> Values.float32Vector(floatArray.asObject());
-            case DoubleArray doubleArray -> Values.float64Vector(doubleArray.asObject());
-            default -> throw invalidType(array);
-        };
+        return vectorFromListValue(builder.build());
     }
 
-    static Value parseInt8Vector(String expression) {
+    static VectorValue parseInt8Vector(String expression) {
         var expressions = asList(expression);
         int length = expressions.size();
         byte[] bytes = new byte[length];
@@ -106,7 +89,7 @@ abstract class CypherRuntimeParser {
         return Values.int8Vector(bytes);
     }
 
-    static Value parseInt16Vector(String expression) {
+    static VectorValue parseInt16Vector(String expression) {
         var expressions = asList(expression);
         int length = expressions.size();
         short[] shorts = new short[length];
@@ -118,7 +101,7 @@ abstract class CypherRuntimeParser {
         return Values.int16Vector(shorts);
     }
 
-    static Value parseInt32Vector(String expression) {
+    static VectorValue parseInt32Vector(String expression) {
         var expressions = asList(expression);
         int length = expressions.size();
         int[] ints = new int[length];
@@ -130,7 +113,7 @@ abstract class CypherRuntimeParser {
         return Values.int32Vector(ints);
     }
 
-    static Value parseInt64Vector(String expression) {
+    static VectorValue parseInt64Vector(String expression) {
         var expressions = asList(expression);
         int length = expressions.size();
         long[] longs = new long[length];
@@ -142,7 +125,7 @@ abstract class CypherRuntimeParser {
         return Values.int64Vector(longs);
     }
 
-    static Value parseFloat32Vector(String expression) {
+    static VectorValue parseFloat32Vector(String expression) {
         var expressions = asList(expression);
         int length = expressions.size();
         float[] floats = new float[length];
@@ -154,7 +137,7 @@ abstract class CypherRuntimeParser {
         return Values.float32Vector(floats);
     }
 
-    static Value parseFloat64Vector(String expression) {
+    static VectorValue parseFloat64Vector(String expression) {
         var expressions = asList(expression);
         int length = expressions.size();
         double[] doubles = new double[length];
@@ -219,9 +202,9 @@ abstract class CypherRuntimeParser {
         if (expression instanceof ListLiteral listLiteral) {
             return listLiteral.expressions();
         } else if (expression instanceof Literal literal) {
-            throw invalidType(ValueUtils.of(literal.value()));
+            throw VectorUtils.invalidVectorType(ValueUtils.of(literal.value()));
         } else {
-            throw invalidType(expression);
+            throw invalidVectorType(expression);
         }
     }
 
@@ -263,9 +246,9 @@ abstract class CypherRuntimeParser {
         if (expression instanceof NumberLiteral numberLiteral) {
             return numberLiteral.value();
         } else if (expression instanceof Literal literal) {
-            throw invalidType(ValueUtils.of(literal.value()));
+            throw VectorUtils.invalidVectorType(ValueUtils.of(literal.value()));
         } else {
-            throw invalidType(expression);
+            throw invalidVectorType(expression);
         }
     }
 
@@ -274,16 +257,7 @@ abstract class CypherRuntimeParser {
                 expression, new Neo4jCypherExceptionFactory(expression, Option.empty()), Option.empty());
     }
 
-    private static CypherTypeException invalidType(AnyValue value) {
-        return CypherTypeException.functionArgumentWrongType(
-                "Invalid input for function 'VECTOR()': Expected a NUMBER, got: " + value,
-                "VECTOR",
-                value.prettyPrint(),
-                List.of("INTEGER", "FLOAT"),
-                CypherTypeValueMapper.valueType(value));
-    }
-
-    private static CypherTypeException invalidType(Expression badInput) {
+    private static CypherTypeException invalidVectorType(Expression badInput) {
         return CypherTypeException.functionArgumentWrongType(
                 "Invalid input for function 'VECTOR': Expected a NUMBER, got: " + badInput.asCanonicalStringVal(),
                 "VECTOR",

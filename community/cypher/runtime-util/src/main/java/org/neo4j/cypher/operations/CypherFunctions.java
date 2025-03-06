@@ -21,6 +21,10 @@ package org.neo4j.cypher.operations;
 
 import static java.lang.String.format;
 import static org.neo4j.cypher.operations.CursorUtils.propertyKeys;
+import static org.neo4j.cypher.operations.CypherRuntimeParser.parseAsDoubleOrElseNoValue;
+import static org.neo4j.cypher.operations.CypherRuntimeParser.parseAsLongOrElseNoValue;
+import static org.neo4j.cypher.operations.VectorUtils.assertDimension;
+import static org.neo4j.cypher.operations.VectorUtils.invalidVector;
 import static org.neo4j.values.storable.Values.EMPTY_STRING;
 import static org.neo4j.values.storable.Values.FALSE;
 import static org.neo4j.values.storable.Values.NO_VALUE;
@@ -121,7 +125,6 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.ValueRepresentation;
 import org.neo4j.values.storable.Values;
-import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.ListValueBuilder;
 import org.neo4j.values.virtual.MapValue;
@@ -138,7 +141,7 @@ import org.neo4j.values.virtual.VirtualValues;
 /**
  * This class contains static helper methods for the set of Cypher functions
  */
-@SuppressWarnings({"ReferenceEquality"})
+@SuppressWarnings({"ReferenceEquality", "deprecation"})
 public final class CypherFunctions {
     private static final String[] POINT_KEYS =
             new String[] {"crs", "x", "y", "z", "longitude", "latitude", "height", "srid"};
@@ -532,159 +535,101 @@ public final class CypherFunctions {
         return vectorValueConstructor(vector, dimension, null);
     }
 
-    public static AnyValue vectorValueConstructor(AnyValue vector, AnyValue dimension, AnyValue typeString) {
-        if (vector == NO_VALUE || dimension == NO_VALUE || typeString == NO_VALUE) {
+    public static AnyValue vectorValueConstructor(
+            AnyValue vector, AnyValue dimension, VectorCoordinateType coordinateType) {
+        return switch (coordinateType) {
+            case null -> vector(vector, dimension);
+            case INTEGER8 -> int8Vector(vector, dimension);
+            case INTEGER16 -> int16Vector(vector, dimension);
+            case INTEGER32 -> int32Vector(vector, dimension);
+            case INTEGER64 -> int64Vector(vector, dimension);
+            case FLOAT32 -> float32Vector(vector, dimension);
+            case FLOAT64 -> float64Vector(vector, dimension);
+        };
+    }
+
+    public static Value vector(AnyValue in, AnyValue dimension) {
+        if (in == NO_VALUE || dimension == NO_VALUE) {
             return NO_VALUE;
-        }
-
-        VectorCoordinateType coordinateType = null;
-        if (typeString instanceof TextValue typeStringAsTextValue) {
-            coordinateType = VectorCoordinateType.valueOf(typeStringAsTextValue.stringValue());
-        }
-
-        VectorValue vectorValue;
-        if (vector instanceof TextValue vectorString) {
-            vectorValue = getVectorFromString(vectorString, coordinateType);
-        } else if (vector instanceof SequenceValue vectorSequence) {
-            vectorValue = getVectorFromSequence(vectorSequence, coordinateType);
+        } else if (in instanceof SequenceValue sequence) {
+            return assertDimension(VectorUtils.getVectorFromSequence(sequence), dimension);
+        } else if (in instanceof TextValue textValue) {
+            return assertDimension(CypherRuntimeParser.parseVector(textValue.stringValue()), dimension);
         } else {
-            throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'vector()': Expected a string or list but got %s", vector),
-                    "vector",
-                    vector.toString(),
-                    List.of("STRING", "LIST<INTEGER | FLOAT>"),
-                    vector.getTypeName());
+            throw invalidVector(in);
         }
-
-        if (dimension != null) {
-            long dimensionValue = getDimension(dimension);
-            if (vectorValue.dimensions() != dimensionValue) {
-                throw new CypherTypeException(format(
-                        "Expected a vector of dimension %d, but got: %d;", dimensionValue, vectorValue.dimensions()));
-            }
-        }
-
-        return vectorValue;
     }
 
-    private static VectorValue getVectorFromString(TextValue vectorString, VectorCoordinateType coordinateType) {
-        String stringValue = vectorString.stringValue();
-
-        return switch (coordinateType) {
-            case null -> (VectorValue) CypherRuntimeParser.parseVector(stringValue);
-            case INTEGER8 -> (VectorValue) CypherRuntimeParser.parseInt8Vector(stringValue);
-            case INTEGER16 -> (VectorValue) CypherRuntimeParser.parseInt16Vector(stringValue);
-            case INTEGER32 -> (VectorValue) CypherRuntimeParser.parseInt32Vector(stringValue);
-            case INTEGER64 -> (VectorValue) CypherRuntimeParser.parseInt64Vector(stringValue);
-            case FLOAT32 -> (VectorValue) CypherRuntimeParser.parseFloat32Vector(stringValue);
-            case FLOAT64 -> (VectorValue) CypherRuntimeParser.parseFloat64Vector(stringValue);
-        };
+    public static Value int8Vector(AnyValue in, AnyValue dimension) {
+        if (in == NO_VALUE || dimension == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof SequenceValue sequence) {
+            return assertDimension(VectorUtils.int8Vector(sequence), dimension);
+        } else if (in instanceof TextValue textValue) {
+            return assertDimension(CypherRuntimeParser.parseInt8Vector(textValue.stringValue()), dimension);
+        } else {
+            throw invalidVector(in);
+        }
     }
 
-    private static VectorValue getVectorFromSequence(SequenceValue vectorSequence, VectorCoordinateType coordinateType) {
-        return switch (coordinateType) {
-            case null -> {
-                int length = vectorSequence.intSize();
-                int index = 0;
-                long[] longValues = new long[length];
-
-                ValueRepresentation bestValueRepresentation = ValueRepresentation.INT64;
-
-                for (AnyValue intValue : vectorSequence) {
-                    bestValueRepresentation = bestValueRepresentation.coerce(intValue.valueRepresentation());
-
-                    // abandon the outer loop - start again
-                    if (bestValueRepresentation == ValueRepresentation.FLOAT64) {
-                        double[] doubleValues = new double[length];
-                        for (int i = 0; i <= index; i++) {
-                            doubleValues[i] = longValues[i];
-                        }
-
-                        for (AnyValue doubleValue : vectorSequence) {
-                            doubleValues[index++] = ((NumberValue) doubleValue).doubleValue();
-                        }
-
-                        yield Values.float64Vector(doubleValues);
-                    } else {
-                        longValues[index++] = ((NumberValue) intValue).longValue();
-                    }
-                }
-
-                yield Values.int64Vector(longValues);
-            }
-            case INTEGER8 -> {
-                int index = 0;
-                int length = vectorSequence.intSize();
-                byte[] values = new byte[length];
-                for (AnyValue value : vectorSequence) {
-                    values[index++] = (byte)((NumberValue) value).longValue();
-                }
-                yield Values.int8Vector(values);
-            }
-            case INTEGER16 -> {
-                int index = 0;
-                int length = vectorSequence.intSize();
-                short[] values = new short[length];
-                for (AnyValue value : vectorSequence) {
-                    values[index++] = (short)((NumberValue) value).longValue();
-                }
-                yield Values.int16Vector(values);
-            }
-            case INTEGER32 -> {
-                int index = 0;
-                int length = vectorSequence.intSize();
-                int[] values = new int[length];
-                for (AnyValue value : vectorSequence) {
-                    values[index++] = (int)((NumberValue) value).longValue();
-                }
-                yield Values.int32Vector(values);
-            }
-            case INTEGER64 -> {
-                int index = 0;
-                int length = vectorSequence.intSize();
-                long[] values = new long[length];
-                for (AnyValue value : vectorSequence) {
-                    values[index++] = ((NumberValue) value).longValue();
-                }
-                yield Values.int64Vector(values);
-            }
-            case FLOAT32 -> {
-                int index = 0;
-                int length = vectorSequence.intSize();
-                float[] values = new float[length];
-                for (AnyValue value : vectorSequence) {
-                    values[index++] = ((NumberValue) value).floatValue();
-                }
-                yield Values.float32Vector(values);
-            }
-            case FLOAT64 -> {
-                int index = 0;
-                int length = vectorSequence.intSize();
-                double[] values = new double[length];
-                for (AnyValue value : vectorSequence) {
-                    values[index++] = ((NumberValue) value).doubleValue();
-                }
-                yield Values.float64Vector(values);
-            }
-        };
+    public static Value int16Vector(AnyValue in, AnyValue dimension) {
+        if (in == NO_VALUE || dimension == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof SequenceValue sequence) {
+            return assertDimension(VectorUtils.int16Vector(sequence), dimension);
+        } else if (in instanceof TextValue textValue) {
+            return assertDimension(CypherRuntimeParser.parseInt16Vector(textValue.stringValue()), dimension);
+        } else {
+            throw invalidVector(in);
+        }
     }
 
-    private static long getDimension(AnyValue dimension) {
-        if (!(dimension instanceof IntegralValue dimensionValue)) {
-            throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'vector()': Expected an integer but got %s", dimension),
-                    "vector",
-                    dimension.toString(),
-                    List.of("INTEGER"),
-                    dimension.getTypeName());
+    public static Value int32Vector(AnyValue in, AnyValue dimension) {
+        if (in == NO_VALUE || dimension == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof SequenceValue sequence) {
+            return assertDimension(VectorUtils.int32Vector(sequence), dimension);
+        } else if (in instanceof TextValue textValue) {
+            return assertDimension(CypherRuntimeParser.parseInt32Vector(textValue.stringValue()), dimension);
+        } else {
+            throw invalidVector(in);
         }
+    }
 
-        if (dimensionValue.longValue() < 0 || dimensionValue.longValue() > 4096) {
-            throw InvalidArgumentException.argumentOutOfRange(
-                    "vector", "dimension", 0, 4096, dimensionValue.longValue());
+    public static Value int64Vector(AnyValue in, AnyValue dimension) {
+        if (in == NO_VALUE || dimension == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof SequenceValue sequence) {
+            return assertDimension(VectorUtils.int64Vector(sequence), dimension);
+        } else if (in instanceof TextValue textValue) {
+            return assertDimension(CypherRuntimeParser.parseInt64Vector(textValue.stringValue()), dimension);
+        } else {
+            throw invalidVector(in);
         }
+    }
 
-        return dimensionValue.longValue();
+    public static Value float32Vector(AnyValue in, AnyValue dimension) {
+        if (in == NO_VALUE || dimension == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof SequenceValue sequence) {
+            return assertDimension(VectorUtils.float32Vector(sequence), dimension);
+        } else if (in instanceof TextValue textValue) {
+            return assertDimension(CypherRuntimeParser.parseFloat32Vector(textValue.stringValue()), dimension);
+        } else {
+            throw invalidVector(in);
+        }
+    }
+
+    public static Value float64Vector(AnyValue in, AnyValue dimension) {
+        if (in == NO_VALUE || dimension == NO_VALUE) {
+            return NO_VALUE;
+        } else if (in instanceof SequenceValue sequence) {
+            return assertDimension(VectorUtils.float64Vector(sequence), dimension);
+        } else if (in instanceof TextValue textValue) {
+            return assertDimension(CypherRuntimeParser.parseFloat64Vector(textValue.stringValue()), dimension);
+        } else {
+            throw invalidVector(in);
+        }
     }
 
     @CalledFromGeneratedCode

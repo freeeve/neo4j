@@ -23,29 +23,29 @@ import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherFunctions
+import org.neo4j.cypher.operations.VectorCoordinateType
 import org.neo4j.values.AnyValue
 
 case class VectorValueConstructorFunction(
   vector: Expression,
   dimension: Option[Expression] = None,
-  coordinateType: Option[Expression] = None
+  coordinateType: Option[VectorCoordinateType] = None
 ) extends Expression {
 
   override def apply(ctx: ReadableRow, state: QueryState): AnyValue = (dimension, coordinateType) match {
-    case (Some(d), Some(c)) => CypherFunctions.vectorValueConstructor(vector(ctx, state), d(ctx, state), c(ctx, state))
+    case (Some(d), Some(c)) => CypherFunctions.vectorValueConstructor(vector(ctx, state), d(ctx, state), c)
     case (Some(d), None)    => CypherFunctions.vectorValueConstructor(vector(ctx, state), d(ctx, state))
     case _                  => CypherFunctions.vectorValueConstructor(vector(ctx, state))
   }
 
-  override def arguments: Seq[Expression] = (dimension, coordinateType) match {
-    case (Some(d), Some(c)) => Seq(vector, d, c)
-    case (Some(d), None)    => Seq(vector, d)
-    case _                  => Seq(vector)
+  override def arguments: Seq[Expression] = dimension match {
+    case Some(d) => Seq(vector, d)
+    case None    => Seq(vector)
   }
 
   override def rewrite(f: Expression => Expression): Expression = (dimension, coordinateType) match {
     case (Some(d), Some(c)) =>
-      f(VectorValueConstructorFunction(vector.rewrite(f), Some(d.rewrite(f)), Some(c.rewrite(f))))
+      f(VectorValueConstructorFunction(vector.rewrite(f), Some(d.rewrite(f))))
     case (Some(d), None) => f(VectorValueConstructorFunction(vector.rewrite(f), Some(d.rewrite(f))))
     case _               => f(VectorValueConstructorFunction(vector.rewrite(f)))
   }

@@ -171,6 +171,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyPropertyKey
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.cypher.operations.VectorCoordinateType
 import org.neo4j.exceptions.InternalException
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarity
 import org.neo4j.kernel.impl.util.ValueUtils
@@ -820,10 +821,18 @@ case class CommunityExpressionConverter(
           None
         )
       case VectorValueConstructor if invocation.arguments.size == 3 =>
+        val elemType = VectorValueConstructor.vectorElementType(invocation) match {
+          case VectorValueConstructor.Int8VectorElementType    => VectorCoordinateType.INTEGER8
+          case VectorValueConstructor.Int16VectorElementType   => VectorCoordinateType.INTEGER16
+          case VectorValueConstructor.Int32VectorElementType   => VectorCoordinateType.INTEGER32
+          case VectorValueConstructor.Int64VectorElementType   => VectorCoordinateType.INTEGER64
+          case VectorValueConstructor.Float32VectorElementType => VectorCoordinateType.FLOAT32
+          case VectorValueConstructor.Float64VectorElementType => VectorCoordinateType.FLOAT64
+        }
         commands.expressions.VectorValueConstructorFunction(
           self.toCommandExpression(id, invocation.arguments.head),
           Some(self.toCommandExpression(id, invocation.arguments(1))),
-          Some(self.toCommandExpression(id, invocation.arguments(2)))
+          Some(elemType)
         )
       case VectorSimilarityCosine =>
         val firstArg = self.toCommandExpression(id, invocation.arguments.head)
