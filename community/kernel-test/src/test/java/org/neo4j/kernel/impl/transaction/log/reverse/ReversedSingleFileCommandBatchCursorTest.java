@@ -307,7 +307,7 @@ class ReversedSingleFileCommandBatchCursorTest {
         List<StorageCommand> commands = new ArrayList<>();
         for (int i = 0; i < size; i++) {
             // The type of command doesn't matter here
-            commands.add(new TestCommand());
+            commands.add(new TestCommand(LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES));
         }
         return new CompleteCommandBatch(
                 commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES, ANONYMOUS);

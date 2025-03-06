@@ -281,7 +281,14 @@ class TransactionLogFilesTest {
                         logFile.createLogChannelForVersion(1, () -> 1L, () -> kernelVersion, BASE_TX_CHECKSUM);
                 EnvelopeWriteChannel envelopeWriteChannel = getEnvelopeChannel(channel)) {
             // Some magic bytes that just happen to give a checksum with last byte 0
-            byte[] bytes = new byte[] {105, -62, -59, 21, -8, 63, -67, -47, 58, 63};
+            byte[] bytes;
+            if (kernelVersion == KernelVersion.GLORIOUS_FUTURE) {
+                bytes = new byte[] {105, -62, -59, 21, -8, 63, -67, -47, 58, 63};
+            } else if (kernelVersion == KernelVersion.V5_25) {
+                bytes = new byte[] {105, -62, -59, 21, -8, 63, -67, -47, 58, -91};
+            } else {
+                throw new IllegalArgumentException("Checksum magic not available for kernel version " + kernelVersion);
+            }
             envelopeWriteChannel.beginChecksumForWriting();
             envelopeWriteChannel.putVersion(kernelVersion.version());
             envelopeWriteChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);

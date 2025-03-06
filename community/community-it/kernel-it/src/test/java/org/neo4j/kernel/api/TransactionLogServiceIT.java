@@ -42,7 +42,6 @@ import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.LogVersionRepository.UNKNOWN_LOG_OFFSET;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
-import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -947,7 +946,11 @@ class TransactionLogServiceIT {
             logVersion--;
         }
 
-        var eofPosition = new LogPosition(logFile.getHighestLogVersion(), LATEST_LOG_FORMAT.getHeaderSize());
+        var eofPosition = new LogPosition(
+                logFile.getHighestLogVersion(),
+                logFile.extractHeader(logFile.getHighestLogVersion())
+                        .getStartPosition()
+                        .getByteOffset());
         availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
 
         String testReason = "Checkpoint on empty log files should work since its full story copy.";
@@ -984,7 +987,11 @@ class TransactionLogServiceIT {
             logVersion--;
         }
 
-        var eofPosition = new LogPosition(logFile.getHighestLogVersion(), LATEST_LOG_FORMAT.getHeaderSize());
+        var eofPosition = new LogPosition(
+                logFile.getHighestLogVersion(),
+                logFile.extractHeader(logFile.getHighestLogVersion())
+                        .getStartPosition()
+                        .getByteOffset());
 
         availabilityGuard.require(new DescriptiveAvailabilityRequirement("Database unavailable"));
 

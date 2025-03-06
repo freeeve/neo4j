@@ -31,6 +31,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.Set;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
@@ -83,6 +84,27 @@ public final class LogChannelUtils {
                 storeChannel, logHeader, path, ChannelNativeAccessor.EMPTY_ACCESSOR, DatabaseTracer.NULL);
 
         return ReadAheadUtils.newChannel(logChannel, logHeader, INSTANCE);
+    }
+
+    public static int estimateBytesWrittenToLogChannel(
+            int dataSize, KernelVersion kernelVersion, LogHeader logHeader, boolean withChecksumAndVersion) {
+        return estimateBytesWrittenToLogChannel(
+                dataSize, kernelVersion, withChecksumAndVersion, logHeader.getSegmentBlockSize());
+    }
+
+    public static int estimateBytesWrittenToLogChannel(
+            int dataSize, KernelVersion kernelVersion, boolean withChecksumAndVersion, int segmentSize) {
+        var logFormat = LogFormat.fromKernelVersion(kernelVersion);
+        if (logFormat.usesSegments()) {
+            int estimatedSegmentsRequired = ((dataSize - 1) / (segmentSize - LogEnvelopeHeader.HEADER_SIZE)) + 1;
+            return estimatedSegmentsRequired * LogEnvelopeHeader.HEADER_SIZE + dataSize;
+        } else {
+            if (withChecksumAndVersion) {
+                return Byte.BYTES + dataSize + Integer.BYTES;
+            } else {
+                return dataSize;
+            }
+        }
     }
 
     private static void validateKernelVersion(KernelVersion kernelVersion, LogHeader logHeader) {

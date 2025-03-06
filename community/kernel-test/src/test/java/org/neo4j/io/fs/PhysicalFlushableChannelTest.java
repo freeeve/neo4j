@@ -32,6 +32,7 @@ import static org.neo4j.io.ByteUnit.kibiBytes;
 import static org.neo4j.io.ByteUnit.mebiBytes;
 import static org.neo4j.io.fs.ChecksumWriter.CHECKSUM_FACTORY;
 import static org.neo4j.io.memory.HeapScopedBuffer.EMPTY_BUFFER;
+import static org.neo4j.kernel.impl.transaction.log.LogChannelUtils.estimateBytesWrittenToLogChannel;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
@@ -313,22 +314,20 @@ class PhysicalFlushableChannelTest {
         versionedStoreChannel.position(logHeader.getStartPosition().getByteOffset());
         try (var channel = new PhysicalFlushableLogPositionAwareChannel(versionedStoreChannel, logHeader, INSTANCE)) {
             LogPosition initialPosition = channel.getCurrentLogPosition();
+            // WHEN
             channel.beginChecksumForWriting();
             channel.putVersion(LATEST_KERNEL_VERSION.version());
             channel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
-            // WHEN
             channel.putLong(67);
             channel.putInt(1234);
             channel.putChecksum();
             LogPosition positionAfterSomeData = channel.getCurrentLogPosition();
 
             // THEN
-            var expectedSize = logHeader.getLogFormatVersion().usesSegments()
-                    // Enveloped size = enveloped header + payload Long & Int
-                    ? LogEnvelopeHeader.HEADER_SIZE + Long.BYTES + Integer.BYTES
-                    // Non-enveloped size = Version Byte + payload Long & Int + Checksum Int
-                    : Byte.BYTES + Long.BYTES + Integer.BYTES + Integer.BYTES;
-            assertEquals(expectedSize, positionAfterSomeData.getByteOffset() - initialPosition.getByteOffset());
+            assertEquals(
+                    estimateBytesWrittenToLogChannel(
+                            Long.BYTES + Integer.BYTES, LATEST_KERNEL_VERSION, logHeader, true),
+                    positionAfterSomeData.getByteOffset() - initialPosition.getByteOffset());
         }
     }
 

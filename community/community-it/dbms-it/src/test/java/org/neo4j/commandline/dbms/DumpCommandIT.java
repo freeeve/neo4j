@@ -240,6 +240,8 @@ class DumpCommandIT {
                     logFile.getLogFileInformation().getLastEntryAppendIndex() + 1,
                     BASE_TX_CHECKSUM,
                     new byte[] {0});
+            // Required to push envelopes to stream
+            writer.getChannel().putChecksum();
         }
         CommandFailedException commandFailed = assertThrows(CommandFailedException.class, () -> execute("foo"));
         assertThat(commandFailed.getMessage()).isEqualTo("Dump failed for databases: 'foo'");
