@@ -1749,10 +1749,6 @@ object ShowAliases {
 }
 
 object AliasDriverSettingsCheck {
-  val existsErrorMessage = "The EXISTS expression is not valid in driver settings."
-  val countErrorMessage = "The COUNT expression is not valid in driver settings."
-  val collectErrorMessage = "The COLLECT expression is not valid in driver settings."
-  val genericErrorMessage = "This expression is not valid in driver settings."
 
   def findInvalidDriverSettings(driverSettings: Option[Either[Map[String, Expression], Parameter]])
     : Option[Expression] = {
