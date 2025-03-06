@@ -17,8 +17,13 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.DefaultWith
+import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstructionTestSupport {
@@ -38,7 +43,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |  WITH * WHERE `  UNNAMED0`[0]
         |  RETURN 1 AS x
         |}
-        |RETURN x AS x""".stripMargin
+        |RETURN x AS x""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -51,7 +65,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |  WITH * WHERE `  UNNAMED0`[0]
         |  CREATE ()
         |}
-        |FINISH""".stripMargin
+        |FINISH""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -82,7 +105,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |  }
         |  RETURN x AS x
         |}
-        |RETURN *""".stripMargin
+        |RETURN *""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -106,7 +138,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |    WHERE `  UNNAMED0`[1]
         |  RETURN 2 AS x
         |}
-        |RETURN x AS x""".stripMargin
+        |RETURN x AS x""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -138,7 +179,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |  RETURN 3 AS x
         |}
         |RETURN x AS x
-        |""".stripMargin
+        |""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -180,7 +230,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |    WHERE `  UNNAMED0`[4]
         |  RETURN 5 AS x
         |}
-        |RETURN x AS x""".stripMargin
+        |RETURN x AS x""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -238,7 +297,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |    RETURN x AS x
         |  }
         |}
-        |RETURN *""".stripMargin
+        |RETURN *""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -276,7 +344,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |  }
         |  RETURN y AS y
         |}
-        |RETURN y AS y""".stripMargin
+        |RETURN y AS y""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // all explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITHs before checking the equality
+          case w: With if !w.returnItems.items.exists(r => r.name.equals("x")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -310,7 +387,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |    WHERE `  UNNAMED0`[2]
         |  RETURN 3 + x AS y
         |}
-        |RETURN y AS y } AS res""".stripMargin
+        |RETURN y AS y } AS res""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // all explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITHs before checking the equality
+          case w: With if !w.returnItems.items.exists(r => r.name.equals("x")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -335,7 +421,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |      RETURN 3 AS res
         |   }
         |   RETURN res
-        |""".stripMargin
+        |""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -380,7 +475,16 @@ class ExpandWhenTest extends CypherFunSuite with RewritePhaseTest with AstConstr
         |  }
         |  RETURN x AS x
         |}
-        |RETURN x AS x""".stripMargin
+        |RETURN x AS x""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 }

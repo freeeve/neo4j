@@ -16,12 +16,17 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters
 
+import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
+import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddDependenciesToProjectionsInSubqueryExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
@@ -475,7 +480,16 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
         |  WITH x + y AS `x + y`, x AS x, y AS y
         |  ORDER BY x SKIP 10 LIMIT 5
         |  RETURN `x + y` AS `x + y`
-        |} AS result""".stripMargin
+        |} AS result""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("x + y")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -527,10 +541,17 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
     assertRewrite(query, query)
   }
 
-  private def assertRewrite(originalQuery: String, expectedQuery: String): Unit = {
+  // additionalExpectedAstUpdates is for updating things that are changed in the rewriter but cannot be expressed in the query,
+  // for example the AddedInRewriteGeneral flag on WITH
+  private def assertRewrite(
+    originalQuery: String,
+    expectedQuery: String,
+    additionalExpectedAstUpdates: Statement => Statement = statement => statement
+  ): Unit = {
     val cypherExceptionFactory = OpenCypherExceptionFactory(None)
     val original = parse(originalQuery, cypherExceptionFactory)
-    val expected = parse(expectedQuery, cypherExceptionFactory)
+    val initialExpected = parse(expectedQuery, cypherExceptionFactory)
+    val expected = additionalExpectedAstUpdates(initialExpected)
 
     val normalizedWithAndReturnClauses =
       original.endoRewrite(NormalizeWithAndReturnClauses.getRewriter(cypherExceptionFactory))

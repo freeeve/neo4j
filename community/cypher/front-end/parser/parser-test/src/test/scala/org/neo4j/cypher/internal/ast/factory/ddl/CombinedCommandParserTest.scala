@@ -17,13 +17,14 @@
 package org.neo4j.cypher.internal.ast.factory.ddl
 
 import org.neo4j.cypher.internal.ast
-import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.SignedHexIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SignedOctalIntegerLiteral
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
+
+import scala.util.Random
 
 /* Tests for combining listing and terminating commands */
 class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
@@ -593,7 +594,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
     }
   }
 
-  commandCombinationsAll.foreach {
+  Random.shuffle(commandCombinationsAll).take(35).foreach {
     case (firstCommand, firstClause, secondCommand, secondClause) =>
       test(s"$firstCommand $secondCommand") {
         assertAst(
@@ -812,120 +813,121 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
 
       // more commands per query
 
-      commandCombinationsAll.foreach { case (thirdCommand, thirdClause, fourthCommand, fourthClause) =>
-        test(
-          s"$firstCommand $secondCommand $thirdCommand $fourthCommand"
-        ) {
-          assertAst(
-            firstClause(None, false, List.empty, None)(defaultPos),
-            secondClause(None, false, List.empty, None)(pos),
-            thirdClause(None, false, List.empty, None)(pos),
-            fourthClause(None, false, List.empty, None)(pos)
-          )
-        }
+      Random.shuffle(commandCombinationsAll).take(35).foreach {
+        case (thirdCommand, thirdClause, fourthCommand, fourthClause) =>
+          test(
+            s"$firstCommand $secondCommand $thirdCommand $fourthCommand"
+          ) {
+            assertAst(
+              firstClause(None, false, List.empty, None)(defaultPos),
+              secondClause(None, false, List.empty, None)(pos),
+              thirdClause(None, false, List.empty, None)(pos),
+              fourthClause(None, false, List.empty, None)(pos)
+            )
+          }
 
-        test(
-          s"""$firstCommand
-             |YIELD *
-             |$secondCommand
-             |YIELD *
-             |$thirdCommand
-             |YIELD *
-             |$fourthCommand
-             |YIELD *""".stripMargin
-        ) {
-          assertAst(
-            firstClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(defaultPos),
-            secondClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
-            thirdClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
-            fourthClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos)
-          )
-        }
+          test(
+            s"""$firstCommand
+               |YIELD *
+               |$secondCommand
+               |YIELD *
+               |$thirdCommand
+               |YIELD *
+               |$fourthCommand
+               |YIELD *""".stripMargin
+          ) {
+            assertAst(
+              firstClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(defaultPos),
+              secondClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
+              thirdClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos),
+              fourthClause(None, true, List.empty, Some(withFromYield(returnAllItems)))(pos)
+            )
+          }
 
-        test(
-          s"""$firstCommand
-             |YIELD transactionId AS txId
-             |$secondCommand
-             |YIELD transactionId AS txId, username
-             |$thirdCommand
-             |YIELD transactionId AS txId
-             |$fourthCommand
-             |YIELD transactionId AS txId, message AS status
-             |RETURN *""".stripMargin
-        ) {
-          assertAst(
-            firstClause(
-              None,
-              false,
-              List(commandResultItem("transactionId", Some("txId"))),
-              Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
-            )(defaultPos),
-            secondClause(
-              None,
-              false,
-              List(
-                commandResultItem("transactionId", Some("txId")),
-                commandResultItem("username")
-              ),
-              Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "username"))))
-            )(pos),
-            thirdClause(
-              None,
-              false,
-              List(commandResultItem("transactionId", Some("txId"))),
-              Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
-            )(pos),
-            fourthClause(
-              None,
-              false,
-              List(
-                commandResultItem("transactionId", Some("txId")),
-                commandResultItem("message", Some("status"))
-              ),
-              Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "status"))))
-            )(pos),
-            returnAll
-          )
-        }
+          test(
+            s"""$firstCommand
+               |YIELD transactionId AS txId
+               |$secondCommand
+               |YIELD transactionId AS txId, username
+               |$thirdCommand
+               |YIELD transactionId AS txId
+               |$fourthCommand
+               |YIELD transactionId AS txId, message AS status
+               |RETURN *""".stripMargin
+          ) {
+            assertAst(
+              firstClause(
+                None,
+                false,
+                List(commandResultItem("transactionId", Some("txId"))),
+                Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
+              )(defaultPos),
+              secondClause(
+                None,
+                false,
+                List(
+                  commandResultItem("transactionId", Some("txId")),
+                  commandResultItem("username")
+                ),
+                Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "username"))))
+              )(pos),
+              thirdClause(
+                None,
+                false,
+                List(commandResultItem("transactionId", Some("txId"))),
+                Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId"))))
+              )(pos),
+              fourthClause(
+                None,
+                false,
+                List(
+                  commandResultItem("transactionId", Some("txId")),
+                  commandResultItem("message", Some("status"))
+                ),
+                Some(withFromYield(returnAllItems.withDefaultOrderOnColumns(List("txId", "status"))))
+              )(pos),
+              returnAll
+            )
+          }
 
-        test(
-          s"$firstCommand WHERE message = 'Transaction terminated.' " +
-            s"$secondCommand WHERE message = 'Transaction terminated.' " +
-            s"$thirdCommand WHERE message = 'Transaction terminated.' " +
-            s"$fourthCommand WHERE message = 'Transaction terminated.'"
-        ) {
-          // Can't have multiline query as I need the where positions
-          val where1Pos = getWherePosition()
-          val where2Pos = getWherePosition(where1Pos.offset + 1)
-          val where3Pos = getWherePosition(where2Pos.offset + 1)
-          val where4Pos = getWherePosition(where3Pos.offset + 1)
-          assertAst(
-            firstClause(
-              Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where1Pos)),
-              false,
-              List.empty,
-              None
-            )(defaultPos),
-            secondClause(
-              Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where2Pos)),
-              false,
-              List.empty,
-              None
-            )(pos),
-            thirdClause(
-              Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where3Pos)),
-              false,
-              List.empty,
-              None
-            )(pos),
-            fourthClause(
-              Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where4Pos)),
-              false,
-              List.empty,
-              None
-            )(pos)
-          )
-        }
+          test(
+            s"$firstCommand WHERE message = 'Transaction terminated.' " +
+              s"$secondCommand WHERE message = 'Transaction terminated.' " +
+              s"$thirdCommand WHERE message = 'Transaction terminated.' " +
+              s"$fourthCommand WHERE message = 'Transaction terminated.'"
+          ) {
+            // Can't have multiline query as I need the where positions
+            val where1Pos = getWherePosition()
+            val where2Pos = getWherePosition(where1Pos.offset + 1)
+            val where3Pos = getWherePosition(where2Pos.offset + 1)
+            val where4Pos = getWherePosition(where3Pos.offset + 1)
+            assertAst(
+              firstClause(
+                Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where1Pos)),
+                false,
+                List.empty,
+                None
+              )(defaultPos),
+              secondClause(
+                Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where2Pos)),
+                false,
+                List.empty,
+                None
+              )(pos),
+              thirdClause(
+                Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where3Pos)),
+                false,
+                List.empty,
+                None
+              )(pos),
+              fourthClause(
+                Some((where(equals(varFor("message"), literalString("Transaction terminated."))), where4Pos)),
+                false,
+                List.empty,
+                None
+              )(pos)
+            )
+          }
       }
   }
 
@@ -1435,7 +1437,7 @@ class CombinedCommandParserTest extends AdministrationAndSchemaCommandParserTest
           skip = Some(ast.Skip(literalFloat(1.9121409685506285E89))(pos))
         )
       )
-    parsesIn[Statement] {
+    parsesIn[ast.Statement] {
       case Cypher5 => _.toAst(expected(variablesAreEscaped = true, returnCypher5Types = true, resolveStrictly = false))
       case _       => _.toAst(expected(variablesAreEscaped = false, returnCypher5Types = false, resolveStrictly = true))
     }

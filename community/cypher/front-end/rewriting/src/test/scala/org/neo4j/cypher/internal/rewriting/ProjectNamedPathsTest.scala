@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting
 
+import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
@@ -368,7 +369,8 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          None
+          None,
+          withType = AddedInRewriteGeneral
         )(pos)
 
       val WITH2 =
@@ -460,7 +462,8 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          None
+          None,
+          withType = AddedInRewriteGeneral
         )(pos)
 
       val WITH2 =
@@ -716,7 +719,8 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          None
+          None,
+          withType = AddedInRewriteGeneral
         )(pos)
 
       val WITH2 =
@@ -903,7 +907,8 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          None
+          None,
+          withType = AddedInRewriteGeneral
         )(pos)
 
       val WITH2 =
@@ -1101,7 +1106,8 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          None
+          None,
+          withType = AddedInRewriteGeneral
         )(pos)
 
       val WITH2 =
@@ -1265,7 +1271,8 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          None
+          None,
+          withType = AddedInRewriteGeneral
         )(pos)
 
       val WITH2 =
@@ -1409,7 +1416,8 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           None,
           None,
           None,
-          None
+          None,
+          withType = AddedInRewriteGeneral
         )(pos)
 
       val WITH2 =
@@ -1575,7 +1583,8 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             None,
             None,
             None,
-            None
+            None,
+            withType = AddedInRewriteGeneral
           )(pos)
 
         val WITH2 =
@@ -1622,7 +1631,8 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
             None,
             None,
             None,
-            None
+            None,
+            withType = AddedInRewriteGeneral
           )(pos)
 
         val WITH2 =

@@ -140,6 +140,11 @@ sealed trait Query extends Statement with SemanticCheckable with SemanticAnalysi
    * Used in UnwrapTopLevelBraces
    */
   def getQuery(fromUnion: Boolean): Query
+
+  /**
+   * Return a list of all CommandClause's existing in this query.
+   */
+  def getCommandClauses: Seq[CommandClause]
 }
 
 sealed trait PartQuery extends Query {
@@ -184,6 +189,9 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
 
   override def singleQuery: SingleQuery = this
 
+  val getCommandClauses: Seq[CommandClause] =
+    clauses.filter(_.isInstanceOf[CommandClause]).map(_.asInstanceOf[CommandClause])
+
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query = f(this)
 
   override def getQuery(fromUnion: Boolean): Query = this
@@ -220,7 +228,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   ): SemanticCheck =
     checkStandaloneCall(clauses) chain
       withScopedState(clauseCheck(clauses)) chain
-      checkComposableNonTransactionCommandsAllowed(clauses) chain
+      checkComposableNonTransactionCommandsAllowed() chain
       checkOrder(clauses, canOmitReturnClause) chain
       checkNoCallInTransactionsAfterWriteClause(clauses) chain
       checkInputDataStream(clauses) chain
@@ -234,7 +242,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
   ): SemanticCheck =
     checkStandaloneCall(clauses) chain
       withScopedState(clauseCheck(clauses)) chain
-      checkComposableNonTransactionCommandsAllowed(clauses) chain
+      checkComposableNonTransactionCommandsAllowed() chain
       checkOrder(clauses, canOmitReturnClause) chain
       checkNoCallInTransactionsAfterWriteClause(clauses) chain
       checkInputDataStream(clauses) chain
@@ -384,12 +392,10 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     }
   }
 
-  private def checkComposableNonTransactionCommandsAllowed(clauses: Seq[Clause]): SemanticCheck = {
+  private def checkComposableNonTransactionCommandsAllowed(): SemanticCheck = {
     // Combining commands other than show and terminate transactions are hidden behind a feature flag
-    val commandClauses = clauses.filter(c => c.isInstanceOf[CommandClause])
-    if (commandClauses.size > 1) {
-      val nonTransactionCommands =
-        commandClauses.filter(c => !c.isInstanceOf[TransactionsCommandClause])
+    if (getCommandClauses.size > 1) {
+      val nonTransactionCommands = getCommandClauses.filter(c => !c.isInstanceOf[TransactionsCommandClause])
 
       if (nonTransactionCommands.nonEmpty) {
         requireFeatureSupport(
@@ -434,7 +440,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
         }
 
         val commandErrors =
-          if (clauses.count(_.isInstanceOf[CommandClause]) > 1) {
+          if (getCommandClauses.size > 1) {
             val missingYield = clauses.sliding(2).foldLeft(Vector.empty[SemanticError]) {
               case (semanticErrors, pair) =>
                 val optError = pair match {
@@ -443,7 +449,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
                       command.name,
                       clause.position
                     ))
-                  case Seq(_: CommandClause, clause: With) if clause.withType != AddedInRewrite => None
+                  case Seq(_: CommandClause, clause: With) if clause.withType == ParsedAsYield => None
                   case Seq(command: CommandClause, _) =>
                     Some(SemanticError.missingYield(
                       command.name,
@@ -744,6 +750,8 @@ case class TopLevelBraces(
   override def singleQuery: SingleQuery = wrapQuery(query, position)
   override def clauses: Seq[Clause] = singleQuery.clauses
 
+  val getCommandClauses: Seq[CommandClause] = query.getCommandClauses
+
   override def mapEachSingleQuery(f: SingleQuery => SingleQuery): Query = f(wrapQuery(query, position))
 
   override def getQuery(fromUnion: Boolean): Query = if (fromUnion) {
@@ -825,6 +833,8 @@ sealed trait Union extends Query {
   def unionMappings: List[UnionMapping]
 
   override def getQuery(fromUnion: Boolean): Query = this
+
+  val getCommandClauses: Seq[CommandClause] = lhs.getCommandClauses ++ rhs.getCommandClauses
 
   override def returnVariables: ReturnVariables = ReturnVariables(
     // If either side of the UNION has a RETURN *,
@@ -1169,6 +1179,9 @@ case class ConditionalQueryWhen(
   override def containsUpdates: Boolean = allBranches.exists(_.query.containsUpdates)
 
   override def getQuery(fromUnion: Boolean): Query = this
+
+  override def getCommandClauses: Seq[CommandClause] =
+    allBranches.flatMap(branch => branch.query.getCommandClauses)
 
   override def returnVariables: ReturnVariables =
     allBranches.foldLeft(ReturnVariables.empty)((acc, branch) => acc.merge(branch.query.returnVariables))

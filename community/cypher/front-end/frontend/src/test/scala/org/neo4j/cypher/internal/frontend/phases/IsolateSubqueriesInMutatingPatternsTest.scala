@@ -16,9 +16,14 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.DefaultWith
+import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqueriesInMutatingPatterns
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
+import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class IsolateSubqueriesInMutatingPatternsNoSemanticAnalysisTest extends CypherFunSuite with RewritePhaseTest
@@ -50,7 +55,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
     assertRewritten(
       "CREATE (a {p: COUNT { MATCH (b) }})",
       """WITH COUNT { MATCH (b) } AS `  UNNAMED0`
-        |CREATE (a {p: `  UNNAMED0`})""".stripMargin
+        |CREATE (a {p: `  UNNAMED0`})""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -58,7 +72,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
     assertRewritten(
       "CREATE (a:$(COLLECT { MATCH (b) RETURN b.name }))",
       """WITH COLLECT { MATCH (b) RETURN b.name } AS `  UNNAMED0`
-        |CREATE (a:$all(`  UNNAMED0`))""".stripMargin
+        |CREATE (a:$all(`  UNNAMED0`))""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -66,7 +89,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
     assertRewritten(
       "CREATE (a)-[b:$(COLLECT { MATCH (n) RETURN n.name })]->(c)",
       """WITH COLLECT { MATCH (n) RETURN n.name } AS `  UNNAMED0`
-        |CREATE (a)-[b:$all(`  UNNAMED0`)]->(c)""".stripMargin
+        |CREATE (a)-[b:$all(`  UNNAMED0`)]->(c)""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -74,7 +106,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
     assertRewritten(
       "CREATE (a:$(COLLECT { MATCH (n) RETURN n.label }))-[b:$(COLLECT { MATCH (n) RETURN n.name })]->(c:$(toString(1)))",
       """WITH COLLECT { MATCH (n) RETURN n.label } AS `  UNNAMED0`, COLLECT { MATCH (n) RETURN n.name } AS `  UNNAMED1`
-        |CREATE (a:$all(`  UNNAMED0`))-[b:$all(`  UNNAMED1`)]->(c:$all(toString(1)))""".stripMargin
+        |CREATE (a:$all(`  UNNAMED0`))-[b:$all(`  UNNAMED1`)]->(c:$all(toString(1)))""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -84,7 +125,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |CREATE (a {p: COUNT { MATCH (b) }})""".stripMargin,
       """MATCH (b)
         |WITH b, COUNT { MATCH (b) } AS `  UNNAMED0`
-        |CREATE (a {p: `  UNNAMED0`})""".stripMargin
+        |CREATE (a {p: `  UNNAMED0`})""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -98,7 +148,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |WITH b
         |CREATE (c)
         |WITH b, c, COUNT { MATCH (b) } AS `  UNNAMED0`
-        |CREATE (a {p: `  UNNAMED0`})""".stripMargin
+        |CREATE (a {p: `  UNNAMED0`})""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -117,7 +176,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
       "REMOVE (COLLECT { MATCH (a) RETURN a }[0]).prop",
       """WITH COLLECT { MATCH (a) RETURN a }[0] AS `  UNNAMED0`
         |REMOVE `  UNNAMED0`.prop
-        |""".stripMargin
+        |""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -126,7 +194,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
       "DELETE (COLLECT { MATCH (a) RETURN a }[0])",
       """WITH COLLECT { MATCH (a) RETURN a }[0] AS `  UNNAMED0`
         |DELETE `  UNNAMED0`
-        |""".stripMargin
+        |""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -149,7 +226,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
       """MATCH (a)
         |WITH a AS a, CASE WHEN true THEN a ELSE null END AS `  UNNAMED0`
         |REMOVE `  UNNAMED0`.prop
-        |""".stripMargin
+        |""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -162,7 +248,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
       """WITH COLLECT { MATCH (a) RETURN a }[0] AS `  UNNAMED0`,
         |     COLLECT { MATCH (a) RETURN a }[1] AS `  UNNAMED1`
         |DELETE `  UNNAMED0`, `  UNNAMED1` 
-        |""".stripMargin
+        |""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -181,7 +276,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |  UNWIND [false] AS `  UNNAMED1` // <- useless UNWIND here
         |  WITH `  UNNAMED1` AS `  UNNAMED1`, COUNT { MATCH (b) } AS `  UNNAMED0`
         |  CREATE (a {p: `  UNNAMED0`})
-        |}""".stripMargin
+        |}""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -195,7 +299,16 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
         |  MATCH (foo)
         |  WITH foo, COUNT { MATCH (b) } AS `  UNNAMED0`
         |  CREATE (a {p: `  UNNAMED0`})
-        |}""".stripMargin
+        |}""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 

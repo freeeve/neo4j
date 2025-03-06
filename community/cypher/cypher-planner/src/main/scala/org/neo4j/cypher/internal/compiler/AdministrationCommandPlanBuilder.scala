@@ -20,8 +20,8 @@
 package org.neo4j.cypher.internal.compiler
 
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
-import org.neo4j.cypher.internal.ast.AddedInRewrite
 import org.neo4j.cypher.internal.ast.AddedInRewriteProcCall
+import org.neo4j.cypher.internal.ast.AddedInRewriteShowCommands
 import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.AllGraphsScope
 import org.neo4j.cypher.internal.ast.AlterAliasAction
@@ -273,7 +273,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
     // Currently doesn't allow WITH except when it is used instead of YIELD
     def checkClausesAllowedOnSystem(clauses: Seq[Clause]) =
       clauses.exists(_.isInstanceOf[CommandClauseAllowedOnSystem]) && clauses.forall {
-        case w: With => w.withType == ParsedAsYield || w.withType == AddedInRewrite
+        case w: With => w.withType == ParsedAsYield || w.withType == AddedInRewriteShowCommands
         case c       => c.isInstanceOf[ClauseAllowedOnSystem]
       }
 

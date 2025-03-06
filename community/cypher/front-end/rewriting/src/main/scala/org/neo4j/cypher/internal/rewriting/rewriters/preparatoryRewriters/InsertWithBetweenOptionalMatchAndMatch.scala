@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
+import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.SingleQuery
@@ -47,7 +48,8 @@ case object InsertWithBetweenOptionalMatchAndMatch extends Step with DefaultPost
             None,
             None,
             None,
-            None
+            None,
+            withType = AddedInRewriteGeneral
           )(match1.position)
           Seq(match1, withStar)
         case Seq(firstClause, _) => Seq(firstClause)

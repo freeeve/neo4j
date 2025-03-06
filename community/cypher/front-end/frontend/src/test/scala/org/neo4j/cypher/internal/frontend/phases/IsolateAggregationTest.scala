@@ -16,8 +16,11 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Statement
+import org.neo4j.cypher.internal.ast.With
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.frontend.helpers.TestState
 import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.TestContext
@@ -26,6 +29,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpre
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -46,7 +50,16 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
         |WITH owner AS owner, `  UNNAMED0` > 0 AS collected
         |  WHERE (owner)-->()
         |RETURN owner AS owner
-      """.stripMargin
+      """.stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -64,7 +77,16 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
         |WITH owner AS owner, `  UNNAMED0` > 0 AS collected
         |  ORDER BY owner.foo
         |RETURN owner AS owner
-      """.stripMargin
+      """.stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -88,7 +110,16 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
         |  WHERE dog.ownerCount = collected
         |RETURN owner AS owner }
         |RETURN owner AS owner
-      """.stripMargin
+      """.stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -112,7 +143,16 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
         |  WHERE dog.ownerCount = collected
         |RETURN owner AS owner } > 2
         |RETURN owner AS owner
-      """.stripMargin
+      """.stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -124,28 +164,64 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
   test("MATCH (n) RETURN { name: n.name, count: count(*) } AS result") {
     assertRewrite(
       "MATCH (n) RETURN { name: n.name, count: count(*) } AS result",
-      "MATCH (n) WITH n.name AS `  UNNAMED0`, count(*) AS `  UNNAMED1` RETURN { name: `  UNNAMED0`, count: `  UNNAMED1` } AS result"
+      "MATCH (n) WITH n.name AS `  UNNAMED0`, count(*) AS `  UNNAMED1` RETURN { name: `  UNNAMED0`, count: `  UNNAMED1` } AS result",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("MATCH (n) RETURN n.foo + count(*) AS result") {
     assertRewrite(
       "MATCH (n) RETURN n.foo + count(*) AS result",
-      "MATCH (n) WITH n.foo AS `  UNNAMED0`, count(*) AS `  UNNAMED1` RETURN `  UNNAMED0` + `  UNNAMED1` AS result"
+      "MATCH (n) WITH n.foo AS `  UNNAMED0`, count(*) AS `  UNNAMED1` RETURN `  UNNAMED0` + `  UNNAMED1` AS result",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("MATCH (n) RETURN count(*)/60/42 AS result") {
     assertRewrite(
       "MATCH (n) RETURN count(*)/60/42 AS result",
-      "MATCH (n) WITH count(*) AS `  UNNAMED0` RETURN `  UNNAMED0`/60/42 AS result"
+      "MATCH (n) WITH count(*) AS `  UNNAMED0` RETURN `  UNNAMED0`/60/42 AS result",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("WITH 60 as sixty, 42 as fortytwo MATCH (n) RETURN count(*)/sixty/fortytwo AS result") {
     assertRewrite(
       "WITH 60 as sixty, 42 as fortytwo MATCH (n) RETURN count(*)/sixty/fortytwo AS result",
-      "WITH 60 as sixty, 42 as fortytwo MATCH (n) WITH count(*) AS `  UNNAMED0`, sixty AS `  UNNAMED1`, fortytwo AS `  UNNAMED2` RETURN `  UNNAMED0`/`  UNNAMED1`/`  UNNAMED2` AS result"
+      "WITH 60 as sixty, 42 as fortytwo MATCH (n) WITH count(*) AS `  UNNAMED0`, sixty AS `  UNNAMED1`, fortytwo AS `  UNNAMED2` RETURN `  UNNAMED0`/`  UNNAMED1`/`  UNNAMED2` AS result",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -155,7 +231,16 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
         |RETURN ANY (n IN collect(distinct node) WHERE n IN nodes1) as count""".stripMargin,
       """WITH 1 AS node, [] AS nodes1
         |WITH collect(distinct node) AS `  UNNAMED0`, nodes1 AS `  UNNAMED1`
-        |RETURN ANY (n IN `  UNNAMED0` WHERE n IN `  UNNAMED1`) as count""".stripMargin
+        |RETURN ANY (n IN `  UNNAMED0` WHERE n IN `  UNNAMED1`) as count""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -165,63 +250,144 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
         |RETURN NONE(n IN collect(distinct node) WHERE n IN nodes1) as count""".stripMargin,
       """WITH 1 AS node, [] AS nodes1
         |WITH collect(distinct node) AS `  UNNAMED0`, nodes1 AS `  UNNAMED1`
-        |RETURN NONE(n IN `  UNNAMED0` WHERE n IN `  UNNAMED1`) as count""".stripMargin
+        |RETURN NONE(n IN `  UNNAMED0` WHERE n IN `  UNNAMED1`) as count""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("MATCH (n)-->() RETURN (n)-->({k: count(*)}) AS result") {
     assertRewrite(
       "MATCH (n)-->() RETURN (n)-->({k: count(*)}) AS result",
-      "MATCH (n)-->() WITH n as `  UNNAMED0`, count(*) AS `  UNNAMED1` RETURN (`  UNNAMED0`)-->({k:`  UNNAMED1`}) AS result"
+      "MATCH (n)-->() WITH n as `  UNNAMED0`, count(*) AS `  UNNAMED1` RETURN (`  UNNAMED0`)-->({k:`  UNNAMED1`}) AS result",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("MATCH (n) RETURN n.prop AS prop, n.foo + count(*) AS count") {
     assertRewrite(
       "MATCH (n) RETURN n.prop AS prop, n.foo + count(*) AS count",
-      "MATCH (n) WITH n.foo AS `  UNNAMED0`, count(*) AS `  UNNAMED1`, n.prop AS prop RETURN prop AS prop, `  UNNAMED0` + `  UNNAMED1` AS count"
+      "MATCH (n) WITH n.foo AS `  UNNAMED0`, count(*) AS `  UNNAMED1`, n.prop AS prop RETURN prop AS prop, `  UNNAMED0` + `  UNNAMED1` AS count",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("MATCH (n) RETURN n AS n, count(n) + 3 AS count") {
     assertRewrite(
       "MATCH (n) RETURN n AS n, count(n) + 3 AS count",
-      "MATCH (n) WITH count(n) as `  UNNAMED0`, n AS n RETURN n AS n, `  UNNAMED0` + 3 AS count"
+      "MATCH (n) WITH count(n) as `  UNNAMED0`, n AS n RETURN n AS n, `  UNNAMED0` + 3 AS count",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("UNWIND [1,2,3] AS a RETURN reduce(y=0, x IN collect(a) | x) AS z") {
     assertRewrite(
       "UNWIND [1,2,3] AS a RETURN reduce(y=0, x IN collect(a) | x) AS z",
-      "UNWIND [1,2,3] AS a WITH collect(a) AS `  UNNAMED0` RETURN reduce(y=0, x IN `  UNNAMED0` | x) AS z"
+      "UNWIND [1,2,3] AS a WITH collect(a) AS `  UNNAMED0` RETURN reduce(y=0, x IN `  UNNAMED0` | x) AS z",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("UNWIND [1,2,3] AS a RETURN [x IN collect(a) | x] AS z") {
     assertRewrite(
       "UNWIND [1,2,3] AS a RETURN [x IN collect(a) | x] AS z",
-      "UNWIND [1,2,3] AS a WITH collect(a) AS `  UNNAMED0` RETURN [x IN `  UNNAMED0` | x] AS z"
+      "UNWIND [1,2,3] AS a WITH collect(a) AS `  UNNAMED0` RETURN [x IN `  UNNAMED0` | x] AS z",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("Nodes that are needed in the projection are also added to the WITH in a list comprehension") {
     assertRewrite(
       "MATCH (v:player)--(n:team) return [x in collect(v.age) where x>40| x+n.age] as res",
-      "MATCH (v:player)--(n:team) WITH collect(v.age) AS `  UNNAMED0`, n as `  UNNAMED1` return [x in `  UNNAMED0` where x>40| x+`  UNNAMED1`.age] as res"
+      "MATCH (v:player)--(n:team) WITH collect(v.age) AS `  UNNAMED0`, n as `  UNNAMED1` return [x in `  UNNAMED0` where x>40| x+`  UNNAMED1`.age] as res",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("Nodes that are needed in the projection are also added to the WITH in a reduce expression") {
     assertRewrite(
       "MATCH (k:player) RETURN reduce(totalAge = 0, n IN collect(k.age) | totalAge + k.age) AS reduction",
-      "MATCH (k:player) WITH collect(k.age) AS `  UNNAMED0`, k as `  UNNAMED1` RETURN reduce(totalAge = 0, n IN `  UNNAMED0` | totalAge + `  UNNAMED1`.age) AS reduction"
+      "MATCH (k:player) WITH collect(k.age) AS `  UNNAMED0`, k as `  UNNAMED1` RETURN reduce(totalAge = 0, n IN `  UNNAMED0` | totalAge + `  UNNAMED1`.age) AS reduction",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("MATCH (n) WITH 60/60/count(*) AS x RETURN x AS x") {
     assertRewrite(
       "MATCH (n) WITH 60/60/count(*) AS x RETURN x AS x",
-      "MATCH (n) WITH count(*) AS `  UNNAMED0` WITH 60/60/`  UNNAMED0` AS x RETURN x AS x"
+      "MATCH (n) WITH count(*) AS `  UNNAMED0` WITH 60/60/`  UNNAMED0` AS x RETURN x AS x",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -231,42 +397,96 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
         "RETURN { foo:a.prop=42, bar:collect(b.prop2) } AS result",
       "MATCH (a:Start)<-[:R]-(b) " +
         "WITH a.prop=42 AS `  UNNAMED0`, collect(b.prop2) AS `  UNNAMED1` " +
-        "RETURN { foo:`  UNNAMED0`, bar:`  UNNAMED1`} AS result"
+        "RETURN { foo:`  UNNAMED0`, bar:`  UNNAMED1`} AS result",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("MATCH (n) RETURN count(*) + max(id(n)) AS r") {
     assertRewrite(
       "MATCH (n) RETURN count(*) + max(id(n)) AS r",
-      "MATCH (n) WITH count(*) AS `  UNNAMED0`, max(id(n)) AS `  UNNAMED1` RETURN `  UNNAMED0`+`  UNNAMED1` AS r"
+      "MATCH (n) WITH count(*) AS `  UNNAMED0`, max(id(n)) AS `  UNNAMED1` RETURN `  UNNAMED0`+`  UNNAMED1` AS r",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("MATCH (a) RETURN size(collect(a)) AS size") {
     assertRewrite(
       "MATCH (a) RETURN size(collect(a)) AS size",
-      "MATCH (a) WITH collect(a) AS `  UNNAMED0` RETURN size(`  UNNAMED0`) AS size"
+      "MATCH (a) WITH collect(a) AS `  UNNAMED0` RETURN size(`  UNNAMED0`) AS size",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("MATCH (a) RETURN count(a) > 0 AS bool") {
     assertRewrite(
       "MATCH (a) RETURN count(a) > 0 AS bool",
-      "MATCH (a) WITH count(a) AS `  UNNAMED0` RETURN `  UNNAMED0` > 0 AS bool"
+      "MATCH (a) WITH count(a) AS `  UNNAMED0` RETURN `  UNNAMED0` > 0 AS bool",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("MATCH (a) RETURN count(a) > $param AS bool") {
     assertRewrite(
       "MATCH (a) RETURN count(a) > $param AS bool",
-      "MATCH (a) WITH count(a) AS `  UNNAMED0` RETURN `  UNNAMED0` > $param AS bool"
+      "MATCH (a) WITH count(a) AS `  UNNAMED0` RETURN `  UNNAMED0` > $param AS bool",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
   test("should not introduce multiple return items for the same expression") {
     assertRewrite(
       "WITH 1 AS x, 2 AS y RETURN sum(x)*y AS a, sum(x)*y AS b",
-      "WITH 1 AS x, 2 AS y WITH sum(x) as `  UNNAMED0`, y as `  UNNAMED1` RETURN `  UNNAMED0`* `  UNNAMED1` AS a, `  UNNAMED0`*`  UNNAMED1` AS b"
+      "WITH 1 AS x, 2 AS y WITH sum(x) as `  UNNAMED0`, y as `  UNNAMED1` RETURN `  UNNAMED0`* `  UNNAMED1` AS a, `  UNNAMED0`*`  UNNAMED1` AS b",
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -280,7 +500,16 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
         |     b.prop AS `b.prop`
         |RETURN `coalesce(a.prop, b.prop)` AS `coalesce(a.prop, b.prop)`,
         |       `b.prop` AS `b.prop`,
-        |       { x: `  UNNAMED0` } AS `{ x: count(b) }`""".stripMargin
+        |       { x: `  UNNAMED0` } AS `{ x: count(b) }`""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -292,7 +521,16 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
       """MATCH (user:User {userId: 11})-[friendship:FRIEND]-()
         |WITH collect(friendship) AS `  UNNAMED0`, count(friendship) AS `  UNNAMED1`, user AS user
         |WITH user AS user, `  UNNAMED0`[toInteger(rand() * `  UNNAMED1`)] AS selectedFriendship
-        |RETURN id(selectedFriendship) AS friendshipId, selectedFriendship.propFive AS propertyValue""".stripMargin
+        |RETURN id(selectedFriendship) AS friendshipId, selectedFriendship.propFive AS propertyValue""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -304,7 +542,16 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
       """WITH sum(123) AS `  UNNAMED0`, NULL AS x
         |RETURN
         |  x AS x,
-        |  COUNT { RETURN 123 ORDER BY NULL } + `  UNNAMED0` AS result""".stripMargin
+        |  COUNT { RETURN 123 ORDER BY NULL } + `  UNNAMED0` AS result""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -316,7 +563,16 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
       """WITH sum(123) AS `  UNNAMED0`, $param AS x
         |RETURN
         |  x AS x,
-        |  COUNT { RETURN 123 ORDER BY $param } + `  UNNAMED0` AS result""".stripMargin
+        |  COUNT { RETURN 123 ORDER BY $param } + `  UNNAMED0` AS result""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral,
+          // the explicit WITH in the expected will have DefaultWith
+          // so let's update that before checking the equality
+          case w: With if w.withType == DefaultWith =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 
@@ -326,7 +582,16 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
         |RETURN 0 AS a4""".stripMargin,
       """WITH collect(0) AS `  UNNAMED0`, null AS a0, null AS a3 
         |WITH a0 AS a0, [ a1 IN `  UNNAMED0` ] AS a2, a3 AS a3
-        |RETURN 0 AS a4""".stripMargin
+        |RETURN 0 AS a4""".stripMargin,
+      additionalExpectedAstUpdates = expectedStatement => {
+        expectedStatement.endoRewrite(bottomUp(Rewriter.lift {
+          // The original/rewritten statement will have AddedInRewriteGeneral on the extra WITH,
+          // both explicit WITHs in the expected will have DefaultWith
+          // so let's update the added WITH before checking the equality
+          case w: With if w.returnItems.items.exists(r => r.name.equals("  UNNAMED0")) =>
+            w.copy(withType = AddedInRewriteGeneral)(w.position)
+        }))
+      }
     )
   }
 

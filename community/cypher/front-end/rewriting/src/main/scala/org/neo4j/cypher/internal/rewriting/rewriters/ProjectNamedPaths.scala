@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.rewriting.rewriters
 
 import org.neo4j.cypher.internal.ast
+import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.ProjectionClause
@@ -196,7 +197,8 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
                     None,
                     None,
                     None,
-                    None
+                    None,
+                    AddedInRewriteGeneral
                   )(InputPosition.NONE))
                 }
               }

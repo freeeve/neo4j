@@ -81,9 +81,25 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
 
   def assertRewritten(version: CypherVersion, from: String, to: String): Unit = assertRewritten(version, from, to, Nil)
 
+  // additionalExpectedAstUpdates is for updating things that are changed in the rewriter but cannot be expressed in the query,
+  // for example the AddedInRewriteGeneral flag on WITH
+  def assertRewritten(
+    version: CypherVersion,
+    from: String,
+    to: String,
+    additionalExpectedAstUpdates: Statement => Statement
+  ): Unit = assertRewritten(version, from, to, Nil, additionalExpectedAstUpdates)
+
   def assertRewritten(from: String, to: String): Unit = CypherVersion.values().foreach { version =>
     withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, List.empty))
   }
+
+  // additionalExpectedAstUpdates is for updating things that are changed in the rewriter but cannot be expressed in the query,
+  // for example the AddedInRewriteGeneral flag on WITH
+  def assertRewritten(from: String, to: String, additionalExpectedAstUpdates: Statement => Statement): Unit =
+    CypherVersion.values().foreach { version =>
+      withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, List.empty, additionalExpectedAstUpdates))
+    }
 
   def rewriteAndAssert(q: String, verify: Statement => Unit, features: SemanticFeature*): Unit = {
     CypherVersion.values().foreach { version =>
@@ -109,6 +125,24 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
     to: String,
     semanticTableExpressions: List[Expression],
     features: SemanticFeature*
+  ): Unit = assertRewritten(
+    version,
+    from,
+    to,
+    semanticTableExpressions,
+    additionalExpectedAstUpdates = statement => statement,
+    features: _*
+  )
+
+  // additionalExpectedAstUpdates is for updating things that are changed in the rewriter but cannot be expressed in the query,
+  // for example the AddedInRewriteGeneral flag on WITH
+  def assertRewritten(
+    version: CypherVersion,
+    from: String,
+    to: String,
+    semanticTableExpressions: List[Expression],
+    additionalExpectedAstUpdates: Statement => Statement,
+    features: SemanticFeature*
   ): Unit = {
 
     /**
@@ -123,7 +157,8 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
     val fromOutState = prepareFrom(version, from, rewriterPhaseUnderTest, features: _*)
     val toOutState = prepareFrom(version, to, rewriterPhaseForExpected, features: _*)
 
-    StatementPrettifier(fromOutState.statement()) should equal(StatementPrettifier(toOutState.statement()))
+    val expectedStatement = additionalExpectedAstUpdates(toOutState.statement())
+    StatementPrettifier(fromOutState.statement()) should equal(StatementPrettifier(expectedStatement))
     if (astRewriteAndAnalyze) {
       semanticTableExpressions.foreach { e =>
         fromOutState.semanticTable().types.keys.map(_.node) should contain(e)

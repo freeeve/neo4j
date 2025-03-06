@@ -1844,13 +1844,17 @@ case object ParsedAsLimit extends WithType
 case object ParsedAsFilter extends WithType
 case object ParsedAsLet extends WithType
 case object ParsedAsYield extends WithType
-case object AddedInRewrite extends WithType
+case object AddedInRewriteShowCommands extends WithType
 case object AddedInRewriteProcCall extends WithType
+case object AddedInRewriteGeneral extends WithType
 
 object With {
 
   def apply(returnItems: ReturnItems)(pos: InputPosition): With =
     With(distinct = false, returnItems, None, None, None, None)(pos)
+
+  def apply(returnItems: ReturnItems, withType: WithType)(pos: InputPosition): With =
+    With(distinct = false, returnItems, None, None, None, None, withType)(pos)
 }
 
 case class With(
@@ -2411,7 +2415,7 @@ sealed trait CommandClauseWithNames extends CommandClause {
 }
 
 // For a query to be allowed to run on system it needs to consist of:
-// - only ClauseAllowedOnSystem clauses (or the WITH that was parsed as YIELD/added in rewriter for transaction commands)
+// - only ClauseAllowedOnSystem clauses (or the WITH that was parsed as YIELD/added in rewriter for commands)
 // - at least one CommandClauseAllowedOnSystem clause
 sealed trait ClauseAllowedOnSystem
 sealed trait CommandClauseAllowedOnSystem extends ClauseAllowedOnSystem

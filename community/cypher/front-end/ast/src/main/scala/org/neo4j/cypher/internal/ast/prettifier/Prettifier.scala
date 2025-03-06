@@ -18,7 +18,7 @@ package org.neo4j.cypher.internal.ast.prettifier
 
 import org.neo4j.cypher.internal.ast.Access
 import org.neo4j.cypher.internal.ast.ActionResourceBase
-import org.neo4j.cypher.internal.ast.AddedInRewrite
+import org.neo4j.cypher.internal.ast.AddedInRewriteShowCommands
 import org.neo4j.cypher.internal.ast.AdministrationCommand
 import org.neo4j.cypher.internal.ast.AdministrationCommand.NATIVE_AUTH
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
@@ -1153,7 +1153,7 @@ case class Prettifier(
               new IllegalStateException("A With that is ParsedAsLet shall not contain UnaliasedReturnItem.")
           }.mkString(", ")
           s"${INDENT}LET $items"
-        case ParsedAsYield | AddedInRewrite =>
+        case ParsedAsYield | AddedInRewriteShowCommands =>
           // part of SHOW/TERMINATE TRANSACTION which prettifies the YIELD items part
           // but it no longer knows the subclauses, hence prettifying them here
 

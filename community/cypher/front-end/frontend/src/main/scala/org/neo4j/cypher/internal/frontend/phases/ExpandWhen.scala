@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.ConditionalQueryWhen
 import org.neo4j.cypher.internal.ast.Finish
@@ -142,7 +143,8 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step {
                 )(pos),
                 Variable(conditionalListName)(pos, false)
               )(pos))
-            )(pos)
+            )(pos),
+            withType = AddedInRewriteGeneral
           )(pos)
 
         /**
@@ -164,7 +166,8 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step {
                   Variable(conditionalListName)(pos, false),
                   SignedDecimalIntegerLiteral(index.toString)(pos)
                 )(pos))(pos)
-              )
+              ),
+              withType = AddedInRewriteGeneral
             )(pos)
           ) ++ query.clauses)(pos)
         }

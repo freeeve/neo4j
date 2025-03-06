@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
+import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.ProjectionClause
@@ -91,7 +92,8 @@ case object isolateAggregation extends StatementRewriter with StepSequencer.Step
             None,
             None,
             None,
-            None
+            None,
+            withType = AddedInRewriteGeneral
           )(pos)
 
           val expressionRewriter = createRewriterFor(withReturnItems)

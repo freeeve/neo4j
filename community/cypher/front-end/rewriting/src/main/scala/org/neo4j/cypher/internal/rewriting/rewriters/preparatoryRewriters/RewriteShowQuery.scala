@@ -16,7 +16,7 @@
  */
 package org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters
 
-import org.neo4j.cypher.internal.ast.AddedInRewrite
+import org.neo4j.cypher.internal.ast.AddedInRewriteShowCommands
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.CommandClause
 import org.neo4j.cypher.internal.ast.ProjectionClause
@@ -127,7 +127,7 @@ case object RewriteShowQuery extends Step with DefaultPostCondition with Prepara
         None,
         None,
         where,
-        withType = AddedInRewrite
+        withType = AddedInRewriteShowCommands
       )(commandClause.position),
       returnClause(commandClause.position, defaultColumnOrder)
     )

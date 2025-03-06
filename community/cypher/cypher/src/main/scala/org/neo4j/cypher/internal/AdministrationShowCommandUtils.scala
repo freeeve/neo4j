@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal
 
+import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.ProjectionClause
@@ -110,7 +111,15 @@ object AdministrationShowCommandUtils {
       // YIELD with WHERE and no RETURN so convert YIELD / WHERE to WITH and YIELD to RETURN
       case (Some(y @ Yield(returnItems, orderBy, skip, limit, Some(where))), None) =>
         Seq(
-          With(distinct = false, returnItems, orderBy, skip, limit, Some(where))(y.position),
+          With(
+            distinct = false,
+            returnItems,
+            orderBy,
+            skip,
+            limit,
+            Some(where),
+            withType = AddedInRewriteGeneral
+          )(y.position),
           Return(distinct = false, generateReturnItemsFromAliases(returnItems), orderBy, skip, limit)(y.position)
         )
       // YIELD with no WHERE so convert YIELD to RETURN
@@ -118,7 +127,18 @@ object AdministrationShowCommandUtils {
         Seq(Return(distinct = false, returnItems, orderBy, skip, limit)(y.position))
       // YIELD and RETURN so convert YIELD to WITH, and keep the RETURN
       case (Some(y @ Yield(returnItems, orderBy, skip, limit, where)), Some(returnClause)) =>
-        Seq(With(distinct = false, returnItems, orderBy, skip, limit, where)(y.position), returnClause)
+        Seq(
+          With(
+            distinct = false,
+            returnItems,
+            orderBy,
+            skip,
+            limit,
+            where,
+            withType = AddedInRewriteGeneral
+          )(y.position),
+          returnClause
+        )
       // No YIELD or RETURN so just make up a RETURN with everything
       case (None, _) => Seq(Return(
           distinct = false,
