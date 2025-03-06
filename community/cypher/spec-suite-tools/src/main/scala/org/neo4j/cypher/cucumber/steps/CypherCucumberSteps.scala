@@ -59,6 +59,10 @@ trait CypherCucumberSteps extends ScalaDsl with EN {
     givenCsvFile(param, content)
   }
 
+  Given("^the (\\w+) function is registered$") { (func: String) =>
+    registerUserFunction(func)
+  }
+
   // And
   // ===
 
@@ -118,6 +122,7 @@ trait CypherCucumberSteps extends ScalaDsl with EN {
   }
   protected def parametersAre(params: Map[String, String]): Unit
   protected def registerProcedure(signature: String, results: DataTable): Unit
+  protected def registerUserFunction(name: String): Unit
   protected def givenCsvFile(urlParam: String, content: DataTable): Unit
   protected def havingExecuted(cypher: String): Unit
   protected def executingQuery(cypher: String): Unit

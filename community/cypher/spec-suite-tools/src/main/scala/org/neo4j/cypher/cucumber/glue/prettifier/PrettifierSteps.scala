@@ -124,6 +124,7 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
 
   override protected def parametersAre(params: Map[String, String]): Unit = {}
   override protected def registerProcedure(signature: String, results: DataTable): Unit = {}
+  override protected def registerUserFunction(name: String): Unit = {}
   override protected def givenCsvFile(urlParam: String, content: DataTable): Unit = {}
   override protected def resultShouldBeInAnyOrder(expected: DataTable): Unit = {}
   override protected def resultShouldBeInOrder(expected: DataTable): Unit = {}

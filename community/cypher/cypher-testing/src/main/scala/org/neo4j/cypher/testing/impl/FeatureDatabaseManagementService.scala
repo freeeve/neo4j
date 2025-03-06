@@ -35,12 +35,15 @@ import org.neo4j.cypher.testing.impl.http.HttpCypherExecutorFactory
 import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.driver.NotificationConfig
 import org.neo4j.fabric.executor.FabricExecutor
+import org.neo4j.function.ThrowingFunction
 import org.neo4j.graphdb.schema.IndexDefinition
 import org.neo4j.graphdb.schema.IndexType
+import org.neo4j.internal.kernel.api.exceptions.ProcedureException
 import org.neo4j.internal.kernel.api.procs.QualifiedName
 import org.neo4j.kernel.api.Kernel
 import org.neo4j.kernel.api.procedure.CallableProcedure.BasicProcedure
 import org.neo4j.kernel.api.procedure.CallableUserAggregationFunction
+import org.neo4j.kernel.api.procedure.Context
 import org.neo4j.kernel.api.procedure.GlobalProcedures
 import org.neo4j.kernel.impl.api.KernelTransactions
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade
@@ -151,6 +154,9 @@ case class FeatureDatabaseManagementService(
 
   def registerUserAggregation(function: CallableUserAggregationFunction): Unit =
     kernel.registerUserAggregationFunction(function)
+
+  def registerComponent[T](cls: Class[T], provider: ThrowingFunction[Context, T, ProcedureException], safe: Boolean): Unit =
+    globalProcedures.registerComponent[T](cls, provider, safe)
 
   def clearFabricQueryCache(dbName: String): Unit =
     maybeFabricExecutor.map(fe => fe.clearQueryCachesForDatabase(dbName))

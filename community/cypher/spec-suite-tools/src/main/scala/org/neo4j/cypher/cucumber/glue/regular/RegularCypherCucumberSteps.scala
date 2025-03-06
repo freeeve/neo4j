@@ -45,6 +45,7 @@ import org.neo4j.cypher.testing.api.ConsumedResult
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
 import org.neo4j.internal.helpers.Exceptions
 import org.neo4j.internal.kernel.api.procs.QualifiedName
+import org.neo4j.kernel.api.procedure.Context
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.values.AnyValue
 
@@ -97,6 +98,21 @@ final class RegularCypherCucumberSteps @Inject() (
     val procedure = ProcedureBuilder.createProcedure(signature, output)
     db.registerProcedure(procedure)
     registeredProcedures = registeredProcedures.appended(procedure.signature().name())
+  }
+
+  override protected def registerUserFunction(name: String): Unit = {
+    name match {
+      case "failNTimes" =>
+        val state = new TestFailNTimesFunction.State
+        db.registerComponent[TestFailNTimesFunction.State](
+          classOf[TestFailNTimesFunction.State],
+          (t: Context) => state,
+          safe = true
+        )
+        db.registerFunction(classOf[TestFailNTimesFunction])
+      case _ =>
+        throw new IllegalArgumentException(s"$name is not a recognised UDF name")
+    }
   }
 
   override protected def parametersAre(params: Map[String, String]): Unit = {
