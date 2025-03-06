@@ -217,7 +217,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.ProduceResultsPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.ProjectionPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RelationshipTypes
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.EndNodeCommandPredicates
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.SetDynamicPropertyOperation
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.SetPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.SetPropertiesOperation
@@ -2017,8 +2016,12 @@ class SlottedPipeMapper(
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          endNodePredicate
+          expansionMode
         ) =>
+        val nodeInScope = expansionMode match {
+          case ExpandAll  => false
+          case ExpandInto => true
+        }
         val rhsSlots = slotConfigs(rhs.id)
         val lhsSlots = slotConfigs(lhs.id)
         RepeatSlottedPipe(
@@ -2041,12 +2044,7 @@ class SlottedPipeMapper(
           rhsSlots,
           argumentSize,
           reverseGroupVariableProjections,
-          maybeEndNodePredicate = endNodePredicate.map(p =>
-            EndNodeCommandPredicates(
-              expressionConverters.toCommandExpression(id, p.zeroRepetition),
-              expressionConverters.toCommandExpression(id, p.otherRepetitions)
-            )
-          )
+          nodeInScope
         )(id = id)
 
       case RepeatWalk(
@@ -2060,8 +2058,12 @@ class SlottedPipeMapper(
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
-          endNodePredicate
+          expansionMode
         ) =>
+        val nodeInScope = expansionMode match {
+          case ExpandAll  => false
+          case ExpandInto => true
+        }
         val rhsSlots = slotConfigs(rhs.id)
         RepeatSlottedPipe(
           lhs,
@@ -2078,12 +2080,7 @@ class SlottedPipeMapper(
           rhsSlots,
           argumentSize,
           reverseGroupVariableProjections,
-          maybeEndNodePredicate = endNodePredicate.map(p =>
-            EndNodeCommandPredicates(
-              expressionConverters.toCommandExpression(id, p.zeroRepetition),
-              expressionConverters.toCommandExpression(id, p.otherRepetitions)
-            )
-          )
+          nodeInScope
         )(id = id)
 
       case _ =>

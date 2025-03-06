@@ -314,7 +314,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.RelationshipCountFrom
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RelationshipTypes
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RemoveLabelsPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.EndNodeCommandPredicates
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RollUpApplyPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RunQueryAtPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.SelectOrSemiApplyPipe
@@ -2107,8 +2106,13 @@ case class InterpretedPipeMapper(
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          endNodePredicate
+          expansionMode
         ) =>
+        val nodeInScope = expansionMode match {
+          case ExpandAll  => false
+          case ExpandInto => true
+        }
+
         RepeatPipe(
           lhs,
           rhs,
@@ -2125,9 +2129,7 @@ case class InterpretedPipeMapper(
             previouslyBoundRelationshipGroups.map(_.name)
           ),
           reverseGroupVariableProjections,
-          maybeEndNodePredicate = endNodePredicate.map(p =>
-            EndNodeCommandPredicates(buildExpression(p.zeroRepetition), buildExpression(p.otherRepetitions))
-          )
+          nodeInScope
         )(id = id)
 
       case RepeatWalk(
@@ -2141,8 +2143,12 @@ case class InterpretedPipeMapper(
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
-          endNodePredicate
+          expansionMode
         ) =>
+        val nodeInScope = expansionMode match {
+          case ExpandAll  => false
+          case ExpandInto => true
+        }
         RepeatPipe(
           lhs,
           rhs,
@@ -2155,9 +2161,7 @@ case class InterpretedPipeMapper(
           groupRelationships,
           RepeatPipe.WalkModeConstraint,
           reverseGroupVariableProjections,
-          maybeEndNodePredicate = endNodePredicate.map(p =>
-            EndNodeCommandPredicates(buildExpression(p.zeroRepetition), buildExpression(p.otherRepetitions))
-          )
+          nodeInScope
         )(id = id)
 
       case x =>

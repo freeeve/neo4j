@@ -165,7 +165,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
     }
 
@@ -747,7 +747,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
         previouslyBoundRelationships = Set(),
         previouslyBoundRelationshipGroups = Set(),
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
     }
 
@@ -862,7 +862,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
         previouslyBoundRelationships = Set("rr"),
         previouslyBoundRelationshipGroups = Set("r"),
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
     }
     val trail = subPlanBuilder
@@ -938,7 +938,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    endNodePredicate = None
+    expansionMode = ExpandAll
   )
 
   test("Rewrite selection and trail to VarLengthExpand(Into)") {
@@ -1290,7 +1290,7 @@ object TrailToVarExpandRewriterTest {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val nless: TrailParameters = full.copy(groupNodes = Set(("m_i", "m")))
@@ -1323,7 +1323,7 @@ object TrailToVarExpandRewriterTest {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val xyless: TrailParameters = empty.copy(groupRelationships = Set(("rr_i", "rr")))

@@ -22,9 +22,9 @@ package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
+import org.neo4j.cypher.internal.logical.plans.Repeat
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.Selection
@@ -65,77 +65,77 @@ import org.neo4j.cypher.internal.util.topDown
 case class repeatTrailAndWalkEndNodePredicateRewriter(attributes: Attributes[LogicalPlan]) extends Rewriter
     with TopDownMergeableRewriter {
 
-  /**
-   * For the predicate that is pushed down into [[Repeat]] it is necessary to rename [[end]] to [[innerEnd]],
-   * this is because [[end]] is only projected into rows that are emitted by [[Repeat]].
-   * Rows moving through operators on the RHS of [[Repeat]] have end node stored in the [[innerEnd]] variable.
-   */
-  private def renameEnd(innerEnd: LogicalVariable, end: LogicalVariable, predicates: Ands): Ands = {
-    val rewriter = topDown(Rewriter.lift {
-      case v @ Variable(name) if name == end.name =>
-        v.copy(name = innerEnd.name)(v.position, v.isIsolated)
-    })
-    predicates.endoRewrite(rewriter)
-  }
-
-  private def mergeEndNodePredicates(
-    prevEndNodePredicates: Option[EndNodePredicates],
-    endNodePredicates: Ands,
-    pushedDownEndNodePredicates: Ands
-  ): EndNodePredicates = {
-    val newEndNodePredicates = prevEndNodePredicates match {
-      case Some(predicates) =>
-        val mergedEndNodePredicates =
-          Ands(endNodePredicates.exprs ++ predicates.zeroRepetition.exprs)(pushedDownEndNodePredicates.position)
-        val mergedPushedDownEndNodePredicates = Ands(
-          pushedDownEndNodePredicates.exprs ++ predicates.otherRepetitions.exprs
-        )(pushedDownEndNodePredicates.position)
-        EndNodePredicates(mergedEndNodePredicates, mergedPushedDownEndNodePredicates)
-      case None =>
-        EndNodePredicates(endNodePredicates, pushedDownEndNodePredicates)
-    }
-    newEndNodePredicates
-  }
-
-  private def isRewritable(
-    predicates: Ands,
-    endVariableName: String
-  ): Boolean = {
-
-    /**
-     * NOTE: in the previous commit more predicates were allowed, including label & property predicates,
-     * but that affected eagerness analysis and at the time of writing the query most affected by this
-     * optimization (uk_railway Q1b) only requires node equality.
-     * 
-     * Support for more predicates is left as an exercise for the reader. 
-     */
-    isOnlyEndNodeEquality(endVariableName, predicates)
-  }
-
-  private def isOnlyEndNodeEquality(endVariableName: String, predicates: Ands): Boolean = {
-    predicates match {
-      case Ands(Singleton(Equals(Variable(lhs), Variable(rhs)))) => lhs == endVariableName || rhs == endVariableName
-      case _                                                     => false
-    }
-  }
-
   override val innerRewriter: Rewriter = {
     Rewriter.lift {
-      case s @ Selection(predicates, r: RepeatTrail) if isRewritable(predicates, r.end.name) =>
-        val rewrittenPredicates = renameEnd(r.innerEnd, r.end, predicates)
-        val newEndNodePredicates = mergeEndNodePredicates(r.endNodePredicate, predicates, rewrittenPredicates)
-        val id = attributes.copy(s.id).id()
-        r.copy(endNodePredicate = Some(newEndNodePredicates))(SameId(id))
+      case IsRepeatTrailIntoRewritable(selection, repeat, intoVariable, None) =>
+        val id = attributes.copy(selection.id).id()
+        repeat.copy(end = intoVariable, mode = ExpandInto)(SameId(id))
 
-      case s @ Selection(predicates, r: RepeatWalk) if isRewritable(predicates, r.end.name) =>
-        val rewrittenPredicates = renameEnd(r.innerEnd, r.end, predicates)
-        val newEndNodePredicates = mergeEndNodePredicates(r.endNodePredicate, predicates, rewrittenPredicates)
-        val id = attributes.copy(s.id).id()
-        r.copy(endNodePredicate = Some(newEndNodePredicates))(SameId(id))
+      case IsRepeatTrailIntoRewritable(selection, repeat, intoVariable, Some(remainingPredicates)) =>
+        // TODO in this case the estimated rows will be off, because the predicate has been split
+        selection.copy(
+          predicate = remainingPredicates,
+          source = repeat.copy(end = intoVariable, mode = ExpandInto)(SameId(repeat.id))
+        )(SameId(selection.id))
+
+      case IsRepeatWalkIntoRewritable(selection, repeat, intoVariable, None) =>
+        val id = attributes.copy(selection.id).id()
+        repeat.copy(end = intoVariable, mode = ExpandInto)(SameId(id))
+
+      case IsRepeatWalkIntoRewritable(selection, repeat, intoVariable, Some(remainingPredicates)) =>
+        // TODO in this case the estimated rows will be off, because the predicate has been split
+        selection.copy(
+          predicate = remainingPredicates,
+          source = repeat.copy(end = intoVariable, mode = ExpandInto)(SameId(repeat.id))
+        )(SameId(selection.id))
     }
   }
 
   private val instance: Rewriter = topDown(innerRewriter)
 
   override def apply(input: AnyRef): AnyRef = instance.apply(input)
+
+  private object IsRepeatTrailIntoRewritable {
+
+    def unapply(plan: LogicalPlan): Option[(Selection, RepeatTrail, LogicalVariable, Option[Ands])] = {
+      plan match {
+        case s @ Selection(IsOnlyEquality(lhs, rhs), r: RepeatTrail) => returnOtherNode(s, lhs, rhs, r)
+        case _                                                       => None
+      }
+    }
+  }
+
+  private object IsRepeatWalkIntoRewritable {
+
+    def unapply(plan: LogicalPlan): Option[(Selection, RepeatWalk, LogicalVariable, Option[Ands])] = {
+      plan match {
+        case s @ Selection(IsOnlyEquality(lhs, rhs), r: RepeatWalk) => returnOtherNode(s, lhs, rhs, r)
+        case _                                                      => None
+      }
+    }
+  }
+
+  private def returnOtherNode[REPEAT <: Repeat](
+    s: Selection,
+    lhs: LogicalVariable,
+    rhs: LogicalVariable,
+    r: REPEAT
+  ): Option[(Selection, REPEAT, LogicalVariable, None.type)] = {
+    r.end match {
+      case `lhs` => Some((s, r, rhs, None /*TODO this could be other predicates later*/ ))
+      case `rhs` => Some((s, r, lhs, None /*TODO this could be other predicates later*/ ))
+      case _     => None
+    }
+  }
+
+  // TODO make another unapply that splits the predicates into 'into' & 'rest'
+  private object IsOnlyEquality {
+
+    def unapply(ands: Ands): Option[(LogicalVariable, LogicalVariable)] = {
+      ands match {
+        case Ands(Singleton(Equals(lhs: LogicalVariable, rhs: LogicalVariable))) => Some((lhs, rhs))
+        case _                                                                   => None
+      }
+    }
+  }
 }

@@ -63,7 +63,6 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
-import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Trail
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
@@ -164,7 +163,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -200,7 +199,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan shouldEqual
@@ -231,7 +230,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -261,7 +260,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -293,7 +292,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -324,7 +323,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -356,7 +355,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     plan should equal(
       planner.subPlanBuilder()
@@ -386,7 +385,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -417,7 +416,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -450,7 +449,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set("anon_1"),
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -481,7 +480,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -514,7 +513,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set("r3", "r4"),
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -552,7 +551,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set("r3", "r4"),
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -588,7 +587,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -621,7 +620,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -656,7 +655,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -687,7 +686,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set("r3", "r4"),
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     val `((a)-[r3:T]-(b)<-[r4]-(c))+` = TrailParameters(
       min = 1,
@@ -702,7 +701,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val plan = planner.plan(query).stripProduceResults
@@ -742,7 +741,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set("r3", "r4"),
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     val `((a)-[r3:T]-(b)<-[r4]-(c))+` = TrailParameters(
       min = 1,
@@ -757,7 +756,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val plan = planner.plan(query).stripProduceResults
@@ -799,7 +798,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set("r4"),
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     val `((a)-[r3:T]-(b)<-[r4]-(c))+` = TrailParameters(
       min = 1,
@@ -814,7 +813,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val plan = planner.plan(query).stripProduceResults
@@ -854,7 +853,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -886,7 +885,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -920,7 +919,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       min = 1,
       max = Unlimited,
       start = "b",
-      end = "anon_0",
+      end = "a",
       innerStart = "m",
       innerEnd = "n",
       groupNodes = Set(("n", "n"), ("m", "m")),
@@ -929,10 +928,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = Some(EndNodePredicates(
-        ands(equals(varFor("anon_0"), varFor("a"))),
-        ands(equals(varFor("n"), varFor("a")))
-      ))
+      expansionMode = ExpandInto
     )
 
     plan should equal(
@@ -973,7 +969,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -1010,7 +1006,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -1042,7 +1038,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1070,7 +1066,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set("rr"),
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1105,7 +1101,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1137,7 +1133,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     val predicate = allInList(
       v"i",
@@ -1169,7 +1165,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       min = 1,
       max = Unlimited,
       start = "n",
-      end = "anon_0",
+      end = "m",
       innerStart = "n_inner",
       innerEnd = "m_inner",
       groupNodes = Set(("n_inner", "n_inner"), ("m_inner", "m_inner")),
@@ -1178,10 +1174,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(EndNodePredicates(
-        ands(equals(varFor("anon_0"), varFor("m"))),
-        ands(equals(varFor("m_inner"), varFor("m")))
-      ))
+      expansionMode = ExpandInto
     )
 
     plan should equal(
@@ -1349,7 +1342,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan shouldBe planner.subPlanBuilder()
@@ -1389,7 +1382,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan shouldBe planner.subPlanBuilder()
@@ -1428,7 +1421,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan shouldBe planner.subPlanBuilder()
@@ -1473,7 +1466,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan shouldBe planner.subPlanBuilder()
@@ -1546,7 +1539,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set("r2"),
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val p_r2_q_trail = TrailParameters(
@@ -1562,7 +1555,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan shouldBe planner.subPlanBuilder()
@@ -1682,7 +1675,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1732,7 +1725,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1847,7 +1840,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1878,7 +1871,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1909,7 +1902,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1955,7 +1948,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -1987,7 +1980,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set(),
         previouslyBoundRelationshipGroups = Set(),
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -2021,7 +2014,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -2334,7 +2327,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     // A better plan than Expand + ValueHashJoin would be this one:
     // .projectEndpoints("(c)-[r*]->(d)", startInScope = false, endInScope = false)
@@ -2370,7 +2363,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     // A better plan than Expand + Filter would be this one:
     // .projectEndpoints("(b)-[r*0..]-(d)", startInScope = true, endInScope = false)
@@ -2404,7 +2397,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     // A better plan than Expand + NodeHashJoin + Filter would be this one:
     // .projectEndpoints("(a)-[r*0..]-(b)", startInScope = true, endInScope = true)
@@ -2439,7 +2432,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     plan shouldEqual planner.subPlanBuilder()
       .apply()
@@ -2511,7 +2504,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
           Set(),
           Set("r"),
           false,
-          None
+          expansionMode = ExpandAll
         ))
         .|.filterExpression(isRepeatTrailUnique("s"))
         .|.expandAll("(g)-[s]-(h)")
@@ -2529,7 +2522,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
           Set(),
           Set(),
           false,
-          endNodePredicate = None
+          expansionMode = ExpandAll
         ))
         .|.filterExpression(isRepeatTrailUnique("r"))
         .|.expandAll("(b)-[r]-(c)")
@@ -2577,7 +2570,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
           Set(),
           Set("s"),
           true,
-          endNodePredicate = None
+          expansionMode = ExpandAll
         ))
         .|.filterExpressionOrString("b.prop = cacheNFromStore[d.prop]", isRepeatTrailUnique("anon_0"))
         .|.expandAll("(c)-[anon_0]-(b)")
@@ -2616,7 +2609,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set(),
       previouslyBoundRelationshipGroups = Set(),
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan shouldEqual planner.subPlanBuilder()
@@ -2664,7 +2657,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set(),
       previouslyBoundRelationshipGroups = Set(),
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val nestedPlan = planner.subPlanBuilder()
@@ -2746,7 +2739,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set(),
       previouslyBoundRelationshipGroups = Set(),
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val expected = planner.subPlanBuilder()
@@ -3147,7 +3140,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -3189,7 +3182,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       min = 50,
       max = Limited(55),
       start = "n1",
-      end = "anon_0",
+      end = "n2",
       innerStart = "inner1",
       innerEnd = "inner2",
       groupNodes = Set(("inner1", "inner1")),
@@ -3198,10 +3191,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = Some(EndNodePredicates(
-        ands(equals(varFor("anon_0"), varFor("n2"))),
-        ands(equals(varFor("inner2"), varFor("n2")))
-      ))
+      expansionMode = ExpandInto
     )
 
     plan should equal(
@@ -3253,7 +3243,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     plan should equal(
@@ -3423,7 +3413,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         Set(),
         Set(),
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       ))
       .|.filterExpressionOrString(
         not(equals(cachedNodeProp("next", "name"), literalString("Foo"))),
@@ -3509,7 +3499,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       groupNodes = Set(("n", "n"), ("m", "m")),
       groupRelationships = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     planner.plan(version, query) should equal(
@@ -3542,7 +3532,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         groupNodes = Set.empty,
         groupRelationships = Set.empty,
         reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     val `(p)((r)-...-(t)) {, 100}` = WalkParameters(
       min = 0,
@@ -3554,7 +3544,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       groupNodes = Set(("t", "t")),
       groupRelationships = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
       planner.plan(version, query) should equal(
@@ -3601,7 +3591,7 @@ trait QuantifiedPathPatternBlockSpecificPlanningIntegrationTestBase {
           previouslyBoundRelationships = Set(),
           previouslyBoundRelationshipGroups = Set(),
           reverseGroupVariableProjections = false,
-          endNodePredicate = None
+          expansionMode = ExpandAll
         )
         val plan = planner.plan(query).stripProduceResults
 
@@ -3633,7 +3623,7 @@ trait QuantifiedPathPatternBlockSpecificPlanningIntegrationTestBase {
           previouslyBoundRelationships = Set(),
           previouslyBoundRelationshipGroups = Set(),
           reverseGroupVariableProjections = false,
-          endNodePredicate = None
+          expansionMode = ExpandAll
         )
         plan shouldEqual planner.subPlanBuilder()
           .repeatTrail(trailParameters)

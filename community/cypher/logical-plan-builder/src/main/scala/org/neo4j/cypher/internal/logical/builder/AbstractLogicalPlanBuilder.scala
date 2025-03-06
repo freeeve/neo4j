@@ -220,7 +220,6 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipIndexLeafPlan
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
-import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
@@ -3118,7 +3117,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         trailParameters.previouslyBoundRelationships.map(varFor),
         trailParameters.previouslyBoundRelationshipGroups.map(varFor),
         trailParameters.reverseGroupVariableProjections,
-        trailParameters.endNodePredicate
+        trailParameters.expansionMode
       )(_)
     ))
   }
@@ -3179,7 +3178,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           VariableGrouping(varFor(inner), varFor(outer))(pos)
         },
         walkParameters.reverseGroupVariableProjections,
-        walkParameters.endNodePredicate
+        walkParameters.expansionMode
       )(_)
     ))
   }
@@ -3383,7 +3382,7 @@ object AbstractLogicalPlanBuilder {
     previouslyBoundRelationships: Set[String],
     previouslyBoundRelationshipGroups: Set[String],
     reverseGroupVariableProjections: Boolean,
-    endNodePredicate: Option[EndNodePredicates]
+    expansionMode: ExpansionMode
   )
 
   case class WalkParameters(
@@ -3396,7 +3395,7 @@ object AbstractLogicalPlanBuilder {
     groupNodes: Set[(String, String)],
     groupRelationships: Set[(String, String)],
     reverseGroupVariableProjections: Boolean,
-    endNodePredicate: Option[EndNodePredicates]
+    expansionMode: ExpansionMode
   )
 
   def createPattern(

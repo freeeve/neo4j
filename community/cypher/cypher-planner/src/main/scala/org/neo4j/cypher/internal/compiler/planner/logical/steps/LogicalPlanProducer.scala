@@ -1339,8 +1339,7 @@ case class LogicalPlanProducer(
           innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet,
           previouslyBoundRelationships = previouslyBoundRelationships,
           previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
-          reverseGroupVariableProjections = reverseGroupVariableProjections,
-          endNodePredicate = None
+          reverseGroupVariableProjections = reverseGroupVariableProjections
         )
       case TraversalMatchMode.Walk =>
         RepeatWalk(
@@ -1353,8 +1352,7 @@ case class LogicalPlanProducer(
           innerEnd = endBinding.inner,
           nodeVariableGroupings = pattern.nodeVariableGroupings,
           relationshipVariableGroupings = pattern.relationshipVariableGroupings,
-          reverseGroupVariableProjections = reverseGroupVariableProjections,
-          endNodePredicate = None
+          reverseGroupVariableProjections = reverseGroupVariableProjections
         )
       case _ => throw new IllegalStateException(s"Unknown match mode: $matchMode")
     }

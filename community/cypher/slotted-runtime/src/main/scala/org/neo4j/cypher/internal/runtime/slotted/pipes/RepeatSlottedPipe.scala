@@ -36,9 +36,7 @@ import org.neo4j.cypher.internal.runtime.WritableRow
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PipeWithSource
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.EndNodeCommandPredicates
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.emptyLists
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.testEndNodePredicate
 import org.neo4j.cypher.internal.runtime.slotted.SlottedRow
 import org.neo4j.cypher.internal.runtime.slotted.expressions.TrailState
 import org.neo4j.cypher.internal.runtime.slotted.helpers.NullChecker
@@ -119,13 +117,12 @@ case class RepeatSlottedPipe(
   rhsSlots: SlotConfiguration,
   argumentSize: SlotConfiguration.Size,
   reverseGroupVariableProjections: Boolean,
-  maybeEndNodePredicate: Option[EndNodeCommandPredicates]
+  nodeInScope: Boolean
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
 
   private[this] val emptyGroupNodes = emptyLists(groupNodes.length)
   private[this] val emptyGroupRelationships = emptyLists(groupRelationships.length)
   private[this] val getStartNodeFunction = makeGetPrimitiveNodeFromSlotFunctionFor(startSlot)
-  private[this] val endNodePredicate = maybeEndNodePredicate.orNull
 
   private def createNewState(outerRow: CypherRow, startNode: Long, tracker: MemoryTracker): SlottedRepeatState =
     uniquenessConstraint match {
@@ -239,7 +236,8 @@ case class RepeatSlottedPipe(
           resultRow,
           groupNodes,
           groupRelationships,
-          endOffset
+          endOffset,
+          nodeInScope
         )
         resultRow
       }
@@ -258,7 +256,8 @@ case class RepeatSlottedPipe(
           groupNodes,
           groupRelationships,
           endOffset,
-          reverseGroupVariableProjections
+          reverseGroupVariableProjections,
+          nodeInScope
         )
         Some(rhsInnerRow)
       }
@@ -292,7 +291,7 @@ case class RepeatSlottedPipe(
             if (emitFirst) {
               emitFirst = false
               val resultRow = newResultRowWithEmptyGroups(startNode)
-              if (testEndNodePredicate(endNodePredicate, resultRow, state, isZeroRep = true)) {
+              if (testEndNode(resultRow, startNode)) {
                 resultRow
               } else {
                 null
@@ -314,14 +313,7 @@ case class RepeatSlottedPipe(
                 stack.push(createNextState(stackHead, row, innerEndNode, tracker))
               }
               // if iterated long enough emit, otherwise recurse
-              if (
-                stackHead.iterations >= repetition.min && testEndNodePredicate(
-                  endNodePredicate,
-                  row,
-                  state,
-                  isZeroRep = false
-                )
-              ) {
+              if (stackHead.iterations >= repetition.min && testEndNode(row, innerEndNode)) {
                 newResultRow(row, stackHead.groupNodes, stackHead.groupRelationships, innerEndNode)
               } else {
                 produceNext()
@@ -355,6 +347,10 @@ case class RepeatSlottedPipe(
         }
       }
     }
+  }
+
+  private def testEndNode(row: CypherRow, endNode: Long): Boolean = {
+    !nodeInScope || row.getLongAt(endOffset) == endNode
   }
 }
 
@@ -411,7 +407,8 @@ object RepeatSlottedPipe {
     groupNodeSlots: Array[GroupSlot],
     groupRelSlots: Array[GroupSlot],
     endOffset: Int,
-    reverseGroupVariableProjections: Boolean
+    reverseGroupVariableProjections: Boolean,
+    nodeInScope: Boolean
   ): Unit = {
     var i = 0
     while (i < groupNodeSlots.length) {
@@ -431,7 +428,9 @@ object RepeatSlottedPipe {
       i += 1
     }
 
-    row.setLongAt(endOffset, innerEndNode)
+    if (!nodeInScope) {
+      row.setLongAt(endOffset, innerEndNode)
+    }
   }
 
   def writeResultColumnsWithProvidedGroups(
@@ -441,7 +440,8 @@ object RepeatSlottedPipe {
     resultRow: WritableRow,
     groupNodeSlots: Array[GroupSlot],
     groupRelSlots: Array[GroupSlot],
-    endOffset: Int
+    endOffset: Int,
+    nodeInScope: Boolean
   ): Unit = {
     var i = 0
     while (i < groupNodeSlots.length) {
@@ -453,7 +453,9 @@ object RepeatSlottedPipe {
       resultRow.setRefAt(groupRelSlots(i).outerSlot.offset, groupRels.get(i))
       i += 1
     }
-    resultRow.setLongAt(endOffset, innerEndNode)
+    if (!nodeInScope) {
+      resultRow.setLongAt(endOffset, innerEndNode)
+    }
   }
 }
 

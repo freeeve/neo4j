@@ -124,7 +124,6 @@ import org.neo4j.cypher.internal.ast.WriteAction
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
-import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.DecimalDoubleLiteral
@@ -349,7 +348,6 @@ import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RenameRole
 import org.neo4j.cypher.internal.logical.plans.RenameServer
 import org.neo4j.cypher.internal.logical.plans.RenameUser
-import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
@@ -8288,11 +8286,6 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
   }
 
   test("Repeat(Trail)") {
-    val endNodePredicate = Some(EndNodePredicates(
-      Ands(Seq(LessThan(prop("end", "prop"), number("42"))(pos)))(pos),
-      Ands(Seq(LessThan(prop("inner_end", "prop"), number("42"))(pos)))(pos)
-    ))
-
     assertGood(
       attach(
         RepeatTrail(
@@ -8312,15 +8305,15 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Set.empty,
           Set.empty,
           reverseGroupVariableProjections = false,
-          endNodePredicate
+          ExpandInto
         ),
         2345.0
       ),
       planDescription(
         id,
-        "Repeat(Trail)",
+        "Repeat(Trail)(Into)",
         Seq(lhsPD, rhsPD),
-        List(details("(start) (...){0, } (end) WHERE end.prop < 42")),
+        List(details("(start) (...){0, } (end)")),
         Set("r", "a", "anon_2", "start", "end")
       )
     )
@@ -8344,7 +8337,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Set.empty,
           Set.empty,
           reverseGroupVariableProjections = false,
-          endNodePredicate = None
+          ExpandAll
         ),
         2345.0
       ),
@@ -8401,11 +8394,6 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
   }
 
   test("Repeat(Walk)") {
-    val endNodePredicate = Some(EndNodePredicates(
-      Ands(Seq(LessThan(prop("end", "prop"), number("42"))(pos)))(pos),
-      Ands(Seq(LessThan(prop("inner_end", "prop"), number("42"))(pos)))(pos)
-    ))
-
     assertGood(
       attach(
         RepeatWalk(
@@ -8422,15 +8410,15 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           ),
           Set(variableGrouping(varFor("  r@1"), varFor("  r@2"))),
           reverseGroupVariableProjections = false,
-          endNodePredicate
+          ExpandInto
         ),
         2345.0
       ),
       planDescription(
         id,
-        "Repeat(Walk)",
+        "Repeat(Walk)(Into)",
         Seq(lhsPD, rhsPD),
-        List(details("(start) (...){0, } (end) WHERE end.prop < 42")),
+        List(details("(start) (...){0, } (end)")),
         Set("r", "a", "anon_2", "start", "end")
       )
     )
@@ -8451,7 +8439,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           ),
           Set(variableGrouping(varFor("  r@1"), varFor("  r@2"))),
           reverseGroupVariableProjections = false,
-          None
+          ExpandAll
         ),
         2345.0
       ),

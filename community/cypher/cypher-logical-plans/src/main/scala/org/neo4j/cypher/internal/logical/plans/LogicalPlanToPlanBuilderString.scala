@@ -72,6 +72,7 @@ import org.neo4j.cypher.internal.ir.SimpleMutatingPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.Empty
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString.Param.Value
@@ -92,7 +93,6 @@ import org.neo4j.cypher.internal.logical.plans.NFA.RelationshipExpansionPredicat
 import org.neo4j.cypher.internal.logical.plans.NFA.RelationshipExpansionTransition
 import org.neo4j.cypher.internal.logical.plans.NFA.State
 import org.neo4j.cypher.internal.logical.plans.NFA.Transition
-import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
@@ -687,7 +687,7 @@ object LogicalPlanToPlanBuilderString {
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          endNodePredicate
+          expansionMode
         ) =>
         trailParametersString(
           repetition,
@@ -701,7 +701,7 @@ object LogicalPlanToPlanBuilderString {
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          endNodePredicate
+          expansionMode
         )
       case BidirectionalRepeatTrail(
           _,
@@ -730,7 +730,7 @@ object LogicalPlanToPlanBuilderString {
           previouslyBoundRelationships,
           previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections,
-          None
+          ExpandAll
         )
       case RepeatWalk(
           _,
@@ -743,7 +743,7 @@ object LogicalPlanToPlanBuilderString {
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
-          endNodePredicate
+          expansionMode
         ) =>
         walkParametersString(
           repetition,
@@ -754,7 +754,7 @@ object LogicalPlanToPlanBuilderString {
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
-          endNodePredicate
+          expansionMode
         )
 
       case NodeByIdSeek(idName, ids, argumentIds) =>
@@ -1554,7 +1554,7 @@ object LogicalPlanToPlanBuilderString {
     previouslyBoundRelationships: Set[LogicalVariable],
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
     reverseGroupVariableProjections: Boolean,
-    endNodePredicate: Option[EndNodePredicates]
+    expansionMode: ExpansionMode
   ) =
     call(
       "TrailParameters",
@@ -1569,8 +1569,8 @@ object LogicalPlanToPlanBuilderString {
       innerRelationships,
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
-      reverseGroupVariableProjections + ", " +
-        endNodePredicate.map(p => s"EndNodePredicates(${p.zeroRepetition},${p.otherRepetitions})")
+      reverseGroupVariableProjections,
+      expansionMode
     )
 
   private def walkParametersString(
@@ -1582,7 +1582,7 @@ object LogicalPlanToPlanBuilderString {
     groupNodes: Set[VariableGrouping],
     groupRelationships: Set[VariableGrouping],
     reverseGroupVariableProjections: Boolean,
-    endNodePredicate: Option[EndNodePredicates]
+    expansionMode: ExpansionMode
   ) =
     call(
       "WalkParameters",
@@ -1594,8 +1594,7 @@ object LogicalPlanToPlanBuilderString {
       innerEnd,
       groupNodes,
       groupRelationships,
-      reverseGroupVariableProjections + ", " +
-        endNodePredicate.map(p => s"EndNodePredicates(${p.zeroRepetition},${p.otherRepetitions})")
+      expansionMode
     )
 
   private def setPropertiesParam(items: Seq[(PropertyKeyName, Expression)]): Param =
@@ -2027,6 +2026,7 @@ object LogicalPlanToPlanBuilderString {
         .append(' ')
         .append(if (co.isAscending) "ASC" else "DESC")).quoted
 
+    implicit def fromExpansionMode: ToParam[ExpansionMode] = m => escapeIdentifier(m.toString).quoted
     implicit def fromVariable: ToParam[LogicalVariable] = v => escapeIdentifier(v.name).quoted
     implicit def fromLabelName: ToParam[LabelName] = _.name.quoted
     implicit def fromLabelToken: ToParam[LabelToken] = _.name.quoted

@@ -29,20 +29,16 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.runtime.PrefetchingIterator
-import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.EndNodeCommandPredicates
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.TrailModeConstraint
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.TraversalModeConstraint
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.WalkModeConstraint
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.emptyLists
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.testEndNodePredicate
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.InternalException
 import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.AnyValue
-import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualNodeValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
@@ -106,14 +102,13 @@ case class RepeatPipe(
   groupRelationships: Set[VariableGrouping],
   uniquenessConstraint: TraversalModeConstraint,
   reverseGroupVariableProjections: Boolean,
-  maybeEndNodePredicate: Option[EndNodeCommandPredicates]
+  nodeInScope: Boolean
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
 
   private val groupNodeNames = groupNodes.toArray.sortBy(_.singleton.name)
   private val groupRelationshipNames = groupRelationships.toArray.sortBy(_.singleton.name)
   private val emptyGroupNodes = emptyLists(groupNodes.size)
   private val emptyGroupRelationships = emptyLists(groupRelationships.size)
-  private val endNodePredicate = maybeEndNodePredicate.orNull
 
   private def createNewState(
     outerRow: CypherRow,
@@ -199,7 +194,7 @@ case class RepeatPipe(
         ))
     }
 
-  private def filterRow(row: CypherRow, repeatState: LegacyRepeatState, state: QueryState): Boolean =
+  private def filterRow(row: CypherRow, repeatState: LegacyRepeatState): Boolean =
     repeatState match {
       case trailState: TrailLegacyRepeatState =>
         val innerRelationshipsArray = trailState.constraint.innerRelationships
@@ -239,7 +234,7 @@ case class RepeatPipe(
                 emitFirst = false
                 val resultRow =
                   outerRow.copyWith(computeNewEntries(emptyGroupNodes, emptyGroupRelationships, startNode))
-                if (testEndNodePredicate(endNodePredicate, resultRow, state, isZeroRep = true)) {
+                if (testEndNode(resultRow, startNode)) {
                   resultRow
                 } else {
                   null
@@ -273,14 +268,7 @@ case class RepeatPipe(
                     .foreach(stack.push)
                 }
                 // if iterated long enough emit, otherwise recurse
-                if (
-                  stackHead.iterations >= repetition.min && testEndNodePredicate(
-                    endNodePredicate,
-                    row,
-                    state,
-                    isZeroRep = false
-                  )
-                ) {
+                if (stackHead.iterations >= repetition.min && testEndNode(row, innerEndNode)) {
                   val resultRow = row.copyWith(computeNewEntries(newGroupNodes, newGroupRels, innerEndNode))
                   Some(resultRow)
                 } else {
@@ -295,7 +283,7 @@ case class RepeatPipe(
                 stackHead = stack.pop()
                 outerRow.set(innerStart, VirtualValues.node(stackHead.endNode))
                 val innerState = state.withInitialContext(outerRow)
-                innerResult = inner.createResults(innerState).filter(filterRow(_, stackHead, state))
+                innerResult = inner.createResults(innerState).filter(filterRow(_, stackHead))
                 produceNext()
               } else {
                 None
@@ -346,8 +334,21 @@ case class RepeatPipe(
       j += 1
       i += 1
     }
-    res(i) = (end, innerEndNode)
+    if (!nodeInScope) {
+      res(i) = (end, innerEndNode)
+    }
     res
+  }
+
+  private def testEndNode(row: CypherRow, endNode: VirtualNodeValue): Boolean = {
+    !nodeInScope || {
+      row.getByName(end) match {
+        case toNode: VirtualNodeValue =>
+          endNode.id == toNode.id
+        case _ =>
+          false
+      }
+    }
   }
 }
 
@@ -368,21 +369,4 @@ object RepeatPipe {
   ) extends TraversalModeConstraint
 
   case object WalkModeConstraint extends TraversalModeConstraint
-
-  case class EndNodeCommandPredicates(zeroRepetition: Expression, otherRepetitions: Expression)
-
-  def testEndNodePredicate(
-    endNodePredicate: EndNodeCommandPredicates,
-    row: CypherRow,
-    state: QueryState,
-    isZeroRep: Boolean
-  ): Boolean = {
-    endNodePredicate == null || {
-      val result = if (isZeroRep)
-        endNodePredicate.zeroRepetition(row, state)
-      else
-        endNodePredicate.otherRepetitions(row, state)
-      result eq Values.TRUE
-    }
-  }
 }

@@ -202,7 +202,7 @@ class RemoveUnusedGroupVariablesRewriterTest extends CypherFunSuite with Logical
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set("r"),
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       )
 
       val rryless: TrailParameters = full.copy(groupNodes = Set(("x_i", "x")), groupRelationships = Set.empty)
@@ -551,7 +551,7 @@ object RemoveUnusedGroupVariablesRewriterTest extends CypherFunSuite {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val nless: TrailParameters = full.copy(groupNodes = Set(("m_i", "m")))

@@ -64,7 +64,6 @@ import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.DisallowSameNod
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.SameNodeMode
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan.VERBOSE_TO_STRING
 import org.neo4j.cypher.internal.logical.plans.Prober.Probe
-import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.LengthBounds
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
 import org.neo4j.cypher.internal.macros.AssertMacros
@@ -4184,7 +4183,7 @@ sealed abstract class Repeat(idGen: IdGen)
   def innerStart: LogicalVariable
   def innerEnd: LogicalVariable
   def reverseGroupVariableProjections: Boolean
-  def endNodePredicate: Option[EndNodePredicates]
+  def mode: ExpansionMode
 
   override val localAvailableSymbols: Set[LogicalVariable] =
     left.localAvailableSymbols + end + start ++ nodeVariableGroupings.map(_.group) ++ relationshipVariableGroupings.map(
@@ -4192,10 +4191,6 @@ sealed abstract class Repeat(idGen: IdGen)
     )
 
   override val distinctness: Distinctness = NotDistinct
-}
-
-object Repeat {
-  case class EndNodePredicates(zeroRepetition: Ands, otherRepetitions: Ands)
 }
 
 /**
@@ -4219,7 +4214,6 @@ object Repeat {
  * @param previouslyBoundRelationships      all relationship variables of the same MATCH that are present in lhs that are not provably disjoint
  * @param previouslyBoundRelationshipGroups all relationship group variables of the same MATCH that are present in lhs that are not provably disjoint
  * @param reverseGroupVariableProjections   if `true` reverse the group variable lists
- * @param endNodePredicate                  predicate used to filter rows before they are emitted from RHS. Currently inserted by a logical plan rewriter.
  */
 case class RepeatTrail(
   override val left: LogicalPlan,
@@ -4235,7 +4229,7 @@ case class RepeatTrail(
   previouslyBoundRelationships: Set[LogicalVariable],
   previouslyBoundRelationshipGroups: Set[LogicalVariable],
   reverseGroupVariableProjections: Boolean,
-  endNodePredicate: Option[EndNodePredicates]
+  mode: ExpansionMode = ExpandAll
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)
@@ -4269,7 +4263,6 @@ case class RepeatTrail(
  * @param nodeVariableGroupings             node variables to aggregate
  * @param relationshipVariableGroupings     relationship variables to aggregate
  * @param reverseGroupVariableProjections   if `true` reverse the group variable lists
- * @param endNodePredicate                  predicate used to filter rows before they are emitted from RHS. Currently inserted by a logical plan rewriter.
  */
 case class RepeatWalk(
   override val left: LogicalPlan,
@@ -4282,7 +4275,7 @@ case class RepeatWalk(
   override val nodeVariableGroupings: Set[VariableGrouping],
   override val relationshipVariableGroupings: Set[VariableGrouping],
   reverseGroupVariableProjections: Boolean,
-  endNodePredicate: Option[EndNodePredicates]
+  mode: ExpansionMode = ExpandAll
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)

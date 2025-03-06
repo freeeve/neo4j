@@ -229,7 +229,6 @@ import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
-import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.logical.plans.RepeatOptions
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
@@ -3138,12 +3137,12 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _, endNodePredicate) =>
+      case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _, mode) =>
         PlanDescriptionImpl(
           id = plan.id,
-          "Repeat(Trail)",
+          s"Repeat(Trail)($mode)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end, endNodePredicate))),
+          Seq(Details(repeatDetails(repetition, start, end))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3154,7 +3153,7 @@ case class LogicalPlan2PlanDescription(
           id = plan.id,
           "BidirectionalRepeat(Trail)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end, None))),
+          Seq(Details(repeatDetails(repetition, start, end))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3171,12 +3170,12 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _, endNodePredicate) =>
+      case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _, mode) =>
         PlanDescriptionImpl(
           id = plan.id,
-          "Repeat(Walk)",
+          s"Repeat(Walk)($mode)",
           children,
-          Seq(Details(repeatDetails(repetition, start, end, endNodePredicate))),
+          Seq(Details(repeatDetails(repetition, start, end))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3191,8 +3190,7 @@ case class LogicalPlan2PlanDescription(
   private def repeatDetails(
     repetition: Repetition,
     start: LogicalVariable,
-    end: LogicalVariable,
-    endNodePredicate: Option[EndNodePredicates]
+    end: LogicalVariable
   ): PrettyString = {
     val repString = repetition match {
       case Repetition(min, Limited(n)) =>
@@ -3200,9 +3198,7 @@ case class LogicalPlan2PlanDescription(
       case Repetition(min, Unlimited) =>
         pretty"{${asPrettyString.raw(min.toString)}, }"
     }
-    val endNodePredicateString =
-      endNodePredicate.map(p => pretty" WHERE ${asPrettyString(p.zeroRepetition)}").getOrElse(pretty"")
-    pretty"(${asPrettyString(start.name)}) (...)$repString (${asPrettyString(end.name)})$endNodePredicateString"
+    pretty"(${asPrettyString(start.name)}) (...)$repString (${asPrettyString(end.name)})"
   }
 
   private def addPlanningAttributes(

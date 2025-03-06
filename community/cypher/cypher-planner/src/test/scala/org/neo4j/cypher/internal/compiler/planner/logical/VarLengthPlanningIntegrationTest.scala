@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -719,7 +720,7 @@ class VarLengthPlanningIntegrationTest
           Set(),
           Set(("r", "r")),
           reverseGroupVariableProjections = true,
-          None
+          expansionMode = ExpandAll
         ))
         .|.expandAll("(anon_1)<-[r:R]-(anon_0)")
         .|.argument("anon_1")

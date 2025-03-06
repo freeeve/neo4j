@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningAttributesTestS
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.RepetitionCardinalityModel
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardinalities
@@ -339,7 +340,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val initial = new LogicalPlanBuilder(false)
@@ -383,7 +384,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val initial = new LogicalPlanBuilder(false)
@@ -487,7 +488,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val initial = new LogicalPlanBuilder(false)
@@ -536,7 +537,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val trailCardinality = (0 to upperBound).map(Math.pow(expandCardinality, _)).sum * lhsCardinality
@@ -595,7 +596,7 @@ class recordEffectiveOutputCardinalityTest extends CypherFunSuite with LogicalPl
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val trailCardinality = (0 to upperBound).map(Math.pow(expandCardinality, _)).sum * lhsCardinality
