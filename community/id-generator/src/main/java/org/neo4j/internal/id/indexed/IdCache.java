@@ -21,7 +21,6 @@ package org.neo4j.internal.id.indexed;
 
 import static java.lang.Integer.min;
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
-import static org.neo4j.internal.id.indexed.FreeIdScanner.MAX_SLOT_SIZE;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_ID;
 import static org.neo4j.util.Preconditions.checkArgument;
 
@@ -52,7 +51,6 @@ class IdCache {
         for (int slotIndex = 0; slotIndex < slots.length; slotIndex++) {
             int slotSize = slotSizes[slotIndex] = slots[slotIndex].slotSize();
             int capacity = slots[slotIndex].capacity();
-            checkArgument(slotSize <= MAX_SLOT_SIZE, "Max slot size is %d", MAX_SLOT_SIZE);
             checkArgument(
                     slotIndex == 0 || slotSize > slotSizes[slotIndex - 1],
                     "Slot sizes should be provided ordered from smaller to bigger");

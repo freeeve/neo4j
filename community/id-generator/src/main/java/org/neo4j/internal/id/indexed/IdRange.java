@@ -227,6 +227,9 @@ class IdRange {
                 if (differentGeneration || (secondaryBits & bit) != 0 && (reservedBits & bit) == 0) {
                     var localBitIndex = Long.numberOfTrailingZeros(bit);
                     var bitIndex = baseI + localBitIndex;
+                    if (bitIndex >= idsPerEntry) {
+                        break;
+                    }
                     if (firstFreeI == -1) {
                         firstFreeI = prevFreeI = bitIndex;
                     } else if (prevFreeI == bitIndex - 1) {

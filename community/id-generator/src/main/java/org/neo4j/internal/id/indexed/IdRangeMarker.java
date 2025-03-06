@@ -130,6 +130,7 @@ class IdRangeMarker implements IdGenerator.TransactionalMarker, IdGenerator.Cont
     private final IndexedIdGenerator.Monitor monitor;
 
     private final boolean respectsReservedIds;
+    private final boolean isPowerOfTwo;
 
     /**
      * Current type of operations. As various "mark" operations comes in they modify the {@link #key} and {@link #value}
@@ -168,8 +169,14 @@ class IdRangeMarker implements IdGenerator.TransactionalMarker, IdGenerator.Cont
         this.bridgeIdGaps = bridgeIdGaps;
         this.deleteAlsoFrees = deleteAlsoFrees;
         this.monitor = monitor;
-        this.idsPerEntryShift = Long.numberOfTrailingZeros(idsPerEntry);
-        this.idOffsetMask = (1 << idsPerEntryShift) - 1;
+        this.isPowerOfTwo = Integer.bitCount(idsPerEntry) == 1;
+        if (isPowerOfTwo) {
+            this.idsPerEntryShift = Long.numberOfTrailingZeros(idsPerEntry);
+            this.idOffsetMask = (1 << idsPerEntryShift) - 1;
+        } else {
+            this.idsPerEntryShift = 0;
+            this.idOffsetMask = 0;
+        }
     }
 
     @Override
@@ -333,11 +340,17 @@ class IdRangeMarker implements IdGenerator.TransactionalMarker, IdGenerator.Cont
     }
 
     private long idRangeIndex(long id) {
-        return id >> idsPerEntryShift;
+        if (isPowerOfTwo) {
+            return id >> idsPerEntryShift;
+        }
+        return id / idsPerEntry;
     }
 
     private int idOffset(long id) {
-        return (int) (id & idOffsetMask);
+        if (isPowerOfTwo) {
+            return (int) (id & idOffsetMask);
+        }
+        return (int) (id % idsPerEntry);
     }
 
     /**

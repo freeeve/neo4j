@@ -50,8 +50,6 @@ class FreeIdScanner {
      */
     private static final IdRangeKey HIGH_KEY = new IdRangeKey(Long.MAX_VALUE);
 
-    static final int MAX_SLOT_SIZE = 128;
-
     private final int idsPerEntry;
     private final GBPTree<IdRangeKey, IdRange> tree;
     private final IdRangeLayout layout;

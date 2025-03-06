@@ -52,6 +52,10 @@ import static org.neo4j.internal.id.FreeIds.NO_FREE_IDS;
 import static org.neo4j.internal.id.IdSlotDistribution.SINGLE_IDS;
 import static org.neo4j.internal.id.IdSlotDistribution.powerTwoSlotSizesDownwards;
 import static org.neo4j.internal.id.IdSlotDistribution.slotDistribution;
+import static org.neo4j.internal.id.IdUtils.combinedIdAndNumberOfIds;
+import static org.neo4j.internal.id.IdUtils.idFromCombinedId;
+import static org.neo4j.internal.id.IdUtils.numberOfIdsFromCombinedId;
+import static org.neo4j.internal.id.IdUtils.usedFromCombinedId;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.IDS_PER_ENTRY;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_MONITOR;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.SMALL_CACHE_CAPACITY;
@@ -84,6 +88,7 @@ import java.util.stream.LongStream;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.eclipse.collections.api.factory.primitive.LongLists;
+import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.iterator.MutableLongIterator;
 import org.eclipse.collections.api.list.primitive.LongList;
 import org.eclipse.collections.api.list.primitive.MutableLongList;
@@ -2139,6 +2144,82 @@ class IndexedIdGeneratorTest {
         // then
         assertThat(idGenerator.getHighId()).isGreaterThan(IdValidator.INTEGER_MINUS_ONE);
         assertThat(asList(idGenerator.notUsedIdsIterator()).isEmpty()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {63, 64, 65, 127, 128, 129})
+    void shouldHandleIdsPerEntryNotBeingAPowerOfTwo(int idsPerEntry) throws IOException {
+        // given
+        int[] slotSizes = {1, 2, 3, 4, 6, 8};
+        var customization = customization().with(slotDistribution(idsPerEntry, slotSizes));
+        open(customization);
+        idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
+
+        // when
+        var allocatedIds = LongLists.mutable.empty();
+        for (int t = 0; t < 100; t++) {
+            var tx = LongLists.mutable.empty();
+            for (int i = 0; i < 100; i++) {
+                if (!allocatedIds.isEmpty() && random.nextFloat() < 0.1) {
+                    long allocation = allocatedIds.removeAtIndex(random.nextInt(allocatedIds.size()));
+                    long id = idFromCombinedId(allocation);
+                    int numberOfIds = numberOfIdsFromCombinedId(allocation);
+                    tx.add(combinedIdAndNumberOfIds(id, numberOfIds, false));
+                } else {
+                    int numberOfIds = random.among(slotSizes);
+                    long allocation = idGenerator.nextConsecutiveIdRange(numberOfIds, true, NULL_CONTEXT);
+                    tx.add(combinedIdAndNumberOfIds(allocation, numberOfIds, true));
+                }
+            }
+            try (var marker = idGenerator.transactionalMarker(NULL_CONTEXT)) {
+                tx.forEach(item -> {
+                    long id = idFromCombinedId(item);
+                    int numberOfIds = numberOfIdsFromCombinedId(item);
+                    if (usedFromCombinedId(item)) {
+                        marker.markUsed(id, numberOfIds);
+                    } else {
+                        marker.markDeletedAndFree(id, numberOfIds);
+                    }
+                });
+            }
+            tx.forEach(item -> {
+                if (usedFromCombinedId(item)) {
+                    allocatedIds.add(item);
+                }
+            });
+        }
+
+        // then
+        assertThat(gatherDeleteIds()).isEqualTo(gatherExpectedDeleteIds(allocatedIds));
+    }
+
+    private MutableLongList gatherDeleteIds() throws IOException {
+        var actualFreeIds = LongLists.mutable.empty();
+        try (var freeIdsIterator = idGenerator.notUsedIdsIterator()) {
+            while (freeIdsIterator.hasNext()) {
+                actualFreeIds.add(freeIdsIterator.next());
+            }
+        }
+        return actualFreeIds;
+    }
+
+    private MutableLongList gatherExpectedDeleteIds(MutableLongList allocatedIds) {
+        var expectedUsedIds = LongSets.mutable.empty();
+        for (long allocation : allocatedIds.toArray()) {
+            long id = idFromCombinedId(allocation);
+            int numberOfIds = numberOfIdsFromCombinedId(allocation);
+            for (int i = 0; i < numberOfIds; i++) {
+                assertThat(expectedUsedIds.add(id + i)).isTrue();
+            }
+        }
+        var expectedFreeIds = LongLists.mutable.empty();
+        long highId = idGenerator.getHighId();
+        for (long i = 0; i < highId; i++) {
+            if (!expectedUsedIds.contains(i)) {
+                expectedFreeIds.add(i);
+            }
+        }
+        return expectedFreeIds;
     }
 
     private void verifyReallocationDoesNotIncreaseHighId(

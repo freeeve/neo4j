@@ -19,8 +19,6 @@
  */
 package org.neo4j.internal.id.indexed;
 
-import static org.neo4j.util.Preconditions.requirePowerOfTwo;
-
 import org.neo4j.index.internal.gbptree.GBPTree;
 import org.neo4j.index.internal.gbptree.Layout;
 import org.neo4j.io.pagecache.PageCursor;
@@ -35,8 +33,7 @@ public class IdRangeLayout extends Layout.Adapter<IdRangeKey, IdRange> {
     public IdRangeLayout(int idsPerEntry) {
         super(true, 3_735_929_054L + idsPerEntry, 1, 2);
         this.idsPerEntry = idsPerEntry;
-        requirePowerOfTwo(idsPerEntry);
-        this.longsPerEntry = ((idsPerEntry - 1) / (IdRange.BITSET_SIZE)) + 1;
+        this.longsPerEntry = (idsPerEntry - 1) / IdRange.BITSET_SIZE + 1;
     }
 
     @Override
