@@ -186,6 +186,7 @@ public class DatabaseManagementServiceFactory {
 
         edition.bootstrapQueryRouterServices(managementService);
 
+        globalLife.add(globalModule.getGlobalExtensions());
         edition.registerDatabaseInitializers(globalModule, systemDatabaseProvider);
 
         edition.createSecurityModule(globalModule, systemDatabaseProvider);
@@ -196,7 +197,6 @@ public class DatabaseManagementServiceFactory {
                 globalModule, databaseContextProvider, globalDependencies, dbmsRuntimeSystemGraphComponent);
         globalDependencies.satisfyDependency(dbmsRuntimeVersionProvider);
 
-        globalLife.add(globalModule.getGlobalExtensions());
         BoltGraphDatabaseManagementServiceSPI boltGraphDatabaseManagementServiceSPI =
                 edition.createBoltDatabaseManagementServiceProvider();
 
