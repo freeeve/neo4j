@@ -40,6 +40,9 @@ public class TransactionRetryAbortedException extends Neo4jException {
         return Status.Statement.ExecutionTimeout;
     }
 
+    // note: if adding a new reason for transaction abort (eg maximum number of retries), please retain the same GQL
+    // status code so that users continue to correctly handle it. the text reason can be changed without adding a new
+    // status
     public static TransactionRetryAbortedException transactionRetryAborted(
             Throwable cause, int retriedCount, double timeoutInSeconds) {
         var decimalFormat = new DecimalFormat("0.###", DecimalFormatSymbols.getInstance(Locale.ROOT));
