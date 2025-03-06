@@ -26,6 +26,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
@@ -156,6 +157,24 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         return getAliasNodeInNamespace(namespace, databaseName)
                 .findFirst()
                 .flatMap(CommunityTopologyGraphDbmsModelUtil::getAliasProperties);
+    }
+
+    @Override
+    public Optional<CypherVersion> getRemoteAliasLanguageVersion(String remoteAliasName) {
+        try (var nodes = tx.findNodes(REMOTE_DATABASE_LABEL, NAME_PROPERTY, remoteAliasName)) {
+            var filtered = nodes.stream()
+                    .filter(node -> node.getProperty(NAMESPACE_PROPERTY).equals(DEFAULT_NAMESPACE))
+                    .toList();
+            if (filtered.isEmpty()) {
+                return Optional.empty();
+            }
+            String defaultLanguage = (String) filtered.getFirst().getProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY);
+            if (defaultLanguage != null) {
+                return CypherVersion.fromStoredValueOptional(defaultLanguage);
+            } else {
+                return Optional.empty();
+            }
+        }
     }
 
     @Override

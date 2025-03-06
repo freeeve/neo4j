@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.kernel.database.DatabaseReference;
@@ -322,6 +323,15 @@ public interface TopologyGraphDbmsModel {
     Optional<DriverSettings> getDriverSettings(String databaseName, String namespace);
 
     Optional<Map<String, Object>> getAliasProperties(String databaseName, String namespace);
+
+    /**
+     * Returns the default query language of a remote alias.
+     * This default query language is only needed for remote aliases in the default namespace.
+     * For remote aliases with a composite namespace, the default query language is sourced from the composite database.
+     * @param remoteAliasName in default namespace
+     * @return defined default query language of the given remote alias
+     */
+    Optional<CypherVersion> getRemoteAliasLanguageVersion(String remoteAliasName);
 
     /**
      * Fetches the {@link ExternalDatabaseCredentials} corresponding to the provided database name

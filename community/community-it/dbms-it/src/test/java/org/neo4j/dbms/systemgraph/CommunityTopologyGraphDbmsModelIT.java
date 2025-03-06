@@ -21,11 +21,13 @@ package org.neo4j.dbms.systemgraph;
 
 import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE;
 import static org.neo4j.kernel.database.DatabaseReferenceImpl.SPD.shardName;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.helpers.RemoteUri;
 import org.neo4j.configuration.helpers.SocketAddress;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
@@ -333,5 +336,24 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         // then
         assertThat(result).isPresent();
         assertThat(result.get()).isEqualTo(properties);
+    }
+
+    @Test
+    void canReturnRemoteAliasDefaultLanguage() {
+        var remoteAddress = new SocketAddress("my.neo4j.com", 7687);
+        var remoteNeo4j = new RemoteUri("neo4j", List.of(remoteAddress), null);
+        var remAliasId1 = randomUUID();
+        var remAliasId2 = randomUUID();
+        createExternalReferenceForDatabase(tx, "remote1", "rem1", remoteNeo4j, remAliasId1);
+        createExternalReferenceForDatabase(tx, "remote2", "rem1", remoteNeo4j, remAliasId2, CypherVersion.Cypher25);
+        var locDb = newDatabase(b -> b.withDatabase("loc"));
+        createInternalReferenceForDatabase(tx, "locAlias", false, locDb);
+
+        assertEquals(Optional.of(CypherVersion.Cypher5), dbmsModel().getRemoteAliasLanguageVersion("remote1"));
+        assertEquals(Optional.of(CypherVersion.Cypher25), dbmsModel().getRemoteAliasLanguageVersion("remote2"));
+
+        assertEquals(Optional.empty(), dbmsModel().getRemoteAliasLanguageVersion("nonExisting"));
+        assertEquals(Optional.empty(), dbmsModel().getRemoteAliasLanguageVersion("locDb"));
+        assertEquals(Optional.empty(), dbmsModel().getRemoteAliasLanguageVersion("locAlias"));
     }
 }

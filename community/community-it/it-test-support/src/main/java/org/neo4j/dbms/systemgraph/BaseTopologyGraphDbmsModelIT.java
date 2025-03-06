@@ -34,6 +34,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.ALIAS_PROPERTIES
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.CONNECTS_WITH_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_CREATED_AT_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DESIGNATED_SEEDER_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL;
@@ -114,6 +115,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.provider.Arguments;
 import org.neo4j.configuration.helpers.RemoteUri;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.dbms.database.SystemGraphComponent;
@@ -525,6 +527,11 @@ public abstract class BaseTopologyGraphDbmsModelIT {
 
     protected Node createExternalReferenceForDatabase(
             Transaction tx, String name, String targetName, RemoteUri uri, UUID uuid) {
+        return createExternalReferenceForDatabase(tx, name, targetName, uri, uuid, CypherVersion.Cypher5);
+    }
+
+    protected Node createExternalReferenceForDatabase(
+            Transaction tx, String name, String targetName, RemoteUri uri, UUID uuid, CypherVersion version) {
         var referenceNode = tx.createNode(REMOTE_DATABASE_LABEL, DATABASE_NAME_LABEL);
         referenceNode.setProperty(PRIMARY_PROPERTY, false);
         referenceNode.setProperty(NAMESPACE_PROPERTY, DEFAULT_NAMESPACE);
@@ -537,6 +544,7 @@ public abstract class BaseTopologyGraphDbmsModelIT {
         referenceNode.setProperty(USERNAME_PROPERTY, "username");
         referenceNode.setProperty(PASSWORD_PROPERTY, "password".getBytes());
         referenceNode.setProperty(IV_PROPERTY, "i_vector".getBytes());
+        referenceNode.setProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, version.persistedValue);
         return referenceNode;
     }
 
