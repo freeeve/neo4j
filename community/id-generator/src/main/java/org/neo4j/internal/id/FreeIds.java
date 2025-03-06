@@ -24,6 +24,7 @@ import java.io.IOException;
 /**
  * Accessor/stream of free ids, for rebuild purposes.
  */
+@FunctionalInterface
 public interface FreeIds {
     /**
      * Convenient instance for telling the {@link IdGenerator} that there are no free ids to rebuild its id generator from.
@@ -34,13 +35,19 @@ public interface FreeIds {
     /**
      * @param visitor consumer of the free ids.
      * @throws IOException on I/O error.
+     * @return the highest ID in use
      */
     long accept(IdVisitor visitor) throws IOException;
 
+    /**
+     * @return  {@code true}, if the {@link IdVisitor} will be called with free (deleted) IDs.
+     * This is the normal use case. {@code false} if the {@link IdVisitor} will be called with used IDs instead.
+     */
     default boolean visitsDeletedIds() {
         return true;
     }
 
+    @FunctionalInterface
     interface IdVisitor {
         void accept(long id, int numberOfIds);
 
