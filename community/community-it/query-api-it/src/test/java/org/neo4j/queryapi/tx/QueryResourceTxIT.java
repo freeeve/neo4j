@@ -19,6 +19,7 @@
  */
 package org.neo4j.queryapi.tx;
 
+import static java.lang.String.format;
 import static org.neo4j.queryapi.QueryApiTestUtil.resolveDependency;
 import static org.neo4j.queryapi.QueryApiTestUtil.setupLogging;
 import static org.neo4j.queryapi.QueryApiTestUtil.sleepProcedure;
@@ -154,6 +155,21 @@ public class QueryResourceTxIT {
     }
 
     @Test
+    void shouldContinueTxWithCreateNode() throws IOException, InterruptedException {
+        var nodeCount = currentNodeCount("ContinueNode");
+        var res = testClient.beginTx();
+        var continueTx = testClient.runInTx(
+                QueryRequest.newBuilder().statement("CREATE (n:ContinueNode)").build(),
+                res.body().txId());
+
+        assertThat(continueTx).wasSuccessful();
+        assertThat(continueTx).hasTransaction();
+        Assertions.assertThat(currentNodeCount("ContinueNode")).isEqualTo(nodeCount);
+        testClient.commitTx(continueTx.body().txId());
+        Assertions.assertThat(currentNodeCount("ContinueNode")).isEqualTo(nodeCount + 1);
+    }
+
+    @Test
     void shouldContinueWithoutStatement() throws IOException, InterruptedException {
         var res = testClient.beginTx();
         var continueTx =
@@ -266,13 +282,18 @@ public class QueryResourceTxIT {
 
     @Test
     void shouldRollbackTx() throws IOException, InterruptedException {
-        var res = testClient.beginTx();
+        var nodeCount = currentNodeCount("QueryAPIRollbackNode");
+
+        var res = testClient.beginTx(QueryRequest.newBuilder()
+                .statement("CREATE (n:QueryAPIRollbackNode)")
+                .build());
         var rollback = testClient.rollbackTx(res.body().txId());
 
         Assertions.assertThat(rollback.statusCode()).isEqualTo(200);
 
         var shouldNotBeAvailable = testClient.commitTx(res.body().txId());
         assertThat(shouldNotBeAvailable).wasNotFound();
+        Assertions.assertThat(currentNodeCount("QueryAPIRollbackNode")).isEqualTo(nodeCount);
     }
 
     void shouldHandleRollbackError() {
@@ -361,5 +382,18 @@ public class QueryResourceTxIT {
         assertThat(res).hasTransaction();
         Assertions.assertThat(res.body().txId().length()).isEqualTo(4);
         testClient.commitTx(res.body().txId());
+    }
+
+    private int currentNodeCount(String label) throws IOException, InterruptedException {
+        return testClient
+                .autoCommit(QueryRequest.newBuilder()
+                        .statement(format("MATCH (n:%s) RETURN count(n)", label))
+                        .build())
+                .body()
+                .data()
+                .get("values")
+                .get(0)
+                .get(0)
+                .asInt();
     }
 }
