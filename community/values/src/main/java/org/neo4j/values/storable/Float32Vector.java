@@ -58,6 +58,11 @@ public final class Float32Vector extends FloatingPointVector {
     }
 
     @Override
+    public CoordinateType coordinateType() {
+        return CoordinateType.FLOAT32;
+    }
+
+    @Override
     public ValueRepresentation valueRepresentation() {
         return ValueRepresentation.FLOAT32_VECTOR;
     }

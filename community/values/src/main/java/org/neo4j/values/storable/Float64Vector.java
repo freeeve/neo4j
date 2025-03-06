@@ -58,6 +58,11 @@ public final class Float64Vector extends FloatingPointVector {
     }
 
     @Override
+    public CoordinateType coordinateType() {
+        return CoordinateType.FLOAT64;
+    }
+
+    @Override
     public ValueRepresentation valueRepresentation() {
         return ValueRepresentation.FLOAT64_VECTOR;
     }

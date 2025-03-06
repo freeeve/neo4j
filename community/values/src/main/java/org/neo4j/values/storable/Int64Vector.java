@@ -63,6 +63,11 @@ public final class Int64Vector extends IntegralVector {
     }
 
     @Override
+    public CoordinateType coordinateType() {
+        return CoordinateType.INTEGER64;
+    }
+
+    @Override
     public boolean equals(Value other) {
         if (other instanceof Int64Vector v) {
             return Arrays.equals(this.coordinates, v.coordinates);

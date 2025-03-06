@@ -63,6 +63,11 @@ public final class Int8Vector extends IntegralVector {
     }
 
     @Override
+    public CoordinateType coordinateType() {
+        return CoordinateType.INTEGER8;
+    }
+
+    @Override
     public boolean equals(Value other) {
         if (other instanceof Int8Vector v) {
             return Arrays.equals(this.coordinates, v.coordinates);

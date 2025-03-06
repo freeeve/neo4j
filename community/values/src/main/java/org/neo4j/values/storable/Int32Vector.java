@@ -58,6 +58,11 @@ public final class Int32Vector extends IntegralVector {
     }
 
     @Override
+    public CoordinateType coordinateType() {
+        return CoordinateType.INTEGER32;
+    }
+
+    @Override
     public ValueRepresentation valueRepresentation() {
         return ValueRepresentation.INT32_VECTOR;
     }

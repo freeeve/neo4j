@@ -23,4 +23,15 @@ package org.neo4j.values.storable;
 //       org.neo4j.graphdb(.vector?)
 public interface Vector {
     int dimensions();
+
+    CoordinateType coordinateType();
+
+    enum CoordinateType {
+        INTEGER8,
+        INTEGER16,
+        INTEGER32,
+        INTEGER64,
+        FLOAT32,
+        FLOAT64
+    }
 }

@@ -63,6 +63,11 @@ public final class Int16Vector extends IntegralVector {
     }
 
     @Override
+    public CoordinateType coordinateType() {
+        return CoordinateType.INTEGER16;
+    }
+
+    @Override
     public boolean equals(Value other) {
         if (other instanceof Int16Vector v) {
             return Arrays.equals(this.coordinates, v.coordinates);
