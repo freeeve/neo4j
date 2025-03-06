@@ -1556,7 +1556,8 @@ class EnvelopeReadChannelTest {
         // Then corrupt data
         try (var channel = fileSystem.write(file(0))) {
             int randomPayloadPosition = random.nextInt(bytes.length);
-            int modificationOffset = envelopeStartPosition.intValue() + randomPayloadPosition;
+            int modificationOffset =
+                    envelopeStartPosition.intValue() + LogEnvelopeHeader.HEADER_SIZE + randomPayloadPosition;
             var buffer = ByteBuffer.allocate(1);
             // xor a modified value
             byte corrupted = (byte) (random.nextInt(1, 256) ^ bytes[randomPayloadPosition]);
@@ -1612,7 +1613,8 @@ class EnvelopeReadChannelTest {
         // Then corrupt data
         try (var channel = fileSystem.write(file(0))) {
             int randomPayloadPosition = random.nextInt(bytes.length);
-            int modificationOffset = envelopeStartPosition.intValue() + randomPayloadPosition;
+            int modificationOffset =
+                    envelopeStartPosition.intValue() + LogEnvelopeHeader.HEADER_SIZE + randomPayloadPosition;
             var buffer = ByteBuffer.allocate(1);
             // xor a modified value
             byte corrupted = (byte) (random.nextInt(1, 256) ^ bytes[randomPayloadPosition]);
