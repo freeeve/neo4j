@@ -60,8 +60,8 @@ class ToIntegerFunctionTest extends CypherFunSuite with CypherScalaCheckDrivenPr
       assert(toIntegerFn("20foobar2") === NO_VALUE)
     }
 
-    test(s"$name should return null if the argument is a hexadecimal string") {
-      assert(toIntegerFn("0x20") === NO_VALUE)
+    test(s"$name should not return null if the argument is a hexadecimal string") {
+      assert(toIntegerFn("0x20") === longValue(0x20))
     }
 
     test(s"$name should convert a string with leading zeros to an integer") {
