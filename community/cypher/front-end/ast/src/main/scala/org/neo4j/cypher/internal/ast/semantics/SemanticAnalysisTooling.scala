@@ -393,10 +393,9 @@ trait SemanticAnalysisTooling {
       if (!s.features(feature))
         SemanticCheckResult.error(
           s,
-          FeatureError(
-            s"$msg is not available in this implementation of Cypher " +
-              s"due to lack of support for $feature.",
+          FeatureError.notAvailableInThisImplementation(
             feature,
+            msg,
             position
           )
         )

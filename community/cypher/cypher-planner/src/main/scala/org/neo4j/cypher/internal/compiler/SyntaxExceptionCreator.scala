@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.compiler
 
-import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 
@@ -27,8 +26,7 @@ object SyntaxExceptionCreator {
 
   def throwOnError(exceptionFactory: CypherExceptionFactory): Seq[SemanticErrorDef] => Unit =
     (errors: Seq[SemanticErrorDef]) =>
-      errors.foreach {
-        case se: SemanticError => throw exceptionFactory.syntaxException(se.gqlStatusObject, se.msg, se.position)
-        case e                 => throw exceptionFactory.syntaxException(e.msg, e.position)
+      errors.foreach { e =>
+        throw exceptionFactory.syntaxException(e.gqlStatusObject, e.msg, e.position)
       }
 }

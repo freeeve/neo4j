@@ -1695,4 +1695,18 @@ object FeatureError {
 
   def unapply(errorDef: FeatureError): Option[(ErrorGqlStatusObject, String, SemanticFeature, InputPosition)] =
     Some((errorDef.gqlStatusObject, errorDef.msg, errorDef.feature, errorDef.position))
+
+  def notAvailableInThisImplementation(feature: SemanticFeature, msg: String, position: InputPosition): FeatureError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N26)
+      .withParam(GqlParams.StringParam.item, msg)
+      .withParam(GqlParams.StringParam.feat, feature.toString)
+      .build()
+    FeatureError(
+      gql,
+      s"$msg is not available in this implementation of Cypher " +
+        s"due to lack of support for $feature.",
+      feature,
+      position
+    )
+  }
 }

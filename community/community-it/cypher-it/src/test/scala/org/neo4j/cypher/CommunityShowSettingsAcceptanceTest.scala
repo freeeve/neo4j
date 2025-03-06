@@ -23,7 +23,9 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 import java.lang.Boolean.FALSE
 
@@ -43,11 +45,16 @@ class CommunityShowSettingsAcceptanceTest extends ExecutionEngineFunSuite with S
     // GIVEN
     restartWithConfig(databaseConfig() ++ Map(GraphDatabaseInternalSettings.show_setting -> FALSE))
 
-    (the[SyntaxException] thrownBy {
+    val exception = the[SyntaxException] thrownBy {
       execute("SHOW SETTINGS WHERE nonexistent = 'foo'")
-    }).getMessage should startWith(
+    }
+    exception.getMessage should startWith(
       "The `SHOW SETTINGS` clause is not available in this implementation of Cypher due to lack of support for show setting."
     )
+    exception should be(gqlStatus(
+      GqlStatusInfoCodes.STATUS_51N26,
+      "error: system configuration or operation exception - not supported in this version. The `SHOW SETTINGS` clause is not available. This implementation of Cypher does not support show setting."
+    ))
   }
 
   test("show settings should return all settings") {
