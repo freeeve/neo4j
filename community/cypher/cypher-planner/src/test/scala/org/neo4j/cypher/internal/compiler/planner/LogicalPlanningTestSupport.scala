@@ -510,7 +510,16 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
     procedureLookup: Option[QualifiedName => ProcedureSignature] = None,
     functionLookup: Option[QualifiedName => Option[UserFunctionSignature]] = None
   ): SinglePlannerQuery = {
-    buildPlannerQuery(query, procedureLookup, functionLookup) match {
+    buildSinglePlannerQuery(randomVersion(), query, procedureLookup, functionLookup)
+  }
+
+  def buildSinglePlannerQuery(
+    version: CypherVersion,
+    query: String,
+    procedureLookup: Option[QualifiedName => ProcedureSignature],
+    functionLookup: Option[QualifiedName => Option[UserFunctionSignature]]
+  ): SinglePlannerQuery = {
+    buildPlannerQuery(version, query, procedureLookup, functionLookup, true) match {
       case pq: SinglePlannerQuery => pq
       case _                      => throw new IllegalArgumentException("This method cannot be used for UNION queries")
     }

@@ -95,6 +95,10 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
     withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, List.empty))
   }
 
+  def assertRewrittenWithCypherVersion(version: CypherVersion, from: String, to: String): Unit = {
+    withClue(s"CYPHER $version\n")(assertRewritten(version, from, to, List.empty))
+  }
+
   // additionalExpectedAstUpdates is for updating things that are changed in the rewriter but cannot be expressed in the query,
   // for example the AddedInRewriteGeneral flag on WITH
   def assertRewritten(from: String, to: String, additionalExpectedAstUpdates: Statement => Statement): Unit =
@@ -169,12 +173,16 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
 
   def assertRewritten(from: String, to: Statement): Unit = assertRewritten(from, to, List.empty)
 
-  def assertRewritten(
+  def assertRewritten(version: CypherVersion, from: String, to: Statement): Unit =
+    assertRewrittenInVersion(version, from, to, List.empty)
+
+  def assertRewrittenInVersion(
+    version: CypherVersion,
     from: String,
     to: Statement,
     semanticTableExpressions: List[Expression],
     features: SemanticFeature*
-  ): Unit = CypherVersion.values().foreach { version =>
+  ): Unit =
     withClue(s"version=$version") {
       val fromOutState = prepareFrom(version, from, rewriterPhaseUnderTest, features: _*)
       fromOutState.statement() should equal(to)
@@ -184,6 +192,14 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
         }
       }
     }
+
+  def assertRewritten(
+    from: String,
+    to: Statement,
+    semanticTableExpressions: List[Expression],
+    features: SemanticFeature*
+  ): Unit = CypherVersion.values().foreach { version =>
+    assertRewrittenInVersion(version, from, to, semanticTableExpressions, features: _*)
   }
 
   private def parseAndRewrite(version: CypherVersion, queryText: String, features: SemanticFeature*): Statement = {
@@ -192,7 +208,7 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
     val parsedAst = AstParserFactory(version)(queryText, exceptionFactory, None).singleStatement()
     val cleanedAst = parsedAst.endoRewrite(NormalizeWithAndReturnClauses(exceptionFactory))
     if (astRewriteAndAnalyze) {
-      val semanticState = cleanedAst.semanticState(semanticFeatures ++ features: _*)
+      val semanticState = cleanedAst.semanticStateWithCypherVersion(version, semanticFeatures ++ features: _*)
       ASTRewriter.rewrite(
         cleanedAst.endoRewrite(
           computeDependenciesForExpressions(semanticState)
@@ -253,7 +269,7 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
       if (astRewriteAndAnalyze) {
         preProcessPhase(features: _*).transform(
           initialState,
-          TestContext(sessionDatabase = databaseReference)
+          TestContext(cypherVersion = version, sessionDatabase = databaseReference)
         )
       } else {
         initialState

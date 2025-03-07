@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.ast.convert.plannerQuery
 
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.Hint
@@ -87,7 +88,7 @@ import org.scalatest.Inside
 import org.scalatest.OptionValues
 
 class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSupport with AstConstructionTestSupport
-    with OptionValues with Inside {
+    with OptionValues with Inside with CypherVersionTestSupport {
 
   override val semanticFeatures: List[SemanticFeature] = List(
     SemanticFeature.MatchModes
@@ -1544,7 +1545,7 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
       accessMode = ProcedureReadOnlyAccess,
       id = 42
     )
-    val query = buildSinglePlannerQuery("CALL foo() YIELD all RETURN all", Some(_ => signature))
+    val query = buildSinglePlannerQuery("CALL foo() YIELD all RETURN all", procedureLookup = Some(_ => signature))
 
     query.horizon match {
       case ProcedureCallProjection(call) =>
@@ -2611,46 +2612,55 @@ class StatementConvertersTest extends CypherFunSuite with LogicalPlanningTestSup
     query shouldEqual RegularSinglePlannerQuery(queryGraph = queryGraph, horizon = projection)
   }
 
-  test("should convert query with path selector and var-length relationship under REPEATABLE ELEMENTS") {
-    val query = buildSinglePlannerQuery(
-      """MATCH REPEATABLE ELEMENTS SHORTEST 1 GROUP (start)-[r*1..5]->(end)
-        |RETURN 1 AS one""".stripMargin
-    )
-
-    val rel =
-      PatternRelationship(
-        variable = v"r",
-        boundaryNodes = (v"start", v"end"),
-        dir = SemanticDirection.OUTGOING,
-        types = Nil,
-        length = VarPatternLength(1, Some(5))
+  testVersionsExcept5("should convert query with path selector and var-length relationship under REPEATABLE ELEMENTS") {
+    version =>
+      val query = buildPlannerQuery(
+        version,
+        """MATCH REPEATABLE ELEMENTS SHORTEST 1 GROUP (start)-[r*1..5]->(end)
+          |RETURN 1 AS one""".stripMargin,
+        None,
+        None,
+        compareVersions = true
       )
 
-    val shortestPathPattern =
-      SelectivePathPattern(
-        pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(rel)),
-        selections = Selections.from(Seq(
-          varLengthLowerLimitPredicate("r", 1),
-          varLengthUpperLimitPredicate("r", 5)
-        )),
-        selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
-      )
+      val rel =
+        PatternRelationship(
+          variable = v"r",
+          boundaryNodes = (v"start", v"end"),
+          dir = SemanticDirection.OUTGOING,
+          types = Nil,
+          length = VarPatternLength(1, Some(5))
+        )
 
-    val queryGraph =
-      QueryGraph
-        .empty
-        .addSelectivePathPattern(shortestPathPattern)
+      val shortestPathPattern =
+        SelectivePathPattern(
+          pathPattern = ExhaustivePathPattern.NodeConnections(NonEmptyList(rel)),
+          selections = Selections.from(Seq(
+            varLengthLowerLimitPredicate("r", 1),
+            varLengthUpperLimitPredicate("r", 5)
+          )),
+          selector = SelectivePathPattern.Selector.ShortestGroups(CountInteger(1))
+        )
 
-    val projection =
-      RegularQueryProjection(projections = Map(v"one" -> literalInt(1)), position = QueryProjection.Position.Final)
+      val queryGraph =
+        QueryGraph
+          .empty
+          .addSelectivePathPattern(shortestPathPattern)
 
-    query shouldEqual RegularSinglePlannerQuery(queryGraph = queryGraph, horizon = projection)
+      val projection =
+        RegularQueryProjection(projections = Map(v"one" -> literalInt(1)), position = QueryProjection.Position.Final)
+
+      query shouldEqual RegularSinglePlannerQuery(queryGraph = queryGraph, horizon = projection)
   }
 
-  test("should convert query with qpp under REPEATABLE ELEMENTS") {
-    val query = buildSinglePlannerQuery(
+  testVersionsExcept5("should convert query with qpp under REPEATABLE ELEMENTS") { version =>
+    val query = buildPlannerQuery(
+      version,
       """MATCH REPEATABLE ELEMENTS SHORTEST 1 GROUP (start)-[r*1..5]->(end)
-        |RETURN 1 AS one""".stripMargin
+        |RETURN 1 AS one""".stripMargin,
+      None,
+      None,
+      compareVersions = true
     )
 
     val rel =

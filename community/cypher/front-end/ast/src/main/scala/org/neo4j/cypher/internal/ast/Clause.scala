@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.ASTSlicingPhrase.checkExpressionIsStaticInt
 import org.neo4j.cypher.internal.ast.ASTSlicingPhrase.checkExpressionIsStaticNumber
 import org.neo4j.cypher.internal.ast.Match.hintPrettifier
@@ -31,6 +32,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithGqlInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisToolingErrorWithGqlInfo.variableAlreadyDeclaredError
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.success
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
@@ -882,17 +884,28 @@ case class Match(
   }
 
   private def checkMatchMode: SemanticCheck = {
-    whenState(!_.features.contains(SemanticFeature.MatchModes)) {
-      matchMode match {
-        case mode: DifferentRelationships if mode.implicitlyCreated => SemanticCheckResult.success(_)
-        case _ => error(SemanticError.matchModesNotSupported(matchMode.prettified, matchMode.position))
+    fromContext(semanticCheckContext =>
+      if (semanticCheckContext.cypherVersion == CypherVersion.Cypher5) {
+        // Explicit match modes are not supported in Cypher5
+        matchMode match {
+          case mode: DifferentRelationships if mode.implicitlyCreated => checkDifferentRelationships(_)
+          case _ => error(SemanticError.matchModesNotSupportedInCypher5(matchMode.prettified, matchMode.position))
+        }
+      } else {
+        // Explicit match modes in Cypher25 are behind a feature flag
+        whenState(!_.features.contains(SemanticFeature.MatchModes)) {
+          matchMode match {
+            case mode: DifferentRelationships if mode.implicitlyCreated => SemanticCheckResult.success(_)
+            case _ => error(SemanticError.matchModesNotSupported(matchMode.prettified, matchMode.position))
+          }
+        } ifOkChain {
+          matchMode match {
+            case _: RepeatableElements     => checkRepeatableElements(_)
+            case _: DifferentRelationships => checkDifferentRelationships(_)
+          }
+        }
       }
-    } ifOkChain {
-      matchMode match {
-        case _: RepeatableElements     => checkRepeatableElements(_)
-        case _: DifferentRelationships => checkDifferentRelationships(_)
-      }
-    }
+    )
   }
 
   /**

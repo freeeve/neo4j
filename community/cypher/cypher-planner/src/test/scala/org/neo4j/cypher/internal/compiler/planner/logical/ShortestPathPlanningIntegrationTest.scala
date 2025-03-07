@@ -23,8 +23,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.ALL_IF_POSSIBLE
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.CARDINALITY_HEURISTIC
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.INTO_ONLY
-import org.neo4j.cypher.internal.CypherVersion.Cypher25
-import org.neo4j.cypher.internal.CypherVersion.Cypher5
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
@@ -72,7 +71,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import java.lang.Boolean.FALSE
 
 class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
-    with AstConstructionTestSupport {
+    with AstConstructionTestSupport with CypherVersionTestSupport {
 
   private val plannerBase = plannerBuilder()
     .setAllNodesCardinality(100)
@@ -2266,7 +2265,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     )
   }
 
-  test("Should handle shortest path in subquery expression") {
+  testVersions("Should handle shortest path in subquery expression") { version =>
     val query =
       """MATCH (m:User)
         |  WHERE CASE
@@ -2276,8 +2275,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         |  END
         |RETURN m""".stripMargin
 
-    planner.plan(Cypher5, query)
-    planner.plan(Cypher25, query)
+    planner.plan(version, query)
   }
 
   test("Should handle path assignment for shortest path containing qpp with two juxtaposed nodes") {
@@ -5011,7 +5009,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       .build()
   }
 
-  test("Should plan selective path pattern using Walk under repeatable elements semantics") {
+  testVersionsExcept5("Should plan selective path pattern using Walk under repeatable elements semantics") { version =>
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setRelationshipCardinality("()-[:R]->()", 500)
@@ -5024,7 +5022,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         |RETURN a, b
         """.stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(version, query)
 
     plan shouldEqual planner.planBuilder()
       .produceResults("a", "b")
@@ -5066,9 +5064,9 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       .build()
   }
 
-  test(
+  testVersionsExcept5(
     "Should plan selective path pattern using Walk along non-selective path pattern under repeatable elements semantics"
-  ) {
+  ) { version =>
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .setRelationshipCardinality("()-[:R]->()", 500)
@@ -5083,7 +5081,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         |RETURN a, b, c
         """.stripMargin
 
-    val plan = planner.plan(query)
+    val plan = planner.plan(version, query)
 
     plan shouldEqual planner.planBuilder()
       .produceResults("a", "b", "c")

@@ -84,46 +84,51 @@ class MoveBoundaryNodePredicatesTest extends CypherFunSuite
     )
   }
 
-  test(
+  testVersionsExcept5(
     "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end:B) RETURN count(*) AS c"
-  ) {
-    assertRewritten(
+  ) { version =>
+    assertRewrittenWithCypherVersion(
+      version,
       testName,
       "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end) WHERE start:A AND end:B RETURN count(*) AS c"
     )
   }
 
-  test(
+  testVersionsExcept5(
     "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end:B) WHERE $param RETURN count(*) AS c"
-  ) {
-    assertRewritten(
+  ) { version =>
+    assertRewrittenWithCypherVersion(
+      version,
       testName,
       "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ANY SHORTEST () (()-->()){,100} (end) WHERE $param AND start:A AND end:B RETURN count(*) AS c"
     )
   }
 
-  test(
+  testVersionsExcept5(
     "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) RETURN count(*) AS c"
-  ) {
-    assertRewritten(
+  ) { version =>
+    assertRewrittenWithCypherVersion(
+      version,
       testName,
       "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE start:A RETURN count(*) AS c"
     )
   }
 
-  test(
+  testVersionsExcept5(
     "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start:A) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE $param RETURN count(*) AS c"
-  ) {
-    assertRewritten(
+  ) { version =>
+    assertRewrittenWithCypherVersion(
+      version,
       testName,
       "MATCH REPEATABLE ELEMENTS ANY SHORTEST (start) (()-->()){,100} (), ALL () (()-->()){2, 4} (end:B) WHERE $param AND start:A RETURN count(*) AS c"
     )
   }
 
-  test(
+  testVersionsExcept5(
     "MATCH REPEATABLE ELEMENTS ANY SHORTEST (p = (start:A) (()-->()){,100} ()), ANY SHORTEST () (()-->()){,100} (end:B) RETURN count(*) AS c"
-  ) {
-    assertRewritten(
+  ) { version =>
+    assertRewrittenWithCypherVersion(
+      version,
       testName,
       "MATCH REPEATABLE ELEMENTS ANY SHORTEST (p = (start) (()-->()){,100} ()), ANY SHORTEST () (()-->()){,100} (end) WHERE start:A AND end:B RETURN count(*) AS c"
     )

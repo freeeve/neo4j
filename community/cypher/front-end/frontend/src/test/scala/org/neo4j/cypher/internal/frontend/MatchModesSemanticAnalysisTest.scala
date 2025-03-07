@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
@@ -56,9 +57,36 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
     )
   }
 
-  test("DIFFERENT RELATIONSHIPS (a)") {
+  test("REPEATABLE ELEMENTS (c5)") {
+    // explicit match mode is not supported in Cypher 5
+    run(disabledCypherVersions = Set(CypherVersion.Cypher25)).hasError(
+      GqlHelper.getGql42001_42N54("REPEATABLE ELEMENTS", 6, 1, 7),
+      "Match modes such as `REPEATABLE ELEMENTS` are not supported in Cypher 5.",
+      p(6, 1, 7)
+    )
+  }
+
+  test("DIFFERENT RELATIONSHIPS (c5)") {
+    // explicit match mode is not supported in Cypher 5
+    run(disabledCypherVersions = Set(CypherVersion.Cypher25)).hasError(
+      GqlHelper.getGql42001_42N54("DIFFERENT RELATIONSHIPS", 6, 1, 7),
+      "Match modes such as `DIFFERENT RELATIONSHIPS` are not supported in Cypher 5.",
+      p(6, 1, 7)
+    )
+  }
+
+  test("REPEATABLE ELEMENTS (c25)") {
     // running without semantic feature should fail
-    run().hasError(
+    run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasError(
+      GqlHelper.getGql42001_42N54("REPEATABLE ELEMENTS", 6, 1, 7),
+      "Match modes such as `REPEATABLE ELEMENTS` are not supported yet.",
+      p(6, 1, 7)
+    )
+  }
+
+  test("DIFFERENT RELATIONSHIPS (c25)") {
+    // running without semantic feature should fail
+    run(disabledCypherVersions = Set(CypherVersion.Cypher5)).hasError(
       GqlHelper.getGql42001_42N54("DIFFERENT RELATIONSHIPS", 6, 1, 7),
       "Match modes such as `DIFFERENT RELATIONSHIPS` are not supported yet.",
       p(6, 1, 7)
@@ -70,17 +98,8 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
     run().hasNoErrors
   }
 
-  test("REPEATABLE ELEMENTS (a)") {
-    // running without semantic feature should fail
-    run().hasError(
-      GqlHelper.getGql42001_42N54("REPEATABLE ELEMENTS", 6, 1, 7),
-      "Match modes such as `REPEATABLE ELEMENTS` are not supported yet.",
-      p(6, 1, 7)
-    )
-  }
-
   test("DIFFERENT RELATIONSHIPS ((a)-[:REL]->(b)){2}") {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test("((a)-[:REL]->(b)){2}, ((c)-[:REL]->(d))+") {
@@ -88,41 +107,41 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test("REPEATABLE ELEMENTS ((a)-[:REL]->(b)){2}") {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test("REPEATABLE ELEMENTS ((a)-[:REL]->(b)){1,}") {
-    runWith(MatchModes).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasErrors(
       unboundRepeatableElementsSemanticError(p(26, 1, 27))
     )
   }
 
   test("REPEATABLE ELEMENTS ((a)-[:REL]->(b))+") {
-    runWith(MatchModes).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasErrors(
       unboundRepeatableElementsSemanticError(p(26, 1, 27))
     )
   }
 
   test("REPEATABLE ELEMENTS (a)-[:REL*]->(b)") {
-    runWith(MatchModes).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasErrors(
       unboundRepeatableElementsSemanticError(p(26, 1, 27))
     )
   }
 
   test("REPEATABLE ELEMENTS SHORTEST 2 PATH ((a)-[:REL]->(b))+") {
-    runWith(MatchModes).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasErrors(
       unboundRepeatableElementsSemanticError(p(42, 1, 43))
     )
   }
 
   test("REPEATABLE ELEMENTS ANY ((a)-[:REL]->(b))+") {
-    runWith(MatchModes).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasErrors(
       unboundRepeatableElementsSemanticError(p(30, 1, 31))
     )
   }
 
   test("REPEATABLE ELEMENTS SHORTEST 1 PATH GROUPS ((a)-[:REL]->(b))+") {
-    runWith(MatchModes).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasErrors(
       unboundRepeatableElementsSemanticError(p(49, 1, 50))
     )
   }
@@ -132,27 +151,27 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test("REPEATABLE ELEMENTS ((a)-[:REL]->(b)){2}, ((c)-[:REL]->(d))+") {
-    runWith(MatchModes).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasErrors(
       unboundRepeatableElementsSemanticError(p(48, 1, 49))
     )
   }
 
   test("REPEATABLE ELEMENTS ((a)-[:REL]->(b))+, ((c)-[:REL]->(d))+") {
-    runWith(MatchModes).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasErrors(
       unboundRepeatableElementsSemanticError(p(26, 1, 27)),
       unboundRepeatableElementsSemanticError(p(46, 1, 47))
     )
   }
 
   test("REPEATABLE ELEMENTS SHORTEST 1 PATH (a)-[:REL*]->(b), SHORTEST 1 PATH (c)-[:REL*]->(d)") {
-    runWith(MatchModes).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasErrors(
       unboundRepeatableElementsSemanticError(p(42, 1, 43)),
       unboundRepeatableElementsSemanticError(p(76, 1, 77))
     )
   }
 
   test("DIFFERENT RELATIONSHIPS SHORTEST 1 PATH (a)-[:REL*]->(b), SHORTEST 1 PATH (c)-[:REL*]->(d)") {
-    runWith(MatchModes).hasErrors(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasErrors(
       differentRelationshipsSelectivePathPatternSemanticError(p(46, 1, 47))
     )
   }
@@ -181,7 +200,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasNoErrors
+        runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
       }
       test(
         s"""MATCH REPEATABLE ELEMENTS
@@ -189,7 +208,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p1 = $selector (a)-->{1, 32}(b)-->(c)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasNoErrors
+        runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
       }
 
       // Newly introduced strict interior nodes of selective path patterns may not be reused in the same MATCH clause
@@ -199,7 +218,11 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasErrorMessages(invalidEquijoinErrorMsg("x"))
+        runWith(
+          testName,
+          disabledCypherVersions = Set(CypherVersion.Cypher5),
+          MatchModes
+        ).hasErrorMessages(invalidEquijoinErrorMsg("x"))
       }
       test(
         s"""MATCH REPEATABLE ELEMENTS
@@ -207,7 +230,11 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p1 = $selector (a)-->{1, 32}(x)-->(c)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasErrorMessages(invalidEquijoinErrorMsg("x"))
+        runWith(
+          testName,
+          disabledCypherVersions = Set(CypherVersion.Cypher5),
+          MatchModes
+        ).hasErrorMessages(invalidEquijoinErrorMsg("x"))
       }
       // when the variable is already bound in the previous match clause
       test(
@@ -217,7 +244,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p2 = $otherSelector (x)-->{1, 32}(y)-->(z)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasNoErrors
+        runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
       }
       test(
         s"""MATCH (x)
@@ -226,7 +253,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p1 = $selector (a)-->{1, 32}(x)-->(c)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasNoErrors
+        runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
       }
     }
     allSelectiveSelectors.foreach { otherSelector =>
@@ -237,7 +264,11 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p1 = $selector (a)-->{1, 32}(y)-->(c)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasErrorMessages(invalidEquijoinErrorMsg("y"))
+        runWith(
+          testName,
+          disabledCypherVersions = Set(CypherVersion.Cypher5),
+          MatchModes
+        ).hasErrorMessages(invalidEquijoinErrorMsg("y"))
       }
 
       test(
@@ -246,7 +277,11 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p1 = $selector (a)-->{1, 32}(y)-->(y)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasErrorMessages(invalidEquijoinErrorMsg("y"))
+        runWith(
+          testName,
+          disabledCypherVersions = Set(CypherVersion.Cypher5),
+          MatchModes
+        ).hasErrorMessages(invalidEquijoinErrorMsg("y"))
       }
 
       // but it is if the nodes are boundary nodes as well
@@ -256,7 +291,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p1 = $selector (a)-->{1, 32}(y)-->(y)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasNoErrors
+        runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
       }
 
       // Or if they are previously bound
@@ -267,7 +302,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p1 = $selector (a)-->{1, 32}(y)-->(c)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasNoErrors
+        runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
       }
       test(
         s"""MATCH (y)
@@ -276,7 +311,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
            |   p1 = $selector (a)-->{1, 32}(y)-->(y)
            |RETURN count(*)""".stripMargin
       ) {
-        runWith(testName, MatchModes).hasNoErrors
+        runWith(testName, disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
       }
 
     }
@@ -287,11 +322,11 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test("REPEATABLE ELEMENTS (a)-[:REL]->(b), ALL PATHS (c)-[:REL]->(d)") {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test("REPEATABLE ELEMENTS shortestPath((a)-->(b))") {
-    runWith(MatchModes).hasError(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasError(
       GqlHelper.getGql42001_42I39("shortestPath", 26, 1, 27),
       "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
       p(26, 1, 27)
@@ -299,7 +334,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test("DIFFERENT RELATIONSHIPS shortestPath((a)-->(b))") {
-    runWith(MatchModes).hasError(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasError(
       GqlHelper.getGql42001_42I39("shortestPath", 30, 1, 31),
       "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
       p(30, 1, 31)
@@ -307,7 +342,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test("REPEATABLE ELEMENTS allShortestPaths((a)-->(b))") {
-    runWith(MatchModes).hasError(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasError(
       GqlHelper.getGql42001_42I39("allShortestPaths", 26, 1, 27),
       "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
       p(26, 1, 27)
@@ -315,7 +350,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test("REPEATABLE ELEMENTS (a)-->(b) WHERE shortestPath((a)-->(b)) IS NOT NULL") {
-    runWith(MatchModes).hasError(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasError(
       GqlHelper.getGql42001_42I39("shortestPath", 42, 1, 43),
       "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
       p(42, 1, 43)
@@ -323,7 +358,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test("REPEATABLE ELEMENTS (a)-->(b) WHERE EXISTS { MATCH shortestPath((a)-->(b)) }") {
-    runWith(MatchModes).hasError(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasError(
       GqlHelper.getGql42001_42I39("shortestPath", 57, 1, 58),
       "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
       p(57, 1, 58)
@@ -331,7 +366,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test("CALL { MATCH REPEATABLE ELEMENTS (a)-->(b) MATCH shortestPath((c)-->(d)) RETURN * } RETURN *") {
-    run(testName, pipelineWithSemanticFeatures(MatchModes)).hasError(
+    run(testName, pipelineWithSemanticFeatures(MatchModes), disabledVersions = Set(CypherVersion.Cypher5)).hasError(
       GqlHelper.getGql42001_42I39("shortestPath", 49, 1, 50),
       "Mixing shortestPath/allShortestPaths with path selectors (e.g. 'ANY SHORTEST') or explicit match modes ('e.g. DIFFERENT RELATIONSHIPS') is not allowed.",
       p(49, 1, 50)
@@ -339,43 +374,43 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   }
 
   test(s"REPEATABLE ELEMENTS (a)-->(b) MATCH shortestPath((c)-->(d))") {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test(s"DIFFERENT RELATIONSHIPS (a)-->(b) MATCH shortestPath((c)-->(d))") {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test(
     "REPEATABLE ELEMENTS ALL SHORTEST (a)((n1)-[r1]->(n2)){1,5}(b), ALL SHORTEST (b)-[r2]->{2,3}(c)"
   ) {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test(
     "REPEATABLE ELEMENTS ALL SHORTEST (a)((n1)-[r1:R1]->(n2)){1,5}(b)-[r2:R2]->{2,3}(c)"
   ) {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test(
     "REPEATABLE ELEMENTS (b)-[r3:R1]->(c),  ALL SHORTEST (a)((n1)-[r1:R1]->(n2)){1,5}(b)-[r2:R2]->{2,3}(b)"
   ) {
     // b is a strict interior node, but also a boundary node. Therefore, it can be used in other path-patterns.
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test(
     "REPEATABLE ELEMENTS ALL SHORTEST (a)((n1)-[r1:R1]->(n2)){1,2}(i)-[r2:R2]->{2,3}(b), (b)-[r3:R1]->(c), SHORTEST 1 (c)-[:R2]->{2,3}(d)"
   ) {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test(
     "REPEATABLE ELEMENTS (a)--(b), ALL SHORTEST ((b)-[r2]->{2,3}(c) WHERE b.p=a.p)"
   ) {
     // selective path pattern has a predicate referring to another path pattern in the same graph pattern - reference to variable in earlier path pattern
-    runWith(MatchModes).hasError(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasError(
       GqlHelper.getGql42001_42I21(
         java.util.List.of("a"),
         "ALL SHORTEST PATHS ((b) (()-[r2]->()){2, 3} (c) WHERE b.p = a.p)",
@@ -393,7 +428,7 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
     "REPEATABLE ELEMENTS ALL SHORTEST ((b)-[r2]->{2,3}(c) WHERE b.p=a.p), (a)--{,2}(b)"
   ) {
     // selective path pattern has a predicate referring to another path pattern in the same graph pattern - reference to variable in later path pattern
-    runWith(MatchModes).hasError(
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasError(
       GqlHelper.getGql42001_42I21(
         java.util.List.of("a"),
         "ALL SHORTEST PATHS ((b) (()-[r2]->()){2, 3} (c) WHERE b.p = a.p)",
@@ -410,25 +445,25 @@ class MatchModesSemanticAnalysisTest extends CypherFunSuite
   test(
     "(a)--(b) MATCH REPEATABLE ELEMENTS ALL SHORTEST ((b)-[r2]->{2,3}(c) WHERE a.p=c.p)"
   ) {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test(
     "ALL SHORTEST (x)--{,2}(y)--{,2}(z) MATCH REPEATABLE ELEMENTS ALL SHORTEST ((b)-[r2]->{2,3}(c) WHERE b.p=y.p)"
   ) {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test(
     "(a)-[:R]->(e) MATCH REPEATABLE ELEMENTS (a)--(b), ALL SHORTEST ((b)--{2,3}(c)--{,2}(d) WHERE c.p=a.p)"
   ) {
     // a is already bound in a previous clause, therefore c.p=a.p is allowed here
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 
   test(
     "(a)-[:R]->(e) MATCH REPEATABLE ELEMENTS (a)--(b), ALL SHORTEST ((b)--{2,3}(c) WHERE c.p=a.p)"
   ) {
-    runWith(MatchModes).hasNoErrors
+    runWith(disabledCypherVersions = Set(CypherVersion.Cypher5), MatchModes).hasNoErrors
   }
 }

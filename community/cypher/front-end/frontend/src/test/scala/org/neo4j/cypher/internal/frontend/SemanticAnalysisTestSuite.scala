@@ -295,6 +295,18 @@ trait SemanticAnalysisTestSuiteWithDefaultQuery extends SemanticAnalysisTestSuit
 
   def runWith(query: String, features: SemanticFeature*): AnalysisAssertions =
     run(query, pipelineWithSemanticFeatures(features: _*))
+
+  def run(disabledCypherVersions: Set[CypherVersion]): AnalysisAssertions = runWith(disabledCypherVersions)
+
+  def runWith(disabledCypherVersions: Set[CypherVersion], features: SemanticFeature*): AnalysisAssertions =
+    runWith(defaultQuery, disabledCypherVersions: Set[CypherVersion], features: _*)
+
+  def runWith(
+    query: String,
+    disabledCypherVersions: Set[CypherVersion],
+    features: SemanticFeature*
+  ): AnalysisAssertions =
+    run(query, pipelineWithSemanticFeatures(features: _*), disabledVersions = disabledCypherVersions)
 }
 
 trait NameBasedSemanticAnalysisTestSuite extends SemanticAnalysisTestSuiteWithDefaultQuery with TestName {

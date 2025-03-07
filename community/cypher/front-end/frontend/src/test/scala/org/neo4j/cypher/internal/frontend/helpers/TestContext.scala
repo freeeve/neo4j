@@ -33,12 +33,11 @@ import org.scalatestplus.mockito.MockitoSugar.mock
 
 //noinspection TypeAnnotation
 case class TestContext(
+  override val cypherVersion: CypherVersion = CypherVersion.Default,
   override val notificationLogger: InternalNotificationLogger = mock[InternalNotificationLogger],
   override val sessionDatabase: DatabaseReference = null
 ) extends BaseContext {
 
-  override def cypherVersion: CypherVersion =
-    throw new UnsupportedOperationException("This context do not support cypher version")
   override def tracer = CompilationPhaseTracer.NO_TRACING
   override def cypherExceptionFactory: CypherExceptionFactory = OpenCypherExceptionFactory(None)
   override def monitors = mock[Monitors]

@@ -225,6 +225,12 @@ object SemanticCheckContext {
     override def errorMessageProvider: ErrorMessageProvider = EmptyErrorMessageProvider
     override def sessionDatabaseReference: DatabaseReference = null
   }
+
+  def defaultWithVersion(version: CypherVersion): SemanticCheckContext = new SemanticCheckContext {
+    override def cypherVersion: CypherVersion = version
+    override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
+    override def sessionDatabaseReference: DatabaseReference = null
+  }
 }
 
 class OptionSemanticChecking[A](val option: Option[A]) extends AnyVal {

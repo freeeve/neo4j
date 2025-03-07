@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
@@ -49,7 +50,8 @@ class VarLengthPlanningIntegrationTest
     extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport
     with AstConstructionTestSupport
-    with LogicalPlanningAttributesTestSupport {
+    with LogicalPlanningAttributesTestSupport
+    with CypherVersionTestSupport {
 
   test("should handle LIKES*0.LIKES") {
     val planner = plannerBuilder()
@@ -517,7 +519,7 @@ class VarLengthPlanningIntegrationTest
     )
   }
 
-  test("should plan var-length relationships obeying REPEATABLE ELEMENTS MATCH MODE") {
+  testVersionsExcept5("should plan var-length relationships obeying REPEATABLE ELEMENTS MATCH MODE") { version =>
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setRelationshipCardinality("()-[]->()", 10000)
@@ -525,6 +527,7 @@ class VarLengthPlanningIntegrationTest
       .build()
 
     planner.plan(
+      version,
       """MATCH REPEATABLE ELEMENTS ()-[r*3..5]-()
         |RETURN r""".stripMargin
     ) should equal(
@@ -555,24 +558,26 @@ class VarLengthPlanningIntegrationTest
     )
   }
 
-  test("should plan pruning var-length relationships obeying REPEATABLE ELEMENTS MATCH MODE") {
-    val planner = plannerBuilder()
-      .setAllNodesCardinality(1000)
-      .setRelationshipCardinality("()-[]->()", 10000)
-      .addSemanticFeature(MatchModes)
-      .build()
-
-    planner.plan(
-      """MATCH REPEATABLE ELEMENTS (s)-[r*3..5]-()
-        |RETURN DISTINCT s""".stripMargin
-    ) should equal(
-      planner.planBuilder()
-        .produceResults("s")
-        .distinct("s AS s")
-        .pruningVarExpand("(s)-[r*3..5]-(anon_0)", matchMode = TraversalMatchMode.Walk)
-        .allNodeScan("s")
+  testVersionsExcept5("should plan pruning var-length relationships obeying REPEATABLE ELEMENTS MATCH MODE") {
+    version =>
+      val planner = plannerBuilder()
+        .setAllNodesCardinality(1000)
+        .setRelationshipCardinality("()-[]->()", 10000)
+        .addSemanticFeature(MatchModes)
         .build()
-    )
+
+      planner.plan(
+        version,
+        """MATCH REPEATABLE ELEMENTS (s)-[r*3..5]-()
+          |RETURN DISTINCT s""".stripMargin
+      ) should equal(
+        planner.planBuilder()
+          .produceResults("s")
+          .distinct("s AS s")
+          .pruningVarExpand("(s)-[r*3..5]-(anon_0)", matchMode = TraversalMatchMode.Walk)
+          .allNodeScan("s")
+          .build()
+      )
   }
 
   test("should plan pruning var-length relationships obeying DIFFERENT RELATIONSHIPS MATCH MODE") {
@@ -595,24 +600,26 @@ class VarLengthPlanningIntegrationTest
     )
   }
 
-  test("should plan BFS pruning var-length relationships obeying REPEATABLE ELEMENTS MATCH MODE") {
-    val planner = plannerBuilder()
-      .setAllNodesCardinality(1000)
-      .setRelationshipCardinality("()-[]->()", 10000)
-      .addSemanticFeature(MatchModes)
-      .build()
-
-    planner.plan(
-      """MATCH REPEATABLE ELEMENTS (s)-[r*1..5]-()
-        |RETURN DISTINCT s""".stripMargin
-    ) should equal(
-      planner.planBuilder()
-        .produceResults("s")
-        .distinct("s AS s")
-        .bfsPruningVarExpand("(s)-[r*1..5]-(anon_0)", matchMode = TraversalMatchMode.Walk)
-        .allNodeScan("s")
+  testVersionsExcept5("should plan BFS pruning var-length relationships obeying REPEATABLE ELEMENTS MATCH MODE") {
+    version =>
+      val planner = plannerBuilder()
+        .setAllNodesCardinality(1000)
+        .setRelationshipCardinality("()-[]->()", 10000)
+        .addSemanticFeature(MatchModes)
         .build()
-    )
+
+      planner.plan(
+        version,
+        """MATCH REPEATABLE ELEMENTS (s)-[r*1..5]-()
+          |RETURN DISTINCT s""".stripMargin
+      ) should equal(
+        planner.planBuilder()
+          .produceResults("s")
+          .distinct("s AS s")
+          .bfsPruningVarExpand("(s)-[r*1..5]-(anon_0)", matchMode = TraversalMatchMode.Walk)
+          .allNodeScan("s")
+          .build()
+      )
   }
 
   test("should plan BFS pruning var-length relationships obeying DIFFERENT RELATIONSHIPS MATCH MODE") {
@@ -670,7 +677,9 @@ class VarLengthPlanningIntegrationTest
     )
   }
 
-  test("should plan varExpand with relationship equality using Walk semantics when REPEATABLE ELEMENTS is used") {
+  testVersionsExcept5(
+    "should plan varExpand with relationship equality using Walk semantics when REPEATABLE ELEMENTS is used"
+  ) { version =>
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setLabelCardinality("A", 10)
@@ -688,6 +697,7 @@ class VarLengthPlanningIntegrationTest
       .build()
 
     planner.plan(
+      version,
       """MATCH REPEATABLE ELEMENT (a:A)-[r:R]->{1,5}(b:B) MATCH REPEATABLE ELEMENT (a:A)-[r:R*1..5]->(c:C)
         |RETURN r""".stripMargin
     ) should equal(
@@ -717,9 +727,9 @@ class VarLengthPlanningIntegrationTest
     )
   }
 
-  test(
+  testVersionsExcept5(
     "keep using Trail-semantics for varExpand when it has relationship equality to paths that cannot have repeated relationships - (REPEATABLE ELEMENTS on the quantified relationship)"
-  ) {
+  ) { version =>
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setLabelCardinality("A", 10)
@@ -737,6 +747,7 @@ class VarLengthPlanningIntegrationTest
       .build()
 
     planner.plan(
+      version,
       """MATCH REPEATABLE ELEMENT (a:A)-[r:R]->{1,5}(b:B) MATCH (a:A)-[r:R*1..5]->(c:C)
         |RETURN r""".stripMargin
     ) should equal(
@@ -754,9 +765,9 @@ class VarLengthPlanningIntegrationTest
     )
   }
 
-  test(
+  testVersionsExcept5(
     "keep using Trail-semantics for varExpand when it has relationship equality to paths that cannot have repeated relationships - (REPEATABLE ELEMENTS on the varLength relationship)"
-  ) {
+  ) { version =>
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
       .setLabelCardinality("A", 10)
@@ -774,6 +785,7 @@ class VarLengthPlanningIntegrationTest
       .build()
 
     planner.plan(
+      version,
       """MATCH (a:A)-[r:R]->{1,5}(b:B) MATCH REPEATABLE ELEMENT (a:A)-[r:R*1..5]->(c:C)
         |RETURN r""".stripMargin
     ) should equal(

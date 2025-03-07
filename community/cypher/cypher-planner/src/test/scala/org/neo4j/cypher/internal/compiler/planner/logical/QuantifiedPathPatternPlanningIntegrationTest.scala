@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
@@ -86,7 +87,7 @@ class QuantifiedPathPatternAlignedPlanningIntegrationTest extends QuantifiedPath
 }
 
 trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
-    with AstConstructionTestSupport with LogicalPlanningAttributesTestSupport {
+    with AstConstructionTestSupport with LogicalPlanningAttributesTestSupport with CypherVersionTestSupport {
 
   protected def databaseFormat: DatabaseFormat
 
@@ -3426,7 +3427,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan.folder.findAllByClass[VarExpand].size shouldBe 1
   }
 
-  test("Should plan simple bound quantifier under REPEATABLE ELEMENTS") {
+  testVersionsExcept5("Should plan simple bound quantifier under REPEATABLE ELEMENTS") { version =>
     val query =
       """MATCH REPEATABLE ELEMENTS
         |  (u:User)((n)-[]->(m)) {, 100}
@@ -3443,7 +3444,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       reverseGroupVariableProjections = false
     )
 
-    planner.plan(query) should equal(
+    planner.plan(version, query) should equal(
       planner.planBuilder()
         .produceResults("n", "m")
         .repeatWalk(`(u)((n)-[]-(m)) {, 100}`)
@@ -3454,51 +3455,52 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     )
   }
 
-  test("Should plan bound quantifiers on 2 qpps with 2 relationships each under REPEATABLE ELEMENTS") {
-    val query =
-      """MATCH REPEATABLE ELEMENTS
-        |  (u:User)
-        |    ((n)-[]->(m)-[]->(o)) {, 100}
-        |  (p)
-        |    ((r)-[]->(s)-[]->(t)) {, 100}
-        |RETURN u, t""".stripMargin
-    val `(u)((n)-...-(o)) {, 100}(p)` = WalkParameters(
-      min = 0,
-      max = Limited(100),
-      start = "u",
-      end = "p",
-      innerStart = "n",
-      innerEnd = "o",
-      groupNodes = Set.empty,
-      groupRelationships = Set.empty,
-      reverseGroupVariableProjections = false
-    )
-    val `(p)((r)-...-(t)) {, 100}` = WalkParameters(
-      min = 0,
-      max = Limited(100),
-      start = "p",
-      end = "anon_0",
-      innerStart = "r",
-      innerEnd = "t",
-      groupNodes = Set(("t", "t")),
-      groupRelationships = Set.empty,
-      reverseGroupVariableProjections = false
-    )
+  testVersionsExcept5("Should plan bound quantifiers on 2 qpps with 2 relationships each under REPEATABLE ELEMENTS") {
+    version =>
+      val query =
+        """MATCH REPEATABLE ELEMENTS
+          |  (u:User)
+          |    ((n)-[]->(m)-[]->(o)) {, 100}
+          |  (p)
+          |    ((r)-[]->(s)-[]->(t)) {, 100}
+          |RETURN u, t""".stripMargin
+      val `(u)((n)-...-(o)) {, 100}(p)` = WalkParameters(
+        min = 0,
+        max = Limited(100),
+        start = "u",
+        end = "p",
+        innerStart = "n",
+        innerEnd = "o",
+        groupNodes = Set.empty,
+        groupRelationships = Set.empty,
+        reverseGroupVariableProjections = false
+      )
+      val `(p)((r)-...-(t)) {, 100}` = WalkParameters(
+        min = 0,
+        max = Limited(100),
+        start = "p",
+        end = "anon_0",
+        innerStart = "r",
+        innerEnd = "t",
+        groupNodes = Set(("t", "t")),
+        groupRelationships = Set.empty,
+        reverseGroupVariableProjections = false
+      )
 
-    planner.plan(query) should equal(
-      planner.planBuilder()
-        .produceResults("u", "t")
-        .repeatWalk(`(p)((r)-...-(t)) {, 100}`)
-        .|.expand("(s)-[anon_4]->(t)")
-        .|.expand("(r)-[anon_3]->(s)")
-        .|.argument("r")
-        .repeatWalk(`(u)((n)-...-(o)) {, 100}(p)`)
-        .|.expand("(m)-[anon_2]->(o)")
-        .|.expand("(n)-[anon_1]->(m)")
-        .|.argument("n")
-        .nodeByLabelScan("u", "User")
-        .build()
-    )
+      planner.plan(version, query) should equal(
+        planner.planBuilder()
+          .produceResults("u", "t")
+          .repeatWalk(`(p)((r)-...-(t)) {, 100}`)
+          .|.expand("(s)-[anon_4]->(t)")
+          .|.expand("(r)-[anon_3]->(s)")
+          .|.argument("r")
+          .repeatWalk(`(u)((n)-...-(o)) {, 100}(p)`)
+          .|.expand("(m)-[anon_2]->(o)")
+          .|.expand("(n)-[anon_1]->(m)")
+          .|.argument("n")
+          .nodeByLabelScan("u", "User")
+          .build()
+      )
   }
 }
 

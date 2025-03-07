@@ -57,7 +57,7 @@ class StatefulShortestPlanningHintsInserterTest extends CypherFunSuite with Logi
       statefulShortestPlanningMode = statefulShortestPlanningMode
     )
 
-    val q = buildSinglePlannerQuery(query)
+    val q = buildSinglePlannerQuery(version, query, None, None)
     q.endoRewrite(StatefulShortestPlanningHintsInserter.instance(mock[LogicalPlanState], context))
   }
 
@@ -123,9 +123,10 @@ class StatefulShortestPlanningHintsInserterTest extends CypherFunSuite with Logi
     q.allHints should be(Set(UsingStatefulShortestPathAll(NonEmptyList(v"a", v"b", v"r", v"c", v"d"))))
   }
 
-  test("should insert multiple hints if multiple SSPs in a MATCH") {
+  testVersionsExcept5("should insert multiple hints if multiple SSPs in a MATCH") { version =>
     val q = buildSinglePlannerQueryAndRewrite(
-      """MATCH REPEATABLE ELEMENTS 
+      version,
+      """MATCH REPEATABLE ELEMENTS
         |  ANY SHORTEST (a) ((b)-[r]->(c)){,100} (d),
         |  ANY SHORTEST (a2) ((b2)-[r2]->(c2)){,100} (d2)
         |RETURN *""".stripMargin,

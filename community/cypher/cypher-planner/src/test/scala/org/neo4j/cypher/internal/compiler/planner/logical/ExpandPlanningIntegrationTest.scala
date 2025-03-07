@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.PlanVarExpandInto
 import org.neo4j.cypher.internal.CypherVersion.Cypher5
+import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
@@ -44,7 +45,7 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.schema.IndexType
 
 class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningIntegrationTestSupport
-    with AstConstructionTestSupport {
+    with AstConstructionTestSupport with CypherVersionTestSupport {
 
   test("Should build plans containing expand for single relationship pattern") {
     val cfg = plannerBuilder()
@@ -1012,23 +1013,25 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
     )
   }
 
-  test("Should handle repeated relationship variables under REPEATABLE ELEMENTS - even with hint") {
-    val planner = plannerBuilder()
-      .setAllNodesCardinality(1000)
-      .setRelationshipCardinality("()-[]->()", 10000)
-      .setLabelCardinality("L", 100)
-      .addSemanticFeature(MatchModes)
-      .build()
-
-    planner.plan(
-      """MATCH REPEATABLE ELEMENTS (n:L)-[r]->(a), (b)-[r]->(c) USING SCAN n:L RETURN n,a,b,c""".stripMargin
-    ) should equal(
-      planner.planBuilder()
-        .produceResults("n", "a", "b", "c")
-        .projectEndpoints("(b)-[r]->(c)", startInScope = false, endInScope = false)
-        .expandAll("(n)-[r]->(a)")
-        .nodeByLabelScan("n", "L", IndexOrderNone)
+  testVersionsExcept5("Should handle repeated relationship variables under REPEATABLE ELEMENTS - even with hint") {
+    version =>
+      val planner = plannerBuilder()
+        .setAllNodesCardinality(1000)
+        .setRelationshipCardinality("()-[]->()", 10000)
+        .setLabelCardinality("L", 100)
+        .addSemanticFeature(MatchModes)
         .build()
-    )
+
+      planner.plan(
+        version,
+        """MATCH REPEATABLE ELEMENTS (n:L)-[r]->(a), (b)-[r]->(c) USING SCAN n:L RETURN n,a,b,c""".stripMargin
+      ) should equal(
+        planner.planBuilder()
+          .produceResults("n", "a", "b", "c")
+          .projectEndpoints("(b)-[r]->(c)", startInScope = false, endInScope = false)
+          .expandAll("(n)-[r]->(a)")
+          .nodeByLabelScan("n", "L", IndexOrderNone)
+          .build()
+      )
   }
 }

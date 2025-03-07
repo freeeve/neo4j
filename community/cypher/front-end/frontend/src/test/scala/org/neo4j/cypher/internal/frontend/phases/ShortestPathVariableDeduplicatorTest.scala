@@ -51,36 +51,39 @@ class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
     )
   }
 
-  test("should rewrite repeated interior relationship under REPEATED ELEMENTS MATCH mode") {
-    assertRewritten(
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b]->(e)-[b]->(f)) RETURN b",
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b]->(e)-[`  b@0`]->(f) WHERE `  b@0` = b) RETURN b"
-    )
-    assertRewritten(
-      "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b*0..5]->(e)-[b*0..5]->(f)) RETURN b",
-      // MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b*0..5]->(e)-[`  b@0`*0..5]->(f) WHERE `  b@0` = b) RETURN b
-      singleQuery(
-        match_shortest(
-          anyShortestPathSelector(1),
-          parenthesizedPath(
-            relationshipChain(
-              nodePat(Some("d")),
-              relPat(Some("b"), None, Some(Some(range(Some(0), Some(5))))),
-              nodePat(Some("e")),
-              relPat(Some("  b@0"), None, Some(Some(range(Some(0), Some(5))))),
-              nodePat(Some("f"))
-            ),
-            Some(ands(
-              equals(v"  b@0", v"b"),
-              varLengthUpperLimitPredicate("b", 5)
-              // varLengthUpperLimitPredicate("  b@0", 5)
-            ))
-          ),
-          repeatableElementsMatchMode()
-        ),
-        returnVariables("b")
+  testVersionsExcept5("should rewrite repeated interior relationship under REPEATED ELEMENTS MATCH mode") {
+    version =>
+      assertRewritten(
+        version,
+        "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b]->(e)-[b]->(f)) RETURN b",
+        "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b]->(e)-[`  b@0`]->(f) WHERE `  b@0` = b) RETURN b"
       )
-    )
+      assertRewritten(
+        version,
+        "MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b*0..5]->(e)-[b*0..5]->(f)) RETURN b",
+        // MATCH REPEATABLE ELEMENTS ANY SHORTEST ((d)-[b*0..5]->(e)-[`  b@0`*0..5]->(f) WHERE `  b@0` = b) RETURN b
+        singleQuery(
+          match_shortest(
+            anyShortestPathSelector(1),
+            parenthesizedPath(
+              relationshipChain(
+                nodePat(Some("d")),
+                relPat(Some("b"), None, Some(Some(range(Some(0), Some(5))))),
+                nodePat(Some("e")),
+                relPat(Some("  b@0"), None, Some(Some(range(Some(0), Some(5))))),
+                nodePat(Some("f"))
+              ),
+              Some(ands(
+                equals(v"  b@0", v"b"),
+                varLengthUpperLimitPredicate("b", 5)
+                // varLengthUpperLimitPredicate("  b@0", 5)
+              ))
+            ),
+            repeatableElementsMatchMode()
+          ),
+          returnVariables("b")
+        )
+      )
   }
 
   test("should integrate rewritten predicates with existing ones") {

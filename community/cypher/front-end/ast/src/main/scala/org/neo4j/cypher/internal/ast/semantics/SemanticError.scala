@@ -1429,6 +1429,15 @@ object SemanticError {
     )
   }
 
+  def matchModesNotSupportedInCypher5(matchMode: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N54(matchMode, position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      s"Match modes such as `$matchMode` are not supported in Cypher 5.",
+      position
+    )
+  }
+
   def invalidImportingWithKeyword(keyword: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42I28(keyword, position.offset, position.line, position.column)
     SemanticError(

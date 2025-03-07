@@ -55,4 +55,12 @@ trait CypherVersionTestSupport {
     test(testName) {
       CypherVersion.values().foreach(v => withClue(s"CYPHER $v\n")(f(v)))
     }
+
+  def testVersionsExcept5(testName: String)(f: CypherVersion => Any)(implicit
+    pos: org.scalactic.source.Position): Unit =
+    test(testName) {
+      CypherVersion.values().filter(version => version != CypherVersion.Cypher5).foreach(v =>
+        withClue(s"CYPHER $v\n")(f(v))
+      )
+    }
 }
