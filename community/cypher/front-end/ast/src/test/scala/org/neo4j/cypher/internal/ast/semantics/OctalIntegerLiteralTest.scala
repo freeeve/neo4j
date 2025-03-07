@@ -43,17 +43,41 @@ class OctalIntegerLiteralTest extends SemanticFunSuite {
 
   // old syntax
   test("throws error for invalid old syntax octal numbers") {
-    assertSemanticError("012a3", "invalid literal number")
-    assertSemanticError("01911", "invalid literal number")
-    assertSemanticError("0O22", "invalid literal number")
-    assertSemanticError("0O0", "invalid literal number")
-    assertSemanticError("0O777", "invalid literal number")
-    assertSemanticError("-0O123", "invalid literal number")
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "012a3", 4, 0, 4),
+      "012a3",
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "01911", 4, 0, 4),
+      "01911",
+      "invalid literal number"
+    )
+    assertSemanticError(GqlHelper.getGql42001_42I07("octal integer", "0O22", 4, 0, 4), "0O22", "invalid literal number")
+    assertSemanticError(GqlHelper.getGql42001_42I07("octal integer", "0O0", 4, 0, 4), "0O0", "invalid literal number")
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "0O777", 4, 0, 4),
+      "0O777",
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "-0O123", 4, 0, 4),
+      "-0O123",
+      "invalid literal number"
+    )
   }
 
   test("throws error for invalid octal numbers") {
-    assertSemanticError("0o12a3", "invalid literal number")
-    assertSemanticError("0o1911", "invalid literal number")
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "0o12a3", 4, 0, 4),
+      "0o12a3",
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "0o1911", 4, 0, 4),
+      "0o1911",
+      "invalid literal number"
+    )
   }
 
   // old syntax
@@ -76,12 +100,6 @@ class OctalIntegerLiteralTest extends SemanticFunSuite {
 
   test("correctly parse octal Long.MIN_VALUE") {
     assert(SignedOctalIntegerLiteral("-0o1000000000000000000000")(DummyPosition(0)).value === Long.MinValue)
-  }
-
-  private def assertSemanticError(stringValue: String, errorMessage: String): Unit = {
-    val literal = SignedOctalIntegerLiteral(stringValue)(DummyPosition(4))
-    val result = SemanticExpressionCheck.check(SemanticContext.Simple, literal).run(SemanticState.clean)
-    assert(result.errors === Vector(SemanticError(errorMessage, DummyPosition(4))))
   }
 
   private def assertSemanticError(gql: ErrorGqlStatusObject, stringValue: String, errorMessage: String): Unit = {

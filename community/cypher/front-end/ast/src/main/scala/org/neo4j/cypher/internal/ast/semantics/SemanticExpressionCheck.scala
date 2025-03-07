@@ -729,7 +729,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           if (x.stringVal matches "^-?[1-9][0-9]*$") {
             SemanticError.numberTooLarge("integer", x.stringVal, x.position)
           } else {
-            SemanticError("invalid literal number", x.position)
+            SemanticError.invalidLiteralNumber("decimal integer", x.stringVal, x.position)
           }
         } chain specifyType(CTInteger, x)
 
@@ -737,9 +737,9 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
         val stringVal = x.stringVal
         when(!validNumber(x)) {
           if (stringVal matches "^-?0o?[0-7]+$") {
-            SemanticError.numberTooLarge("integer", x.stringVal, x.position)
+            SemanticError.numberTooLarge("integer", stringVal, x.position)
           } else {
-            SemanticError("invalid literal number", x.position)
+            SemanticError.invalidLiteralNumber("octal integer", stringVal, x.position)
           }
         } ifOkChain {
           (state: SemanticState) =>
@@ -751,11 +751,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
                     stringVal.indexOf('0') + 1
                   ) != '_'
                 ) {
-                  val newStringVal = stringVal.patch(stringVal.indexOf('0') + 1, "o", 0)
-                  Seq(SemanticError(
-                    s"The octal integer literal syntax `$stringVal` is no longer supported, please use `$newStringVal` instead",
-                    x.position
-                  ))
+                  Seq(SemanticError.invalidOctalIntegerSyntax(stringVal, x.position))
                 } else
                   Seq.empty[SemanticErrorDef]
               SemanticCheckResult(state, errors)
@@ -768,18 +764,14 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           if (stringVal matches "^-?0x[0-9a-fA-F]+$") {
             SemanticError.numberTooLarge("integer", x.stringVal, x.position)
           } else {
-            SemanticError("invalid literal number", x.position)
+            SemanticError.invalidLiteralNumber("hex integer", stringVal, x.position)
           }
         } ifOkChain {
           (state: SemanticState) =>
             {
               val errors =
                 if (stringVal.charAt(stringVal.indexOf('0') + 1) == 'X') {
-                  val newStringVal = stringVal.replace('X', 'x')
-                  Seq(SemanticError(
-                    s"The hex integer literal syntax `$stringVal` is no longer supported, please use `$newStringVal` instead",
-                    x.position
-                  ))
+                  Seq(SemanticError.invalidHexIntegerSyntax(stringVal, x.position))
                 } else
                   Seq.empty[SemanticErrorDef]
               SemanticCheckResult(state, errors)
@@ -788,7 +780,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
       case x: DecimalDoubleLiteral =>
         when(!validNumber(x)) {
-          SemanticError("invalid literal number", x.position)
+          SemanticError.invalidLiteralNumber("decimal double", x.stringVal, x.position)
         } ifOkChain
           when(x.value.isInfinite) {
             SemanticError.numberTooLarge("floating point number", x.stringVal, x.position)

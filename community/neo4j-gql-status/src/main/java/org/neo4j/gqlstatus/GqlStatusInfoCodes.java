@@ -2614,7 +2614,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42I07(
             new GqlStatus("42I07"),
             """
-                    The given { %s } integer literal { %s } is invalid.""",
+                    The given { %s } literal { %s } is invalid.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,

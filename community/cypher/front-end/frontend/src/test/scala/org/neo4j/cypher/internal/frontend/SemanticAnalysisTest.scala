@@ -744,9 +744,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       .hasError(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(49, 1, 50)
-          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N44)
             .atPosition(49, 1, 50)
             .withParam(GqlParams.StringParam.variable, "p")
+            .withParam(GqlParams.StringParam.clause, "WITH")
             .build())
           .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
@@ -759,9 +760,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       .hasError(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(49, 1, 50)
-          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N44)
             .atPosition(49, 1, 50)
             .withParam(GqlParams.StringParam.variable, "p")
+            .withParam(GqlParams.StringParam.clause, "WITH")
             .build())
           .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
@@ -774,9 +776,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       .hasError(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(51, 1, 52)
-          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N44)
             .atPosition(51, 1, 52)
             .withParam(GqlParams.StringParam.variable, "p")
+            .withParam(GqlParams.StringParam.clause, "RETURN")
             .build())
           .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
@@ -789,9 +792,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       .hasError(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(51, 1, 52)
-          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N44)
             .atPosition(51, 1, 52)
             .withParam(GqlParams.StringParam.variable, "p")
+            .withParam(GqlParams.StringParam.clause, "RETURN")
             .build())
           .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
@@ -804,9 +808,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       .hasError(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(46, 1, 47)
-          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N44)
             .atPosition(46, 1, 47)
             .withParam(GqlParams.StringParam.variable, "p")
+            .withParam(GqlParams.StringParam.clause, "WITH")
             .build())
           .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",
@@ -819,9 +824,10 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       .hasError(
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
           .atPosition(46, 1, 47)
-          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N62)
+          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N44)
             .atPosition(46, 1, 47)
             .withParam(GqlParams.StringParam.variable, "p")
+            .withParam(GqlParams.StringParam.clause, "WITH")
             .build())
           .build(),
         "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: p",

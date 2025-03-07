@@ -19,9 +19,11 @@ package org.neo4j.cypher.internal.rewriting
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
+import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory.SyntaxException
 import org.neo4j.cypher.internal.util.Rewriter
@@ -1245,20 +1247,20 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     "WITH: aggregating: does not change grouping set when introducing aliases for ORDER BY with non-grouping expression"
   ) {
     // Note: using a non-grouping expression for ORDER BY when aggregating is invalid, and will be caught during semantic check
-    assertNotRewrittenAndSemanticErrors(
+    assertNotRewrittenAndSemanticGqlErrors(
       """MATCH (n)
         |WITH DISTINCT n.prop AS prop ORDER BY n.foo
         |RETURN prop AS prop
       """.stripMargin,
-      "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: n (line 2, column 39 (offset: 48))"
+      SemanticError.inaccessibleVariable("n", "WITH", InputPosition(48, 2, 39))
     )
 
-    assertNotRewrittenAndSemanticErrors(
+    assertNotRewrittenAndSemanticGqlErrors(
       """MATCH (n)
         |WITH n.prop AS prop, collect(n.foo) AS foos ORDER BY n.foo
         |RETURN prop AS prop, foos AS foos
       """.stripMargin,
-      "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: n (line 2, column 54 (offset: 63))"
+      SemanticError.inaccessibleVariable("n", "WITH", InputPosition(63, 2, 54))
     )
   }
 
@@ -1266,37 +1268,37 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     "RETURN: aggregating: does not change grouping set when introducing aliases for ORDER BY with non-grouping expression"
   ) {
     // Note: using a non-grouping expression for ORDER BY when aggregating is invalid, and will be caught during semantic check
-    assertNotRewrittenAndSemanticErrors(
+    assertNotRewrittenAndSemanticGqlErrors(
       """MATCH (n)
         |RETURN DISTINCT n.prop AS prop ORDER BY n.foo
       """.stripMargin,
-      "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: n (line 2, column 41 (offset: 50))"
+      SemanticError.inaccessibleVariable("n", "RETURN", InputPosition(50, 2, 41))
     )
 
-    assertNotRewrittenAndSemanticErrors(
+    assertNotRewrittenAndSemanticGqlErrors(
       """MATCH (n)
         |RETURN n.prop AS prop, collect(n.foo) AS foos ORDER BY n.foo
       """.stripMargin,
-      "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: n (line 2, column 56 (offset: 65))"
+      SemanticError.inaccessibleVariable("n", "RETURN", InputPosition(65, 2, 56))
     )
   }
 
   test("aggregating: does not change grouping set when introducing aliases for WHERE with non-grouping expression") {
     // Note: using a non-grouping expression for ORDER BY when aggregating is invalid, and will be caught during semantic check
-    assertNotRewrittenAndSemanticErrors(
+    assertNotRewrittenAndSemanticGqlErrors(
       """MATCH (n)
         |WITH DISTINCT n.prop AS prop WHERE n.foo
         |RETURN prop AS prop
       """.stripMargin,
-      "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: n (line 2, column 36 (offset: 45))"
+      SemanticError.inaccessibleVariable("n", "WITH", InputPosition(45, 2, 36))
     )
 
-    assertNotRewrittenAndSemanticErrors(
+    assertNotRewrittenAndSemanticGqlErrors(
       """MATCH (n)
         |WITH n.prop AS prop, collect(n.foo) AS foos WHERE n.foo
         |RETURN prop AS prop, foos AS foos
       """.stripMargin,
-      "In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: n (line 2, column 51 (offset: 60))"
+      SemanticError.inaccessibleVariable("n", "WITH", InputPosition(60, 2, 51))
     )
   }
 
@@ -1506,6 +1508,12 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
 
   protected def assertNotRewrittenAndSemanticErrors(query: String, semanticErrors: String*): Unit = {
     assertRewriteAndSemanticError(query, query, semanticErrors: _*)
+  }
+
+  protected def assertNotRewrittenAndSemanticGqlErrors(query: String, semanticErrors: SemanticError*): Unit = {
+    val checkResult = rewrite(query, query)
+    val errors = checkResult.errors
+    errors should contain theSameElementsAs semanticErrors
   }
 
   protected def assertNotRewrittenAndSemanticErrors(

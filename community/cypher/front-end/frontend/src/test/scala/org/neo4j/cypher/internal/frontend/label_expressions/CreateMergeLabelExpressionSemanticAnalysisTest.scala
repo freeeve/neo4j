@@ -142,8 +142,7 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
       GqlHelper.getGql42001_42I35(offset + 9, 1, offset + 10),
       s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause",
       InputPosition(offset + 9, 1, offset + 10), // Position of the rel type expression
-      // Not ported yet
-      null,
+      GqlHelper.getGql42001_42I14(statement.toString, offset + 2, 1, offset + 3),
       s"A single relationship type must be specified for $statement",
       InputPosition(offset + 2, 1, offset + 3) // Position of the relationship
     )
@@ -154,8 +153,7 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
       GqlHelper.getGql42001_42I35(offset + 9, 1, offset + 10),
       s"Relationship type expressions in patterns are not allowed in a $statement clause, but only in a MATCH clause",
       InputPosition(offset + 9, 1, offset + 10), // Position of the rel type expression
-      // Not ported yet
-      null,
+      GqlHelper.getGql42001_42I14(statement.toString, offset + 2, 1, offset + 3),
       s"A single relationship type must be specified for $statement",
       InputPosition(offset + 2, 1, offset + 3) // Position of the relationship
     )
@@ -163,8 +161,7 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
 
   test("()-[:!Rel1]->()") {
     run().hasErrors(
-      // Not ported yet
-      null,
+      GqlHelper.getGql42001_42I14(statement.toString, offset + 2, 1, offset + 3),
       s"A single plain relationship type like `:Rel1` must be specified for $statement",
       InputPosition(offset + 2, 1, offset + 3), // Position of the relationship,
       GqlHelper.getGql42001_42I35(offset + 5, 1, offset + 6),
@@ -210,8 +207,7 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
 
   test("()-[IS !Rel1]->()") {
     run().hasErrors(
-      // Not ported yet
-      null,
+      GqlHelper.getGql42001_42I14(statement.toString, offset + 2, 1, offset + 3),
       s"A single plain relationship type like `:Rel1` must be specified for $statement",
       InputPosition(offset + 2, 1, offset + 3), // Position of the relationship
       GqlHelper.getGql42001_42I35(offset + 7, 1, offset + 8),

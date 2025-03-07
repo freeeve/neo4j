@@ -32,7 +32,7 @@ sealed trait SemanticErrorDef {
   def msg: String
   def position: InputPosition
   def gqlStatusObject: ErrorGqlStatusObject
-  def withMsg(message: String): SemanticErrorDef
+  def withMsg(error: SemanticError): SemanticErrorDef
 }
 
 final case class SemanticError(
@@ -41,7 +41,7 @@ final case class SemanticError(
   override val position: InputPosition
 ) extends SemanticErrorDef {
   def this(msg: String, position: InputPosition) = this(null, msg, position)
-  override def withMsg(message: String): SemanticError = copy(msg = message)
+  override def withMsg(error: SemanticError): SemanticError = error
 }
 
 object SemanticError {
@@ -1674,6 +1674,71 @@ object SemanticError {
       position
     )
   }
+
+  def invalidLiteralNumber(value: String, input: String, position: InputPosition): SemanticError = {
+    invalidIntegerSyntax(value, input, position, "invalid literal number")
+  }
+
+  def invalidOctalIntegerSyntax(input: String, position: InputPosition): SemanticError = {
+    val newInput = input.patch(input.indexOf('0') + 1, "o", 0)
+    invalidIntegerSyntax(
+      "octal integer",
+      input,
+      position,
+      s"The octal integer literal syntax `$input` is no longer supported, please use `$newInput` instead"
+    )
+  }
+
+  def invalidHexIntegerSyntax(input: String, position: InputPosition): SemanticError =
+    invalidIntegerSyntax(
+      "hex integer",
+      input,
+      position,
+      s"The hex integer literal syntax `$input` is no longer supported, please use `${input.replace('X', 'x')}` instead"
+    )
+
+  private def invalidIntegerSyntax(
+    valueType: String,
+    input: String,
+    position: InputPosition,
+    legacyErrorMessage: String
+  ): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I07(
+        valueType,
+        input,
+        position.offset,
+        position.line,
+        position.column
+      ),
+      legacyErrorMessage,
+      position
+    )
+  }
+
+  def invalidNumberOfRelationshipTypes(
+    variable: String,
+    position: InputPosition,
+    legacyErrorMessage: String
+  ): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I14(variable, position.offset, position.line, position.column),
+      legacyErrorMessage,
+      position
+    )
+  }
+
+  def inaccessibleVariable(
+    variable: String,
+    clause: String,
+    position: InputPosition
+  ): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42N44(variable, clause, position.offset, position.line, position.column),
+      s"In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: $variable",
+      position
+    )
+  }
 }
 
 final case class FeatureError(
@@ -1685,7 +1750,7 @@ final case class FeatureError(
 
   def this(msg: String, featureError: SemanticFeature, position: InputPosition) =
     this(null, msg, featureError, position)
-  override def withMsg(message: String): FeatureError = copy(msg = message)
+  override def withMsg(error: SemanticError): FeatureError = copy(msg = error.msg)
 }
 
 object FeatureError {

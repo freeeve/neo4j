@@ -702,13 +702,22 @@ trait SingleRelTypeCheck {
 
   private def checkRelTypes(rel: RelationshipPattern): SemanticCheck =
     rel.labelExpression match {
-      case None                          => SemanticError(exactlyOneRelErrorMessage(self.name), rel.position)
+      case None =>
+        SemanticError.invalidNumberOfRelationshipTypes(self.name, rel.position, exactlyOneRelErrorMessage(self.name))
       case Some(Leaf(RelTypeName(_), _)) => success
       case Some(DynamicLeaf(DynamicRelTypeExpression(expr, _), _)) => expr match {
           case ListLiteral(list) if list.isEmpty =>
-            SemanticError(exactlyOneRelErrorMessage(self.name), rel.position)
+            SemanticError.invalidNumberOfRelationshipTypes(
+              self.name,
+              rel.position,
+              exactlyOneRelErrorMessage(self.name)
+            )
           case ListLiteral(list) if list.size != 1 =>
-            SemanticError(tooManyTypesRelErrorMessage("", "", self.name), rel.position)
+            SemanticError.invalidNumberOfRelationshipTypes(
+              self.name,
+              rel.position,
+              tooManyTypesRelErrorMessage("", "", self.name)
+            )
           case _ => success
         }
       case Some(other) =>
@@ -716,7 +725,11 @@ trait SingleRelTypeCheck {
         val (maybePlain, exampleString) =
           if (types.size == 1) ("plain ", s"like `:${types.head.name}` ")
           else ("", "")
-        SemanticError(tooManyTypesRelErrorMessage(maybePlain, exampleString, self.name), rel.position)
+        SemanticError.invalidNumberOfRelationshipTypes(
+          self.name,
+          rel.position,
+          tooManyTypesRelErrorMessage(maybePlain, exampleString, self.name)
+        )
     }
 }
 
@@ -1821,9 +1834,7 @@ sealed trait ProjectionClause extends HorizonClause {
   ): SemanticErrorDef = {
     previousScopeVars.collectFirst {
       case name if error.msg.equals(s"Variable `$name` not defined") =>
-        error.withMsg(
-          s"In a WITH/RETURN with DISTINCT or an aggregation, it is not possible to access variables declared before the WITH/RETURN: $name"
-        )
+        error.withMsg(SemanticError.inaccessibleVariable(name, this.name, error.position))
     }.getOrElse(error)
   }
 

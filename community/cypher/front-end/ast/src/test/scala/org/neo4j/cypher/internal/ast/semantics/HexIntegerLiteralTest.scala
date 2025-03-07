@@ -33,11 +33,23 @@ class HexIntegerLiteralTest extends SemanticFunSuite {
   }
 
   test("throws error for invalid hexadecimal numbers") {
-    assertSemanticError("0x12g3", "invalid literal number")
-    assertSemanticError("0x", "invalid literal number")
-    assertSemanticError("0x33Y23", "invalid literal number")
-    assertSemanticError("-0x12g3", "invalid literal number")
-    assertSemanticError("-0x", "invalid literal number")
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("hex integer", "0x12g3", 4, 0, 4),
+      "0x12g3",
+      "invalid literal number"
+    )
+    assertSemanticError(GqlHelper.getGql42001_42I07("hex integer", "0x", 4, 0, 4), "0x", "invalid literal number")
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("hex integer", "0x33Y23", 4, 0, 4),
+      "0x33Y23",
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("hex integer", "-0x12g3", 4, 0, 4),
+      "-0x12g3",
+      "invalid literal number"
+    )
+    assertSemanticError(GqlHelper.getGql42001_42I07("hex integer", "-0x", 4, 0, 4), "-0x", "invalid literal number")
   }
 
   test("throws error for too large hexadecimal numbers") {
@@ -48,12 +60,6 @@ class HexIntegerLiteralTest extends SemanticFunSuite {
 
   test("correctly parse hexadecimal Long.MIN_VALUE") {
     assert(SignedHexIntegerLiteral("-0x8000000000000000")(DummyPosition(0)).value === Long.MinValue)
-  }
-
-  private def assertSemanticError(stringValue: String, errorMessage: String): Unit = {
-    val literal = SignedHexIntegerLiteral(stringValue)(DummyPosition(4))
-    val result = SemanticExpressionCheck.check(SemanticContext.Simple, literal).run(SemanticState.clean)
-    assert(result.errors === Vector(SemanticError(errorMessage, DummyPosition(4))))
   }
 
   private def assertSemanticError(gql: ErrorGqlStatusObject, stringValue: String, errorMessage: String): Unit = {

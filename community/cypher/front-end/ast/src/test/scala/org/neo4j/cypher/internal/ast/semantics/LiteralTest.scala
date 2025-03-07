@@ -41,8 +41,16 @@ class LiteralTest extends SemanticFunSuite {
   }
 
   test("throws error for invalid unsigned decimal numbers") {
-    assertSemanticError(unsignedDecimal("12g3"), "invalid literal number")
-    assertSemanticError(unsignedDecimal("92323_"), "invalid literal number")
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal integer", "12g3", 0, 0, 0),
+      unsignedDecimal("12g3"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal integer", "92323_", 0, 0, 0),
+      unsignedDecimal("92323_"),
+      "invalid literal number"
+    )
   }
 
   test("throws error for too large unsigned decimal numbers") {
@@ -59,9 +67,21 @@ class LiteralTest extends SemanticFunSuite {
   }
 
   test("throws error for invalid signed decimal numbers") {
-    assertSemanticError(signedDecimal("12g3"), "invalid literal number")
-    assertSemanticError(signedDecimal("92323_"), "invalid literal number")
-    assertSemanticError(signedDecimal("-92f3"), "invalid literal number")
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal integer", "12g3", 0, 0, 0),
+      signedDecimal("12g3"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal integer", "92323_", 0, 0, 0),
+      signedDecimal("92323_"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal integer", "-92f3", 0, 0, 0),
+      signedDecimal("-92f3"),
+      "invalid literal number"
+    )
   }
 
   test("throws error for too large signed decimal numbers") {
@@ -97,19 +117,71 @@ class LiteralTest extends SemanticFunSuite {
   }
 
   test("throws error for invalid decimal double numbers") {
-    assertSemanticError(decimalDouble("33..34"), "invalid literal number")
-    assertSemanticError(decimalDouble("3f.34"), "invalid literal number")
-    assertSemanticError(decimalDouble("3._4"), "invalid literal number")
-    assertSemanticError(decimalDouble("2EE4"), "invalid literal number")
-    assertSemanticError(decimalDouble("2eE4"), "invalid literal number")
-    assertSemanticError(decimalDouble("2Ee4"), "invalid literal number")
-    assertSemanticError(decimalDouble("2ee4"), "invalid literal number")
-    assertSemanticError(decimalDouble("2E--4"), "invalid literal number")
-    assertSemanticError(decimalDouble("2e--4"), "invalid literal number")
-    assertSemanticError(decimalDouble("2E"), "invalid literal number")
-    assertSemanticError(decimalDouble("2e"), "invalid literal number")
-    assertSemanticError(decimalDouble("2..3E34"), "invalid literal number")
-    assertSemanticError(decimalDouble("2..3e34"), "invalid literal number")
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "33..34", 0, 0, 0),
+      decimalDouble("33..34"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "3f.34", 0, 0, 0),
+      decimalDouble("3f.34"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "3._4", 0, 0, 0),
+      decimalDouble("3._4"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "2EE4", 0, 0, 0),
+      decimalDouble("2EE4"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "2eE4", 0, 0, 0),
+      decimalDouble("2eE4"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "2Ee4", 0, 0, 0),
+      decimalDouble("2Ee4"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "2ee4", 0, 0, 0),
+      decimalDouble("2ee4"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "2E--4", 0, 0, 0),
+      decimalDouble("2E--4"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "2e--4", 0, 0, 0),
+      decimalDouble("2e--4"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "2E", 0, 0, 0),
+      decimalDouble("2E"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "2e", 0, 0, 0),
+      decimalDouble("2e"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "2..3E34", 0, 0, 0),
+      decimalDouble("2..3E34"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("decimal double", "2..3e34", 0, 0, 0),
+      decimalDouble("2..3e34"),
+      "invalid literal number"
+    )
   }
 
   test("throws error for too large decimal numbers") {
@@ -150,18 +222,54 @@ class LiteralTest extends SemanticFunSuite {
   }
 
   test("throws error for invalid old syntax octal numbers") {
-    assertSemanticError(signedOctal("0393"), "invalid literal number")
-    assertSemanticError(signedOctal("03f4"), "invalid literal number")
-    assertSemanticError(signedOctal("-0934"), "invalid literal number")
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "0393", 0, 0, 0),
+      signedOctal("0393"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "03f4", 0, 0, 0),
+      signedOctal("03f4"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "-0934", 0, 0, 0),
+      signedOctal("-0934"),
+      "invalid literal number"
+    )
   }
 
   test("throws error for invalid octal numbers") {
-    assertSemanticError(signedOctal("0o393"), "invalid literal number")
-    assertSemanticError(signedOctal("0o3f4"), "invalid literal number")
-    assertSemanticError(signedOctal("-0o934"), "invalid literal number")
-    assertSemanticError(signedOctal("0O393"), "invalid literal number")
-    assertSemanticError(signedOctal("0O3f4"), "invalid literal number")
-    assertSemanticError(signedOctal("-0O934"), "invalid literal number")
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "0o393", 0, 0, 0),
+      signedOctal("0o393"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "0o3f4", 0, 0, 0),
+      signedOctal("0o3f4"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "-0o934", 0, 0, 0),
+      signedOctal("-0o934"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "0O393", 0, 0, 0),
+      signedOctal("0O393"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "0O3f4", 0, 0, 0),
+      signedOctal("0O3f4"),
+      "invalid literal number"
+    )
+    assertSemanticError(
+      GqlHelper.getGql42001_42I07("octal integer", "-0O934", 0, 0, 0),
+      signedOctal("-0O934"),
+      "invalid literal number"
+    )
   }
 
   test("throws error for too large old syntax octal numbers") {
@@ -174,11 +282,6 @@ class LiteralTest extends SemanticFunSuite {
     val bigNumber = "0o77777777777777777777777777777"
     val gql = GqlHelper.getGql22003(bigNumber, 0, 0, 0)
     assertSemanticError(gql, signedOctal(bigNumber), "integer is too large")
-  }
-
-  private def assertSemanticError(literal: Literal, errorMessage: String): Unit = {
-    val result = SemanticExpressionCheck.simple(literal).run(SemanticState.clean)
-    assert(result.errors === Vector(SemanticError(errorMessage, pos)))
   }
 
   private def assertSemanticError(gql: ErrorGqlStatusObject, literal: Literal, errorMessage: String): Unit = {
