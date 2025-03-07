@@ -23,15 +23,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.shell.parameter.ParameterService;
 
 public abstract class DbInfo implements AutoCloseable {
 
     public record Neo4jProcedure(List<ReturnDescription> returnDescription) {}
-    ;
 
     public record ReturnDescription(String name) {}
-    ;
 
     ParameterService parameterService;
 
@@ -49,9 +49,11 @@ public abstract class DbInfo implements AutoCloseable {
 
     public volatile List<String> propertyKeys = List.of();
 
-    public volatile Map<String, Neo4jProcedure> procedures = new HashMap<>();
+    public volatile Map<CypherVersion, Map<String, Neo4jProcedure>> procedures = new ConcurrentHashMap<>();
 
-    public volatile List<String> functions = List.of();
+    public volatile Map<CypherVersion, List<String>> functions = new ConcurrentHashMap<>();
+
+    public volatile CypherVersion defaultLanguage = null;
 
     Optional<Boolean> versionCompatibleWithCompletions = Optional.empty();
 
@@ -73,8 +75,12 @@ public abstract class DbInfo implements AutoCloseable {
         aliasNames = List.of();
         roleNames = List.of();
         propertyKeys = List.of();
-        procedures = new HashMap<>();
-        functions = List.of();
+        procedures = new ConcurrentHashMap<>();
+        procedures.put(CypherVersion.Cypher5, new ConcurrentHashMap<>());
+        procedures.put(CypherVersion.Cypher25, new ConcurrentHashMap<>());
+        functions = new ConcurrentHashMap<>();
+        functions.put(CypherVersion.Cypher5, List.of());
+        functions.put(CypherVersion.Cypher25, List.of());
         versionCompatibleWithCompletions = Optional.empty();
     }
 

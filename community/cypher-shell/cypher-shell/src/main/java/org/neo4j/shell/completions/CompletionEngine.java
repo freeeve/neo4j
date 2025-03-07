@@ -23,9 +23,11 @@ import static java.util.stream.Collectors.toCollection;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -42,6 +44,7 @@ import org.antlr.v4.runtime.Vocabulary;
 import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.ast.factory.neo4j.completion.CodeCompletionCore;
 import org.neo4j.cypher.internal.parser.AstRuleCtx;
 import org.neo4j.cypher.internal.parser.v25.Cypher25Lexer;
@@ -52,6 +55,13 @@ import org.neo4j.cypher.internal.preparser.CypherPreparserParser;
 import org.neo4j.cypher.internal.preparser.PreparserCypherLexer;
 
 public class CompletionEngine {
+
+    public CypherVersion resolveCypherVersion(CypherVersion parsedVersion) {
+        return parsedVersion != null
+                ? parsedVersion
+                : dbInfo.defaultLanguage != null ? dbInfo.defaultLanguage : CypherVersion.Cypher5;
+    }
+
     public enum ParameterType {
         STRING,
         MAP,
@@ -103,6 +113,33 @@ public class CompletionEngine {
                 if (c.yieldItemName != null && c.yieldItemName.getText() != null) {
                     var variable = c.yieldItemName.getText();
                     this.variables.add(variable);
+                }
+            }
+        }
+    }
+
+    class VersionCollector implements ParseTreeListener {
+        private CypherVersion version = null;
+
+        @Override
+        public void visitTerminal(TerminalNode node) {}
+
+        @Override
+        public void visitErrorNode(ErrorNode node) {}
+
+        @Override
+        public void enterEveryRule(ParserRuleContext ctx) {}
+
+        @Override
+        public void exitEveryRule(ParserRuleContext ctx) {
+            if (ctx.getRuleIndex() == CypherPreparserParser.RULE_option) {
+                var c = (CypherPreparserParser.OptionContext) ctx;
+                if (c.VERSION() != null) {
+                    Arrays.stream(CypherVersion.values()).forEach(version -> {
+                        if (Objects.equals(version.versionName, c.VERSION().getText())) {
+                            this.version = version;
+                        }
+                    });
                 }
             }
         }
@@ -185,7 +222,8 @@ public class CompletionEngine {
             CypherPreparserParser preparser,
             CypherPreparserParser.StrictlyPreparserOptionsContext preparserCtx,
             List<Token> preparserTokens,
-            CypherPreparserParser.StatementContext preparserStmt) {
+            CypherPreparserParser.StatementContext preparserStmt,
+            CypherVersion parsedVersion) {
         static Vocabulary vocabulary = PreparserCypherLexer.VOCABULARY;
         static Set<Integer> keywords = new HashSet<>();
 
@@ -233,13 +271,14 @@ public class CompletionEngine {
         var preparser = new CypherPreparserParser(preparserTokenStream);
         preLexer.removeErrorListeners();
         preparser.removeErrorListeners();
-
+        var versionCollector = new VersionCollector();
+        preparser.addParseListener(versionCollector);
         var preparserCtx = preparser.strictlyPreparserOptions();
         preparserTokenStream.seek(0);
         var preparserStmt = preparser.preparserOptions().statement();
         var preparserTokens = preparserTokenStream.getTokens();
 
-        return new PreParserInfo(preparser, preparserCtx, preparserTokens, preparserStmt);
+        return new PreParserInfo(preparser, preparserCtx, preparserTokens, preparserStmt, versionCollector.version);
     }
 
     private ParserInfo getParserInfo(String incompleteQuery, CypherPreparserParser.StatementContext preparserStmt)
@@ -289,7 +328,8 @@ public class CompletionEngine {
                     completionResolution.parserInfo.parser,
                     completionResolution.parserInfo.parserCtx,
                     completionResolution.parserInfo.tokens,
-                    completionResolution.parserInfo.variableCollector.variables);
+                    completionResolution.parserInfo.variableCollector.variables,
+                    completionResolution.preparserInfo.parsedVersion);
             suggestions.addAll(parserCompletions);
         }
 
@@ -297,7 +337,8 @@ public class CompletionEngine {
             var preparserCompletions = completePreparser(
                     completionResolution.preparserInfo.preparser,
                     completionResolution.preparserInfo.preparserCtx,
-                    completionResolution.preparserInfo.preparserTokens);
+                    completionResolution.preparserInfo.preparserTokens,
+                    completionResolution.preparserInfo.parsedVersion);
             suggestions.addAll(preparserCompletions);
         }
 
@@ -309,6 +350,7 @@ public class CompletionEngine {
             Set<Integer> ignoredTokens,
             int caretIndex,
             List<String> collectedVariables,
+            CypherVersion parsedVersion,
             List<Token> tokens,
             ParserRuleContext stopNode) {
 
@@ -321,7 +363,7 @@ public class CompletionEngine {
         var tokenCompletions = getTokenCompletions(candidates, ignoredTokens, isPreParserCompletion);
         List<Suggestion> ruleCompletions = isPreParserCompletion
                 ? List.of()
-                : getRuleCompletions(candidates, collectedVariables, tokens, stopNode);
+                : getRuleCompletions(candidates, collectedVariables, parsedVersion, tokens, stopNode);
         var result = new ArrayList<Suggestion>();
 
         result.addAll(tokenCompletions);
@@ -375,28 +417,30 @@ public class CompletionEngine {
     private List<Suggestion> completePreparser(
             CypherPreparserParser preparser,
             CypherPreparserParser.StrictlyPreparserOptionsContext rootCtx,
-            List<Token> tokens) {
+            List<Token> tokens,
+            CypherVersion parsedVersion) {
         var stopNode = findStopNode(rootCtx, rootCtx.EOF());
         // The query is always going to have the EOF
         var caretIndex = getCaretIndex(tokens, true);
 
         Set<Integer> ignoredTokens = getIgnoredTokens(true);
 
-        return complete(preparser, ignoredTokens, caretIndex, List.of(), tokens, stopNode);
+        return complete(preparser, ignoredTokens, caretIndex, List.of(), parsedVersion, tokens, stopNode);
     }
 
     private List<Suggestion> completeStatement(
             Cypher25Parser parser,
             Cypher25Parser.StatementsContext rootCtx,
             List<Token> tokens,
-            List<String> collectedVariables) {
+            List<String> collectedVariables,
+            CypherVersion parsedVersion) {
         var stopNode = findStopNode(rootCtx, rootCtx.EOF());
         // The query is always going to have the EOF
         var caretIndex = getCaretIndex(tokens, false);
 
         Set<Integer> ignoredTokens = getIgnoredTokens(false);
 
-        return complete(parser, ignoredTokens, caretIndex, collectedVariables, tokens, stopNode);
+        return complete(parser, ignoredTokens, caretIndex, collectedVariables, parsedVersion, tokens, stopNode);
     }
 
     private static String backtickIfNeeded(String e) {
@@ -506,6 +550,7 @@ public class CompletionEngine {
     private List<Suggestion> getRuleCompletions(
             CodeCompletionCore.CandidatesCollection candidates,
             List<String> collectedVariables,
+            CypherVersion parsedVersion,
             List<Token> tokens,
             ParserRuleContext stopNode) {
         return candidates.rules.entrySet().stream()
@@ -522,13 +567,13 @@ public class CompletionEngine {
                             var existingItemNames = call.procedureResultItem().stream()
                                     .map(AstRuleCtx::getText)
                                     .collect(toCollection(HashSet::new));
-                            return procedureReturnCompletions(procName)
+                            return procedureReturnCompletions(procName, resolveCypherVersion(parsedVersion))
                                     .filter(a -> !existingItemNames.contains(a.value()));
                         }
                     } else if (ruleNumber == Cypher25Parser.RULE_functionName) {
-                        return functionNameCompletions(startTokenIndex, tokens);
+                        return functionNameCompletions(startTokenIndex, tokens, resolveCypherVersion(parsedVersion));
                     } else if (ruleNumber == Cypher25Parser.RULE_procedureName) {
-                        return procedureNameCompletions(startTokenIndex, tokens);
+                        return procedureNameCompletions(startTokenIndex, tokens, resolveCypherVersion(parsedVersion));
                     } else if (ruleNumber == Cypher25Parser.RULE_parameter) {
                         return parameterCompletions(inferExpectedParameterTypeFromContext(candidateRule));
                     } else if (ruleNumber == Cypher25Parser.RULE_propertyKeyName) {
@@ -761,17 +806,23 @@ public class CompletionEngine {
         return namespacePrefix;
     }
 
-    private Stream<Suggestion> functionNameCompletions(int ruleStartTokenIndex, List<Token> tokens) {
-        return namespacedCompletion(ruleStartTokenIndex, tokens, dbInfo.functions, SuggestionType.FUNCTION);
-    }
-
-    private Stream<Suggestion> procedureNameCompletions(int ruleStartTokenIndex, List<Token> tokens) {
+    private Stream<Suggestion> functionNameCompletions(
+            int ruleStartTokenIndex, List<Token> tokens, CypherVersion cypherVersion) {
         return namespacedCompletion(
-                ruleStartTokenIndex, tokens, dbInfo.procedures.keySet().stream().toList(), SuggestionType.PROCEDURE);
+                ruleStartTokenIndex, tokens, dbInfo.functions.get(cypherVersion), SuggestionType.FUNCTION);
     }
 
-    private Stream<Suggestion> procedureReturnCompletions(String procedureName) {
-        var procedure = dbInfo.procedures.get(procedureName);
+    private Stream<Suggestion> procedureNameCompletions(
+            int ruleStartTokenIndex, List<Token> tokens, CypherVersion cypherVersion) {
+        return namespacedCompletion(
+                ruleStartTokenIndex,
+                tokens,
+                dbInfo.procedures.get(cypherVersion).keySet().stream().toList(),
+                SuggestionType.PROCEDURE);
+    }
+
+    private Stream<Suggestion> procedureReturnCompletions(String procedureName, CypherVersion cypherVersion) {
+        var procedure = dbInfo.procedures.get(cypherVersion).get(procedureName);
         if (procedure != null) {
             var procedureReturns = procedure.returnDescription().stream().map(DbInfo.ReturnDescription::name);
             return procedureReturns.map(Suggestion::identifier);

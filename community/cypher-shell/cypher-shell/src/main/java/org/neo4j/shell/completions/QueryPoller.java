@@ -19,6 +19,8 @@
  */
 package org.neo4j.shell.completions;
 
+import static org.neo4j.shell.util.Versions.version;
+
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -26,9 +28,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.neo4j.driver.Record;
 import org.neo4j.shell.log.Logger;
 import org.neo4j.shell.state.BoltStateHandler;
+import org.neo4j.shell.util.Versions;
 
 public class QueryPoller implements AutoCloseable {
     private static final Logger log = Logger.create();
@@ -49,7 +53,7 @@ public class QueryPoller implements AutoCloseable {
 
     public static final String FETCH_PROCEDURES = "SHOW PROCEDURES YIELD name, returnDescription";
     public static final String FETCH_FUNCTIONS = "SHOW FUNCTIONS YIELD name";
-    public static final String FETCH_DATABASES = "SHOW DATABASES YIELD name, aliases;";
+    public static final String FETCH_DATABASES = "SHOW DATABASES YIELD *;";
     public static final String FETCH_ROLES = "SHOW ROLES YIELD role;";
     public static final String FETCH_USERS = "SHOW USERS YIELD user;";
 
@@ -65,23 +69,48 @@ public class QueryPoller implements AutoCloseable {
 
     public record PollingQuery(String query, Consumer<List<Record>> onFetch) {}
 
-    public void startPolling(PollingQuery... queries) {
+    public void startPolling(
+            PollingQuery fetchDatabases,
+            List<PollingQuery> legacyFunctionAndProcedurePolling,
+            List<PollingQuery> versionedFunctionAndProcedurePolling,
+            PollingQuery... queries) {
         pollingWorkload = () -> {
-            for (PollingQuery q : queries) {
-                try {
-                    if (boltStateHandler != null && boltStateHandler.isConnected()) {
-                        var result = boltStateHandler.runServiceCypher(q.query, Map.of());
-                        if (result.isPresent()) {
-                            var records = result.get().getRecords();
-                            q.onFetch.accept(records);
-                        }
-                    }
-                } catch (Exception e) {
-                    log.warn("Failed to fetch auto completion metadata with query: " + q.query, e);
-                }
+            executeQuery(fetchDatabases);
+
+            Stream<PollingQuery> totalQueries;
+
+            boolean supportsCypher25;
+            try {
+                var serverVersion = version(boltStateHandler.getServerVersion());
+                supportsCypher25 =
+                        serverVersion.compareTo(version("2025.04.0")) >= 0; // Switch to "5.26.0" for pre-testing
+            } catch (Versions.FailedToParseException e) {
+                throw new RuntimeException(e);
             }
+
+            if (supportsCypher25) {
+                totalQueries = Stream.concat(versionedFunctionAndProcedurePolling.stream(), Stream.of(queries));
+            } else {
+                totalQueries = Stream.concat(legacyFunctionAndProcedurePolling.stream(), Stream.of(queries));
+            }
+
+            totalQueries.forEach(this::executeQuery);
         };
         pollingThread = poller.scheduleWithFixedDelay(pollingWorkload, 5, 30, TimeUnit.SECONDS);
+    }
+
+    private void executeQuery(PollingQuery q) {
+        try {
+            if (boltStateHandler != null && boltStateHandler.isConnected()) {
+                var result = boltStateHandler.runServiceCypher(q.query, Map.of());
+                if (result.isPresent()) {
+                    var records = result.get().getRecords();
+                    q.onFetch.accept(records);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch auto completion metadata with query: " + q.query, e);
+        }
     }
 
     public void resumePolling() {

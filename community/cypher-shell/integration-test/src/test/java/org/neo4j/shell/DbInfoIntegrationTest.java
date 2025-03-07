@@ -31,6 +31,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.shell.cli.AccessMode;
 import org.neo4j.shell.completions.DbInfo;
 import org.neo4j.shell.completions.DbInfoImpl;
@@ -82,9 +83,9 @@ class DbInfoIntegrationTest extends TestHarness {
         awaitUntilAsserted(() -> {
             assertThat(dbInfo.labels).contains("A", "B", "C");
             assertThat(dbInfo.propertyKeys).contains("name");
-            assertThat(dbInfo.functions).contains("abs");
-            assertThat(dbInfo.procedures).containsKey("dbms.info");
-            assertThat(dbInfo.procedures.get("dbms.info").returnDescription().stream()
+            assertThat(dbInfo.functions.get(CypherVersion.Cypher5)).contains("abs");
+            assertThat(dbInfo.procedures.get(CypherVersion.Cypher5)).containsKey("dbms.info");
+            assertThat(dbInfo.procedures.get(CypherVersion.Cypher5).get("dbms.info").returnDescription().stream()
                             .map(DbInfo.ReturnDescription::name))
                     .contains("name", "id", "creationDate");
             assertThat(dbInfo.aliasNames).contains("nacho");
@@ -92,6 +93,46 @@ class DbInfoIntegrationTest extends TestHarness {
             assertThat(dbInfo.databaseNames).contains("neo4j");
             assertThat(dbInfo.userNames).contains(USER, "foo");
             assertThat(dbInfo.parameters()).containsKey("x");
+        });
+    }
+
+    // Note: needs server supporting cypher 25 with apoc installed to work
+    @Test
+    void fillsVersionedInfoInDbInfo() throws Exception {
+        assumeAtLeastVersion("2025.04.0");
+        // assumeAtLeastVersion("5.26.0"); // Switch to this for testing pre-2025.03.0, also switching in
+        // QueryPoller.startPolling.
+
+        var testBuilder = (TestBuilder) buildTest();
+        testBuilder
+                .addArgs("-u", USER, "-p", PASSWORD, "--enable-autocompletions")
+                .userInputLines(
+                        ":param x => 1;",
+                        "CREATE (n:A { name: \"Nacho\" });",
+                        "CREATE (n:B);",
+                        "CREATE (n:C);",
+                        "CREATE ALIAS nacho IF NOT EXISTS FOR DATABASE neo4j;",
+                        "CREATE USER foo IF NOT EXISTS SET PASSWORD 'something';")
+                .run()
+                .assertSuccessAndConnected();
+        final var dbInfo = testBuilder.dbInfo;
+
+        awaitUntilAsserted(() -> {
+            assertThat(dbInfo.functions.get(CypherVersion.Cypher5)).contains("abs");
+            assertThat(dbInfo.functions.get(CypherVersion.Cypher25)).contains("abs");
+
+            assertThat(dbInfo.procedures.get(CypherVersion.Cypher5)).containsKey("dbms.info");
+            assertThat(dbInfo.procedures.get(CypherVersion.Cypher25)).containsKey("dbms.info");
+            assertThat(dbInfo.procedures.get(CypherVersion.Cypher5).get("dbms.info").returnDescription().stream()
+                            .map(DbInfo.ReturnDescription::name))
+                    .contains("name", "id", "creationDate");
+            assertThat(dbInfo.procedures.get(CypherVersion.Cypher25).get("dbms.info").returnDescription().stream()
+                            .map(DbInfo.ReturnDescription::name))
+                    .contains("name", "id", "creationDate");
+            assertThat(dbInfo.procedures.get(CypherVersion.Cypher5).get("dbms.upgradeStatus"))
+                    .isNotNull();
+            assertThat(dbInfo.procedures.get(CypherVersion.Cypher25).get("dbms.upgradeStatus"))
+                    .isNull();
         });
     }
 
@@ -111,7 +152,7 @@ class DbInfoIntegrationTest extends TestHarness {
                 db -> {
                     return dbInfo.labels.contains("A")
                             || dbInfo.propertyKeys.contains("name")
-                            || dbInfo.functions.contains("abs")
+                            || dbInfo.functions.get(CypherVersion.Cypher5).contains("abs")
                             || dbInfo.procedures.containsKey("dbms.info")
                             || dbInfo.aliasNames.contains("nacho")
                             || dbInfo.roleNames.contains("PUBLIC")
@@ -143,7 +184,7 @@ class DbInfoIntegrationTest extends TestHarness {
                 db -> {
                     return db.labels.contains("A")
                             || db.propertyKeys.contains("name")
-                            || db.functions.contains("abs")
+                            || db.functions.get(CypherVersion.Cypher5).contains("abs")
                             || db.procedures.containsKey("dbms.info")
                             || db.aliasNames.contains("nacho")
                             || db.roleNames.contains("PUBLIC")

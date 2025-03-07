@@ -23,9 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 import org.assertj.core.api.Condition;
 import org.jline.reader.Candidate;
@@ -33,6 +33,7 @@ import org.jline.reader.LineReader;
 import org.jline.reader.Parser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.driver.Values;
 import org.neo4j.shell.StubDbInfo;
 import org.neo4j.shell.TransactionHandler;
@@ -150,17 +151,47 @@ class JlineCompleterTest {
 
         dbInfo = new StubDbInfo(parameters, true);
         String[] dummyProcedures = {"foo.bar", "dbms.info", "somethingElse", "foo.info", "db.info"};
-        dbInfo.procedures = new HashMap<>();
+        dbInfo.procedures.put(CypherVersion.Cypher5, new ConcurrentHashMap<>());
+        dbInfo.procedures.put(CypherVersion.Cypher25, new ConcurrentHashMap<>());
         for (String dummyProcedure : dummyProcedures) {
-            addDummyProcedure(dbInfo.procedures, dummyProcedure);
+            addDummyProcedure(dbInfo.procedures.get(CypherVersion.Cypher5), dummyProcedure);
+            addDummyProcedure(dbInfo.procedures.get(CypherVersion.Cypher25), dummyProcedure);
         }
-        dbInfo.procedures.put(
-                "dbms.components",
-                new DbInfo.Neo4jProcedure(List.of(
-                        new DbInfo.ReturnDescription("name"),
-                        new DbInfo.ReturnDescription("versions"),
-                        new DbInfo.ReturnDescription("edition"))));
-        dbInfo.functions = List.of("a.b", "xx.yy.fna", "xx.yy.fnb");
+        dbInfo.procedures
+                .get(CypherVersion.Cypher5)
+                .put(
+                        "dbms.components",
+                        new DbInfo.Neo4jProcedure(List.of(
+                                new DbInfo.ReturnDescription("name"),
+                                new DbInfo.ReturnDescription("versions"),
+                                new DbInfo.ReturnDescription("edition"))));
+        dbInfo.procedures
+                .get(CypherVersion.Cypher5)
+                .put("versionedProcedure", new DbInfo.Neo4jProcedure(List.of(new DbInfo.ReturnDescription("name"))));
+        dbInfo.procedures
+                .get(CypherVersion.Cypher5)
+                .put(
+                        "versionedReturnsProcedure",
+                        new DbInfo.Neo4jProcedure(List.of(new DbInfo.ReturnDescription("name"))));
+        dbInfo.procedures
+                .get(CypherVersion.Cypher25)
+                .put(
+                        "dbms.components",
+                        new DbInfo.Neo4jProcedure(List.of(
+                                new DbInfo.ReturnDescription("name"),
+                                new DbInfo.ReturnDescription("versions"),
+                                new DbInfo.ReturnDescription("edition"))));
+        dbInfo.procedures
+                .get(CypherVersion.Cypher25)
+                .put(
+                        "versionedReturnsProcedure",
+                        new DbInfo.Neo4jProcedure(
+                                List.of(new DbInfo.ReturnDescription("name"), new DbInfo.ReturnDescription("title"))));
+        dbInfo.procedures
+                .get(CypherVersion.Cypher25)
+                .put("versionedProcedure25", new DbInfo.Neo4jProcedure(List.of(new DbInfo.ReturnDescription("name"))));
+        dbInfo.functions.put(CypherVersion.Cypher5, List.of("a.b", "xx.yy.fna", "xx.yy.fnb"));
+        dbInfo.functions.put(CypherVersion.Cypher25, List.of("a.b", "xx.yy.fna25", "xx.yy.fnb25"));
         dbInfo.labels =
                 List.of("Actor", "_Airport", "Dog", "Gym", "Window", "123Wedding", "Odd1", "Odd_x", "Odd label");
         dbInfo.relationshipTypes =
@@ -330,6 +361,11 @@ class JlineCompleterTest {
                 .contains(identifier("versions"), identifier("edition"), identifier("name"));
         assertThat(complete("CALL `dbms`   .    `components`  () YIELD  "))
                 .contains(identifier("versions"), identifier("edition"), identifier("name"));
+
+        assertThat(complete("CYPHER 5 CALL versionedReturnsProcedure() YIELD "))
+                .containsExactlyInAnyOrder(identifier("name"));
+        assertThat(complete("CYPHER 25 CALL versionedReturnsProcedure() YIELD "))
+                .containsExactlyInAnyOrder(identifier("name"), identifier("title"));
     }
 
     @Test
@@ -344,7 +380,9 @@ class JlineCompleterTest {
                         procedureCompletion("foo.info"),
                         procedureCompletion("somethingElse"),
                         procedureCompletion("db.info"),
-                        procedureCompletion("dbms.components"));
+                        procedureCompletion("dbms.components"),
+                        procedureCompletion("versionedProcedure"),
+                        procedureCompletion("versionedReturnsProcedure"));
 
         assertThat(complete("CALL db"))
                 .contains(
@@ -355,6 +393,20 @@ class JlineCompleterTest {
                         procedureCompletion("dbms.components"));
 
         assertThat(complete("CALL db.")).contains(procedureCompletion("db.info", "info"));
+
+        assertThat(complete("CYPHER 5 CALL "))
+                .contains(procedureCompletion("versionedProcedure"))
+                .doesNotContain(procedureCompletion("versionedProcedure25"));
+        assertThat(complete("CYPHER 25 CALL "))
+                .contains(procedureCompletion("versionedProcedure25"))
+                .doesNotContain(procedureCompletion("versionedProcedure"));
+    }
+
+    @Test
+    void usesParsedCypherVersion() {
+        assertThat(complete("CYPHER 25 CALL "))
+                .contains(procedureCompletion("versionedProcedure25"))
+                .doesNotContain(procedureCompletion("versionedProcedure"));
     }
 
     @Test
