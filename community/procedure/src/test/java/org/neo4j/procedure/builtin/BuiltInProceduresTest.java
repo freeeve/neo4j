@@ -151,6 +151,8 @@ class BuiltInProceduresTest {
         for (var proc : builtins.get()) {
             procs.register(proc);
         }
+        procs.registerComponent(
+                SpdBuiltInProcedures.class, context -> SpdBuiltInProcedures.COMMUNITY_EDITION_IMPL, false);
         procs.registerProcedure(BuiltInProcedures.class);
         procs.registerProcedure(BuiltInDbmsProcedures.class);
 

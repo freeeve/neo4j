@@ -85,6 +85,9 @@ public class BuiltInProcedures {
     @Context
     public ProcedureCallContext callContext;
 
+    @Context
+    public SpdBuiltInProcedures spdBuiltInProcedures;
+
     @SystemProcedure
     @NotThreadSafe
     @Description("Provides information regarding the database.")
@@ -277,6 +280,10 @@ public class BuiltInProcedures {
             return Stream.empty();
         }
 
+        if (spdBuiltInProcedures.isGraphShard()) {
+            return spdBuiltInProcedures.nodePropertySchema(kernelTransaction);
+        }
+
         return new SchemaCalculator(kernelTransaction, true).calculateTabularResultStreamForNodes();
     }
 
@@ -304,6 +311,10 @@ public class BuiltInProcedures {
     public Stream<RelationshipPropertySchemaInfoResult> relationshipPropertySchema() {
         if (callContext.isSystemDatabase()) {
             return Stream.empty();
+        }
+
+        if (spdBuiltInProcedures.isGraphShard()) {
+            return spdBuiltInProcedures.relationshipPropertySchema(kernelTransaction);
         }
 
         return new SchemaCalculator(kernelTransaction, true).calculateTabularResultStreamForRels();

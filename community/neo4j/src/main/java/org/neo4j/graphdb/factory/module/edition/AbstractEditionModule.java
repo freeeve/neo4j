@@ -73,6 +73,7 @@ import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.procedure.builtin.BuiltInDbmsProcedures;
 import org.neo4j.procedure.builtin.BuiltInProcedures;
 import org.neo4j.procedure.builtin.FulltextProcedures;
+import org.neo4j.procedure.builtin.SpdBuiltInProcedures;
 import org.neo4j.procedure.builtin.TokenProcedures;
 import org.neo4j.procedure.builtin.VectorIndexProcedures;
 import org.neo4j.procedure.builtin.routing.RoutingProcedureInstaller;
@@ -96,7 +97,6 @@ public abstract class AbstractEditionModule {
             DatabaseContextProvider<?> databaseContextProvider,
             RoutingService routingService)
             throws KernelException {
-        globalProcedures.registerProcedure(BuiltInProcedures.class);
         globalProcedures.registerProcedure(TokenProcedures.class);
         globalProcedures.registerProcedure(BuiltInDbmsProcedures.class);
         globalProcedures.registerProcedure(FulltextProcedures.class);
@@ -107,6 +107,7 @@ public abstract class AbstractEditionModule {
         registerEditionSpecificProcedures(globalProcedures, databaseContextProvider);
         RoutingProcedureInstaller.install(
                 globalProcedures, routingService, globalModule.getLogService().getInternalLogProvider());
+        globalProcedures.registerProcedure(BuiltInProcedures.class);
     }
 
     public ClientRoutingDomainChecker createClientRoutingDomainChecker(GlobalModule globalModule) {
@@ -119,7 +120,10 @@ public abstract class AbstractEditionModule {
 
     protected void registerEditionSpecificProcedures(
             GlobalProcedures globalProcedures, DatabaseContextProvider<?> databaseContextProvider)
-            throws KernelException {}
+            throws KernelException {
+        globalProcedures.registerComponent(
+                SpdBuiltInProcedures.class, context -> SpdBuiltInProcedures.COMMUNITY_EDITION_IMPL, false);
+    }
 
     protected abstract AuthConfigProvider createAuthConfigProvider(GlobalModule globalModule);
 
