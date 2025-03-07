@@ -4211,8 +4211,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             },
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
-            "transaction retry timed out",
-            ErrorClassification.DATABASE_ERROR),
+            "transaction retry aborted",
+            ErrorClassification.TRANSIENT_ERROR),
     STATUS_50N42(
             new GqlStatus("50N42"),
             """

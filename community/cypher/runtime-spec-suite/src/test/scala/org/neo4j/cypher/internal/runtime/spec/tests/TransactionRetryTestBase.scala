@@ -225,7 +225,9 @@ abstract class TransactionRetryTestBase[CONTEXT <: RuntimeContext](
 
     private def verifyTimeoutException(result: RecordingRuntimeResult): Unit = {
       val exception = intercept[StatusWrapCypherException](result.awaitAll())
-      exception.getMessage should include("Retry timed out with a maximum retry duration of 0.2 seconds")
+      exception.getMessage should include(
+        s"Retry timed out with a maximum retry duration of ${config.retryTimeoutSeconds} seconds"
+      )
 
       exception.getCause shouldBe a[TransactionRetryAbortedException]
       val retryAbortedException = exception.getCause.asInstanceOf[TransactionRetryAbortedException]
