@@ -369,6 +369,13 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
     )
   }
 
+  test("ensure variables are aliased for SHOW ALIASES") {
+    assertRewrite(
+      "SHOW ALIASES FOR DATABASES YIELD name",
+      "SHOW ALIASES FOR DATABASES YIELD name AS name"
+    )
+  }
+
   test("WITH: attach ORDER BY expressions to existing aliases") {
     assertRewrite(
       """MATCH (n)

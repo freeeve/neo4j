@@ -261,6 +261,19 @@ sealed trait WriteAdministrationCommand extends AdministrationCommand {
       }
     ).getOrElse(SemanticCheck.success)
   }
+
+  protected def checkDefaultLanguageAndComposite(
+    aliasName: DatabaseName,
+    defaultLanguage: Option[CypherVersion]
+  ): SemanticCheck = {
+    defaultLanguage.map(_ => {
+      aliasName match {
+        case NamespacedName(_, Some(_)) =>
+          SemanticCheck.error(SemanticError.defaultLanguageForConstituentAliases(position))
+        case _ => SemanticCheck.success
+      }
+    }).getOrElse(SemanticCheck.success)
+  }
 }
 
 // User commands
@@ -1741,6 +1754,7 @@ object ShowAliases {
       (ShowColumn("url")(position), true),
       (ShowColumn("user")(position), true),
       (ShowColumn("driver", CTMap)(position), false),
+      (ShowColumn("defaultLanguage")(position), false),
       (ShowColumn("properties", CTMap)(position), false)
     )
 
@@ -1812,7 +1826,8 @@ final case class CreateRemoteDatabaseAlias(
   username: Expression,
   password: Expression,
   driverSettings: Option[Either[Map[String, Expression], Parameter]] = None,
-  properties: Option[Either[Map[String, Expression], Parameter]] = None
+  properties: Option[Either[Map[String, Expression], Parameter]] = None,
+  defaultLanguage: Option[CypherVersion] = None
 )(val position: InputPosition) extends WriteAdministrationCommand {
 
   override def name: String = ifExistsDo match {
@@ -1835,12 +1850,13 @@ final case class CreateRemoteDatabaseAlias(
         case Some(expr: CollectExpression) =>
           SemanticCheck.error(SemanticError.collectInDriverSettings(expr.position))
         case Some(expr) =>
+          // Apparently this should not happen, but if you have a better message do tell
           SemanticCheck.error(SemanticError.genericDriverSettingsFail(expr.position))
-        // Apparently this should not happen, but if you have a better message do tell
-        case _ => super.semanticCheck chain checkIsStringLiteralOrParameter(
-            "username",
-            username
-          ) chain SemanticState.recordCurrentScope(this)
+        case _ => super.semanticCheck chain
+            checkIsStringLiteralOrParameter("username", username) chain
+            defaultLanguageVersionCheck(defaultLanguage, name) chain
+            checkDefaultLanguageAndComposite(aliasName, defaultLanguage) chain
+            SemanticState.recordCurrentScope(this)
       }
   }
 }
@@ -1865,7 +1881,8 @@ final case class AlterRemoteDatabaseAlias(
   username: Option[Expression] = None,
   password: Option[Expression] = None,
   driverSettings: Option[Either[Map[String, Expression], Parameter]] = None,
-  properties: Option[Either[Map[String, Expression], Parameter]] = None
+  properties: Option[Either[Map[String, Expression], Parameter]] = None,
+  defaultLanguage: Option[CypherVersion] = None
 )(val position: InputPosition) extends WriteAdministrationCommand {
 
   override def name = "ALTER ALIAS"
@@ -1885,7 +1902,8 @@ final case class AlterRemoteDatabaseAlias(
         }
       case _ =>
         val isLocalAlias = targetName.isDefined && url.isEmpty
-        val isRemoteAlias = url.isDefined || username.isDefined || password.isDefined || driverSettings.isDefined
+        val isRemoteAlias =
+          url.isDefined || username.isDefined || password.isDefined || driverSettings.isDefined || defaultLanguage.isDefined
         if (isLocalAlias && isRemoteAlias) {
           AdministrationCommandSemanticAnalysis.invalidInputError(
             Prettifier.escapeName(aliasName),
@@ -1895,9 +1913,11 @@ final case class AlterRemoteDatabaseAlias(
             position
           )
         } else {
-          super.semanticCheck chain semanticCheckFold(username)(un =>
-            checkIsStringLiteralOrParameter("username", un)
-          ) chain SemanticState.recordCurrentScope(this)
+          super.semanticCheck chain
+            semanticCheckFold(username)(un => checkIsStringLiteralOrParameter("username", un)) chain
+            defaultLanguageVersionCheck(defaultLanguage, name) chain
+            checkDefaultLanguageAndComposite(aliasName, defaultLanguage) chain
+            SemanticState.recordCurrentScope(this)
         }
     }
 }

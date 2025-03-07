@@ -1779,8 +1779,7 @@ class PrettifierIT extends CypherFunSuite {
         |  WHERE isExplicitlySet""".stripMargin
   )
 
-  def administrationTests(): Seq[Test] = Seq[Test](
-    // user commands
+  def userCommandTests(): Seq[Test] = Seq[Test](
     "Show Users" ->
       "SHOW USERS",
     "Show Users where user = 'neo4j'" ->
@@ -2157,9 +2156,10 @@ class PrettifierIT extends CypherFunSuite {
     "alter current user set password from 'foo' to $newPassword" ->
       "ALTER CURRENT USER SET PASSWORD FROM '******' TO $newPassword",
     "alter current user set password from $currentPassword to $newPassword" ->
-      "ALTER CURRENT USER SET PASSWORD FROM $currentPassword TO $newPassword",
+      "ALTER CURRENT USER SET PASSWORD FROM $currentPassword TO $newPassword"
+  )
 
-    // role commands
+  def roleCommandTests(): Seq[Test] = Seq[Test](
     "Show Roles" ->
       "SHOW ALL ROLES",
     "Show roles where role = 'admin'" ->
@@ -2307,9 +2307,10 @@ class PrettifierIT extends CypherFunSuite {
     "revoke roles abc, def from xyz, qwr" ->
       "REVOKE ROLES abc, def FROM xyz, qwr",
     "revoke role `ab%$c` from `x%^yz`" ->
-      "REVOKE ROLE `ab%$c` FROM `x%^yz`",
+      "REVOKE ROLE `ab%$c` FROM `x%^yz`"
+  )
 
-    // show privileges
+  def showPrivilegeCommandTests(): Seq[Test] = Seq[Test](
     "show supported privileges" ->
       "SHOW SUPPORTED PRIVILEGES",
     "show supported privileges where action = 'access'" ->
@@ -2408,9 +2409,10 @@ class PrettifierIT extends CypherFunSuite {
         |    ORDER BY command ASCENDING""".stripMargin,
     "show user privileges as commands where command CONTAINS 'MATCH' and command CONTAINS 'NODE'" ->
       """SHOW USER PRIVILEGES AS COMMANDS
-        |  WHERE command CONTAINS "MATCH" AND command CONTAINS "NODE"""".stripMargin,
+        |  WHERE command CONTAINS "MATCH" AND command CONTAINS "NODE"""".stripMargin
+  )
 
-    // database commands
+  def databaseCommandTests(): Seq[Test] = Seq[Test](
     "show databases" ->
       "SHOW DATABASES",
     "Show Databases YIELD * where name = 'neo4j' Return *" ->
@@ -2607,9 +2609,10 @@ class PrettifierIT extends CypherFunSuite {
     "stop database $foo" ->
       "STOP DATABASE $foo",
     "stop database foO_Bar_42" ->
-      "STOP DATABASE foO_Bar_42",
+      "STOP DATABASE foO_Bar_42"
+  )
 
-    // alias commands
+  def aliasCommandTests(): Seq[Test] = Seq[Test](
     "create alias alias FOR database database" ->
       "CREATE ALIAS alias FOR DATABASE database",
     "create alias alias if not exists for database database" ->
@@ -2640,6 +2643,10 @@ class PrettifierIT extends CypherFunSuite {
       """CREATE ALIAS $alias IF NOT EXISTS FOR DATABASE $database AT $url USER $user PASSWORD $password DRIVER {} PROPERTIES {}""",
     "create alias $alias if not exists FOR database $database at $url user $user password $password properties { foo: 'bar' }" ->
       """CREATE ALIAS $alias IF NOT EXISTS FOR DATABASE $database AT $url USER $user PASSWORD $password PROPERTIES {foo: "bar"}""",
+    "create alias alias FOR database database at 'url' user user password 'password' default language cypher 5" ->
+      """CREATE ALIAS alias FOR DATABASE database AT "url" USER user PASSWORD '******' DEFAULT LANGUAGE CYPHER 5""",
+    "create alias $alias if not exists FOR database $database at $url user $user password $password driver { } default LANGUAGE cypher 25 properties { }" ->
+      """CREATE ALIAS $alias IF NOT EXISTS FOR DATABASE $database AT $url USER $user PASSWORD $password DRIVER {} DEFAULT LANGUAGE CYPHER 25 PROPERTIES {}""",
     "alter alias alias if exists set database target database" ->
       "ALTER ALIAS alias IF EXISTS SET DATABASE TARGET database",
     "alter alias alias set database target database" ->
@@ -2654,6 +2661,10 @@ class PrettifierIT extends CypherFunSuite {
       "ALTER ALIAS alias SET DATABASE PASSWORD '******'",
     "alter alias composite.alias set database driver { ssl_enforced: true }" ->
       "ALTER ALIAS composite.alias SET DATABASE DRIVER {ssl_enforced: true}",
+    "alter alias alias SET database  default language cypher 5" ->
+      """ALTER ALIAS alias SET DATABASE DEFAULT LANGUAGE CYPHER 5""",
+    "alter alias $alias if exists SET database TARGET $database at $url user $user password $password driver { } default LANGUAGE cypher 25 properties { }" ->
+      """ALTER ALIAS $alias IF EXISTS SET DATABASE TARGET $database AT $url USER $user PASSWORD $password DRIVER {} DEFAULT LANGUAGE CYPHER 25 PROPERTIES {}""",
     "drop alias alias for database" ->
       "DROP ALIAS alias FOR DATABASE",
     "drop alias alias if exists for database" ->
@@ -2683,9 +2694,10 @@ class PrettifierIT extends CypherFunSuite {
         |    ORDER BY name ASCENDING
         |    SKIP 1
         |    LIMIT 1
-        |    WHERE name = "neo4j"""".stripMargin,
+        |    WHERE name = "neo4j"""".stripMargin
+  )
 
-    // server commands
+  def serverCommandTests(): Seq[Test] = Seq[Test](
     "enable server 'serverName'" ->
       """ENABLE SERVER "serverName"""".stripMargin,
     "enable server $param" ->
@@ -2748,7 +2760,11 @@ class PrettifierIT extends CypherFunSuite {
         |    SKIP 1
         |    LIMIT 1
         |    WHERE name = "serverId"""".stripMargin
-  ) ++ privilegeTests()
+  )
+
+  def administrationTests(): Seq[Test] =
+    userCommandTests() ++ roleCommandTests() ++ showPrivilegeCommandTests() ++ databaseCommandTests() ++
+      aliasCommandTests() ++ serverCommandTests() ++ privilegeTests()
 
   def privilegeTests(): Seq[Test] = {
     Seq(

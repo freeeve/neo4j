@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast.factory.ddl
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AlterLocalDatabaseAlias
 import org.neo4j.cypher.internal.ast.AlterRemoteDatabaseAlias
 import org.neo4j.cypher.internal.ast.CreateLocalDatabaseAlias
@@ -334,6 +335,30 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   test("CREATE ALIAS `a`.`b` FOR DATABASE `db.cd`.`ef.gh`.d") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``db.cd`.`ef.gh`.d` for name. Expected name to contain at most two components separated by `.`. (line 1, column 35 (offset: 34))"
+    )
+  }
+
+  test("CREATE ALIAS name FOR DATABASE target DEFAULT LANGUAGE CYPHER 5") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DEFAULT': expected a database name, 'AT', 'PROPERTIES' or <EOF> (line 1, column 39 (offset: 38))
+        |"CREATE ALIAS name FOR DATABASE target DEFAULT LANGUAGE CYPHER 5"
+        |                                       ^""".stripMargin
+    )
+  }
+
+  test("CREATE ALIAS name FOR DATABASE target PROPERTIES {} DEFAULT LANGUAGE CYPHER 25") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DEFAULT': expected <EOF> (line 1, column 53 (offset: 52))
+        |"CREATE ALIAS name FOR DATABASE target PROPERTIES {} DEFAULT LANGUAGE CYPHER 25"
+        |                                                     ^""".stripMargin
+    )
+  }
+
+  test("CREATE ALIAS name FOR DATABASE target SET DEFAULT LANGUAGE CYPHER 25") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'SET': expected a database name, 'AT', 'PROPERTIES' or <EOF> (line 1, column 39 (offset: 38))
+        |"CREATE ALIAS name FOR DATABASE target SET DEFAULT LANGUAGE CYPHER 25"
+        |                                       ^""".stripMargin
     )
   }
 
@@ -656,6 +681,64 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     )(defaultPos))
   }
 
+  test("""CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 5""") {
+    assertAst(CreateRemoteDatabaseAlias(
+      namespacedName("name"),
+      namespacedName("target"),
+      IfExistsThrowError,
+      Left("url"),
+      literalString("user"),
+      sensitiveLiteral("password"),
+      defaultLanguage = Some(CypherVersion.Cypher5)
+    )(defaultPos))
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DRIVER {} DEFAULT LANGUAGE CYPHER 25"""
+  ) {
+    assertAst(CreateRemoteDatabaseAlias(
+      namespacedName("name"),
+      namespacedName("target"),
+      IfExistsThrowError,
+      Left("url"),
+      literalString("user"),
+      sensitiveLiteral("password"),
+      Some(Left(Map.empty)),
+      defaultLanguage = Some(CypherVersion.Cypher25)
+    )(defaultPos))
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 25 PROPERTIES {}"""
+  ) {
+    assertAst(CreateRemoteDatabaseAlias(
+      namespacedName("name"),
+      namespacedName("target"),
+      IfExistsThrowError,
+      Left("url"),
+      literalString("user"),
+      sensitiveLiteral("password"),
+      properties = Some(Left(Map.empty)),
+      defaultLanguage = Some(CypherVersion.Cypher25)
+    )(defaultPos))
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DRIVER {} DEFAULT LANGUAGE CYPHER 5 PROPERTIES {}"""
+  ) {
+    assertAst(CreateRemoteDatabaseAlias(
+      namespacedName("name"),
+      namespacedName("target"),
+      IfExistsThrowError,
+      Left("url"),
+      literalString("user"),
+      sensitiveLiteral("password"),
+      Some(Left(Map.empty)),
+      Some(Left(Map.empty)),
+      defaultLanguage = Some(CypherVersion.Cypher5)
+    )(defaultPos))
+  }
+
   test(
     """CREATE ALIAS namespace.name.illegal FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'"""
   ) {
@@ -721,7 +804,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("""CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD "password" PROPERTY { key: 'val' }""") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input 'PROPERTY': expected 'DRIVER', 'PROPERTIES' or <EOF> (line 1, column 78 (offset: 77))
+      """Invalid input 'PROPERTY': expected 'DRIVER', 'PROPERTIES', <EOF> or 'DEFAULT' (line 1, column 78 (offset: 77))
         |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD "password" PROPERTY { key: 'val' }"
         |                                                                              ^""".stripMargin
     )
@@ -732,6 +815,84 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       """Invalid input '': expected a parameter or '{' (line 1, column 88 (offset: 87))
         |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD "password" PROPERTIES"
         |                                                                                        ^""".stripMargin
+    )
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "url" DEFAULT LANGUAGE CYPHER 5 USER user PASSWORD 'password' DRIVER {} PROPERTIES {}"""
+  ) {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DEFAULT': expected 'USER' (line 1, column 48 (offset: 47))
+        |"CREATE ALIAS name FOR DATABASE target AT "url" DEFAULT LANGUAGE CYPHER 5 USER user PASSWORD 'password' DRIVER {} PROPERTIES {}"
+        |                                                ^""".stripMargin
+    )
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "url" USER user DEFAULT LANGUAGE CYPHER 5 PASSWORD 'password' DRIVER {} PROPERTIES {}"""
+  ) {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DEFAULT': expected 'PASSWORD' (line 1, column 58 (offset: 57))
+        |"CREATE ALIAS name FOR DATABASE target AT "url" USER user DEFAULT LANGUAGE CYPHER 5 PASSWORD 'password' DRIVER {} PROPERTIES {}"
+        |                                                          ^""".stripMargin
+    )
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 5 DRIVER {} PROPERTIES {}"""
+  ) {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DRIVER': expected 'PROPERTIES' or <EOF> (line 1, column 104 (offset: 103))
+        |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 5 DRIVER {} PROPERTIES {}"
+        |                                                                                                        ^""".stripMargin
+    )
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DRIVER {} PROPERTIES {} DEFAULT LANGUAGE CYPHER 5"""
+  ) {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'DEFAULT': expected <EOF> (line 1, column 102 (offset: 101))
+        |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DRIVER {} PROPERTIES {} DEFAULT LANGUAGE CYPHER 5"
+        |                                                                                                      ^""".stripMargin
+    )
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' SET DEFAULT LANGUAGE CYPHER 5"""
+  ) {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'SET': expected 'DRIVER', 'PROPERTIES', <EOF> or 'DEFAULT' (line 1, column 78 (offset: 77))
+        |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' SET DEFAULT LANGUAGE CYPHER 5"
+        |                                                                              ^""".stripMargin
+    )
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DRIVER {} SET DEFAULT LANGUAGE CYPHER 5"""
+  ) {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'SET': expected 'PROPERTIES', <EOF> or 'DEFAULT' (line 1, column 88 (offset: 87))
+        |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DRIVER {} SET DEFAULT LANGUAGE CYPHER 5"
+        |                                                                                        ^""".stripMargin
+    )
+  }
+
+  test("""CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 42""") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 102 (offset: 101))
+        |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 42"
+        |                                                                                                      ^""".stripMargin
+    )
+  }
+
+  test(
+    """CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 42*10"""
+  ) {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 102 (offset: 101))
+        |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 42*10"
+        |                                                                                                      ^""".stripMargin
     )
   }
 
@@ -900,7 +1061,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("ALTER ALIAS name SET DATABASE") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input '': expected 'DRIVER', 'PASSWORD', 'PROPERTIES', 'TARGET' or 'USER' (line 1, column 30 (offset: 29))
+      """Invalid input '': expected 'DRIVER', 'PASSWORD', 'PROPERTIES', 'TARGET', 'USER' or 'DEFAULT' (line 1, column 30 (offset: 29))
         |"ALTER ALIAS name SET DATABASE"
         |                              ^""".stripMargin
     )
@@ -1081,7 +1242,8 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     "PROPERTIES { key:'value', yetAnotherKey:'yetAnotherValue' }",
     "USER user",
     "PASSWORD 'password'",
-    "DRIVER { ssl_enforced: true }"
+    "DRIVER { ssl_enforced: true }",
+    "DEFAULT LANGUAGE CYPHER 25"
   )
 
   remoteAliasClauses.permutations.foreach(clauses => {
@@ -1095,7 +1257,8 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
           password = Some(sensitiveLiteral("password")),
           driverSettings = Some(Left(Map("ssl_enforced" -> trueLiteral))),
           properties =
-            Some(Left(Map("key" -> literalString("value"), "yetAnotherKey" -> literalString("yetAnotherValue"))))
+            Some(Left(Map("key" -> literalString("value"), "yetAnotherKey" -> literalString("yetAnotherValue")))),
+          defaultLanguage = Some(CypherVersion.Cypher25)
         )(defaultPos)
       )
     }
@@ -1103,9 +1266,10 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   remoteAliasClauses.foreach(clause => {
     test(s"""ALTER ALIAS name SET DATABASE $clause $clause""") {
-      failsParsing[Statements].withSyntaxErrorContaining(
-        s"Duplicate ${clause.substring(0, clause.indexOf(" "))} clause"
-      )
+      // 'Default language' contains space so cannot split on space to find the clause name
+      val clauseName = if (clause.contains("DEFAULT LANGUAGE")) "DEFAULT LANGUAGE"
+      else clause.substring(0, clause.indexOf(" "))
+      failsParsing[Statements].withSyntaxErrorContaining(s"Duplicate $clauseName clause")
     }
   })
 
@@ -1140,7 +1304,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("ALTER ALIAS name SET DATABASE TARGET AT 'url'") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input ''url'': expected a database name, 'AT', 'DRIVER', 'PASSWORD', 'PROPERTIES', 'TARGET', 'USER' or <EOF> (line 1, column 41 (offset: 40))
+      """Invalid input ''url'': expected a database name, 'AT', 'DRIVER', 'PASSWORD', 'PROPERTIES', 'TARGET', 'USER', <EOF> or 'DEFAULT' (line 1, column 41 (offset: 40))
         |"ALTER ALIAS name SET DATABASE TARGET AT 'url'"
         |                                         ^""".stripMargin
     )
@@ -1148,7 +1312,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("ALTER ALIAS name SET DATABASE AT 'url'") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input 'AT': expected 'DRIVER', 'PASSWORD', 'PROPERTIES', 'TARGET' or 'USER' (line 1, column 31 (offset: 30))
+      """Invalid input 'AT': expected 'DRIVER', 'PASSWORD', 'PROPERTIES', 'TARGET', 'USER' or 'DEFAULT' (line 1, column 31 (offset: 30))
         |"ALTER ALIAS name SET DATABASE AT 'url'"
         |                               ^""".stripMargin
     )
@@ -1313,7 +1477,7 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
 
   test("""ALTER ALIAS name SET DATABASE PROPERTY { key: 'val' }""") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input 'PROPERTY': expected 'DRIVER', 'PASSWORD', 'PROPERTIES', 'TARGET' or 'USER' (line 1, column 31 (offset: 30))
+      """Invalid input 'PROPERTY': expected 'DRIVER', 'PASSWORD', 'PROPERTIES', 'TARGET', 'USER' or 'DEFAULT' (line 1, column 31 (offset: 30))
         |"ALTER ALIAS name SET DATABASE PROPERTY { key: 'val' }"
         |                               ^""".stripMargin
     )
@@ -1324,6 +1488,51 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
       """Invalid input '': expected a parameter or '{' (line 1, column 41 (offset: 40))
         |"ALTER ALIAS name SET DATABASE PROPERTIES"
         |                                         ^""".stripMargin
+    )
+  }
+
+  // set default language
+
+  test("""ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 5""") {
+    assertAst(
+      AlterRemoteDatabaseAlias(
+        namespacedName("name"),
+        defaultLanguage = Some(CypherVersion.Cypher5)
+      )(defaultPos)
+    )
+  }
+
+  test("ALTER ALIAS $name IF EXISTS SET DATABASE DEFAULT LANGUAGE CYPHER 25") {
+    assertAst(AlterRemoteDatabaseAlias(
+      stringParamName("name"),
+      ifExists = true,
+      defaultLanguage = Some(CypherVersion.Cypher25)
+    )(defaultPos))
+  }
+
+  test(
+    """ALTER ALIAS name SET DATABASE TARGET target AT "url" SET DEFAULT LANGUAGE CYPHER 5"""
+  ) {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid input 'SET': expected 'DRIVER', 'PASSWORD', 'PROPERTIES', 'TARGET', 'USER', <EOF> or 'DEFAULT' (line 1, column 54 (offset: 53))
+        |"ALTER ALIAS name SET DATABASE TARGET target AT "url" SET DEFAULT LANGUAGE CYPHER 5"
+        |                                                      ^""".stripMargin
+    )
+  }
+
+  test("ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 42") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 55 (offset: 54))
+        |"ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 42"
+        |                                                       ^""".stripMargin
+    )
+  }
+
+  test("ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 42*10") {
+    failsParsing[Statements].withSyntaxError(
+      """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 55 (offset: 54))
+        |"ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 42*10"
+        |                                                       ^""".stripMargin
     )
   }
 

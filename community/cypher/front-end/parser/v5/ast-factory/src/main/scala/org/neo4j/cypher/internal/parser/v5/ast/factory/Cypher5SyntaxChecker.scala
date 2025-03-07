@@ -203,7 +203,9 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
 
   private def checkCreateAlias(ctx: Cypher5Parser.CreateAliasContext): Unit = {
     if (ctx.stringOrParameter() != null) {
-      if (!(ctx.AT() == null && ctx.USER() == null && ctx.PASSWORD() == null && ctx.DRIVER() == null))
+      if (
+        !(ctx.AT() == null && ctx.USER() == null && ctx.PASSWORD() == null && ctx.DRIVER() == null && ctx.defaultLanguageSpecification().isEmpty)
+      )
         errorOnAliasNameContainingDots(java.util.List.of(
           ctx.aliasName().symbolicAliasNameOrParameter(),
           ctx.databaseName().symbolicAliasNameOrParameter()
@@ -217,9 +219,10 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
     val usernames = ctx.alterAliasUser()
     val passwords = ctx.alterAliasPassword()
     val driverSettings = ctx.alterAliasDriver()
+    val defaultLanguages = ctx.defaultLanguageSpecification()
 
     // Should only be checked in case of remote
-    if (hasUrl || !usernames.isEmpty || !passwords.isEmpty || !driverSettings.isEmpty)
+    if (hasUrl || !usernames.isEmpty || !passwords.isEmpty || !driverSettings.isEmpty || !defaultLanguages.isEmpty)
       errorOnAliasNameContainingDots(java.util.List.of(ctx.aliasName().symbolicAliasNameOrParameter()))
 
     errorOnDuplicateCtx(driverSettings, "DRIVER")
@@ -227,6 +230,7 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
     errorOnDuplicateCtx(passwords, "PASSWORD")
     errorOnDuplicateCtx(ctx.alterAliasProperties(), "PROPERTIES")
     errorOnDuplicateCtx(aliasTargets, "TARGET")
+    errorOnDuplicateCtx(defaultLanguages, "DEFAULT LANGUAGE")
   }
 
   private def checkSymbolicAliasNameOrParameter(ctx: Cypher5Parser.SymbolicAliasNameOrParameterContext): Unit = {

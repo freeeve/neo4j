@@ -85,6 +85,7 @@ final protected class CypherAstBuildingAntlrParser(
     case Cypher5Parser.RULE_constraintType                    => false
     case Cypher5Parser.RULE_constraintExistType               => false
     case Cypher5Parser.RULE_createIndex                       => false
+    case Cypher5Parser.RULE_defaultLanguageSpecification      => false
     case Cypher5Parser.RULE_extendedCaseAlternative           => false
     case Cypher5Parser.RULE_extendedWhen                      => false
     case Cypher5Parser.RULE_functionName                      => false

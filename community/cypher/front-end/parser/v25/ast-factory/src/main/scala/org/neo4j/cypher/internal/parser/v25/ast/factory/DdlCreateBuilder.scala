@@ -514,7 +514,8 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
         ctx.commandNameExpression().ast[Expression](),
         ctx.passwordExpression().ast[Expression](),
         driverSettings,
-        properties
+        properties,
+        astOpt[CypherVersion](ctx.defaultLanguageSpecification())
       )(pos(parent))
     }
   }

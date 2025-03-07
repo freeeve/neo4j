@@ -288,10 +288,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
     )))
   }
 
-  // This test is currently excluded when running with `-P default-query-lang-cypher-25`,
-  // because the assertions are not compatible with Cypher 25 as default language.
-  // Feel free to keep it this way, or update the assertion if preferred.
-  test("should show database with yield *", Tags.NoQueryLangOverride) {
+  test("should show database with yield *") {
     // GIVEN
     setup(defaultConfig)
 
@@ -321,7 +318,7 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
       "lastCommittedTxn" -> null,
       "replicationLag" -> 0,
       "constituents" -> Seq.empty,
-      "defaultLanguage" -> "CYPHER 5", // default value for db.query.default_language
+      "defaultLanguage" -> dbmsDefaultQueryLanguage.description,
       "options" -> Map()
     )
   }

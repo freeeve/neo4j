@@ -1652,7 +1652,7 @@ databaseName
 // Alias commands
 
 createAlias
-   : ALIAS aliasName (IF NOT EXISTS)? FOR DATABASE aliasTargetName (AT stringOrParameter USER commandNameExpression PASSWORD passwordExpression (DRIVER mapOrParameter)?)? (PROPERTIES mapOrParameter)?
+   : ALIAS aliasName (IF NOT EXISTS)? FOR DATABASE aliasTargetName (AT stringOrParameter USER commandNameExpression PASSWORD passwordExpression (DRIVER mapOrParameter)? defaultLanguageSpecification?)? (PROPERTIES mapOrParameter)?
    ;
 
 dropAlias
@@ -1666,6 +1666,7 @@ alterAlias
       | alterAliasPassword
       | alterAliasDriver
       | alterAliasProperties
+      | defaultLanguageSpecification
    )+
    ;
 

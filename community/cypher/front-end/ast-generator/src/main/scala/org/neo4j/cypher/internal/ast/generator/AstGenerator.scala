@@ -3269,6 +3269,7 @@ class AstGenerator(
     password <- _password
     driverSettings <- option(_optionalMapAsEither)
     properties <- option(_optionalMapAsEither)
+    defaultLanguageVersion <- option(_defaultLanguage)
   } yield CreateRemoteDatabaseAlias(
     aliasName,
     targetName,
@@ -3277,7 +3278,8 @@ class AstGenerator(
     username,
     password,
     driverSettings,
-    properties
+    properties,
+    defaultLanguageVersion
   )(pos)
 
   def _dropAlias: Gen[DropDatabaseAlias] = for {
@@ -3301,9 +3303,10 @@ class AstGenerator(
     url <- if (targetName.nonEmpty) some(_nameAsEither) else const(None)
     username <- option(_stringLiteralOrParameter)
     password <- option(_password)
-    // All four are not allowed to be None
+    defaultLanguageVersion <- option(_defaultLanguage)
+    // All five are not allowed to be None
     driverSettings <-
-      if (url.isEmpty && username.isEmpty && password.isEmpty)
+      if (url.isEmpty && username.isEmpty && password.isEmpty && defaultLanguageVersion.isEmpty)
         some(_optionalMapAsEither)
       else
         option(_optionalMapAsEither)
@@ -3316,7 +3319,8 @@ class AstGenerator(
     username,
     password,
     driverSettings,
-    properties
+    properties,
+    defaultLanguageVersion
   )(pos)
 
   def _showAliases: Gen[ShowAliases] = for {

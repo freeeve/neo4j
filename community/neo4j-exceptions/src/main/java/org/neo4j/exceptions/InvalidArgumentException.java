@@ -317,6 +317,16 @@ public class InvalidArgumentException extends Neo4jException {
                         alias));
     }
 
+    public static InvalidArgumentException defaultLanguageForConstituentAliases() {
+        var gql = GqlHelper.getGql42001_42N14_WithoutPosition("DEFAULT LANGUAGE", "constituent aliases");
+        return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
+    }
+
+    public static InvalidArgumentException defaultLanguageForLocalAliases() {
+        var gql = GqlHelper.getGql42001_42N14_WithoutPosition("DEFAULT LANGUAGE", "local aliases");
+        return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
+    }
+
     public static InvalidArgumentException renameEntityNotFound(
             PrivilegeGqlCodeEntity entity, String fromName, String toName) {
         var action = "rename the specified %s '%s' to '%s'"

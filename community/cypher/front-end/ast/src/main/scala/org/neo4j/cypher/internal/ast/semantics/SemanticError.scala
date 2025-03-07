@@ -736,7 +736,7 @@ object SemanticError {
     SemanticError(gql, msg, pos)
   }
 
-  def bothOrReplaceAndIfNotExists(entity: String, userAsString: String, position: InputPosition) = {
+  def bothOrReplaceAndIfNotExists(entity: String, userAsString: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42N14(
       "OR REPLACE",
       "IF NOT EXISTS",
@@ -751,17 +751,17 @@ object SemanticError {
     )
   }
 
-  def badCommandWithOrReplace(cmd: String, cypherCmd: String, position: InputPosition) = {
+  def badCommandWithOrReplace(cmd: String, cypherCmd: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42N14("OR REPLACE", cypherCmd, position.offset, position.line, position.column)
     SemanticError(gql, s"Failed to $cmd: `OR REPLACE` cannot be used together with this command.", position)
   }
 
-  def denyMergeUnsupported(position: InputPosition) = {
+  def denyMergeUnsupported(position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42N14("DENY", "MERGE", position.offset, position.line, position.column)
     SemanticError(gql, "`DENY MERGE` is not supported. Use `DENY SET PROPERTY` and `DENY CREATE` instead.", position)
   }
 
-  def grantDenyRevokeUnsupported(cmd: String, position: InputPosition) = {
+  def grantDenyRevokeUnsupported(cmd: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42N14(
       "GRANT, DENY and REVOKE",
       cmd,
@@ -770,6 +770,17 @@ object SemanticError {
       position.column
     )
     SemanticError(gql, s"`GRANT`, `DENY` and `REVOKE` are not supported for `$cmd`", position)
+  }
+
+  def defaultLanguageForConstituentAliases(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42N14(
+      "DEFAULT LANGUAGE",
+      "constituent aliases",
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(gql, GqlHelper.getCompleteMessage(gql), position)
   }
 
   def unableToRouteUseClauseError(legacyMessage: String, position: InputPosition): SemanticError = {

@@ -7596,6 +7596,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           util.Left("user"),
           varFor("password"),
           None,
+          None,
           None
         ),
         1.0
@@ -7628,7 +7629,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Some(util.Left("user")),
           Some(varFor("password")),
           None,
-          Some(Left(Map("some" -> StringLiteral("prop")(pos.withInputLength(0)))))
+          Some(Left(Map("some" -> StringLiteral("prop")(pos.withInputLength(0))))),
+          None
         ),
         1.0
       ),

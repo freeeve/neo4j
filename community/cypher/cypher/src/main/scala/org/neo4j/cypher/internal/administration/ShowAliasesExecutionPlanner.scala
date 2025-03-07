@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.IdentityConverter
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.checkNamespaceExists
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
+import org.neo4j.cypher.internal.AdministrationCommandRuntime.translateDefaultLanguagePropertyToShowOutput
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
 import org.neo4j.cypher.internal.CypherVersion
@@ -83,9 +84,13 @@ case class ShowAliasesExecutionPlanner(
     returns: Option[Return],
     context: AdministrationCommandRuntimeContext
   ): ExecutionPlan = {
-    // name | composite | database | location | url | user | driver | properties
+    // name | composite | database | location | url | user | driver | defaultLanguage | properties
     val returnStatement = AdministrationShowCommandUtils.generateReturnClause(symbols, yields, returns, Seq("name"))
-    val verboseColumns = if (verbose) ", driverSettings{.*} as driver, properties{.*} as properties" else ""
+    val defaultLanguage = translateDefaultLanguagePropertyToShowOutput("aliasNode")
+    val verboseColumns =
+      if (verbose)
+        s", driverSettings{.*} as driver, properties{.*} as properties, $defaultLanguage as defaultLanguage"
+      else ""
     val (aliasNameFields, aliasPropertyFilter) = filterAliasByName(aliasName)
 
     val displayNameProperty = context.runtimeContext.cypherVersion match {

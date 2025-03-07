@@ -1286,7 +1286,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           username,
           password,
           driverSettings,
-          properties
+          properties,
+          defaultLanguage
         ) =>
         val assertAllowed =
           plans.AssertAllowedDbmsActions(
@@ -1316,7 +1317,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           username,
           password,
           driverSettings,
-          properties
+          properties,
+          defaultLanguage
         )
         Some(plans.LogSystemCommand(aliasCommand, prettifier.asString(c)))
 
@@ -1377,7 +1379,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           username,
           password,
           driverSettings,
-          properties
+          properties,
+          defaultLanguage
         ) =>
         val assertAllowedRemote = plans.AssertAllowedDbmsActions(
           Some(plans.AssertNotBlockedRemoteAliasManagement()),
@@ -1404,7 +1407,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             username.map(expressionToEitherStringParam),
             password,
             driverSettings,
-            properties
+            properties,
+            defaultLanguage
           )
         Some(plans.LogSystemCommand(aliasCommand, prettifier.asString(c)))
 

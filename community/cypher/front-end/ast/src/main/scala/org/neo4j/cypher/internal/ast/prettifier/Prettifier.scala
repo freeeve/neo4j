@@ -752,7 +752,8 @@ case class Prettifier(
           username,
           password,
           driverSettings,
-          properties
+          properties,
+          defaultLanguage
         ) =>
         val urlString = url match {
           case Left(s)          => expr.quote(s)
@@ -761,16 +762,17 @@ case class Prettifier(
 
         val driverSettingsString = propertiesMapToString("DRIVER", driverSettings)
         val propertiesString = propertiesMapToString("PROPERTIES", properties)
+        val defaultLanguageString = defaultLanguage.map(cv => s" DEFAULT LANGUAGE ${cv.description}").getOrElse("")
 
         ifExistsDo match {
           case IfExistsDoNothing | IfExistsInvalidSyntax =>
             s"${x.name} ${Prettifier.escapeName(aliasName)} IF NOT EXISTS FOR DATABASE ${Prettifier.escapeName(targetName)} AT $urlString " +
               s"USER ${Prettifier.escapeName(username)} PASSWORD ${expr.escapePassword(password)}" +
-              driverSettingsString + propertiesString
+              driverSettingsString + defaultLanguageString + propertiesString
           case _ =>
             s"${x.name} ${Prettifier.escapeName(aliasName)} FOR DATABASE ${Prettifier.escapeName(targetName)} AT $urlString " +
               s"USER ${Prettifier.escapeName(username)} PASSWORD ${expr.escapePassword(password)}" +
-              driverSettingsString + propertiesString
+              driverSettingsString + defaultLanguageString + propertiesString
         }
 
       case x @ DropDatabaseAlias(aliasName, ifExists) =>
@@ -792,7 +794,8 @@ case class Prettifier(
           username,
           password,
           driverSettings,
-          properties
+          properties,
+          defaultLanguage
         ) =>
         val targetString = targetName match {
           case Some(targetName) =>
@@ -819,11 +822,12 @@ case class Prettifier(
 
         val driverSettingsString = propertiesMapToString("DRIVER", driverSettings)
         val propertiesString = propertiesMapToString("PROPERTIES", properties)
+        val defaultLanguageString = defaultLanguage.map(cv => s" DEFAULT LANGUAGE ${cv.description}").getOrElse("")
 
         if (ifExists)
-          s"${x.name} ${Prettifier.escapeName(aliasName)} IF EXISTS SET DATABASE$targetString$userString$passwordString$driverSettingsString$propertiesString"
+          s"${x.name} ${Prettifier.escapeName(aliasName)} IF EXISTS SET DATABASE$targetString$userString$passwordString$driverSettingsString$defaultLanguageString$propertiesString"
         else
-          s"${x.name} ${Prettifier.escapeName(aliasName)} SET DATABASE$targetString$userString$passwordString$driverSettingsString$propertiesString"
+          s"${x.name} ${Prettifier.escapeName(aliasName)} SET DATABASE$targetString$userString$passwordString$driverSettingsString$defaultLanguageString$propertiesString"
 
       case x @ ShowAliases(aliasName, yields, _) =>
         val an = aliasName.map(an => s" ${escapeName(an)}").getOrElse("")

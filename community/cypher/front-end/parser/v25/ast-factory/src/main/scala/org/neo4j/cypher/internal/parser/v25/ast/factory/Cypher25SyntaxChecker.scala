@@ -189,7 +189,9 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
 
   private def checkCreateAlias(ctx: Cypher25Parser.CreateAliasContext): Unit = {
     if (ctx.stringOrParameter() != null) {
-      if (!(ctx.AT() == null && ctx.USER() == null && ctx.PASSWORD() == null && ctx.DRIVER() == null)) {
+      if (
+        !(ctx.AT() == null && ctx.USER() == null && ctx.PASSWORD() == null && ctx.DRIVER() == null && ctx.defaultLanguageSpecification().isEmpty)
+      ) {
         errorOnAliasNameContainingDots(
           java.util.List.of(
             ctx.aliasName.symbolicAliasNameOrParameter(),
@@ -206,9 +208,10 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     val usernames = ctx.alterAliasUser()
     val passwords = ctx.alterAliasPassword()
     val driverSettings = ctx.alterAliasDriver()
+    val defaultLanguages = ctx.defaultLanguageSpecification()
 
     // Should only be checked in case of remote
-    if (hasUrl || !usernames.isEmpty || !passwords.isEmpty || !driverSettings.isEmpty)
+    if (hasUrl || !usernames.isEmpty || !passwords.isEmpty || !driverSettings.isEmpty || !defaultLanguages.isEmpty)
       errorOnAliasNameContainingDots(java.util.List.of(ctx.aliasName().symbolicAliasNameOrParameter()))
 
     errorOnDuplicateCtx(driverSettings, "DRIVER")
@@ -216,6 +219,7 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     errorOnDuplicateCtx(passwords, "PASSWORD")
     errorOnDuplicateCtx(ctx.alterAliasProperties(), "PROPERTIES")
     errorOnDuplicateCtx(aliasTargets, "TARGET")
+    errorOnDuplicateCtx(defaultLanguages, "DEFAULT LANGUAGE")
   }
 
   private def checkSymbolicAliasNameOrParameter(ctx: Cypher25Parser.SymbolicAliasNameOrParameterContext): Unit = {

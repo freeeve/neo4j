@@ -55,6 +55,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.dbms.api.DatabaseNotFoundHelper.compositeDatabaseNotFound
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE_LABEL
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
@@ -1104,5 +1105,19 @@ object AdministrationCommandRuntime {
       if (aliasNameFields.wasParameter) Set.empty else Set(DeprecatedDatabaseNameNotification(aliasName, None))
     )
   }
+
+  /** Translate from the persisted default language to the version description outputted in the show database and show alias commands.
+    *
+    * For aliases the property can be null, and should then return null.
+    * For databases we should always get a value, and the default null will act as a warning about needing to update this when we add new Cypher versions
+    *
+    * @param node the node variable for which to check the property on
+    */
+  def translateDefaultLanguagePropertyToShowOutput(node: String): String =
+    s"""CASE $node.$DATABASE_DEFAULT_LANGUAGE_PROPERTY
+       |WHEN '${CypherVersion.Cypher5.persistedValue}' THEN '${CypherVersion.Cypher5.description}'
+       |WHEN '${CypherVersion.Cypher25.persistedValue}' THEN '${CypherVersion.Cypher25.description}'
+       |ELSE NULL
+       |END""".stripMargin
 
 }

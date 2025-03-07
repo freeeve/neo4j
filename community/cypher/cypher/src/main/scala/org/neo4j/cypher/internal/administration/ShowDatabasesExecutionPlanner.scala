@@ -21,12 +21,12 @@ package org.neo4j.cypher.internal.administration
 
 import org.neo4j.common.DependencyResolver
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
+import org.neo4j.cypher.internal.AdministrationCommandRuntime.translateDefaultLanguagePropertyToShowOutput
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userHomeDbPropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
-import org.neo4j.cypher.internal.CypherVersion.Cypher25
 import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
@@ -66,7 +66,6 @@ import org.neo4j.dbms.database.TopologyInfoService
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_CREATED_AT_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
@@ -110,14 +109,7 @@ case class ShowDatabasesExecutionPlanner(
 
     val verboseColumns =
       if (verbose) {
-        // Added null as default so we get a warning about needing to update this when we add new Cypher versions
-        val defaultLanguage =
-          s"""CASE d.$DATABASE_DEFAULT_LANGUAGE_PROPERTY
-             |WHEN '${Cypher5.persistedValue}' THEN '${Cypher5.description}'
-             |WHEN '${Cypher25.persistedValue}' THEN '${Cypher25.description}'
-             |ELSE NULL
-             |END""".stripMargin
-
+        val defaultLanguage = translateDefaultLanguagePropertyToShowOutput("d")
         s""", props.$DATABASE_ID_COL as $DATABASE_ID_COL,
            |props.$CURRENT_PRIMARIES_COUNT_COL as $CURRENT_PRIMARIES_COUNT_COL,
            |props.$CURRENT_SECONDARIES_COUNT_COL as $CURRENT_SECONDARIES_COUNT_COL,

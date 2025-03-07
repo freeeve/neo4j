@@ -563,20 +563,23 @@ trait DdlBuilder extends Cypher25ParserListener {
     val password = astOptFromList[Expression](ctx.alterAliasPassword(), None)
     val driverSettings = astOptFromList[Either[Map[String, Expression], Parameter]](ctx.alterAliasDriver(), None)
     val properties = astOptFromList[Either[Map[String, Expression], Parameter]](ctx.alterAliasProperties(), None)
-    ctx.ast = if (url.isEmpty && username.isEmpty && password.isEmpty && driverSettings.isEmpty) {
-      AlterLocalDatabaseAlias(aliasName, targetName, ctx.EXISTS() != null, properties)(pos(ctx.getParent))
-    } else {
-      AlterRemoteDatabaseAlias(
-        aliasName,
-        targetName,
-        ctx.EXISTS() != null,
-        url,
-        username,
-        password,
-        driverSettings,
-        properties
-      )(pos(ctx.getParent))
-    }
+    val defaultLanguage = astOptFromList[CypherVersion](ctx.defaultLanguageSpecification(), None)
+    ctx.ast =
+      if (url.isEmpty && username.isEmpty && password.isEmpty && driverSettings.isEmpty && defaultLanguage.isEmpty) {
+        AlterLocalDatabaseAlias(aliasName, targetName, ctx.EXISTS() != null, properties)(pos(ctx.getParent))
+      } else {
+        AlterRemoteDatabaseAlias(
+          aliasName,
+          targetName,
+          ctx.EXISTS() != null,
+          url,
+          username,
+          password,
+          driverSettings,
+          properties,
+          defaultLanguage
+        )(pos(ctx.getParent))
+      }
   }
 
   override def exitAlterAliasTarget(ctx: Cypher25Parser.AlterAliasTargetContext): Unit = {

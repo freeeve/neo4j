@@ -68,6 +68,11 @@ class CommunityAliasAdministrationCommandAcceptanceTest extends CommunityAdminis
       "ALTER ALIAS alias SET DATABASE TARGET foo AT 'url' USER user PASSWORD 'password'",
       "Unsupported administration command: ALTER ALIAS alias SET DATABASE TARGET foo AT 'url' USER user PASSWORD 'password'"
     )
+
+    assertFailure(
+      "ALTER ALIAS alias SET DATABASE TARGET foo AT 'url' DEFAULT LANGUAGE CYPHER 5",
+      "Unsupported administration command: ALTER ALIAS alias SET DATABASE TARGET foo AT 'url' DEFAULT LANGUAGE CYPHER 5"
+    )
   }
 
   test("should fail on altering remote alias (in composite) from community") {

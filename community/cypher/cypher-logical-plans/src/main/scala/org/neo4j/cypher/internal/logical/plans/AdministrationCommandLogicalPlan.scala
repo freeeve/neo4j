@@ -570,7 +570,8 @@ case class CreateRemoteDatabaseAlias(
   username: Either[String, Parameter],
   password: Expression,
   driverSettings: Option[Either[Map[String, Expression], Parameter]],
-  properties: Option[Either[Map[String, Expression], Parameter]]
+  properties: Option[Either[Map[String, Expression], Parameter]],
+  defaultLanguageVersion: Option[CypherVersion]
 )(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
 
 case class DropDatabaseAlias(source: AdministrationCommandLogicalPlan, aliasName: DatabaseName)(
@@ -592,7 +593,8 @@ case class AlterRemoteDatabaseAlias(
   username: Option[Either[String, Parameter]],
   password: Option[Expression],
   driverSettings: Option[Either[Map[String, Expression], Parameter]],
-  properties: Option[Either[Map[String, Expression], Parameter]]
+  properties: Option[Either[Map[String, Expression], Parameter]],
+  defaultLanguage: Option[CypherVersion]
 )(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
 
 case class ShowAliases(
