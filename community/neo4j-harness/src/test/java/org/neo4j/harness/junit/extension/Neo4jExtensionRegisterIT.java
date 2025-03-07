@@ -28,7 +28,9 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -36,10 +38,22 @@ import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.extensionpackage.MyUnmanagedExtension;
+import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.server.HTTP;
+import org.neo4j.test.utils.TestDirectory;
 
+@TestDirectoryExtension
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class Neo4jExtensionRegisterIT {
     private static final String REGISTERED_TEMP_PREFIX = "registeredTemp";
+
+    @Inject
+    static TestDirectory testDirectory;
+
+    @Inject
+    static FileSystemAbstraction fs;
 
     @RegisterExtension
     static Neo4jExtension neo4jExtension = Neo4jExtension.builder()
@@ -54,6 +68,11 @@ class Neo4jExtensionRegisterIT {
             })
             .withUnmanagedExtension("/test", MyUnmanagedExtension.class)
             .build();
+
+    @AfterAll
+    static void afterAll(Neo4j neo4j) throws IOException {
+        fs.copyRecursively(neo4j.config().get(GraphDatabaseSettings.logs_directory), testDirectory.homePath());
+    }
 
     @Test
     void neo4jAvailable(Neo4j neo4j) {
@@ -96,7 +115,9 @@ class Neo4jExtensionRegisterIT {
                 neo4j.httpURI() + "db/neo4j/tx/commit",
                 quotedJson("{'statements':[{'statement':'MATCH (n:User) RETURN n'}]}"));
 
-        assertThat(response.get("results").get(0).get("data").size()).isEqualTo(2);
+        assertThat(response.get("results").get(0).get("data").size())
+                .as(response.toString())
+                .isEqualTo(2);
     }
 
     private static Path createTempDirectory() {
