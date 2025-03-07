@@ -27,7 +27,6 @@ import static org.neo4j.cypher.operations.CypherRuntimeParser.parseInt16Vector;
 import static org.neo4j.cypher.operations.CypherRuntimeParser.parseInt32Vector;
 import static org.neo4j.cypher.operations.CypherRuntimeParser.parseInt64Vector;
 import static org.neo4j.cypher.operations.CypherRuntimeParser.parseInt8Vector;
-import static org.neo4j.cypher.operations.CypherRuntimeParser.parseVector;
 import static org.neo4j.values.storable.Values.float32Vector;
 import static org.neo4j.values.storable.Values.float64Vector;
 import static org.neo4j.values.storable.Values.int16Vector;
@@ -40,13 +39,6 @@ import org.neo4j.exceptions.ArithmeticException;
 import org.neo4j.exceptions.CypherTypeException;
 
 class CypherRuntimeParserTest {
-    @Test
-    void shouldParseUntypedVector() {
-        assertThat(parseVector("[1, 2, 3, 0xFFFFFFFF]")).isEqualTo(int64Vector(1, 2, 3, 0xFFFFFFFFL));
-        assertThat(parseVector("[1, 2.0, 3.0, 4.0e12]")).isEqualTo(float64Vector(1.0, 2.0, 3.0, 4.0e12));
-        assertThatThrownBy(() -> parseVector("[1, 2, NULL, 4]")).isInstanceOf(CypherTypeException.class);
-        assertThatThrownBy(() -> parseVector("NULL")).isInstanceOf(CypherTypeException.class);
-    }
 
     @Test
     void shouldParseInt8Vector() {

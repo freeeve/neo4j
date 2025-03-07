@@ -20,7 +20,6 @@
 package org.neo4j.cypher.operations;
 
 import static java.lang.String.format;
-import static org.neo4j.values.storable.Values.NO_VALUE;
 
 import java.util.List;
 import org.neo4j.exceptions.CypherTypeException;
@@ -40,7 +39,6 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
-import org.neo4j.values.virtual.ListValueBuilder;
 
 final class VectorUtils {
     private VectorUtils() {
@@ -70,19 +68,6 @@ final class VectorUtils {
             case DoubleArray doubleArray -> Values.float64Vector(doubleArray.asObject());
             default -> throw invalidVectorType(arrayValue);
         };
-    }
-
-    static VectorValue getVectorFromSequence(SequenceValue vectorSequence) {
-        if (vectorSequence instanceof ArrayValue arrayValue) {
-            return vectorFromArrayValue(arrayValue);
-        } else if (vectorSequence instanceof ListValue listValue) {
-            return vectorFromArrayValue(listValue.toStorableArray());
-        } else {
-            // This is mostly dead code, but we can't really be 100 percent sure so let's have a backup
-            var builder = ListValueBuilder.newListBuilder(vectorSequence.intSize());
-            vectorSequence.forEach(builder::add);
-            return vectorFromArrayValue(builder.build().toStorableArray());
-        }
     }
 
     static VectorValue int8Vector(SequenceValue vectorSequence) {
@@ -194,18 +179,12 @@ final class VectorUtils {
     }
 
     static Value assertDimension(VectorValue vectorValue, AnyValue dimension) {
-        if (dimension == null) {
-            return vectorValue;
-        } else if (dimension == NO_VALUE) {
-            return NO_VALUE;
-        } else {
-            long dimensionValue = getDimension(dimension);
-            if (vectorValue.dimensions() != dimensionValue) {
-                throw new CypherTypeException(format(
-                        "Expected a vector of dimension %d, but got: %d;", dimensionValue, vectorValue.dimensions()));
-            }
-            return vectorValue;
+        long dimensionValue = getDimension(dimension);
+        if (vectorValue.dimensions() != dimensionValue) {
+            throw new CypherTypeException(format(
+                    "Expected a vector of dimension %d, but got: %d;", dimensionValue, vectorValue.dimensions()));
         }
+        return vectorValue;
     }
 
     static long getDimension(AnyValue dimension) {

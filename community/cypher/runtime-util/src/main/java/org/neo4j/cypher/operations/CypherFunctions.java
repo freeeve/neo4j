@@ -21,8 +21,6 @@ package org.neo4j.cypher.operations;
 
 import static java.lang.String.format;
 import static org.neo4j.cypher.operations.CursorUtils.propertyKeys;
-import static org.neo4j.cypher.operations.CypherRuntimeParser.parseAsDoubleOrElseNoValue;
-import static org.neo4j.cypher.operations.CypherRuntimeParser.parseAsLongOrElseNoValue;
 import static org.neo4j.cypher.operations.VectorUtils.assertDimension;
 import static org.neo4j.cypher.operations.VectorUtils.invalidVector;
 import static org.neo4j.values.storable.Values.EMPTY_STRING;
@@ -524,39 +522,6 @@ public final class CypherFunctions {
             return Values.booleanValue(crs.getCalculator().withinBBox(point, lowerLeft, upperRight));
         } else {
             return NO_VALUE;
-        }
-    }
-
-    public static AnyValue vectorValueConstructor(AnyValue vector) {
-        return vectorValueConstructor(vector, null, null);
-    }
-
-    public static AnyValue vectorValueConstructor(AnyValue vector, AnyValue dimension) {
-        return vectorValueConstructor(vector, dimension, null);
-    }
-
-    public static AnyValue vectorValueConstructor(
-            AnyValue vector, AnyValue dimension, VectorCoordinateType coordinateType) {
-        return switch (coordinateType) {
-            case null -> vector(vector, dimension);
-            case INTEGER8 -> int8Vector(vector, dimension);
-            case INTEGER16 -> int16Vector(vector, dimension);
-            case INTEGER32 -> int32Vector(vector, dimension);
-            case INTEGER64 -> int64Vector(vector, dimension);
-            case FLOAT32 -> float32Vector(vector, dimension);
-            case FLOAT64 -> float64Vector(vector, dimension);
-        };
-    }
-
-    public static Value vector(AnyValue in, AnyValue dimension) {
-        if (in == NO_VALUE || dimension == NO_VALUE) {
-            return NO_VALUE;
-        } else if (in instanceof SequenceValue sequence) {
-            return assertDimension(VectorUtils.getVectorFromSequence(sequence), dimension);
-        } else if (in instanceof TextValue textValue) {
-            return assertDimension(CypherRuntimeParser.parseVector(textValue.stringValue()), dimension);
-        } else {
-            throw invalidVector(in);
         }
     }
 

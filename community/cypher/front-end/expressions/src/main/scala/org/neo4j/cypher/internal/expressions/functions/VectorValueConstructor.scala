@@ -42,6 +42,8 @@ case object VectorValueConstructor extends Function {
   case object Float32VectorElementType extends VectorElementType
   case object Float64VectorElementType extends VectorElementType
 
+  // TODO: this is just a temporary thing, before making this public we should use something that isn't
+  // a normal string interval
   def vectorElementType(invocation: FunctionInvocation): VectorElementType = {
     if (!invocation.name.equalsIgnoreCase(name) || invocation.arguments.size != 3) {
       throw new IllegalStateException(s"$invocation does not have an element type")
@@ -55,7 +57,7 @@ case object VectorValueConstructor extends Function {
           case "FLOAT32"                                        => Float32VectorElementType
           case "FLOAT64" | "FLOAT"                              => Float64VectorElementType
           case n => throw new IllegalStateException(
-              s"$name is not a valid vector type and should have failed in semantic checking"
+              s"$n is not a valid vector type and should have failed in semantic checking"
             )
         }
       case n =>
@@ -83,33 +85,6 @@ case object VectorValueConstructor extends Function {
         "dimension" -> "The dimension of the resulting `VECTOR`.",
         "coordinateType" -> "The inner type of the resulting `VECTOR`, one of [`INTEGER64`, `INTEGER32`, `INTEGER16`, `INTEGER8`, `FLOAT64`, `FLOAT32`]."
       ),
-      scopes = Set(CypherVersion.Cypher25),
-      internal = true
-    ),
-    FunctionTypeSignature(
-      this,
-      names = Vector("vectorValue", "dimension"),
-      argumentTypes = Vector(ClosedDynamicUnionType(Set(CTList(CTNumber), CTString))(InputPosition.NONE), CTInteger),
-      outputType = CTVector,
-      description =
-        "Converts a `STRING` or `LIST<INTEGER | FLOAT>` to a `VECTOR`.",
-      category = Category.SCALAR,
-      argumentDescriptions = Map(
-        "vectorValue" -> "A value to convert to a `VECTOR`.",
-        "dimension" -> "The dimension of the resulting `VECTOR`."
-      ),
-      scopes = Set(CypherVersion.Cypher25),
-      internal = true
-    ),
-    FunctionTypeSignature(
-      this,
-      names = Vector("vectorValue"),
-      argumentTypes = Vector(ClosedDynamicUnionType(Set(CTList(CTNumber), CTString))(InputPosition.NONE)),
-      outputType = CTVector,
-      description =
-        "Converts a `STRING` or `LIST<INTEGER | FLOAT>` to a `VECTOR`.",
-      category = Category.SCALAR,
-      argumentDescriptions = Map("vectorValue" -> "A value to convert to a `VECTOR`."),
       scopes = Set(CypherVersion.Cypher25),
       internal = true
     )

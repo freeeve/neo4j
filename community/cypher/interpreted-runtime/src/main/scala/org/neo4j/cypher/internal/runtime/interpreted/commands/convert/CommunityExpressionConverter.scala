@@ -155,8 +155,14 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.PatternConverters.ShortestPathsConverter
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.ConstantGraphReference
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Float32VectorValueConstructorFunction
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Float64VectorValueConstructorFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.IdExpressionGraphReference
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.InequalitySeekRangeExpression
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Int16VectorValueConstructorFunction
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Int32VectorValueConstructorFunction
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Int64VectorValueConstructorFunction
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Int8VectorValueConstructorFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.NameExpressionGraphReference
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.PointBoundingBoxSeekRangeExpression
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.PointDistanceSeekRangeExpression
@@ -171,7 +177,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyPropertyKey
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.cypher.operations.VectorCoordinateType
 import org.neo4j.exceptions.InternalException
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarity
 import org.neo4j.kernel.impl.util.ValueUtils
@@ -808,32 +813,24 @@ case class CommunityExpressionConverter(
           firstArg,
           secondArg
         )
-      case VectorValueConstructor if invocation.arguments.size == 1 =>
-        commands.expressions.VectorValueConstructorFunction(
-          self.toCommandExpression(id, invocation.arguments.head),
-          None,
-          None
-        )
-      case VectorValueConstructor if invocation.arguments.size == 2 =>
-        commands.expressions.VectorValueConstructorFunction(
-          self.toCommandExpression(id, invocation.arguments.head),
-          Some(self.toCommandExpression(id, invocation.arguments(1))),
-          None
-        )
       case VectorValueConstructor if invocation.arguments.size == 3 =>
-        val elemType = VectorValueConstructor.vectorElementType(invocation) match {
-          case VectorValueConstructor.Int8VectorElementType    => VectorCoordinateType.INTEGER8
-          case VectorValueConstructor.Int16VectorElementType   => VectorCoordinateType.INTEGER16
-          case VectorValueConstructor.Int32VectorElementType   => VectorCoordinateType.INTEGER32
-          case VectorValueConstructor.Int64VectorElementType   => VectorCoordinateType.INTEGER64
-          case VectorValueConstructor.Float32VectorElementType => VectorCoordinateType.FLOAT32
-          case VectorValueConstructor.Float64VectorElementType => VectorCoordinateType.FLOAT64
+        val vectorExpression = self.toCommandExpression(id, invocation.arguments.head)
+        val dimensionExpression = self.toCommandExpression(id, invocation.arguments(1))
+        VectorValueConstructor.vectorElementType(invocation) match {
+          case VectorValueConstructor.Int8VectorElementType =>
+            Int8VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case VectorValueConstructor.Int16VectorElementType =>
+            Int16VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case VectorValueConstructor.Int32VectorElementType =>
+            Int32VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case VectorValueConstructor.Int64VectorElementType =>
+            Int64VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case VectorValueConstructor.Float32VectorElementType =>
+            Float32VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case VectorValueConstructor.Float64VectorElementType =>
+            Float64VectorValueConstructorFunction(vectorExpression, dimensionExpression)
         }
-        commands.expressions.VectorValueConstructorFunction(
-          self.toCommandExpression(id, invocation.arguments.head),
-          Some(self.toCommandExpression(id, invocation.arguments(1))),
-          Some(elemType)
-        )
+
       case VectorSimilarityCosine =>
         val firstArg = self.toCommandExpression(id, invocation.arguments.head)
         val secondArg = self.toCommandExpression(id, invocation.arguments(1))

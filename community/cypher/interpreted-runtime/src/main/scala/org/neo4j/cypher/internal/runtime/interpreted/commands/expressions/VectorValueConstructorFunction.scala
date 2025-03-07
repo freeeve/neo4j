@@ -23,32 +23,56 @@ import org.neo4j.cypher.internal.runtime.ReadableRow
 import org.neo4j.cypher.internal.runtime.interpreted.commands.AstNode
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.operations.CypherFunctions
-import org.neo4j.cypher.operations.VectorCoordinateType
 import org.neo4j.values.AnyValue
+import org.neo4j.values.storable.Value
 
-case class VectorValueConstructorFunction(
+abstract class VectorValueConstructorFunction(
   vector: Expression,
-  dimension: Option[Expression] = None,
-  coordinateType: Option[VectorCoordinateType] = None
+  dimension: Expression
 ) extends Expression {
 
-  override def apply(ctx: ReadableRow, state: QueryState): AnyValue = (dimension, coordinateType) match {
-    case (Some(d), Some(c)) => CypherFunctions.vectorValueConstructor(vector(ctx, state), d(ctx, state), c)
-    case (Some(d), None)    => CypherFunctions.vectorValueConstructor(vector(ctx, state), d(ctx, state))
-    case _                  => CypherFunctions.vectorValueConstructor(vector(ctx, state))
+  def vectorFunction(v: AnyValue, d: AnyValue): Value
+
+  override def apply(row: ReadableRow, state: QueryState): AnyValue = {
+    vectorFunction(vector(row, state), dimension(row, state))
   }
 
-  override def arguments: Seq[Expression] = dimension match {
-    case Some(d) => Seq(vector, d)
-    case None    => Seq(vector)
-  }
-
-  override def rewrite(f: Expression => Expression): Expression = (dimension, coordinateType) match {
-    case (Some(d), Some(c)) =>
-      f(VectorValueConstructorFunction(vector.rewrite(f), Some(d.rewrite(f))))
-    case (Some(d), None) => f(VectorValueConstructorFunction(vector.rewrite(f), Some(d.rewrite(f))))
-    case _               => f(VectorValueConstructorFunction(vector.rewrite(f)))
-  }
-
+  override def arguments: Seq[Expression] = Seq(vector, dimension)
   override def children: Seq[AstNode[_]] = arguments
+}
+
+case class Int8VectorValueConstructorFunction(vector: Expression, dimension: Expression)
+    extends VectorValueConstructorFunction(vector, dimension) {
+  override def vectorFunction(v: AnyValue, d: AnyValue): Value = CypherFunctions.int8Vector(v, d)
+  override def rewrite(f: Expression => Expression): Expression = f(copy(f(vector), f(dimension)))
+}
+
+case class Int16VectorValueConstructorFunction(vector: Expression, dimension: Expression)
+    extends VectorValueConstructorFunction(vector, dimension) {
+  override def vectorFunction(v: AnyValue, d: AnyValue): Value = CypherFunctions.int16Vector(v, d)
+  override def rewrite(f: Expression => Expression): Expression = f(copy(f(vector), f(dimension)))
+}
+
+case class Int32VectorValueConstructorFunction(vector: Expression, dimension: Expression)
+    extends VectorValueConstructorFunction(vector, dimension) {
+  override def vectorFunction(v: AnyValue, d: AnyValue): Value = CypherFunctions.int32Vector(v, d)
+  override def rewrite(f: Expression => Expression): Expression = f(copy(f(vector), f(dimension)))
+}
+
+case class Int64VectorValueConstructorFunction(vector: Expression, dimension: Expression)
+    extends VectorValueConstructorFunction(vector, dimension) {
+  override def vectorFunction(v: AnyValue, d: AnyValue): Value = CypherFunctions.int64Vector(v, d)
+  override def rewrite(f: Expression => Expression): Expression = f(copy(f(vector), f(dimension)))
+}
+
+case class Float32VectorValueConstructorFunction(vector: Expression, dimension: Expression)
+    extends VectorValueConstructorFunction(vector, dimension) {
+  override def vectorFunction(v: AnyValue, d: AnyValue): Value = CypherFunctions.float32Vector(v, d)
+  override def rewrite(f: Expression => Expression): Expression = f(copy(f(vector), f(dimension)))
+}
+
+case class Float64VectorValueConstructorFunction(vector: Expression, dimension: Expression)
+    extends VectorValueConstructorFunction(vector, dimension) {
+  override def vectorFunction(v: AnyValue, d: AnyValue): Value = CypherFunctions.float64Vector(v, d)
+  override def rewrite(f: Expression => Expression): Expression = f(copy(f(vector), f(dimension)))
 }

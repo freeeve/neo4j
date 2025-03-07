@@ -23,8 +23,6 @@ import static java.lang.String.format;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.storable.Values.doubleValue;
 import static org.neo4j.values.storable.Values.longValue;
-import static org.neo4j.cypher.operations.VectorUtils.vectorFromListValue;
-import static org.neo4j.values.storable.Values.numberValue;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -43,7 +41,6 @@ import org.neo4j.kernel.impl.util.ValueUtils;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 import org.neo4j.values.storable.VectorValue;
-import org.neo4j.values.virtual.ListValueBuilder;
 import scala.Option;
 import scala.collection.immutable.Seq;
 
@@ -64,18 +61,6 @@ abstract class CypherRuntimeParser {
     //      of numbers so the version shouldn't matter. If we ever do more advanced stuff that will be depending on the
     //      version we will probably need to make this a dynamic class and provide the version as a dependency.
     private static final AstParserFactory parserFactory = AstParserFactory$.MODULE$.apply(CypherVersion.Cypher25);
-
-    static VectorValue parseVector(String expression) {
-        var expressions = asList(expression);
-        int length = expressions.size();
-        var builder = ListValueBuilder.newListBuilder(length);
-        var iterator = expressions.iterator();
-        while (iterator.hasNext()) {
-            builder.add(numberValue(asNumber(iterator.next())));
-        }
-
-        return vectorFromListValue(builder.build());
-    }
 
     static VectorValue parseInt8Vector(String expression) {
         var expressions = asList(expression);
