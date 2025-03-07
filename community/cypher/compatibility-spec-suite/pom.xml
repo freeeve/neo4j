@@ -26,4 +26,31 @@
         <moduleName>org.neo4j.cypher.internal.planning.spec.suite</moduleName>
     </properties>
 
+    <profiles>
+        <!--
+          These tests are disabled with -P default-query-lang-cypher-25.
+          They already run in configurations that uses Cypher 25 as default.
+        -->
+        <profile>
+            <id>default-query-lang-cypher-25</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-surefire-plugin</artifactId>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-failsafe-plugin</artifactId>
+                        <configuration>
+                            <skipTests>true</skipTests>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
