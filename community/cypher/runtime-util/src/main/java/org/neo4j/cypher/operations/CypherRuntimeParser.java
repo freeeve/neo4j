@@ -20,6 +20,7 @@
 package org.neo4j.cypher.operations;
 
 import static java.lang.String.format;
+import static org.neo4j.cypher.operations.VectorUtils.assertNoOverflow;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.storable.Values.doubleValue;
 import static org.neo4j.values.storable.Values.longValue;
@@ -117,7 +118,7 @@ abstract class CypherRuntimeParser {
         var iterator = expressions.iterator();
         int i = 0;
         while (iterator.hasNext()) {
-            floats[i++] = safeAsFloat(iterator.next());
+            floats[i++] = assertNoOverflow(asNumber(iterator.next()).floatValue());
         }
         return Values.float32Vector(floats);
     }
@@ -129,7 +130,7 @@ abstract class CypherRuntimeParser {
         var iterator = expressions.iterator();
         int i = 0;
         while (iterator.hasNext()) {
-            doubles[i++] = safeAsDouble(iterator.next());
+            doubles[i++] = assertNoOverflow(asNumber(iterator.next()).doubleValue());
         }
         return Values.float64Vector(doubles);
     }
@@ -191,24 +192,6 @@ abstract class CypherRuntimeParser {
         } else {
             throw invalidVectorType(expression);
         }
-    }
-
-    private static float safeAsFloat(Expression expression) {
-        var result = asNumber(expression).floatValue();
-        if (!Float.isFinite(result)) {
-            throw org.neo4j.exceptions.ArithmeticException.floatOverflow(
-                    Float.toString(result), "Parse as 32 bit Float");
-        }
-        return result;
-    }
-
-    private static double safeAsDouble(Expression expression) {
-        var result = asNumber(expression).doubleValue();
-        if (!Double.isFinite(result)) {
-            throw org.neo4j.exceptions.ArithmeticException.floatOverflow(
-                    Double.toString(result), "Parse as 64 bit Float");
-        }
-        return result;
     }
 
     private static byte asByte(Expression expression) {

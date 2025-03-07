@@ -151,7 +151,7 @@ final class VectorUtils {
             float[] values = new float[length];
             for (AnyValue value : vectorSequence) {
                 if (value instanceof NumberValue number) {
-                    values[index++] = (float) number.doubleValue();
+                    values[index++] = assertNoOverflow((float) number.doubleValue());
                 } else {
                     throw invalidVectorType(value);
                 }
@@ -169,13 +169,29 @@ final class VectorUtils {
             double[] values = new double[length];
             for (AnyValue value : vectorSequence) {
                 if (value instanceof NumberValue number) {
-                    values[index++] = number.doubleValue();
+                    values[index++] = assertNoOverflow(number.doubleValue());
                 } else {
                     throw invalidVectorType(value);
                 }
             }
             return Values.float64Vector(values);
         }
+    }
+
+    static float assertNoOverflow(float value) {
+        if (!Float.isFinite(value)) {
+            throw org.neo4j.exceptions.ArithmeticException.floatOverflow(
+                    Float.toString(value), "Coercing to a 32 bit Float");
+        }
+        return value;
+    }
+
+    static double assertNoOverflow(double value) {
+        if (!Double.isFinite(value)) {
+            throw org.neo4j.exceptions.ArithmeticException.floatOverflow(
+                    Double.toString(value), "Coercing to a 64 bit Float");
+        }
+        return value;
     }
 
     static Value assertDimension(VectorValue vectorValue, AnyValue dimension) {
