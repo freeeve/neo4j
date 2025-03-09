@@ -43,8 +43,6 @@ trait CypherCucumberSteps extends ScalaDsl with EN {
     havingExecuted(readNamedGraphCypher("binary-tree-1"))
   }
 
-  Given("the graph:") { query: String => havingExecuted(query) }
-
   Given("""the {word} graph""") { (graphName: String) =>
     havingExecuted(readNamedGraphCypher(graphName))
   }
@@ -78,11 +76,7 @@ trait CypherCucumberSteps extends ScalaDsl with EN {
   // Then
   // ====
 
-  Then("the result should be:") { (expected: DataTable) =>
-    resultShouldBeInOrder(expected)
-  }
-
-  Then("the result should be(, in order)?:") { (expected: DataTable) =>
+  Then("the result should be, in order:") { (expected: DataTable) =>
     resultShouldBeInOrder(expected)
   }
 

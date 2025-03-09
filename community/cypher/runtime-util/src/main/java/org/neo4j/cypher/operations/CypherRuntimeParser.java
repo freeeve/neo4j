@@ -227,8 +227,8 @@ abstract class CypherRuntimeParser {
 
     private static CypherTypeException invalidVectorType(Expression badInput) {
         return CypherTypeException.functionArgumentWrongType(
-                "Invalid input for function 'VECTOR': Expected a NUMBER, got: " + badInput.asCanonicalStringVal(),
-                "VECTOR",
+                "Invalid input for function 'vector': Expected a NUMBER, got: " + badInput.asCanonicalStringVal(),
+                "vector",
                 badInput.asCanonicalStringVal(),
                 List.of("INTEGER", "FLOAT"),
                 "ANY");

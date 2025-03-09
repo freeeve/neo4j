@@ -223,8 +223,8 @@ final class VectorUtils {
 
     static CypherTypeException invalidVectorType(AnyValue value) {
         return CypherTypeException.functionArgumentWrongType(
-                "Invalid input for function 'VECTOR()': Expected a NUMBER, got: " + value,
-                "VECTOR",
+                "Invalid input for function 'vector()': Expected a NUMBER, got: " + value,
+                "vector",
                 value.prettyPrint(),
                 List.of("INTEGER", "FLOAT"),
                 CypherTypeValueMapper.valueType(value));
@@ -232,8 +232,8 @@ final class VectorUtils {
 
     static CypherTypeException invalidVector(AnyValue vector) {
         return CypherTypeException.functionArgumentWrongType(
-                format("Invalid input for function 'VECTOR()': Expected a string or list but got %s", vector),
-                "VECTOR",
+                format("Invalid input for function 'vector()': Expected a string or list but got %s", vector),
+                "vector",
                 vector.toString(),
                 List.of("STRING", "LIST<INTEGER | FLOAT>"),
                 vector.getTypeName());
