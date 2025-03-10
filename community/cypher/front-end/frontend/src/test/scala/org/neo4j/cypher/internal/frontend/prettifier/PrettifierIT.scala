@@ -2852,6 +2852,114 @@ class PrettifierIT extends CypherFunSuite {
             s"""$action TRAVERSE ON GRAPH FoO FOR (Bar) WHERE Bar.fOO <= date("2024-10-10") $preposition role""",
           s"$action traverse on graph FoO FOR (Bar) WHERE not Bar.fOO <= $$foo $preposition role" ->
             s"$action TRAVERSE ON GRAPH FoO FOR (Bar) WHERE NOT Bar.fOO <= $$foo $preposition role",
+          FailsInCypher5(
+            s"""$action traverse on graph * for ()-[a]-() where a.b = duration("5 min") $preposition role""",
+            s"""$action TRAVERSE ON GRAPH * FOR ()-[a]-() WHERE a.b = duration("5 min") $preposition role"""
+          ),
+          FailsInCypher5(
+            s"""$action traverse on graph * for ()-[a]->() where a.b=time("14:42:30") $preposition role""",
+            s"""$action TRAVERSE ON GRAPH * FOR ()-[a]-() WHERE a.b = time("14:42:30") $preposition role"""
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph * for ()<-[a]-() where not a.b=1 $preposition role",
+            s"$action TRAVERSE ON GRAPH * FOR ()-[a]-() WHERE NOT a.b = 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph foo for ()<-[r]->() where r.a=true $preposition role",
+            s"$action TRAVERSE ON GRAPH foo FOR ()-[r]-() WHERE r.a = true $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph $$foo for ()-[:A {a:$$foo}]-() $preposition $$role",
+            s"$action TRAVERSE ON GRAPH $$foo FOR ()-[r:A]-() WHERE r.a = $$foo $preposition $$role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO for ()-[Bar]-() where Bar.fOO IS NULL $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO IS NULL $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO for ()-[Bar]-() where Not Bar.fOO IS NULL $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO IS NULL $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph `#%¤` for ()-[`()/&`]-() where `()/&`.`¤`='&' $preposition role",
+            s"""$action TRAVERSE ON GRAPH `#%¤` FOR ()-[`()/&`]-() WHERE `()/&`.`¤` = "&" $preposition role"""
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph foo for ()-[r:A|B|C]-() where r.prop<>true $preposition x,y,z",
+            s"$action TRAVERSE ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE r.prop <> true $preposition x, y, z"
+          ),
+          FailsInCypher5(
+            s"""$action traverse on graph foo for ()-[r:A|B|C]-() where NOT r.prop<>localtime("14:42:30") $preposition x,y,z""",
+            s"""$action TRAVERSE ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE NOT r.prop <> localtime("14:42:30") $preposition x, y, z"""
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph foo for ()<-[r:A|B|C {prop:true}]-() $preposition x,y,z",
+            s"$action TRAVERSE ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE r.prop = true $preposition x, y, z"
+          ),
+          FailsInCypher5(
+            s"""$action traverse on graph foo for ()-[r:A|B|C where r.prop<>localdatetime("2024-10-10T14:42:30")]->() $preposition x,y,z""",
+            s"""$action TRAVERSE ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE r.prop <> localdatetime("2024-10-10T14:42:30") $preposition x, y, z"""
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph foo for ()<-[r:A|B|C where r.prop is not null]->() $preposition x,y,z",
+            s"$action TRAVERSE ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE r.prop IS NOT NULL $preposition x, y, z"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph foo for ()-[r:A|B|C where not r.prop is not null]-() $preposition x,y,z",
+            s"$action TRAVERSE ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE NOT r.prop IS NOT NULL $preposition x, y, z"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO for ()-[Bar]-() where Bar.fOO in [$$foo] $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO IN [$$foo] $preposition role"
+          ),
+          FailsInCypher5(
+            s"""$action traverse on graph FoO for ()-[Bar]-() where not Bar.fOO in [datetime("2024-10-10T14:42:30:5")] $preposition role""",
+            s"""$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO IN [datetime("2024-10-10T14:42:30:5")] $preposition role"""
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO for ()-[Bar]-() where not Bar.fOO in [1,2,3] $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO IN [1, 2, 3] $preposition role"
+          ),
+          FailsInCypher5(
+            s"""$action traverse on graph FoO for ()-[Bar]-() where not Bar.fOO in [1,'string',false, point({x: 1, y: 2, z: 0})] $preposition role""",
+            s"""$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO IN [1, "string", false, point({x: 1, y: 2, z: 0})] $preposition role"""
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO in $$foo $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO IN $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO FOR ()-[Bar]-() WHERE 1 > Bar.fOO $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE 1 > Bar.fOO $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO > $$foo $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO > $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO >= 1.0 $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO >= 1.0 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO >= $$foo $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO >= $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO < 1 $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO < 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO < $$foo $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO < $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"""$action traverse on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO <= date("2024-10-10") $preposition role""",
+            s"""$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO <= date("2024-10-10") $preposition role"""
+          ),
+          FailsInCypher5(
+            s"$action traverse on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO <= $$foo $preposition role",
+            s"$action TRAVERSE ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO <= $$foo $preposition role"
+          ),
           s"$action traverse on graph * relationships * $preposition role" ->
             s"$action TRAVERSE ON GRAPH * RELATIONSHIPS * $preposition role",
           FailsInCypher25AndLater(
@@ -2946,6 +3054,114 @@ class PrettifierIT extends CypherFunSuite {
             s"$action READ {*} ON GRAPH FoO FOR (Bar) WHERE 1.0 <= Bar.fOO $preposition role",
           s"$action read {*} on graph FoO FOR (Bar) WHERE not Bar.fOO <= $$foo $preposition role" ->
             s"$action READ {*} ON GRAPH FoO FOR (Bar) WHERE NOT Bar.fOO <= $$foo $preposition role",
+          FailsInCypher5(
+            s"$action read {*} on graph * for ()-[r:A]-() where r.prop = 1 $preposition role",
+            s"$action READ {*} ON GRAPH * FOR ()-[r:A]-() WHERE r.prop = 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph * for ()-[r:A]-() where not r.prop = 1 $preposition role",
+            s"$action READ {*} ON GRAPH * FOR ()-[r:A]-() WHERE NOT r.prop = 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph * for ()-[r]-() where r.p=$$foo $preposition role",
+            s"$action READ {*} ON GRAPH * FOR ()-[r]-() WHERE r.p = $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph * foR ()-[R]-() WHERe R.p <>2 $preposition role",
+            s"$action READ {*} ON GRAPH * FOR ()-[R]-() WHERE R.p <> 2 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph * foR ()-[R]-() WHERe Not R.p <>2 $preposition role",
+            s"$action READ {*} ON GRAPH * FOR ()-[R]-() WHERE NOT R.p <> 2 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph foo For ()-[r:Ab]-() where r.p is null $preposition role",
+            s"$action READ {*} ON GRAPH foo FOR ()-[r:Ab]-() WHERE r.p IS NULL $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph foo For ()-[r:Ab]-() where NOT r.p is null $preposition role",
+            s"$action READ {*} ON GRAPH foo FOR ()-[r:Ab]-() WHERE NOT r.p IS NULL $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph foo FOR ()<-[ab:A]-() where ab.p is not null $preposition role",
+            s"$action READ {*} ON GRAPH foo FOR ()-[ab:A]-() WHERE ab.p IS NOT NULL $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph foo FOR ()-[ab:A]->() where not ab.p is not null $preposition role",
+            s"$action READ {*} ON GRAPH foo FOR ()-[ab:A]-() WHERE NOT ab.p IS NOT NULL $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {bar} on graph FoO for ()<-[:A {prop: 1}]->() $preposition role",
+            s"$action READ {bar} ON GRAPH FoO FOR ()-[r:A]-() WHERE r.prop = 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read { `&bar` } on graph `#%¤` for ()-[`%¤`:`()/&`]-() where `%¤`.`¤` <> '#' $preposition role",
+            s"""$action READ {`&bar`} ON GRAPH `#%¤` FOR ()-[`%¤`:`()/&`]-() WHERE `%¤`.`¤` <> "#" $preposition role"""
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph foo for ()-[r:A|B|C where r.prop<>true]-() $preposition x,y,z",
+            s"$action READ {*} ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE r.prop <> true $preposition x, y, z"
+          ),
+          FailsInCypher5(
+            s"$action READ {bar} on graph foo for ()-[r:A|B|C where r.prop is not null]-() $preposition x,y,z",
+            s"$action READ {bar} ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE r.prop IS NOT NULL $preposition x, y, z"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph * for ()-[r:A|B]-() where r.p=1 $preposition role",
+            s"$action READ {*} ON GRAPH * FOR ()-[r:A|B]-() WHERE r.p = 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph * for ()-[:A|B {p:1}]-() $preposition role",
+            s"$action READ {*} ON GRAPH * FOR ()-[r:A|B]-() WHERE r.p = 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO in [1] $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO IN [1] $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO in [$$foo] $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO IN [$$foo] $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO in [$$foo, $$bar] $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO IN [$$foo, $$bar] $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO in $$foo $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO IN $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO > 1 $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO > 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO > $$foo $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO > $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO >= 1.0 $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO >= 1.0 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO >= $$foo $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO >= $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO < 1 $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO < 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE not $$foo < Bar.fOO $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT $$foo < Bar.fOO $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE 1.0 <= Bar.fOO $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE 1.0 <= Bar.fOO $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action read {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO <= $$foo $preposition role",
+            s"$action READ {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO <= $$foo $preposition role"
+          ),
           s"$action read {*} on graph $$foo relationships * $preposition role" ->
             s"$action READ {*} ON GRAPH $$foo RELATIONSHIPS * $preposition role",
           FailsInCypher25AndLater(
@@ -3030,6 +3246,106 @@ class PrettifierIT extends CypherFunSuite {
             s"$action MATCH {*} ON GRAPH FoO FOR (Bar) WHERE Bar.fOO <= 1.0 $preposition role",
           s"$action match {*} on graph FoO FOR (Bar) WHERE not Bar.fOO <= $$foo $preposition role" ->
             s"$action MATCH {*} ON GRAPH FoO FOR (Bar) WHERE NOT Bar.fOO <= $$foo $preposition role",
+          FailsInCypher5(
+            s"$action match {*} on graph * for ()-[n]-() where r.prop = $$foo $preposition role",
+            s"$action MATCH {*} ON GRAPH * FOR ()-[n]-() WHERE r.prop = $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph * for ()-[n]-() where not r.prop = true $preposition role",
+            s"$action MATCH {*} ON GRAPH * FOR ()-[n]-() WHERE NOT r.prop = true $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph * for ()-[r:A]-() WHERE r.prop is not NULL $preposition role",
+            s"$action MATCH {*} ON GRAPH * FOR ()-[r:A]-() WHERE r.prop IS NOT NULL $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph foo for ()-[:A{prop:true}]-() $preposition role",
+            s"$action MATCH {*} ON GRAPH foo FOR ()-[r:A]-() WHERE r.prop = true $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph foo for ()-[aB:A]-() where aB.a <> 'ba' $preposition role",
+            s"""$action MATCH {*} ON GRAPH foo FOR ()-[aB:A]-() WHERE aB.a <> "ba" $preposition role"""
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph foo for ()<-[aB:A]-() where nOT aB.a <> 'ba' $preposition role",
+            s"""$action MATCH {*} ON GRAPH foo FOR ()-[aB:A]-() WHERE NOT aB.a <> "ba" $preposition role"""
+          ),
+          FailsInCypher5(
+            s"$action match {bar} on graph foo FoR ()-[a:A]->() where a.bar = 'bar' $preposition role",
+            s"""$action MATCH {bar} ON GRAPH foo FOR ()-[a:A]-() WHERE a.bar = "bar" $preposition role"""
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph * for ()<-[r:A|B]->() WHERE r.prop is null $preposition role",
+            s"$action MATCH {*} ON GRAPH * FOR ()-[r:A|B]-() WHERE r.prop IS NULL $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph * for ()-[r:A|B]-() WHERE NOT r.prop is null $preposition role",
+            s"$action MATCH {*} ON GRAPH * FOR ()-[r:A|B]-() WHERE NOT r.prop IS NULL $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph * for ()-[r:A|B {prop:1}]-() $preposition role",
+            s"$action MATCH {*} ON GRAPH * FOR ()-[r:A|B]-() WHERE r.prop = 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {bar} on graph foo for ()-[r:A|B|C where r.prop<>true]-() $preposition x,y,z",
+            s"$action MATCH {bar} ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE r.prop <> true $preposition x, y, z"
+          ),
+          FailsInCypher5(
+            s"$action MATCH {*} on graph foo for ()-[r:A|B|C where r.prop is not null]-() $preposition x,y,z",
+            s"$action MATCH {*} ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE r.prop IS NOT NULL $preposition x, y, z"
+          ),
+          FailsInCypher5(
+            s"$action MATCH {*} on graph foo for ()-[r:A|B|C where not r.prop is not null]-() $preposition x,y,z",
+            s"$action MATCH {*} ON GRAPH foo FOR ()-[r:A|B|C]-() WHERE NOT r.prop IS NOT NULL $preposition x, y, z"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO in [TRUE] $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO IN [true] $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO in [TRUE, false] $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO IN [true, false] $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO in [$$foo] $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO IN [$$foo] $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO in $$foo $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO IN $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO > 1 $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO > 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO > $$foo $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO > $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE not 1.0 >= Bar.fOO $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT 1.0 >= Bar.fOO $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO >= $$foo $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO >= $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO < 1 $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO < 1 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO < $$foo $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO < $$foo $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE Bar.fOO <= 1.0 $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE Bar.fOO <= 1.0 $preposition role"
+          ),
+          FailsInCypher5(
+            s"$action match {*} on graph FoO FOR ()-[Bar]-() WHERE not Bar.fOO <= $$foo $preposition role",
+            s"$action MATCH {*} ON GRAPH FoO FOR ()-[Bar]-() WHERE NOT Bar.fOO <= $$foo $preposition role"
+          ),
           s"$action match {foo,bar} on graph $$foo relationship A,B,C $preposition x,y,z" ->
             s"$action MATCH {foo, bar} ON GRAPH $$foo RELATIONSHIPS A, B, C $preposition x, y, z",
           FailsInCypher25AndLater(

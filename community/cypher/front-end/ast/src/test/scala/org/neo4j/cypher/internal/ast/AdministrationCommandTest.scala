@@ -51,6 +51,9 @@ import org.neo4j.cypher.internal.expressions.PatternPart.AllPaths
 import org.neo4j.cypher.internal.expressions.PatternPartWithSelector
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
+import org.neo4j.cypher.internal.expressions.RelationshipChain
+import org.neo4j.cypher.internal.expressions.RelationshipPattern
+import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SensitiveStringLiteral
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
@@ -87,6 +90,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
   private val initialState =
     SemanticState.clean
       .withFeature(SemanticFeature.MultipleDatabases)
+      .withFeature(SemanticFeature.RelationshipPropertyValueAccessRules)
 
   // Privilege command tests
 
@@ -152,24 +156,40 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
   // Property Rules
 
   type QualifierFn = (Option[Variable], Expression) => List[PrivilegeQualifier]
-  val allLabelPatternQualifier: QualifierFn = (v, e) => List(PatternQualifier(Seq(LabelAllQualifier()(p)), v, e))
+  val allLabelPatternQualifier: QualifierFn = (v, e) => List(PatternQualifier(Seq(LabelAllQualifier()(p)), v, e, Node))
 
   val singleLabelPatternQualifier: QualifierFn =
-    (v, e) => List(PatternQualifier(Seq(LabelQualifier("A")(p)), v, e))
+    (v, e) => List(PatternQualifier(Seq(LabelQualifier("A")(p)), v, e, Node))
 
   val multiLabelPatternQualifier: QualifierFn =
-    (v, e) => List(PatternQualifier(Seq(LabelQualifier("A")(p), LabelQualifier("B")(p)), v, e))
+    (v, e) => List(PatternQualifier(Seq(LabelQualifier("A")(p), LabelQualifier("B")(p)), v, e, Node))
+
+  val allRelTypePatternQualifier: QualifierFn =
+    (v, e) => List(PatternQualifier(Seq(RelationshipAllQualifier()(p)), v, e, Relationship))
+
+  val singleRelTypePatternQualifier: QualifierFn =
+    (v, e) => List(PatternQualifier(Seq(RelationshipQualifier("A")(p)), v, e, Relationship))
+
+  val multiRelTypePatternQualifier: QualifierFn =
+    (v, e) =>
+      List(PatternQualifier(Seq(RelationshipQualifier("A")(p), RelationshipQualifier("B")(p)), v, e, Relationship))
 
   val mixedList: ListLiteral =
     listOf(literalInt(1), literalString("s"), literalFloat(1.1), falseLiteral, parameter("value1", CTAny))
 
   Seq(
-    (allLabelPatternQualifier, "all labels"),
-    (singleLabelPatternQualifier, "single label"),
-    (multiLabelPatternQualifier, "multiple labels")
+    (allLabelPatternQualifier, "all labels", Node),
+    (singleLabelPatternQualifier, "single label", Node),
+    (multiLabelPatternQualifier, "multiple labels", Node),
+    (allRelTypePatternQualifier, "all rel types", Relationship),
+    (singleRelTypePatternQualifier, "single rel type", Relationship),
+    (multiRelTypePatternQualifier, "multiple rel types", Relationship)
   ).foreach {
-    case (qualifierFn: QualifierFn, qualifierDescription) =>
-      // e.g. FOR (n{prop1:val1, prop2:val2})
+    case (qualifierFn: QualifierFn, qualifierDescription, element) =>
+      // e.g. FOR (n{prop1:val1, prop2:val2}) for node property rules
+      // e.g. FOR ()-[r{prop1:val1, prop2:val2}]-() for relationship property rules
+      // NOTE: comment examples after this ^ one all cite node property rules only, but are all applicable to relationships too.
+
       test(s"property rules with more than one property should fail semantic checking ($qualifierDescription)") {
         val privilege = new GrantPrivilege(
           GraphPrivilege(TraverseAction, HomeGraphScope()(p))(p),
@@ -1263,7 +1283,23 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
                     MatchMode.DifferentRelationships(implicitlyCreated = true)(p),
                     ForMatch(List(PatternPartWithSelector(
                       AllPaths()(p),
-                      PathPatternPart(NodePattern(Some(varFor("n", pos)), None, None, None)(p))
+                      PathPatternPart(
+                        element match {
+                          case Node => NodePattern(Some(varFor("n", pos)), None, None, None)(p)
+                          case Relationship => RelationshipChain(
+                              NodePattern(None, None, None, None)(pos),
+                              RelationshipPattern(
+                                Some(varFor("n", pos)),
+                                None,
+                                None,
+                                None,
+                                None,
+                                SemanticDirection.OUTGOING
+                              )(p),
+                              NodePattern(None, None, None, None)(pos)
+                            )(p)
+                        }
+                      )
                     )))(p),
                     List(),
                     None
@@ -1278,9 +1314,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
         result.errors.size shouldBe 1
         val e = result.errors.head
-        e.msg shouldBe "Failed to administer property rule. " +
-          "The expression: `EXISTS { MATCH (n) }` is not supported. " +
-          "Only single, literal-based predicate expressions are allowed for property-based access control."
+        val pattern = element match {
+          case Node         => "(n)"
+          case Relationship => "()-[n]->()"
+        }
+        e.msg shouldBe s"Failed to administer property rule. " +
+          s"The expression: `EXISTS { MATCH $pattern }` is not supported. " +
+          s"Only single, literal-based predicate expressions are allowed for property-based access control."
         e.gqlStatusObject.gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA0.getStatusString
         e.gqlStatusObject.cause().get().gqlStatus() shouldBe GqlStatusInfoCodes.STATUS_22NA7.getStatusString
       }

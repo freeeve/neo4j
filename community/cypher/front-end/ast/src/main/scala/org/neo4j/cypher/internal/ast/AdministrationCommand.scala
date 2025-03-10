@@ -71,6 +71,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
+import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
@@ -921,6 +922,13 @@ sealed abstract class PrivilegeCommand(
       p.position
     )
 
+  private val featureCheck =
+    requireFeatureSupport(
+      s"The `$name` clause on relationship patterns",
+      SemanticFeature.RelationshipPropertyValueAccessRules,
+      position
+    )
+
   private def checkActionTypeForPropertyRules(privilegeType: PrivilegeType): SemanticCheck = {
     privilegeType match {
       case GraphPrivilege(action, _) => action match {
@@ -939,7 +947,13 @@ sealed abstract class PrivilegeCommand(
   private def privilegeQualifierCheckForPropertyRules(qualifiers: List[PrivilegeQualifier]): SemanticCheck = {
     qualifiers.foldLeft(SemanticCheck.success)((acc, qualifier) => {
       acc.chain(qualifier match {
-        case PatternQualifier(_, v, e) =>
+        case PatternQualifier(_, v, e, Relationship) =>
+          featureCheck chain
+            v.foldSemanticCheck(declareVariable(_, CTRelationship)) chain
+            SemanticExpressionCheck.check(SemanticContext.Results, e) chain
+            checkActionTypeForPropertyRules(privilege) chain
+            checkExpression(e)
+        case PatternQualifier(_, v, e, Node) =>
           v.foldSemanticCheck(declareVariable(_, CTNode)) chain
             SemanticExpressionCheck.check(SemanticContext.Results, e) chain
             checkActionTypeForPropertyRules(privilege) chain

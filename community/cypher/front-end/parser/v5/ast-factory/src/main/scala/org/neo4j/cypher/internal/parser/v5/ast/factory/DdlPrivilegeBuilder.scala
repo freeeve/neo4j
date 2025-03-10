@@ -105,6 +105,7 @@ import org.neo4j.cypher.internal.ast.MatchAction
 import org.neo4j.cypher.internal.ast.MergeAdminAction
 import org.neo4j.cypher.internal.ast.NamedDatabasesScope
 import org.neo4j.cypher.internal.ast.NamedGraphsScope
+import org.neo4j.cypher.internal.ast.Node
 import org.neo4j.cypher.internal.ast.PatternQualifier
 import org.neo4j.cypher.internal.ast.PrivilegeQualifier
 import org.neo4j.cypher.internal.ast.PrivilegeType
@@ -662,7 +663,12 @@ trait DdlPrivilegeBuilder extends Cypher5ParserListener {
       val qualifiers = if (!ctx.symbolicNameString().isEmpty) {
         astSeq[String](ctx.symbolicNameString()).map(a => LabelQualifier(a)(pos(ctx))).toList
       } else List(LabelAllQualifier()(pos(ctx)))
-      List(PatternQualifier(qualifiers, variable, astOpt[Expression](ctx.expression(), ctx.map.ast[Expression]())))
+      List(PatternQualifier(
+        qualifiers,
+        variable,
+        astOpt[Expression](ctx.expression(), ctx.map.ast[Expression]()),
+        Node
+      ))
     } else List(ElementsAllQualifier()(pos(ctx)))
   }
 

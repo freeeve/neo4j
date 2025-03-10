@@ -65,6 +65,7 @@ import org.neo4j.cypher.internal.ast.DropIndexOnName
 import org.neo4j.cypher.internal.ast.DropRole
 import org.neo4j.cypher.internal.ast.DropServer
 import org.neo4j.cypher.internal.ast.DropUser
+import org.neo4j.cypher.internal.ast.Element
 import org.neo4j.cypher.internal.ast.ElementQualifier
 import org.neo4j.cypher.internal.ast.ElementsAllQualifier
 import org.neo4j.cypher.internal.ast.EnableServer
@@ -109,6 +110,7 @@ import org.neo4j.cypher.internal.ast.NamedDatabasesScope
 import org.neo4j.cypher.internal.ast.NamedGraphsScope
 import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.NoOptions
+import org.neo4j.cypher.internal.ast.Node
 import org.neo4j.cypher.internal.ast.OnCreate
 import org.neo4j.cypher.internal.ast.OnMatch
 import org.neo4j.cypher.internal.ast.Options
@@ -136,6 +138,7 @@ import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.ReadOnlyAccess
 import org.neo4j.cypher.internal.ast.ReadWriteAccess
 import org.neo4j.cypher.internal.ast.ReallocateDatabases
+import org.neo4j.cypher.internal.ast.Relationship
 import org.neo4j.cypher.internal.ast.RelationshipAllQualifier
 import org.neo4j.cypher.internal.ast.RelationshipQualifier
 import org.neo4j.cypher.internal.ast.Remove
@@ -1483,31 +1486,49 @@ object Prettifier {
     }
 
     def extractPropertyRuleExpression(
-      labelQualifiers: Seq[PrivilegeQualifier],
+      elementTypeQualifiers: Seq[PrivilegeQualifier],
       variable: Option[Variable],
-      expression: Expression
+      expression: Expression,
+      element: Element
     ) = {
-      val labels = Some(labelQualifiers
+      val elementTypes = Some(elementTypeQualifiers
         .flatMap {
-          case lq: LabelQualifier => Some(backtick(lq.label))
-          case _                  => None
+          case lq: LabelQualifier        => Some(backtick(lq.label))
+          case rq: RelationshipQualifier => Some(backtick(rq.reltype))
+          case _                         => None
         }.mkString("|"))
         .filterNot(_.equals(""))
-        .map(labels => s":$labels")
+        .map(elementTypes => s":$elementTypes")
         .getOrElse("")
 
       val variableNameString = variable.map(v => backtick(v.name))
 
-      def propertyAndWherePrettifier(e: Expression) =
-        s"(${variableNameString.getOrElse("")}$labels) WHERE ${ExpressionStringifier.apply(e => e.asCanonicalStringVal).apply(e)}"
+      def propertyAndWherePrettifier(e: Expression) = {
+        val where = s"WHERE ${ExpressionStringifier.apply(e => e.asCanonicalStringVal).apply(e)}"
+        element match {
+          case Node         => s"(${variableNameString.getOrElse("")}$elementTypes) $where"
+          case Relationship => s"()-[${variableNameString.getOrElse("")}$elementTypes]-() $where"
+        }
+      }
 
-      def propertyInNodePrettifier(propertyKeyName: PropertyKeyName, value: Expression) =
-        s"(${variableNameString.getOrElse("n")}$labels) " +
-          s"WHERE ${variableNameString.getOrElse("n")}.${backtick(propertyKeyName.name)} = " +
-          s"${ExpressionStringifier.apply(value => value.asCanonicalStringVal).apply(value)}"
+      def propertyInElementPrettifier(propertyKeyName: PropertyKeyName, value: Expression) = {
+
+        val where = (varName: String) =>
+          s"WHERE $varName.${backtick(propertyKeyName.name)} = " +
+            s"${ExpressionStringifier.apply(value => value.asCanonicalStringVal).apply(value)}"
+
+        element match {
+          case Node =>
+            val varName = variableNameString.getOrElse("n")
+            s"($varName$elementTypes) ${where(varName)}"
+          case Relationship =>
+            val varName = variableNameString.getOrElse("r")
+            s"()-[$varName$elementTypes]-() ${where(varName)}"
+        }
+      }
 
       expression match {
-        case _ @MapExpression(Seq((propertyKeyName, value))) => propertyInNodePrettifier(propertyKeyName, value)
+        case _ @MapExpression(Seq((propertyKeyName, value))) => propertyInElementPrettifier(propertyKeyName, value)
         case e: Equals                                       => propertyAndWherePrettifier(e)
         case e: NotEquals                                    => propertyAndWherePrettifier(e)
         case e: GreaterThan                                  => propertyAndWherePrettifier(e)
@@ -1548,8 +1569,8 @@ object Prettifier {
       case RelationshipAllQualifier() :: Nil      => Some("RELATIONSHIPS *")
       case elems @ ElementQualifier(_) :: _       => Some("ELEMENTS " + elems.map(stringify).mkString(", "))
       case ElementsAllQualifier() :: Nil          => Some("ELEMENTS *")
-      case PatternQualifier(lqs, v, e) :: Nil =>
-        Some(s"FOR ${extractPropertyRuleExpression(lqs, v, e)}")
+      case PatternQualifier(lqs, v, e, element) :: Nil =>
+        Some(s"FOR ${extractPropertyRuleExpression(lqs, v, e, element)}")
       case UserQualifier(user) :: Nil     => Some("(" + escapeName(user) + ")")
       case users @ UserQualifier(_) :: _  => Some("(" + users.map(stringify).mkString(", ") + ")")
       case UserAllQualifier() :: Nil      => Some("(*)")

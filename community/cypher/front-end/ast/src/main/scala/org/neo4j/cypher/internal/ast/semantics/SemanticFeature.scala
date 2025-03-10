@@ -69,6 +69,10 @@ object SemanticFeature {
     override def name: String = "experimental cypher versions"
   }
 
+  case object RelationshipPropertyValueAccessRules extends SemanticFeature with FeatureToString {
+    override def name: String = "Property value access rules on relationships"
+  }
+
   private val allSemanticFeatures = Set(
     MultipleDatabases,
     MultipleGraphs,
@@ -78,7 +82,8 @@ object SemanticFeature {
     MatchModes,
     ComposableCommands,
     GraphTypes,
-    ExperimentalCypherVersions
+    ExperimentalCypherVersions,
+    RelationshipPropertyValueAccessRules
   )
 
   def fromString(str: String): SemanticFeature =

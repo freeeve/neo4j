@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast.factory.ddl.privilege
 
 import org.neo4j.cypher.internal.ast.AllGraphsScope
+import org.neo4j.cypher.internal.ast.Element
 import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.GraphPrivilege
 import org.neo4j.cypher.internal.ast.HomeGraphScope
@@ -24,7 +25,11 @@ import org.neo4j.cypher.internal.ast.LabelAllQualifier
 import org.neo4j.cypher.internal.ast.LabelQualifier
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.NamedGraphsScope
+import org.neo4j.cypher.internal.ast.Node
 import org.neo4j.cypher.internal.ast.PatternQualifier
+import org.neo4j.cypher.internal.ast.Relationship
+import org.neo4j.cypher.internal.ast.RelationshipAllQualifier
+import org.neo4j.cypher.internal.ast.RelationshipQualifier
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TraverseAction
@@ -82,7 +87,8 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
             Equals(
               Property(varFor("a"), PropertyKeyName("prop2")(_))(_),
               literal(1)
-            )(_)
+            )(_),
+            Node
           )),
           Seq(literalRole),
           immutable
@@ -90,7 +96,7 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
     }
   }
 
-  test("valid labels") {
+  test("valid privileges") {
     for {
       Action(verb, preposition, func) <- actions
       immutable <- Seq(true, false)
@@ -104,168 +110,274 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       // No labels
       (expression match {
         case _: MapExpression => List(
-            (None, s"($expressionString)"),
-            (Some(varFor("n")), s"(n $expressionString)")
+            // Nodes
+            (None, s"($expressionString)", Node),
+            (Some(varFor("n")), s"(n $expressionString)", Node),
+
+            // Relationships
+            (None, s"()-[$expressionString]-()", Relationship),
+            (Some(varFor("n")), s"()-[n $expressionString]-()", Relationship),
+            // Directional relationships is valid when parsing but does not add any extra information
+            (None, s"()<-[$expressionString]-()", Relationship),
+            (Some(varFor("n")), s"()-[n $expressionString]->()", Relationship),
+            (None, s"()<-[$expressionString]->()", Relationship)
           )
         case _: BooleanExpression => List(
-            (Some(varFor("n")), s"(n) WHERE $expressionString"),
-            (Some(varFor("n")), s"(n WHERE $expressionString)"),
-            (Some(varFor("WHERE")), s"(WHERE WHERE $expressionString)"), // WHERE as variable
-            (
-              None,
-              s"() WHERE $expressionString"
-            ) // Missing variable is valid when parsing. Fail in semantic check
+            // Nodes
+            (Some(varFor("n")), s"(n) WHERE $expressionString", Node),
+            (Some(varFor("n")), s"(n WHERE $expressionString)", Node),
+            (Some(varFor("WHERE")), s"(WHERE WHERE $expressionString)", Node), // WHERE as variable
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"() WHERE $expressionString", Node),
+
+            // Relationships
+            (Some(varFor("n")), s"()-[n]-() WHERE $expressionString", Relationship),
+            (Some(varFor("n")), s"()-[n WHERE $expressionString]-()", Relationship),
+            (Some(varFor("WHERE")), s"()-[WHERE WHERE $expressionString]-()", Relationship), // WHERE as variable
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"()-[]-() WHERE $expressionString", Relationship),
+            // Directional relationships is valid when parsing but does not add any extra information
+            (Some(varFor("n")), s"()<-[n WHERE $expressionString]-()", Relationship),
+            (Some(varFor("WHERE")), s"()-[WHERE WHERE $expressionString]->()", Relationship), // WHERE as variable
+            (Some(varFor("n")), s"()<-[n WHERE $expressionString]->()", Relationship)
           )
         case _ => fail("Unexpected expression")
-      }).foreach { case (variable: Option[Variable], propertyRule: String) =>
+      }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
         // All labels, parameterised role
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition $$role" should
-          parseTo[Statements](
-            func(
-              GraphPrivilege(TraverseAction, graphScope)(pos),
-              List(PatternQualifier(Seq(LabelAllQualifier()(pos)), variable, propertyRuleAst)),
-              Seq(paramRole),
-              immutable
-            )(pos)
-          )
+          parseIn[Statements] {
+            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
+            case _ => _.toAst(statementToStatements(func(
+                GraphPrivilege(TraverseAction, graphScope)(pos),
+                List(PatternQualifier(
+                  Seq(
+                    if (elementType == Node) LabelAllQualifier()(pos)
+                    else RelationshipAllQualifier()(pos)
+                  ),
+                  variable,
+                  propertyRuleAst,
+                  elementType
+                )),
+                Seq(paramRole),
+                immutable
+              )(pos)))
+          }
 
         // All labels, role containing colon
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition `r:ole`" should
-          parseTo[Statements](
-            func(
-              GraphPrivilege(TraverseAction, graphScope)(pos),
-              List(PatternQualifier(Seq(LabelAllQualifier()(pos)), variable, propertyRuleAst)),
-              Seq(literalRColonOle),
-              immutable
-            )(pos)
-          )
+          parseIn[Statements] {
+            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
+            case _ => _.toAst(statementToStatements(func(
+                GraphPrivilege(TraverseAction, graphScope)(pos),
+                List(PatternQualifier(
+                  Seq(
+                    if (elementType == Node) LabelAllQualifier()(pos)
+                    else RelationshipAllQualifier()(pos)
+                  ),
+                  variable,
+                  propertyRuleAst,
+                  elementType
+                )),
+                Seq(literalRColonOle),
+                immutable
+              )(pos)))
+          }
       }
 
       // Single label name
       (expression match {
         case _: MapExpression => List(
-            (None, s"(:A $expressionString)"),
-            (Some(varFor("n")), s"(n:A $expressionString)")
+            // Nodes
+            (None, s"(:A $expressionString)", Node),
+            (Some(varFor("n")), s"(n:A $expressionString)", Node),
+
+            // Relationships
+            (None, s"()-[:A $expressionString]-()", Relationship),
+            (None, s"()-[:A $expressionString]->()", Relationship),
+            (None, s"()<-[:A $expressionString]-()", Relationship),
+            (Some(varFor("n")), s"()-[n:A $expressionString]-()", Relationship)
           )
         case _: BooleanExpression => List(
-            (Some(varFor("n")), s"(n:A) WHERE $expressionString"),
-            (Some(varFor("n")), s"(n:A WHERE $expressionString)"),
-            (Some(varFor("WHERE")), s"(WHERE:A WHERE $expressionString)"), // WHERE as variable
-            (
-              None,
-              s"(:A) WHERE $expressionString"
-            ), // Missing variable is valid when parsing. Fail in semantic check
-            (
-              None,
-              s"(:A WHERE $expressionString)"
-            ) // Missing variable is valid when parsing. Fail in semantic check
+            // Nodes
+            (Some(varFor("n")), s"(n:A) WHERE $expressionString", Node),
+            (Some(varFor("n")), s"(n:A WHERE $expressionString)", Node),
+            (Some(varFor("WHERE")), s"(WHERE:A WHERE $expressionString)", Node), // WHERE as variable
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"(:A) WHERE $expressionString", Node),
+            (None, s"(:A WHERE $expressionString)", Node),
+
+            // Relationships
+            (Some(varFor("n")), s"()-[n:A]-() WHERE $expressionString", Relationship),
+            (Some(varFor("n")), s"()<-[n:A]-() WHERE $expressionString", Relationship),
+            (Some(varFor("n")), s"()-[n:A]->() WHERE $expressionString", Relationship),
+            (Some(varFor("n")), s"()-[n:A WHERE $expressionString]-()", Relationship),
+            (Some(varFor("WHERE")), s"()-[WHERE:A WHERE $expressionString]-()", Relationship), // WHERE as variable
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"()-[:A]-() WHERE $expressionString", Relationship),
+            (None, s"()-[:A WHERE $expressionString]-()", Relationship)
           )
         case _ => fail("Unexpected expression")
-      }).foreach { case (variable: Option[Variable], propertyRule: String) =>
+      }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition role" should
-          parseTo[Statements](
-            func(
-              GraphPrivilege(TraverseAction, graphScope)(pos),
-              List(PatternQualifier(Seq(labelQualifierA), variable, propertyRuleAst)),
-              Seq(literalRole),
-              immutable
-            )(pos)
-          )
+          parseIn[Statements] {
+            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
+            case _ => _.toAst(statementToStatements(func(
+                GraphPrivilege(TraverseAction, graphScope)(pos),
+                List(PatternQualifier(
+                  Seq(
+                    if (elementType == Node) labelQualifierA
+                    else relQualifierA
+                  ),
+                  variable,
+                  propertyRuleAst,
+                  elementType
+                )),
+                Seq(literalRole),
+                immutable
+              )(pos)))
+          }
       }
 
       // Escaped multi-token label name
       (expression match {
         case _: MapExpression => List(
-            (None, s"(:`A B` $expressionString)"),
-            (Some(varFor("n")), s"(n:`A B` $expressionString)")
+            // Nodes
+            (None, s"(:`A B` $expressionString)", Node),
+            (Some(varFor("n")), s"(n:`A B` $expressionString)", Node),
+
+            // Relationships
+            (None, s"()-[:`A B` $expressionString]-()", Relationship),
+            (Some(varFor("n")), s"()-[n:`A B` $expressionString]-()", Relationship)
           )
         case _: BooleanExpression => List(
-            (Some(varFor("n")), s"(n:`A B`) WHERE $expressionString"),
-            (Some(varFor("n")), s"(n:`A B` WHERE $expressionString)"),
-            (
-              None,
-              s"(:`A B`) WHERE $expressionString"
-            ), // Missing variable is valid when parsing. Fail in semantic check
-            (
-              None,
-              s"(:`A B` WHERE $expressionString)"
-            ) // Missing variable is valid when parsing. Fail in semantic check
+            // Nodes
+            (Some(varFor("n")), s"(n:`A B`) WHERE $expressionString", Node),
+            (Some(varFor("n")), s"(n:`A B` WHERE $expressionString)", Node),
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"(:`A B`) WHERE $expressionString", Node),
+            (None, s"(:`A B` WHERE $expressionString)", Node),
+
+            // Relationships
+            (Some(varFor("n")), s"()-[n:`A B`]-() WHERE $expressionString", Relationship),
+            (Some(varFor("n")), s"()-[n:`A B` WHERE $expressionString]-()", Relationship),
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"()-[:`A B`]-() WHERE $expressionString", Relationship),
+            (None, s"()-[:`A B` WHERE $expressionString]-()", Relationship)
           )
         case _ => fail("Unexpected expression")
-      }).foreach { case (variable: Option[Variable], propertyRule: String) =>
+      }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition role" should
-          parseTo[Statements](
-            func(
-              GraphPrivilege(TraverseAction, graphScope)(pos),
-              List(PatternQualifier(Seq(LabelQualifier("A B")(_)), variable, propertyRuleAst)),
-              Seq(literalRole),
-              immutable
-            )(pos)
-          )
+          parseIn[Statements] {
+            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
+            case _ => _.toAst(statementToStatements(func(
+                GraphPrivilege(TraverseAction, graphScope)(pos),
+                List(PatternQualifier(
+                  Seq(
+                    if (elementType == Node) LabelQualifier("A B")(_)
+                    else RelationshipQualifier("A B")(_)
+                  ),
+                  variable,
+                  propertyRuleAst,
+                  elementType
+                )),
+                Seq(literalRole),
+                immutable
+              )(pos)))
+          }
       }
 
       // Label containing colon
       (expression match {
         case _: MapExpression => List(
-            (None, s"(:`:A` $expressionString)"),
-            (Some(varFor("n")), s"(n:`:A` $expressionString)")
+            // Nodes
+            (None, s"(:`:A` $expressionString)", Node),
+            (Some(varFor("n")), s"(n:`:A` $expressionString)", Node),
+
+            // Relationships
+            (None, s"()-[:`:A` $expressionString]-()", Relationship),
+            (Some(varFor("n")), s"()-[n:`:A` $expressionString]-()", Relationship)
           )
         case _: BooleanExpression => List(
-            (Some(varFor("n")), s"(n:`:A`) WHERE $expressionString"),
-            (Some(varFor("n")), s"(n:`:A` WHERE $expressionString)"),
-            (
-              None,
-              s"(:`:A`) WHERE $expressionString"
-            ), // Missing variable is valid when parsing. Fail in semantic check
-            (
-              None,
-              s"(:`:A` WHERE $expressionString)"
-            ) // Missing variable is valid when parsing. Fail in semantic check
+            // Nodes
+            (Some(varFor("n")), s"(n:`:A`) WHERE $expressionString", Node),
+            (Some(varFor("n")), s"(n:`:A` WHERE $expressionString)", Node),
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"(:`:A`) WHERE $expressionString", Node),
+            (None, s"(:`:A` WHERE $expressionString)", Node),
+
+            // Relationships
+            (Some(varFor("n")), s"()-[n:`:A`]-() WHERE $expressionString", Relationship),
+            (Some(varFor("n")), s"()-[n:`:A` WHERE $expressionString]-()", Relationship),
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"()-[:`:A`]-() WHERE $expressionString", Relationship),
+            (None, s"()-[:`:A` WHERE $expressionString]-()", Relationship)
           )
         case _ => fail("Unexpected expression")
-      }).foreach { case (variable: Option[Variable], propertyRule: String) =>
+      }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition role" should
-          parseTo[Statements](
-            func(
-              GraphPrivilege(TraverseAction, graphScope)(pos),
-              List(PatternQualifier(Seq(LabelQualifier(":A")(_)), variable, propertyRuleAst)),
-              Seq(literalRole),
-              immutable
-            )(pos)
-          )
+          parseIn[Statements] {
+            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
+            case _ => _.toAst(statementToStatements(func(
+                GraphPrivilege(TraverseAction, graphScope)(pos),
+                List(PatternQualifier(
+                  Seq(
+                    if (elementType == Node) LabelQualifier(":A")(_)
+                    else RelationshipQualifier(":A")(_)
+                  ),
+                  variable,
+                  propertyRuleAst,
+                  elementType
+                )),
+                Seq(literalRole),
+                immutable
+              )(pos)))
+          }
       }
 
       // Multiple labels
       (expression match {
         case _: MapExpression => List(
-            (None, s"(:A|B $expressionString)"),
-            (Some(varFor("n")), s"(n:A|B $expressionString)")
+            // Nodes
+            (None, s"(:A|B $expressionString)", Node),
+            (Some(varFor("n")), s"(n:A|B $expressionString)", Node),
+
+            // Relationship
+            (None, s"()-[:A|B $expressionString]-()", Relationship),
+            (Some(varFor("n")), s"()-[n:A|B $expressionString]-()", Relationship)
           )
         case _: BooleanExpression => List(
-            (Some(varFor("n")), s"(n:A|B) WHERE $expressionString"),
-            (Some(varFor("n")), s"(n:A|B WHERE $expressionString)"),
-            (
-              None,
-              s"(:A|B) WHERE $expressionString"
-            ), // Missing variable is valid when parsing. Fail in semantic check
-            (
-              None,
-              s"(:A|B WHERE $expressionString)"
-            ) // Missing variable is valid when parsing. Fail in semantic check
+            // Nodes
+            (Some(varFor("n")), s"(n:A|B) WHERE $expressionString", Node),
+            (Some(varFor("n")), s"(n:A|B WHERE $expressionString)", Node),
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"(:A|B) WHERE $expressionString", Node),
+            (None, s"(:A|B WHERE $expressionString)", Node),
+
+            // Relationship
+            (Some(varFor("n")), s"()-[n:A|B]-() WHERE $expressionString", Relationship),
+            (Some(varFor("n")), s"()-[n:A|B WHERE $expressionString]-()", Relationship),
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"()-[:A|B]-() WHERE $expressionString", Relationship),
+            (None, s"()-[:A|B WHERE $expressionString]-()", Relationship)
           )
         case _ => fail("Unexpected expression")
-      }).foreach { case (variable: Option[Variable], propertyRule: String) =>
+      }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition role1, $$role2" should
-          parseTo[Statements](
-            func(
-              GraphPrivilege(TraverseAction, graphScope)(pos),
-              List(
-                PatternQualifier(Seq(labelQualifierA, labelQualifierB), variable, propertyRuleAst)
-              ),
-              Seq(literalRole1, paramRole2),
-              immutable
-            )(pos)
-          )
+          parseIn[Statements] {
+            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
+            case _ => _.toAst(statementToStatements(func(
+                GraphPrivilege(TraverseAction, graphScope)(pos),
+                List(PatternQualifier(
+                  if (elementType == Node) Seq(labelQualifierA, labelQualifierB)
+                  else Seq(relQualifierA, relQualifierB),
+                  variable,
+                  propertyRuleAst,
+                  elementType
+                )),
+                Seq(literalRole1, paramRole2),
+                immutable
+              )(pos)))
+          }
       }
     }
   }
@@ -282,43 +394,61 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
 
       (expression match {
         case _: MapExpression => List(
-            (None, s"(:A $expressionString)"),
-            (Some(varFor("n")), s"(n:A $expressionString)")
+            // Nodes
+            (None, s"(:A $expressionString)", Node),
+            (Some(varFor("n")), s"(n:A $expressionString)", Node),
+
+            // Relationships
+            (None, s"()-[:A $expressionString]-()", Relationship),
+            (Some(varFor("n")), s"()-[n:A $expressionString]-()", Relationship)
           )
         case _: BooleanExpression => List(
-            (Some(varFor("n")), s"(n:A) WHERE $expressionString"),
-            (Some(varFor("n")), s"(n:A WHERE $expressionString)"),
-            (
-              None,
-              s"(:A) WHERE $expressionString"
-            ), // Missing variable is valid when parsing. Fail in semantic check
-            (
-              None,
-              s"(:A WHERE $expressionString)"
-            ) // Missing variable is valid when parsing. Fail in semantic check
+            // Nodes
+            (Some(varFor("n")), s"(n:A) WHERE $expressionString", Node),
+            (Some(varFor("n")), s"(n:A WHERE $expressionString)", Node),
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"(:A) WHERE $expressionString", Node),
+            (None, s"(:A WHERE $expressionString)", Node),
+
+            // Relationships
+            (Some(varFor("n")), s"()-[n:A]-() WHERE $expressionString", Relationship),
+            (Some(varFor("n")), s"()-[n:A WHERE $expressionString]-()", Relationship),
+            // Missing variable is valid when parsing. Fail in semantic check
+            (None, s"()-[:A]-() WHERE $expressionString", Relationship),
+            (None, s"()-[:A WHERE $expressionString]-()", Relationship)
           )
         case _ => fail("Unexpected expression")
-      }).foreach { case (variable: Option[Variable], propertyRule: String) =>
-        val patternQualifier = List(PatternQualifier(Seq(labelQualifierA), variable, propertyRuleAst))
+      }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
+        val patternQualifier = List(PatternQualifier(
+          Seq(
+            if (elementType == Node) labelQualifierA
+            else relQualifierA
+          ),
+          variable,
+          propertyRuleAst,
+          elementType
+        ))
         s"$verb$immutableString TRAVERSE ON $graphKeyword `f:oo` $patternKeyword $propertyRule $preposition role" should
-          parseTo[Statements](
-            func(
-              GraphPrivilege(TraverseAction, NamedGraphsScope(Seq(namespacedName("f:oo"))) _)(pos),
-              patternQualifier,
-              Seq(literalRole),
-              immutable
-            )(pos)
-          )
+          parseIn[Statements] {
+            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
+            case _ => _.toAst(statementToStatements(func(
+                GraphPrivilege(TraverseAction, NamedGraphsScope(Seq(namespacedName("f:oo"))) _)(pos),
+                patternQualifier,
+                Seq(literalRole),
+                immutable
+              )(pos)))
+          }
 
         s"$verb$immutableString TRAVERSE ON $graphKeyword foo, baz $patternKeyword $propertyRule $preposition role" should
-          parseTo[Statements](
-            func(
-              GraphPrivilege(TraverseAction, graphScopeFooBaz)(pos),
-              patternQualifier,
-              Seq(literalRole),
-              immutable
-            )(pos)
-          )
+          parseIn[Statements] {
+            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
+            case _ => _.toAst(statementToStatements(func(
+                GraphPrivilege(TraverseAction, graphScopeFooBaz)(pos),
+                patternQualifier,
+                Seq(literalRole),
+                immutable
+              )(pos)))
+          }
       }
     }
   }
@@ -332,7 +462,8 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
             List(PatternQualifier(
               Seq(LabelAllQualifier() _),
               Some(varFor("n")),
-              equals(prop(varFor("n"), "prop1"), literalInt(1))
+              equals(prop(varFor("n"), "prop1"), literalInt(1)),
+              Node
             )),
             Seq(literalRole),
             i = false
@@ -350,16 +481,34 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
         List(PatternQualifier(
           Seq(LabelAllQualifier() _),
           Some(varFor("a")),
-          equals(prop(varFor("b"), "prop1"), literalInt(1))
+          equals(prop(varFor("b"), "prop1"), literalInt(1)),
+          Node
         )),
         Seq(literalRole),
         i = false
       )(pos)
     )
+
+    s"GRANT TRAVERSE ON GRAPH * FOR ()-[a]-() WHERE b.prop1 = 1 TO role" should parseIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
+      case _ => _.toAst(statementToStatements(
+          grantGraphPrivilege(
+            GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
+            List(PatternQualifier(
+              Seq(RelationshipAllQualifier() _),
+              Some(varFor("a")),
+              equals(prop(varFor("b"), "prop1"), literalInt(1)),
+              Relationship
+            )),
+            Seq(literalRole),
+            i = false
+          )(pos)
+        ))
+    }
   }
 
   test(
-    "'FOR (n) WHERE 1 = n.prop1 (foo) TO role' parse as a function to then be rejected in semantic check"
+    "'WHERE 1 = n.prop1 (foo) TO role' parse as a function to then be rejected in semantic check"
   ) {
     s"GRANT TRAVERSE ON GRAPH * FOR (n) WHERE 1 = n.prop1 (foo) TO role" should parseTo[Statements](
       grantGraphPrivilege(
@@ -373,7 +522,8 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
               FunctionName(Namespace(List("n"))(pos), "prop1")(pos),
               varFor("foo")
             )(pos)
-          )
+          ),
+          Node
         )),
         Seq(literalRole),
         i = false
@@ -392,12 +542,59 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
               FunctionName(Namespace(List("n"))(pos), "prop1")(pos),
               varFor("foo")
             )(pos)
-          )
+          ),
+          Node
         )),
         Seq(literalRole),
         i = false
       )(pos)
     )
+
+    s"GRANT TRAVERSE ON GRAPH * FOR ()-[n]-() WHERE 1 = n.prop1 (foo) TO role" should parseIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
+      case _ => _.toAst(statementToStatements(
+          grantGraphPrivilege(
+            GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
+            List(PatternQualifier(
+              Seq(RelationshipAllQualifier() _),
+              Some(varFor("n")),
+              equals(
+                literalInt(1),
+                FunctionInvocation.apply(
+                  FunctionName(Namespace(List("n"))(pos), "prop1")(pos),
+                  varFor("foo")
+                )(pos)
+              ),
+              Relationship
+            )),
+            Seq(literalRole),
+            i = false
+          )(pos)
+        ))
+    }
+
+    s"GRANT TRAVERSE ON GRAPH * FOR ()-[n WHERE 1 = n.prop1 (foo)]-() TO role" should parseIn[Statements] {
+      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
+      case _ => _.toAst(statementToStatements(
+          grantGraphPrivilege(
+            GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
+            List(PatternQualifier(
+              Seq(RelationshipAllQualifier() _),
+              Some(varFor("n")),
+              equals(
+                literalInt(1),
+                FunctionInvocation.apply(
+                  FunctionName(Namespace(List("n"))(pos), "prop1")(pos),
+                  varFor("foo")
+                )(pos)
+              ),
+              Relationship
+            )),
+            Seq(literalRole),
+            i = false
+          )(pos)
+        ))
+    }
   }
 
   test(
@@ -424,7 +621,8 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
                 )(pos)
               )
             )(pos)
-          )(pos, None, None)
+          )(pos, None, None),
+          Node
         )),
         Seq(literalRole),
         i = false
@@ -442,18 +640,36 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       Scope(graphName, _) <- Gen.oneOf(scopes)
       propertyRule <- expression match {
         case _: MapExpression => Gen.oneOf(
+            // Nodes
             s"($expressionString)",
             s"(:A $expressionString)",
-            s"(n:A $expressionString)"
+            s"(n:A $expressionString)",
+
+            // Relationships
+            s"()-[$expressionString]-()",
+            s"()-[:A $expressionString]-()",
+            s"()-[n:A $expressionString]-()"
           )
         case _: BooleanExpression => Gen.oneOf(
+            // Nodes
             s"(n) WHERE $expressionString",
             s"(n WHERE $expressionString)",
             s"(n:A) WHERE $expressionString",
             s"(n:A WHERE $expressionString)",
-            s"(:A) WHERE $expressionString", // Missing variable is valid when parsing. Fail in semantic check
-            s"() WHERE $expressionString", // Missing variable is valid when parsing. Fail in semantic check
-            s"(:A WHERE $expressionString)" // Missing variable is valid when parsing. Fail in semantic check
+            // Missing variable is valid when parsing. Fail in semantic check
+            s"(:A) WHERE $expressionString",
+            s"() WHERE $expressionString",
+            s"(:A WHERE $expressionString)",
+
+            // Relationships
+            s"()-[n]-() WHERE $expressionString",
+            s"()-[n WHERE $expressionString]-()",
+            s"()-[n:A]-() WHERE $expressionString",
+            s"()-[n:A WHERE $expressionString]-()",
+            // Missing variable is valid when parsing. Fail in semantic check
+            s"()-[:A]-() WHERE $expressionString",
+            s"()-[]-() WHERE $expressionString",
+            s"()-[:A WHERE $expressionString]-()"
           )
         case _ => fail("Unexpected expression")
       }
@@ -512,10 +728,17 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       val immutableString = maybeImmutable(immutable)
 
       Seq(
+        // Nodes
         s"(n:A) WHERE n.prop1 = 1",
         s"(n:A WHERE n.prop1 = 1)",
         s"(:A {prop1:1})",
-        s"(n:A {prop1:1})"
+        s"(n:A {prop1:1})",
+
+        // Relationships
+        s"()-[n:A]-() WHERE n.prop1 = 1",
+        s"()-[n:A WHERE n.prop1 = 1]-()",
+        s"()-[:A {prop1:1}]-()",
+        s"()-[n:A {prop1:1}]-()"
       ).foreach { (propertyRule: String) =>
         {
           s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $segment $propertyRule $preposition role" should

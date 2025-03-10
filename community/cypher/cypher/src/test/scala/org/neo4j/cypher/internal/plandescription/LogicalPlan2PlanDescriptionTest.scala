@@ -60,6 +60,7 @@ import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.NativeAuth
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NoResource
+import org.neo4j.cypher.internal.ast.Node
 import org.neo4j.cypher.internal.ast.NodeAllExistsConstraints
 import org.neo4j.cypher.internal.ast.NodeKey
 import org.neo4j.cypher.internal.ast.NodeKeyConstraints
@@ -89,10 +90,12 @@ import org.neo4j.cypher.internal.ast.RelKeyConstraints
 import org.neo4j.cypher.internal.ast.RelPropExistsConstraints
 import org.neo4j.cypher.internal.ast.RelPropTypeConstraints
 import org.neo4j.cypher.internal.ast.RelUniqueConstraints
+import org.neo4j.cypher.internal.ast.Relationship
 import org.neo4j.cypher.internal.ast.RelationshipKey
 import org.neo4j.cypher.internal.ast.RelationshipPropertyExistence
 import org.neo4j.cypher.internal.ast.RelationshipPropertyType
 import org.neo4j.cypher.internal.ast.RelationshipPropertyUniqueness
+import org.neo4j.cypher.internal.ast.RelationshipQualifier
 import org.neo4j.cypher.internal.ast.RemoveAuth
 import org.neo4j.cypher.internal.ast.Restrict
 import org.neo4j.cypher.internal.ast.ShowColumn
@@ -7367,7 +7370,30 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           PatternQualifier(
             Seq(LabelQualifier("Label1")(pos)),
             Some(varFor("n")),
-            Equals(Property(varFor("n"), PropertyKeyName("prop1")(pos))(pos), Null.NULL)(pos)
+            Equals(Property(varFor("n"), PropertyKeyName("prop1")(pos))(pos), Null.NULL)(pos),
+            Node
+          ),
+          util.Left("role1"),
+          immutable = false,
+          "DENY ..."
+        ),
+        1.0
+      ),
+      adminPlanDescription
+    )
+
+    assertGood(
+      attach(
+        DenyGraphAction(
+          privLhsLP,
+          ReadAction,
+          AllPropertyResource()(pos),
+          HomeScope,
+          PatternQualifier(
+            Seq(RelationshipQualifier("R")(pos)),
+            Some(varFor("n")),
+            Equals(Property(varFor("n"), PropertyKeyName("prop1")(pos))(pos), Null.NULL)(pos),
+            Relationship
           ),
           util.Left("role1"),
           immutable = false,

@@ -178,6 +178,7 @@ import org.neo4j.cypher.internal.ast.NamedGraphsScope
 import org.neo4j.cypher.internal.ast.NamespacedName
 import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NoWait
+import org.neo4j.cypher.internal.ast.Node
 import org.neo4j.cypher.internal.ast.NodeAllExistsConstraints
 import org.neo4j.cypher.internal.ast.NodeKeyConstraints
 import org.neo4j.cypher.internal.ast.NodePropExistsConstraints
@@ -215,6 +216,7 @@ import org.neo4j.cypher.internal.ast.RelKeyConstraints
 import org.neo4j.cypher.internal.ast.RelPropExistsConstraints
 import org.neo4j.cypher.internal.ast.RelPropTypeConstraints
 import org.neo4j.cypher.internal.ast.RelUniqueConstraints
+import org.neo4j.cypher.internal.ast.Relationship
 import org.neo4j.cypher.internal.ast.RelationshipAllQualifier
 import org.neo4j.cypher.internal.ast.RelationshipQualifier
 import org.neo4j.cypher.internal.ast.Remove
@@ -2947,10 +2949,20 @@ class AstGenerator(
     multiQualifiers <- oneOrMore(_identifier)
     variable <- _variable
     expression <- _propertyRuleExpression(variable)
-    qualifier <- oneOf(
-      PatternQualifier(multiQualifiers.map(LabelQualifier(_)(pos)), Some(variable), expression),
-      PatternQualifier(List(LabelAllQualifier()(pos)), Some(variable), expression)
-    )
+    qualifier <- {
+      val c25 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher25)
+      val nodePatternQualifiers = Seq(
+        PatternQualifier(multiQualifiers.map(LabelQualifier(_)(pos)), Some(variable), expression, Node),
+        PatternQualifier(List(LabelAllQualifier()(pos)), Some(variable), expression, Node)
+      )
+      val relPatternQualifiers = Seq(
+        PatternQualifier(multiQualifiers.map(RelationshipQualifier(_)(pos)), Some(variable), expression, Relationship),
+        PatternQualifier(List(RelationshipAllQualifier()(pos)), Some(variable), expression, Relationship)
+      )
+      oneOf(
+        nodePatternQualifiers ++ relPatternQualifiers.filter(_ => c25)
+      )
+    }
   } yield List(qualifier)
 
   def _propertyRuleExpression(variable: Variable): Gen[Expression] = for {

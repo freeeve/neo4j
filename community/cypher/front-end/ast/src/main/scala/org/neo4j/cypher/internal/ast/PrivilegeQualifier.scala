@@ -75,17 +75,23 @@ final case class ElementsAllQualifier()(val position: InputPosition) extends Gra
     Seq(LabelAllQualifier()(position), RelationshipAllQualifier()(position))
 }
 
+sealed trait Element
+case object Node extends Element
+case object Relationship extends Element
+
 final case class PatternQualifier(
-  labelQualifiers: Seq[PrivilegeQualifier],
+  elementTypeQualifiers: Seq[PrivilegeQualifier],
   variable: Option[Variable],
-  expression: Expression
+  expression: Expression,
+  element: Element
 ) extends GraphPrivilegeQualifier {
 
   override def dup(children: Seq[AnyRef]): PatternQualifier.this.type = {
     PatternQualifier(
       children.head.asInstanceOf[Seq[PrivilegeQualifier]],
       children(1).asInstanceOf[Option[Variable]],
-      children(2).asInstanceOf[Expression]
+      children(2).asInstanceOf[Expression],
+      children(3).asInstanceOf[Element]
     ).asInstanceOf[this.type]
   }
 }

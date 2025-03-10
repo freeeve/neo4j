@@ -147,30 +147,59 @@ class PropertyPrivilegeAdministrationCommandParserTestBase extends Administratio
     "(:A|B)",
     "(n)",
 
-    // cannot combine labels with and
+    // rel only
+    "()-[r:A]-()",
+    "()-[:A]-()",
+    "()-[:A|B]-()",
+    "()-[r]-()",
+
+    // node pattern: cannot combine labels with and
     "(n:A&B) WHERE n.prop1 = 1",
     "(n:A&B WHERE n.prop1 = 1)",
     "(:A&B {prop1 = 1})",
 
-    // cannot combine map and WHERE syntax
+    // rel pattern: cannot combine rel types with and
+    "()-[r:A&B]-() WHERE r.prop1 = 1",
+    "()-[r:A&B WHERE r.prop1 = 1]-()",
+    "()-[:A&B {prop1 = 1}]-()",
+
+    // node pattern: cannot combine map and WHERE syntax
     "(n:L {p:1}) WHERE n.p = 1",
     "(n:L {p:1}) WHERE n.p = 2",
     "(n:L {p1:1}) WHERE n.p2 = 2",
 
-    // Relationships
+    // rel pattern: cannot combine map and WHERE syntax
+    "()-[r:L {p:1}]-() WHERE r.p = 1",
+    "()-[r:L {p:1}]-() WHERE r.p = 2",
+    "()-[r:L {p1:1}]-() WHERE r.p2 = 2",
+
+    // node patterns in combination with relationship pattern
     "(n:A)-[]->(m:B)",
     "(n:A)<-[:R]-(m:B)",
     "(n:A)-[r]-(m:B)",
     "(n:A)-[r:R]-(m:B)",
     "(n:A)-[r:R]-(m:B) WHERE n.prop1 = 1",
+    "(n)-[r:R]-(m) WHERE n.prop1 = 1",
+    "(n)-[r:R]-(m) WHERE r.prop1 = 1",
     "(:A{prop1:1})-[]-(m)",
     "(n:A{prop1:1})-[]-(m)",
-    "()-[r:R]->() WHERE r.p = 1",
     "(:A)-[r:R {p:1}]->(:B)",
+    "(n)-[r:R {p:1}]->(m)",
 
-    // Valid property rule with extra (foo) after literal
+    // invalid direction arrows
+    "()>-[r]-() WHERE r.prop1 = 1",
+    "()->[r]-() WHERE r.prop1 = 1",
+    "()-[r:R WHERE r.prop1 = 1]<-()",
+    "()-[r:R {prop1:1}]-<()",
+
+    // Valid node property rule with extra (foo) after literal
     "(n) WHERE n.prop1 = 1 (foo)",
     """(n) WHERE n.prop1 = "bosse" (foo)""",
-    "(n WHERE 1 = n.prop1) (foo)"
+    "(n WHERE 1 = n.prop1) (foo)",
+
+    // Valid rel property rule with extra (foo) after literal
+    "()-[r]-() WHERE r.prop1 = 1 (foo)",
+    """()-[n]-() WHERE r.prop1 = "bosse" (foo)""",
+    "()-[r WHERE 1 = r.prop1]-() (foo)"
   )
 }
