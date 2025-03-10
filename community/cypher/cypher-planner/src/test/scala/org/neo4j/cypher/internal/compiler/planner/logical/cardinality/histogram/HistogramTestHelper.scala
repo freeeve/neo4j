@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.InequalityExpression
-import org.neo4j.cypher.internal.planner.spi.histogram.Bucket
 import org.neo4j.cypher.internal.planner.spi.histogram.BucketingStrategy.BucketingStrategy
 import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
 import org.neo4j.cypher.internal.planner.spi.histogram.StandardBucket
@@ -30,6 +29,8 @@ import org.neo4j.cypher.internal.util.NonEmptyList
 
 import java.nio.file.Files
 import java.nio.file.Paths
+
+import scala.jdk.CollectionConverters.IteratorHasAsScala
 
 object HistogramTestHelper extends AstConstructionTestSupport {
 
@@ -49,9 +50,7 @@ object HistogramTestHelper extends AstConstructionTestSupport {
     filePath: String
   ): Histogram = {
     val fileContent = Files.readString(Paths.get(filePath))
-    val histogram =
-      createHistogramFromString(nodeOrRelationship, labelOrTypeName, property, bucketingStrategy, fileContent)
-    histogram
+    createHistogramFromString(nodeOrRelationship, labelOrTypeName, property, bucketingStrategy, fileContent)
   }
 
   /**
@@ -69,20 +68,28 @@ object HistogramTestHelper extends AstConstructionTestSupport {
     bucketingStrategy: BucketingStrategy,
     histogramString: String
   ): Histogram = {
-    val buckets = scala.collection.mutable.ListBuffer.empty[Bucket]
-    for (line <- histogramString.split("\n")) {
-      // We are only interested in the lines starting with a vertical bar.
-      // Other lines do not contain data, i.e. +--------------------------+ for separating purposes
-      // The vertical bar used by Neo4j Browser and by cypher-shell are different, therefore we check for both options
-      // to support copy-pasting the output of histogram generating queries from Browser and Cypher shell.
-      if (line.nonEmpty && (line(0) == '│' || line(0) == '|')) {
-        val parts = line.trim.split(Array.from(Seq('│', '|')))
-        if (parts(1).trim != "minInclusive") {
-          buckets.addOne(StandardBucket(parts(1).trim.toInt, parts(2).trim.toInt, parts(4).trim.toDouble))
-        }
-      }
-    }
-    Histogram(nodeOrRelationship, labelOrTypeName, property, bucketingStrategy, buckets.toList)
+    // We are only interested in the lines starting with a vertical bar.
+    // Other lines do not contain data, i.e. +--------------------------+ for separating purposes
+    // The vertical bar used by Neo4j Browser and by cypher-shell are different, therefore we check for both options
+    // to support copy-pasting the output of histogram generating queries from Browser and Cypher shell.
+
+    val LineRegex = """\| ([^|]+) +\| ([^|]+) +\| (\d+) +\| ([\d.\-E]+) +\|""".r
+
+    val bucketIterator = histogramString
+      // normalize column separators between output from Cypher shell and Browser
+      .replaceAll("│", "|")
+      .lines().iterator().asScala
+      // ignore row separators
+      .filter(_.startsWith("|"))
+      // ignore the header
+      .drop(1)
+      .map({
+        case LineRegex(min, max, _, selectivity) =>
+          StandardBucket(min.trim.toInt, max.trim.toInt, selectivity.toDouble)
+        case line => throw new IllegalArgumentException(s"Invalid histogram format: $line in \n$histogramString")
+      })
+
+    Histogram(nodeOrRelationship, labelOrTypeName, property, bucketingStrategy, List.from(bucketIterator))
   }
 
   // n.prop < v
