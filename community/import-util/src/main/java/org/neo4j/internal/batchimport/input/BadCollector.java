@@ -31,6 +31,7 @@ import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Group;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.batchimport.cache.idmapping.string.DuplicateInputIdException;
+import org.neo4j.internal.batchimport.input.csv.Type;
 import org.neo4j.util.concurrent.AsyncEvent;
 import org.neo4j.util.concurrent.AsyncEvents;
 
@@ -256,18 +257,32 @@ public final class BadCollector implements Collector {
 
         @Override
         public InputException exception() {
-            return new InputException(getReportMessage());
+            if (isMissingData()) {
+                Type missingField = null;
+                if (startId == null) {
+                    missingField = Type.START_ID;
+                } else if (endId == null) {
+                    missingField = Type.END_ID;
+                } else if (type == null) {
+                    missingField = Type.TYPE;
+                }
+                return new MissingRelationshipDataException(
+                        missingField,
+                        message != null
+                                ? message
+                                : format(
+                                        "%s (%s)-[%s]->%s (%s) is missing data",
+                                        startId, startIdGroup, type, endId, endIdGroup));
+            } else {
+                return new InputException(getReportMessage());
+            }
         }
 
         private String getReportMessage() {
             if (message == null) {
-                message = !isMissingData()
-                        ? format(
-                                "%s (%s)-[%s]->%s (%s) referring to missing node %s",
-                                startId, startIdGroup, type, endId, endIdGroup, specificValue)
-                        : format(
-                                "%s (%s)-[%s]->%s (%s) is missing data",
-                                startId, startIdGroup, type, endId, endIdGroup);
+                message = format(
+                        "%s (%s)-[%s]->%s (%s) referring to missing node %s",
+                        startId, startIdGroup, type, endId, endIdGroup, specificValue);
             }
             return message;
         }

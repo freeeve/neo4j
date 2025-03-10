@@ -2559,11 +2559,7 @@ class ImportCommandTest {
 
         // when/then
         assertThatThrownBy(() -> runImport("--nodes", nodes.toString(), "--relationships", relationships.toString()))
-                .satisfiesAnyOf(
-                        // Record format exception
-                        e -> assertThat(e).hasCauseInstanceOf(MissingRelationshipDataException.class),
-                        // Block format exception
-                        e -> assertThat(e).hasRootCauseInstanceOf(InputException.class));
+                .hasRootCauseInstanceOf(MissingRelationshipDataException.class);
     }
 
     private static void assertContains(String linesType, List<String> lines, String string) {
