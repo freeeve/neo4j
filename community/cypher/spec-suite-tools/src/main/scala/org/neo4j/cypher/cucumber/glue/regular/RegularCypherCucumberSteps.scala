@@ -109,6 +109,7 @@ final class RegularCypherCucumberSteps @Inject() (
           (t: Context) => state,
           safe = true
         )
+        db.unregisterProcedures(Seq(new QualifiedName(TestFailNTimesFunction.name)))
         db.registerFunction(classOf[TestFailNTimesFunction])
       case _ =>
         throw new IllegalArgumentException(s"$name is not a recognised UDF name")

@@ -28,10 +28,12 @@ import org.neo4j.procedure.UserFunction;
 import org.neo4j.values.AnyValue;
 
 public class TestFailNTimesFunction {
+    public static final String name = "test.failNTimes";
+
     @Context
     public State state;
 
-    @UserFunction("test.failNTimes")
+    @UserFunction(TestFailNTimesFunction.name)
     @Description("Throws an exception the first <n> times it is called for a given value of <key>")
     public AnyValue failNTimes(
             @Name("n") long n, @Name("key") AnyValue key, @Name("exceptionType") String exceptionType) {
