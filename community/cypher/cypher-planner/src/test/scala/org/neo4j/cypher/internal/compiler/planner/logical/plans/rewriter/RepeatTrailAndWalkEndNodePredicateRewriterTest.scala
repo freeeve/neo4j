@@ -49,6 +49,9 @@ class RepeatTrailAndWalkEndNodePredicateRewriterTest extends CypherFunSuite with
     expansionMode = ExpandAll
   )
 
+  private val `TRAIL (a) ((n)-[r]-(m))+ (a)` =
+    `TRAIL (a) ((n)-[r]-(m))+ (b)`.copy(end = "a", expansionMode = ExpandInto)
+
   private val `WALK (a) ((n)-[r]-(m))+ (b)`: WalkParameters = WalkParameters(
     min = 1,
     max = Unlimited,
@@ -61,6 +64,9 @@ class RepeatTrailAndWalkEndNodePredicateRewriterTest extends CypherFunSuite with
     reverseGroupVariableProjections = false,
     expansionMode = ExpandAll
   )
+
+  private val `WALK (a) ((n)-[r]-(m))+ (a)` =
+    `WALK (a) ((n)-[r]-(m))+ (b)`.copy(end = "a", expansionMode = ExpandInto)
 
   test("should not rewrite trail when no filter") {
     val before = subPlanBuilder
@@ -96,9 +102,8 @@ class RepeatTrailAndWalkEndNodePredicateRewriterTest extends CypherFunSuite with
       .allNodeScan("a")
       .build()
 
-    val rewrittenTrailParams = `TRAIL (a) ((n)-[r]-(m))+ (b)`.copy(end = "a", expansionMode = ExpandInto)
     val after = subPlanBuilder
-      .repeatTrail(rewrittenTrailParams)
+      .repeatTrail(`TRAIL (a) ((n)-[r]-(m))+ (a)`)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -118,9 +123,8 @@ class RepeatTrailAndWalkEndNodePredicateRewriterTest extends CypherFunSuite with
       .allNodeScan("a")
       .build()
 
-    val rewrittenWalkParams = `WALK (a) ((n)-[r]-(m))+ (b)`.copy(end = "a", expansionMode = ExpandInto)
     val after = subPlanBuilder
-      .repeatWalk(rewrittenWalkParams)
+      .repeatWalk(`WALK (a) ((n)-[r]-(m))+ (a)`)
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
       .allNodeScan("a")

@@ -53,7 +53,7 @@ import org.neo4j.cypher.internal.util.topDown
  *
  * EXPLAIN MATCH (a)(()--())+(b) WHERE b=a RETURN b
  * .produceResults(b)
- * .repeatTrail("(a) (()--())+ (b) WHERE b=a")
+ * .repeatTrail("(a) (()--())+ (a)")
  * .|.expand("()--()")
  * .|.argument()
  * .allNodeScan("a")

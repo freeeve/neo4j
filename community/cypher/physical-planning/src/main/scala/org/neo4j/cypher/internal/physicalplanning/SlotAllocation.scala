@@ -559,20 +559,6 @@ class SingleQuerySlotAllocator private[physicalplanning] (
       case _: ApplyPlan if !comingFromLeft =>
         (acc: Accumulator) => SkipChildren(acc)
 
-      case r: Repeat if r.endNodePredicate.isDefined =>
-        val endNodePredicate = r.endNodePredicate.get
-        if (!comingFromLeft) {
-          (_: Accumulator) =>
-            TraverseChildren(Accumulator(doNotTraverseExpression =
-              Some(endNodePredicate.zeroRepetition)
-            ))
-        } else {
-          (_: Accumulator) =>
-            TraverseChildren(Accumulator(doNotTraverseExpression =
-              Some(endNodePredicate.otherRepetitions)
-            ))
-        }
-
       case e: Expression =>
         (acc: Accumulator) =>
           allocateExpressionsInternal(e, slots, semanticTable, plan.id, cancellationChecker, acc)
@@ -1367,7 +1353,9 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         // so we allocate it on the LHS (even though its value will not be needed after the Repeat is done).
         // Additionally, to avoid copying rows emitted by Repeat, all Repeat slots are allocated on the LHS.
         lhs.newLong(repeat.innerStart, nullable, CTNode)
-        lhs.newLong(repeat.end, nullable, CTNode)
+        if (repeat.mode == ExpandAll) {
+          lhs.newLong(repeat.end, nullable, CTNode)
+        }
         repeat.nodeVariableGroupings.foreach(n => lhs.newReference(n.group, nullable, CTList(CTNode)))
         repeat.relationshipVariableGroupings.foreach(r => lhs.newReference(r.group, nullable, CTList(CTRelationship)))
         lhs.newMetaData(TRAIL_STATE_METADATA_KEY, plan.id)

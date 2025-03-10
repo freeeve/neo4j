@@ -317,7 +317,11 @@ case class RepeatPipe(
     newGroupRels: HeapTrackingArrayList[ListValue],
     innerEndNode: VirtualNodeValue
   ): collection.Seq[(String, AnyValue)] = {
-    val newSize = newGroupNodes.size() + newGroupRels.size() + 1 // +1 for end node
+    val newSize = if (!nodeInScope) {
+      newGroupNodes.size() + newGroupRels.size() + 1 // +1 for end node
+    } else {
+      newGroupNodes.size() + newGroupRels.size()
+    }
     val res = new Array[(String, AnyValue)](newSize)
     var i = 0
     while (i < newGroupNodes.size()) {

@@ -22,8 +22,9 @@ package org.neo4j.cypher.internal.runtime.spec.tests
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.GraphCreation.ComplexGraph
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
@@ -836,7 +837,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set("e"),
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -929,7 +930,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")
@@ -1060,21 +1061,19 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
     ))
   }
 
-  test("should work with end node predicate") {
-    // (n1:START) → (n2) → (n3) → (n4)
-    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
+  test("should work with into") {
+    //          (n1:START)
+    //        ↗     ↘
+    //      (n3) <- (n2)
+    val (n1, n2, n3, r12, r23, r31) = smallCircularGraph
 
-    val endNodePredicates = EndNodePredicates(
-      ands(notEquals(id(varFor(`(me) [(a)-[r]->(b)]{0,2} (you)`.end)), literalInt(n2.getId))),
-      ands(notEquals(id(varFor(`(me) [(a)-[r]->(b)]{0,2} (you)`.innerEnd)), literalInt(n2.getId)))
-    )
-    val `(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)` = `(me) [(a)-[r]->(b)]{0,2} (you)`
-      .copy(endNodePredicate = Some(endNodePredicates))
+    val `(me) [(a)-[r]->(b)]{0,*} (me)` = `(me) [(a)-[r]->(b)]{0,*} (you)`
+      .copy(expansionMode = ExpandInto, end = "me")
 
     val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "a", "b", "r")
-      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
-      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)`)
+      .produceResults("me", "a", "b", "r")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("me"))))
+      .repeatTrail(`(me) [(a)-[r]->(b)]{0,*} (me)`)
       .|.filterExpression(isRepeatTrailUnique("r_inner"))
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
@@ -1085,37 +1084,12 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    runtimeResult should beColumns("me", "you", "a", "b", "r").withRows(inAnyOrder(
+    runtimeResult should beColumns("me", "a", "b", "r").withRows(inAnyOrder(
       Seq(
-        Array(n1, n1, emptyList(), emptyList(), emptyList()),
-        Array(n1, n3, listOf(n1, n2), listOf(n2, n3), listOf(r12, r23))
+        Array(n1, emptyList(), emptyList(), emptyList()),
+        Array(n1, listOf(n1, n2, n3), listOf(n2, n3, n1), listOf(r12, r23, r31))
       )
     ))
-  }
-
-  test("should work with always false end node predicate") {
-    // (n1:START) → (n2) → (n3) → (n4)
-    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
-
-    val endNodePredicates = EndNodePredicates(ands(literal(false)), ands(literal(false)))
-    val `(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)` = `(me) [(a)-[r]->(b)]{0,2} (you)`
-      .copy(endNodePredicate = Some(endNodePredicates))
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "a", "b", "r")
-      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
-      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)`)
-      .|.filterExpression(isRepeatTrailUnique("r_inner"))
-      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
-      .|.argument("me", "a_inner")
-      .nodeByLabelScan("me", "START", IndexOrderNone)
-      .build()
-
-    // when
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("me", "you", "a", "b", "r").withNoRows()
   }
 
   test("should work with filter on rhs 1") {
@@ -1941,7 +1915,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set("r1"),
         false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       ))
     val plan1 = plan0.|.|.|.|.|.filter("r2_inner IS NOT NULL")
       .|.|.|.|.|.optional("middle")
@@ -1971,7 +1945,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       ))
       .|.|.|.|.filter("b_inner:MIDDLE")
       .|.|.|.|.nodeHashJoin("b_inner")
@@ -1995,7 +1969,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       ))
     val plan2 = plan1.|.|.|.|.nodeHashJoin("anon_end_inner")
       .|.|.|.|.|.filter("anon_end_inner:MIDDLE")
@@ -2023,7 +1997,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set("r1"),
         false,
-        None
+        ExpandAll
       ))
       .|.|.|.|.filter("d_inner:LOOP")
       .|.|.|.|.nodeHashJoin("d_inner")
@@ -2052,7 +2026,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        None
+        ExpandAll
       ))
     val plan3 = plan2.|.|.|.filter("b_inner:MIDDLE")
       .|.|.|.nodeHashJoin("b_inner")
@@ -2075,7 +2049,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        None
+        ExpandAll
       ))
       .|.|.|.nodeHashJoin("anon_end_inner")
       .|.|.|.|.filter("true")
@@ -2103,7 +2077,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set("r1"),
         false,
-        None
+        ExpandAll
       ))
       .|.|.|.filter("true")
       .|.|.|.limit(9223372036854775807L)
@@ -2134,7 +2108,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        None
+        ExpandAll
       ))
     val plan = plan3.|.|.filter("true")
       .|.|.filter("b_inner:MIDDLE")
@@ -2157,7 +2131,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
         Set(),
         Set(),
         false,
-        None
+        ExpandAll
       ))
       .|.|.nodeHashJoin("anon_end_inner")
       .|.|.|.filter("true")
@@ -2680,7 +2654,7 @@ abstract class RepeatTrailTestBase[CONTEXT <: RuntimeContext](
     }
   }
 
-  //          (n1)
+  //          (n1:START)
   //        ↗     ↘
   //      (n3) <- (n2)
   protected def smallCircularGraph: (Node, Node, Node, Relationship, Relationship, Relationship) = {
@@ -2713,7 +2687,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
   }
 
@@ -2731,7 +2705,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set("r"),
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
   }
 
@@ -2778,7 +2752,7 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    endNodePredicate = None
+    expansionMode = ExpandAll
   )
 
   val `(start:START) [()-[]->(:MIDDLE)]{1, 1} (firstMiddle:MIDDLE)`: TrailParameters = TrailParameters(
@@ -2794,7 +2768,7 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    endNodePredicate = None
+    expansionMode = ExpandAll
   )
 
   val `(firstMiddle) [(a)-[r1]->(b:MIDDLE)]{0, *} (middle:MIDDLE:LOOP)`: TrailParameters = TrailParameters(
@@ -2810,7 +2784,7 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    endNodePredicate = None
+    expansionMode = ExpandAll
   )
 
   val `(middle) [(c)-[r2]->(d:LOOP)]{0, *} (end:LOOP)`: TrailParameters = TrailParameters(
@@ -2826,7 +2800,7 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set("r1"),
     reverseGroupVariableProjections = false,
-    endNodePredicate = None
+    expansionMode = ExpandAll
   )
 
   val `(you) [(b)<-[r]-(a)]{0, *} (me)`: TrailParameters =
@@ -2843,7 +2817,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = true,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
   val `(me) [(a)-[r]->(b)<-[rr]-(c)]{0,1} (you)`: TrailParameters =
@@ -2860,7 +2834,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
   val `(me) ((b)-[r]->(c) WHERE EXISTS {...} ){1,} (you)`: TrailParameters = TrailParameters(
@@ -2876,7 +2850,7 @@ object RepeatTrailTestBase {
     Set(),
     Set(),
     false,
-    endNodePredicate = None
+    expansionMode = ExpandAll
   )
 
   val `(b) ((d)-[rr]->(aa:A) WHERE EXISTS {...} ){1,} (a)`: TrailParameters = TrailParameters(
@@ -2892,7 +2866,7 @@ object RepeatTrailTestBase {
     Set(),
     Set(),
     false,
-    endNodePredicate = None
+    expansionMode = ExpandAll
   )
 
   val `(aa) ((e)<-[rrr]-(f)){1,}) (g)`: TrailParameters = TrailParameters(
@@ -2908,7 +2882,7 @@ object RepeatTrailTestBase {
     Set(),
     Set(),
     false,
-    endNodePredicate = None
+    expansionMode = ExpandAll
   )
 
   val `(me)( (b)-[r]->(c) WHERE EXISTS { (b)( (bb)-[rr]->(aa:A) ){0,}(a) } ){0,}(you)`: TrailParameters =
@@ -2925,7 +2899,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
   val `(me) [(a)-[r]->(b)-[rr]->(c)<-[rrr]-(d)]{0,1} (you)`: TrailParameters =
@@ -2942,7 +2916,7 @@ object RepeatTrailTestBase {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
 
   val `(b_inner)((bb)-[rr]->(aa:A)){0,}(a)`: TrailParameters = TrailParameters(
@@ -2958,7 +2932,7 @@ object RepeatTrailTestBase {
     previouslyBoundRelationships = Set.empty,
     previouslyBoundRelationshipGroups = Set.empty,
     reverseGroupVariableProjections = false,
-    endNodePredicate = None
+    expansionMode = ExpandAll
   )
 }
 
@@ -3907,7 +3881,7 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
       previouslyBoundRelationships = Set("e"),
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      None
+      ExpandAll
     )
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -4019,7 +3993,7 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
       previouslyBoundRelationships = Set.empty,
       previouslyBoundRelationshipGroups = Set.empty,
       reverseGroupVariableProjections = false,
-      endNodePredicate = None
+      expansionMode = ExpandAll
     )
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")
@@ -4188,23 +4162,18 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
     ))
   }
 
-  test("should work with end node predicate - with leveraged order on LHS") {
-    // (n0:START) ↘
-    //              (n2) → (n3) → (n4)
-    // (n1:START) ↗
-    val (n0, n1, n2, n3, n4, r02, r12, r23, r34) = smallDoubleChainGraph
+  test("should work with into - with leveraged order on LHS") {
+    //          (n1:START)
+    //        ↗     ↘
+    //      (n3) <- (n2)
+    val (n1, n2, n3, r12, r23, r31) = smallCircularGraph
 
-    val endNodePredicates = EndNodePredicates(
-      ands(notEquals(id(varFor(`(me) [(a)-[r]->(b)]{0,2} (you)`.end)), literalInt(n2.getId))),
-      ands(notEquals(id(varFor(`(me) [(a)-[r]->(b)]{0,2} (you)`.innerEnd)), literalInt(n2.getId)))
-    )
-    val `(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)` = `(me) [(a)-[r]->(b)]{0,2} (you)`
-      .copy(endNodePredicate = Some(endNodePredicates))
+    val `(me) [(a)-[r]->(b)]{0,*} (me)` = `(me) [(a)-[r]->(b)]{0,*} (you)`
+      .copy(expansionMode = ExpandInto, end = "me")
 
     val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "a", "b", "r")
-      .filter(s"id(you)<>${n2.getId}")
-      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)`).withLeveragedOrder()
+      .produceResults("me", "a", "b", "r")
+      .repeatTrail(`(me) [(a)-[r]->(b)]{0,*} (me)`).withLeveragedOrder()
       .|.filterExpression(isRepeatTrailUnique("r_inner"))
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
@@ -4217,47 +4186,16 @@ trait OrderedTrailTestBase[CONTEXT <: RuntimeContext] {
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    runtimeResult should beColumns("me", "you", "a", "b", "r").withRows(inPartialOrder(
+    runtimeResult should beColumns("me", "a", "b", "r").withRows(inPartialOrder(
       Seq(
         Seq(
-          Array(n0, n0, emptyList(), emptyList(), emptyList()),
-          Array(n0, n3, listOf(n0, n2), listOf(n2, n3), listOf(r02, r23))
+          Array(n1, emptyList(), emptyList(), emptyList())
         ),
         Seq(
-          Array(n1, n1, emptyList(), emptyList(), emptyList()),
-          Array(n1, n3, listOf(n1, n2), listOf(n2, n3), listOf(r12, r23))
+          Array(n1, listOf(n1, n2, n3), listOf(n2, n3, n1), listOf(r12, r23, r31))
         )
       )
     ))
-  }
-
-  test("should work with always false end node predicate - with leveraged order on LHS") {
-    // (n0:START) ↘
-    //              (n2) → (n3) → (n4)
-    // (n1:START) ↗
-    val (n0, n1, n2, n3, n4, r02, r12, r23, r34) = smallDoubleChainGraph
-
-    val endNodePredicates = EndNodePredicates(ands(literal(false)), ands(literal(false)))
-    val `(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)` = `(me) [(a)-[r]->(b)]{0,2} (you)`
-      .copy(endNodePredicate = Some(endNodePredicates))
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "a", "b", "r")
-      .filter(s"id(you)<>${n2.getId}")
-      .repeatTrail(`(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)`).withLeveragedOrder()
-      .|.filterExpression(isRepeatTrailUnique("r_inner"))
-      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
-      .|.argument("me", "a_inner")
-      .sort("foo ASC")
-      .projection("me.foo AS foo")
-      .nodeByLabelScan("me", "START", IndexOrderNone)
-      .build()
-
-    // when
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("me", "you", "a", "b", "r").withNoRows()
   }
 
   test("should work with filter on rhs 1 - with leveraged order on LHS") {

@@ -22,8 +22,9 @@ package org.neo4j.cypher.internal.runtime.spec.tests
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.logical.plans.Repeat.EndNodePredicates
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.GraphCreation.ComplexGraph
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
@@ -507,7 +508,7 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
       groupNodes = Set(("b_inner", "b"), ("c_inner", "c"), ("a_inner", "a")),
       groupRelationships = Set(("r_inner", "r"), ("s_inner", "s")),
       reverseGroupVariableProjections = false,
-      None
+      ExpandAll
     )
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")
@@ -633,23 +634,21 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
     ))
   }
 
-  test("should work with end node predicate") {
+  test("should work with into") {
     // (n1:START) → (n2) → (n3) → (n4)
     val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
 
-    val endNodePredicates = EndNodePredicates(
-      ands(notEquals(id(varFor(`(me) [(a)-[r]->(b)]{0,2} (you)`.end)), literalInt(n2.getId))),
-      ands(notEquals(id(varFor(`(me) [(a)-[r]->(b)]{0,2} (you)`.innerEnd)), literalInt(n2.getId)))
-    )
-    val `(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)` = `(me) [(a)-[r]->(b)]{0,2} (you)`
-      .copy(endNodePredicate = Some(endNodePredicates))
+    val `(me) [(a)-[r]->(b)]{0,*} (you) ExpandInto` = `(me) [(a)-[r]->(b)]{0,*} (you)`
+      .copy(expansionMode = ExpandInto)
 
     val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "a", "b", "r")
-      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
-      .repeatWalk(`(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)`)
+      .produceResults("me", "a", "b", "r")
+      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("me"))))
+      .repeatWalk(`(me) [(a)-[r]->(b)]{0,*} (you) ExpandInto`)
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")
+      .cartesianProduct()
+      .|.nodeByIdSeek("you", Set.empty, n4.getId)
       .nodeByLabelScan("me", "START", IndexOrderNone)
       .build()
 
@@ -657,36 +656,11 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    runtimeResult should beColumns("me", "you", "a", "b", "r").withRows(inAnyOrder(
+    runtimeResult should beColumns("me", "a", "b", "r").withRows(inAnyOrder(
       Seq(
-        Array(n1, n1, emptyList(), emptyList(), emptyList()),
-        Array(n1, n3, listOf(n1, n2), listOf(n2, n3), listOf(r12, r23))
+        Array(n1, listOf(n1, n2, n3), listOf(n2, n3, n4), listOf(r12, r23, r34))
       )
     ))
-  }
-
-  test("should work with always false end node predicate") {
-    // (n1:START) → (n2) → (n3) → (n4)
-    val (n1, n2, n3, n4, r12, r23, r34) = smallChainGraph
-
-    val endNodePredicates = EndNodePredicates(ands(literal(false)), ands(literal(false)))
-    val `(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)` = `(me) [(a)-[r]->(b)]{0,2} (you)`
-      .copy(endNodePredicate = Some(endNodePredicates))
-
-    val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "a", "b", "r")
-      .projection(Map("path" -> qppPath(varFor("me"), Seq(varFor("a"), varFor("r")), varFor("you"))))
-      .repeatWalk(`(me) [(a)-[r]->(b)]{0,2} (you) WHERE id(you) <> id(n2)`)
-      .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
-      .|.argument("me", "a_inner")
-      .nodeByLabelScan("me", "START", IndexOrderNone)
-      .build()
-
-    // when
-    val runtimeResult = execute(logicalQuery, runtime)
-
-    // then
-    runtimeResult should beColumns("me", "you", "a", "b", "r").withNoRows()
   }
 
   test("should work with filter on rhs 1") {
@@ -1289,7 +1263,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
       groupRelationships = Set(("r_inner", "r")),
       reverseGroupVariableProjections = false,
-      None
+      ExpandAll
     )
   }
 
@@ -1304,7 +1278,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("c_inner", "c"), ("d_inner", "d")),
       groupRelationships = Set(("rr_inner", "rr")),
       reverseGroupVariableProjections = false,
-      None
+      ExpandAll
     )
   }
 
@@ -1351,7 +1325,7 @@ object RepeatWalkTestBase {
     groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
     groupRelationships = Set(("r_inner", "r")),
     reverseGroupVariableProjections = false,
-    None
+    ExpandAll
   )
 
   val `(start:START) [()-[]->(:MIDDLE)]{1, 1} (firstMiddle:MIDDLE)`: WalkParameters = WalkParameters(
@@ -1364,7 +1338,7 @@ object RepeatWalkTestBase {
     groupNodes = Set(),
     groupRelationships = Set(),
     reverseGroupVariableProjections = false,
-    None
+    ExpandAll
   )
 
   val `(firstMiddle) [(a)-[r1]->(b:MIDDLE)]{0, *} (middle:MIDDLE:LOOP)`: WalkParameters = WalkParameters(
@@ -1377,7 +1351,7 @@ object RepeatWalkTestBase {
     groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
     groupRelationships = Set(("r1_inner", "r1")),
     reverseGroupVariableProjections = false,
-    None
+    ExpandAll
   )
 
   val `(middle) [(c)-[r2]->(d:LOOP)]{0, *} (end:LOOP)`: WalkParameters = WalkParameters(
@@ -1390,7 +1364,7 @@ object RepeatWalkTestBase {
     groupNodes = Set(("c_inner", "c"), ("d_inner", "d")),
     groupRelationships = Set(("r2_inner", "r2")),
     reverseGroupVariableProjections = false,
-    None
+    ExpandAll
   )
 
   val `(you) [(b)<-[r]-(a)]{0, *} (me)`: WalkParameters =
@@ -1404,7 +1378,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
       groupRelationships = Set(("r_inner", "r")),
       reverseGroupVariableProjections = true,
-      None
+      ExpandAll
     )
 
   val `(me) [(a)-[r]->(b)<-[rr]-(c)]{0,1} (you)`: WalkParameters =
@@ -1418,7 +1392,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b"), ("c_inner", "c")),
       groupRelationships = Set(("r_inner", "r"), ("rr_inner", "rr")),
       reverseGroupVariableProjections = false,
-      None
+      ExpandAll
     )
 
   val `(me) ((b)-[r]->(c) WHERE EXISTS {...} ){1,} (you)`: WalkParameters = WalkParameters(
@@ -1431,7 +1405,7 @@ object RepeatWalkTestBase {
     Set(("b_inner", "b"), ("c_inner", "c")),
     Set(("r_inner", "r")),
     false,
-    None
+    ExpandAll
   )
 
   val `(b) ((d)-[rr]->(aa:A) WHERE EXISTS {...} ){1,} (a)`: WalkParameters = WalkParameters(
@@ -1444,7 +1418,7 @@ object RepeatWalkTestBase {
     Set(("d_inner", "d"), ("aa_inner", "aa")),
     Set(("rr_inner", "rr")),
     false,
-    None
+    ExpandAll
   )
 
   val `(aa) ((e)<-[rrr]-(f)){1,}) (g)`: WalkParameters = WalkParameters(
@@ -1457,7 +1431,7 @@ object RepeatWalkTestBase {
     Set(("e_inner", "e"), ("f_inner", "f")),
     Set(("rrr_inner", "rrr")),
     false,
-    None
+    ExpandAll
   )
 
   val `(me)( (b)-[r]->(c) WHERE EXISTS { (b)( (bb)-[rr]->(aa:A) ){0,}(a) } ){0,}(you)`: WalkParameters =
@@ -1471,7 +1445,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("b_inner", "b"), ("c_inner", "c")),
       groupRelationships = Set(("r_inner", "r")),
       reverseGroupVariableProjections = false,
-      None
+      ExpandAll
     )
 
   val `(me) [(a)-[r]->(b)-[rr]->(c)<-[rrr]-(d)]{0,1} (you)`: WalkParameters =
@@ -1485,7 +1459,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b"), ("c_inner", "c"), ("d_inner", "d")),
       groupRelationships = Set(("r_inner", "r"), ("rr_inner", "rr"), ("rrr_inner", "rrr")),
       reverseGroupVariableProjections = false,
-      None
+      ExpandAll
     )
 
   val `(b_inner)((bb)-[rr]->(aa:A)){0,}(a)`: WalkParameters = WalkParameters(
@@ -1498,7 +1472,7 @@ object RepeatWalkTestBase {
     groupNodes = Set(("bb_inner", "bb"), ("aa_inner", "aa")),
     groupRelationships = Set(("rr_inner", "rr")),
     reverseGroupVariableProjections = false,
-    None
+    ExpandAll
   )
 }
 
@@ -1998,7 +1972,7 @@ trait OrderedWalkTestBase[CONTEXT <: RuntimeContext] {
       groupNodes = Set(("b_inner", "b"), ("c_inner", "c"), ("a_inner", "a")),
       groupRelationships = Set(("r_inner", "r"), ("s_inner", "s")),
       reverseGroupVariableProjections = false,
-      None
+      ExpandAll
     )
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "c", "r", "s")

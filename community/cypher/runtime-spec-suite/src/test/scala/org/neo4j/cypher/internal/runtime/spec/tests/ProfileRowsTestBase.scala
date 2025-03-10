@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.plans.Ascending
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.runtime.spec.Edition
@@ -2531,7 +2532,7 @@ trait TrailProfileRowsTestBase[CONTEXT <: RuntimeContext] {
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        endNodePredicate = None
+        expansionMode = ExpandAll
       ))
       .|.expandAll("(a_inner)-[r_inner]->(b_inner)")
       .|.argument("me", "a_inner")

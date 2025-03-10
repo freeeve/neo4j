@@ -1594,6 +1594,7 @@ object LogicalPlanToPlanBuilderString {
       innerEnd,
       groupNodes,
       groupRelationships,
+      reverseGroupVariableProjections,
       expansionMode
     )
 
@@ -2026,7 +2027,7 @@ object LogicalPlanToPlanBuilderString {
         .append(' ')
         .append(if (co.isAscending) "ASC" else "DESC")).quoted
 
-    implicit def fromExpansionMode: ToParam[ExpansionMode] = m => escapeIdentifier(m.toString).quoted
+    implicit def fromExpansionMode: ToParam[ExpansionMode] = str(objectName)
     implicit def fromVariable: ToParam[LogicalVariable] = v => escapeIdentifier(v.name).quoted
     implicit def fromLabelName: ToParam[LabelName] = _.name.quoted
     implicit def fromLabelToken: ToParam[LabelToken] = _.name.quoted
