@@ -23,7 +23,7 @@ import org.neo4j.gqlstatus.GqlHelper
 
 class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSemanticAnalysisTestSuite {
 
-  test("RETURN VECTOR([1, 2, 3])") {
+  test("RETURN VECTOR([1, 2, 3], 3, INTEGER64)") {
     // running without semantic feature should fail
     run().hasError(
       GqlHelper.getGql42001_51N26("The vector value constructor", "Vector types", 7, 1, 8),
@@ -33,7 +33,7 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
   }
 
   // Function resolution is done after semantic analysis, this will fail in Cypher 5 as non-existent
-  test("RETURN VECTOR([1, 2, 3, 4])") {
+  test("RETURN VECTOR([1, 2, 3, 4], 4, INTEGER64)") {
     runWith(VectorType).hasNoErrors
   }
 

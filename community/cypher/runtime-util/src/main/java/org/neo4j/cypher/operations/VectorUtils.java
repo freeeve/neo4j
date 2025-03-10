@@ -50,8 +50,8 @@ final class VectorUtils {
             return vectorFromArrayValue(listValue.toStorableArray());
         } catch (CypherTypeException e) {
             throw CypherTypeException.functionArgumentWrongType(
-                    format("Invalid input for function 'VECTOR()': Expected a List of Numbers but got %s", listValue),
-                    "VECTOR",
+                    format("Invalid input for function 'vector()': Expected a List of Numbers but got %s", listValue),
+                    "vector",
                     listValue.toString(),
                     List.of("LIST<INTEGER | FLOAT>"),
                     listValue.getTypeName());
