@@ -36,6 +36,8 @@ import org.neo4j.values.AnyValue;
 public interface ProcedureView {
     ProcedureHandle procedure(QualifiedName name, QueryLanguage scope) throws ProcedureException;
 
+    ProcedureSignature procedureSignature(int id) throws ProcedureException;
+
     UserFunctionHandle function(QualifiedName name, QueryLanguage scope);
 
     UserFunctionHandle aggregationFunction(QualifiedName name, QueryLanguage scope);

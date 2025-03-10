@@ -110,6 +110,11 @@ public class ProcedureViewImpl implements ProcedureView {
     }
 
     @Override
+    public ProcedureSignature procedureSignature(int id) throws ProcedureException {
+        return registry.signatureFromId(id);
+    }
+
+    @Override
     public UserFunctionHandle function(QualifiedName name, QueryLanguage scope) {
         return registry.function(name, scope);
     }

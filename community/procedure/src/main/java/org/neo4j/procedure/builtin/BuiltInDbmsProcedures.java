@@ -116,6 +116,9 @@ public class BuiltInDbmsProcedures {
     @Context
     public SystemGraphComponents systemGraphComponents;
 
+    @Context
+    public SpdBuiltInProcedures spdBuiltInProcedures;
+
     @SystemProcedure
     @Description("Provides information regarding the DBMS.")
     @Procedure(name = "dbms.info", mode = DBMS)
@@ -239,8 +242,8 @@ public class BuiltInDbmsProcedures {
             clearedRouterAndCompositeQueries += optionalRouter.get().clearQueryCachesForDatabase(graph.databaseName());
         }
 
-        if (kernelTransaction.isSPDTransaction()) {
-            kernelTransaction.clearSPDQueryCaches();
+        if (spdBuiltInProcedures.isGraphShard()) {
+            spdBuiltInProcedures.clearQueryCaches();
         }
 
         // we subtract 1 because the query "CALL db.queryClearCaches()" is compiled and thus populates the caches by 1

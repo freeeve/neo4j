@@ -32,25 +32,43 @@ public interface SpdBuiltInProcedures {
     SpdBuiltInProcedures COMMUNITY_EDITION_IMPL = new SpdBuiltInProcedures() {
 
         @Override
+        public boolean isSpd() {
+            return false;
+        }
+
+        @Override
         public boolean isGraphShard() {
             return false;
         }
 
         @Override
         public Stream<NodePropertySchemaInfoResult> nodePropertySchema(KernelTransaction kernelTransaction) {
-            throw new UnsupportedOperationException("Trying to use SPD procedure outside of SPD context");
+            throw unsupported();
         }
 
         @Override
         public Stream<RelationshipPropertySchemaInfoResult> relationshipPropertySchema(
                 KernelTransaction kernelTransaction) {
-            throw new UnsupportedOperationException("Trying to use SPD procedure outside of SPD context");
+            throw unsupported();
+        }
+
+        @Override
+        public void clearQueryCaches() {
+            throw unsupported();
+        }
+
+        private static UnsupportedOperationException unsupported() {
+            return new UnsupportedOperationException("Trying to use SPD procedure outside of SPD context");
         }
     };
+
+    boolean isSpd();
 
     boolean isGraphShard();
 
     Stream<NodePropertySchemaInfoResult> nodePropertySchema(KernelTransaction kernelTransaction);
 
     Stream<RelationshipPropertySchemaInfoResult> relationshipPropertySchema(KernelTransaction kernelTransaction);
+
+    void clearQueryCaches();
 }

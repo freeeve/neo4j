@@ -568,11 +568,5 @@ public interface KernelTransaction extends AssertOpen, AutoCloseable {
         }
     }
 
-    default boolean isSPDTransaction() {
-        return false;
-    }
-
-    default void clearSPDQueryCaches() {}
-
     DefaultQueryLanguageScope defaultQueryLanguageScope();
 }

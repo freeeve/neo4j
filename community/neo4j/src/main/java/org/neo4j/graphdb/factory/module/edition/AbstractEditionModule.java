@@ -97,6 +97,8 @@ public abstract class AbstractEditionModule {
             DatabaseContextProvider<?> databaseContextProvider,
             RoutingService routingService)
             throws KernelException {
+        registerEditionSpecificProcedures(globalProcedures, databaseContextProvider);
+        globalProcedures.registerProcedure(BuiltInProcedures.class);
         globalProcedures.registerProcedure(TokenProcedures.class);
         globalProcedures.registerProcedure(BuiltInDbmsProcedures.class);
         globalProcedures.registerProcedure(FulltextProcedures.class);
@@ -104,10 +106,8 @@ public abstract class AbstractEditionModule {
         globalProcedures.registerProcedure(DataCollectorProcedures.class);
         registerTemporalFunctions(globalProcedures, procedureConfig);
 
-        registerEditionSpecificProcedures(globalProcedures, databaseContextProvider);
         RoutingProcedureInstaller.install(
                 globalProcedures, routingService, globalModule.getLogService().getInternalLogProvider());
-        globalProcedures.registerProcedure(BuiltInProcedures.class);
     }
 
     public ClientRoutingDomainChecker createClientRoutingDomainChecker(GlobalModule globalModule) {

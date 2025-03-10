@@ -97,6 +97,9 @@ public class VectorIndexProcedures {
     @Context
     public ProcedureCallContext callContext;
 
+    @Context
+    public SpdBuiltInProcedures spdBuiltInProcedures;
+
     @Deprecated(since = "5.26.0", forRemoval = true)
     @Description(
             """
@@ -155,7 +158,8 @@ public class VectorIndexProcedures {
         if (callContext.isSystemDatabase()) {
             return Stream.empty();
         }
-        return new NodeIndexQuery(tx, ktx, name).query(Math.toIntExact(numberOfNearestNeighbours), query);
+        return new NodeIndexQuery(tx, ktx, name, !spdBuiltInProcedures.isSpd())
+                .query(Math.toIntExact(numberOfNearestNeighbours), query);
     }
 
     @Description(
@@ -176,7 +180,8 @@ public class VectorIndexProcedures {
         if (callContext.isSystemDatabase()) {
             return Stream.empty();
         }
-        return new RelationshipIndexQuery(tx, ktx, name).query(Math.toIntExact(numberOfNearestNeighbours), query);
+        return new RelationshipIndexQuery(tx, ktx, name, !spdBuiltInProcedures.isSpd())
+                .query(Math.toIntExact(numberOfNearestNeighbours), query);
     }
 
     private static VectorCandidate validateQueryArguments(
@@ -274,8 +279,8 @@ public class VectorIndexProcedures {
     }
 
     private static class NodeIndexQuery extends IndexQuery<NodeValueIndexCursor, NodeNeighbor> {
-        private NodeIndexQuery(Transaction tx, KernelTransaction ktx, String name) {
-            super(EntityType.NODE, tx, ktx, name);
+        private NodeIndexQuery(Transaction tx, KernelTransaction ktx, String name, boolean awaitOnline) {
+            super(EntityType.NODE, tx, ktx, name, awaitOnline);
         }
 
         @Override
@@ -303,8 +308,8 @@ public class VectorIndexProcedures {
     }
 
     private static class RelationshipIndexQuery extends IndexQuery<RelationshipValueIndexCursor, RelationshipNeighbor> {
-        private RelationshipIndexQuery(Transaction tx, KernelTransaction ktx, String name) {
-            super(EntityType.RELATIONSHIP, tx, ktx, name);
+        private RelationshipIndexQuery(Transaction tx, KernelTransaction ktx, String name, boolean awaitOnline) {
+            super(EntityType.RELATIONSHIP, tx, ktx, name, awaitOnline);
         }
 
         @Override
@@ -336,7 +341,8 @@ public class VectorIndexProcedures {
         private final KernelTransaction ktx;
         private final IndexDescriptor index;
 
-        private IndexQuery(EntityType entityType, Transaction tx, KernelTransaction ktx, String name) {
+        private IndexQuery(
+                EntityType entityType, Transaction tx, KernelTransaction ktx, String name, boolean awaitOnline) {
             this.tx = tx;
             this.ktx = ktx;
 
@@ -353,7 +359,12 @@ public class VectorIndexProcedures {
             }
 
             this.index = index;
-            awaitIndexOnline();
+            if (awaitOnline) {
+                // It's expensive to check if an index is online on an SPD, we will do that when we call the index on
+                // each
+                // shard instead.
+                awaitIndexOnline();
+            }
         }
 
         abstract CURSOR cursor(CursorFactory cursorFactory, CursorContext cursorContext, MemoryTracker memoryTracker);
@@ -388,15 +399,12 @@ public class VectorIndexProcedures {
             // held by the index populator. Also, if the index was created in this transaction, then we will never see
             // it come online in this transaction anyway.
             // Indexes don't come online until the transaction that creates them has committed.
-            // It's expensive to check if an index is online on an SPD, we will do that when we call the index on each
-            // shard instead.
             final var txStateHolder = (TxStateHolder) ktx;
             if ((!txStateHolder.hasTxStateWithChanges()
-                            || !txStateHolder
-                                    .txState()
-                                    .indexDiffSetsBySchema(index.schema())
-                                    .isAdded(index))
-                    && !ktx.isSPDTransaction()) {
+                    || !txStateHolder
+                            .txState()
+                            .indexDiffSetsBySchema(index.schema())
+                            .isAdded(index))) {
                 // If the index was not created in this transaction, then wait for it to come online before querying.
                 tx.schema().awaitIndexOnline(index.getName(), INDEX_ONLINE_QUERY_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             }

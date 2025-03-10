@@ -87,6 +87,9 @@ public class FulltextProcedures {
     @Context
     public ProcedureCallContext callContext;
 
+    @Context
+    public SpdBuiltInProcedures spdBuiltInProcedures;
+
     @SystemProcedure
     @Description("List the available analyzers that the full-text indexes can be configured with.")
     @Procedure(name = "db.index.fulltext.listAvailableAnalyzers", mode = READ)
@@ -283,7 +286,7 @@ public class FulltextProcedures {
                                 .txState()
                                 .indexDiffSetsBySchema(index.schema())
                                 .isAdded(index))
-                && !tx.isSPDTransaction()) {
+                && !spdBuiltInProcedures.isSpd()) {
             // If the index was not created in this transaction, then wait for it to come online before querying.
             Schema schema = transaction.schema();
             schema.awaitIndexOnline(index.getName(), INDEX_ONLINE_QUERY_TIMEOUT_SECONDS, TimeUnit.SECONDS);
