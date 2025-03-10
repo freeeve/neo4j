@@ -155,7 +155,11 @@ case class FeatureDatabaseManagementService(
   def registerUserAggregation(function: CallableUserAggregationFunction): Unit =
     kernel.registerUserAggregationFunction(function)
 
-  def registerComponent[T](cls: Class[T], provider: ThrowingFunction[Context, T, ProcedureException], safe: Boolean): Unit =
+  def registerComponent[T](
+    cls: Class[T],
+    provider: ThrowingFunction[Context, T, ProcedureException],
+    safe: Boolean
+  ): Unit =
     globalProcedures.registerComponent[T](cls, provider, safe)
 
   def clearFabricQueryCache(dbName: String): Unit =
