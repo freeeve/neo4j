@@ -16,7 +16,6 @@
     <description>Neo4j community edition integration tests modules.</description>
 
     <modules>
-        <module>it-test-support</module>
         <module>record-storage-engine-it</module>
         <module>kernel-it</module>
         <module>index-it</module>

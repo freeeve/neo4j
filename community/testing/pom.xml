@@ -36,6 +36,7 @@
     </build>
 
     <modules>
+        <module>it-test-support</module>
         <module>io-utils</module>
         <module>log-utils</module>
         <module>kernel-api-utils</module>
