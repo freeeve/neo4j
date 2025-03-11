@@ -35,50 +35,22 @@ public class IllegalTransitionException extends IllegalRequestException implemen
     private final State state;
     private final RequestMessage request;
 
-    protected IllegalTransitionException(State state, RequestMessage request, String message, Throwable cause) {
-        super(message, cause);
-        this.state = state;
-        this.request = request;
-    }
-
-    protected IllegalTransitionException(
-            ErrorGqlStatusObject gqlStatusObject,
-            State state,
-            RequestMessage request,
-            String message,
-            Throwable cause) {
-        super(gqlStatusObject, message, cause);
-
-        this.state = state;
-        this.request = request;
-    }
-
-    public IllegalTransitionException(State state, RequestMessage request, Throwable cause) {
-        this(
-                state,
-                request,
-                "Message of type " + request.getClass().getSimpleName() + " cannot be handled by a session in the "
-                        + state.name() + " state.",
-                cause);
-    }
-
-    public IllegalTransitionException(
-            ErrorGqlStatusObject gqlStatusObject, State state, RequestMessage request, Throwable cause) {
-        this(
-                gqlStatusObject,
-                state,
-                request,
-                "Message of type " + request.getClass().getSimpleName() + " cannot be handled by a session in the "
-                        + state.name() + " state.",
-                cause);
-    }
-
     public IllegalTransitionException(State state, RequestMessage request) {
-        this(state, request, null);
+        super("Message of type " + request.getClass().getSimpleName() + " cannot be handled by a session in the "
+                + state.name() + " state.");
+        this.state = state;
+        this.request = request;
     }
 
     public IllegalTransitionException(ErrorGqlStatusObject gqlStatusObject, State state, RequestMessage request) {
-        this(gqlStatusObject, state, request, null);
+
+        super(
+                gqlStatusObject,
+                "Message of type " + request.getClass().getSimpleName() + " cannot be handled by a session in the "
+                        + state.name() + " state.");
+
+        this.state = state;
+        this.request = request;
     }
 
     @Override
