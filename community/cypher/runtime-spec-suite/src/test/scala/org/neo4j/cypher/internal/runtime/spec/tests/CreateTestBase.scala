@@ -1229,4 +1229,22 @@ abstract class LenientCreateRelationshipTestBase[CONTEXT <: RuntimeContext](
     val results = execute(logicalQuery, runtime, inputValues(Array[Any](null)))
     results should beColumns("r").withSingleRow(null).withStatistics(nodesCreated = 1, labelsAdded = 1)
   }
+
+  test("should not fail on lenient merge + return null") {
+    // given an empty data base
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .apply()
+      .|.merge(relationships = Seq(createRelationship("r", "n", "R", "n", OUTGOING)))
+      .|.expand("(n)-[r]->(n)")
+      .|.argument("n")
+      .optional()
+      .allNodeScan("n")
+      .build(readOnly = false)
+
+    val results = execute(logicalQuery, runtime)
+    results should beColumns("r").withSingleRow(null).withNoUpdates()
+  }
 }

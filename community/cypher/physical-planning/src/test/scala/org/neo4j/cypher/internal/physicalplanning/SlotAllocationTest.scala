@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
 import org.neo4j.cypher.internal.logical.plans
 import org.neo4j.cypher.internal.logical.plans.AbstractSemiApply
 import org.neo4j.cypher.internal.logical.plans.Aggregation
@@ -42,6 +43,7 @@ import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.Create
+import org.neo4j.cypher.internal.logical.plans.DirectedAllRelationshipsScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.Expand
@@ -55,6 +57,7 @@ import org.neo4j.cypher.internal.logical.plans.IndexSeek
 import org.neo4j.cypher.internal.logical.plans.Input
 import org.neo4j.cypher.internal.logical.plans.LeftOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.Merge
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.NodeByLabelScan
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
@@ -1665,6 +1668,62 @@ class SlotAllocationTest extends CypherFunSuite with LogicalPlanningTestSupport2
     )
 
     allocations(foreach.id) shouldBe theSameInstanceAs(lhsSlots)
+  }
+
+  test("non-lenient merge relationships") {
+    // given
+    val merge = Merge(
+      DirectedAllRelationshipsScan(varFor("r"), varFor("x"), varFor("x"), Set(varFor("x"))),
+      Seq.empty,
+      Seq(createRelationship("r", "x", "R", "x")),
+      Seq.empty,
+      Seq.empty,
+      Set.empty
+    )
+
+    // when
+    val allocations = allocateSlots(
+      merge,
+      semanticTable,
+      BREAK_FOR_LEAFS,
+      NO_EXPR_VARS,
+      config,
+      new AnonymousVariableNameGenerator()
+    ).slotConfigurations
+
+    // then
+    allocations should have size 2
+    allocations(merge.id) should equal(SlotConfigurationBuilder.empty
+      .newLong("r", nullable = false, CTRelationship)
+      .newLong("x", nullable = false, CTNode))
+  }
+
+  test("lenient merge relationships") {
+    // given
+    val merge = Merge(
+      DirectedAllRelationshipsScan(varFor("r"), varFor("x"), varFor("x"), Set(varFor("x"))),
+      Seq.empty,
+      Seq(createRelationship("r", "x", "R", "x")),
+      Seq.empty,
+      Seq.empty,
+      Set.empty
+    )
+
+    // when
+    val allocations = allocateSlots(
+      merge,
+      semanticTable,
+      BREAK_FOR_LEAFS,
+      NO_EXPR_VARS,
+      config.copy(lenientCreateRelationship = true),
+      new AnonymousVariableNameGenerator()
+    ).slotConfigurations
+
+    // then
+    allocations should have size 2
+    allocations(merge.id) should equal(SlotConfigurationBuilder.empty
+      .newLong("r", nullable = true, CTRelationship)
+      .newLong("x", nullable = false, CTNode))
   }
 
   def exprVar(offset: Int, name: String): ExpressionVariable = ExpressionVariable(offset, name)

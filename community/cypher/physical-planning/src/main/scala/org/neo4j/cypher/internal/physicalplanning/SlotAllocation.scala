@@ -933,7 +933,15 @@ class SingleQuerySlotAllocator private[physicalplanning] (
             slots.newReference(variable.name, true, CTAny)
         }
 
-      case _: Merge =>
+      case m: Merge =>
+        // If we have set lenientCreateRelationship in the db, we may potentially
+        // need to update the relationship to nullable=true
+        if (config.lenientCreateRelationship) {
+          m.createRelationships.foreach(r =>
+            slots.newLong(r.variable, nullable = true, CTRelationship)
+          )
+        }
+
         recordArgument(lp)
 
       case sp: FindShortestPaths =>
