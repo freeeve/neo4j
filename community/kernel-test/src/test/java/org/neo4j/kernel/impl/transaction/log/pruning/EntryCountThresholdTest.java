@@ -40,7 +40,7 @@ class EntryCountThresholdTest {
     void shouldReportThresholdReachedWhenThresholdIsReached() throws Exception {
         long version = 10L;
 
-        when(info.getFirstEntryAppendIndex(version)).thenReturn(1L);
+        when(info.getPreviousAppendIndexFromHeader(version)).thenReturn(1L);
         when(info.getLastEntryAppendIndex()).thenReturn(2L);
 
         EntryCountThreshold threshold = createThreshold(1);
@@ -53,7 +53,7 @@ class EntryCountThresholdTest {
     void shouldReportThresholdNotReachedWhenThresholdIsNotReached() throws Exception {
         long version = 10L;
 
-        when(info.getFirstEntryAppendIndex(version)).thenReturn(1L);
+        when(info.getPreviousAppendIndexFromHeader(version)).thenReturn(1L);
 
         when(info.getLastEntryAppendIndex()).thenReturn(1L);
 
@@ -65,9 +65,9 @@ class EntryCountThresholdTest {
     @Test
     void shouldProperlyHandleCaseWithOneEntryPerLogFile() throws Exception {
         // Given 3 files with one entry each
-        when(info.getFirstEntryAppendIndex(1L)).thenReturn(1L);
-        when(info.getFirstEntryAppendIndex(2L)).thenReturn(2L);
-        when(info.getFirstEntryAppendIndex(3L)).thenReturn(3L);
+        when(info.getPreviousAppendIndexFromHeader(1L)).thenReturn(1L);
+        when(info.getPreviousAppendIndexFromHeader(2L)).thenReturn(2L);
+        when(info.getPreviousAppendIndexFromHeader(3L)).thenReturn(3L);
 
         when(info.getLastEntryAppendIndex()).thenReturn(3L);
 
@@ -81,10 +81,10 @@ class EntryCountThresholdTest {
 
     @Test
     void shouldWorkWhenCalledMultipleTimesKeeping3Files() throws Exception {
-        when(info.getFirstEntryAppendIndex(1L)).thenReturn(1L);
-        when(info.getFirstEntryAppendIndex(2L)).thenReturn(5L);
-        when(info.getFirstEntryAppendIndex(3L)).thenReturn(15L);
-        when(info.getFirstEntryAppendIndex(4L)).thenReturn(18L);
+        when(info.getPreviousAppendIndexFromHeader(1L)).thenReturn(1L);
+        when(info.getPreviousAppendIndexFromHeader(2L)).thenReturn(5L);
+        when(info.getPreviousAppendIndexFromHeader(3L)).thenReturn(15L);
+        when(info.getPreviousAppendIndexFromHeader(4L)).thenReturn(18L);
         when(info.getLastEntryAppendIndex()).thenReturn(18L);
 
         EntryCountThreshold threshold = createThreshold(8);
@@ -97,10 +97,10 @@ class EntryCountThresholdTest {
 
     @Test
     void shouldWorkWhenCalledMultipleTimesKeeping4Files() throws Exception {
-        when(info.getFirstEntryAppendIndex(1L)).thenReturn(1L);
-        when(info.getFirstEntryAppendIndex(2L)).thenReturn(5L);
-        when(info.getFirstEntryAppendIndex(3L)).thenReturn(15L);
-        when(info.getFirstEntryAppendIndex(4L)).thenReturn(18L);
+        when(info.getPreviousAppendIndexFromHeader(1L)).thenReturn(1L);
+        when(info.getPreviousAppendIndexFromHeader(2L)).thenReturn(5L);
+        when(info.getPreviousAppendIndexFromHeader(3L)).thenReturn(15L);
+        when(info.getPreviousAppendIndexFromHeader(4L)).thenReturn(18L);
         when(info.getLastEntryAppendIndex()).thenReturn(18L);
 
         EntryCountThreshold threshold = createThreshold(15);
@@ -113,10 +113,10 @@ class EntryCountThresholdTest {
 
     @Test
     void shouldWorkWhenCalledMultipleTimesKeeping2FilesOnBoundary() throws Exception {
-        when(info.getFirstEntryAppendIndex(1L)).thenReturn(1L);
-        when(info.getFirstEntryAppendIndex(2L)).thenReturn(5L);
-        when(info.getFirstEntryAppendIndex(3L)).thenReturn(15L);
-        when(info.getFirstEntryAppendIndex(4L)).thenReturn(18L);
+        when(info.getPreviousAppendIndexFromHeader(1L)).thenReturn(1L);
+        when(info.getPreviousAppendIndexFromHeader(2L)).thenReturn(5L);
+        when(info.getPreviousAppendIndexFromHeader(3L)).thenReturn(15L);
+        when(info.getPreviousAppendIndexFromHeader(4L)).thenReturn(18L);
         when(info.getLastEntryAppendIndex()).thenReturn(18L);
 
         EntryCountThreshold threshold = createThreshold(3);
@@ -131,12 +131,12 @@ class EntryCountThresholdTest {
     void shouldSkipEmptyLogsBetweenLogsThatWillBeKept() throws Exception {
         // Given
         // 1, 3 and 4 are empty. 2 has 5 transactions, 5 has 8, 6 is the current version
-        when(info.getFirstEntryAppendIndex(1L)).thenReturn(1L);
-        when(info.getFirstEntryAppendIndex(2L)).thenReturn(1L);
-        when(info.getFirstEntryAppendIndex(3L)).thenReturn(5L);
-        when(info.getFirstEntryAppendIndex(4L)).thenReturn(5L);
-        when(info.getFirstEntryAppendIndex(5L)).thenReturn(5L);
-        when(info.getFirstEntryAppendIndex(6L)).thenReturn(13L);
+        when(info.getPreviousAppendIndexFromHeader(1L)).thenReturn(1L);
+        when(info.getPreviousAppendIndexFromHeader(2L)).thenReturn(1L);
+        when(info.getPreviousAppendIndexFromHeader(3L)).thenReturn(5L);
+        when(info.getPreviousAppendIndexFromHeader(4L)).thenReturn(5L);
+        when(info.getPreviousAppendIndexFromHeader(5L)).thenReturn(5L);
+        when(info.getPreviousAppendIndexFromHeader(6L)).thenReturn(13L);
         when(info.getLastEntryAppendIndex()).thenReturn(13L);
 
         // The threshold is 9, which is one more than what version 5 has, which means 2 should be kept
@@ -154,12 +154,12 @@ class EntryCountThresholdTest {
     void shouldDeleteNonEmptyLogThatIsAfterASeriesOfEmptyLogs() throws Exception {
         // Given
         // 1, 3 and 4 are empty. 2 has 5 transactions, 5 has 8, 6 is the current version
-        when(info.getFirstEntryAppendIndex(1L)).thenReturn(1L);
-        when(info.getFirstEntryAppendIndex(2L)).thenReturn(1L);
-        when(info.getFirstEntryAppendIndex(3L)).thenReturn(5L);
-        when(info.getFirstEntryAppendIndex(4L)).thenReturn(5L);
-        when(info.getFirstEntryAppendIndex(5L)).thenReturn(5L);
-        when(info.getFirstEntryAppendIndex(6L)).thenReturn(13L);
+        when(info.getPreviousAppendIndexFromHeader(1L)).thenReturn(1L);
+        when(info.getPreviousAppendIndexFromHeader(2L)).thenReturn(1L);
+        when(info.getPreviousAppendIndexFromHeader(3L)).thenReturn(5L);
+        when(info.getPreviousAppendIndexFromHeader(4L)).thenReturn(5L);
+        when(info.getPreviousAppendIndexFromHeader(5L)).thenReturn(5L);
+        when(info.getPreviousAppendIndexFromHeader(6L)).thenReturn(13L);
         when(info.getLastEntryAppendIndex()).thenReturn(13L);
 
         // The threshold is 8, which is exactly what version 5 has, which means 2 should be deleted
@@ -175,7 +175,7 @@ class EntryCountThresholdTest {
 
     @Test
     void thresholdNotReachedWhenEntryIdNotFound() throws IOException {
-        when(info.getFirstEntryAppendIndex(1L)).thenReturn(-1L);
+        when(info.getPreviousAppendIndexFromHeader(1L)).thenReturn(-1L);
         EntryCountThreshold threshold = createThreshold(0);
 
         assertFalse(threshold.reached(file, 1, info));
@@ -186,7 +186,7 @@ class EntryCountThresholdTest {
 
     @Test
     void thresholdNotReachedWhenFailToGetEntryId() throws IOException {
-        when(info.getFirstEntryAppendIndex(1L)).thenThrow(new IOException("Exception."));
+        when(info.getPreviousAppendIndexFromHeader(1L)).thenThrow(new IOException("Exception."));
         EntryCountThreshold threshold = createThreshold(0);
 
         assertFalse(threshold.reached(file, 1, info));

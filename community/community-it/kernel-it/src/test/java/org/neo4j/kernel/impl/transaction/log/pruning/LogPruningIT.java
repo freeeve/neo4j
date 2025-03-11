@@ -98,6 +98,33 @@ class LogPruningIT {
                 .containsExactly(0L, 1L);
     }
 
+    @Test
+    void entryCountThresholdShouldKeepTheSpecifiedNumberOfEntries() throws IOException {
+        // Force transaction log rotation
+        writeTransactionsAndRotateTwice();
+        writeTransactionsAndRotateTwice();
+        // File 0 - 1 tx
+        // File 1 - 1 tx
+        // File 2 - 3 tx
+        // File 3 - 1 tx
+        // File 4 - 2 tx
+
+        config.setDynamic(keep_logical_logs, "6 entries", "LogPruningIT");
+
+        // Checkpoint to make sure strategy is evaluated
+        checkPointer.forceCheckPoint(triggerInfo);
+
+        // Make sure files are removed - there are exactly 6 txs in the last 3 files
+        assertThat(logFiles.getLogFile().getMatchedFiles().length).isEqualTo(3);
+
+        assertThat(versionTracker.rotations.toArray())
+                .as("should have tracked the 4 log rotations")
+                .containsExactly(0L, 1L, 2L, 3L);
+        assertThat(versionTracker.deletions.toArray())
+                .as("should have tracked the 2 log prunes")
+                .containsExactly(0L, 1L);
+    }
+
     private void writeTransactionsAndRotateTwice() throws IOException {
         // Apparently we always keep an extra log file what even though the threshold is reached... produce two then
         try (Transaction tx = db.beginTx()) {

@@ -23,11 +23,11 @@ import java.io.IOException;
 
 public interface LogFileInformation {
     /**
-     * @param version the log version to get first committed tx for.
-     * @return the first committed entry append index for the log with {@code version}.
+     * @param version the log version to get previous last append index for.
+     * @return the last append index from the header of log with {@code version}.
      * If that log doesn't exist -1 is returned.
      */
-    long getFirstEntryAppendIndex(long version) throws IOException;
+    long getPreviousAppendIndexFromHeader(long version) throws IOException;
 
     /**
      * @return the last committed entry append index for this log.

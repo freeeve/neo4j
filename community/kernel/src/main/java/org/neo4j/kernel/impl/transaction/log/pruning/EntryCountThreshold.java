@@ -42,7 +42,7 @@ public final class EntryCountThreshold implements Threshold {
     @Override
     public boolean reached(Path ignored, long version, LogFileInformation source) {
         try {
-            long lastAppendIndex = source.getFirstEntryAppendIndex(version);
+            long lastAppendIndex = source.getPreviousAppendIndexFromHeader(version);
             if (lastAppendIndex == -1) {
                 log.warn(
                         "Failed to get append index of the first entry in the transaction log file. Requested version: "

@@ -65,10 +65,10 @@ public class TransactionLogFileInformation implements LogFileInformation {
     }
 
     @Override
-    public long getFirstEntryAppendIndex(long version) throws IOException {
+    public long getPreviousAppendIndexFromHeader(long version) throws IOException {
         LogHeader logHeader = logHeaderCache.getLogHeader(version);
         if (logHeader != null) { // It existed in cache
-            return logHeader.getLastAppendIndex() + 1;
+            return logHeader.getLastAppendIndex();
         }
 
         // Wasn't cached, go look for it
@@ -77,7 +77,7 @@ public class TransactionLogFileInformation implements LogFileInformation {
             logHeader = logFile.extractHeader(version);
             if (logHeader != null) {
                 logHeaderCache.putHeader(version, logHeader);
-                return logHeader.getLastAppendIndex() + 1;
+                return logHeader.getLastAppendIndex();
             }
         }
         return -1;

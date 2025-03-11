@@ -78,8 +78,8 @@ class TransactionLogFileInformationTest {
                 LATEST_KERNEL_VERSION);
         when(logFiles.getLogFile().extractHeader(version)).thenReturn(expectedHeader);
 
-        long firstAppendIndex = info.getFirstEntryAppendIndex(version);
-        assertEquals(expectedAppendIndex, firstAppendIndex);
+        long lastAppendIndexBeforeFile = info.getPreviousAppendIndexFromHeader(version);
+        assertEquals(expectedAppendIndex - 1, lastAppendIndexBeforeFile);
         verify(logHeaderCache).putHeader(version, expectedHeader);
     }
 
@@ -91,7 +91,7 @@ class TransactionLogFileInformationTest {
         when(logFiles.getLogFile().versionExists(version)).thenReturn(true);
         when(logFiles.getLogFile().extractHeader(version)).thenReturn(null);
 
-        assertEquals(-1, info.getFirstEntryAppendIndex(version));
+        assertEquals(-1, info.getPreviousAppendIndexFromHeader(version));
         verify(logHeaderCache, never()).putHeader(eq(version), any());
     }
 
@@ -123,8 +123,8 @@ class TransactionLogFileInformationTest {
                 LATEST_KERNEL_VERSION);
         when(logHeaderCache.getLogHeader(version)).thenReturn(expectedHeader);
 
-        long firstCommittedAppendIndex = info.getFirstEntryAppendIndex(version);
-        assertEquals(expectedAppendIndex, firstCommittedAppendIndex);
+        long lastAppendIndexBeforeFile = info.getPreviousAppendIndexFromHeader(version);
+        assertEquals(expectedAppendIndex - 1, lastAppendIndexBeforeFile);
     }
 
     @Test
