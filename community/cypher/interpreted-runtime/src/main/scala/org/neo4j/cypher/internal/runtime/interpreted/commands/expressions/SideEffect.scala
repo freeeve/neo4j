@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.runtime.interpreted.commands.expressions
 import org.neo4j.cypher.internal.runtime.CastSupport
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
-import org.neo4j.cypher.internal.runtime.LenientCreateRelationship
 import org.neo4j.cypher.internal.runtime.interpreted.IsMap
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CreateNode.handleNaNValue
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.CreateNode.handleNoValue
@@ -144,7 +143,9 @@ case class CreateRelationship(command: CreateRelationshipCommand, allowNullOrNaN
       case n: VirtualNodeValue => n
       case IsNoValue() =>
         if (lenient) null
-        else throw new InternalException(LenientCreateRelationship.errorMsg(relName, name))
+        else {
+          throw InternalException.createRelationshipMissingNode(relName, name)
+        }
       case x => throw InternalException.expectedNodeFoundInsteadValue(String.valueOf(x), name)
     }
 }
