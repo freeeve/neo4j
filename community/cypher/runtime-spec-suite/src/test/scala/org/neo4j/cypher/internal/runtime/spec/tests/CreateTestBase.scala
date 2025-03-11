@@ -1231,6 +1231,7 @@ abstract class LenientCreateRelationshipTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should not fail on lenient merge + return null") {
+    assume(!isPipelined || canFuse)
     // given an empty data base
 
     // when

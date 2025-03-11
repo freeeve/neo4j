@@ -102,6 +102,7 @@ import scala.util.Using
 object RuntimeTestSuite {
   val ANY_VALUE_ORDERING: Ordering[AnyValue] = Ordering.comparatorToOrdering(AnyValues.COMPARATOR)
   def isParallel(runtime: CypherRuntime[_]): Boolean = runtime.name.toLowerCase(Locale.ROOT) == "parallel"
+  def isPipelined(runtime: CypherRuntime[_]): Boolean = runtime.name.toLowerCase(Locale.ROOT) == "pipelined"
 }
 
 /**
@@ -135,6 +136,7 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
   var logProvider: AssertableLogProvider = _
   def debugOptions: CypherDebugOptions = CypherDebugOptions.default
   val isParallel: Boolean = RuntimeTestSuite.isParallel(runtime)
+  val isPipelined: Boolean = RuntimeTestSuite.isPipelined(runtime)
 
   def updateDynamicSetting[T](setting: Setting[T], value: T): Unit = {
     val resolver = graphDb.asInstanceOf[GraphDatabaseFacade].getDependencyResolver
@@ -142,8 +144,7 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
   }
 
   def canFuse: Boolean = {
-    val runtimeUsed = runtime.name.toLowerCase(Locale.ROOT)
-    val fuseablePipeline = runtimeUsed == "pipelined" || runtimeUsed == "parallel"
+    val fuseablePipeline = isPipelined || isParallel
 
     fuseablePipeline && !edition
       .getSetting(GraphDatabaseInternalSettings.cypher_operator_engine)
