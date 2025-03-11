@@ -28,8 +28,6 @@ import static org.neo4j.batchimport.api.Configuration.DEFAULT;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.csv.reader.Configuration.COMMAS;
 import static org.neo4j.importer.FileImporter.DEFAULT_REPORT_FILE_NAME;
-import static org.neo4j.kernel.database.DatabaseTracers.EMPTY;
-import static org.neo4j.storageengine.api.StorageEngineFactory.SELECTOR;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 import static picocli.CommandLine.Command;
 import static picocli.CommandLine.Help.Visibility.ALWAYS;
@@ -54,7 +52,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.collections.api.tuple.Pair;
-import org.neo4j.batchimport.api.BatchImporter;
 import org.neo4j.batchimport.api.Configuration;
 import org.neo4j.batchimport.api.IndexConfig;
 import org.neo4j.batchimport.api.UnsupportedFormatException;
@@ -95,10 +92,8 @@ import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
 import org.neo4j.kernel.impl.util.Converters;
-import org.neo4j.kernel.recovery.LogTailExtractor;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.internal.LogService;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.DeprecatedFormatWarning;
@@ -109,7 +104,6 @@ import picocli.CommandLine.ArgGroup;
 import picocli.CommandLine.ITypeConverter;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
-import picocli.CommandLine.ParentCommand;
 
 @Command(
         name = "import",
@@ -120,7 +114,7 @@ public class ImportCommand {
     /**
      * Arguments and logic shared between Full and Incremental import commands.
      */
-    protected abstract static class Base extends AbstractAdminCommand {
+    public abstract static class Base extends AbstractAdminCommand {
         /**
          * Delimiter used between files in an input group.
          */
@@ -160,9 +154,6 @@ public class ImportCommand {
                 return MultilineFormat.valueOf(value.toUpperCase(Locale.ROOT));
             }
         }
-
-        @ParentCommand
-        private ImportCommand importCommand;
 
         @Option(
                 names = "--schema",
@@ -340,7 +331,7 @@ public class ImportCommand {
                                 + "value. For optimal performance, this value should not be greater than the number of available processors.")
         private int threads = DEFAULT_IMPORTER_CONFIG.maxNumberOfWorkerThreads();
 
-        static final String BAD_TOLERANCE_OPTION = "--bad-tolerance";
+        protected static final String BAD_TOLERANCE_OPTION = "--bad-tolerance";
 
         @Option(
                 names = BAD_TOLERANCE_OPTION,
@@ -482,27 +473,23 @@ public class ImportCommand {
             Closeable maybeCheckLock(DatabaseLayout databaseLayout) throws CannotWriteException, IOException;
         }
 
-        public boolean allowEnterpriseFeatures() {
-            return importCommand.allowEnterpriseFeatures();
-        }
-
-        protected void doExecute(
-                boolean incremental, String format, boolean overwriteDestination, Base.MaybeLocker maybeLockChecker) {
+        protected void doExecute() {
             try {
+                final var format = importFormat();
                 if (format != null && StorageEngineFactory.isFormatDeprecated(format)) {
-                    ctx.out().println("WARNING: " + DeprecatedFormatWarning.getTargetFormatWarning(format));
+                    printf("WARNING: %s%n", DeprecatedFormatWarning.getTargetFormatWarning(format));
                 }
                 final var databaseConfig = loadNeo4jConfig(format);
                 final var databaseLayout = Neo4jLayout.of(databaseConfig).databaseLayout(database.name());
                 final var logFilePath = FileImporter.getLogFilePath(databaseConfig);
                 ctx.fs().mkdirs(logFilePath.toAbsolutePath().getParent());
 
-                try (var ignore = maybeLockChecker.maybeCheckLock(databaseLayout);
+                try (var ignore = maybeLockChecker().maybeCheckLock(databaseLayout);
                         var logFile = new BufferedOutputStream(ctx.fs().openAsOutputStream(logFilePath, true));
                         var logProvider = FileImporter.getLog(logFile, verbose);
                         var fileSystem = new SchemeFileSystemAbstraction(ctx.fs(), databaseConfig, logProvider)) {
-                    ctx.out().println("Starting to import, output will be saved to: " + logFilePath.toAbsolutePath());
-                    final var importerBuilder = FileImporter.builder()
+                    printf("Starting to import, output will be saved to: %s%n", logFilePath.toAbsolutePath());
+                    final var importerBuilder = configureFileImporterBuilder(FileImporter.builder()
                             .withCsvConfig(csvConfiguration(fileSystem))
                             .withImportConfig(importConfiguration(databaseConfig))
                             .withDatabaseLayout(databaseLayout)
@@ -522,22 +509,10 @@ public class ImportCommand {
                             .withNormalizeTypes(normalizeTypes)
                             .withVerbose(verbose)
                             .withAutoSkipHeaders(autoSkipHeaders)
-                            .withForce(overwriteDestination)
-                            .withIncremental(incremental)
                             .withLogProvider(logProvider)
                             .withSchemaCommands(parseSchemaCommands(fileSystem, databaseConfig))
                             .withLogProvider(logProvider)
-                            .withFileInputType(resolveFileInputType(fileSystem));
-                    if (incremental) {
-                        importerBuilder.withCursorContextFactory(new CursorContextFactory(
-                                PageCacheTracer.NULL,
-                                new FixedVersionContextSupplier(getLogTail(fileSystem, databaseLayout, databaseConfig)
-                                        .getLastCommittedTransaction()
-                                        .id())));
-                    } else {
-                        importerBuilder.withCursorContextFactory(new CursorContextFactory(
-                                PageCacheTracer.NULL, new FixedVersionContextSupplier(BASE_TX_ID)));
-                    }
+                            .withFileInputType(resolveFileInputType(fileSystem)));
 
                     for (var n : nodes) {
                         importerBuilder.addNodeFiles(n.key, n.toPaths(fileSystem));
@@ -566,16 +541,23 @@ public class ImportCommand {
             }
         }
 
+        public abstract String importType();
+
+        protected abstract String importFormat();
+
         protected abstract SchemaCommandReader.ReaderConfig schemaCommandsReaderConfig(
                 VectorIndexVersion latestVectorIndexVersion);
 
-        protected abstract StorageEngineFactory selectStorageEngineFactory(
-                FileSystemAbstraction fileSystem, DatabaseLayout databaseLayout, Config databaseConfig);
+        protected abstract FileImporter.Builder configureFileImporterBuilder(FileImporter.Builder builder)
+                throws IOException;
+
+        protected abstract MaybeLocker maybeLockChecker();
 
         protected abstract void doImport(
                 FileSystemAbstraction fileSystem,
                 DatabaseLayout databaseLayout,
                 Config databaseConfig,
+                StorageEngineFactory storageEngineFactory,
                 JobScheduler jobScheduler,
                 InternalLogProvider logProvider,
                 PageCacheTracer pageCacheTracer,
@@ -621,22 +603,6 @@ public class ImportCommand {
             }
         }
 
-        private LogTailMetadata getLogTail(
-                FileSystemAbstraction fs, DatabaseLayout databaseLayout, Config databaseConfig) throws IOException {
-            Optional<StorageEngineFactory> storageEngineFactory = SELECTOR.selectStorageEngine(fs, databaseLayout);
-            return getLogTail(fs, databaseLayout, databaseConfig, storageEngineFactory.orElseThrow());
-        }
-
-        private LogTailMetadata getLogTail(
-                FileSystemAbstraction fs,
-                DatabaseLayout databaseLayout,
-                Config config,
-                StorageEngineFactory storageEngineFactory)
-                throws IOException {
-            LogTailExtractor logTailExtractor = new LogTailExtractor(fs, config, storageEngineFactory, EMPTY);
-            return logTailExtractor.getTailMetadata(databaseLayout, EmptyMemoryTracker.INSTANCE);
-        }
-
         @VisibleForTesting
         Config loadNeo4jConfig(String format) {
             Config.Builder builder = createPrefilledConfigBuilder();
@@ -646,7 +612,7 @@ public class ImportCommand {
             return builder.build();
         }
 
-        LogTailMetadata readLogTailMetaData(
+        protected LogTailMetadata readLogTailMetaData(
                 FileSystemAbstraction fileSystem,
                 DatabaseLayout databaseLayout,
                 StorageEngineFactory storageEngineFactory)
@@ -810,8 +776,8 @@ public class ImportCommand {
 
     @Command(
             name = "full",
-            description = "High-speed initial import of fault-free data from CSV files into a non-existent or empty "
-                    + "database.")
+            description =
+                    "High-speed initial import of fault-free data from CSV files into a non-existent or empty database.")
     public static class Full extends Base {
         @Option(
                 names = "--format",
@@ -819,7 +785,7 @@ public class ImportCommand {
                 description = "Name of database format. The imported database will be created in the specified format "
                         + "or use the format set in the configuration. Valid formats are `standard`, `aligned`, "
                         + "`high_limit`, and `block`.")
-        private String format;
+        protected String format;
 
         // Was force
         @Option(
@@ -829,7 +795,7 @@ public class ImportCommand {
                 paramLabel = "true|false",
                 fallbackValue = "true",
                 description = "Delete any existing database files prior to the import.")
-        private boolean overwriteDestination;
+        protected boolean overwriteDestination;
 
         public Full(ExecutionContext ctx) {
             super(ctx);
@@ -837,195 +803,85 @@ public class ImportCommand {
 
         @Override
         public void execute() throws Exception {
-            doExecute(false, format, overwriteDestination, databaseLayout -> {
+            doExecute();
+        }
+
+        @Override
+        public String importType() {
+            return "Full import";
+        }
+
+        @Override
+        protected String importFormat() {
+            return format;
+        }
+
+        @Override
+        protected ReaderConfig schemaCommandsReaderConfig(VectorIndexVersion latestVectorIndexVersion) {
+            return new ReaderConfig(false, true, false, latestVectorIndexVersion);
+        }
+
+        @Override
+        protected FileImporter.Builder configureFileImporterBuilder(FileImporter.Builder builder) {
+            return withStorageEngineFactory(builder.withForce(overwriteDestination)
+                    .withCursorContextFactory(new CursorContextFactory(
+                            PageCacheTracer.NULL, new FixedVersionContextSupplier(BASE_TX_ID))));
+        }
+
+        @Override
+        protected MaybeLocker maybeLockChecker() {
+            return databaseLayout -> {
                 // Create the db folder if it doesn't exist, to be able to create and lock the lockfile.
                 ctx.fs().mkdirs(databaseLayout.databaseDirectory());
                 return LockChecker.checkDatabaseLock(databaseLayout);
-            });
-        }
-
-        @Override
-        protected ReaderConfig schemaCommandsReaderConfig(VectorIndexVersion latestVectorIndexVersion) {
-            return new ReaderConfig(allowEnterpriseFeatures(), true, false, latestVectorIndexVersion);
-        }
-
-        @Override
-        protected StorageEngineFactory selectStorageEngineFactory(
-                FileSystemAbstraction fileSystem, DatabaseLayout databaseLayout, Config databaseConfig) {
-            return StorageEngineFactory.selectStorageEngine(databaseConfig);
-        }
-
-        @Override
-        protected void doImport(
-                FileSystemAbstraction fileSystem,
-                DatabaseLayout databaseLayout,
-                Config databaseConfig,
-                JobScheduler jobScheduler,
-                InternalLogProvider logProvider,
-                PageCacheTracer pageCacheTracer,
-                CursorContextFactory contextFactory,
-                Configuration importConfig,
-                LogService logService,
-                PrintStream stdOut,
-                PrintStream stdErr,
-                boolean verbose,
-                Collector badCollector,
-                MemoryTracker memoryTracker,
-                Input input,
-                IndexProvidersAccess indexProvidersAccess)
-                throws IOException {
-            StorageEngineFactory storageEngineFactory =
-                    selectStorageEngineFactory(fileSystem, databaseLayout, databaseConfig);
-            BatchImporter importer = storageEngineFactory.batchImporter(
-                    databaseLayout,
-                    fileSystem,
-                    pageCacheTracer,
-                    importConfig,
-                    logService,
-                    stdOut,
-                    verbose,
-                    DefaultAdditionalIds.EMPTY,
-                    databaseConfig,
-                    new PrintingImportLogicMonitor(stdOut, stdErr),
-                    jobScheduler,
-                    badCollector,
-                    TransactionLogInitializer.getLogFilesInitializer(),
-                    new IndexImporterFactoryImpl(),
-                    memoryTracker,
-                    contextFactory,
-                    indexProvidersAccess);
-
-            importer.doImport(input);
-        }
-    }
-
-    @Command(name = "incremental", description = "Incremental import into an existing database.")
-    public static class Incremental extends Base {
-        @Option(
-                names = "--stage",
-                paramLabel = "all|prepare|build|merge",
-                description = "Stage of incremental import. "
-                        + "For incremental import into an existing database use 'all' (which requires "
-                        + "the database to be stopped). For semi-online incremental import run 'prepare' (on "
-                        + "a stopped database) followed by 'build' (on a potentially running database) and "
-                        + "finally 'merge' (on a stopped database).",
-                converter = StageConverter.class)
-        IncrementalStage stage = IncrementalStage.all;
-
-        @Option(names = "--force", required = true, description = "Confirm incremental import by setting this flag.")
-        boolean forced;
-
-        @Option(
-                names = "--update-all-matching-relationships",
-                paramLabel = "true|false",
-                fallbackValue = "true",
-                defaultValue = "false",
-                description =
-                        "Whether or not to update all existing relationships that match a relationship data entry. "
-                                + "If disabled, the relationship data entry will be logged if it is within the limit of entities "
-                                + "specified by " + BAD_TOLERANCE_OPTION + " and the " + SKIP_BAD_ENTRIES_LOGGING
-                                + " option is disabled. ")
-        boolean updateAllMatchingRelationships;
-
-        public Incremental(ExecutionContext ctx) {
-            super(ctx);
-        }
-
-        @Override
-        public void execute() throws Exception {
-            if (!forced) {
-                System.err.println(
-                        "ERROR: Incremental import needs to be used with care. Please confirm by specifying --force.");
-                throw new IllegalArgumentException("Missing force");
-            }
-            doExecute(true, null, false, (layout) -> () -> {} /* locking handled in the specific steps */);
-        }
-
-        @Override
-        protected ReaderConfig schemaCommandsReaderConfig(VectorIndexVersion latestVectorIndexVersion) {
-            return new ReaderConfig(allowEnterpriseFeatures(), true, true, latestVectorIndexVersion);
-        }
-
-        @Override
-        protected StorageEngineFactory selectStorageEngineFactory(
-                FileSystemAbstraction fileSystem, DatabaseLayout databaseLayout, Config databaseConfig) {
-            return StorageEngineFactory.selectStorageEngine(fileSystem, databaseLayout)
-                    .orElseThrow();
-        }
-
-        @Override
-        protected void doImport(
-                FileSystemAbstraction fileSystem,
-                DatabaseLayout databaseLayout,
-                Config databaseConfig,
-                JobScheduler jobScheduler,
-                InternalLogProvider logProvider,
-                PageCacheTracer pageCacheTracer,
-                CursorContextFactory contextFactory,
-                Configuration importConfig,
-                LogService logService,
-                PrintStream stdOut,
-                PrintStream stdErr,
-                boolean verbose,
-                Collector badCollector,
-                MemoryTracker memoryTracker,
-                Input input,
-                IndexProvidersAccess indexProvidersAccess)
-                throws IOException {
-            var storageEngineFactory = selectStorageEngineFactory(fileSystem, databaseLayout, databaseConfig);
-            var importer = storageEngineFactory.incrementalBatchImporter(
-                    databaseLayout,
-                    fileSystem,
-                    pageCacheTracer,
-                    withSpecificConfig(importConfig),
-                    logService,
-                    stdOut,
-                    verbose,
-                    DefaultAdditionalIds.EMPTY,
-                    () -> readLogTailMetaData(fileSystem, databaseLayout, storageEngineFactory),
-                    databaseConfig,
-                    new PrintingImportLogicMonitor(stdOut, stdErr),
-                    jobScheduler,
-                    badCollector,
-                    TransactionLogInitializer.getLogFilesInitializer(),
-                    new IndexImporterFactoryImpl(),
-                    memoryTracker,
-                    contextFactory,
-                    indexProvidersAccess);
-            switch (stage) {
-                case prepare -> importer.prepare(input);
-                case build -> importer.build(input);
-                case merge -> importer.merge();
-                case all -> importer.doImport(input);
-                default -> throw new IllegalArgumentException("Unknown import mode " + stage);
-            }
-        }
-
-        private Configuration withSpecificConfig(Configuration importConfig) {
-            return new Configuration.Overridden(importConfig) {
-                @Override
-                public boolean updateAllMatchingRelationships() {
-                    return updateAllMatchingRelationships;
-                }
             };
         }
 
-        static class StageConverter implements CommandLine.ITypeConverter<IncrementalStage> {
-            @Override
-            public IncrementalStage convert(String in) {
-                in = switch (in) {
-                    case "1" -> "prepare";
-                    case "2" -> "build";
-                    case "3" -> "merge";
-                    default -> in.toLowerCase(Locale.ROOT);
-                };
-                try {
-                    return IncrementalStage.valueOf(in);
+        @Override
+        protected void doImport(
+                FileSystemAbstraction fileSystem,
+                DatabaseLayout databaseLayout,
+                Config databaseConfig,
+                StorageEngineFactory storageEngineFactory,
+                JobScheduler jobScheduler,
+                InternalLogProvider logProvider,
+                PageCacheTracer pageCacheTracer,
+                CursorContextFactory contextFactory,
+                Configuration importConfig,
+                LogService logService,
+                PrintStream stdOut,
+                PrintStream stdErr,
+                boolean verbose,
+                Collector badCollector,
+                MemoryTracker memoryTracker,
+                Input input,
+                IndexProvidersAccess indexProvidersAccess)
+                throws IOException {
+            storageEngineFactory
+                    .batchImporter(
+                            databaseLayout,
+                            fileSystem,
+                            pageCacheTracer,
+                            importConfig,
+                            logService,
+                            stdOut,
+                            verbose,
+                            DefaultAdditionalIds.EMPTY,
+                            databaseConfig,
+                            new PrintingImportLogicMonitor(stdOut, stdErr),
+                            jobScheduler,
+                            badCollector,
+                            TransactionLogInitializer.getLogFilesInitializer(),
+                            new IndexImporterFactoryImpl(),
+                            memoryTracker,
+                            contextFactory,
+                            indexProvidersAccess)
+                    .doImport(input);
+        }
 
-                } catch (Exception e) {
-                    throw new CommandLine.TypeConversionException(format("Invalid stage: %s (%s)", in, e));
-                }
-            }
+        protected FileImporter.Builder withStorageEngineFactory(FileImporter.Builder builder) {
+            return builder.withStorageEngineFactory(
+                    StorageEngineFactory.selectStorageEngine(builder.getDatabaseConfig()));
         }
     }
 
@@ -1104,27 +960,4 @@ public class ImportCommand {
             usageHelp = true,
             description = "Show this help message and exit.")
     private boolean helpRequested;
-
-    protected boolean allowEnterpriseFeatures() {
-        return false;
-    }
-
-    enum IncrementalStage {
-        /**
-         * Prepares an incremental import. This requires target database to be offline.
-         */
-        prepare,
-        /**
-         * Builds the incremental import. The is disjoint from the target database state.
-         */
-        build,
-        /**
-         * Merges the incremental import into the target database. This requires target database to be offline.
-         */
-        merge,
-        /**
-         * Performs a full incremental import including all steps involved.
-         */
-        all
-    }
 }

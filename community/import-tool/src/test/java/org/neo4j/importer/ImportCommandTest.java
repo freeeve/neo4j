@@ -27,7 +27,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -65,65 +64,47 @@ class ImportCommandTest {
         assertThat(subcommands).isEqualTo(expectedSubcommands);
     }
 
-    private static final String[] sharedOptions = {
-        "-h",
-        "--expand-commands",
-        "--verbose",
-        "--additional-config",
-        "--report-file",
-        "--id-type",
-        "--input-encoding",
-        "--ignore-extra-columns",
-        "--multiline-fields",
-        "--multiline-fields-format",
-        "--ignore-empty-strings",
-        "--trim-strings",
-        "--legacy-style-quoting",
-        "--delimiter",
-        "--array-delimiter",
-        "--quote",
-        "--schema",
-        "--read-buffer-size",
-        "--max-off-heap-memory",
-        "--high-parallel-io",
-        "--threads",
-        "--bad-tolerance",
-        "--skip-bad-entries-logging",
-        "--skip-bad-relationships",
-        "--skip-duplicate-nodes",
-        "--strict",
-        "--normalize-types",
-        "--nodes",
-        "--relationships",
-        "--auto-skip-subsequent-headers",
-        "--input-type"
-    };
-
-    private static final String[] sharedPositionals = {"<database>"};
-
     @Test
     void printUsageHelpForSubcommandFull() {
         final var command = new ImportCommand.Full(getExecutionContext());
         final var help = getUsageHelp(command);
         final var options = getOptions(help);
-        var expectedOptions = new ArrayList<>(List.of(sharedOptions));
-        expectedOptions.addAll(List.of("--overwrite-destination", "--format"));
+        var expectedOptions = List.of(
+                "-h",
+                "--expand-commands",
+                "--verbose",
+                "--additional-config",
+                "--report-file",
+                "--id-type",
+                "--input-encoding",
+                "--ignore-extra-columns",
+                "--multiline-fields",
+                "--multiline-fields-format",
+                "--ignore-empty-strings",
+                "--trim-strings",
+                "--legacy-style-quoting",
+                "--delimiter",
+                "--array-delimiter",
+                "--quote",
+                "--schema",
+                "--read-buffer-size",
+                "--max-off-heap-memory",
+                "--high-parallel-io",
+                "--threads",
+                "--bad-tolerance",
+                "--skip-bad-entries-logging",
+                "--skip-bad-relationships",
+                "--skip-duplicate-nodes",
+                "--strict",
+                "--normalize-types",
+                "--nodes",
+                "--relationships",
+                "--auto-skip-subsequent-headers",
+                "--input-type",
+                "--overwrite-destination",
+                "--format");
         final var positionals = getPositionals(help);
-        final var expectedPositionals = List.of(sharedPositionals);
-
-        assertThat(options.toArray()).containsOnly(expectedOptions.toArray());
-        assertThat(positionals.toArray()).containsOnly(expectedPositionals.toArray());
-    }
-
-    @Test
-    void printUsageHelpForSubcommandIncremental() {
-        final var command = new ImportCommand.Incremental(getExecutionContext());
-        final var help = getUsageHelp(command);
-        final var options = getOptions(help);
-        var expectedOptions = new ArrayList<>(List.of(sharedOptions));
-        expectedOptions.addAll(List.of("--stage", "--force", "--update-all-matching-relationships"));
-        final var positionals = getPositionals(help);
-        final var expectedPositionals = List.of(sharedPositionals);
+        final var expectedPositionals = List.of("<database>");
 
         assertThat(options.toArray()).containsOnly(expectedOptions.toArray());
         assertThat(positionals.toArray()).containsOnly(expectedPositionals.toArray());
@@ -206,29 +187,6 @@ class ImportCommandTest {
             var args = Stream.concat(Stream.of("--input-type", alias), requiredArgs.stream());
             new CommandLine(command).parseArgs(args.toArray(String[]::new));
             assertThat(command.fileInputType).isEqualTo(inputType);
-        }
-    }
-
-    @Test
-    void shouldAllowAliasesForIncrementalStage() {
-        var tempFileName = testDir.createFile("dummy").toString();
-        var requiredArgs = List.of("--force", "--nodes", tempFileName, "--relationships", tempFileName);
-
-        assertIncrementalStageAliases(
-                requiredArgs, List.of("prepare", "PREPARE", "1"), ImportCommand.IncrementalStage.prepare);
-        assertIncrementalStageAliases(
-                requiredArgs, List.of("build", "BUILD", "2"), ImportCommand.IncrementalStage.build);
-        assertIncrementalStageAliases(
-                requiredArgs, List.of("merge", "MERGE", "3"), ImportCommand.IncrementalStage.merge);
-    }
-
-    private void assertIncrementalStageAliases(
-            List<String> requiredArgs, List<String> aliases, ImportCommand.IncrementalStage stage) {
-        for (var alias : aliases) {
-            var command = new ImportCommand.Incremental(getExecutionContext());
-            var args = Stream.concat(Stream.of("--stage", alias), requiredArgs.stream());
-            new CommandLine(command).parseArgs(args.toArray(String[]::new));
-            assertThat(command.stage).isEqualTo(stage);
         }
     }
 

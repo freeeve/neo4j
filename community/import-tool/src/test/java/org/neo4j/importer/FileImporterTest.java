@@ -48,6 +48,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.context.FixedVersionContextSupplier;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
+import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -74,12 +75,11 @@ class FileImporterTest {
         final var logFilePath = FileImporter.getLogFilePath(config);
         try (var logFile = new BufferedOutputStream(Files.newOutputStream(logFilePath));
                 var logProvider = FileImporter.getLog(logFile, true)) {
-            final var csvImporter = FileImporter.builder()
-                    .withDatabaseLayout(databaseLayout.getNeo4jLayout().databaseLayout("foodb"))
+            final var csvImporter = importerBuilder(
+                            databaseLayout.getNeo4jLayout().databaseLayout("foodb"))
                     .withDatabaseConfig(config)
                     .withReportFile(reportLocation.toAbsolutePath())
                     .withCsvConfig(Configuration.TABS)
-                    .withFileSystem(testDir.getFileSystem())
                     .withStdOut(NullPrintStream.INSTANCE)
                     .withStdErr(NullPrintStream.INSTANCE)
                     .withLogProvider(logProvider)
@@ -105,11 +105,9 @@ class FileImporterTest {
         var rawErr = new ByteArrayOutputStream();
         try (var out = new PrintStream(rawOut);
                 var err = new PrintStream(rawErr)) {
-            FileImporter.Builder csvImporterBuilder = FileImporter.builder()
+            FileImporter.Builder csvImporterBuilder = importerBuilder()
                     .withDatabaseConfig(Config.defaults(GraphDatabaseSettings.neo4j_home, testDir.homePath()))
-                    .withDatabaseLayout(databaseLayout)
                     .withCsvConfig(Configuration.TABS)
-                    .withFileSystem(testDir.getFileSystem())
                     .withStdOut(new PrintStream(rawOut))
                     .withStdErr(new PrintStream(rawErr))
                     .withReportFile(reportLocation.toAbsolutePath());
@@ -135,11 +133,9 @@ class FileImporterTest {
         Config config = Config.defaults(GraphDatabaseSettings.logs_directory, logDir.toAbsolutePath());
 
         var cacheTracer = new DefaultPageCacheTracer();
-        FileImporter fileImporter = FileImporter.builder()
-                .withDatabaseLayout(databaseLayout)
+        FileImporter fileImporter = importerBuilder()
                 .withDatabaseConfig(config)
                 .withReportFile(reportLocation.toAbsolutePath())
-                .withFileSystem(testDir.getFileSystem())
                 .withStdOut(NullPrintStream.INSTANCE)
                 .withStdErr(NullPrintStream.INSTANCE)
                 .withPageCacheTracer(cacheTracer)
@@ -161,10 +157,8 @@ class FileImporterTest {
     void shouldEnforceBadTolerance() throws IOException {
         // given
         var nodes = writeFileWithLines("nodes.csv", ":ID", "abc", "abc", "abc", "abc", "abc", "abc");
-        var importer = FileImporter.builder()
+        var importer = importerBuilder()
                 .withDatabaseConfig(Config.defaults(GraphDatabaseSettings.neo4j_home, testDir.homePath()))
-                .withDatabaseLayout(databaseLayout)
-                .withFileSystem(testDir.getFileSystem())
                 .withStdOut(NullPrintStream.INSTANCE)
                 .withStdErr(NullPrintStream.INSTANCE)
                 .withReportFile(testDir.file("report.txt"))
@@ -192,5 +186,16 @@ class FileImporterTest {
                 NullPrintStream.INSTANCE,
                 NullPrintStream.INSTANCE,
                 testDir.getFileSystem()));
+    }
+
+    private FileImporter.Builder importerBuilder() {
+        return importerBuilder(databaseLayout);
+    }
+
+    private FileImporter.Builder importerBuilder(DatabaseLayout layout) {
+        return FileImporter.builder()
+                .withStorageEngineFactory(StorageEngineFactory.defaultStorageEngine())
+                .withDatabaseLayout(layout)
+                .withFileSystem(testDir.getFileSystem());
     }
 }

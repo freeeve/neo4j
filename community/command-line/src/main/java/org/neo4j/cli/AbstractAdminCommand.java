@@ -124,7 +124,6 @@ public abstract class AbstractAdminCommand extends AbstractCommand {
         return commandConfigs;
     }
 
-    @SuppressWarnings("resource")
     private boolean configFileExists(Path path) {
         return ctx.fs().fileExists(path) && !ctx.fs().isDirectory(path);
     }
@@ -210,6 +209,16 @@ public abstract class AbstractAdminCommand extends AbstractCommand {
             logCrashInformation(ex, start.elapsed());
             throw ex;
         }
+    }
+
+    @SuppressWarnings("resource")
+    protected void println(String message) {
+        ctx.out().println(message);
+    }
+
+    @SuppressWarnings("resource")
+    protected void printf(String message, Object... args) {
+        ctx.out().printf(message, args);
     }
 
     private void logCrashInformation(Throwable ex, Duration elapsed) {

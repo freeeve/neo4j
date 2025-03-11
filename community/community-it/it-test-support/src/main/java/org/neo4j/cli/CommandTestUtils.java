@@ -25,7 +25,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import org.neo4j.function.ThrowingConsumer;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import picocli.CommandLine;
@@ -82,34 +81,6 @@ public class CommandTestUtils {
             CommandLine.populateCommand(cmd, args);
             cmd.execute();
         });
-    }
-
-    /**
-     * @param creator the command creator
-     * @param field the field for the parent command
-     * @param attachOnSuperClass whether to attach the parent directly on the command or its parent class
-     * @param parentCommand the parent command - see {@link picocli.CommandLine.ParentCommand}
-     * @return the new command with its parent command bound
-     * @param <C> the type of command to create
-     * @param <P> the parent command of the required command
-     */
-    public static <C extends AbstractCommand, P> Function<ExecutionContext, AbstractCommand> commandWithAttachedParent(
-            Function<ExecutionContext, C> creator,
-            String field,
-            boolean attachOnSuperClass,
-            Supplier<P> parentCommand) {
-        return ctx -> {
-            try {
-                final var command = creator.apply(ctx);
-                final var attachPoint = attachOnSuperClass ? command.getClass().getSuperclass() : command.getClass();
-                final var parentField = attachPoint.getDeclaredField(field);
-                parentField.setAccessible(true);
-                parentField.set(command, parentCommand.get());
-                return command;
-            } catch (IllegalAccessException | NoSuchFieldException ex) {
-                throw new RuntimeException(ex);
-            }
-        };
     }
 
     /**

@@ -95,16 +95,17 @@ import org.neo4j.logging.log4j.Log4jLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
-import org.neo4j.util.Preconditions;
+import org.neo4j.storageengine.api.StorageEngineFactory;
 
-class FileImporter {
-    static final String DEFAULT_REPORT_FILE_NAME = "import.report";
+public class FileImporter {
+    public static final String DEFAULT_REPORT_FILE_NAME = "import.report";
     private static final DateTimeFormatter SPACELESS_DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd.HH.mm.ss").withZone(ZoneId.systemDefault());
     private static final String DEFAULT_LOG_FILE_NAME_TEMPLATE = "neo4j-admin-import-%s.log";
 
     private final DatabaseLayout databaseLayout;
     private final Config databaseConfig;
+    private final StorageEngineFactory storageEngineFactory;
     private final org.neo4j.csv.reader.Configuration csvConfig;
     private final org.neo4j.batchimport.api.Configuration importConfig;
     private final Path reportFile;
@@ -127,8 +128,6 @@ class FileImporter {
     private final CursorContextFactory contextFactory;
     private final MemoryTracker memoryTracker;
     private final boolean force;
-    private final ImportCommand.IncrementalStage incrementalStage;
-    private final boolean incremental;
     private final InternalLogProvider logProvider;
     private final List<SchemaCommand> schemaCommands;
     private final FileInputType fileImportType;
@@ -136,6 +135,7 @@ class FileImporter {
     private FileImporter(Builder b) {
         this.databaseLayout = requireNonNull(b.databaseLayout);
         this.databaseConfig = requireNonNull(b.databaseConfig);
+        this.storageEngineFactory = requireNonNull(b.storageEngineFactory);
         this.csvConfig = requireNonNull(b.csvConfig);
         this.importConfig = requireNonNull(b.importConfig);
         this.reportFile = requireNonNull(b.reportFile);
@@ -159,13 +159,11 @@ class FileImporter {
         this.stdErr = requireNonNull(b.stdErr);
         this.logProvider = requireNonNull(b.logProvider);
         this.force = b.force;
-        this.incremental = b.incremental;
-        this.incrementalStage = b.incrementalStage;
         this.schemaCommands = b.schemaCommands;
         this.fileImportType = b.fileInputType;
     }
 
-    void doImport(ImportCommand.Base type) throws IOException {
+    public void doImport(ImportCommand.Base type) throws IOException {
         if (force) {
             fileSystem.deleteRecursively(
                     databaseLayout.databaseDirectory(), path -> !path.equals(databaseLayout.databaseLockFile()));
@@ -225,7 +223,7 @@ class FileImporter {
                     new PrefixedLogProvider(logProvider, databaseLayout.getDatabaseName()),
                     databaseConfig.get(duplication_user_messages));
             var indexProviders = life.add(new DefaultIndexProvidersAccess(
-                    type.selectStorageEngineFactory(fileSystem, databaseLayout, databaseConfig),
+                    storageEngineFactory,
                     fileSystem,
                     databaseConfig,
                     jobScheduler,
@@ -236,6 +234,7 @@ class FileImporter {
                     fileSystem,
                     databaseLayout,
                     databaseConfig,
+                    storageEngineFactory,
                     jobScheduler,
                     logProvider,
                     pageCacheTracer,
@@ -251,7 +250,7 @@ class FileImporter {
                     indexProviders);
             success = true;
         } catch (Exception ex) {
-            throw andPrintError(databaseLayout.getDatabaseName(), ex, incremental, stdErr);
+            throw andPrintError(databaseLayout.getDatabaseName(), ex, type.importType(), stdErr);
         } finally {
             long numberOfBadEntries = badCollector.badEntries();
             if (badTolerance != BadCollector.UNLIMITED_TOLERANCE && numberOfBadEntries > badTolerance) {
@@ -287,11 +286,11 @@ class FileImporter {
      *
      * @param databaseName the name of the database to receive the import data
      * @param e            the error that occurred
-     * @param incremental  whether the import is incremental
+     * @param importType   the import type (ex. full/incremental/sharded)
      * @param err          the error output stream
      */
     private static RuntimeException andPrintError(
-            String databaseName, Exception e, boolean incremental, PrintStream err) {
+            String databaseName, Exception e, String importType, PrintStream err) {
         // List of common errors that can be explained to the user
         if (DuplicateInputIdException.class.equals(e.getClass())) {
             err.println("Duplicate input ids that would otherwise clash can be put into separate id space.");
@@ -303,7 +302,7 @@ class FileImporter {
         } else if (FileLockException.class.equals(e.getClass())) {
             String string =
                     "%s can only be run against a database which is offline. The current state of database '%s' is online."
-                            .formatted(incremental ? "Incremental import" : "Import", databaseName);
+                            .formatted(importType, databaseName);
             err.println(string);
         }
         // This type of exception is wrapped since our input code throws InputException consistently,
@@ -334,9 +333,6 @@ class FileImporter {
     private void printOverview() {
         stdOut.println("Neo4j version: " + Version.getNeo4jVersion());
         stdOut.println("Importing the contents of these files into " + databaseLayout.databaseDirectory() + ":");
-        if (incrementalStage != null) {
-            stdOut.println("Import mode: " + incrementalStage);
-        }
         printInputFiles("Nodes", nodeFiles, stdOut);
         printInputFiles("Relationships", relationshipFiles, stdOut);
         stdOut.println();
@@ -425,18 +421,20 @@ class FileImporter {
         return new Log4jLogProvider(out, verbose ? DEBUG : INFO);
     }
 
-    static Builder builder() {
+    public static Builder builder() {
         return new Builder();
     }
 
-    enum FileInputType {
+    public enum FileInputType {
         CSV,
         PARQUET
     }
 
-    static class Builder {
+    @SuppressWarnings("UnusedReturnValue")
+    public static class Builder {
         private DatabaseLayout databaseLayout;
         private Config databaseConfig;
+        private StorageEngineFactory storageEngineFactory;
         private org.neo4j.csv.reader.Configuration csvConfig = org.neo4j.csv.reader.Configuration.COMMAS;
         private Configuration importConfig = Configuration.DEFAULT;
         private Path reportFile;
@@ -460,164 +458,169 @@ class FileImporter {
         private PrintStream stdOut = System.out;
         private PrintStream stdErr = System.err;
         private boolean force;
-        private boolean incremental = false;
-        private ImportCommand.IncrementalStage incrementalStage = null;
         private InternalLogProvider logProvider = NullLogProvider.getInstance();
         private final MutableList<SchemaCommand> schemaCommands = Lists.mutable.empty();
         private FileInputType fileInputType = FileInputType.CSV;
 
-        Builder withDatabaseLayout(DatabaseLayout databaseLayout) {
+        public Builder withDatabaseLayout(DatabaseLayout databaseLayout) {
             this.databaseLayout = databaseLayout;
             return this;
         }
 
-        Builder withDatabaseConfig(Config databaseConfig) {
+        public DatabaseLayout getDatabaseLayout() {
+            return databaseLayout;
+        }
+
+        public Builder withDatabaseConfig(Config databaseConfig) {
             this.databaseConfig = databaseConfig;
             return this;
         }
 
-        Builder withCsvConfig(org.neo4j.csv.reader.Configuration csvConfig) {
+        public Config getDatabaseConfig() {
+            return databaseConfig;
+        }
+
+        public Builder withStorageEngineFactory(StorageEngineFactory storageEngineFactory) {
+            this.storageEngineFactory = storageEngineFactory;
+            return this;
+        }
+
+        public Builder withCsvConfig(org.neo4j.csv.reader.Configuration csvConfig) {
             this.csvConfig = csvConfig;
             return this;
         }
 
-        Builder withImportConfig(Configuration importConfig) {
+        public Builder withImportConfig(Configuration importConfig) {
             this.importConfig = importConfig;
             return this;
         }
 
-        Builder withReportFile(Path reportFile) {
+        public Builder withReportFile(Path reportFile) {
             this.reportFile = reportFile;
             return this;
         }
 
-        Builder withIdType(IdType idType) {
+        public Builder withIdType(IdType idType) {
             this.idType = idType;
             return this;
         }
 
-        Builder withInputEncoding(Charset inputEncoding) {
+        public Builder withInputEncoding(Charset inputEncoding) {
             this.inputEncoding = inputEncoding;
             return this;
         }
 
-        Builder withIgnoreExtraColumns(boolean ignoreExtraColumns) {
+        public Builder withIgnoreExtraColumns(boolean ignoreExtraColumns) {
             this.ignoreExtraColumns = ignoreExtraColumns;
             return this;
         }
 
-        Builder withSkipBadRelationships(boolean skipBadRelationships) {
+        public Builder withSkipBadRelationships(boolean skipBadRelationships) {
             this.skipBadRelationships = skipBadRelationships;
             return this;
         }
 
-        Builder withSkipDuplicateNodes(boolean skipDuplicateNodes) {
+        public Builder withSkipDuplicateNodes(boolean skipDuplicateNodes) {
             this.skipDuplicateNodes = skipDuplicateNodes;
             return this;
         }
 
-        Builder withSkipBadEntriesLogging(boolean skipBadEntriesLogging) {
+        public Builder withSkipBadEntriesLogging(boolean skipBadEntriesLogging) {
             this.skipBadEntriesLogging = skipBadEntriesLogging;
             return this;
         }
 
-        Builder withBadTolerance(long badTolerance) {
+        public Builder withBadTolerance(long badTolerance) {
             this.badTolerance = badTolerance;
             return this;
         }
 
-        Builder withNormalizeTypes(boolean normalizeTypes) {
+        public Builder withNormalizeTypes(boolean normalizeTypes) {
             this.normalizeTypes = normalizeTypes;
             return this;
         }
 
-        Builder withVerbose(boolean verbose) {
+        public Builder withVerbose(boolean verbose) {
             this.verbose = verbose;
             return this;
         }
 
-        Builder withAutoSkipHeaders(boolean autoSkipHeaders) {
+        public Builder withAutoSkipHeaders(boolean autoSkipHeaders) {
             this.autoSkipHeaders = autoSkipHeaders;
             return this;
         }
 
-        Builder addNodeFiles(Set<String> labels, Path[] files) {
+        public Builder addNodeFiles(Set<String> labels, Path[] files) {
             final var list = nodeFiles.computeIfAbsent(labels, unused -> new ArrayList<>());
             list.add(files);
             return this;
         }
 
-        Builder addRelationshipFiles(String defaultRelType, Path[] files) {
+        public Builder addRelationshipFiles(String defaultRelType, Path[] files) {
             final var list = relationshipFiles.computeIfAbsent(defaultRelType, unused -> new ArrayList<>());
             list.add(files);
             return this;
         }
 
-        Builder withFileSystem(FileSystemAbstraction fileSystem) {
+        public Builder withFileSystem(FileSystemAbstraction fileSystem) {
             this.fileSystem = fileSystem;
             return this;
         }
 
-        Builder withPageCacheTracer(PageCacheTracer pageCacheTracer) {
+        public FileSystemAbstraction getFileSystem() {
+            return fileSystem;
+        }
+
+        public Builder withPageCacheTracer(PageCacheTracer pageCacheTracer) {
             this.pageCacheTracer = pageCacheTracer;
             return this;
         }
 
-        Builder withCursorContextFactory(CursorContextFactory contextFactory) {
+        public Builder withCursorContextFactory(CursorContextFactory contextFactory) {
             this.contextFactory = contextFactory;
             return this;
         }
 
-        Builder withMemoryTracker(MemoryTracker memoryTracker) {
+        public Builder withMemoryTracker(MemoryTracker memoryTracker) {
             this.memoryTracker = memoryTracker;
             return this;
         }
 
-        Builder withStdOut(PrintStream stdOut) {
+        public Builder withStdOut(PrintStream stdOut) {
             this.stdOut = stdOut;
             return this;
         }
 
-        Builder withStdErr(PrintStream stdErr) {
+        public Builder withStdErr(PrintStream stdErr) {
             this.stdErr = stdErr;
             return this;
         }
 
-        Builder withForce(boolean force) {
+        public Builder withForce(boolean force) {
             this.force = force;
             return this;
         }
 
-        Builder withIncremental(boolean incremental) {
-            this.incremental = incremental;
-            return this;
+        public boolean isForce() {
+            return force;
         }
 
-        Builder withIncrementalStage(ImportCommand.IncrementalStage mode) {
-            this.incrementalStage = mode;
-            return this;
-        }
-
-        Builder withLogProvider(InternalLogProvider logProvider) {
+        public Builder withLogProvider(InternalLogProvider logProvider) {
             this.logProvider = logProvider;
             return this;
         }
 
-        Builder withSchemaCommands(List<SchemaCommand> schemaCommands) {
+        public Builder withSchemaCommands(List<SchemaCommand> schemaCommands) {
             this.schemaCommands.addAll(Objects.requireNonNull(schemaCommands));
             return this;
         }
 
-        Builder withFileInputType(FileInputType fileInputType) {
+        public Builder withFileInputType(FileInputType fileInputType) {
             this.fileInputType = fileInputType;
             return this;
         }
 
-        FileImporter build() {
-            Preconditions.checkState(
-                    !(force && incremental),
-                    "--overwrite-destination doesn't work with incremental import",
-                    incrementalStage);
+        public FileImporter build() {
             return new FileImporter(this);
         }
     }
