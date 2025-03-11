@@ -19,7 +19,9 @@ package org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
+import org.neo4j.cypher.internal.expressions.PatternComprehension
 import org.neo4j.cypher.internal.rewriting.RewriterStep
+import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoNodesOfType
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddDependenciesToProjectionsInSubqueryExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddQuantifiedPathAnonymousVariableGroupings
@@ -44,7 +46,6 @@ import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredi
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ParameterValueTypeReplacement
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.QuantifiedPathPatternNodeInsertRewriter
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ReplaceLiteralDynamicPropertyLookups
-import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ReplacePatternComprehensionWithCollectSubquery
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RewriteOrderById
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.RewriteSizeOfCollectToCount
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.SimplifyIterablePredicates
@@ -88,7 +89,6 @@ object ASTRewriter {
         ParameterValueTypeReplacement,
         QuantifiedPathPatternNodeInsertRewriter,
         ReplaceLiteralDynamicPropertyLookups,
-        ReplacePatternComprehensionWithCollectSubquery,
         RewriteOrderById,
         RewriteSizeOfCollectToCount,
         SimplifyIterablePredicates,
@@ -96,7 +96,8 @@ object ASTRewriter {
       ),
       initialConditions = SemanticInfoAvailable ++ Set(
         ReturnItemsAreAliased,
-        ExpressionsHaveComputedDependencies
+        ExpressionsHaveComputedDependencies,
+        ContainsNoNodesOfType[PatternComprehension]()
       )
     )
 

@@ -84,10 +84,7 @@ trait FrontEndCompilationPhases {
   def parsingBase(config: ParsingConfig, parameters: MapValue): Transformer[BaseContext, BaseState, BaseState] = {
     Parse andThen postParsingBase(config) andThen
       If((_: BaseState) => config.resolveSimpleDynamicExpressions)(ResolveSimpleDynamicExpressions(parameters)) andThen
-      SemanticAnalysis(
-        warn = false,
-        config.semanticFeatures: _*
-      )
+      SemanticAnalysis(warn = false, config.semanticFeatures: _*)
   }
 
   // Phase 1
@@ -97,6 +94,8 @@ trait FrontEndCompilationPhases {
     parameters: MapValue = MapValue.EMPTY
   ): Transformer[BaseContext, BaseState, BaseState] = {
     parsingBase(config, parameters) andThen
+      ReplacePatternComprehensionWithCollectSubqueryRewriter andThen
+      SemanticAnalysis(warn = false, features = config.semanticFeatures: _*) andThen
       AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
       LiteralExtraction(config.literalExtractionStrategy) andThen
       /*
@@ -124,6 +123,8 @@ trait FrontEndCompilationPhases {
   // Phase 1.1 (Fabric)
   def fabricFinalize(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
     SemanticAnalysis(warn = true, config.semanticFeatures: _*) andThen
+      ReplacePatternComprehensionWithCollectSubqueryRewriter andThen
+      SemanticAnalysis(warn = false, config.semanticFeatures: _*) andThen
       AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
       LiteralExtraction(config.literalExtractionStrategy) andThen
       SemanticAnalysis(warn = false, config.semanticFeatures: _*)

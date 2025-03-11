@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.frontend.PlannerName
 import org.neo4j.cypher.internal.frontend.helpers.TestContext
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.parser.AstParserFactory
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ReplacePatternComprehensionWithCollectSubquery
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -193,7 +194,9 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
     if (astRewriteAndAnalyze) {
       val semanticState = cleanedAst.semanticState(semanticFeatures ++ features: _*)
       ASTRewriter.rewrite(
-        cleanedAst.endoRewrite(computeDependenciesForExpressions(semanticState)),
+        cleanedAst.endoRewrite(
+          computeDependenciesForExpressions(semanticState)
+        ).endoRewrite(ReplacePatternComprehensionWithCollectSubquery(nameGenerator).instance),
         semanticState,
         Map.empty,
         exceptionFactory,
