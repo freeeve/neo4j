@@ -34,7 +34,7 @@ final class NoopState extends AbstractState {
     @Override
     public StateReference process(Context ctx, RequestMessage message, ResponseHandler handler)
             throws StateMachineException {
-        throw new IllegalTransitionException(this, message);
+        throw IllegalTransitionException.illegalTransition(this, message);
     }
 
     @Override

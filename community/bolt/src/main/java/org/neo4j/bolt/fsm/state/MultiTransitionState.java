@@ -47,7 +47,7 @@ final class MultiTransitionState extends AbstractState {
             throws StateMachineException {
         var transition = this.transitions.find(message.getClass());
         if (transition == null) {
-            throw new IllegalTransitionException(this, message);
+            throw IllegalTransitionException.illegalTransition(this, message);
         }
 
         return ((StateTransition) transition).process(ctx, message, handler);

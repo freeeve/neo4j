@@ -31,14 +31,7 @@ public abstract class IllegalRequestException extends StateTransitionException
     private final ErrorGqlStatusObject gqlStatusObject;
     private final String oldMessage;
 
-    public IllegalRequestException(String message) {
-        super(message);
-
-        this.gqlStatusObject = null;
-        this.oldMessage = message;
-    }
-
-    public IllegalRequestException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    protected IllegalRequestException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(ErrorMessageHolder.getMessage(gqlStatusObject, message));
         this.gqlStatusObject = gqlStatusObject;
         this.oldMessage = message;

@@ -45,7 +45,7 @@ final class SingleTransitionState extends AbstractState {
             throws StateMachineException {
         var transition = (StateTransition) this.transition;
         if (!transition.requestType().isInstance(message)) {
-            throw new IllegalTransitionException(this, message);
+            throw IllegalTransitionException.illegalTransition(this, message);
         }
 
         return transition.process(ctx, message, handler);

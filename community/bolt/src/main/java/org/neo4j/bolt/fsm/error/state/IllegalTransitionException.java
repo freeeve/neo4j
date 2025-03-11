@@ -23,6 +23,10 @@ import org.neo4j.bolt.fsm.error.ConnectionTerminating;
 import org.neo4j.bolt.fsm.state.State;
 import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.exceptions.Status.HasStatus;
 import org.neo4j.kernel.api.exceptions.Status.Request;
@@ -35,14 +39,7 @@ public class IllegalTransitionException extends IllegalRequestException implemen
     private final State state;
     private final RequestMessage request;
 
-    public IllegalTransitionException(State state, RequestMessage request) {
-        super("Message of type " + request.getClass().getSimpleName() + " cannot be handled by a session in the "
-                + state.name() + " state.");
-        this.state = state;
-        this.request = request;
-    }
-
-    public IllegalTransitionException(ErrorGqlStatusObject gqlStatusObject, State state, RequestMessage request) {
+    private IllegalTransitionException(ErrorGqlStatusObject gqlStatusObject, State state, RequestMessage request) {
 
         super(
                 gqlStatusObject,
@@ -51,6 +48,14 @@ public class IllegalTransitionException extends IllegalRequestException implemen
 
         this.state = state;
         this.request = request;
+    }
+
+    public static IllegalTransitionException illegalTransition(State state, RequestMessage request) {
+        var gql = GqlHelper.getGql08N06(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N10)
+                .withParam(GqlParams.StringParam.msg, request.getClass().getSimpleName())
+                .withParam(GqlParams.StringParam.boltServerState, state.name())
+                .build());
+        return new IllegalTransitionException(gql, state, request);
     }
 
     @Override

@@ -861,11 +861,17 @@ public class AuthenticationIT {
         connection.send(wire.begin());
 
         BoltConnectionAssertions.assertThat(connection)
-                .receivesFailureFuzzy(
+                .receivesFailureWithCause(
                         Status.Request.Invalid,
-                        "cannot be handled by a session in the AUTHENTICATION state.",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.");
+                        "Message of type BeginMessage cannot be handled by a session in the AUTHENTICATION state.",
+                        GqlStatusInfoCodes.STATUS_08N06.getGqlStatus(),
+                        "error: connection exception - protocol error. General network protocol error.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
+                        BoltConnectionAssertions.assertErrorCause(
+                                "08N10: Message BeginMessage cannot be handled by session in the 'AUTHENTICATION' state.",
+                                GqlStatusInfoCodes.STATUS_08N10.getGqlStatus(),
+                                "error: connection exception - invalid server state. Message BeginMessage cannot be handled by session in the 'AUTHENTICATION' state.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR")));
     }
 
     @ProtocolTest
