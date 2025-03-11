@@ -88,6 +88,9 @@ class TransactionLogChannelAllocatorIT {
     private TransactionLogChannelAllocator fileAllocator;
     private final AssertableLogProvider logProvider = new AssertableLogProvider();
     private final Config config = Config.defaults();
+    private final int EMPTY_LOG_FILE_SIZE = LATEST_LOG_FORMAT.usesSegments()
+            ? LATEST_LOG_FORMAT.getDefaultSegmentBlockSize()
+            : LATEST_LOG_FORMAT.getHeaderSize();
 
     @BeforeEach
     void setUp() {
@@ -171,7 +174,7 @@ class TransactionLogChannelAllocatorIT {
                 logFileContext, fileHelper, new LogHeaderCache(10), nativeChannelAccessor);
         try (PhysicalLogVersionedStoreChannel channel =
                 unreasonableAllocator.createLogChannel(10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER)) {
-            assertEquals(LATEST_LOG_FORMAT.getHeaderSize(), channel.size());
+            assertEquals(EMPTY_LOG_FILE_SIZE, channel.size());
             assertThat(logProvider.serialize())
                     .containsSequence(
                             "Warning! System is running out of disk space. Failed to preallocate log file since disk does "
@@ -186,7 +189,7 @@ class TransactionLogChannelAllocatorIT {
     void allocateNewTransactionLogFileOnSystemThatDoesNotSupportPreallocations() throws IOException {
         try (PhysicalLogVersionedStoreChannel logChannel =
                 fileAllocator.createLogChannel(10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER)) {
-            assertEquals(LATEST_LOG_FORMAT.getHeaderSize(), logChannel.size());
+            assertEquals(EMPTY_LOG_FILE_SIZE, logChannel.size());
         }
     }
 
@@ -198,7 +201,7 @@ class TransactionLogChannelAllocatorIT {
         TransactionLogChannelAllocator fileAllocator = createLogFileAllocator();
         try (PhysicalLogVersionedStoreChannel channel =
                 fileAllocator.createLogChannel(11, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER)) {
-            assertEquals(LATEST_LOG_FORMAT.getHeaderSize(), channel.size());
+            assertEquals(EMPTY_LOG_FILE_SIZE, channel.size());
         }
     }
 

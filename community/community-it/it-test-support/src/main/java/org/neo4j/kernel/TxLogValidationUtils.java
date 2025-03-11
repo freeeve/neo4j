@@ -41,6 +41,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
+import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryCommitV4_2;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.LogEntryDetachedCheckpointV5_22;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -172,7 +173,17 @@ public class TxLogValidationUtils {
                     if (entry instanceof LogEntryCommit commit) {
                         inTx = false;
                         transactions++;
-                        extraCommitCheck.accept(commit);
+                        if (commit instanceof LogEntryCommitV4_2) {
+                            extraCommitCheck.accept(commit);
+                        } else {
+                            // for enveloped logs the checksum isn't on the LogEntryCommit
+                            // so populate checksum from the stream
+                            extraCommitCheck.accept(new LogEntryCommitV4_2(
+                                    commit.kernelVersion(),
+                                    commit.getTxId(),
+                                    commit.getTimeWritten(),
+                                    reader.getChecksum()));
+                        }
                     }
                 }
             }
@@ -181,14 +192,14 @@ public class TxLogValidationUtils {
         return transactions;
     }
 
-    public static void assertReadableCheckpointsInOneFile(
+    public static int assertReadableCheckpointsInOneFile(
             CheckpointFile checkpointFile,
             long logVersion,
             KernelVersion expectedKernelVersion,
             CommandReaderFactory commandReaderFactory,
             int expectedNbrCheckpoints)
             throws IOException {
-        assertReadableCheckpointsIn(
+        return assertReadableCheckpointsIn(
                 checkpointFile,
                 logVersion,
                 LogVersionBridge.NO_MORE_CHANNELS,
@@ -216,7 +227,8 @@ public class TxLogValidationUtils {
                 expectedNbrCheckpoints);
     }
 
-    public static void assertReadableCheckpointsIn(
+    // returns final checksum to feed into next file
+    public static int assertReadableCheckpointsIn(
             CheckpointFile checkpointFile,
             long logVersion,
             LogVersionBridge bridge,
@@ -225,6 +237,7 @@ public class TxLogValidationUtils {
             int expectedNbrCheckpoints)
             throws IOException {
         int nbrCheckpoints = 0;
+        int checksum;
 
         try (ReadableLogChannel reader = checkpointFile.getReader(
                 checkpointFile.extractHeader(logVersion).getStartPosition(), bridge)) {
@@ -239,7 +252,9 @@ public class TxLogValidationUtils {
                 assertThat(logEntry.kernelVersion()).isEqualTo(expectedKernelVersion);
                 nbrCheckpoints++;
             }
+            checksum = reader.getChecksum();
         }
         assertThat(nbrCheckpoints).isEqualTo(expectedNbrCheckpoints);
+        return checksum;
     }
 }

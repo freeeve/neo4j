@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -39,6 +40,8 @@ import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
+import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidEndOfFileReadException;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
@@ -120,7 +123,13 @@ class TransactionLogFileRotateAndReadRaceIT {
             int rotations = 0;
             while (!end.get()) {
                 int bytesToWrite = random.nextInt(1, dataChunk.length);
-                writer.getChannel().put(dataChunk, bytesToWrite);
+                var channel = writer.getChannel();
+                channel.beginChecksumForWriting();
+                channel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
+                channel.putVersion(LatestVersions.LATEST_KERNEL_VERSION.version());
+                channel.putInt(bytesToWrite);
+                channel.put(dataChunk, bytesToWrite);
+                channel.putChecksum();
                 if (logFile.rotationNeeded()) {
                     logFile.rotate();
                     // Let's just close the gap to the reader so that it gets closer to the "hot zone"
@@ -157,10 +166,17 @@ class TransactionLogFileRotateAndReadRaceIT {
         try {
             long maxIterations = ByteUnit.mebiBytes(1) / dataChunk.length; // no need to read more
             for (int i = 0; i < maxIterations; i++) {
-                reader.get(dataChunk, dataChunk.length);
+                reader.beginChecksum();
+                assertEquals(LatestVersions.LATEST_KERNEL_VERSION.version(), reader.getVersion());
+                int bytesToRead = reader.getInt();
+                reader.get(dataChunk, bytesToRead);
+                reader.endChecksumAndValidate();
             }
         } catch (ReadPastEndException e) {
             // This is OK, it means we've reached the end
+        } catch (InvalidEndOfFileReadException e) {
+            // This can happen with envelopes as the reader can find the last envelope to be a BEGIN
+            // but can't yet see the follow-on file.
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

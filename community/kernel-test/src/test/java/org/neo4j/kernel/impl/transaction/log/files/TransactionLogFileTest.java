@@ -90,6 +90,7 @@ import org.neo4j.kernel.impl.transaction.log.LogAppendEvent;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
 import org.neo4j.kernel.impl.transaction.log.entry.IncompleteLogHeaderException;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.lifecycle.LifeSupport;
@@ -254,6 +255,8 @@ class TransactionLogFileTest {
         LogPosition currentPosition = transactionLogWriter.getCurrentPosition();
         int intValue = 45;
         long longValue = 4854587;
+        channel.beginChecksumForWriting();
+        channel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         channel.putVersion(kernelVersion.version());
         channel.putInt(intValue);
         channel.putLong(longValue);
@@ -285,17 +288,22 @@ class TransactionLogFileTest {
         long longValue = 4854587;
         byte[] someBytes1 = someBytes(42);
         byte[] someBytes2 = someBytes(69);
+        writer.beginChecksumForWriting();
+        writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         writer.putVersion(kernelVersion.version());
         writer.putInt(intValue);
         writer.putLong(longValue);
         writer.put(someBytes1, someBytes1.length);
-        writer.putChecksum();
+        int checksum1 = writer.putChecksum();
         logFile.flush();
         LogPosition position2 = logWriter.getCurrentPosition();
+        writer.beginChecksumForWriting();
+        writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
+        writer.putVersion(kernelVersion.version());
         long longValue2 = 123456789L;
         writer.putLong(longValue2);
         writer.put(someBytes2, someBytes2.length);
-        writer.putChecksum();
+        int checksum2 = writer.putChecksum();
         logFile.flush();
 
         // THEN
@@ -304,10 +312,13 @@ class TransactionLogFileTest {
             assertEquals(intValue, reader.getInt());
             assertEquals(longValue, reader.getLong());
             assertArrayEquals(someBytes1, readBytes(reader, someBytes1.length));
+            assertEquals(checksum1, reader.getChecksum());
         }
         try (ReadableChannel reader = logFile.getReader(position2)) {
+            assertEquals(kernelVersion.version(), reader.getVersion());
             assertEquals(longValue2, reader.getLong());
             assertArrayEquals(someBytes2, readBytes(reader, someBytes2.length));
+            assertEquals(checksum2, reader.getChecksum());
         }
     }
 
@@ -322,8 +333,10 @@ class TransactionLogFileTest {
         LogFile logFile = logFiles.getLogFile();
         var transactionLogWriter = logFile.getTransactionLogWriter();
         var writer = transactionLogWriter.getChannel();
-        writer.putVersion(kernelVersion.version());
         LogPosition position = transactionLogWriter.getCurrentPosition();
+        writer.beginChecksumForWriting();
+        writer.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
+        writer.putVersion(kernelVersion.version());
         for (int i = 0; i < 5; i++) {
             writer.put((byte) i);
         }
@@ -334,6 +347,7 @@ class TransactionLogFileTest {
         final AtomicBoolean called = new AtomicBoolean();
         logFile.accept(
                 channel -> {
+                    assertEquals(kernelVersion.version(), channel.getVersion());
                     for (int i = 0; i < 5; i++) {
                         assertEquals((byte) i, channel.get());
                     }

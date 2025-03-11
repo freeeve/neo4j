@@ -115,10 +115,12 @@ public class TransactionLogFileInformation implements LogFileInformation {
                 if (logHeader != null) {
                     LogPosition position = logHeader.getStartPosition();
                     try (ReadableLogChannel channel = logFile.getRawReader(position)) {
-                        if (logHeader.getLogFormatVersion().usesSegments()) {
+                        // Use instanceof rather than logHeader.getLogFormatVersion().usesSegments()
+                        // as this interacts better with mocked channels
+                        if (channel instanceof EnvelopeReadChannel envelopeReadChannel) {
                             try {
                                 // Make sure we look at the beginning of a transaction
-                                ((EnvelopeReadChannel) channel).goToNextEntry();
+                                envelopeReadChannel.goToNextEntry();
                             } catch (ReadPastEndException e) {
                                 // If there was no start/full envelopes in the file we could reach the end
                                 return -1;
