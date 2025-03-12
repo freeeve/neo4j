@@ -74,7 +74,7 @@ abstract class OptionalExpandAllSlottedPipe(
             val read = state.query.transactionalContext.dataRead
             read.singleNode(fromNode, nodeCursor)
             if (!nodeCursor.next()) {
-              ClosingIterator.empty
+              ClosingIterator.single(withNulls(inputRow))
             } else {
               val selectionCursor = dir match {
                 case OUTGOING => RelationshipSelections.outgoingCursor(relCursor, nodeCursor, types.types(state.query))
