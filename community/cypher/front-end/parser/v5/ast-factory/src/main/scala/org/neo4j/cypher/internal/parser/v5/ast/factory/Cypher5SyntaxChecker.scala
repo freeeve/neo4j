@@ -500,23 +500,23 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
       val secondProperty = ctx.property(1).start
       ctx.getParent.getParent match {
         case _: ConstraintExistsContext =>
-          _errors :+= exceptionFactory.syntaxException(
-            "Constraint type 'EXISTS' does not allow multiple properties",
+          _errors :+= exceptionFactory.unsupportedMultiplePropertiesInConstraint(
+            "EXISTS",
             inputPosition(secondProperty)
           )
         case _: ConstraintTypedContext =>
-          _errors :+= exceptionFactory.syntaxException(
-            "Constraint type 'IS TYPED' does not allow multiple properties",
+          _errors :+= exceptionFactory.unsupportedMultiplePropertiesInConstraint(
+            "IS TYPED",
             inputPosition(secondProperty)
           )
         case _: ConstraintIsNotNullContext =>
-          _errors :+= exceptionFactory.syntaxException(
-            "Constraint type 'IS NOT NULL' does not allow multiple properties",
+          _errors :+= exceptionFactory.unsupportedMultiplePropertiesInConstraint(
+            "IS NOT NULL",
             inputPosition(secondProperty)
           )
         case dropCtx: DropConstraintContext if dropCtx.EXISTS() != null =>
-          _errors :+= exceptionFactory.syntaxException(
-            "Constraint type 'EXISTS' does not allow multiple properties",
+          _errors :+= exceptionFactory.unsupportedMultiplePropertiesInConstraint(
+            "EXISTS",
             inputPosition(secondProperty)
           )
         case _ =>

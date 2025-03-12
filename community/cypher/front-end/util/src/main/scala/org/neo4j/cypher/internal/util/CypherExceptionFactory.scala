@@ -90,6 +90,20 @@ trait CypherExceptionFactory {
     )
   }
 
+  def unsupportedMultiplePropertiesInConstraint(
+    constraintType: String,
+    position: InputPosition
+  ): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N16)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.StringParam.idxType, s"'$constraintType' constraints")
+        .build())
+      .build()
+    syntaxException(gql, s"Constraint type '$constraintType' does not allow multiple properties", position)
+  }
+
   def invalidNormalForm(normalForm: ASTNode): RuntimeException = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(normalForm.position.offset, normalForm.position.line, normalForm.position.column)

@@ -99,10 +99,21 @@ sealed trait SchemaCommand extends StatementWithGraph with SemanticAnalysisTooli
       }
     }
 
-  protected def checkSingleProperty(schemaString: String, properties: List[Property]): SemanticCheck =
+  protected def checkSingleProperty(schemaString: String, properties: List[Property]): SemanticCheck = {
     when(properties.size > 1) {
-      error(s"Only single property $schemaString are supported", properties(1).position)
+      val position = properties(1).position
+      val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+        .withCause(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N16)
+            .withParam(GqlParams.StringParam.idxType, schemaString)
+            .atPosition(position.offset, position.line, position.column)
+            .build()
+        )
+        .atPosition(position.offset, position.line, position.column)
+        .build()
+      error(gql, s"Only single property $schemaString are supported", properties(1).position)
     }
+  }
 }
 
 // Indexes

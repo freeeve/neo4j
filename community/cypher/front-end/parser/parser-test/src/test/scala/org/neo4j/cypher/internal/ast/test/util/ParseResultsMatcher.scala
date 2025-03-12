@@ -121,6 +121,19 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
       })
   }
 
+  def withSyntaxError(
+    message: String,
+    causeGql: GqlStatusInfoCodes,
+    causeStatusDescription: String
+  ): Self = {
+    throws[SyntaxException]
+      .withError(throwable => {
+        val gqlMatcher = invalidSyntaxStatus.withCause(causeGql, causeStatusDescription)
+        throwable.asInstanceOf[SyntaxException] should be(gqlMatcher)
+        throwable.getMessage should be(message)
+      })
+  }
+
   def withOldSyntax(message: String): Self = {
     withSyntaxErrorContaining(
       message,

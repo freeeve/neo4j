@@ -1406,7 +1406,9 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE OR REPLACE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop2, node.prop3) IS NOT NULL"
   ) {
     failsParsing[ast.Statements].withSyntaxErrorContaining(
-      ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.NODE_IS_NOT_NULL)
+      ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.NODE_IS_NOT_NULL),
+      GqlStatusInfoCodes.STATUS_42N16,
+      s"error: syntax error or access rule violation - unsupported index or constraint. Only single property '${ConstraintType.NODE_IS_NOT_NULL.description()}' constraints are supported."
     )
   }
 
@@ -1612,7 +1614,9 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE OR REPLACE CONSTRAINT my_constraint FOR ()-[r1:REL]-() REQUIRE (r2.prop2, r3.prop3) IS NOT NULL"
   ) {
     failsParsing[ast.Statements].withSyntaxErrorContaining(
-      ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.REL_IS_NOT_NULL)
+      ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.REL_IS_NOT_NULL),
+      GqlStatusInfoCodes.STATUS_42N16,
+      s"error: syntax error or access rule violation - unsupported index or constraint. Only single property '${ConstraintType.REL_IS_NOT_NULL.description()}' constraints are supported."
     )
   }
 
@@ -1798,7 +1802,9 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
       s"CREATE OR REPLACE CONSTRAINT my_constraint FOR (node:Label) REQUIRE (node.prop2, node.prop3) $typeKeyword STRING"
     ) {
       failsParsing[ast.Statements].withSyntaxErrorContaining(
-        ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.NODE_IS_TYPED)
+        ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.NODE_IS_TYPED),
+        GqlStatusInfoCodes.STATUS_42N16,
+        s"error: syntax error or access rule violation - unsupported index or constraint. Only single property '${ConstraintType.NODE_IS_TYPED.description()}' constraints are supported."
       )
     }
 
@@ -2012,7 +2018,9 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
       s"CREATE OR REPLACE CONSTRAINT my_constraint FOR ()-[r1:REL]-() REQUIRE (r2.prop2, r3.prop3) $typeKeyword STRING"
     ) {
       failsParsing[ast.Statements].withSyntaxErrorContaining(
-        ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.REL_IS_TYPED)
+        ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.REL_IS_TYPED),
+        GqlStatusInfoCodes.STATUS_42N16,
+        s"error: syntax error or access rule violation - unsupported index or constraint. Only single property '${ConstraintType.REL_IS_TYPED.description()}' constraints are supported."
       )
     }
   })
@@ -2801,7 +2809,9 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT FOR (node:Label) REQUIRE (node.prop1, node.prop2) IS NOT NULL"
   ) {
     failsParsing[ast.Statements].withSyntaxErrorContaining(
-      "Constraint type 'IS NOT NULL' does not allow multiple properties"
+      "Constraint type 'IS NOT NULL' does not allow multiple properties",
+      GqlStatusInfoCodes.STATUS_42N16,
+      "error: syntax error or access rule violation - unsupported index or constraint. Only single property 'IS NOT NULL' constraints are supported."
     )
   }
 
@@ -2809,7 +2819,29 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT FOR ()-[r:R]-() REQUIRE (r.prop1, r.prop2) IS NOT NULL"
   ) {
     failsParsing[ast.Statements].withSyntaxErrorContaining(
-      "Constraint type 'IS NOT NULL' does not allow multiple properties"
+      "Constraint type 'IS NOT NULL' does not allow multiple properties",
+      GqlStatusInfoCodes.STATUS_42N16,
+      "error: syntax error or access rule violation - unsupported index or constraint. Only single property 'IS NOT NULL' constraints are supported."
+    )
+  }
+
+  test(
+    "CREATE CONSTRAINT FOR (node:Label) REQUIRE (node.prop1, node.prop2) IS TYPED BOOLEAN"
+  ) {
+    failsParsing[ast.Statements].withSyntaxErrorContaining(
+      "Constraint type 'IS TYPED' does not allow multiple properties",
+      GqlStatusInfoCodes.STATUS_42N16,
+      "error: syntax error or access rule violation - unsupported index or constraint. Only single property 'IS TYPED' constraints are supported."
+    )
+  }
+
+  test(
+    "CREATE CONSTRAINT FOR ()-[r:R]-() REQUIRE (r.prop1, r.prop2) IS TYPED INTEGER"
+  ) {
+    failsParsing[ast.Statements].withSyntaxErrorContaining(
+      "Constraint type 'IS TYPED' does not allow multiple properties",
+      GqlStatusInfoCodes.STATUS_42N16,
+      "error: syntax error or access rule violation - unsupported index or constraint. Only single property 'IS TYPED' constraints are supported."
     )
   }
 
@@ -3807,12 +3839,18 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("CREATE CONSTRAINT ON (node1:Label) ASSERT EXISTS (node2.prop1, node3.prop2)") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.NODE_EXISTS))
+        _.withSyntaxErrorContaining(
+          ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.NODE_EXISTS),
+          GqlStatusInfoCodes.STATUS_42N16,
+          s"error: syntax error or access rule violation - unsupported index or constraint. Only single property '${ConstraintType.NODE_EXISTS.description()}' constraints are supported."
+        )
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
             |"CREATE CONSTRAINT ON (node1:Label) ASSERT EXISTS (node2.prop1, node3.prop2)"
-            |                      ^""".stripMargin
+            |                      ^""".stripMargin,
+          GqlStatusInfoCodes.STATUS_42I06,
+          s"error: syntax error or access rule violation - invalid input. Invalid input '(', expected: 'IF NOT EXISTS' or 'FOR'."
         )
     }
   }
@@ -3902,12 +3940,18 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("CREATE CONSTRAINT ON ()-[r1:REL]-() ASSERT EXISTS (r2.prop1, r3.prop2)") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.REL_EXISTS))
+        _.withSyntaxErrorContaining(
+          ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.REL_EXISTS),
+          GqlStatusInfoCodes.STATUS_42N16,
+          s"error: syntax error or access rule violation - unsupported index or constraint. Only single property '${ConstraintType.REL_EXISTS.description()}' constraints are supported."
+        )
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
             |"CREATE CONSTRAINT ON ()-[r1:REL]-() ASSERT EXISTS (r2.prop1, r3.prop2)"
-            |                      ^""".stripMargin
+            |                      ^""".stripMargin,
+          GqlStatusInfoCodes.STATUS_42I06,
+          s"error: syntax error or access rule violation - invalid input. Invalid input '(', expected: 'IF NOT EXISTS' or 'FOR'."
         )
     }
   }
@@ -4015,7 +4059,11 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON (node:Label) ASSERT EXISTS (node.prop1, node.prop2)"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining("Constraint type 'EXISTS' does not allow multiple properties (line")
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Constraint type 'EXISTS' does not allow multiple properties (line",
+          GqlStatusInfoCodes.STATUS_42N16,
+          "error: syntax error or access rule violation - unsupported index or constraint. Only single property 'EXISTS' constraints are supported."
+        )
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -4029,7 +4077,11 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON ()-[r:R]-() ASSERT EXISTS (r.prop1, r.prop2)"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining("Constraint type 'EXISTS' does not allow multiple properties (line")
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Constraint type 'EXISTS' does not allow multiple properties (line",
+          GqlStatusInfoCodes.STATUS_42N16,
+          "error: syntax error or access rule violation - unsupported index or constraint. Only single property 'EXISTS' constraints are supported."
+        )
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -4043,7 +4095,11 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     "CREATE CONSTRAINT ON ()-[r:R]-() ASSERT EXISTS (r.prop1, r.prop2) IS NOT NULL"
   ) {
     failsParsing[ast.Statements].in {
-      case Cypher5 => _.withSyntaxErrorContaining("Constraint type 'EXISTS' does not allow multiple properties (line")
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Constraint type 'EXISTS' does not allow multiple properties (line",
+          GqlStatusInfoCodes.STATUS_42N16,
+          "error: syntax error or access rule violation - unsupported index or constraint. Only single property 'EXISTS' constraints are supported."
+        )
       case _ => // parses ON as constraint name
         _.withSyntaxError(
           """Invalid input '(': expected 'IF NOT EXISTS' or 'FOR' (line 1, column 22 (offset: 21))
@@ -4285,16 +4341,32 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("DROP CONSTRAINT ON (n:L) ASSERT EXISTS (n.p1, n.p2)") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.NODE_EXISTS))
-      case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
+        _.withSyntaxErrorContaining(
+          ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.NODE_EXISTS),
+          GqlStatusInfoCodes.STATUS_42N16,
+          s"error: syntax error or access rule violation - unsupported index or constraint. Only single property '${ConstraintType.NODE_EXISTS.description()}' constraints are supported."
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '(': expected 'IF EXISTS' or <EOF> (line",
+          GqlStatusInfoCodes.STATUS_42I06,
+          s"error: syntax error or access rule violation - invalid input. Invalid input '(', expected: 'IF EXISTS' or <EOF>."
+        )
     }
   }
 
   test("DROP CONSTRAINT ON ()-[r:R]-() ASSERT EXISTS (r.p1, r.p2)") {
     failsParsing[ast.Statements].in {
       case Cypher5 =>
-        _.withSyntaxErrorContaining(ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.REL_EXISTS))
-      case _ => _.withSyntaxErrorContaining("Invalid input '(': expected 'IF EXISTS' or <EOF> (line")
+        _.withSyntaxErrorContaining(
+          ASTExceptionFactory.onlySinglePropertyAllowed(ConstraintType.REL_EXISTS),
+          GqlStatusInfoCodes.STATUS_42N16,
+          s"error: syntax error or access rule violation - unsupported index or constraint. Only single property '${ConstraintType.REL_EXISTS.description()}' constraints are supported."
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '(': expected 'IF EXISTS' or <EOF> (line",
+          GqlStatusInfoCodes.STATUS_42I06,
+          s"error: syntax error or access rule violation - invalid input. Invalid input '(', expected: 'IF EXISTS' or <EOF>."
+        )
     }
   }
 
