@@ -116,7 +116,7 @@ public class UserSecurityGraphComponent extends AbstractSystemGraphComponent
     }
 
     @Override
-    public void initializeSystemGraphConstraints(GraphDatabaseService system) throws Exception {
+    public void initializeSystemGraphSchema(GraphDatabaseService system) throws Exception {
         initializeSystemGraphConstraint(system, USER_LABEL, "name");
         initializeSystemGraphConstraint(system, USER_LABEL, USER_ID);
         initializeSystemGraphConstraint(system, Optional.of(AUTH_CONSTRAINT), AUTH_LABEL, AUTH_PROVIDER, AUTH_ID);
@@ -168,7 +168,7 @@ public class UserSecurityGraphComponent extends AbstractSystemGraphComponent
         if (currentVersion.version == UNKNOWN_VERSION) {
             debugLog.debug("The current version does not have a security graph, doing a full initialization");
             SystemGraphComponent.executeWithFullAccess(system, this::initializeLatestSystemGraph);
-            this.initializeSystemGraphConstraints(system);
+            this.initializeSystemGraphSchema(system);
         } else if (currentVersion.migrationSupported()) {
             debugLog.info("Upgrading security graph to latest version");
             SystemGraphComponent.executeWithFullAccess(system, tx -> knownUserSecurityComponentVersions
