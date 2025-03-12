@@ -150,6 +150,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.StoreCopyCheckPointMutex;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.log.files.RangeLogVersionVisitor;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.DetachedLogTailScanner;
 import org.neo4j.kernel.impl.transaction.log.pruning.LogPruneStrategyFactory;
 import org.neo4j.kernel.impl.transaction.log.pruning.LogPruning;
@@ -506,6 +507,15 @@ public class Database extends AbstractDatabase {
         life.add(storageEngine);
         life.add(storageEngine.schemaAndTokensLifecycle());
         life.add(logFiles);
+        life.add(onStart(() -> {
+            long lowestLogVersion = logFiles.getLogFile().getLowestLogVersion();
+            if (lowestLogVersion != RangeLogVersionVisitor.UNKNOWN) {
+                var header = logFiles.getLogFile().extractHeader(lowestLogVersion);
+                if (header != null) {
+                    metadataProvider.setLowestAvailableCommittedTransactionId(header.getLastAppendIndex() + 1);
+                }
+            }
+        }));
 
         // Token indexes
         FullScanStoreView fullScanStoreView =
@@ -907,7 +917,14 @@ public class Database extends AbstractDatabase {
 
         Lock pruneLock = new ReentrantLock();
         final LogPruning logPruning = new LogPruningImpl(
-                fs, logFiles, logProvider, new LogPruneStrategyFactory(), clock, databaseConfig, pruneLock);
+                fs,
+                logFiles,
+                logProvider,
+                new LogPruneStrategyFactory(),
+                clock,
+                databaseConfig,
+                pruneLock,
+                metadataProvider);
 
         var transactionAppender = createTransactionAppender(
                 logFiles,

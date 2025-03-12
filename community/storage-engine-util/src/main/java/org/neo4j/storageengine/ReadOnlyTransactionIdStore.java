@@ -161,4 +161,14 @@ public class ReadOnlyTransactionIdStore implements TransactionIdStore {
     public TransactionId getHighestEverClosedTransaction() {
         return lastCommittedTransaction;
     }
+
+    @Override
+    public long getLowestAvailableCommittedTransactionId() {
+        throw new UnsupportedOperationException("Read-only transaction ID store");
+    }
+
+    @Override
+    public void setLowestAvailableCommittedTransactionId(long transactionId) {
+        throw new UnsupportedOperationException("Read-only transaction ID store");
+    }
 }

@@ -291,4 +291,14 @@ public interface TransactionIdStore {
      * Returns highest ever closed transaction info
      */
     TransactionId getHighestEverClosedTransaction();
+
+    /**
+     * Updates the lowest available committed transaction ID, typically after tx log pruning has occurred.
+     */
+    void setLowestAvailableCommittedTransactionId(long transactionId);
+
+    /**
+     * @return lowest available committed transaction ID, as set by {@link #setLowestAvailableCommittedTransactionId(long)}.
+     */
+    long getLowestAvailableCommittedTransactionId();
 }

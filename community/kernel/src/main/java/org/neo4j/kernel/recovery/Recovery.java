@@ -741,7 +741,14 @@ public final class Recovery {
                 new DefaultForceOperation(indexingService, storageEngine, databasePageCache);
         var checkpointAppender = logFiles.getCheckpointFile().getCheckpointAppender();
         LogPruning logPruning = new LogPruningImpl(
-                fs, logFiles, logProvider, new LogPruneStrategyFactory(), clock, config, new ReentrantLock());
+                fs,
+                logFiles,
+                logProvider,
+                new LogPruneStrategyFactory(),
+                clock,
+                config,
+                new ReentrantLock(),
+                metadataProvider);
         CheckPointerImpl checkPointer = new CheckPointerImpl(
                 metadataProvider,
                 RecoveryThreshold.INSTANCE,

@@ -37,6 +37,7 @@ import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.OpenTransactionMetadata;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
+import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.util.HighestAppendBatch;
 
 public class SimpleMetaDataProvider implements MetadataProvider {
@@ -45,6 +46,7 @@ public class SimpleMetaDataProvider implements MetadataProvider {
     private final ExternalStoreId externalStoreId = new ExternalStoreId(UUID.randomUUID());
     private final AtomicLong appendIndex = new AtomicLong();
     private final HighestAppendBatch appendBatchInfo = new HighestAppendBatch(EMPTY_APPEND_BATCH_INFO);
+    private volatile long lowestAvailableCommittedTransactionId = TransactionIdStore.UNKNOWN_TX_ID;
 
     public SimpleMetaDataProvider() {
         transactionIdStore = new SimpleTransactionIdStore();
@@ -269,5 +271,15 @@ public class SimpleMetaDataProvider implements MetadataProvider {
     @Override
     public long getLastAppendIndex() {
         return appendIndex.getAcquire();
+    }
+
+    @Override
+    public void setLowestAvailableCommittedTransactionId(long transactionId) {
+        this.lowestAvailableCommittedTransactionId = transactionId;
+    }
+
+    @Override
+    public long getLowestAvailableCommittedTransactionId() {
+        return lowestAvailableCommittedTransactionId;
     }
 }

@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.checkpoint;
 
+import static java.lang.Math.toIntExact;
 import static java.lang.System.currentTimeMillis;
 import static java.time.Duration.ofHours;
 import static java.time.Duration.ofMillis;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.check_point_interval_time;
 import static org.neo4j.configuration.GraphDatabaseSettings.check_point_interval_tx;
+import static org.neo4j.configuration.GraphDatabaseSettings.keep_logical_logs;
 import static org.neo4j.configuration.GraphDatabaseSettings.logical_log_rotation_threshold;
 import static org.neo4j.io.ByteUnit.gibiBytes;
 import static org.neo4j.io.ByteUnit.kibiBytes;
@@ -421,6 +423,49 @@ class CheckPointerIntegrationTest {
 
         } finally {
             managementService.shutdown();
+        }
+    }
+
+    @Test
+    void shouldUpdateLowestAvailableCommittedTransactionIdOnPruning() throws IOException {
+        // given
+        int minNumTransactionsToKeep = 50;
+        var dbms = builder.setConfig(check_point_interval_tx, 10)
+                .setConfig(logical_log_rotation_threshold, kibiBytes(128))
+                .setConfig(keep_logical_logs, minNumTransactionsToKeep + " txs")
+                .build();
+
+        // when
+        try {
+            var db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
+            var metadataProvider = db.getDependencyResolver().resolveDependency(MetadataProvider.class);
+            var checkPointer = db.getDependencyResolver().resolveDependency(CheckPointer.class);
+            long prevLowestTxId = metadataProvider.getLowestAvailableCommittedTransactionId();
+            assertThat(prevLowestTxId).isGreaterThan(0);
+            int numLowestTxIdBumps = 0;
+
+            for (int i = 0; i < 100; i++) {
+                try (var tx = db.beginTx()) {
+                    var node = tx.createNode();
+                    node.setProperty("foo", "bar".repeat(10_000));
+                    tx.commit();
+                }
+                if (checkPointer.checkPointIfNeeded(new SimpleTriggerInfo("Test")) != -1) {
+                    // then
+                    long lowestTxId = metadataProvider.getLowestAvailableCommittedTransactionId();
+                    if (lowestTxId != prevLowestTxId) {
+                        assertThat(lowestTxId).isGreaterThan(prevLowestTxId);
+                        int numAvailableTransactions =
+                                toIntExact(metadataProvider.getLastCommittedTransactionId() - lowestTxId + 1);
+                        assertThat(numAvailableTransactions).isGreaterThanOrEqualTo(minNumTransactionsToKeep);
+                        prevLowestTxId = lowestTxId;
+                        numLowestTxIdBumps++;
+                    }
+                }
+            }
+            assertThat(numLowestTxIdBumps).isGreaterThan(0);
+        } finally {
+            dbms.shutdown();
         }
     }
 

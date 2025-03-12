@@ -35,12 +35,14 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.storageengine.api.TransactionIdStore;
 
 /**
  * This class listens for rotations and does log pruning.
  */
 public class LogPruningImpl implements LogPruning {
     private final Lock pruneLock;
+    private final TransactionIdStore transactionIdStore;
     private final FileSystemAbstraction fs;
     private final LogFiles logFiles;
     private final InternalLog log;
@@ -57,7 +59,8 @@ public class LogPruningImpl implements LogPruning {
             LogPruneStrategyFactory strategyFactory,
             Clock clock,
             Config config,
-            Lock pruneLock) {
+            Lock pruneLock,
+            TransactionIdStore transactionIdStore) {
         this.fs = fs;
         this.logFiles = logFiles;
         this.logProvider = logProvider;
@@ -65,6 +68,7 @@ public class LogPruningImpl implements LogPruning {
         this.strategyFactory = strategyFactory;
         this.clock = clock;
         this.pruneLock = pruneLock;
+        this.transactionIdStore = transactionIdStore;
         this.pruneStrategy = strategyFactory.strategyFromConfigValue(
                 fs, logFiles, logProvider, clock, config.get(keep_logical_logs));
         this.checkpointFilesToKeep = config.get(checkpoint_logical_log_keep_threshold);
@@ -94,6 +98,10 @@ public class LogPruningImpl implements LogPruning {
             if (versionsToDelete.isNotEmpty()) {
                 logFile.terminateExternalReaders(versionsToDelete.toExclusive() - 1);
                 versionsToDelete.forEachOrdered(deleter);
+                long highestDeletedAppendIndex = deleter.highestDeletedAppendIndex();
+                if (highestDeletedAppendIndex != TransactionIdStore.UNKNOWN_TX_ID) {
+                    transactionIdStore.setLowestAvailableCommittedTransactionId(highestDeletedAppendIndex + 1);
+                }
             }
             log.info(deleter.describeResult(strategy));
 
@@ -161,6 +169,15 @@ public class LogPruningImpl implements LogPruning {
                             ? "Pruned log version " + fromVersion
                             : "Pruned log versions " + fromVersion + " through " + toVersion;
             return pruned + ". The strategy used was '" + strategy + "'. ";
+        }
+
+        long highestDeletedAppendIndex() {
+            assert toVersion != NO_VERSION;
+            try {
+                return logFile.getLogFileInformation().getPreviousAppendIndexFromHeader(toVersion + 1);
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
     }
 }

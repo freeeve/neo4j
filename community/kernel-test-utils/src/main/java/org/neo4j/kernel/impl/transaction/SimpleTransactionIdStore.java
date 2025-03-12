@@ -51,6 +51,7 @@ public class SimpleTransactionIdStore implements TransactionIdStore {
             new ArrayQueueOutOfOrderSequence(-1, 100, OutOfOrderSequence.EMPTY_META);
     private final AtomicReference<TransactionId> committedTransactionId = new AtomicReference<>(BASE_TRANSACTION_ID);
     private final HighestAppendBatch appendBatchInfo = new HighestAppendBatch(EMPTY_APPEND_BATCH_INFO);
+    private volatile long lowestAvailableCommittedTransactionId = TransactionIdStore.UNKNOWN_TX_ID;
 
     public SimpleTransactionIdStore() {
         this(
@@ -251,5 +252,15 @@ public class SimpleTransactionIdStore implements TransactionIdStore {
     @Override
     public TransactionId getHighestEverClosedTransaction() {
         return committedTransactionId.get();
+    }
+
+    @Override
+    public void setLowestAvailableCommittedTransactionId(long transactionId) {
+        this.lowestAvailableCommittedTransactionId = transactionId;
+    }
+
+    @Override
+    public long getLowestAvailableCommittedTransactionId() {
+        return lowestAvailableCommittedTransactionId;
     }
 }

@@ -66,6 +66,7 @@ import org.neo4j.storageengine.api.OpenTransactionMetadata;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdSerialization;
 import org.neo4j.storageengine.api.TransactionId;
+import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.util.ChunkedTransactionRegistry;
 import org.neo4j.storageengine.util.HighestAppendBatch;
 import org.neo4j.storageengine.util.HighestTransactionId;
@@ -129,6 +130,7 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
     private final AtomicLong appendIndex;
     private final HighestAppendBatch lastCommittedBatch;
     private final ChunkedTransactionRegistry chunkedTransactionRegistry = new ChunkedTransactionRegistry();
+    private volatile long lowestAvailableCommittedTransactionId = TransactionIdStore.UNKNOWN_TX_ID;
 
     MetaDataStore(
             FileSystemAbstraction fileSystem,
@@ -465,6 +467,16 @@ public class MetaDataStore extends CommonAbstractStore<MetaDataRecord, NoStoreHe
     @Override
     public TransactionId getHighestEverClosedTransaction() {
         return highestClosedTransaction.get();
+    }
+
+    @Override
+    public long getLowestAvailableCommittedTransactionId() {
+        return lowestAvailableCommittedTransactionId;
+    }
+
+    @Override
+    public void setLowestAvailableCommittedTransactionId(long transactionId) {
+        this.lowestAvailableCommittedTransactionId = transactionId;
     }
 
     public void logRecords(final DiagnosticsLogger logger) {

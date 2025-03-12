@@ -30,6 +30,7 @@ public interface LogHeaderVisitor {
      * NOTE that firstAppendIndexInLog is not necessarily in the logfile - it is based on the last append index from
      * the previous log file and a guess that the last chunk from that file isn't spanning the whole of the current file
      * too. firstAppendIndexInLog is only guaranteed to be in the log file if firstAppendIndexInLog <= lastAppendIndexInLog
+     * @return {@code true} for continue visiting log headers, otherwise {@code false} for breaking after this header.
      */
     boolean visit(LogHeader logHeader, LogPosition position, long firstAppendIndexInLog, long lastAppendIndexInLog);
 }
