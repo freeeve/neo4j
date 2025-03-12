@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.parser.ast;
 import org.neo4j.cypher.internal.ast.Statement;
 import org.neo4j.cypher.internal.ast.Statements;
 import org.neo4j.cypher.internal.expressions.Expression;
+import org.neo4j.cypher.internal.expressions.NumberLiteral;
 import org.neo4j.cypher.internal.util.InputPosition;
 import scala.collection.immutable.ArraySeq;
 
@@ -27,6 +28,8 @@ public interface AstParser {
     Statements statements();
 
     Expression expression();
+
+    NumberLiteral numberLiteral();
 
     ArraySeq<String> symbolicAliasName();
 

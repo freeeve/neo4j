@@ -64,6 +64,14 @@ class ToIntegerFunctionTest extends CypherFunSuite with CypherScalaCheckDrivenPr
       assert(toIntegerFn("0x20") === longValue(0x20))
     }
 
+    test(s"$name should not return null if the argument is a octal string") {
+      assert(toIntegerFn("0o11") === longValue(9))
+    }
+
+    test(s"$name should not return null if the argument has underscore separator") {
+      assert(toIntegerFn("1_123_456") === longValue(1_123_456))
+    }
+
     test(s"$name should convert a string with leading zeros to an integer") {
       toIntegerFn("000123121") should equal(longValue(123121))
     }
@@ -105,6 +113,9 @@ class ToIntegerFunctionTest extends CypherFunSuite with CypherScalaCheckDrivenPr
       toIntegerFn(false) should equal(longValue(0))
     }
 
+    test(s"$name returns null on addition") {
+      toIntegerFn("1+1") should equal(NO_VALUE)
+    }
   }
 
   test(s"toInteger should fail for larger integers larger that 8 bytes") {

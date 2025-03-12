@@ -21,8 +21,6 @@ package org.neo4j.cypher.operations;
 
 import static java.lang.String.format;
 import static org.neo4j.cypher.operations.CursorUtils.propertyKeys;
-import static org.neo4j.cypher.operations.CypherRuntimeParser.parseAsDoubleOrElseNoValue;
-import static org.neo4j.cypher.operations.CypherRuntimeParser.parseAsLongOrElseNoValue;
 import static org.neo4j.values.storable.Values.EMPTY_STRING;
 import static org.neo4j.values.storable.Values.FALSE;
 import static org.neo4j.values.storable.Values.NO_VALUE;
@@ -141,8 +139,6 @@ import org.neo4j.values.virtual.VirtualValues;
  */
 @SuppressWarnings({"ReferenceEquality"})
 public final class CypherFunctions {
-    private static final BigDecimal MAX_LONG = BigDecimal.valueOf(Long.MAX_VALUE);
-    private static final BigDecimal MIN_LONG = BigDecimal.valueOf(Long.MIN_VALUE);
     private static final String[] POINT_KEYS =
             new String[] {"crs", "x", "y", "z", "longitude", "latitude", "height", "srid"};
 
@@ -1877,7 +1873,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return doubleValue(number.doubleValue());
         } else if (in instanceof TextValue text) {
-            return parseAsDoubleOrElseNoValue(text.stringValue());
+            return CypherRuntimeParser.parseAsDoubleOrElseNoValue(text.stringValue());
         } else {
             throw CypherTypeException.functionArgumentWrongType(
                     "Invalid input for function 'toFloat()': Expected a String, Float or Integer, got: " + in,
@@ -1921,7 +1917,7 @@ public final class CypherFunctions {
         } else if (in instanceof NumberValue number) {
             return longValue(number.longValue());
         } else if (in instanceof TextValue text) {
-            return stringToLongValue(text);
+            return CypherRuntimeParser.parseAsLongOrElseNoValue(text.stringValue());
         } else if (in instanceof BooleanValue bool) {
             if (bool.booleanValue()) {
                 return longValue(1L);
@@ -1942,9 +1938,9 @@ public final class CypherFunctions {
     public static Value toIntegerOrNull(AnyValue in) {
         if (in instanceof NumberValue || in instanceof BooleanValue) {
             return toInteger(in);
-        } else if (in instanceof TextValue) {
+        } else if (in instanceof TextValue textValue) {
             try {
-                return stringToLongValue((TextValue) in);
+                return CypherRuntimeParser.parseAsLongOrElseNoValue(textValue.stringValue());
             } catch (CypherTypeException e) {
                 return NO_VALUE;
             }
@@ -2095,23 +2091,6 @@ public final class CypherFunctions {
                     errorMessage, value.prettyPrint(), CypherTypeValueMapper.valueType(value));
         }
         return (TextValue) value;
-    }
-
-    private static Value stringToLongValue(TextValue in) {
-        try {
-            return parseAsLongOrElseNoValue(in.stringValue());
-        } catch (Exception e) {
-            try {
-                BigDecimal bigDecimal = new BigDecimal(in.stringValue());
-                if (bigDecimal.compareTo(MAX_LONG) <= 0 && bigDecimal.compareTo(MIN_LONG) >= 0) {
-                    return longValue(bigDecimal.longValue());
-                } else {
-                    throw new CypherTypeException(format("integer, %s, is too large", in.stringValue()));
-                }
-            } catch (NumberFormatException ignore) {
-                return NO_VALUE;
-            }
-        }
     }
 
     private static ListValue extractKeys(DbAccess access, int[] keyIds) {

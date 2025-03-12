@@ -73,6 +73,28 @@ class ToFloatFunctionTest extends CypherFunSuite with CypherScalaCheckDrivenProp
     test(s"given a float $name should give the same value back") {
       toFloatFn(50.5) should be(doubleValue(50.5))
     }
+
+    test(s"$name should handle underscore separator") {
+      toFloatFn("1_123_456.78") shouldBe doubleValue(1123456.78)
+      toFloatFn("1_123.789_123") shouldBe doubleValue(1123.789123)
+      toFloatFn("1.789_123") shouldBe doubleValue(1.789123)
+    }
+
+    test(s"$name should handle exponents") {
+      toFloatFn("1.23e-1") shouldBe doubleValue(0.123)
+      toFloatFn("-1.23e-1") shouldBe doubleValue(-0.123)
+      toFloatFn("12345E-5") shouldBe doubleValue(0.12345)
+      toFloatFn("-12345E-5") shouldBe doubleValue(-0.12345)
+      toFloatFn("12_345E-5") shouldBe doubleValue(0.12345)
+      toFloatFn("-12_345E-5") shouldBe doubleValue(-0.12345)
+    }
+
+    test(s"$name handles values outside the range of double") {
+      toFloatFn((BigDecimal(Double.MaxValue) * BigDecimal(Double.MaxValue)).toString()) shouldBe
+        doubleValue(Double.PositiveInfinity)
+      toFloatFn((BigDecimal(Double.MinValue) * BigDecimal(Double.MaxValue)).toString()) shouldBe
+        doubleValue(Double.NegativeInfinity)
+    }
   }
 
   // toFloat

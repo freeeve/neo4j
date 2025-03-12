@@ -19,11 +19,13 @@
  */
 package org.neo4j.cypher.operations;
 
+import static java.lang.String.format;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.storable.Values.doubleValue;
 import static org.neo4j.values.storable.Values.longValue;
 import static org.neo4j.values.storable.Values.numberValue;
 
+import java.math.BigDecimal;
 import java.util.List;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.cypher.internal.expressions.Expression;
@@ -32,6 +34,7 @@ import org.neo4j.cypher.internal.expressions.Literal;
 import org.neo4j.cypher.internal.expressions.NumberLiteral;
 import org.neo4j.cypher.internal.parser.AstParserFactory;
 import org.neo4j.cypher.internal.parser.AstParserFactory$;
+import org.neo4j.cypher.internal.parser.ast.AstParser;
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory;
 import org.neo4j.exceptions.CypherTypeException;
 import org.neo4j.exceptions.SyntaxException;
@@ -57,6 +60,9 @@ import scala.collection.immutable.Seq;
  */
 @SuppressWarnings("deprecation")
 abstract class CypherRuntimeParser {
+    private static final BigDecimal MAX_LONG = BigDecimal.valueOf(Long.MAX_VALUE);
+    private static final BigDecimal MIN_LONG = BigDecimal.valueOf(Long.MIN_VALUE);
+
     private CypherRuntimeParser() {
         throw new UnsupportedOperationException();
     }
@@ -160,50 +166,56 @@ abstract class CypherRuntimeParser {
         return Values.float64Vector(doubles);
     }
 
+    /**
+     * Tries to parse the specified expression as a Cypher number literal.
+     * Returns the parsed value converted to DoubleValue, or NoValue if parsing fails.
+     */
     public static Value parseAsDoubleOrElseNoValue(String expression) {
         try {
-            var res = parse(expression);
-            if (res instanceof NumberLiteral number) {
-                return doubleValue(number.value().doubleValue());
-            } else {
+            // This route is significantly faster than parsing cypher, so try this first.
+            return doubleValue(Double.parseDouble(expression));
+        } catch (NumberFormatException ignore1) {
+            try {
+                // Fallback to parsing the expression in Cypher.
+                return doubleValue(parser(expression).numberLiteral().value().doubleValue());
+            } catch (NumberFormatException | SyntaxException ignore2) {
                 return NO_VALUE;
             }
-        } catch (NumberFormatException | SyntaxException ignore) {
-            // NOTE: This is here because of backwards compatability so that we support some
-            //      extra formats not supported by Cypher itself, i.e. 0000046
-            return parseAsDoubleWithJava(expression);
         }
     }
 
+    /**
+     * Tries to parse the specified expression as a Cypher number literal.
+     * Returns the parsed value converted to LongValue, or NoValue if parsing fails.
+     */
     public static Value parseAsLongOrElseNoValue(String expression) {
         try {
-            var res = parse(expression);
-            if (res instanceof NumberLiteral number) {
-                return longValue(number.value().longValue());
-            } else {
-                return NO_VALUE;
+            // This route is significantly faster than parsing cypher, so try this first.
+            // Note, Long#parseLong also supports some values that are not valid cypher, like 0001.
+            return longValue(Long.parseLong(expression));
+        } catch (NumberFormatException ignore1) {
+            try {
+                // Note, BigDecimal supports expressions with exponent, like -1.23E-12.
+                BigDecimal bigDecimal = new BigDecimal(expression);
+                if (bigDecimal.compareTo(MAX_LONG) <= 0 && bigDecimal.compareTo(MIN_LONG) >= 0) {
+                    return longValue(bigDecimal.longValue());
+                } else {
+                    throw new CypherTypeException(format("integer, %s, is too large", expression));
+                }
+            } catch (NumberFormatException ignore2) {
+                // Fallback to parsing the expression in Cypher.
+                // Note, adds support to more literal number expressions, like 0xf (hex), 0o11 (octal), 1_000.
+                try {
+                    return longValue(parser(expression).numberLiteral().value().longValue());
+                } catch (NumberFormatException | SyntaxException ignore3) {
+                    return NO_VALUE;
+                }
             }
-        } catch (NumberFormatException | SyntaxException ignore) {
-            // NOTE: This is here because of backwards compatability so that we support some
-            //      extra formats not supported by Cypher itself, i.e. 0000046
-            return parseAsLongWithJava(expression);
-        }
-    }
-
-    private static Value parseAsLongWithJava(String expression) {
-        return longValue(Long.parseLong(expression));
-    }
-
-    private static Value parseAsDoubleWithJava(String expression) {
-        try {
-            return doubleValue(Double.parseDouble(expression));
-        } catch (NumberFormatException e) {
-            return NO_VALUE;
         }
     }
 
     private static Seq<Expression> asList(String stringList) {
-        var expression = parse(stringList);
+        var expression = parser(stringList).expression();
         if (expression instanceof ListLiteral listLiteral) {
             return listLiteral.expressions();
         } else if (expression instanceof Literal literal) {
@@ -257,10 +269,9 @@ abstract class CypherRuntimeParser {
         }
     }
 
-    private static Expression parse(String expression) {
-        return parserFactory
-                .apply(expression, new Neo4jCypherExceptionFactory(expression, Option.empty()), Option.empty())
-                .expression();
+    private static AstParser parser(String expression) {
+        return parserFactory.apply(
+                expression, new Neo4jCypherExceptionFactory(expression, Option.empty()), Option.empty());
     }
 
     private static CypherTypeException invalidType(AnyValue value) {

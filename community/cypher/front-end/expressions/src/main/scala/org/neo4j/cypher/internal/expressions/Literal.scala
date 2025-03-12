@@ -64,12 +64,18 @@ case class UnsignedDecimalIntegerLiteral(
 }
 
 sealed abstract class OctalIntegerLiteral(stringVal: String) extends IntegerLiteral {
-  lazy val octalMatcher: Regex = """-?0o(_?[0-7]+)+""" r
+  lazy val value: java.lang.Long = OctalIntegerLiteral.octalToLong(stringVal)
+}
 
-  lazy val value: java.lang.Long = stringVal match {
-    case octalMatcher(_*) =>
-      java.lang.Long.decode(stringVal.toList.filter(c => c != '_').filter(c => c != 'o').mkString)
-    case _ => java.lang.Long.decode(stringVal.toList.filter(c => c != 'o').mkString)
+object OctalIntegerLiteral {
+  final private val octalMatcher: Regex = """-?0o(_?[0-7]+)+""" r
+
+  def octalToLong(stringValue: String): java.lang.Long = {
+    if (stringValue.contains("_") && octalMatcher.matches(stringValue)) {
+      java.lang.Long.decode(stringValue.replace("_", "").replace("o", ""))
+    } else {
+      java.lang.Long.decode(stringValue.replace("o", ""))
+    }
   }
 }
 
@@ -83,12 +89,18 @@ case class SignedOctalIntegerLiteral(stringVal: String)(val position: InputPosit
 }
 
 sealed abstract class HexIntegerLiteral(stringVal: String) extends IntegerLiteral {
-  lazy val hexMatcher: Regex = """-?0x(_?[0-9a-fA-F]+)+""" r
+  lazy val value: java.lang.Long = HexIntegerLiteral.hexStringToLong(stringVal)
+}
 
-  lazy val value: java.lang.Long = stringVal match {
-    case hexMatcher(_*) => java.lang.Long.decode(stringVal.toList.filter(c => c != '_').mkString)
-    // pass along to keep the same error message
-    case _ => java.lang.Long.decode(stringVal)
+object HexIntegerLiteral {
+  final private val hexMatcher: Regex = """-?0x(_?[0-9a-fA-F]+)+""" r
+
+  def hexStringToLong(stringValue: String): java.lang.Long = {
+    if (stringValue.contains("_") && hexMatcher.matches(stringValue)) {
+      java.lang.Long.decode(stringValue.replace("_", ""))
+    } else {
+      java.lang.Long.decode(stringValue)
+    }
   }
 }
 
@@ -106,18 +118,24 @@ sealed trait DoubleLiteral extends NumberLiteral {
 }
 
 case class DecimalDoubleLiteral(stringVal: String)(val position: InputPosition) extends DoubleLiteral {
-  lazy val doubleMatcher: Regex = """-?(\d+((_\d+)?)*)?(\.\d+((_\d+)?)*)?([eE]([+-])?\d+((_\d+)?)*)?""" r
-
-  lazy val value: java.lang.Double = stringVal match {
-    case doubleMatcher(_*) => java.lang.Double.parseDouble(stringVal.replace("_", ""))
-    // pass along to keep the same error message
-    case _ => java.lang.Double.parseDouble(stringVal)
-  }
+  lazy val value: java.lang.Double = DecimalDoubleLiteral.stringToDouble(stringVal)
 
   override def asSensitiveLiteral: Literal with SensitiveLiteral =
     new DecimalDoubleLiteral(stringVal)(position) with SensitiveLiteral {
       override def literalLength: Int = stringVal.length
     }
+}
+
+object DecimalDoubleLiteral {
+  private val doubleMatcher: Regex = """-?(\d+((_\d+)?)*)?(\.\d+((_\d+)?)*)?([eE]([+-])?\d+((_\d+)?)*)?""" r
+
+  def stringToDouble(stringValue: String): java.lang.Double = {
+    if (stringValue.contains("_") && doubleMatcher.matches(stringValue)) {
+      java.lang.Double.parseDouble(stringValue.replace("_", ""))
+    } else {
+      java.lang.Double.parseDouble(stringValue)
+    }
+  }
 }
 
 // Note, the inputLength of the input position is not always equal to value.length because of escape characters.

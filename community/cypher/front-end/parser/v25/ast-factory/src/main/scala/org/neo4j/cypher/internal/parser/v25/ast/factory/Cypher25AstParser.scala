@@ -22,6 +22,7 @@ import org.antlr.v4.runtime.TokenStream
 import org.antlr.v4.runtime.tree.ParseTreeListener
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.NumberLiteral
 import org.neo4j.cypher.internal.parser.CypherErrorStrategy
 import org.neo4j.cypher.internal.parser.ast.AntlrAstParser
 import org.neo4j.cypher.internal.parser.ast.AstBuildingAntlrParser
@@ -42,6 +43,7 @@ final class Cypher25AstParser(
 
   override def statements(): Statements = parse(_.statements())
   override def expression(): Expression = parse(_.expression())
+  override def numberLiteral(): NumberLiteral = parse(_.numberLiteral())
 
   override def syntaxException(message: String, position: InputPosition): RuntimeException = {
     exceptionFactory.syntaxException(message, position)

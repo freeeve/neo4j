@@ -20,12 +20,17 @@ import scala.util.matching.Regex
 
 trait StringDecimalInteger {
   def stringVal: String
+  lazy val value: java.lang.Long = StringDecimalInteger.stringToLong(stringVal)
+}
 
-  lazy val integerMatcher: Regex = """-?\d+((_\d+)?)*""".r
+object StringDecimalInteger {
+  final private val integerMatcher: Regex = """-?\d+((_\d+)?)*""".r
 
-  lazy val value: java.lang.Long = stringVal match {
-    case integerMatcher(_*) => java.lang.Long.parseLong(stringVal.toList.filter(c => c != '_').mkString)
-    // pass along to keep the same error message
-    case _ => java.lang.Long.parseLong(stringVal)
+  def stringToLong(stringValue: String): java.lang.Long = {
+    if (stringValue.contains("_") && integerMatcher.matches(stringValue)) {
+      java.lang.Long.parseLong(stringValue.replace("_", ""))
+    } else {
+      java.lang.Long.parseLong(stringValue)
+    }
   }
 }
