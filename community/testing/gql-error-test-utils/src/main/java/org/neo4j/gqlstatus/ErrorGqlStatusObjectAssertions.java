@@ -24,6 +24,7 @@ import static org.neo4j.gqlstatus.GqlExceptionLikeAssert.catchGqlException;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ThrowableAssert;
 import org.assertj.core.util.CanIgnoreReturnValue;
+import org.neo4j.driver.exceptions.Neo4jException;
 
 public class ErrorGqlStatusObjectAssertions {
     private ErrorGqlStatusObjectAssertions() {}
@@ -33,6 +34,10 @@ public class ErrorGqlStatusObjectAssertions {
     }
 
     public static <T extends Exception & ErrorGqlStatusObject> GqlExceptionLikeAssert assertThat(T actual) {
+        return new GqlExceptionLikeAssert(actual);
+    }
+
+    public static GqlExceptionLikeAssert assertThat(Neo4jException actual) {
         return new GqlExceptionLikeAssert(actual);
     }
 

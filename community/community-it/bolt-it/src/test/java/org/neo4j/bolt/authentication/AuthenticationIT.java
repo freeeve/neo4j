@@ -20,6 +20,7 @@
 package org.neo4j.bolt.authentication;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.logging.AssertableLogProvider.Level.WARN;
 import static org.neo4j.test.assertion.Assert.awaitUntilAsserted;
@@ -162,8 +163,9 @@ public class AuthenticationIT {
                 .receivesFailure(
                         Status.Security.Unauthorized,
                         "The client is unauthorized due to authentication failure.",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                        GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                        assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .isEventuallyTerminated();
 
         Assert.assertEventually(
@@ -294,8 +296,9 @@ public class AuthenticationIT {
                     .receivesFailure(
                             Status.Security.Unauthorized,
                             "The client is unauthorized due to authentication failure.",
-                            GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                            "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                            GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                            "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                            assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                     .isEventuallyTerminated();
         }
     }
