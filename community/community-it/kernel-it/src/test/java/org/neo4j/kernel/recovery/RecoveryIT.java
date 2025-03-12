@@ -131,6 +131,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.version.VersionStorageTracer;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.availability.CompositeDatabaseAvailabilityGuard;
 import org.neo4j.kernel.database.DatabaseTracers;
@@ -148,6 +149,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.DetachedCheckpointAppender;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointFile;
@@ -629,7 +631,14 @@ class RecoveryIT {
         // remove shutdown checkpoint
         removeLastCheckpointRecordFromLogFile(databaseLayout, fileSystem);
         // append data that will cause broken next entry
-        appendBytesToLastLogFile(logFileToMutate, currentPosition, new byte[] {1, 0, 0, 1});
+        int minimumBytesToConsiderBrokenRecord =
+                LATEST_KERNEL_VERSION.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
+                        ? LogEnvelopeHeader.HEADER_SIZE + 1
+                        : 4;
+        byte[] brokenRecord = new byte[minimumBytesToConsiderBrokenRecord];
+        brokenRecord[0] = 1;
+        brokenRecord[brokenRecord.length - 1] = 1;
+        appendBytesToLastLogFile(logFileToMutate, currentPosition, brokenRecord);
 
         assertThatThrownBy(this::recoverDatabase)
                 .hasStackTraceContaining(
