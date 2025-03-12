@@ -37,7 +37,7 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Result;
-import org.neo4j.graphdb.TransactionTerminatedException;
+import org.neo4j.graphdb.TransactionTerminatedHelper;
 import org.neo4j.graphdb.schema.Schema;
 import org.neo4j.graphdb.traversal.BidirectionalTraversalDescription;
 import org.neo4j.graphdb.traversal.TraversalDescription;
@@ -329,7 +329,7 @@ public class ExecutionContextProcedureTransaction extends DataLookup implements 
     public void checkInTransaction() {
         if (ktx.isTerminated()) {
             Status terminationReason = ktx.getReasonIfTerminated().orElse(Status.Transaction.Terminated);
-            throw new TransactionTerminatedException(terminationReason);
+            throw TransactionTerminatedHelper.transactionTerminated(terminationReason);
         }
     }
 

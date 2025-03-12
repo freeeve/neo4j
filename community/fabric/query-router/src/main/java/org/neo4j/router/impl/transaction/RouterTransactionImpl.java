@@ -46,7 +46,7 @@ import org.neo4j.fabric.transaction.parent.CompoundTransaction;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.graphdb.TransactionTerminatedException;
+import org.neo4j.graphdb.TransactionTerminatedHelper;
 import org.neo4j.kernel.api.TerminationMark;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.api.transaction.trace.TraceProvider;
@@ -218,7 +218,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
             if (state.get() == State.TERMINATED) {
                 // Wait for all children to be rolled back. Ignore errors
                 doRollbackAndIgnoreErrors();
-                throw new TransactionTerminatedException(terminationMark.getReason());
+                throw TransactionTerminatedHelper.transactionTerminated(terminationMark.getReason());
             }
 
             if (state.get() == State.CLOSED) {
@@ -480,7 +480,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
     @Override
     public void throwIfTerminatedOrClosed(Supplier<String> closedExceptionMessage) {
         if (terminationMark != null) {
-            throw new TransactionTerminatedException(terminationMark.getReason());
+            throw TransactionTerminatedHelper.transactionTerminated(terminationMark.getReason());
         }
 
         if (state.get() == State.CLOSED) {

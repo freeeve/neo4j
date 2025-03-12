@@ -2245,11 +2245,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_25N05(
             new GqlStatus("25N05"),
             """
-                    Transaction has been terminated or closed.""",
+                    Transaction has been closed.""",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
-            "transaction terminated or closed",
+            "transaction closed",
             ErrorClassification.CLIENT_ERROR),
     STATUS_25N06(
             new GqlStatus("25N06"),
@@ -2314,6 +2314,33 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.INVALID_TRANSACTION_STATE,
             "cannot access entity after removal",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_25N14(
+            new GqlStatus("25N14"),
+            """
+                    The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.INVALID_TRANSACTION_STATE,
+            "transaction termination client error",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_25N15(
+            new GqlStatus("25N15"),
+            """
+                    The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.INVALID_TRANSACTION_STATE,
+            "transaction termination database error",
+            ErrorClassification.DATABASE_ERROR),
+    STATUS_25N16(
+            new GqlStatus("25N16"),
+            """
+                    The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
+            emptyMap(),
+            Condition.INVALID_TRANSACTION_STATE,
+            "transaction termination transient error",
+            ErrorClassification.TRANSIENT_ERROR),
     STATUS_2D000(
             new GqlStatus("2D000"),
             """
@@ -4074,7 +4101,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
-            "transaction terminated or closed",
+            "execution failed",
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N09(
             new GqlStatus("50N09"),

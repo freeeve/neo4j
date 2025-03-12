@@ -63,6 +63,7 @@ import org.neo4j.exceptions.UnspecifiedKernelException;
 import org.neo4j.graphdb.DatabaseShutdownException;
 import org.neo4j.graphdb.NotInTransactionException;
 import org.neo4j.graphdb.TransactionTerminatedException;
+import org.neo4j.graphdb.TransactionTerminatedHelper;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.EntityLocks;
@@ -979,7 +980,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     public void assertOpen() {
         var terminationMark = this.terminationMark;
         if (terminationMark != null) {
-            throw new TransactionTerminatedException(terminationMark.getReason());
+            throw TransactionTerminatedHelper.transactionTerminated(terminationMark.getReason());
         }
         assertTransactionOpen();
     }
@@ -1102,7 +1103,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private void failOnNonExplicitRollbackIfNeeded() throws TransactionFailureException {
         if (commit) {
             if (isTerminated()) {
-                throw new TransactionTerminatedException(terminationMark.getReason());
+                throw TransactionTerminatedHelper.transactionTerminated(terminationMark.getReason());
             }
             // Commit was called, but also failed which means that the client code using this
             // transaction passed through a happy path, but the transaction was rolled back

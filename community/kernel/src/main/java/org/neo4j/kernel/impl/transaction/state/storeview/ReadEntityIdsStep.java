@@ -19,8 +19,6 @@
  */
 package org.neo4j.kernel.impl.transaction.state.storeview;
 
-import static org.neo4j.kernel.api.exceptions.Status.Transaction.Interrupted;
-
 import java.util.Arrays;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -123,7 +121,7 @@ public class ReadEntityIdsStep extends PullingProducerStep<ReadEntityIdsStep.Rea
             Thread.sleep(1);
         } catch (InterruptedException e) {
             Thread.interrupted();
-            throw new LockAcquisitionTimeoutException(Interrupted, "Interrupted while waiting.");
+            throw LockAcquisitionTimeoutException.interrupted();
         }
     }
 

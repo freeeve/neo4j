@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.query;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -45,7 +44,10 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.mockito.internal.stubbing.defaultanswers.ReturnsDeepStubs;
 import org.neo4j.common.DependencyResolver;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.TransactionTerminatedException;
+import org.neo4j.graphdb.TransactionTerminatedHelper;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
@@ -152,7 +154,8 @@ class Neo4jTransactionalContextTest {
         when(transaction.transactionType()).thenReturn(KernelTransaction.Type.IMPLICIT);
         GraphDatabaseQueryService graph = mock(GraphDatabaseQueryService.class);
         when(graph.beginTransaction(any(), any(), any())).thenReturn(innerTransaction);
-        TransactionTerminatedException error = new TransactionTerminatedException(Status.Transaction.Terminated);
+        TransactionTerminatedException error =
+                TransactionTerminatedHelper.transactionTerminated(Status.Transaction.Terminated);
         when(innerTransaction.kernelTransaction()).thenThrow(error);
 
         // When
@@ -165,7 +168,12 @@ class Neo4jTransactionalContextTest {
                 QueryExecutionConfiguration.DEFAULT_CONFIG);
 
         // Then
-        assertThatThrownBy(transactionalContext::contextWithNewTransaction).isSameAs(error);
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(transactionalContext::contextWithNewTransaction)
+                .isSameAs(error)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_25N14)
+                .hasStatusDescription("error: invalid transaction state - transaction termination client error. "
+                        + "The transaction has been terminated. Retry your operation in a new transaction, "
+                        + "and you should see a successful result. Reason: Explicitly terminated by the user.");
         verify(innerTransaction).close();
     }
 

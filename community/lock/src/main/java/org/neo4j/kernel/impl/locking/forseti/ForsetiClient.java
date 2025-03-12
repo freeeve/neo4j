@@ -23,7 +23,6 @@ import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.locks.LockSupport.parkNanos;
-import static org.neo4j.kernel.api.exceptions.Status.Transaction.Interrupted;
 import static org.neo4j.lock.LockType.EXCLUSIVE;
 import static org.neo4j.lock.LockType.SHARED;
 
@@ -866,7 +865,7 @@ public class ForsetiClient implements LockManager.Client {
             }
         } catch (InterruptedException e) {
             Thread.interrupted();
-            throw new LockAcquisitionTimeoutException(Interrupted, "Interrupted while waiting.");
+            throw LockAcquisitionTimeoutException.interrupted();
         }
     }
 
@@ -1054,7 +1053,7 @@ public class ForsetiClient implements LockManager.Client {
 
     private void assertNotStopped() {
         if (stateHolder.isStopped()) {
-            throw new LockClientStoppedException(this);
+            throw LockClientStoppedException.lockClientStopped(this);
         }
     }
 
@@ -1062,7 +1061,7 @@ public class ForsetiClient implements LockManager.Client {
         long timeoutNano = this.lockAcquisitionTimeoutNano;
         if (timeoutNano > 0) {
             if ((clock.nanos() - waitStartNano) > timeoutNano) {
-                throw new LockAcquisitionTimeoutException(resourceType, resourceId, timeoutNano);
+                throw LockAcquisitionTimeoutException.lockAcquisitionTimeout(resourceType, resourceId, timeoutNano);
             }
         }
     }

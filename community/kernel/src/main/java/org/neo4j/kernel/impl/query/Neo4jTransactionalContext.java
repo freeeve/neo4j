@@ -22,7 +22,7 @@ package org.neo4j.kernel.impl.query;
 import java.io.Closeable;
 import java.util.function.Consumer;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.TransactionTerminatedException;
+import org.neo4j.graphdb.TransactionTerminatedHelper;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
@@ -353,7 +353,7 @@ public class Neo4jTransactionalContext implements TransactionalContext {
 
     private void checkNotTerminated() {
         transaction.terminationReason().ifPresent(status -> {
-            throw new TransactionTerminatedException(status);
+            throw TransactionTerminatedHelper.transactionTerminated(status);
         });
     }
 

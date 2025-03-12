@@ -43,7 +43,7 @@ import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
-import org.neo4j.graphdb.TransactionTerminatedException;
+import org.neo4j.graphdb.TransactionTerminatedHelper;
 import org.neo4j.kernel.api.TerminationMark;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.scheduler.CallableExecutor;
@@ -227,7 +227,7 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
             if (state == State.TERMINATED) {
                 // Wait for all children to be rolled back. Ignore errors
                 doRollbackAndIgnoreErrors(this::childTransactionRollback);
-                throw new TransactionTerminatedException(terminationMark.getReason());
+                throw TransactionTerminatedHelper.transactionTerminated(terminationMark.getReason());
             }
 
             if (state == State.CLOSED) {
@@ -401,7 +401,7 @@ public abstract class AbstractCompoundTransaction<Child extends ChildTransaction
 
     protected void checkTransactionOpenForStatementExecution() throws FabricException {
         if (state == State.TERMINATED) {
-            throw new TransactionTerminatedException(terminationMark.getReason());
+            throw TransactionTerminatedHelper.transactionTerminated(terminationMark.getReason());
         }
 
         if (state == State.CLOSED) {

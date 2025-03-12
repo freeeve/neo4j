@@ -51,6 +51,13 @@ public interface ErrorGqlStatusObjectAssertDelegate<SELF extends ErrorGqlStatusO
     }
 
     @Override
+    default SELF hasStatusDescriptionContaining(String partialExpectedDescription) {
+        gqlStatusObject().hasStatusDescriptionContaining(partialExpectedDescription);
+        //noinspection unchecked
+        return (SELF) this;
+    }
+
+    @Override
     default SELF hasStatusDescription(String expectedDescriptionTemplate, Object... args) {
         gqlStatusObject().hasStatusDescription(expectedDescriptionTemplate, args);
         //noinspection unchecked

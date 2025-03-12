@@ -41,6 +41,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotInTransactionException;
 import org.neo4j.graphdb.RelationshipType;
@@ -266,9 +268,14 @@ public class ExecutionContextIT {
                 try {
                     var read = executionContext.dataRead();
                     ktx.markForTermination(Status.Transaction.Terminated);
-                    assertThatThrownBy(() -> read.nodeExists(1))
+                    ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> read.nodeExists(1))
                             .isInstanceOf(TransactionTerminatedException.class)
-                            .hasMessageContaining("The transaction has been terminated.");
+                            .hasMessageContaining("The transaction has been terminated.")
+                            .hasGqlStatus(GqlStatusInfoCodes.STATUS_25N14)
+                            .hasStatusDescription(
+                                    "error: invalid transaction state - transaction termination client error. "
+                                            + "The transaction has been terminated. Retry your operation in a new transaction, "
+                                            + "and you should see a successful result. Reason: Explicitly terminated by the user.");
                 } finally {
                     executionContext.complete();
                 }
@@ -396,9 +403,14 @@ public class ExecutionContextIT {
                 transaction.terminate();
 
                 assertThat(executionContext.isTransactionOpen()).isFalse();
-                assertThatThrownBy(executionContext::performCheckBeforeOperation)
+                ErrorGqlStatusObjectAssertions.assertThatThrownBy(executionContext::performCheckBeforeOperation)
                         .isInstanceOf(TransactionTerminatedException.class)
-                        .hasMessageContaining("The transaction has been terminated");
+                        .hasMessageContaining("The transaction has been terminated")
+                        .hasGqlStatus(GqlStatusInfoCodes.STATUS_25N14)
+                        .hasStatusDescription(
+                                "error: invalid transaction state - transaction termination client error. "
+                                        + "The transaction has been terminated. Retry your operation in a new transaction, "
+                                        + "and you should see a successful result. Reason: Explicitly terminated by the user.");
             }
         }
     }

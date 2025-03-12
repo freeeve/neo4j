@@ -65,6 +65,17 @@ public class DriverExceptionAssertImplementation
     }
 
     @Override
+    public DriverExceptionAssertImplementation hasStatusDescriptionContaining(String partialExpectedDescription) {
+        isNotNull();
+        if (!actual.statusDescription().contains(partialExpectedDescription)) {
+            failWithMessage(
+                    "Expected GqlStatusObject to have statusDescription containing <%s> but was <%s>",
+                    partialExpectedDescription, actual.statusDescription());
+        }
+        return this;
+    }
+
+    @Override
     public DriverExceptionAssertImplementation hasStatusDescription(
             String expectedDescriptionTemplate, Object... args) {
         isNotNull();

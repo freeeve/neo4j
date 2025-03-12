@@ -44,6 +44,12 @@ public interface ErrorGqlStatusObjectAssert<SELF extends ErrorGqlStatusObjectAss
     SELF hasStatusDescription(String expectedDescription);
 
     /**
+     * Verifies that the actual GqlStatusObject has a status descriptions which contains the given text.
+     */
+    @CanIgnoreReturnValue
+    SELF hasStatusDescriptionContaining(String partialExpectedDescription);
+
+    /**
      * Verifies that the actual GqlStatusObject has the given description, after being formatted using
      * the {@link String#format} method.
      */

@@ -21,7 +21,7 @@ package org.neo4j.bolt.protocol.common.connector.connection;
 
 import org.neo4j.bolt.protocol.common.fsm.response.ResponseHandler;
 import org.neo4j.bolt.protocol.common.message.Error;
-import org.neo4j.graphdb.TransactionTerminatedException;
+import org.neo4j.graphdb.TransactionTerminatedHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.values.AnyValue;
 
@@ -94,7 +94,7 @@ public class MutableConnectionState {
 
             pendingTerminationNotice = null;
 
-            throw new TransactionTerminatedException(status);
+            throw TransactionTerminatedHelper.transactionTerminated(status);
         }
     }
 }

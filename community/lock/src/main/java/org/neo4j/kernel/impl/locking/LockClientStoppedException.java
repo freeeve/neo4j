@@ -20,6 +20,9 @@
 package org.neo4j.kernel.impl.locking;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -27,11 +30,16 @@ import org.neo4j.kernel.api.exceptions.Status;
  * Exception thrown when stopped {@link LockManager.Client} used to acquire locks.
  */
 public class LockClientStoppedException extends TransactionTerminatedException {
-    public LockClientStoppedException(LockManager.Client client) {
-        super(Status.Transaction.LockClientStopped, String.valueOf(client));
+
+    private LockClientStoppedException(ErrorGqlStatusObject gqlStatusObject, LockManager.Client client) {
+        super(gqlStatusObject, Status.Transaction.LockClientStopped, String.valueOf(client));
     }
 
-    public LockClientStoppedException(ErrorGqlStatusObject gqlStatusObject, LockManager.Client client) {
-        super(gqlStatusObject, Status.Transaction.LockClientStopped, String.valueOf(client));
+    public static LockClientStoppedException lockClientStopped(LockManager.Client client) {
+        String reason = Status.Transaction.LockClientStopped.code().description() + " " + client;
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N14)
+                .withParam(GqlParams.StringParam.msg, reason)
+                .build();
+        return new LockClientStoppedException(gql, client);
     }
 }

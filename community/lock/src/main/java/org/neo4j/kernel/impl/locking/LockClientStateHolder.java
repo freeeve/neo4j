@@ -70,7 +70,7 @@ public final class LockClientStateHolder {
         do {
             currentValue = clientState.get();
             if (isStopped(currentValue)) {
-                throw new LockClientStoppedException(client);
+                throw LockClientStoppedException.lockClientStopped(client);
             }
             newValue = stateWithNewStatus(currentValue, PREPARE);
         } while (!clientState.compareAndSet(currentValue, newValue));
@@ -111,7 +111,7 @@ public final class LockClientStateHolder {
      * Increment active number of clients that use current state instance.
      *
      * @param client the locks client associated with this state; used only to create pretty exception
-     * with {@link LockClientStoppedException#LockClientStoppedException(LockManager.Client)}.
+     * with {@link LockClientStoppedException#lockClientStopped(LockManager.Client)}.
      * @throws LockClientStoppedException when stopped.
      */
     public void incrementActiveClients(LockManager.Client client) {
@@ -119,7 +119,7 @@ public final class LockClientStateHolder {
         do {
             currentState = clientState.get();
             if (isStopped(currentState)) {
-                throw new LockClientStoppedException(client);
+                throw LockClientStoppedException.lockClientStopped(client);
             }
         } while (!clientState.compareAndSet(currentState, incrementActiveClients(currentState)));
     }

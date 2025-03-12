@@ -40,6 +40,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
@@ -48,6 +50,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.KernelTransactionHandle;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.kernel.impl.locking.LockClientStoppedException;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
@@ -139,6 +142,18 @@ public class KernelTransactionTimeoutMonitorIT {
             }
         });
         assertThat(exception.getMessage()).contains("The transaction has been terminated.");
+        assertThat(exception.getCause()).isInstanceOf(LockClientStoppedException.class);
+        LockClientStoppedException gqlException = (LockClientStoppedException) exception.getCause();
+        ErrorGqlStatusObjectAssertions.assertThat(gqlException)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_25N14)
+                .hasStatusDescriptionContaining(
+                        "error: invalid transaction state - transaction termination client error. "
+                                + "The transaction has been terminated. "
+                                + "Retry your operation in a new transaction, and you should see a successful result. "
+                                + "Reason: The transaction has been terminated, so no more locks can be acquired. "
+                                + "This can occur because the transaction ran longer than the configured transaction timeout, "
+                                + "or because a human operator manually terminated the transaction, "
+                                + "or because the database is shutting down.");
     }
 
     @Test

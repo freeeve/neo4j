@@ -45,7 +45,7 @@ class SystemCommandExecutionPlanTest extends CypherFunSuite {
       )
 
     // WHEN
-    subscriber.onError(new LockClientStoppedException(null))
+    subscriber.onError(LockClientStoppedException.lockClientStopped(null))
 
     // THEN
     the[CypherExecutionException] thrownBy subscriber.assertNotFailed() should have message ("Message v1")

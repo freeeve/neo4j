@@ -19,9 +19,15 @@
  */
 package org.neo4j.kernel.impl.locking;
 
+import static org.neo4j.kernel.api.exceptions.Status.Transaction.Interrupted;
+import static org.neo4j.kernel.api.exceptions.Status.Transaction.LockAcquisitionTimeout;
+
 import java.util.concurrent.TimeUnit;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.TransactionTerminatedException;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.lock.ResourceType;
@@ -34,29 +40,39 @@ import org.neo4j.lock.ResourceType;
  * @see GraphDatabaseSettings#lock_acquisition_timeout
  */
 public class LockAcquisitionTimeoutException extends TransactionTerminatedException {
-    public LockAcquisitionTimeoutException(ResourceType resourceType, long resourceId, long timeoutNano) {
-        super(
-                Status.Transaction.LockAcquisitionTimeout,
-                String.format(
-                        "Unable to acquire lock for resource: %s with id: %d within %d millis.",
-                        resourceType, resourceId, TimeUnit.NANOSECONDS.toMillis(timeoutNano)));
-    }
 
-    public LockAcquisitionTimeoutException(
+    private LockAcquisitionTimeoutException(
             ErrorGqlStatusObject gqlStatusObject, ResourceType resourceType, long resourceId, long timeoutNano) {
         super(
                 gqlStatusObject,
-                Status.Transaction.LockAcquisitionTimeout,
+                LockAcquisitionTimeout,
                 String.format(
                         "Unable to acquire lock for resource: %s with id: %d within %d millis.",
                         resourceType, resourceId, TimeUnit.NANOSECONDS.toMillis(timeoutNano)));
     }
 
-    public LockAcquisitionTimeoutException(Status status, String message) {
-        super(status, message);
+    private LockAcquisitionTimeoutException(ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
+        super(gqlStatusObject, status, message);
     }
 
-    public LockAcquisitionTimeoutException(ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
-        super(gqlStatusObject, status, message);
+    public static LockAcquisitionTimeoutException interrupted() {
+        String reason = Interrupted.code().description() + " Interrupted while waiting";
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N16)
+                .withParam(GqlParams.StringParam.msg, reason)
+                .build();
+        return new LockAcquisitionTimeoutException(gql, Interrupted, "Interrupted while waiting.");
+    }
+
+    public static LockAcquisitionTimeoutException lockAcquisitionTimeout(
+            ResourceType resourceType, long resourceId, long timeoutNano) {
+
+        String reason = LockAcquisitionTimeout.code().description()
+                + String.format(
+                        " Unable to acquire lock for resource: %s with id: %d within %d millis.",
+                        resourceType, resourceId, TimeUnit.NANOSECONDS.toMillis(timeoutNano));
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N16)
+                .withParam(GqlParams.StringParam.msg, reason)
+                .build();
+        return new LockAcquisitionTimeoutException(gql, resourceType, resourceId, timeoutNano);
     }
 }

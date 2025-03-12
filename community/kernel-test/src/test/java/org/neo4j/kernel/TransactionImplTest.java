@@ -48,7 +48,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.TransactionTerminatedException;
+import org.neo4j.graphdb.TransactionTerminatedHelper;
 import org.neo4j.graphdb.TransientFailureException;
 import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.TokenRead;
@@ -129,7 +129,7 @@ class TransactionImplTest {
     void shouldShowTransactionTerminatedExceptionAsTransient() throws Exception {
         KernelTransaction kernelTransaction = mock(KernelTransaction.class);
         doReturn(true).when(kernelTransaction).isOpen();
-        RuntimeException error = new TransactionTerminatedException(Status.Transaction.Terminated);
+        RuntimeException error = TransactionTerminatedHelper.transactionTerminated(Status.Transaction.Terminated);
         doThrow(error).when(kernelTransaction).commit();
         TransactionImpl transaction = createTransaction(kernelTransaction);
 

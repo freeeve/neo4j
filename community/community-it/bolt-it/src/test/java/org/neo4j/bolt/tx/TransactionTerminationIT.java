@@ -28,6 +28,7 @@ import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
 import org.neo4j.bolt.test.annotation.test.ProtocolTest;
 import org.neo4j.bolt.test.annotation.wire.selector.IncludeWire;
 import org.neo4j.bolt.testing.annotation.Version;
+import org.neo4j.bolt.testing.assertions.BoltConnectionAssertions;
 import org.neo4j.bolt.testing.client.BoltTestConnection;
 import org.neo4j.bolt.testing.messages.BoltWire;
 import org.neo4j.bolt.transport.Neo4jWithSocket;
@@ -90,8 +91,8 @@ public class TransactionTerminationIT {
         assertThat(connection)
                 .receivesSuccess()
                 .receivesFailure(
-                        Pair.of(Status.Transaction.Terminated, GqlStatusInfoCodes.STATUS_50N42.getGqlStatus()),
-                        Pair.of(Status.Transaction.LockClientStopped, GqlStatusInfoCodes.STATUS_50N42.getGqlStatus()))
+                        Pair.of(Status.Transaction.Terminated, GqlStatusInfoCodes.STATUS_25N14.getGqlStatus()),
+                        Pair.of(Status.Transaction.LockClientStopped, GqlStatusInfoCodes.STATUS_25N14.getGqlStatus()))
                 .receivesSuccess();
     }
 
@@ -171,8 +172,10 @@ public class TransactionTerminationIT {
                 .receivesFailure(
                         Status.Transaction.Terminated,
                         "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. ",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.");
+                        GqlStatusInfoCodes.STATUS_25N14.getGqlStatus(),
+                        "error: invalid transaction state - transaction termination client error. The transaction has been terminated. "
+                                + "Retry your operation in a new transaction, and you should see a successful result. Reason: Explicitly terminated by the user.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"));
     }
 
     @Timeout(20)
@@ -264,8 +267,10 @@ public class TransactionTerminationIT {
                 .receivesFailure(
                         Status.Transaction.Terminated,
                         "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. ",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.");
+                        GqlStatusInfoCodes.STATUS_25N14.getGqlStatus(),
+                        "error: invalid transaction state - transaction termination client error. The transaction has been terminated. "
+                                + "Retry your operation in a new transaction, and you should see a successful result. Reason: Explicitly terminated by the user.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"));
 
         connection
                 .send(wire.reset())
