@@ -619,7 +619,8 @@ public final class Recovery {
                 tracers.getPageCacheTracer(),
                 recoveryVersionStorage,
                 PagePrefetcher.DISABLED,
-                StoreIdGenerator.UNIQUE_ID);
+                StoreIdGenerator.UNIQUE_ID,
+                dependenciesOf(recoveryVersionStorage));
 
         // multi versioned stores recovery does not support format mode atm
         if (multiversion) {

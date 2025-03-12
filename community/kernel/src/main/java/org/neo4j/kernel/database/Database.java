@@ -490,7 +490,8 @@ public class Database extends AbstractDatabase {
                 tracers.getPageCacheTracer(),
                 versionStorage,
                 pagePrefetcher,
-                storeIdGenerator);
+                storeIdGenerator,
+                databaseDependencies);
 
         var metadataProvider = databaseDependencies.satisfyDependency(storageEngine.metadataProvider());
 

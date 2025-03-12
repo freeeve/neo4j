@@ -42,6 +42,7 @@ import org.neo4j.batchimport.api.Monitor;
 import org.neo4j.batchimport.api.ReadBehaviour;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Input;
+import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.consistency.checking.ConsistencyCheckIncompleteException;
@@ -175,7 +176,8 @@ public interface StorageEngineFactory {
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
             PagePrefetcher pagePrefetcher,
-            StoreIdGenerator storeIdGenerator)
+            StoreIdGenerator storeIdGenerator,
+            DependencyResolver databaseDependencies)
             throws IOException;
 
     /**

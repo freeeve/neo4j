@@ -40,6 +40,7 @@ import org.neo4j.batchimport.api.Monitor;
 import org.neo4j.batchimport.api.ReadBehaviour;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.Input;
+import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.consistency.checking.ConsistencyCheckIncompleteException;
 import org.neo4j.consistency.checking.ConsistencyFlags;
@@ -165,7 +166,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
             PagePrefetcher pagePrefetcher,
-            StoreIdGenerator storeIdGenerator)
+            StoreIdGenerator storeIdGenerator,
+            DependencyResolver databaseDependencies)
             throws IOException {
         return delegate.instantiate(
                 fs,
@@ -190,7 +192,8 @@ public class DelegatingStorageEngineFactory implements StorageEngineFactory {
                 pageCacheTracer,
                 versionStorage,
                 pagePrefetcher,
-                storeIdGenerator);
+                storeIdGenerator,
+                databaseDependencies);
     }
 
     @Override
