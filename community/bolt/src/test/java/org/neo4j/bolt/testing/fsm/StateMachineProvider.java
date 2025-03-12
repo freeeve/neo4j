@@ -36,6 +36,10 @@ public interface StateMachineProvider {
                 StateMachineV50Provider.getInstance(),
                 StateMachineV51Provider.getInstance(),
                 StateMachineV52Provider.getInstance(),
+                StateMachineV53Provider.getInstance(),
+                StateMachineV54Provider.getInstance(),
+                StateMachineV56Provider.getInstance(),
+                StateMachineV57Provider.getInstance(),
                 StateMachineV58Provider.getInstance());
     }
 

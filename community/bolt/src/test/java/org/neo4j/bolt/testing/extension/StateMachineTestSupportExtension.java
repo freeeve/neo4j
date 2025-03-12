@@ -88,10 +88,12 @@ public class StateMachineTestSupportExtension implements TestTemplateInvocationC
         var until = convertVersion(annotation.until());
 
         if (since.major() != 0) {
-            return includedVersions.filter(version -> version.version().compareTo(since) >= 0);
+            includedVersions =
+                    includedVersions.filter(version -> version.version().isAtLeast(since));
         }
         if (until.major() != ProtocolVersion.MAX_MINOR_BIT) {
-            return includedVersions.filter(version -> version.version().compareTo(until) < 0);
+            includedVersions =
+                    includedVersions.filter(version -> version.version().isAtMost(until));
         }
 
         if (annotation.include().length != 0) {

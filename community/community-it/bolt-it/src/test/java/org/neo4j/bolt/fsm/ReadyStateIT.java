@@ -88,7 +88,7 @@ class ReadyStateIT {
         shouldCloseConnectionOnMessage(fsm, messages.goodbye());
     }
 
-    @StateMachineTest(until = @Version(major = 5, minor = 7))
+    @StateMachineTest(until = @Version(major = 5, minor = 6))
     void shouldMoveToAutoCommitOnRunNoDb_succ(
             @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
         // When
@@ -163,7 +163,7 @@ class ReadyStateIT {
         StateMachineAssertions.assertThat(fsm).isInState(States.AUTO_COMMIT);
     }
 
-    @StateMachineTest(until = @Version(major = 5, minor = 7))
+    @StateMachineTest(until = @Version(major = 5, minor = 6))
     void shouldMoveToInTransactionOnBeginNoDb_succ(
             @Authenticated StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
         // When

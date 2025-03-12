@@ -65,7 +65,7 @@ public class StateTransitionStateMachineTest {
         StateMachineAssertions.assertThat(fsm).isInState(States.NEGOTIATION).hasDefaultState(States.NEGOTIATION);
     }
 
-    @StateMachineTest(until = @Version(major = 5, minor = 1))
+    @StateMachineTest(until = @Version(major = 5, minor = 0))
     void shouldBeInAuthenticationStateWhenCreated(StateMachine fsm) {
         StateMachineAssertions.assertThat(fsm).isInState(States.AUTHENTICATION).hasDefaultState(States.AUTHENTICATION);
     }
@@ -136,7 +136,7 @@ public class StateTransitionStateMachineTest {
      * Also verifies that the configured default state advances to {@link States#READY READY} in
      * order to facilitate safe processing of {@link StateMachine#reset() RESET} commands.
      */
-    @StateMachineTest(until = @Version(major = 5, minor = 1))
+    @StateMachineTest(until = @Version(major = 5, minor = 0))
     void shouldTransitionFromNegotiationToReadyOnHello(
             StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws StateMachineException {
         fsm.process(messages.hello(), recorder, null);

@@ -43,7 +43,7 @@ class ConnectedStateAuthenticationIT {
         settings.put(GraphDatabaseSettings.auth_enabled, true);
     }
 
-    @StateMachineTest(until = @org.neo4j.bolt.testing.annotation.Version(major = 5, minor = 1))
+    @StateMachineTest(until = @org.neo4j.bolt.testing.annotation.Version(major = 5, minor = 0))
     void shouldGiveCredentialsExpiredStatusOnExpiredCredentials(
             StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
         fsm.process(messages.hello("neo4j", "neo4j"), recorder);
@@ -55,7 +55,7 @@ class ConnectedStateAuthenticationIT {
                 .hasFailureResponse(Status.Security.CredentialsExpired);
     }
 
-    @StateMachineTest(until = @org.neo4j.bolt.testing.annotation.Version(major = 5, minor = 1))
+    @StateMachineTest(until = @org.neo4j.bolt.testing.annotation.Version(major = 5, minor = 0))
     void shouldGiveKernelVersionOnInit(StateMachine fsm, BoltMessages messages, ResponseRecorder recorder)
             throws Throwable {
         var version = "Neo4j/" + Version.getNeo4jVersion();
@@ -67,7 +67,7 @@ class ConnectedStateAuthenticationIT {
                         meta -> assertThat(meta).extractingEntry("server").isEqualTo(version));
     }
 
-    @StateMachineTest(until = @org.neo4j.bolt.testing.annotation.Version(major = 5, minor = 1))
+    @StateMachineTest(until = @org.neo4j.bolt.testing.annotation.Version(major = 5, minor = 0))
     void shouldCloseConnectionAfterAuthenticationFailure(
             StateMachine fsm, BoltMessages messages, ResponseRecorder recorder) throws Throwable {
         assertThat(fsm).shouldKillConnection(it -> it.process(messages.hello("neo4j", "j4oen"), recorder));
