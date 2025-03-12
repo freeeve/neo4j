@@ -67,27 +67,13 @@ case class repeatTrailAndWalkEndNodePredicateRewriter(attributes: Attributes[Log
 
   override val innerRewriter: Rewriter = {
     Rewriter.lift {
-      case IsRepeatTrailIntoRewritable(selection, repeat, intoVariable, None) =>
+      case IsRepeatTrailIntoRewritable(selection, repeat, intoVariable) =>
         val id = attributes.copy(selection.id).id()
         repeat.copy(end = intoVariable, mode = ExpandInto)(SameId(id))
 
-      case IsRepeatTrailIntoRewritable(selection, repeat, intoVariable, Some(remainingPredicates)) =>
-        // TODO in this case the estimated rows will be off, because the predicate has been split
-        selection.copy(
-          predicate = remainingPredicates,
-          source = repeat.copy(end = intoVariable, mode = ExpandInto)(SameId(repeat.id))
-        )(SameId(selection.id))
-
-      case IsRepeatWalkIntoRewritable(selection, repeat, intoVariable, None) =>
+      case IsRepeatWalkIntoRewritable(selection, repeat, intoVariable) =>
         val id = attributes.copy(selection.id).id()
         repeat.copy(end = intoVariable, mode = ExpandInto)(SameId(id))
-
-      case IsRepeatWalkIntoRewritable(selection, repeat, intoVariable, Some(remainingPredicates)) =>
-        // TODO in this case the estimated rows will be off, because the predicate has been split
-        selection.copy(
-          predicate = remainingPredicates,
-          source = repeat.copy(end = intoVariable, mode = ExpandInto)(SameId(repeat.id))
-        )(SameId(selection.id))
     }
   }
 
@@ -97,7 +83,7 @@ case class repeatTrailAndWalkEndNodePredicateRewriter(attributes: Attributes[Log
 
   private object IsRepeatTrailIntoRewritable {
 
-    def unapply(plan: LogicalPlan): Option[(Selection, RepeatTrail, LogicalVariable, Option[Ands])] = {
+    def unapply(plan: LogicalPlan): Option[(Selection, RepeatTrail, LogicalVariable)] = {
       plan match {
         case s @ Selection(IsOnlyEquality(lhs, rhs), r: RepeatTrail) => returnOtherNode(s, lhs, rhs, r)
         case _                                                       => None
@@ -107,7 +93,7 @@ case class repeatTrailAndWalkEndNodePredicateRewriter(attributes: Attributes[Log
 
   private object IsRepeatWalkIntoRewritable {
 
-    def unapply(plan: LogicalPlan): Option[(Selection, RepeatWalk, LogicalVariable, Option[Ands])] = {
+    def unapply(plan: LogicalPlan): Option[(Selection, RepeatWalk, LogicalVariable)] = {
       plan match {
         case s @ Selection(IsOnlyEquality(lhs, rhs), r: RepeatWalk) => returnOtherNode(s, lhs, rhs, r)
         case _                                                      => None
@@ -120,15 +106,14 @@ case class repeatTrailAndWalkEndNodePredicateRewriter(attributes: Attributes[Log
     lhs: LogicalVariable,
     rhs: LogicalVariable,
     r: REPEAT
-  ): Option[(Selection, REPEAT, LogicalVariable, None.type)] = {
+  ): Option[(Selection, REPEAT, LogicalVariable)] = {
     r.end match {
-      case `lhs` => Some((s, r, rhs, None /*TODO this could be other predicates later*/ ))
-      case `rhs` => Some((s, r, lhs, None /*TODO this could be other predicates later*/ ))
+      case `lhs` => Some((s, r, rhs))
+      case `rhs` => Some((s, r, lhs))
       case _     => None
     }
   }
 
-  // TODO make another unapply that splits the predicates into 'into' & 'rest'
   private object IsOnlyEquality {
 
     def unapply(ands: Ands): Option[(LogicalVariable, LogicalVariable)] = {
