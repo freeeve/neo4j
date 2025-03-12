@@ -24,78 +24,53 @@ import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
-import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.kernel.api.AccessModeProvider;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.storageengine.api.AllRelationshipsScan;
 import org.neo4j.storageengine.api.LongReference;
-import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
 
 public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<DefaultRelationshipScanCursor>
         implements RelationshipScanCursor {
     private final StorageRelationshipScanCursor storeCursor;
-    private final InternalCursorFactory internalCursors;
-    private final boolean applyAccessModeToTxState;
+
     private long single;
     private boolean isSingle;
-    private LongIterator addedRelationships;
-    private DefaultNodeCursor securityNodeCursor;
-    private AccessMode accessMode;
-    private boolean allowAllRelationships;
-    private boolean allowAllNodes;
-    private AccessControlPropertiesProvider accessControlPropertiesProvider;
 
     protected DefaultRelationshipScanCursor(
             CursorPool<DefaultRelationshipScanCursor> pool,
             StorageRelationshipScanCursor storeCursor,
             InternalCursorFactory internalCursors,
             boolean applyAccessModeToTxState) {
-        super(storeCursor, pool);
+        super(storeCursor, pool, applyAccessModeToTxState, internalCursors);
         this.storeCursor = storeCursor;
-        this.internalCursors = internalCursors;
-        this.applyAccessModeToTxState = applyAccessModeToTxState;
     }
 
     void scan(Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider) {
+        init(read, txStateHolder, accessModeProvider);
         storeCursor.scan();
         this.single = LongReference.NULL;
         this.isSingle = false;
-        init(read, txStateHolder, accessModeProvider);
-        initAccessMode(accessModeProvider);
-        this.addedRelationships = ImmutableEmptyLongIterator.INSTANCE;
     }
 
     boolean scanBatch(
             Read read,
             AllRelationshipsScan scan,
             long sizeHint,
-            LongIterator addedRelationships,
-            boolean hasChanges,
             TxStateHolder txStateHolder,
             AccessModeProvider accessModeProvider) {
-        this.read = read;
-        this.txStateHolder = txStateHolder;
-        this.accessModeProvider = accessModeProvider;
-        initAccessMode(accessModeProvider);
+        init(read, txStateHolder, accessModeProvider);
         this.single = LongReference.NULL;
         this.isSingle = false;
-        this.currentAddedInTx = LongReference.NULL;
-        this.addedRelationships = addedRelationships;
-        this.hasChanges = hasChanges;
-        this.checkHasChanges = false;
-        boolean scanBatch = storeCursor.scanBatch(scan, sizeHint);
-        return addedRelationships.hasNext() || scanBatch;
+        prepareChanges(ImmutableEmptyLongIterator.INSTANCE, false);
+        return storeCursor.scanBatch(scan, sizeHint);
     }
 
     void single(long reference, Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider) {
+        init(read, txStateHolder, accessModeProvider);
         storeCursor.single(reference);
         this.single = reference;
         this.isSingle = true;
-        init(read, txStateHolder, accessModeProvider);
-        initAccessMode(accessModeProvider);
-        this.accessMode = accessModeProvider.getAccessMode();
-        this.addedRelationships = ImmutableEmptyLongIterator.INSTANCE;
     }
 
     void single(
@@ -106,89 +81,19 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
             Read read,
             TxStateHolder txStateHolder,
             AccessModeProvider accessModeProvider) {
+        init(read, txStateHolder, accessModeProvider);
         storeCursor.single(reference, sourceNodeReference, type, targetNodeReference);
         this.single = reference;
         this.isSingle = true;
-        init(read, txStateHolder, accessModeProvider);
-        initAccessMode(accessModeProvider);
-        this.accessMode = accessModeProvider.getAccessMode();
-        this.addedRelationships = ImmutableEmptyLongIterator.INSTANCE;
-    }
-
-    /**
-     * It is expected that accessMode is stable while cursor is in use, so we cache accessMode and couple shortcuts
-     */
-    private void initAccessMode(AccessModeProvider accessModeProvider) {
-        this.accessMode = accessModeProvider.getAccessMode();
-        this.allowAllRelationships = accessMode.allowsTraverseAllRelTypes();
-        this.allowAllNodes = accessMode.allowsTraverseAllLabels();
     }
 
     @Override
-    public boolean next() {
-        // Check tx state
-        boolean hasChanges = hasChanges();
-
-        if (hasChanges) {
-            while (addedRelationships.hasNext()) {
-                long next = addedRelationships.next();
-                txStateHolder.txState().relationshipVisit(next, relationshipTxStateDataVisitor);
-
-                if (!applyAccessModeToTxState || allowed()) {
-                    trace();
-                    return true;
-                }
-            }
-            currentAddedInTx = LongReference.NULL;
-        }
-
-        while (storeCursor.next()) {
-            if (!deletedInThisBatch(hasChanges) && allowed()) {
-                trace();
-                return true;
-            }
-        }
+    protected boolean filterOutTxStateRelationship() {
         return false;
     }
 
-    private boolean deletedInThisBatch(boolean hasChanges) {
-        return hasChanges && txStateHolder.txState().relationshipIsDeletedInThisBatch(storeCursor.entityReference());
-    }
-
-    private void trace() {
-        if (tracer != null) {
-            tracer.onRelationship(relationshipReference());
-        }
-    }
-
-    protected boolean allowed() {
-        assert accessMode == accessModeProvider.getAccessMode() : "access mode changed while cursor is in use";
-        return allowedTraverseRelationship() && allowedToTraverseEndNodes();
-    }
-
-    private boolean allowedTraverseRelationship() {
-        if (allowAllRelationships) {
-            return true;
-        }
-        return accessMode.allowsTraverseRelationship(type(), getSelectedPropertiesProvider());
-    }
-
-    private AccessControlPropertiesProvider getSelectedPropertiesProvider() {
-        if (accessControlPropertiesProvider == null) {
-            accessControlPropertiesProvider = new AccessControlPropertiesProvider(
-                    storeCursor, internalCursors, applyAccessModeToTxState, this::txStateProperties);
-        }
-        return accessControlPropertiesProvider;
-    }
-
-    private Iterable<StorageProperty> txStateProperties() {
-        return txStateHolder
-                .txState()
-                .getRelationshipState(this.relationshipReference())
-                .addedAndChangedProperties();
-    }
-
-    private boolean allowedToTraverseEndNodes() {
+    @Override
+    protected boolean allowedToTraverseEndNodes() {
         if (allowAllNodes) {
             return true;
         }
@@ -207,34 +112,14 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
         return false;
     }
 
-    private DefaultNodeCursor getSecurityNodeCursor() {
-        if (securityNodeCursor == null) {
-            securityNodeCursor = internalCursors.allocateNodeCursor();
-        }
-        return securityNodeCursor;
-    }
-
     @Override
-    public void closeInternal() {
-        if (!isClosed()) {
-            read = null;
-            txStateHolder = null;
-            accessModeProvider = null;
-            accessMode = null;
-            storeCursor.reset();
-            if (securityNodeCursor != null) {
-                securityNodeCursor.close();
-            }
-            if (accessControlPropertiesProvider != null) {
-                accessControlPropertiesProvider.close();
-            }
+    protected LongIterator collectAddedTxStateSnapshot(TxStateHolder stateHolder) {
+        if (isSingle) {
+            return stateHolder.txState().relationshipIsAddedInThisBatch(single)
+                    ? LongHashSet.newSetWith(single).longIterator()
+                    : ImmutableEmptyLongIterator.INSTANCE;
         }
-        super.closeInternal();
-    }
-
-    @Override
-    public boolean isClosed() {
-        return read == null;
+        return stateHolder.txState().addedAndRemovedRelationships().getAdded().longIterator();
     }
 
     @Override
@@ -245,34 +130,5 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
         return "RelationshipScanCursor[id=" + storeCursor.entityReference() + ", open state with: single="
                 + single + ", "
                 + storeCursor + "]";
-    }
-
-    @Override
-    protected void collectAddedTxStateSnapshot() {
-        if (isSingle) {
-            addedRelationships = txStateHolder.txState().relationshipIsAddedInThisBatch(single)
-                    ? LongHashSet.newSetWith(single).longIterator()
-                    : ImmutableEmptyLongIterator.INSTANCE;
-        } else {
-            addedRelationships = txStateHolder
-                    .txState()
-                    .addedAndRemovedRelationships()
-                    .getAdded()
-                    .longIterator();
-        }
-    }
-
-    @Override
-    public void release() {
-        storeCursor.close();
-        if (securityNodeCursor != null) {
-            securityNodeCursor.close();
-            securityNodeCursor.release();
-            securityNodeCursor = null;
-        }
-        if (accessControlPropertiesProvider != null) {
-            accessControlPropertiesProvider.close();
-            accessControlPropertiesProvider = null;
-        }
     }
 }

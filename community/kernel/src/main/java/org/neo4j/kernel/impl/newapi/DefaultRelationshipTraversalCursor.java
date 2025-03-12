@@ -28,7 +28,6 @@ import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
-import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.kernel.api.AccessModeProvider;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.storageengine.api.LongReference;
@@ -38,13 +37,9 @@ import org.neo4j.storageengine.api.StorageRelationshipTraversalCursor;
 public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCursor<DefaultRelationshipTraversalCursor>
         implements RelationshipTraversalCursor {
     private final StorageRelationshipTraversalCursor storeCursor;
-    private final InternalCursorFactory internalCursors;
-    private final boolean applyAccessModeToTxState;
-    private DefaultNodeCursor securityNodeCursor;
-    private LongIterator addedRelationships;
+
     private long originNodeReference;
     private RelationshipSelection selection;
-
     private long neighbourNodeReference;
 
     protected DefaultRelationshipTraversalCursor(
@@ -52,10 +47,8 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
             StorageRelationshipTraversalCursor storeCursor,
             InternalCursorFactory internalCursors,
             boolean applyAccessModeToTxState) {
-        super(storeCursor, pool);
+        super(storeCursor, pool, applyAccessModeToTxState, internalCursors);
         this.storeCursor = storeCursor;
-        this.internalCursors = internalCursors;
-        this.applyAccessModeToTxState = applyAccessModeToTxState;
     }
 
     /**
@@ -65,8 +58,8 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
      * @param reference reference to the place to start traversing these relationships.
      * @param selection the relationship selector
      * @param read reference to {@link Read}.
-     * @param txStateHolder
-     * @param accessModeProvider
+     * @param txStateHolder transaction state holder
+     * @param accessModeProvider access mode provider
      */
     void init(
             long nodeReference,
@@ -75,12 +68,11 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
             Read read,
             TxStateHolder txStateHolder,
             AccessModeProvider accessModeProvider) {
+        init(read, txStateHolder, accessModeProvider);
         this.originNodeReference = nodeReference;
         this.selection = selection;
-        this.neighbourNodeReference = -1;
+        this.neighbourNodeReference = LongReference.NULL;
         this.storeCursor.init(nodeReference, reference, selection);
-        init(read, txStateHolder, accessModeProvider);
-        this.addedRelationships = ImmutableEmptyLongIterator.INSTANCE;
     }
 
     /**
@@ -89,8 +81,8 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
      * @param nodeCursor {@link NodeCursor} at the origin node.
      * @param selection the relationship selector
      * @param read reference to {@link Read}.
-     * @param txStateHolder
-     * @param accessModeProvider
+     * @param txStateHolder transaction state holder
+     * @param accessModeProvider access mode provider
      */
     void init(
             DefaultNodeCursor nodeCursor,
@@ -98,6 +90,7 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
             Read read,
             TxStateHolder txStateHolder,
             AccessModeProvider accessModeProvider) {
+        init(read, txStateHolder, accessModeProvider);
         this.originNodeReference = nodeCursor.nodeReference();
         this.selection = selection;
         this.neighbourNodeReference = LongReference.NULL;
@@ -106,8 +99,6 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
         } else {
             storeCursor.reset();
         }
-        init(read, txStateHolder, accessModeProvider);
-        this.addedRelationships = ImmutableEmptyLongIterator.INSTANCE;
     }
 
     /**
@@ -115,19 +106,17 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
      *
      * @param addedRelationship the relationship to access
      * @param read reference to {@link Read}.
-     * @param txStateHolder
-     * @param accessModeProvider
+     * @param txStateHolder transaction state holder
+     * @param accessModeProvider access mode provider
      */
     void init(long addedRelationship, Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider) {
         assert addedRelationship != LongReference.NULL;
+        init(read, txStateHolder, accessModeProvider);
         this.originNodeReference = LongReference.NULL;
         this.neighbourNodeReference = LongReference.NULL;
         this.selection = null;
         storeCursor.reset();
-        init(read, txStateHolder, accessModeProvider);
-        this.checkHasChanges = false;
-        this.hasChanges = true;
-        this.addedRelationships = PrimitiveLongCollections.single(addedRelationship);
+        prepareChanges(PrimitiveLongCollections.single(addedRelationship), true);
     }
 
     void init(
@@ -137,15 +126,17 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
             Read read,
             TxStateHolder txStateHolder,
             AccessModeProvider accessModeProvider) {
+        init(read, txStateHolder, accessModeProvider);
         this.originNodeReference = nodeCursor.nodeReference();
         this.selection = selection;
         this.neighbourNodeReference = neighbourNodeReference;
         if (!nodeCursor.currentNodeIsAddedInTx()) {
             nodeCursor.storeCursor.relationshipsTo(storeCursor, selection, neighbourNodeReference);
         }
-        init(read, txStateHolder, accessModeProvider);
-        this.addedRelationships = ImmutableEmptyLongIterator.INSTANCE;
     }
+
+    @Override
+    protected void maybeTraceStoreHit() {}
 
     @Override
     public void otherNode(NodeCursor cursor) {
@@ -177,38 +168,8 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
     }
 
     @Override
-    public boolean next() {
-        boolean hasChanges = hasChanges();
-
-        // tx-state relationships
-        if (hasChanges) {
-            while (addedRelationships.hasNext()) {
-                long next = addedRelationships.next();
-                txStateHolder.txState().relationshipVisit(next, relationshipTxStateDataVisitor);
-
-                if (!applyAccessModeToTxState || allowed()) {
-                    if (neighbourNodeReference != LongReference.NULL
-                            && otherNodeReference() != neighbourNodeReference) {
-                        continue;
-                    }
-
-                    if (tracer != null) {
-                        tracer.onRelationship(relationshipReference());
-                    }
-                    return true;
-                }
-            }
-            currentAddedInTx = LongReference.NULL;
-        }
-
-        while (storeCursor.next()) {
-            boolean skip = hasChanges
-                    && txStateHolder.txState().relationshipIsDeletedInThisBatch(storeCursor.entityReference());
-            if (!skip && allowed()) {
-                return true;
-            }
-        }
-        return false;
+    protected boolean filterOutTxStateRelationship() {
+        return neighbourNodeReference != LongReference.NULL && otherNodeReference() != neighbourNodeReference;
     }
 
     @Override
@@ -223,72 +184,45 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
         super.removeTracer();
     }
 
-    protected boolean allowed() {
-        AccessMode accessMode = accessModeProvider.getAccessMode();
-        if (accessMode.allowsTraverseRelType(type())) {
-            if (accessMode.allowsTraverseAllLabels()) {
-                return true;
-            }
-            if (securityNodeCursor == null) {
-                securityNodeCursor = internalCursors.allocateNodeCursor();
-            }
-            if (applyAccessModeToTxState
-                    && this.currentAddedInTx != LongReference.NULL
-                    && neighbourNodeReference != LongReference.NULL) {
-                read.singleNode(neighbourNodeReference, securityNodeCursor);
-            } else {
-                read.singleNode(storeCursor.neighbourNodeReference(), securityNodeCursor);
-            }
-            return securityNodeCursor.next();
+    @Override
+    protected boolean allowedToTraverseEndNodes() {
+        if (allowAllNodes) {
+            return true;
         }
-        return false;
+        // need to check only neighbour node because we came here from the source node
+        var nodeCursor = getSecurityNodeCursor();
+        read.singleNode(chooseNeighbourReferenceForSecurityCheck(), nodeCursor);
+        return nodeCursor.next();
+    }
+
+    private long chooseNeighbourReferenceForSecurityCheck() {
+        if (applyAccessModeToTxState
+                && this.currentAddedInTx != LongReference.NULL
+                && neighbourNodeReference != LongReference.NULL) {
+            return neighbourNodeReference;
+        }
+        return storeCursor.neighbourNodeReference();
     }
 
     @Override
     public void closeInternal() {
-        if (!isClosed()) {
-            read = null;
-            txStateHolder = null;
-            accessModeProvider = null;
-            selection = null;
-            storeCursor.reset();
-
-            if (securityNodeCursor != null) {
-                securityNodeCursor.close();
-            }
-        }
+        selection = null;
         super.closeInternal();
     }
 
     @Override
-    protected void collectAddedTxStateSnapshot() {
+    protected LongIterator collectAddedTxStateSnapshot(TxStateHolder stateHolder) {
         if (selection != null) {
-            addedRelationships =
-                    selection.addedRelationships(txStateHolder.txState().getNodeState(originNodeReference));
+            return selection.addedRelationships(stateHolder.txState().getNodeState(originNodeReference));
         }
-    }
-
-    @Override
-    public boolean isClosed() {
-        return read == null;
-    }
-
-    @Override
-    public void release() {
-        storeCursor.close();
-        if (securityNodeCursor != null) {
-            securityNodeCursor.close();
-            securityNodeCursor.release();
-            securityNodeCursor = null;
-        }
+        return ImmutableEmptyLongIterator.INSTANCE;
     }
 
     @Override
     public String toString() {
         if (isClosed()) {
-            return "RelationshipTraversalCursor[closed state]";
-        } else {
-            return "RelationshipTraversalCursor[id=" + storeCursor.entityReference() + ", " + storeCursor + "]";
+            return getClass().getSimpleName() + "[closed state]";
         }
+        return getClass().getSimpleName() + "[id=" + storeCursor.entityReference() + ", " + storeCursor + "]";
     }
 }

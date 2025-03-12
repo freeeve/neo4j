@@ -36,6 +36,7 @@ import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.Reference;
 import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.storageengine.api.StoragePropertyCursor;
+import org.neo4j.storageengine.api.StorageRelationshipCursor;
 import org.neo4j.storageengine.api.txstate.EntityState;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
@@ -186,20 +187,21 @@ public class DefaultPropertyCursor extends TraceableCursorImpl<DefaultPropertyCu
     }
 
     void initRelationship(
-            DefaultRelationshipCursor relationshipCursor,
             PropertySelection selection,
             Read read,
             TxStateHolder txStateHolder,
-            AccessModeProvider accessModeProvider) {
-        entityReference = relationshipCursor.relationshipReference();
+            AccessModeProvider accessModeProvider,
+            StorageRelationshipCursor storageRelationshipCursor,
+            boolean addedInTransaction,
+            long relationshipReference) {
+        entityReference = relationshipReference;
         assert entityReference != LongReference.NULL;
 
         init(selection, read, accessModeProvider);
         initializeRelationshipTransactionState(entityReference, txStateHolder);
-        this.addedInTx = relationshipCursor.currentRelationshipIsAddedInTx();
+        this.addedInTx = addedInTransaction;
         if (!addedInTx || applyAccessModeToTxState) {
-            storeCursor.initRelationshipProperties(
-                    relationshipCursor.storeCursor, filterSelectionForTxState(selection));
+            storeCursor.initRelationshipProperties(storageRelationshipCursor, filterSelectionForTxState(selection));
         } else {
             storeCursor.reset();
         }

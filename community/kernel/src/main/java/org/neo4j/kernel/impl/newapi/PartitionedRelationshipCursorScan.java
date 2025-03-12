@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
-import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.kernel.api.ExecutionContext;
 import org.neo4j.storageengine.api.AllRelationshipsScan;
@@ -39,8 +38,6 @@ final class PartitionedRelationshipCursorScan
                         executionContext.dataRead(),
                         storageScan,
                         computeBatchSize(),
-                        ImmutableEmptyLongIterator.INSTANCE,
-                        false,
                         executionContext.txStateHolder(),
                         executionContext.accessModeProvider());
     }
