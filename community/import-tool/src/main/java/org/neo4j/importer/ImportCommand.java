@@ -460,6 +460,14 @@ public class ImportCommand {
                 converter = FileInputTypeConverter.class)
         FileImporter.FileInputType fileInputType;
 
+        @Option(
+                names = "--temp-path",
+                paramLabel = "<path>",
+                description =
+                        "Path where to store temporary files during import. Any temporary files will be deleted before completing the import. "
+                                + "If not specifically provided, the default temp path will be created inside the database directory of the imported database.")
+        private Path tempPath;
+
         protected Base(ExecutionContext ctx) {
             super(ctx);
         }
@@ -694,6 +702,19 @@ public class ImportCommand {
                         return overrideNumRanges;
                     }
                     return super.forcedNumberOfNodeIdRanges();
+                }
+
+                @Override
+                public Path tempDirectory(Path databaseDirectory) {
+                    if (tempPath != null) {
+                        // The idea is that when providing a specific directory it may be the case that one
+                        // import configuration could be used for multiple internal imports
+                        // (e.g. multi-stage incremental). Therefor guard for this fact by including the db directory
+                        // name on the path too.
+                        return tempPath.resolve(
+                                "temp-" + databaseDirectory.getFileName().toString());
+                    }
+                    return super.tempDirectory(databaseDirectory);
                 }
             };
         }

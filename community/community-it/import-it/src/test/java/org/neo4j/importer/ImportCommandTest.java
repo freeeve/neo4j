@@ -2562,6 +2562,32 @@ class ImportCommandTest {
                 .hasRootCauseInstanceOf(MissingRelationshipDataException.class);
     }
 
+    @Test
+    void shouldImportWithCustomTempPath() throws Exception {
+        // given
+        var nodes = createAndWriteFile("nodes.csv", Charset.defaultCharset(), writer -> {
+            writer.println(":ID");
+            writer.println("A");
+            writer.println("B");
+        });
+        var relationships = createAndWriteFile("relationships.csv", Charset.defaultCharset(), writer -> {
+            writer.println(":START_ID,:TYPE,:END_ID");
+            writer.println("A,KNOWS,B");
+        });
+
+        // when
+        Path tempDirectory = testDirectory.directory("some-temp-dir");
+        runImport(
+                "--nodes",
+                nodes.toString(),
+                "--relationships",
+                relationships.toString(),
+                "--temp-path",
+                tempDirectory.toAbsolutePath().toString());
+
+        // then not sure how to verify that the temp directory was actually used?
+    }
+
     private static void assertContains(String linesType, List<String> lines, String string) {
         for (String line : lines) {
             if (line.contains(string)) {

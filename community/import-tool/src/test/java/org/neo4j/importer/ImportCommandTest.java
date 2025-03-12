@@ -98,6 +98,7 @@ class ImportCommandTest {
                 "--strict",
                 "--normalize-types",
                 "--nodes",
+                "--temp-path",
                 "--relationships",
                 "--auto-skip-subsequent-headers",
                 "--input-type",

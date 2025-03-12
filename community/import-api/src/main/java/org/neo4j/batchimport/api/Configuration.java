@@ -23,6 +23,7 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.upgrade_proc
 import static org.neo4j.configuration.ToolingMemoryCalculations.NO_MONITOR;
 import static org.neo4j.util.FeatureToggles.getInteger;
 
+import java.nio.file.Path;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.ToolingMemoryCalculations;
 import org.neo4j.io.pagecache.ExternallyManagedPageCache;
@@ -178,6 +179,10 @@ public interface Configuration {
      */
     default ExternallyManagedPageCache providedPageCache() {
         return null;
+    }
+
+    default Path tempDirectory(Path databaseDirectory) {
+        return databaseDirectory.resolve("temp");
     }
 
     Configuration DEFAULT = new Configuration() {};
