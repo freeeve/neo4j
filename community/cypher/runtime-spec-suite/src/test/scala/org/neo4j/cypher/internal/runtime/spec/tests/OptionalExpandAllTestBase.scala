@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RowCount
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.exceptions.ParameterWrongTypeException
+import org.neo4j.graphdb.Label
 import org.neo4j.graphdb.Label.label
 import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.RelationshipType
@@ -1290,5 +1291,42 @@ abstract class OptionalExpandAllTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x").withRows(singleColumn(nodes.flatMap(n => Seq.fill(20)(n))))
+  }
+
+  test("should handle node being deleted midstream") {
+    // given
+    val (x, ys, xDeleted) = givenGraph {
+      val n1 = tx.createNode(Label.label("L"))
+      val n2 = tx.createNode(Label.label("L"))
+      n1.setProperty("prop", "this is the value")
+      n2.setProperty("prop", "I am not long for this world")
+      val ys = (1 to 4).map(_ => {
+        val y = tx.createNode(Label.label("L"))
+        n1.createRelationshipTo(y, RelationshipType.withName("R"))
+        y
+      })
+      (n1, ys, n2)
+    }
+
+    // this to simulate that xDeleted was deleted after being read from the leaf operator
+    givenGraph {
+      Boolean.box(tx.kernelTransaction().dataWrite().nodeDelete(xDeleted.getId))
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("y", "p")
+      .nonFuseable()
+      .projection("x.prop AS p")
+      .optionalExpandAll("(x)-[r]->(y)")
+      .nonFuseable()
+      .input(nodes = Seq("x"))
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime, inputValues(Array(x), Array(xDeleted)))
+
+    // then
+    val expected = ys.map(y => Array(y, "this is the value")) :+ Array(null, null)
+    runtimeResult should beColumns("y", "p").withRows(expected)
   }
 }
