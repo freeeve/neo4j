@@ -44,7 +44,6 @@ import org.neo4j.cypher.cucumber.value.ResultValueMapper.UnorderedList.rowsWithU
 import org.neo4j.cypher.testing.api.ConsumedResult
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
 import org.neo4j.internal.helpers.Exceptions
-import org.neo4j.internal.kernel.api.exceptions.ProcedureException
 import org.neo4j.internal.kernel.api.procs.QualifiedName
 import org.neo4j.kernel.api.procedure.Context
 import org.neo4j.kernel.impl.util.ValueUtils
@@ -55,7 +54,6 @@ import java.nio.file.Files
 import java.util
 import java.util.Objects
 import java.util.function.Supplier
-
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
 import scala.util.Success
@@ -110,12 +108,8 @@ final class RegularCypherCucumberSteps @Inject() (
           (t: Context) => state,
           safe = true
         )
-        try {
-          db.registerFunction(classOf[TestFailNTimesFunction])
-          registeredProcedures = registeredProcedures.appended(new QualifiedName(TestFailNTimesFunction.name))
-        } catch {
-          case _: ProcedureException => () // ignore
-        }
+        db.unregisterProcedures(Seq(TestFailNTimesFunction.name))
+        db.registerFunction(classOf[TestFailNTimesFunction])
       case _ =>
         throw new IllegalArgumentException(s"$name is not a recognised UDF name")
     }

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.cucumber.glue.regular;
 
 import java.util.concurrent.ConcurrentHashMap;
+import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
@@ -28,12 +29,12 @@ import org.neo4j.procedure.UserFunction;
 import org.neo4j.values.AnyValue;
 
 public class TestFailNTimesFunction {
-    public static final String name = "test.failNTimes";
+    public static final QualifiedName name = new QualifiedName("test", "failNTimes");
 
     @Context
     public State state;
 
-    @UserFunction(TestFailNTimesFunction.name)
+    @UserFunction("test.failNTimes")
     @Description("Throws an exception the first <n> times it is called for a given value of <key>")
     public AnyValue failNTimes(
             @Name("n") long n, @Name("key") AnyValue key, @Name("exceptionType") String exceptionType) {
