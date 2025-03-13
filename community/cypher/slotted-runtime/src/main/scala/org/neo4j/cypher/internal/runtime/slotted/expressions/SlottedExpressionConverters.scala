@@ -146,6 +146,7 @@ case class SlottedExpressionConverters(physicalPlan: PhysicalPlan, maybeOwningPi
           token,
           cachedPropertyOffset,
           NODE_TYPE,
+          _,
           _
         ) =>
         Some(slotted.expressions.SlottedCachedNodeProperty(offset, offsetIsForLongSlot, token, cachedPropertyOffset))
@@ -157,6 +158,7 @@ case class SlottedExpressionConverters(physicalPlan: PhysicalPlan, maybeOwningPi
           token,
           cachedPropertyOffset,
           RELATIONSHIP_TYPE,
+          _,
           _
         ) =>
         Some(slotted.expressions.SlottedCachedRelationshipProperty(
@@ -222,6 +224,7 @@ case class SlottedExpressionConverters(physicalPlan: PhysicalPlan, maybeOwningPi
           propertyKey,
           cachedPropertyOffset,
           NODE_TYPE,
+          _,
           _
         ) =>
         Some(slotted.expressions.SlottedCachedNodePropertyLate(
@@ -238,6 +241,7 @@ case class SlottedExpressionConverters(physicalPlan: PhysicalPlan, maybeOwningPi
           propertyKey,
           cachedPropertyOffset,
           RELATIONSHIP_TYPE,
+          _,
           _
         ) =>
         Some(slotted.expressions.SlottedCachedRelationshipPropertyLate(

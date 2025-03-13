@@ -125,7 +125,7 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     ("runtime expression", "stringified"),
     (ParameterFromSlot(1, "p", IntegerType(isNullable = false)(InputPosition.NONE)), "$p"),
     (
-      SlottedCachedPropertyWithPropertyToken(
+      SlottedCachedPropertyWithPropertyToken.create(
         "x",
         propName("prop"),
         1,
@@ -134,12 +134,13 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
         3,
         NODE_TYPE,
         nullable = false,
-        needsValue = true
+        needsValue = true,
+        failOnMissingEntity = true
       ).asInstanceOf[RuntimeExpression],
       "x.prop"
     ),
     (
-      SlottedCachedPropertyWithPropertyToken(
+      SlottedCachedPropertyWithPropertyToken.create(
         "a",
         propName("prop"),
         1,
@@ -148,12 +149,13 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
         3,
         NODE_TYPE,
         nullable = false,
-        needsValue = true
+        needsValue = true,
+        failOnMissingEntity = true
       ).asInstanceOf[RuntimeExpression],
       "a.prop"
     ),
     (
-      SlottedCachedPropertyWithPropertyToken(
+      SlottedCachedPropertyWithPropertyToken.create(
         "alias",
         propName("prop"),
         1,
@@ -162,14 +164,21 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
         3,
         NODE_TYPE,
         nullable = false,
-        needsValue = true
+        needsValue = true,
+        failOnMissingEntity = true
       ).asInstanceOf[RuntimeExpression],
       "alias.prop"
     ),
-    (SlottedCachedPropertyWithoutPropertyToken("x", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false), "x.prop"),
-    (SlottedCachedPropertyWithoutPropertyToken("a", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false), "a.prop"),
     (
-      SlottedCachedPropertyWithoutPropertyToken("alias", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false),
+      SlottedCachedPropertyWithoutPropertyToken("x", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false, true),
+      "x.prop"
+    ),
+    (
+      SlottedCachedPropertyWithoutPropertyToken("a", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false, true),
+      "a.prop"
+    ),
+    (
+      SlottedCachedPropertyWithoutPropertyToken("alias", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false, true),
       "alias.prop"
     ),
     (SlottedCachedHasPropertyWithPropertyToken("x", propName("prop"), 0, true, 1, 2, NODE_TYPE, false), "x.prop"),
@@ -275,11 +284,12 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
           "  x@10",
           propName("prop"),
           0,
-          true,
+          offsetIsForLongSlot = true,
           1,
           2,
           NODE_TYPE,
-          false
+          nullable = false,
+          failOnMissingEntity = true
         ),
         "`  x@10`.prop"
       ),

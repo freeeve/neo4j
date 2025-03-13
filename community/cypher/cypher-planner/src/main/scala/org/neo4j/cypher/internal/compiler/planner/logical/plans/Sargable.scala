@@ -116,7 +116,8 @@ object AsPropertySeekable {
   def unapply(v: Any): Option[PropertySeekable] = v match {
     case WithSeekableArgs(prop @ Property(ident: LogicalVariable, _), rhs) if !rhs.dependencies(ident) =>
       Some(PropertySeekable(prop, ident, rhs))
-    case WithSeekableArgs(prop @ CachedProperty(_, ident: LogicalVariable, _, _, _), rhs) if !rhs.dependencies(ident) =>
+    case WithSeekableArgs(prop @ CachedProperty(_, ident: LogicalVariable, _, _, _, _), rhs)
+      if !rhs.dependencies(ident) =>
       Some(PropertySeekable(prop, ident, rhs))
     case _ =>
       None
@@ -128,7 +129,7 @@ object AsExplicitlyPropertyScannable {
   def unapply(v: Any): Option[ExplicitlyPropertyScannable] = v match {
     case expr @ IsNotNull(property @ Property(ident: LogicalVariable, _)) =>
       Some(ExplicitlyPropertyScannable(expr, ident, property))
-    case expr @ IsNotNull(property @ CachedProperty(_, ident: LogicalVariable, _, _, _)) =>
+    case expr @ IsNotNull(property @ CachedProperty(_, ident: LogicalVariable, _, _, _, _)) =>
       Some(ExplicitlyPropertyScannable(expr, ident, property))
 
     case _ =>
