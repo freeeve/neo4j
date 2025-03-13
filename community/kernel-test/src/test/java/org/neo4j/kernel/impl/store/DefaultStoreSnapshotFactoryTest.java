@@ -102,7 +102,8 @@ class DefaultStoreSnapshotFactoryTest {
     void shouldReturnExpectedListOfFileNamesForEachType() throws Exception {
         // given
         var expectedFiles = new StoreFileMetadata[] {
-            new StoreFileMetadata(databaseLayout.file("a")), new StoreFileMetadata(databaseLayout.file("b"))
+            new StoreFileMetadata(databaseLayout.file(Path.of("a"))),
+            new StoreFileMetadata(databaseLayout.file(Path.of("b")))
         };
         setExpectedFiles(expectedFiles);
 

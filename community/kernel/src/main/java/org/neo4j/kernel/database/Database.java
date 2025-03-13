@@ -461,7 +461,7 @@ public class Database extends AbstractDatabase {
 
         idController.initialize(
                 fs,
-                databaseLayout.file(PAGED_ID_BUFFER_FILE_NAME),
+                databaseLayout.file(Path.of(PAGED_ID_BUFFER_FILE_NAME)),
                 databaseConfig,
                 () -> kernelModule.kernelTransactions().get(),
                 () -> kernelModule.transactionMonitor().oldestObservableHorizon(),

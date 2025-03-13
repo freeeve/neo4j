@@ -127,7 +127,7 @@ class StoreFactoryTest {
     @Test
     void shouldHandleStoreConsistingOfOneEmptyFile() throws Exception {
         StoreFactory storeFactory = storeFactory(defaults());
-        fileSystem.write(databaseLayout.file("neostore.nodestore.db.labels"));
+        fileSystem.write(databaseLayout.file(Path.of("neostore.nodestore.db.labels")));
         storeFactory.openAllNeoStores().close();
     }
 

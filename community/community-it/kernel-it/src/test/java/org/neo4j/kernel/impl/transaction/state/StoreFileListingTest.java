@@ -276,7 +276,7 @@ class StoreFileListingTest {
 
     private void createIndexDbFile() throws IOException {
         DatabaseLayout databaseLayout = db.databaseLayout();
-        final Path indexFile = databaseLayout.file("index.db");
+        final Path indexFile = databaseLayout.file(Path.of("index.db"));
         filesystem.write(indexFile).close();
     }
 

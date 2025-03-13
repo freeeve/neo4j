@@ -93,7 +93,10 @@ public interface DatabaseLayout {
 
     Optional<Path> idFile(DatabaseFile file);
 
-    Path file(String fileName);
+    /**
+     * Resolves the file path against the database directory and returns that path.
+     */
+    Path file(Path filePath);
 
     Path file(DatabaseFile databaseFile);
 

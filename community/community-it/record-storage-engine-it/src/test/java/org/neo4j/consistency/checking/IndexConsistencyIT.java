@@ -110,7 +110,7 @@ class IndexConsistencyIT {
         DatabaseLayout databaseLayout = db.databaseLayout();
         someData(entityType);
         checkPointer.forceCheckPoint(new SimpleTriggerInfo("forcedCheckpoint"));
-        Path indexesCopy = databaseLayout.file("indexesCopy");
+        Path indexesCopy = databaseLayout.file(Path.of("indexesCopy"));
         Path indexSources =
                 indexProviderMap.getDefaultProvider().directoryStructure().rootDirectory();
         copyDirectory(indexSources, indexesCopy, SOURCE_COPY_FILE_FILTER);
@@ -138,7 +138,7 @@ class IndexConsistencyIT {
         DatabaseLayout databaseLayout = db.databaseLayout();
         someData(entityType);
         checkPointer.forceCheckPoint(new SimpleTriggerInfo("forcedCheckpoint"));
-        Path indexesCopy = databaseLayout.file("indexesCopy");
+        Path indexesCopy = databaseLayout.file(Path.of("indexesCopy"));
         Path indexSources =
                 indexProviderMap.getDefaultProvider().directoryStructure().rootDirectory();
         copyDirectory(indexSources, indexesCopy, SOURCE_COPY_FILE_FILTER);

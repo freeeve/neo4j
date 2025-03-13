@@ -256,8 +256,8 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
         storeFiles.add(toplevelIndexFolder);
         storeFiles.add(profiles);
         // If migrating from <5 the legacy token indexes are not in the index folder
-        storeFiles.add(dir.file(TokenIndexMigrator.LEGACY_LABEL_INDEX_STORE));
-        storeFiles.add(dir.file(TokenIndexMigrator.LEGACY_RELATIONSHIP_TYPE_INDEX_STORE));
+        storeFiles.add(dir.file(Path.of(TokenIndexMigrator.LEGACY_LABEL_INDEX_STORE)));
+        storeFiles.add(dir.file(Path.of(TokenIndexMigrator.LEGACY_RELATIONSHIP_TYPE_INDEX_STORE)));
         fileOperation(
                 DELETE_INCLUDING_DIRS,
                 fileSystem,

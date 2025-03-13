@@ -117,7 +117,7 @@ class AllNodesInStoreExistInLabelIndexTest {
         DatabaseLayout databaseLayout = db.databaseLayout();
         someData();
         checkPointer.forceCheckPoint(new SimpleTriggerInfo("forcedCheckpoint"));
-        Path labelIndexFileCopy = databaseLayout.file("label_index_copy");
+        Path labelIndexFileCopy = databaseLayout.file(Path.of("label_index_copy"));
         Path labelTokenIndexFile = labelTokenIndexFile();
         copyFile(labelTokenIndexFile, labelIndexFileCopy);
 
@@ -142,7 +142,7 @@ class AllNodesInStoreExistInLabelIndexTest {
         DatabaseLayout databaseLayout = db.databaseLayout();
         someData();
         checkPointer.forceCheckPoint(new SimpleTriggerInfo("forcedCheckpoint"));
-        Path labelIndexFileCopy = databaseLayout.file("label_index_copy");
+        Path labelIndexFileCopy = databaseLayout.file(Path.of("label_index_copy"));
         Path labelTokenIndexFile = labelTokenIndexFile();
         copyFile(labelTokenIndexFile, labelIndexFileCopy);
 
@@ -303,7 +303,7 @@ class AllNodesInStoreExistInLabelIndexTest {
 
     private Path copyLabelIndexFile() throws IOException {
         DatabaseLayout databaseLayout = db.databaseLayout();
-        Path labelIndexFileCopy = databaseLayout.file("label_index_copy");
+        Path labelIndexFileCopy = databaseLayout.file(Path.of("label_index_copy"));
         Path labelTokenIndexFile = labelTokenIndexFile();
         database.stop();
         fs.copyFile(labelTokenIndexFile, labelIndexFileCopy);

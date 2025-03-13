@@ -19,8 +19,6 @@
  */
 package org.neo4j.io.layout;
 
-import static org.neo4j.io.layout.DatabaseFile.ID_FILE_SUFFIX;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
@@ -151,17 +149,17 @@ public class PlainDatabaseLayout implements DatabaseLayout {
 
     @Override
     public Optional<Path> idFile(DatabaseFile file) {
-        return file.hasIdFile() ? Optional.of(idFile(file.getName())) : Optional.empty();
+        return file.hasIdFile() ? Optional.of(file.getIdFilePath(databaseDirectory)) : Optional.empty();
     }
 
     @Override
-    public Path file(String fileName) {
-        return databaseDirectory.resolve(fileName);
+    public Path file(Path filePath) {
+        return databaseDirectory.resolve(filePath);
     }
 
     @Override
     public Path file(DatabaseFile databaseFile) {
-        return file(databaseFile.getName());
+        return databaseFile.getPath(databaseDirectory);
     }
 
     @Override
@@ -178,18 +176,10 @@ public class PlainDatabaseLayout implements DatabaseLayout {
         }
     }
 
-    protected Path idFile(String name) {
-        return file(idFileName(name));
-    }
-
     protected boolean isRecoverableStore(DatabaseFile file) {
         throw new IllegalStateException(
                 "Can not determine whether the store '%s' is recoverable in a PlainDatabaseLayout"
                         .formatted(file.getName()));
-    }
-
-    private static String idFileName(String storeName) {
-        return storeName + ID_FILE_SUFFIX;
     }
 
     @Override

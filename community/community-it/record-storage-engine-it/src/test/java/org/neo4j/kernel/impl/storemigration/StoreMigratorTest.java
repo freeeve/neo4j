@@ -41,6 +41,7 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -495,7 +496,7 @@ class StoreMigratorTest {
     }
 
     private boolean migrationDirPresent() {
-        var path = databaseLayout.file(StoreMigrator.MIGRATION_DIRECTORY);
+        var path = databaseLayout.file(Path.of(StoreMigrator.MIGRATION_DIRECTORY));
         return Files.exists(path);
     }
 

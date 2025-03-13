@@ -107,13 +107,20 @@ public class IncrementalBatchImportUtil {
             paths.add(fromLayout.file(databaseFile));
             fromLayout.idFile(databaseFile).ifPresent(paths::add);
         }
-        copyStoreFiles(fileSystem, toLayout, paths.toArray(new Path[0]));
+        copyStoreFiles(fileSystem, fromLayout, toLayout, paths.toArray(new Path[0]));
     }
 
-    public static void copyStoreFiles(FileSystemAbstraction fileSystem, DatabaseLayout into, Path... paths)
+    /**
+     * Copy store files from one database layout to another.
+     *
+     * @param paths a list of (absolute) paths that can be relativized using {@code from.databaseDirectory().relativize}
+     *              to obtain a valid path relative to the database directory.
+     */
+    public static void copyStoreFiles(
+            FileSystemAbstraction fileSystem, DatabaseLayout from, DatabaseLayout into, Path... paths)
             throws IOException {
         for (Path path : paths) {
-            fileSystem.copyFile(path, into.file(path.getFileName().toString()));
+            fileSystem.copyFile(path, into.file(from.databaseDirectory().relativize(path)));
         }
     }
 
