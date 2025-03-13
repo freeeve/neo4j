@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.QuerySolvableByGetDegree.SetExtractor
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.EntityIndexLeafPlanner.IndexCompatiblePredicate
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProvider
 import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
@@ -68,76 +69,131 @@ object VerifyBestPlan {
     val constructed: PlannerQuery = context.staticComponents.planningAttributes.solveds.get(plan.id)
 
     if (expected != constructed) {
-      val UnfulfillableHints(unfulfillableIndexHints, expectedJoinHints, expectedWithoutUnfulfillableHints) =
-        withoutUnfulfillableHints(expected, context)
-      val UnfulfillableHints(_, actualJoinHints, constructedWithoutUnfulfillableHints) =
-        withoutUnfulfillableHints(constructed, context)
-      if (expectedWithoutUnfulfillableHints != constructedWithoutUnfulfillableHints) {
-        val a: PlannerQuery = expected.withoutHints(expected.allHints)
-        val b: PlannerQuery = constructed.withoutHints(constructed.allHints)
-        if (a != b) {
-          // unknown planner issue failed to find plan (without regard for differences in hints)
-          val moreDetails =
-            (a, b) match {
-              case (aSingle: RegularSinglePlannerQuery, bSingle: RegularSinglePlannerQuery) =>
-                aSingle.pointOutDifference(bSingle, "Expected", "Actual")
-              case _ => ""
-            }
-
-          throw new InternalException(
-            s"Expected: \n$expected \n\nActual: \n$constructed\n\nPlan:\n$plan\n\nVerbose plan:\n${plan.verboseToString}\n\n$moreDetails"
-          )
-        } else {
-          // unknown planner issue failed to find plan matching hints (i.e. "implicit hints")
-          val expectedHints = expected.allHints
-          val actualHints = constructed.allHints
-          val missing = expectedHints.diff(actualHints)
-          val solvedInAddition = actualHints.diff(expectedHints)
-          val inventedHintsAndThenSolvedThem = solvedInAddition.exists(!expectedHints.contains(_))
-          if (missing.nonEmpty || inventedHintsAndThenSolvedThem) {
-            def out(h: ListSet[Hint]) = h.map(prettifier.asString).mkString("`", ", ", "`")
-
-            val details =
-              if (missing.isEmpty)
-                s"""Expected:
-                   |${out(expectedHints)}
-                   |
-                   |Instead, got:
-                   |${out(actualHints)}""".stripMargin
-              else
-                s"Could not solve these hints: ${out(missing)}"
-
-            val message =
-              s"""Failed to fulfil the hints of the query.
-                 |$details
-                 |
-                 |Plan $plan""".stripMargin
-
-            throw new HintException(message)
+      val expectedSolved: PlannerQuery = expected.withoutHints(expected.allHints)
+      val actualSolved: PlannerQuery = constructed.withoutHints(constructed.allHints)
+      if (expectedSolved != actualSolved) {
+        val expectedTitle = "Expected"
+        val actualTitle = "Actual"
+        // case: unknown planner issue failed to find plan (without regard for differences in hints)
+        val moreDetails =
+          (expectedSolved, actualSolved) match {
+            case (expectedSingle: RegularSinglePlannerQuery, constructedSolved: RegularSinglePlannerQuery) =>
+              expectedSingle.pointOutDifference(constructedSolved, expectedTitle, actualTitle)
+            case _ => ""
           }
-        }
+
+        throw new InternalException(
+          s"""$expectedTitle:
+             |$expectedSolved
+             |
+             |$actualTitle:
+             |$actualSolved
+             |
+             |Plan:
+             |$plan
+             |
+             |Verbose plan:
+             |${plan.verboseToString}
+             |
+             |$moreDetails""".stripMargin
+        )
       } else {
-        processUnfulfilledIndexHints(context, unfulfillableIndexHints)
-        processUnfulfilledJoinHints(plan, context, expectedJoinHints -- actualJoinHints)
+        // Case: We did construct a plan that suffices the PlannerQuery requested.
+        // However, something went wrong with the hints... Let's analyse.
+
+        def prettify(h: ListSet[Hint]): String =
+          h.map(prettifier.asString).mkString("`", ", ", "`")
+
+        def throwHintException(details: String): Nothing = {
+          val message =
+            s"""Failed to fulfil the hints of the query.
+               |$details
+               |
+               |Plan $plan""".stripMargin
+
+          throw new HintException(message)
+        }
+
+        analyseHints(expected, constructed, context) match {
+          case HintAnalysis(missingUnfulfillable, SetExtractor(), SetExtractor()) =>
+            // case: the missing hints were unfulfillable
+            processUnfulfilledIndexHints(context, missingUnfulfillable.unfulfillableIndexHints)
+            processUnfulfilledJoinHints(plan, context, missingUnfulfillable.unfulfillableJoinHints)
+
+          case HintAnalysis(missingUnfulfillableHints, SetExtractor(), _)
+            if missingUnfulfillableHints.isEmpty =>
+            // case: the planner came up with hints that were not in the original query
+            val details = s"""Expected hints:
+                             |${prettify(expected.allHints)}
+                             |
+                             |Instead, got:
+                             |${prettify(constructed.allHints)}""".stripMargin
+            throwHintException(details)
+
+          case HintAnalysis(missingUnfulfillable, missing, _) =>
+            // case: we did not fulfill all hints from the original query
+            val details = s"Could not solve these hints: ${prettify(missingUnfulfillable.hints ++ missing)}"
+            throwHintException(details)
+        }
       }
     }
   }
 
+  /**
+   * These hints could not have been detected as unfulfillable during semantic analysis.
+   */
   private case class UnfulfillableHints(
     unfulfillableIndexHints: UnfulfillableIndexHints,
-    unfulfillableJoinHints: ListSet[UsingJoinHint],
-    plannerQuery: PlannerQuery
+    unfulfillableJoinHints: ListSet[UsingJoinHint]
+  ) {
+    def hints: ListSet[Hint] = unfulfillableJoinHints ++ unfulfillableIndexHints.hints
+
+    def isEmpty: Boolean = hints.isEmpty
+  }
+
+  /**
+   * The result of the hint analysis, dividing hint differences into three categories.
+   * While the first category of unfulfillable hints indicates that some index was missing or similar, the other two categories indicate an error in the planner.
+   * 
+   * @param missingUnfulfillableHints hints missing from the plan that from a syntax perspective could have been fulfilled
+   * @param missingHints other hints missing from the plan
+   * @param inventedHints hints on the constructed plan that were not part of the original query
+   */
+  private case class HintAnalysis(
+    missingUnfulfillableHints: UnfulfillableHints,
+    missingHints: ListSet[Hint],
+    inventedHints: ListSet[Hint]
   )
 
-  private def withoutUnfulfillableHints(
-    plannerQuery: PlannerQuery,
+  /**
+   * Analyse, in how far the two queries (read: IR) differ in their hints.
+   * 
+   * @param expected the query we generated from the original Cypher query
+   * @param constructed the query we generated from the plan
+   */
+  private def analyseHints(
+    expected: PlannerQuery,
+    constructed: PlannerQuery,
     context: LogicalPlanningContext
-  ): UnfulfillableHints = {
-    val unfulfillableIndexHints = findUnfulfillableIndexHints(plannerQuery, context)
-    val unfulfillableJoinHints = findUnfulfillableJoinHints(plannerQuery)
-    val expectedWithoutUnfulfillableHints =
-      plannerQuery.withoutHints(unfulfillableIndexHints.hints ++ unfulfillableJoinHints)
-    UnfulfillableHints(unfulfillableIndexHints, unfulfillableJoinHints, expectedWithoutUnfulfillableHints)
+  ): HintAnalysis = {
+    val expectedHints = expected.allHints
+    val actualHints = constructed.allHints
+    val missingHints = expectedHints.diff(actualHints)
+    val inventedHints = actualHints.diff(expectedHints)
+
+    val missingUnfulfillableIndexHints = findUnfulfillableIndexHints(expected, context).filter(missingHints)
+    val missingUnfulfillableJoinHints =
+      missingHints
+        .collect {
+          // as a rough measure, we consider all join hints as unfulfillable.
+          // That is, that we cannot judge from the syntax alone whether these hints can be fulfilled, as this highly depends on the planner's inner workings
+          case hint: UsingJoinHint => hint
+        }
+    val missingUnfulfillableHints = UnfulfillableHints(missingUnfulfillableIndexHints, missingUnfulfillableJoinHints)
+
+    val missingFulfillableHints = missingHints.filterNot(missingUnfulfillableHints.hints)
+
+    HintAnalysis(missingUnfulfillableHints, missingFulfillableHints, inventedHints)
   }
 
   private def processUnfulfilledIndexHints(
@@ -244,7 +300,19 @@ object VerifyBestPlan {
     missingIndexHints: Set[MissingIndexHint],
     wrongPropertyTypeHints: collection.Seq[WrongPropertyTypeHint]
   ) {
-    def hints: ListSet[Hint] = ListSet[Hint]() ++ missingIndexHints.map(_.hint) ++ wrongPropertyTypeHints.map(_.hint)
+
+    val hints: ListSet[Hint] =
+      ListSet.empty[Hint] ++ missingIndexHints.map(_.hint) ++ wrongPropertyTypeHints.map(_.hint)
+
+    def filter(predicate: Hint => Boolean): UnfulfillableIndexHints =
+      UnfulfillableIndexHints(
+        missingIndexHints =
+          missingIndexHints
+            .filter(hint => predicate(hint.hint)),
+        wrongPropertyTypeHints =
+          wrongPropertyTypeHints
+            .filter(hint => predicate(hint.hint))
+      )
   }
 
   private def findUnfulfillableIndexHints(
@@ -325,12 +393,6 @@ object VerifyBestPlan {
       case _ => None
     }
     UnfulfillableIndexHints(hintsWithoutIndex, hintsForWrongType.toVector)
-  }
-
-  private def findUnfulfillableJoinHints(query: PlannerQuery): ListSet[UsingJoinHint] = {
-    query.allHints.collect {
-      case hint: UsingJoinHint => hint
-    }
   }
 
   private def collectWrongPropertyTypeHints(
