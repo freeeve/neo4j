@@ -24,7 +24,6 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Arrays;
 import java.util.concurrent.Callable;
 import org.neo4j.cli.ExecutionContext;
 import picocli.CommandLine;
@@ -35,8 +34,6 @@ public class CliDumpGenerator implements Callable<Integer> {
     @CommandLine.Parameters(index = "0", description = "Output directory")
     private Path output;
 
-    private static final String SEPARATOR = ";"; // can't ba a comma (,) since it's used internally in options
-
     private void dumpCli(Neo4jAdminCommand command) throws IOException {
         CommandLine commandLine = command.getActualAdminCommand(new ExecutionContext(output, output));
         String name = commandLine
@@ -45,88 +42,8 @@ public class CliDumpGenerator implements Callable<Integer> {
                 .getAnnotation(CommandLine.Command.class)
                 .name();
         Path file = output.resolve(name + "_dump.csv");
-
-        String dump = dump(commandLine);
+        String dump = new CliDumper(true, true, false).dump(commandLine);
         Files.writeString(file, dump, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-    }
-
-    private static String dump(CommandLine cmd) {
-        StringBuilder stringBuilder = new StringBuilder();
-        int numCommands = getNumCommands(cmd, 1);
-        stringBuilder.append(header(numCommands));
-        dump(cmd, 0, new String[numCommands], stringBuilder);
-        return stringBuilder.toString();
-    }
-
-    private static void dump(CommandLine cmd, int depth, String[] commands, StringBuilder stringBuilder) {
-        CommandLine.Model.CommandSpec spec = cmd.getCommandSpec();
-        String name = cmd.getCommandName();
-        if (spec.usageMessage().hidden()) {
-            name += " <HIDDEN>";
-        }
-        commands[depth] = name;
-
-        StringBuilder commandAndParams = new StringBuilder();
-        for (String com : commands) {
-            commandAndParams.append(com != null ? com : "").append(SEPARATOR);
-        }
-        String paramOptions = addParams(commandAndParams, spec);
-        String comAndParams = commandAndParams.append(SEPARATOR).toString();
-
-        for (CommandLine.Model.OptionSpec os : spec.options()) {
-            stringBuilder
-                    .append(comAndParams)
-                    .append(Arrays.toString(os.names()))
-                    .append(os.hidden() ? " <HIDDEN>" : "")
-                    .append(SEPARATOR)
-                    .append(paramOptions)
-                    .append(SEPARATOR)
-                    .append(asOneLine(os.description()))
-                    .append(System.lineSeparator());
-        }
-        cmd.getSubcommands().values().stream()
-                .distinct()
-                .forEach(subCmd -> dump(subCmd, depth + 1, commands, stringBuilder));
-    }
-
-    private static int getNumCommands(CommandLine cmd, int depth) {
-        return cmd.getSubcommands().values().stream()
-                .distinct()
-                .map(c -> getNumCommands(c, depth + 1))
-                .max(Integer::compare)
-                .orElse(depth);
-    }
-
-    private static String header(int numCommands) {
-        StringBuilder header = new StringBuilder();
-        for (int i = 1; i <= numCommands; i++) {
-            header.append("Command ").append(i).append(SEPARATOR);
-        }
-        header.append("Parameters")
-                .append(SEPARATOR)
-                .append("Option")
-                .append(SEPARATOR)
-                .append("Param descriptions")
-                .append(SEPARATOR)
-                .append("Option description")
-                .append(System.lineSeparator());
-        return header.toString();
-    }
-
-    private static String addParams(StringBuilder commandAndParams, CommandLine.Model.CommandSpec spec) {
-        var params = spec.positionalParameters();
-        StringBuilder paramOptions = new StringBuilder();
-        for (CommandLine.Model.PositionalParamSpec param : params) {
-            commandAndParams.append(param.paramLabel());
-            commandAndParams.append(param.hidden() ? " <HIDDEN>" : "");
-            commandAndParams.append(" ");
-            paramOptions.append(asOneLine(param.description())).append(" ");
-        }
-        return paramOptions.toString();
-    }
-
-    private static String asOneLine(String[] strings) {
-        return Arrays.toString(strings).replace(System.lineSeparator(), " ").replace("%n", "");
     }
 
     @Override
