@@ -257,38 +257,42 @@ public final class BadCollector implements Collector {
 
         @Override
         public InputException exception() {
-            if (isMissingData()) {
-                Type missingField = null;
-                if (startId == null) {
-                    missingField = Type.START_ID;
-                } else if (endId == null) {
-                    missingField = Type.END_ID;
-                } else if (type == null) {
-                    missingField = Type.TYPE;
-                }
-                return new MissingRelationshipDataException(
-                        missingField,
-                        message != null
-                                ? message
-                                : format(
-                                        "%s (%s)-[%s]->%s (%s) is missing data",
-                                        startId, startIdGroup, type, endId, endIdGroup));
+            Type missingField = getMissingDataField();
+            if (missingField != null) {
+                return new MissingRelationshipDataException(missingField, getReportMessage(true));
             } else {
                 return new InputException(getReportMessage());
             }
         }
 
-        private String getReportMessage() {
+        private String getReportMessage(boolean missingData) {
             if (message == null) {
-                message = format(
-                        "%s (%s)-[%s]->%s (%s) referring to missing node %s",
-                        startId, startIdGroup, type, endId, endIdGroup, specificValue);
+                if (missingData) {
+                    message = format(
+                            "%s (%s)-[%s]->%s (%s) is missing data", startId, startIdGroup, type, endId, endIdGroup);
+                } else {
+                    message = format(
+                            "%s (%s)-[%s]->%s (%s) referring to missing node %s",
+                            startId, startIdGroup, type, endId, endIdGroup, specificValue);
+                }
             }
             return message;
         }
 
-        private boolean isMissingData() {
-            return startId == null || endId == null || type == null;
+        private String getReportMessage() {
+            return getReportMessage(getMissingDataField() != null);
+        }
+
+        // Returns the first data field that is missing, or null if none are missing
+        private Type getMissingDataField() {
+            if (startId == null) {
+                return Type.START_ID;
+            } else if (endId == null) {
+                return Type.END_ID;
+            } else if (type == null) {
+                return Type.TYPE;
+            }
+            return null;
         }
     }
 
