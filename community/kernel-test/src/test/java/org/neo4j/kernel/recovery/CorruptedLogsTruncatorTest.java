@@ -53,7 +53,6 @@ import org.junit.jupiter.api.condition.OS;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
-import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.fs.StoreChannel;
@@ -82,9 +81,6 @@ import org.neo4j.test.utils.TestDirectory;
 @TestDirectoryExtension
 @ExtendWith(RandomExtension.class)
 class CorruptedLogsTruncatorTest {
-    // Size of the log files, except the last one
-    private static final long LOG_FILES_SIZE = 1162L;
-
     private static final int TOTAL_NUMBER_OF_TRANSACTION_LOG_FILES = 12;
     // There is one file for the separate checkpoints as well
     private static final int TOTAL_NUMBER_OF_LOG_FILES = 13;
@@ -268,19 +264,9 @@ class CorruptedLogsTruncatorTest {
         LogPosition prunePosition = new LogPosition(highestCorrectLogFileIndex, byteOffset);
         CheckpointFile checkpointFile = logFiles.getCheckpointFile();
         TransactionId transactionId = transactionIdStore.getLastCommittedTransaction();
-        checkpointFile
-                .getCheckpointAppender()
-                .checkPoint(
-                        LogCheckPointEvent.NULL,
-                        transactionId,
-                        transactionId.id() + 7,
-                        LATEST_KERNEL_VERSION,
-                        new LogPosition(highestCorrectLogFileIndex, byteOffset - 1),
-                        new LogPosition(highestCorrectLogFileIndex, byteOffset - 1),
-                        Instant.now(),
-                        "within okay transactions");
-        // Write checkpoints that should be truncated. Write enough to get them get them in two files.
-        for (int i = 0; i < 4; i++) {
+        // Write checkpoints that should be truncated. Write enough to get them in two files.
+        int checkpointsToTruncate = 0;
+        while (checkpointFile.getCurrentLogVersion() == 0L) {
             checkpointFile
                     .getCheckpointAppender()
                     .checkPoint(
@@ -292,7 +278,9 @@ class CorruptedLogsTruncatorTest {
                             new LogPosition(highestCorrectLogFileIndex, byteOffset + 1),
                             Instant.now(),
                             "in the part being truncated");
+            ++checkpointsToTruncate;
         }
+        long secondCheckpointFileSize = Files.size(checkpointFile.getCurrentFile());
 
         life.shutdown();
 
@@ -306,8 +294,9 @@ class CorruptedLogsTruncatorTest {
         assertEquals(byteOffset, Files.size(highestCorrectLogFile));
         assertThat(checkpointFile.getMatchedFiles()).hasSize(1);
         // Truncate assumes that all checkpoints are broken when null is sent in as last checkpoint
-        assertEquals(
-                LATEST_LOG_FORMAT.getHeaderSize(), Files.size(checkpointFile.getMatchedFiles()[0]));
+        long expectedEmptyFileSize =
+                LATEST_LOG_FORMAT.usesSegments() ? SEGMENT_SIZE : LATEST_LOG_FORMAT.getHeaderSize();
+        assertEquals(expectedEmptyFileSize, Files.size(checkpointFile.getMatchedFiles()[0]));
 
         Path corruptedLogsDirectory = databaseDirectory.resolve(CORRUPTED_TX_LOGS_BASE_NAME);
         assertTrue(Files.exists(corruptedLogsDirectory));
@@ -322,27 +311,31 @@ class CorruptedLogsTruncatorTest {
             checkEntryNameAndSize(zipFile, highestCorrectLogFile.getFileName().toString(), bytesToPrune);
             long nextLogFileIndex = highestCorrectLogFileIndex + 1;
             int lastFileIndex = TOTAL_NUMBER_OF_TRANSACTION_LOG_FILES - 1;
+            // For non-enveloped written tx size includes version and checksum
+            long txSize = PAYLOAD_LENGTH + Byte.BYTES + Integer.BYTES;
+            long expectedFullLogFileSize = LATEST_LOG_FORMAT.usesSegments()
+                    // Enveloped files are rolled on the threshold and zero padded if required
+                    ? ROTATION_THRESHOLD
+                    // Non-Enveloped logs have header size plus just enough transaction to overflow rotation size
+                    : LATEST_LOG_FORMAT.getHeaderSize() + (1 + ((ROTATION_THRESHOLD - 1) / txSize)) * txSize;
             for (long index = nextLogFileIndex; index < lastFileIndex; index++) {
-                checkEntryNameAndSize(zipFile, TransactionLogFilesHelper.DEFAULT_NAME + "." + index, LOG_FILES_SIZE);
+                checkEntryNameAndSize(
+                        zipFile, TransactionLogFilesHelper.DEFAULT_NAME + "." + index, expectedFullLogFileSize);
             }
             checkEntryNameAndSize(
                     zipFile, TransactionLogFilesHelper.DEFAULT_NAME + "." + lastFileIndex, highestLogFileLength);
+            // first file in checkpoint archive only contains the removed content
+            long expectedCorruptCheckpointSize = LATEST_LOG_FORMAT.usesSegments()
+                    // Full size rotated file truncated back to header segment only
+                    ? ROTATION_THRESHOLD - SEGMENT_SIZE
+                    // Since PR25018 truncate with a null checkpoint deletes everything in the file
+                    // i.e. all except the checkpoint that overflowed to new file
+                    : (long) RECORD_LENGTH_BYTES * (checkpointsToTruncate - 1);
             checkEntryNameAndSize(
-                    zipFile,
-                    TransactionLogFilesHelper.CHECKPOINT_FILE_PREFIX + ".0",
-                    RECORD_LENGTH_BYTES * 4 /* 4 checkpoints */);
-            if (NativeAccessProvider.getNativeAccess().isAvailable()) {
-                // whole file is corrupted in above scenario and its preallocated
-                checkEntryNameAndSize(
-                        zipFile, TransactionLogFilesHelper.CHECKPOINT_FILE_PREFIX + ".1", ROTATION_THRESHOLD);
-            } else {
-                // whole file is corrupted in above scenario and file does not have any empty space after last available
-                // data point
-                checkEntryNameAndSize(
-                        zipFile,
-                        TransactionLogFilesHelper.CHECKPOINT_FILE_PREFIX + ".1",
-                        LATEST_LOG_FORMAT.getHeaderSize() + RECORD_LENGTH_BYTES /* one checkpoint */);
-            }
+                    zipFile, TransactionLogFilesHelper.CHECKPOINT_FILE_PREFIX + ".0", expectedCorruptCheckpointSize);
+            // Subsequent checkpoint file is placed entirely into zip
+            checkEntryNameAndSize(
+                    zipFile, TransactionLogFilesHelper.CHECKPOINT_FILE_PREFIX + ".1", secondCheckpointFileSize);
         }
     }
 

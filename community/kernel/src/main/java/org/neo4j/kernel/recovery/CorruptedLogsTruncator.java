@@ -81,6 +81,7 @@ public class CorruptedLogsTruncator {
      * Truncate all transaction logs after provided position. Log version specified in a position will be
      * truncated to provided byte offset, any subsequent log files will be deleted.
      * Any checkpoints pointing ahead of the checkpoint will be removed.
+     * If null is passed as lastCheckpoint then all checkpoints are cleared
      * Backup copy of removed data will be stored in separate archive.
      *
      * @param positionAfterLastRecoveredTransaction position after last recovered transaction

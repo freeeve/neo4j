@@ -191,6 +191,8 @@ class DetachedCheckpointAppenderTest {
     @Test
     void shouldFindAllCheckpointsAfterRotatingBeforeRotationThreshold() throws IOException {
         life.clear();
+        // cleanup any latest version logs, so that we can force V5_22
+        fileSystem.deleteRecursively(databaseLayout.getTransactionLogsDirectory());
         setUp(KernelVersion.V5_22);
 
         CheckpointFile checkpointFile = logFiles.getCheckpointFile();
@@ -229,6 +231,8 @@ class DetachedCheckpointAppenderTest {
     @Test
     void shouldTruncatePrevFileOnRotation() throws IOException {
         life.clear();
+        // cleanup any latest version logs, so that we can force V5_22
+        fileSystem.deleteRecursively(databaseLayout.getTransactionLogsDirectory());
         setUp(KernelVersion.V5_22);
 
         CheckpointFile checkpointFile = logFiles.getCheckpointFile();
