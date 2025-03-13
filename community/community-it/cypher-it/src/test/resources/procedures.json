@@ -3676,6 +3676,29 @@
     "cypherVersionScope": [5, 25]
   },
   {
+    "name": "dbms.security.reloadTLS",
+    "description": "Trigger the dynamic reloading of all TLS certificates and configuration.",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "dbms.security.reloadTLS()",
+    "argumentDescription": [],
+    "returnDescription": [],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5, 25]
+  },
+  {
     "name": "dbms.showCurrentUser",
     "description": "Show the current user.",
     "mode": "DBMS",

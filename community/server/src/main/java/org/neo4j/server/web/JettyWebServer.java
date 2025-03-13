@@ -149,6 +149,19 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
         startJetty();
     }
 
+    public void replaceConnector() throws Exception {
+        var jettyThreadCalculator = new JettyThreadCalculator(jettyMaxThreads);
+        var port = httpsConnector.getLocalPort();
+        var newAddress = new SocketAddress(httpsAddress.getHostname(), port);
+        var newHttpsConnector = sslSocketFactory.createConnector(jetty, sslPolicy, newAddress, jettyThreadCalculator);
+
+        httpsConnector.stop();
+        jetty.removeConnector(httpsConnector);
+        jetty.addConnector(newHttpsConnector);
+        newHttpsConnector.start();
+        httpsConnector = newHttpsConnector;
+    }
+
     private static QueuedThreadPool createQueuedThreadPool(JettyThreadCalculator jtc) {
         BlockingQueue<Runnable> queue =
                 new BlockingArrayQueue<>(jtc.getMinThreads(), jtc.getMinThreads(), jtc.getMaxCapacity());
@@ -188,6 +201,13 @@ public class JettyWebServer implements WebServer, WebContainerThreadInfo {
     @Override
     public void setSslPolicy(SslPolicy policy) {
         sslPolicy = policy;
+        if (jetty != null && jetty.isRunning()) {
+            try {
+                replaceConnector();
+            } catch (Exception e) {
+                log.warn("Unhandled exception replacing SSL policy", e);
+            }
+        }
     }
 
     @Override

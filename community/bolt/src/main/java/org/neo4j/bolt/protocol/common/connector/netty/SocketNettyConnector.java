@@ -25,7 +25,6 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
-import io.netty.handler.ssl.SslContext;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.file.Path;
@@ -50,6 +49,7 @@ import org.neo4j.kernel.database.DefaultDatabaseResolver;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryPool;
 import org.neo4j.server.config.AuthConfigProvider;
+import org.neo4j.ssl.config.ScopedSslPolicyProvider;
 
 public class SocketNettyConnector extends AbstractNettyConnector<SocketConfiguration> {
 
@@ -199,7 +199,7 @@ public class SocketNettyConnector extends AbstractNettyConnector<SocketConfigura
                 SocketAddress advertisedAddress,
                 boolean enableMergeCumulator,
                 boolean requireEncryption,
-                SslContext sslContext,
+                ScopedSslPolicyProvider sslPolicyProvider,
                 boolean enableTcpKeepAlive) {
             super(
                     enableProtocolCapture,
@@ -223,7 +223,7 @@ public class SocketNettyConnector extends AbstractNettyConnector<SocketConfigura
                     advertisedAddress,
                     enableMergeCumulator,
                     requireEncryption,
-                    sslContext);
+                    sslPolicyProvider);
             this.enableTcpKeepAlive = enableTcpKeepAlive;
         }
 

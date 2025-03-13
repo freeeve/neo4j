@@ -49,6 +49,7 @@ import org.neo4j.kernel.database.DefaultDatabaseResolver;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryPool;
 import org.neo4j.server.config.AuthConfigProvider;
+import org.neo4j.ssl.config.ScopedSslPolicyProvider;
 
 /**
  * Provides a connector which provides its services through a domain socket.
@@ -194,7 +195,7 @@ public class DomainSocketNettyConnector extends AbstractNettyConnector<DomainSoc
                     null, // Doesn't advertises address
                     enableMergeCumulator,
                     false, // Currently always disabled on UNIX socket
-                    null);
+                    ScopedSslPolicyProvider.getNullInstance());
 
             this.deleteSocketFile = deleteSocketFile;
         }

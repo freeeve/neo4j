@@ -40,7 +40,7 @@ public class SslResourceBuilder {
     private static final String CA_CERTIFICATE_NAME = "cluster.crt";
 
     private static final String PRIVATE_KEY_NAME = "private.key";
-    private static final String PUBLIC_CERT_NAME = "public.crt";
+    public static final String PUBLIC_CERT_NAME = "public.crt";
 
     private static final String SELF_SIGNED_NAME = "selfsigned.crt";
     private static final String REVOKED_NAME = "revoked.crl";

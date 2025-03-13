@@ -27,7 +27,6 @@ import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.local.LocalAddress;
-import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslProvider;
 import io.netty.util.internal.PlatformDependent;
 import java.net.InetSocketAddress;
@@ -41,7 +40,6 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
-import javax.net.ssl.SSLException;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
 import org.neo4j.bolt.protocol.BoltProtocolRegistry;
 import org.neo4j.bolt.protocol.common.BoltProtocol;
@@ -107,7 +105,9 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.scheduler.Group;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.server.config.AuthConfigProvider;
-import org.neo4j.ssl.config.SslPolicyLoader;
+import org.neo4j.ssl.config.DefaultScopedSslPolicyProvider;
+import org.neo4j.ssl.config.ScopedSslPolicyProvider;
+import org.neo4j.ssl.config.SslPolicyProvider;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.util.VisibleForTesting;
 
@@ -133,7 +133,7 @@ public class BoltServer extends LifecycleAdapter {
     private final ConnectionHintRegistry connectionHintRegistry;
 
     private final ExecutorServiceFactory executorServiceFactory;
-    private final SslPolicyLoader sslPolicyLoader;
+    private final SslPolicyProvider sslPolicyProvider;
     private final BoltProtocolRegistry protocolRegistry;
     private final AuthConfigProvider authConfigProvider;
     private final TransactionManager transactionManager;
@@ -198,7 +198,7 @@ public class BoltServer extends LifecycleAdapter {
 
         this.routingService = routingService;
 
-        this.sslPolicyLoader = dependencyResolver.resolveDependency(SslPolicyLoader.class);
+        this.sslPolicyProvider = dependencyResolver.resolveDependency(SslPolicyProvider.class);
         this.authConfigProvider = dependencyResolver.resolveDependency(AuthConfigProvider.class);
         this.log = logService.getInternalLog(BoltServer.class);
         this.admissionControlTrackerFactory = admissionControlTrackerFactory;
@@ -291,26 +291,20 @@ public class BoltServer extends LifecycleAdapter {
         var encryptionLevel = config.get(BoltConnector.encryption_level);
         boolean encryptionRequired = encryptionLevel == EncryptionLevel.REQUIRED;
 
-        SslContext sslContext = null;
-        if (encryptionLevel != EncryptionLevel.DISABLED) {
-            if (!sslPolicyLoader.hasPolicyForSource(BOLT)) {
-                throw new IllegalStateException("Requested encryption level " + encryptionLevel
-                        + " for Bolt connector but no SSL policy was given");
-            }
-
-            try {
-                sslContext = sslPolicyLoader.getPolicy(BOLT).nettyServerContext();
-            } catch (SSLException ex) {
-                throw new IllegalStateException("Failed to load SSL policy for Bolt connector", ex);
-            }
+        if (encryptionLevel != EncryptionLevel.DISABLED && !sslPolicyProvider.hasPolicyForScope(BOLT)) {
+            log.warn("TLS policy must be provided for Bolt when tls_level is not DISABLED");
         }
+
+        var boltSslPolicyProvider = encryptionLevel == EncryptionLevel.DISABLED
+                ? ScopedSslPolicyProvider.getNullInstance()
+                : new DefaultScopedSslPolicyProvider(BOLT, sslPolicyProvider);
 
         registerConnector(createSocketConnector(
                 listenAddress,
                 connectionFactory,
                 encryptionRequired,
                 transport,
-                sslContext,
+                boltSslPolicyProvider,
                 createAuthentication(externalAuthManager),
                 ConnectorType.BOLT,
                 allocator));
@@ -321,7 +315,7 @@ public class BoltServer extends LifecycleAdapter {
                     connectionFactory,
                     encryptionRequired,
                     transport,
-                    sslContext,
+                    boltSslPolicyProvider,
                     createAuthentication(externalAuthManager),
                     ConnectorType.BOLT,
                     allocator));
@@ -341,26 +335,15 @@ public class BoltServer extends LifecycleAdapter {
                         config.get(GraphDatabaseSettings.routing_listen_address).getPort());
             }
 
-            var internalEncryptionRequired = false;
-            SslContext internalSslContext = null;
-
-            if (sslPolicyLoader.hasPolicyForSource(CLUSTER)) {
-                internalEncryptionRequired = true;
-
-                try {
-                    internalSslContext = sslPolicyLoader.getPolicy(CLUSTER).nettyServerContext();
-                } catch (SSLException ex) {
-                    throw new IllegalStateException(
-                            "Failed to load SSL policy for server side routing within Bolt: Cluster policy", ex);
-                }
-            }
+            var internalEncryptionRequired = sslPolicyProvider.hasPolicyForScope(CLUSTER);
+            var clusterSslPolicyProvider = new DefaultScopedSslPolicyProvider(CLUSTER, sslPolicyProvider);
 
             registerConnector(createSocketConnector(
                     internalListenAddress,
                     connectionFactory,
                     internalEncryptionRequired,
                     transport,
-                    internalSslContext,
+                    clusterSslPolicyProvider,
                     createAuthentication(internalAuthManager),
                     ConnectorType.INTRA_BOLT,
                     allocator));
@@ -538,7 +521,7 @@ public class BoltServer extends LifecycleAdapter {
             Connection.Factory connectionFactory,
             boolean encryptionRequired,
             ConnectorTransport transport,
-            SslContext sslContext,
+            ScopedSslPolicyProvider sslPolicyProvider,
             Authentication authentication,
             ConnectorType connectorType,
             ByteBufAllocator allocator) {
@@ -564,7 +547,7 @@ public class BoltServer extends LifecycleAdapter {
                 this.config.get(BoltConnector.advertised_address).socketAddress(),
                 this.config.get(BoltConnectorInternalSettings.netty_message_merge_cumulator),
                 encryptionRequired,
-                sslContext,
+                sslPolicyProvider,
                 this.config.get(BoltConnectorInternalSettings.tcp_keep_alive));
 
         return new SocketNettyConnector(
@@ -600,7 +583,7 @@ public class BoltServer extends LifecycleAdapter {
             Connection.Factory connectionFactory,
             boolean encryptionRequired,
             ConnectorTransport transport,
-            SslContext sslContext,
+            ScopedSslPolicyProvider sslPolicyProvider,
             Authentication authentication,
             ConnectorType connectorType,
             ByteBufAllocator allocator) {
@@ -626,7 +609,7 @@ public class BoltServer extends LifecycleAdapter {
                 this.config.get(BoltConnector.advertised_address).socketAddress(),
                 this.config.get(BoltConnectorInternalSettings.netty_message_merge_cumulator),
                 encryptionRequired,
-                sslContext,
+                sslPolicyProvider,
                 this.config.get(BoltConnectorInternalSettings.tcp_keep_alive));
 
         return new AdditionalSocketNettyConnector(

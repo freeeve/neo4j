@@ -107,25 +107,32 @@ public class SslPolicyConfig implements GroupSetting {
                 .build();
         revoked_dir = getBuilder("revoked_dir", PATH, Path.of("revoked"))
                 .setDependency(base_directory)
+                .dynamic()
                 .build();
-        trust_all = getBuilder("trust_all", BOOL, false).build();
-        trust_expired = getBuilder("trust_expired", BOOL, true).build();
+        trust_all = getBuilder("trust_all", BOOL, false).dynamic().build();
+        trust_expired = getBuilder("trust_expired", BOOL, true).dynamic().build();
         client_auth = getBuilder("client_auth", ofEnum(ClientAuth.class), scope.authDefault)
+                .dynamic()
                 .build();
         tls_versions = getBuilder("tls_versions", listOf(STRING), List.of("TLSv1.2", "TLSv1.3"))
+                .dynamic()
                 .build();
-        ciphers = getBuilder("ciphers", listOf(STRING), null).build();
-        verify_hostname = getBuilder("verify_hostname", BOOL, true).build();
+        ciphers = getBuilder("ciphers", listOf(STRING), null).dynamic().build();
+        verify_hostname = getBuilder("verify_hostname", BOOL, true).dynamic().build();
         private_key = getBuilder("private_key", PATH, Path.of("private.key"))
                 .setDependency(base_directory)
+                .dynamic()
                 .build();
-        private_key_password =
-                getBuilder("private_key_password", SECURE_STRING, null).build();
+        private_key_password = getBuilder("private_key_password", SECURE_STRING, null)
+                .dynamic()
+                .build();
         public_certificate = getBuilder("public_certificate", PATH, Path.of("public.crt"))
                 .setDependency(base_directory)
+                .dynamic()
                 .build();
         trusted_dir = getBuilder("trusted_dir", PATH, Path.of("trusted"))
                 .setDependency(base_directory)
+                .dynamic()
                 .build();
     }
 

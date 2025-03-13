@@ -33,6 +33,8 @@ import java.net.SocketAddress;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
+import javax.net.ssl.SSLException;
 import org.neo4j.bolt.protocol.BoltProtocolRegistry;
 import org.neo4j.bolt.protocol.common.connection.BoltDriverMetricsMonitor;
 import org.neo4j.bolt.protocol.common.connection.hint.ConnectionHintRegistry;
@@ -53,6 +55,8 @@ import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryPool;
 import org.neo4j.server.config.AuthConfigProvider;
+import org.neo4j.ssl.SslPolicy;
+import org.neo4j.ssl.config.ScopedSslPolicyProvider;
 
 /**
  * Provides a basis for connectors which rely on netty.
@@ -257,7 +261,8 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
 
         private final boolean requireEncryption;
         private final boolean enableMergeCumulator;
-        private final SslContext sslContext;
+        private final ScopedSslPolicyProvider sslPolicyProvider;
+        private AtomicReference<SslContext> sslContext = new AtomicReference<>();
 
         public NettyConfiguration(
                 boolean enableProtocolCapture,
@@ -281,7 +286,7 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
                 SocketAddress advertisedAddress,
                 boolean enableMergeCumulator,
                 boolean requireEncryption,
-                SslContext sslContext) {
+                ScopedSslPolicyProvider sslPolicyProvider) {
             super(
                     enableProtocolCapture,
                     protocolCapturePath,
@@ -308,7 +313,7 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
 
             this.requireEncryption = requireEncryption;
             this.enableMergeCumulator = enableMergeCumulator;
-            this.sslContext = sslContext;
+            this.sslPolicyProvider = sslPolicyProvider;
         }
 
         /**
@@ -334,8 +339,28 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
             return this.enableMergeCumulator;
         }
 
+        private SslPolicy lastReceivedPolicy;
+
         public SslContext sslContext() {
-            return this.sslContext;
+
+            var hasPolicyChanged = sslPolicyProvider.getPolicy() != lastReceivedPolicy;
+            var sslContext = this.sslContext.get();
+            if (sslContext == null || hasPolicyChanged) {
+                try {
+                    var policy = sslPolicyProvider.getPolicy();
+                    if (policy != null) {
+                        var newSslContext = policy.nettyServerContext();
+                        var witnessedValue = this.sslContext.compareAndExchange(sslContext, newSslContext);
+                        if (witnessedValue == sslContext) {
+                            sslContext = newSslContext;
+                            lastReceivedPolicy = policy;
+                        }
+                    }
+                } catch (SSLException ex) {
+                    throw new IllegalStateException("Failed to load SSL policy for connector", ex);
+                }
+            }
+            return sslContext;
         }
     }
 }

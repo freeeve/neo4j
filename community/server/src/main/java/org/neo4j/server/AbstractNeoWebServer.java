@@ -46,6 +46,7 @@ import org.neo4j.configuration.connectors.ConnectorType;
 import org.neo4j.configuration.connectors.HttpConnector;
 import org.neo4j.configuration.connectors.HttpsConnector;
 import org.neo4j.configuration.helpers.SocketAddress;
+import org.neo4j.configuration.ssl.SslPolicyScope;
 import org.neo4j.dbms.DatabaseStateService;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.kernel.api.security.AuthManager;
@@ -78,11 +79,13 @@ import org.neo4j.server.rest.repr.RepresentationBasedMessageBodyWriter;
 import org.neo4j.server.web.RotatingRequestLog;
 import org.neo4j.server.web.SimpleUriBuilder;
 import org.neo4j.server.web.WebServer;
-import org.neo4j.ssl.config.SslPolicyLoader;
+import org.neo4j.ssl.SslPolicy;
+import org.neo4j.ssl.config.SslPolicyChangeListener;
+import org.neo4j.ssl.config.SslPolicyProvider;
 import org.neo4j.time.Clocks;
 import org.neo4j.time.SystemNanoClock;
 
-public abstract class AbstractNeoWebServer extends LifecycleAdapter implements NeoWebServer {
+public abstract class AbstractNeoWebServer extends LifecycleAdapter implements NeoWebServer, SslPolicyChangeListener {
     private static final long MINIMUM_TIMEOUT = 1000L;
     /**
      * We add a second to the timeout if the user configures a 1-second timeout.
@@ -116,7 +119,7 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
     protected WebServer webServer;
     protected Supplier<AuthManager> authManagerSupplier;
     protected ArrayByteBufferPool byteBufferPool;
-    private final Supplier<SslPolicyLoader> sslPolicyFactorySupplier;
+    private final Supplier<SslPolicyProvider> sslPolicyProviderSupplier;
     private final HttpTransactionManager httpTransactionManager;
 
     private volatile QueryController queryController;
@@ -177,7 +180,7 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
 
         this.authWhitelist = parseAuthWhitelist(config);
         authManagerSupplier = globalDependencies.provideDependency(AuthManager.class);
-        sslPolicyFactorySupplier = globalDependencies.provideDependency(SslPolicyLoader.class);
+        sslPolicyProviderSupplier = globalDependencies.provideDependency(SslPolicyProvider.class);
         connectorPortRegister = globalDependencies.resolveDependency(ConnectorPortRegister.class);
         httpTransactionManager = createHttpTransactionManager();
         globalAvailabilityGuard = globalDependencies.resolveDependency(CompositeDatabaseAvailabilityGuard.class);
@@ -240,6 +243,7 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
             var rootCause = ExceptionUtils.getRootCause(t);
             throw new ServerStartupException(format("Starting Neo4j failed: %s", rootCause.getMessage()), rootCause);
         }
+        sslPolicyProviderSupplier.get().addPolicyChangeListener(this);
     }
 
     private HttpTransactionManager createHttpTransactionManager() {
@@ -316,9 +320,18 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
 
         if (httpsEnabled) // only load sslPolicy when encryption is enabled
         {
-            SslPolicyLoader sslPolicyLoader = sslPolicyFactorySupplier.get();
-            if (sslPolicyLoader.hasPolicyForSource(HTTPS)) {
-                webServer.setSslPolicy(sslPolicyLoader.getPolicy(HTTPS));
+            var sslPolicyProvider = sslPolicyProviderSupplier.get();
+            if (sslPolicyProvider.hasPolicyForScope(HTTPS)) {
+                webServer.setSslPolicy(sslPolicyProvider.getPolicy(HTTPS));
+            }
+        }
+    }
+
+    public void reloadSslPolicy() {
+        if (httpsEnabled) {
+            var sslPolicyProvider = sslPolicyProviderSupplier.get();
+            if (sslPolicyProvider.hasPolicyForScope(HTTPS)) {
+                webServer.setSslPolicy(sslPolicyProvider.getPolicy(HTTPS));
             }
         }
     }
@@ -377,8 +390,16 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
 
     @Override
     public void stop() {
+        sslPolicyProviderSupplier.get().removePolicyChangeListener(this);
         shutdownGlobalAvailabilityGuard();
         life.stop();
+    }
+
+    @Override
+    public void policyChanged(SslPolicyScope scope, SslPolicy policy) {
+        if (scope.equals(HTTPS)) {
+            reloadSslPolicy();
+        }
     }
 
     private void shutdownGlobalAvailabilityGuard() {

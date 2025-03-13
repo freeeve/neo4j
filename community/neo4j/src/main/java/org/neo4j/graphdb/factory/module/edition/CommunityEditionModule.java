@@ -100,14 +100,13 @@ import org.neo4j.server.config.AuthConfigProvider;
 import org.neo4j.server.rest.repr.CommunityAuthConfigProvider;
 import org.neo4j.server.security.auth.CommunitySecurityModule;
 import org.neo4j.server.security.systemgraph.CommunityDefaultDatabaseResolver;
-import org.neo4j.ssl.config.SslPolicyLoader;
+import org.neo4j.ssl.config.DefaultSslPolicyProvider;
 
 /**
  * This implementation of {@link AbstractEditionModule} creates the implementations of services
  * that are specific to the Community edition.
  */
 public class CommunityEditionModule extends AbstractEditionModule implements DefaultDatabaseContextFactoryComponents {
-    protected final SslPolicyLoader sslPolicyLoader;
     protected final GlobalModule globalModule;
     protected final ServerIdentity identityModule;
     private final DeviceMapper deviceMapper;
@@ -125,9 +124,9 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
         LogService logService = globalModule.getLogService();
         this.globalModule = globalModule;
 
-        this.sslPolicyLoader =
-                SslPolicyLoader.create(globalModule.getFileSystem(), globalConfig, logService.getInternalLogProvider());
-        globalDependencies.satisfyDependency(sslPolicyLoader); // for bolt and web server
+        var sslPolicyProvider = new DefaultSslPolicyProvider(
+                globalModule.getFileSystem(), globalConfig, true, logService.getInternalLogProvider());
+        globalDependencies.satisfyDependency(sslPolicyProvider); // for bolt and web server
         globalDependencies.satisfyDependency(new DatabaseOperationCounts.Counter()); // for global metrics
         globalDependencies.satisfyDependency(new DatabaseStateMonitor.Counter()); // for global metrics
 

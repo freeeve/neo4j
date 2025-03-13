@@ -27,16 +27,21 @@ import java.net.URI;
 import java.util.Optional;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.ssl.SslPolicyConfig;
+import org.neo4j.configuration.ssl.SslPolicyScope;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.InternalLogProvider;
-import org.neo4j.server.NeoWebServer;
+import org.neo4j.server.AbstractNeoWebServer;
 import org.neo4j.server.http.cypher.TransactionRegistry;
+import org.neo4j.ssl.config.SslPolicyProvider;
+import org.neo4j.test.ssl.SelfSignedCertificateFactory;
 
 public class TestWebContainer {
     private final DatabaseManagementService managementService;
-    private final NeoWebServer neoWebServer;
+    private final AbstractNeoWebServer neoWebServer;
     private final InternalLogProvider logProvider;
 
     public TestWebContainer(DatabaseManagementService managementService, InternalLogProvider logProvider) {
@@ -81,11 +86,29 @@ public class TestWebContainer {
         return neoWebServer.getTransactionRegistry();
     }
 
-    private static NeoWebServer getNeoWebServer(DatabaseManagementService managementService) {
-        return getDependencyResolver(managementService).resolveDependency(NeoWebServer.class);
+    private static AbstractNeoWebServer getNeoWebServer(DatabaseManagementService managementService) {
+        return getDependencyResolver(managementService).resolveDependency(AbstractNeoWebServer.class);
     }
 
     private static DependencyResolver getDependencyResolver(DatabaseManagementService managementService) {
         return ((GraphDatabaseAPI) managementService.database(SYSTEM_DATABASE_NAME)).getDependencyResolver();
+    }
+
+    public void replaceHTTPSCertificate() throws Exception {
+        var config = getConfig();
+        SslPolicyConfig policy = SslPolicyConfig.forScope(SslPolicyScope.HTTPS);
+        if (config.get(policy.enabled)) {
+            var certDirectory = config.get(policy.base_directory);
+            var fs = new DefaultFileSystemAbstraction();
+
+            // we need to delete these files for SelfSignedCertificateFactory.create to work
+            fs.deleteFile(config.get(policy.public_certificate));
+            fs.deleteFile(config.get(policy.private_key));
+
+            SelfSignedCertificateFactory.create(fs, certDirectory);
+
+            var policyProvider = resolveDependency(SslPolicyProvider.class);
+            policyProvider.reloadPolicies();
+        }
     }
 }

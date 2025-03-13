@@ -43,6 +43,7 @@ import org.neo4j.kernel.database.DefaultDatabaseResolver;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryPool;
 import org.neo4j.server.config.AuthConfigProvider;
+import org.neo4j.ssl.config.ScopedSslPolicyProvider;
 
 /**
  * Connector that uses netty's {@link io.netty.channel.local.LocalServerChannel} for intra-JVM
@@ -153,7 +154,7 @@ public class LocalNettyConnector extends AbstractNettyConnector<LocalConfigurati
                     null, // Doesn't advertise address
                     enableMergeCumulator,
                     false, // Currently always disabled on local connector
-                    null);
+                    ScopedSslPolicyProvider.getNullInstance());
         }
     }
 }
