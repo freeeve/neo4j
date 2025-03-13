@@ -1638,10 +1638,8 @@ case class LogicalPlan2PlanDescription(
     val id = plan.id
     val variables = plan.availableSymbols.map(asPrettyString(_))
     val nestedPlanDescriptions = describeNestedPlans(plan)
-    val children: Seq[InternalPlanDescription] = source match {
-      case _: ArgumentPlanDescription => Seq.empty
-      case _                          => Seq(source) ++ nestedPlanDescriptions
-    }
+    val children =
+      Seq(source).filterNot(_.isInstanceOf[ArgumentPlanDescription]) ++ nestedPlanDescriptions
 
     val result: InternalPlanDescription = replaceNestedPlansWithPlaceholder(plan) match {
       case _: AdministrationCommandLogicalPlan =>
@@ -2802,7 +2800,7 @@ case class LogicalPlan2PlanDescription(
       .toMap
 
   private def describeNestedPlans(plan: LogicalPlan): Seq[InternalPlanDescription] = {
-    val nestedPlanDescriptions: Seq[InternalPlanDescription] = if (renderNestedPlanExpressions) {
+    if (renderNestedPlanExpressions) {
       nestedPlanExpressionsMap(plan)
         .map { case (expression, expressionIdentifier) =>
           // We don't use an actual CancellationChecker here,
@@ -2825,7 +2823,6 @@ case class LogicalPlan2PlanDescription(
     } else {
       Seq.empty
     }
-    nestedPlanDescriptions
   }
 
   private def expandModeDescription(mode: Expand.ExpansionMode) = {
