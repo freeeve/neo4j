@@ -3532,20 +3532,20 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         groupNodes = Set.empty,
         groupRelationships = Set.empty,
         reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
-    )
-    val `(p)((r)-...-(t)) {, 100}` = WalkParameters(
-      min = 0,
-      max = Limited(100),
-      start = "p",
-      end = "anon_0",
-      innerStart = "r",
-      innerEnd = "t",
-      groupNodes = Set(("t", "t")),
-      groupRelationships = Set.empty,
-      reverseGroupVariableProjections = false,
-      expansionMode = ExpandAll
-    )
+        expansionMode = ExpandAll
+      )
+      val `(p)((r)-...-(t)) {, 100}` = WalkParameters(
+        min = 0,
+        max = Limited(100),
+        start = "p",
+        end = "anon_0",
+        innerStart = "r",
+        innerEnd = "t",
+        groupNodes = Set(("t", "t")),
+        groupRelationships = Set.empty,
+        reverseGroupVariableProjections = false,
+        expansionMode = ExpandAll
+      )
 
       planner.plan(version, query) should equal(
         planner.planBuilder()
