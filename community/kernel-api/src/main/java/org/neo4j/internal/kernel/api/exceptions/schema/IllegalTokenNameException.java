@@ -20,9 +20,7 @@
 package org.neo4j.internal.kernel.api.exceptions.schema;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlParams;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.token.api.TokenType;
 
@@ -37,10 +35,7 @@ public class IllegalTokenNameException extends SchemaKernelException {
     }
 
     public static IllegalTokenNameException invalidTokenName(String tokenName, TokenType type) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I11)
-                .withParam(GqlParams.StringParam.tokenType, type.getName())
-                .withParam(GqlParams.StringParam.input, tokenName)
-                .build();
+        var gql = GqlHelper.getGql42001_42I11(type.getName(), tokenName, 0, 0, 0);
         return new IllegalTokenNameException(gql, tokenName);
     }
 }

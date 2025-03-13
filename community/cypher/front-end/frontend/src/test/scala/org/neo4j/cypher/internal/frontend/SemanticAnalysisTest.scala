@@ -931,72 +931,128 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Should not allow empty node property key name in CREATE clause") {
     run("CREATE ({prop: 5, ``: 1})")
-      .hasError(emptyTokenErrorMessage, p(18, 1, 19))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 18, 1, 19),
+        emptyTokenErrorMessage,
+        p(18, 1, 19)
+      )
   }
 
   test("Should not allow empty node property key name in MERGE clause") {
     run("MERGE (n {``: 1})")
-      .hasError(emptyTokenErrorMessage, p(10, 1, 11))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 10, 1, 11),
+        emptyTokenErrorMessage,
+        p(10, 1, 11)
+      )
   }
 
   test("Should not allow empty node property key name in ON CREATE SET") {
     run("MERGE (n :Label) ON CREATE SET n.`` = 1")
-      .hasError(emptyTokenErrorMessage, p(33, 1, 34))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 33, 1, 34),
+        emptyTokenErrorMessage,
+        p(33, 1, 34)
+      )
   }
 
   test("Should not allow empty node property key name in ON MATCH SET") {
     run("MERGE (n :Label) ON MATCH SET n.`` = 1")
-      .hasError(emptyTokenErrorMessage, p(32, 1, 33))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 32, 1, 33),
+        emptyTokenErrorMessage,
+        p(32, 1, 33)
+      )
   }
 
   test("Should not allow empty node property key name in MATCH clause") {
     run("MATCH (n {``: 1}) RETURN n AS invalid")
-      .hasError(emptyTokenErrorMessage, p(10, 1, 11))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 10, 1, 11),
+        emptyTokenErrorMessage,
+        p(10, 1, 11)
+      )
   }
 
   test("Should not allow empty node property key name in SET clause") {
     run("MATCH (n) SET n.``= 1")
-      .hasError(emptyTokenErrorMessage, p(16, 1, 17))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 16, 1, 17),
+        emptyTokenErrorMessage,
+        p(16, 1, 17)
+      )
   }
 
   test("Should not allow empty node property key name in REMOVE clause") {
     run("MATCH (n) REMOVE n.``")
-      .hasError(emptyTokenErrorMessage, p(19, 1, 20))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 19, 1, 20),
+        emptyTokenErrorMessage,
+        p(19, 1, 20)
+      )
   }
 
   test("Should not allow empty node property key name in WHERE clause") {
     run("MATCH (n) WHERE n.``= 1 RETURN n AS invalid")
-      .hasError(emptyTokenErrorMessage, p(18, 1, 19))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 18, 1, 19),
+        emptyTokenErrorMessage,
+        p(18, 1, 19)
+      )
   }
 
   test("Should not allow empty node property key name in WITH clause") {
     run("MATCH (n) WITH n.`` AS prop RETURN prop AS invalid")
-      .hasError(emptyTokenErrorMessage, p(17, 1, 18))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 17, 1, 18),
+        emptyTokenErrorMessage,
+        p(17, 1, 18)
+      )
   }
 
   test("Should not allow empty node property key name in ORDER BY in WITH") {
     run("MATCH (n) WITH n AS invalid ORDER BY n.`` RETURN count(*) AS count")
-      .hasError(emptyTokenErrorMessage, p(39, 1, 40))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 39, 1, 40),
+        emptyTokenErrorMessage,
+        p(39, 1, 40)
+      )
   }
 
   test("Should not allow empty node property key name in RETURN clause") {
     run("MATCH (n) RETURN n.`` AS invalid")
-      .hasError(emptyTokenErrorMessage, p(19, 1, 20))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 19, 1, 20),
+        emptyTokenErrorMessage,
+        p(19, 1, 20)
+      )
   }
 
   test("Should not allow empty node property key name in DISTINCT RETURN clause") {
     run("MATCH (n) RETURN DISTINCT n.`` AS invalid")
-      .hasError(emptyTokenErrorMessage, p(28, 1, 29))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 28, 1, 29),
+        emptyTokenErrorMessage,
+        p(28, 1, 29)
+      )
   }
 
   test("Should not allow empty node property key name in aggregation in RETURN clause") {
     run("MATCH (n) RETURN count(n.``) AS count")
-      .hasError(emptyTokenErrorMessage, p(25, 1, 26))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 25, 1, 26),
+        emptyTokenErrorMessage,
+        p(25, 1, 26)
+      )
   }
 
   test("Should not allow empty node property key name in ORDER BY in RETURN") {
     run("MATCH (n) RETURN n AS invalid ORDER BY n.`` DESC LIMIT 2")
-      .hasError(emptyTokenErrorMessage, p(41, 1, 42))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 41, 1, 42),
+        emptyTokenErrorMessage,
+        p(41, 1, 42)
+      )
   }
 
   test("Should not allow empty node property key name in CASE clause") {
@@ -1009,7 +1065,12 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE 2 END AS result
       """.stripMargin
-    run(query).hasError(emptyTokenErrorMessage, p(25, 4, 8))
+    run(query)
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 25, 4, 8),
+        emptyTokenErrorMessage,
+        p(25, 4, 8)
+      )
   }
 
   test("Should not allow empty node property key name in CASE WHEN clause") {
@@ -1022,7 +1083,12 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE 2 END AS result
       """.stripMargin
-    run(query).hasError(emptyTokenErrorMessage, p(30, 5, 8))
+    run(query)
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 30, 5, 8),
+        emptyTokenErrorMessage,
+        p(30, 5, 8)
+      )
   }
 
   test("Should not allow empty node property key name in CASE THEN clause") {
@@ -1035,7 +1101,12 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN n.``
         |ELSE 2 END AS result
       """.stripMargin
-    run(query).hasError(emptyTokenErrorMessage, p(51, 6, 8))
+    run(query)
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 51, 6, 8),
+        emptyTokenErrorMessage,
+        p(51, 6, 8)
+      )
   }
 
   test("Should not allow empty node property key name in CASE ELSE clause") {
@@ -1048,82 +1119,140 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE n.`` END AS result
       """.stripMargin
-    run(query).hasError(
-      emptyTokenErrorMessage,
-      p(58, 7, 8)
-    )
+    run(query)
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 58, 7, 8),
+        emptyTokenErrorMessage,
+        p(58, 7, 8)
+      )
   }
 
   // Empty tokens for relationship properties
 
   test("Should not allow empty relationship property key name in CREATE clause") {
     run("CREATE ()-[:REL {``: 1}]->()")
-      .hasError(emptyTokenErrorMessage, p(17, 1, 18))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 17, 1, 18),
+        emptyTokenErrorMessage,
+        p(17, 1, 18)
+      )
   }
 
   test("Should not allow empty relationship property key name in MERGE clause") {
     run("MERGE ()-[r :REL {``: 1, prop: 42}]->()")
-      .hasError(emptyTokenErrorMessage, p(18, 1, 19))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 18, 1, 19),
+        emptyTokenErrorMessage,
+        p(18, 1, 19)
+      )
   }
 
   test("Should not allow empty relationship property key name in ON CREATE SET") {
     run("MERGE ()-[r:REL]->() ON CREATE SET r.`` = 1")
-      .hasError(emptyTokenErrorMessage, p(37, 1, 38))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 37, 1, 38),
+        emptyTokenErrorMessage,
+        p(37, 1, 38)
+      )
   }
 
   test("Should not allow empty relationship property key name in ON MATCH SET") {
     run("MERGE ()-[r:REL]->() ON MATCH SET r.`` = 1")
-      .hasError(emptyTokenErrorMessage, p(36, 1, 37))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 36, 1, 37),
+        emptyTokenErrorMessage,
+        p(36, 1, 37)
+      )
   }
 
   test("Should not allow empty relationship property key name in MATCH clause") {
     run("MATCH ()-[r {prop:1337, ``: 1}]->() RETURN r AS invalid")
-      .hasError(emptyTokenErrorMessage, p(24, 1, 25))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 24, 1, 25),
+        emptyTokenErrorMessage,
+        p(24, 1, 25)
+      )
   }
 
   test("Should not allow empty relationship property key name in SET clause") {
     run("MATCH ()-[r]->() SET r.``= 1 RETURN r AS invalid")
-      .hasError(emptyTokenErrorMessage, p(23, 1, 24))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 23, 1, 24),
+        emptyTokenErrorMessage,
+        p(23, 1, 24)
+      )
   }
 
   test("Should not allow empty relationship property key name in REMOVE clause") {
     run("MATCH ()-[r]->() REMOVE r.``")
-      .hasError(emptyTokenErrorMessage, p(26, 1, 27))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 26, 1, 27),
+        emptyTokenErrorMessage,
+        p(26, 1, 27)
+      )
   }
 
   test("Should not allow empty relationship property key name in WHERE clause") {
     run("MATCH (n)-[r]->() WHERE n.prop > r.`` RETURN n AS invalid")
-      .hasError(emptyTokenErrorMessage, p(35, 1, 36))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 35, 1, 36),
+        emptyTokenErrorMessage,
+        p(35, 1, 36)
+      )
   }
 
   test("Should not allow empty relationship property key name in WITH clause") {
     run("MATCH ()-[r]->() WITH r.`` AS prop, r.prop as prop2 RETURN count(*) AS count")
-      .hasError(emptyTokenErrorMessage, p(24, 1, 25))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 24, 1, 25),
+        emptyTokenErrorMessage,
+        p(24, 1, 25)
+      )
   }
 
   test("Should not allow empty relationship property key name in ORDER BY in WITH") {
     run("MATCH ()-[r]->() WITH r AS invalid ORDER BY r.`` RETURN count(*) AS count")
-      .hasError(emptyTokenErrorMessage, p(46, 1, 47))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 46, 1, 47),
+        emptyTokenErrorMessage,
+        p(46, 1, 47)
+      )
   }
 
   test("Should not allow empty relationship property key name in RETURN clause") {
     run("MATCH ()-[r]->() RETURN r.`` as result")
-      .hasError(emptyTokenErrorMessage, p(26, 1, 27))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 26, 1, 27),
+        emptyTokenErrorMessage,
+        p(26, 1, 27)
+      )
   }
 
   test("Should not allow empty relationship property key name in DISTINCT RETURN clause") {
     run("MATCH ()-[r]->() RETURN DISTINCT r.`` as result")
-      .hasError(emptyTokenErrorMessage, p(35, 1, 36))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 35, 1, 36),
+        emptyTokenErrorMessage,
+        p(35, 1, 36)
+      )
   }
 
   test("Should not allow empty relationship property key name in aggregation in RETURN clause") {
     run("MATCH ()-[r]->() RETURN max(r.``) AS max")
-      .hasError(emptyTokenErrorMessage, p(30, 1, 31))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 30, 1, 31),
+        emptyTokenErrorMessage,
+        p(30, 1, 31)
+      )
   }
 
   test("Should not allow empty relationship property key name in ORDER BY in RETURN") {
     run("MATCH ()-[r]->() RETURN r AS result ORDER BY r.``")
-      .hasError(emptyTokenErrorMessage, p(47, 1, 48))
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 47, 1, 48),
+        emptyTokenErrorMessage,
+        p(47, 1, 48)
+      )
   }
 
   test("Should not allow empty relationship property key name in CASE clause") {
@@ -1136,7 +1265,12 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE 2 END AS result
       """.stripMargin
-    run(query).hasError(emptyTokenErrorMessage, p(32, 4, 8))
+    run(query)
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 32, 4, 8),
+        emptyTokenErrorMessage,
+        p(32, 4, 8)
+      )
   }
 
   test("Should not allow empty relationship property key name in CASE WHEN clause") {
@@ -1149,7 +1283,12 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE 2 END AS result
       """.stripMargin
-    run(query).hasError(emptyTokenErrorMessage, p(37, 5, 8))
+    run(query)
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 37, 5, 8),
+        emptyTokenErrorMessage,
+        p(37, 5, 8)
+      )
   }
 
   test("Should not allow empty relationship property key name in CASE THEN clause") {
@@ -1162,7 +1301,12 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN r.``
         |ELSE 2 END AS result
       """.stripMargin
-    run(query).hasError(emptyTokenErrorMessage, p(58, 6, 8))
+    run(query)
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 58, 6, 8),
+        emptyTokenErrorMessage,
+        p(58, 6, 8)
+      )
   }
 
   test("Should not allow empty relationship property key name in CASE ELSE clause") {
@@ -1175,71 +1319,124 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
         |THEN 1
         |ELSE r.`` END AS result
       """.stripMargin
-    run(query).hasError(emptyTokenErrorMessage, p(65, 7, 8))
+    run(query)
+      .hasError(
+        GqlHelper.getGql42001_42I11("property key", "", 65, 7, 8),
+        emptyTokenErrorMessage,
+        p(65, 7, 8)
+      )
   }
 
   // Empty tokens for labels
 
   test("Should not allow empty label in CREATE clause") {
     run("CREATE (:Valid:``)")
-      .hasError(emptyTokenErrorMessage, p(14, 1, 15))
+      .hasError(
+        GqlHelper.getGql42001_42I11("label", "", 14, 1, 15),
+        emptyTokenErrorMessage,
+        p(14, 1, 15)
+      )
   }
 
   test("Should not allow empty label in MERGE clause") {
     run("MERGE (n:``)")
-      .hasError(emptyTokenErrorMessage, p(9, 1, 10))
+      .hasError(
+        GqlHelper.getGql42001_42I11("label", "", 9, 1, 10),
+        emptyTokenErrorMessage,
+        p(9, 1, 10)
+      )
   }
 
   test("Should not allow empty label in MATCH clause") {
     run("MATCH (n:``:Valid) RETURN n AS invalid")
-      .hasError(emptyTokenErrorMessage, p(11, 1, 12))
+      .hasError(
+        GqlHelper.getGql42001_42I11("label", "", 11, 1, 12),
+        emptyTokenErrorMessage,
+        p(11, 1, 12)
+      )
   }
 
   test("Should not allow empty label in label expression") {
     run("MATCH (n:``&Valid) RETURN n AS invalid")
-      .hasError(emptyTokenErrorMessage, p(11, 1, 12))
+      .hasError(
+        GqlHelper.getGql42001_42I11("label", "", 11, 1, 12),
+        emptyTokenErrorMessage,
+        p(11, 1, 12)
+      )
   }
 
   test("should not allow empty label name in label expression predicate") {
     run("MATCH (n) WHERE n:A&`` RETURN *")
-      .hasError(emptyTokenErrorMessage, p(19, 1, 20))
+      .hasError(
+        GqlHelper.getGql42001_42I11("label", "", 19, 1, 20),
+        emptyTokenErrorMessage,
+        p(19, 1, 20)
+      )
   }
 
   test("should not allow empty label name in label expression with legacy symbols") {
     run("MATCH (n) WHERE n:A:`` RETURN *")
-      .hasError(emptyTokenErrorMessage, p(19, 1, 20))
+      .hasError(
+        GqlHelper.getGql42001_42I11("label", "", 19, 1, 20),
+        emptyTokenErrorMessage,
+        p(19, 1, 20)
+      )
   }
 
   test("Should not allow empty label in SET clause") {
     run("MATCH (n) SET n:``")
-      .hasError(emptyTokenErrorMessage, p(14, 1, 15))
+      .hasError(
+        GqlHelper.getGql42001_42I11("label", "", 14, 1, 15),
+        emptyTokenErrorMessage,
+        p(14, 1, 15)
+      )
   }
 
   test("Should not allow empty label in REMOVE clause") {
     run("MATCH (n) REMOVE n:``")
-      .hasError(emptyTokenErrorMessage, p(17, 1, 18))
+      .hasError(
+        GqlHelper.getGql42001_42I11("label", "", 17, 1, 18),
+        emptyTokenErrorMessage,
+        p(17, 1, 18)
+      )
   }
 
   // Empty tokens for relationship type
 
   test("Should not allow empty relationship type in CREATE clause") {
     run("CREATE ()-[:``]->()")
-      .hasError(emptyTokenErrorMessage, p(12, 1, 13))
+      .hasError(
+        GqlHelper.getGql42001_42I11("relationship type", "", 12, 1, 13),
+        emptyTokenErrorMessage,
+        p(12, 1, 13)
+      )
   }
 
   test("Should not allow empty relationship type in MERGE clause") {
     run("MERGE ()-[r :``]->()")
-      .hasError(emptyTokenErrorMessage, p(13, 1, 14))
+      .hasError(
+        GqlHelper.getGql42001_42I11("relationship type", "", 13, 1, 14),
+        emptyTokenErrorMessage,
+        p(13, 1, 14)
+      )
   }
 
   test("Should not allow empty relationship type in MATCH clause") {
     run("MATCH ()-[r :``]->() RETURN r AS invalid")
-      .hasError(emptyTokenErrorMessage, p(13, 1, 14))
+      .hasError(
+        GqlHelper.getGql42001_42I11("relationship type", "", 13, 1, 14),
+        emptyTokenErrorMessage,
+        p(13, 1, 14)
+      )
   }
 
   test("Should not allow empty relationship type in variable length pattern") {
     run("MATCH ()-[r :``*1..5]->() RETURN r AS invalid")
-      .hasError(emptyTokenErrorMessage, p(13, 1, 14))
+      .hasError(
+        GqlHelper.getGql42001_42I11("relationship type", "", 13, 1, 14),
+        emptyTokenErrorMessage,
+        p(13, 1, 14)
+      )
   }
 
   test("Should not allow to use aggregate functions inside aggregate functions") {

@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory.SyntaxException
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.gqlstatus.GqlHelper
 
 class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest {
   private val exceptionFactory = OpenCypherExceptionFactory(None)
@@ -1027,11 +1028,14 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
         e.getMessage should equal(
           "Cannot use aggregation in ORDER BY if there are no aggregate expressions in the preceding WITH (line 2, column 1 (offset: 10))"
         )
+        e.getStatusObject should equal(
+          GqlHelper.getGql42001_42N23("WITH", 10, 2, 1)
+        )
     }
   }
 
   test("rejects use of aggregation in ORDER BY if aggregation is not used in associated RETURN") {
-    // Note: aggregations in ORDER BY that don't also appear in WITH are invalid
+    // Note: aggregations in ORDER BY that don't also appear in RETURN are invalid
     try {
       rewrite(parseForRewriting(
         """MATCH (n)
@@ -1043,6 +1047,9 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
       case e: SyntaxException =>
         e.getMessage should equal(
           "Cannot use aggregation in ORDER BY if there are no aggregate expressions in the preceding RETURN (line 2, column 1 (offset: 10))"
+        )
+        e.getStatusObject should equal(
+          GqlHelper.getGql42001_42N23("RETURN", 10, 2, 1)
         )
     }
   }

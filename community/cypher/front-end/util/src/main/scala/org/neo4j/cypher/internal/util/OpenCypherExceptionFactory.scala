@@ -42,6 +42,8 @@ object OpenCypherExceptionFactory {
     override def getMessage: String = {
       s"$message ($pos)"
     }
+
+    def getStatusObject: ErrorGqlStatusObject = gqlStatusObject
   }
 
 }

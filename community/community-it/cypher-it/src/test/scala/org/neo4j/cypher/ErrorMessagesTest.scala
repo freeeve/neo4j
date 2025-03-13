@@ -188,10 +188,15 @@ class ErrorMessagesTest extends ExecutionEngineWithoutRestartFunSuite {
   }
 
   test("should give nice error when trying to parse multiple statements") {
-    expectError(
+    val error = expectError(
       "RETURN 42; RETURN 42",
       "Expected exactly one statement per query but got: 2"
     )
+    error.gqlStatus() shouldBe "42001"
+    error.cause() should not be empty
+    val gqlCause = error.cause().get()
+    gqlCause.gqlStatus() shouldBe "42I15"
+    gqlCause.statusDescription() shouldBe "error: syntax error or access rule violation - invalid number of statements. Expected exactly one statement per query but got: 2."
   }
 
   test("should give proper error message when trying to use Node Key constraint on community") {

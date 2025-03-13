@@ -890,7 +890,11 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
         }
       } chain
         SemanticExpressionCheck.simple(dynamicLabels) chain
-        SemanticPatternCheck.checkValidDynamicLabels(dynamicLabels, labelExpression.position) chain
+        SemanticPatternCheck.checkValidDynamicLabels(
+          if (isLabels) TokenType.NodeLabel else TokenType.RelationshipType,
+          dynamicLabels,
+          labelExpression.position
+        ) chain
         SemanticExpressionCheck.expectType(
           CTString.covariant | CTList(CTString).covariant,
           dynamicLabels,
@@ -906,45 +910,52 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
     SemanticPatternCheck.checkValidPropertyKeyNames(propertyKeys)
   }
 
+  trait TokenType {
+    def tokenType: String
+  }
+
+  object TokenType {
+    case object PropertyName extends TokenType { override val tokenType: String = "property key" }
+    case object NodeLabel extends TokenType { override val tokenType: String = "label" }
+    case object RelationshipType extends TokenType { override val tokenType: String = "relationship type" }
+  }
+
   def checkValidPropertyKeyNames(propertyKeys: Seq[PropertyKeyName]): SemanticCheck = {
-    val error = propertyKeys.collectFirst {
-      case key if checkValidTokenName(key.name).nonEmpty =>
-        (checkValidTokenName(key.name).get, key.position)
-    }
-    if (error.nonEmpty) SemanticError(error.get._1, error.get._2) else None
+    propertyKeys.collectFirst(Function.unlift(key =>
+      checkValidTokenName(TokenType.PropertyName.tokenType, key.name, key.position)
+    ))
   }
 
-  def checkValidLabels(labelNames: Seq[SymbolicName], pos: InputPosition): SemanticCheck =
-    labelNames.view.flatMap {
-      case LabelName(name)   => checkValidTokenName(name)
-      case RelTypeName(name) => checkValidTokenName(name)
+  def checkValidLabels(tokenType: TokenType, labelNames: Seq[SymbolicName], pos: InputPosition): SemanticCheck = {
+    labelNames.view.collectFirst(Function.unlift {
+      case LabelName(name)   => checkValidTokenName(tokenType.tokenType, name, pos)
+      case RelTypeName(name) => checkValidTokenName(tokenType.tokenType, name, pos)
 
-      case LabelOrRelTypeName(name) => checkValidTokenName(name)
+      case LabelOrRelTypeName(name) => checkValidTokenName(tokenType.tokenType, name, pos)
       case _                        => None
-    }.headOption.map(message => SemanticError(message, pos))
-
-  def checkValidDynamicLabels(labelNames: Seq[Expression], pos: InputPosition): SemanticCheck = {
-    labelNames.view.flatMap {
-      case StringLiteral(name) => checkValidTokenName(name).toSeq
-      case ListLiteral(expressions) =>
-        expressions.collect {
-          case StringLiteral(name) => checkValidTokenName(name)
-          case _: Null             => checkValidTokenName(null)
-        }.flatten
-      case _: Null => checkValidTokenName(null)
-      case _       => Seq.empty
-    }.headOption.map(message => SemanticError(message, pos))
+    })
   }
 
-  private def checkValidTokenName(name: String): Option[String] = {
-    if (name == null || name.isEmpty || name.contains("\u0000")) {
-      Some(String.format(
-        "%s is not a valid token name. " + "Token names cannot be empty or contain any null-bytes.",
-        if (name != null) "'" + name + "'" else "Null"
-      ))
-    } else {
-      None
-    }
+  def checkValidDynamicLabels(tokenType: TokenType, labelNames: Seq[Expression], pos: InputPosition): SemanticCheck = {
+    labelNames.view.collectFirst(Function.unlift {
+      case StringLiteral(name) => checkValidTokenName(tokenType.tokenType, name, pos)
+      case ListLiteral(expressions) =>
+        expressions.collectFirst(Function.unlift {
+          case StringLiteral(name) => checkValidTokenName(tokenType.tokenType, name, pos)
+          case _: Null             => checkValidTokenName(tokenType.tokenType, null, pos)
+          case _                   => None
+        })
+      case _: Null => checkValidTokenName(tokenType.tokenType, null, pos)
+      case _       => None
+    })
+  }
+
+  private def checkValidTokenName(tokenType: String, name: String, pos: InputPosition): Option[SemanticError] = {
+    Option.when(name == null || name.isEmpty || name.contains("\u0000"))(SemanticError.invalidToken(
+      tokenType,
+      name,
+      pos
+    ))
   }
 
   private def normalizeParenthesizedPath(ppp: ParenthesizedPath): ParenthesizedPath = {

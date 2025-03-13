@@ -220,7 +220,7 @@ case class NormalizeWithAndReturnClauses(
 
     // Alias return items and rewrite ORDER BY and WHERE
     case clause @ ProjectionClause(_, ri: ReturnItems, orderBy, _, _, where) =>
-      clause.verifyOrderByAggregationUse((s, i) => throw cypherExceptionFactory.syntaxException(s, i))
+      clause.verifyOrderByAggregationUse((s, i) => throw cypherExceptionFactory.invalidUseOfAggregationInOrderBy(s, i))
 
       val existingAliases = ri.items.collect {
         case AliasedReturnItem(expression, variable) => expression -> variable

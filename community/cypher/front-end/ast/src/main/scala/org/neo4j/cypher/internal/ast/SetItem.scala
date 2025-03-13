@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck
+import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.TokenType
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.HasMappableExpressions
@@ -49,9 +50,9 @@ case class SetLabelItem(
 
   def semanticCheck =
     SemanticExpressionCheck.simple(variable) chain
-      SemanticPatternCheck.checkValidLabels(labels, position) chain
+      SemanticPatternCheck.checkValidLabels(TokenType.NodeLabel, labels, position) chain
       SemanticExpressionCheck.simple(dynamicLabels) chain
-      SemanticPatternCheck.checkValidDynamicLabels(dynamicLabels, position) chain
+      SemanticPatternCheck.checkValidDynamicLabels(TokenType.NodeLabel, dynamicLabels, position) chain
       SemanticExpressionCheck.expectType(CTString.covariant | CTList(CTString).covariant, dynamicLabels) chain
       SemanticExpressionCheck.expectType(CTNode.covariant, variable)
 
@@ -90,7 +91,11 @@ case class SetDynamicPropertyItem(dynamicPropertyLookup: ContainerIndex, express
 
   def semanticCheck =
     SemanticExpressionCheck.simple(dynamicPropertyLookup) chain
-      SemanticPatternCheck.checkValidDynamicLabels(Seq(dynamicPropertyLookup.idx), position) chain
+      SemanticPatternCheck.checkValidDynamicLabels(
+        TokenType.PropertyName,
+        Seq(dynamicPropertyLookup.idx),
+        position
+      ) chain
       SemanticExpressionCheck.simple(expression) chain
       SemanticExpressionCheck.expectType(CTNode.covariant | CTRelationship.covariant, dynamicPropertyLookup.expr)
 

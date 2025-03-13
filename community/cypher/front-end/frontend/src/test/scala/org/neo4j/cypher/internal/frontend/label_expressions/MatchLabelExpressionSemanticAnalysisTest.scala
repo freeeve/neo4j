@@ -767,17 +767,27 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
     ))
   }
 
+  test("MATCH (n:$([''])) RETURN *") {
+    run().hasError(
+      GqlHelper.getGql42001_42I11("label", "", 9, 1, 10),
+      "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
+      p(9, 1, 10) // Position of the node
+    )
+  }
+
   test("MATCH (n:$(null)) RETURN *") {
     run().hasError(
+      GqlHelper.getGql42001_42I11("label", "Null", 9, 1, 10),
       "Null is not a valid token name. Token names cannot be empty or contain any null-bytes.",
-      p(9, 1, 10)
+      p(9, 1, 10) // Position of the node
     )
   }
 
   test("MATCH (n:$([\"A\", \"\"])) RETURN *") {
     run().hasError(
+      GqlHelper.getGql42001_42I11("label", "", 9, 1, 10),
       "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
-      p(9, 1, 10)
+      p(9, 1, 10) // Position of the node
     )
   }
 
@@ -799,13 +809,6 @@ class MatchLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysis
       "Type mismatch: expected String or List<String> but was List<Integer>",
       p(11, 1, 12)
     ))
-  }
-
-  test("MATCH (n:$([''])) RETURN *") {
-    run().hasError(
-      "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
-      p(9, 1, 10)
-    )
   }
 
   test("MATCH (n:$all(['Foo', 'Bar'])) RETURN *") {

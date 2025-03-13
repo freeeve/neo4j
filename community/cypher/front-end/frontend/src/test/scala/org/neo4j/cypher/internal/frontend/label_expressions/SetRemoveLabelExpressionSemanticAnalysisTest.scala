@@ -118,6 +118,13 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithChangeStatement(state
 
   test("m:$(\"\")") {
     run().hasError(
+      GqlHelper.getGql42001_42I11(
+        "label",
+        "",
+        errorPositionDynamicLabels.offset,
+        errorPositionDynamicLabels.line,
+        errorPositionDynamicLabels.column
+      ),
       "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
       errorPositionDynamicLabels
     )

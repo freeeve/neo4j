@@ -1855,7 +1855,7 @@ sealed trait ProjectionClause extends HorizonClause {
     val aggregationInProjection = returnItems.containsAggregate
     val aggregationInOrderBy = orderBy.exists(_.sortItems.map(_.expression).exists(containsAggregate))
     if (!aggregationInProjection && aggregationInOrderBy)
-      fail(s"Cannot use aggregation in ORDER BY if there are no aggregate expressions in the preceding $name", position)
+      fail(name, position)
   }
 }
 

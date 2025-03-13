@@ -22,6 +22,7 @@ import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.CommonGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
@@ -68,6 +69,17 @@ trait CypherExceptionFactory {
       )
       .build()
     syntaxException(gql, legacyMessage, pos)
+  }
+
+  def invalidUseOfAggregationInOrderBy(
+    clause: String,
+    position: InputPosition
+  ): RuntimeException = {
+    syntaxException(
+      GqlHelper.getGql42001_42N23(clause, position.offset, position.line, position.column),
+      s"Cannot use aggregation in ORDER BY if there are no aggregate expressions in the preceding $clause",
+      position
+    )
   }
 
   def unsupportedPathSelectorInPathPattern(

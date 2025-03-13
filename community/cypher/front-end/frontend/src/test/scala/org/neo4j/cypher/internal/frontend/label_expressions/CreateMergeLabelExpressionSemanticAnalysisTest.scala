@@ -255,12 +255,20 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
 
   test("(n:$(['']))") {
     run()
-      .hasErrorMessages("'' is not a valid token name. Token names cannot be empty or contain any null-bytes.")
+      .hasError(
+        GqlHelper.getGql42001_42I11("label", "", offset + 3, 1, offset + 4),
+        "'' is not a valid token name. Token names cannot be empty or contain any null-bytes.",
+        InputPosition(offset + 3, 1, offset + 4)
+      )
   }
 
   test("(n:$([null]))") {
     run()
-      .hasErrorMessages("Null is not a valid token name. Token names cannot be empty or contain any null-bytes.")
+      .hasError(
+        GqlHelper.getGql42001_42I11("label", "Null", offset + 3, 1, offset + 4),
+        "Null is not a valid token name. Token names cannot be empty or contain any null-bytes.",
+        InputPosition(offset + 3, 1, offset + 4)
+      )
   }
 
   test("(n:$all(['Foo', 'Bar']))") {

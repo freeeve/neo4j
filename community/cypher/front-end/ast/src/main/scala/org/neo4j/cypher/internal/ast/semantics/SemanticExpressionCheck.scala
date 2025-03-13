@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
+import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.TokenType
 import org.neo4j.cypher.internal.ast.semantics.SemanticPatternCheck.checkValidLabels
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
@@ -914,8 +915,10 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           error(
             SemanticError.invalidLabelExpression(Set(s":$sanitizedLabelExpression"), legacySymbols.head.position)
           )
-      } chain
-      checkValidLabels(labelExpression.flatten, labelExpression.position)
+      } chain {
+        val tokenType = if (entityType.contains(RELATIONSHIP_TYPE)) TokenType.RelationshipType else TokenType.NodeLabel
+        checkValidLabels(tokenType, labelExpression.flatten, labelExpression.position)
+      }
   }
 
   /**

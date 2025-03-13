@@ -1148,6 +1148,19 @@ object SemanticError {
     SemanticError(gql, legacyMessage, position)
   }
 
+  def invalidToken(tokenType: String, input: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I11(tokenType, input, position.offset, position.line, position.column)
+    val inputChecked =
+      if (input == null) "Null"
+      else if (input.isEmpty) "''"
+      else input
+    SemanticError(
+      gql,
+      s"$inputChecked is not a valid token name. Token names cannot be empty or contain any null-bytes.",
+      position
+    )
+  }
+
   def invalidDelete(position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)

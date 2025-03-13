@@ -137,8 +137,11 @@ abstract class CreateTestBase[CONTEXT <: RuntimeContext](
     emptyStringException.getMessage should equal(
       "'' is not a valid token name. Token names cannot be empty or contain any null-bytes."
     )
-    emptyStringException.gqlStatus() should equal("42I11")
-    emptyStringException.statusDescription() should equal(
+    emptyStringException.gqlStatus() should equal("42001")
+    emptyStringException.cause() should not be empty
+    val emptyStringExceptionCause = emptyStringException.cause().get()
+    emptyStringExceptionCause.gqlStatus() should equal("42I11")
+    emptyStringExceptionCause.statusDescription() should equal(
       "error: syntax error or access rule violation - invalid name. A label name cannot be empty or contain any null-bytes: ''."
     )
 
@@ -469,8 +472,11 @@ abstract class CreateTestBase[CONTEXT <: RuntimeContext](
     emptyStringException.getMessage should equal(
       "'' is not a valid token name. Token names cannot be empty or contain any null-bytes."
     )
-    emptyStringException.gqlStatus() should equal("42I11")
-    emptyStringException.statusDescription() should equal(
+    emptyStringException.gqlStatus() should equal("42001")
+    emptyStringException.cause() should not be empty
+    val emptyStringExceptionCause = emptyStringException.cause().get()
+    emptyStringExceptionCause.gqlStatus() should equal("42I11")
+    emptyStringExceptionCause.statusDescription() should equal(
       "error: syntax error or access rule violation - invalid name. A relationship type name cannot be empty or contain any null-bytes: ''."
     )
     a[IllegalTokenNameException] shouldBe thrownBy(theDynamicType("\u0000"))

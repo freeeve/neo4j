@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.parser.v25.Cypher25Parser
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
+import org.neo4j.gqlstatus.ErrorGqlStatusObject
 
 import scala.collection.immutable.ArraySeq
 
@@ -45,8 +46,12 @@ final class Cypher25AstParser(
   override def expression(): Expression = parse(_.expression())
   override def numberLiteral(): NumberLiteral = parse(_.numberLiteral())
 
-  override def syntaxException(message: String, position: InputPosition): RuntimeException = {
-    exceptionFactory.syntaxException(message, position)
+  override def syntaxException(
+    gqlStatusObject: ErrorGqlStatusObject,
+    message: String,
+    position: InputPosition
+  ): RuntimeException = {
+    exceptionFactory.syntaxException(gqlStatusObject, message, position)
   }
 
   override protected def newParser(tokens: TokenStream): CypherAstBuildingAntlrParser =
