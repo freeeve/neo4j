@@ -132,6 +132,8 @@ public class DefaultRelationshipTraversalCursor extends DefaultRelationshipCurso
         this.neighbourNodeReference = neighbourNodeReference;
         if (!nodeCursor.currentNodeIsAddedInTx()) {
             nodeCursor.storeCursor.relationshipsTo(storeCursor, selection, neighbourNodeReference);
+        } else {
+            storeCursor.reset();
         }
     }
 
