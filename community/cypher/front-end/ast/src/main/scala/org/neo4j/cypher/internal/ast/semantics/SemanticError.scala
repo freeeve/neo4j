@@ -1750,6 +1750,40 @@ object SemanticError {
       position
     )
   }
+
+  def duplicateVariableDefinitionUnknown(
+    clause: String,
+    varName: String,
+    position: InputPosition
+  ): SemanticError =
+    duplicateVariableDefinition(
+      clause,
+      s"The variable '$varName' is referencing an entity that is created in the same $clause clause which is not allowed. " + "Please only reference variables created in earlier clauses.",
+      position
+    )
+
+  def duplicateVariableDefinitionKnown(
+    clause: String,
+    varName: String,
+    typ: String,
+    position: InputPosition
+  ): SemanticError =
+    duplicateVariableDefinition(
+      clause,
+      s"The $typ variable '$varName' is referencing a $typ that is created in the same $clause clause which is not allowed. " + "Please only reference variables created in earlier clauses.",
+      position
+    )
+
+  private def duplicateVariableDefinition(
+    clause: String,
+    legacyMessage: String,
+    position: InputPosition
+  ): SemanticError =
+    SemanticError(
+      GqlHelper.getGql42001_42N68(clause, position.offset, position.line, position.column),
+      legacyMessage,
+      position
+    )
 }
 
 final case class FeatureError(

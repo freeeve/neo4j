@@ -50,7 +50,6 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.DynamicLeaf
 import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.util.ASTNode
-import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Ref
@@ -186,18 +185,17 @@ object SelfReferenceCheckWithinPatternPart extends VariableReferenceCheck {
 
   def check: SemanticErrorCheck = (baseState, baseContext) => {
     val semanticTable = baseState.semanticTable()
-    val errorMessageProvider = baseContext.errorMessageProvider
 
     baseState.statement().folder.treeFold(Seq.empty[SemanticError]) {
       case c: CreateOrInsert =>
         accErrors =>
-          val errors = checkPattern(c, c.pattern, semanticTable, errorMessageProvider)
+          val errors = checkPattern(c, c.pattern, semanticTable)
           SkipChildren(accErrors ++ errors)
 
       case m: Merge if Merge.SelfReference.errorIn(baseContext.cypherVersion) =>
         accErrors =>
           val pattern = Pattern.ForUpdate(Seq(m.pattern))(m.pattern.position)
-          val errors = checkPattern(m, pattern, semanticTable, errorMessageProvider)
+          val errors = checkPattern(m, pattern, semanticTable)
           SkipChildren(accErrors ++ errors)
     }
   }
@@ -205,11 +203,10 @@ object SelfReferenceCheckWithinPatternPart extends VariableReferenceCheck {
   private def checkPattern(
     clause: UpdateClause,
     pattern: Pattern,
-    semanticTable: SemanticTable,
-    errorMessageProvider: ErrorMessageProvider
+    semanticTable: SemanticTable
   ): Seq[SemanticError] = {
     findSelfReferenceVariablesWithinPatternParts(pattern, semanticTable)
-      .map(createError(clause, _, semanticTable, errorMessageProvider))
+      .map(createError(clause, _, semanticTable))
       .toSeq
   }
 
@@ -225,15 +222,21 @@ object SelfReferenceCheckWithinPatternPart extends VariableReferenceCheck {
   private def createError(
     clause: UpdateClause,
     variable: LogicalVariable,
-    semanticTable: SemanticTable,
-    errorMessageProvider: ErrorMessageProvider
+    semanticTable: SemanticTable
   ): SemanticError = {
-    val msg = semanticTable.typeFor(variable).typeInfo.map(_.toShortString) match {
-      case Some(typ) => errorMessageProvider.createSelfReferenceError(variable.name, typ, clause.name)
-      case None      => errorMessageProvider.createSelfReferenceError(variable.name, clause.name)
+    semanticTable.typeFor(variable).typeInfo.map(_.toShortString) match {
+      case Some(typ) => SemanticError.duplicateVariableDefinitionKnown(
+          clause.name,
+          variable.name,
+          typ,
+          clause.position
+        )
+      case None => SemanticError.duplicateVariableDefinitionUnknown(
+          clause.name,
+          variable.name,
+          clause.position
+        )
     }
-
-    SemanticError(msg, variable.position)
   }
 }
 
