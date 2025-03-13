@@ -90,11 +90,11 @@ case object collectDistinctRewriter extends Rewriter {
         }
         acc => TraverseChildren(acc.withAliases(aliases))
 
-      case ContainerIndex(v: LogicalVariable, _) => acc => TraverseChildren(acc.addUnsafe(v))
+      case ContainerIndex(v: LogicalVariable, _) => acc => SkipChildren(acc.addUnsafe(v))
 
       case In(_, list: LogicalVariable) => acc => SkipChildren(acc.addIn(list))
 
-      case v: LogicalVariable => acc => TraverseChildren(acc.add(v))
+      case v: LogicalVariable => acc => SkipChildren(acc.add(v))
     }
 
     res.build
