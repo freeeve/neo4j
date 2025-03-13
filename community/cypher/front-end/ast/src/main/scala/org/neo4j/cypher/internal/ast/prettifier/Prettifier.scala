@@ -1029,13 +1029,18 @@ case class Prettifier(
         case Some(InTransactionsConcurrencyParameters(None))           => " CONCURRENT"
         case None                                                      => ""
       }
+      val retryParameters = ip.errorParams.map(_.retryParameters.map(_.timeout)) match {
+        case Some(Some(Some(timeout))) =>
+          " " + expr(timeout) + " SECONDS"
+        case _ => ""
+      }
       val onError = ip.errorParams.map(_.behaviour) match {
         case Some(OnErrorBreak)             => s" ON ERROR BREAK"
         case Some(OnErrorContinue)          => s" ON ERROR CONTINUE"
         case Some(OnErrorFail)              => s" ON ERROR FAIL"
-        case Some(OnErrorRetryThenContinue) => s" ON ERROR RETRY THEN CONTINUE"
-        case Some(OnErrorRetryThenBreak)    => s" ON ERROR RETRY THEN BREAK"
-        case Some(OnErrorRetryThenFail)     => s" ON ERROR RETRY THEN FAIL"
+        case Some(OnErrorRetryThenContinue) => s" ON ERROR RETRY$retryParameters THEN CONTINUE"
+        case Some(OnErrorRetryThenBreak)    => s" ON ERROR RETRY$retryParameters THEN BREAK"
+        case Some(OnErrorRetryThenFail)     => s" ON ERROR RETRY$retryParameters THEN FAIL"
         case None                           => ""
       }
       val reportStatus = ip.reportParams.map(_.reportAs) match {
