@@ -88,6 +88,7 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
     private final KernelRead kernelRead;
     private final KernelProcedures.ForThreadExecutionContextScope procedures;
     private final TokenRead tokenRead;
+    private final StorageReader storageReader;
     private final StoreCursors storageCursors;
     private final MemoryTracker contextTracker;
     private final SecurityAuthorizationHandler securityAuthorizationHandler;
@@ -132,6 +133,7 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
         this.cursorTracer = cursorTracer;
         this.ktxContext = ktxContext;
         this.tokenRead = tokenRead;
+        this.storageReader = storageReader;
         this.storageCursors = storageCursors;
         this.contextTracker = contextTracker;
         this.securityAuthorizationHandler = securityAuthorizationHandler;
@@ -184,6 +186,14 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
 
     public OverridableSecurityContext overridableSecurityContext() {
         return overridableSecurityContext;
+    }
+
+    public StoreCursors storeCursors() {
+        return storageCursors;
+    }
+
+    public StorageReader storageReader() {
+        return storageReader;
     }
 
     @Override

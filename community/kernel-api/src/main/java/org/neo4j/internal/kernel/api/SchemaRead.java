@@ -168,4 +168,11 @@ public interface SchemaRead extends SchemaReadCore {
      * Flush the schema state
      */
     void schemaStateFlush();
+
+    /**
+     * Asserts that the given index exists, and throws {@link IndexNotFoundKernelException} if the index is not found
+     * @param index The descriptor of the index to check.
+     * @throws IndexNotFoundKernelException if the index does not exist
+     */
+    void assertIndexExists(IndexDescriptor index) throws IndexNotFoundKernelException;
 }

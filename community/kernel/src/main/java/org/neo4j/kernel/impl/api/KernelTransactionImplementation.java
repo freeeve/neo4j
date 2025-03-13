@@ -229,7 +229,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     protected final CursorContextFactory contextFactory;
     private final EntityLocks entityLocks;
     private final KernelProcedures.ForTransactionScope procedures;
-    private final KernelSchemaRead schemaRead;
+    private final SchemaRead schemaRead;
     private final KernelRead kernelRead;
     // For concurrent access by monitoring, jobs, etc CURSOR_CONTEXT_HANDLE should be used
     @SuppressWarnings("FieldMayBeFinal")
@@ -294,7 +294,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
 
     private Monitor monitor;
     private final StoreCursors transactionalCursors;
-    protected final DefaultPooledCursors cursorFactory;
+    private final DefaultPooledCursors cursorFactory;
 
     private final AvailabilityGuard availabilityGuard;
 
@@ -410,28 +410,17 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.procedures =
                 new KernelProcedures.ForTransactionScope(this, dependencies, this::assertOpenWithParallelAccessCheck);
         AccessModeProvider accessModeProvider = () -> securityContext().mode();
-        this.schemaRead = new KernelSchemaRead(
-                schemaState,
-                indexStatisticsStore,
-                storageReader,
-                entityLocks,
-                this,
-                indexingService,
-                this::assertOpenWithParallelAccessCheck,
-                accessModeProvider);
-        this.kernelRead = new KernelRead(
+        this.schemaRead = createSchemaRead(
+                schemaState, indexStatisticsStore, storageReader, entityLocks, indexingService, accessModeProvider);
+        this.kernelRead = createKernelRead(
                 storageReader,
                 kernelToken,
-                cursorFactory,
                 transactionalCursors,
                 entityLocks,
                 queryContext,
-                this,
-                schemaRead,
                 indexingService,
                 memoryTracker,
                 multiVersioned,
-                this::assertOpenWithParallelAccessCheck,
                 accessModeProvider,
                 false,
                 logProvider);
@@ -462,7 +451,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 this,
                 schemaRead,
                 kernelToken,
-                this.cursorFactory,
+                cursorFactory,
                 constraintIndexCreator,
                 constraintSemantics,
                 indexingService,
@@ -496,7 +485,55 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 storageReader, transactionalCursors, config, storageEngine.indexingBehaviour(), multiVersioned);
     }
 
-    private void assertOpenWithParallelAccessCheck() {
+    protected SchemaRead createSchemaRead(
+            SchemaState schemaState,
+            IndexStatisticsStore indexStatisticsStore,
+            StorageReader storageReader,
+            EntityLocks entityLocks,
+            IndexingService indexingService,
+            AccessModeProvider accessModeProvider) {
+        return new KernelSchemaRead(
+                schemaState,
+                indexStatisticsStore,
+                storageReader,
+                entityLocks,
+                this,
+                indexingService,
+                this::assertOpenWithParallelAccessCheck,
+                accessModeProvider);
+    }
+
+    protected KernelRead createKernelRead(
+            StorageReader storageReader,
+            KernelToken kernelToken,
+            StoreCursors storeCursors,
+            EntityLocks entityLocks,
+            QueryContext queryContext,
+            IndexingService indexingService,
+            MemoryTracker memoryTracker,
+            boolean multiVersioned,
+            AccessModeProvider accessModeProvider,
+            boolean parallel,
+            LogProvider logProvider) {
+        return new KernelRead(
+                storageReader,
+                kernelToken,
+                cursorFactory,
+                storeCursors,
+                entityLocks,
+                queryContext,
+                this,
+                schemaRead,
+                indexingService,
+                memoryTracker,
+                multiVersioned,
+                this::assertOpenWithParallelAccessCheck,
+                accessModeProvider,
+                parallel,
+                logProvider);
+    }
+
+    protected void assertOpenWithParallelAccessCheck() {
         if (ParallelAccessCheck.shouldPerformCheck()) {
             ParallelAccessCheck.checkNotCypherWorkerThread();
         }

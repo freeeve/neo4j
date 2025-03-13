@@ -91,25 +91,25 @@ import org.neo4j.values.storable.Value;
  * transaction.
  * Transaction scoped and thread context scoped resources CANNOT be mixed.
  */
-public final class KernelRead implements Read, IndexSeekExactProperty {
+public class KernelRead implements Read {
     private final StorageReader storageReader;
-    private final CursorFactory cursors;
+    protected final CursorFactory cursors;
     private final IndexingService indexingService;
-    private final MemoryTracker memoryTracker;
+    protected final MemoryTracker memoryTracker;
     private final IndexReaderCache<ValueIndexReader> valueIndexReaderCache;
     private final IndexReaderCache<TokenIndexReader> tokenIndexReaderCache;
     private final EntityCounter entityCounter;
     private final boolean applyAccessModeToTxState;
-    private final TokenRead tokenRead;
+    protected final TokenRead tokenRead;
     private final StoreCursors storageCursors;
-    private final QueryContext queryContext;
+    protected final QueryContext queryContext;
     private final Locks entityLocks;
-    private final TxStateHolder txStateHolder;
+    protected final TxStateHolder txStateHolder;
     private final SchemaRead schemaRead;
     private final AssertOpen assertOpen;
-    private final AccessModeProvider accessModeProvider;
+    protected final AccessModeProvider accessModeProvider;
     private final boolean parallel;
-    private final Log log;
+    protected final Log log;
 
     public KernelRead(
             StorageReader storageReader,
@@ -260,33 +260,23 @@ public final class KernelRead implements Read, IndexSeekExactProperty {
         // First try to find node under a shared lock
         // if not found upgrade to exclusive and try again
         entityLocks.acquireSharedIndexEntryLock(indexEntryId);
-        try (IndexReaders readers = new IndexReaders(index, this)) {
-            nodeIndexSeekWithFreshIndexReader(
-                    (DefaultNodeValueIndexCursor) cursor,
-                    queryContext.cursorContext(),
-                    readers.createReader(),
-                    predicates);
-            if (!cursor.next()) {
-                entityLocks.releaseSharedIndexEntryLock(indexEntryId);
-                entityLocks.acquireExclusiveIndexEntryLock(indexEntryId);
-                nodeIndexSeekWithFreshIndexReader(
-                        (DefaultNodeValueIndexCursor) cursor,
-                        queryContext.cursorContext(),
-                        readers.createReader(),
-                        predicates);
-                if (cursor.next()) {
-                    // we found it under the exclusive lock
-                    // downgrade to a shared lock
-                    entityLocks.acquireSharedIndexEntryLock(indexEntryId);
-                    entityLocks.releaseExclusiveIndexEntryLock(indexEntryId);
-                    return cursor.nodeReference();
-                } else {
-                    return StatementConstants.NO_SUCH_NODE;
-                }
+        nodeIndexSeekForExactProperty(cursor, queryContext.cursorContext(), index, predicates);
+        if (!cursor.next()) {
+            entityLocks.releaseSharedIndexEntryLock(indexEntryId);
+            entityLocks.acquireExclusiveIndexEntryLock(indexEntryId);
+            nodeIndexSeekForExactProperty(cursor, queryContext.cursorContext(), index, predicates);
+            if (cursor.next()) {
+                // we found it under the exclusive lock
+                // downgrade to a shared lock
+                entityLocks.acquireSharedIndexEntryLock(indexEntryId);
+                entityLocks.releaseExclusiveIndexEntryLock(indexEntryId);
+                return cursor.nodeReference();
+            } else {
+                return StatementConstants.NO_SUCH_NODE;
             }
-
-            return cursor.nodeReference();
         }
+
+        return cursor.nodeReference();
     }
 
     @Override
@@ -307,31 +297,25 @@ public final class KernelRead implements Read, IndexSeekExactProperty {
         // First try to find relationship under a shared lock
         // if not found upgrade to exclusive and try again
         entityLocks.acquireSharedIndexEntryLock(indexEntryId);
-        try (IndexReaders readers = new IndexReaders(index, this)) {
-            EntityIndexSeekClient indexCursor = (EntityIndexSeekClient) cursor;
-            relationshipIndexSeekWithFreshIndexReader(
-                    indexCursor, queryContext.cursorContext(), readers.createReader(), predicates);
-            if (!cursor.next()) {
-                entityLocks.releaseSharedIndexEntryLock(indexEntryId);
-                entityLocks.acquireExclusiveIndexEntryLock(indexEntryId);
-                relationshipIndexSeekWithFreshIndexReader(
-                        indexCursor, queryContext.cursorContext(), readers.createReader(), predicates);
-                if (cursor.next()) {
-                    // we found it under the exclusive lock
-                    // downgrade to a shared lock
-                    entityLocks.acquireSharedIndexEntryLock(indexEntryId);
-                    entityLocks.releaseExclusiveIndexEntryLock(indexEntryId);
-                    return cursor.relationshipReference();
-                } else {
-                    return StatementConstants.NO_SUCH_RELATIONSHIP;
-                }
+        relationshipIndexSeekForExactProperty(cursor, queryContext.cursorContext(), index, predicates);
+        if (!cursor.next()) {
+            entityLocks.releaseSharedIndexEntryLock(indexEntryId);
+            entityLocks.acquireExclusiveIndexEntryLock(indexEntryId);
+            relationshipIndexSeekForExactProperty(cursor, queryContext.cursorContext(), index, predicates);
+            if (cursor.next()) {
+                // we found it under the exclusive lock
+                // downgrade to a shared lock
+                entityLocks.acquireSharedIndexEntryLock(indexEntryId);
+                entityLocks.releaseExclusiveIndexEntryLock(indexEntryId);
+                return cursor.relationshipReference();
+            } else {
+                return StatementConstants.NO_SUCH_RELATIONSHIP;
             }
-
-            return cursor.relationshipReference();
         }
+
+        return cursor.relationshipReference();
     }
 
-    @Override
     public void nodeIndexSeekForExactProperty(
             NodeValueIndexCursor valueCursor,
             CursorContext cursorContext,
@@ -339,22 +323,11 @@ public final class KernelRead implements Read, IndexSeekExactProperty {
             PropertyIndexQuery.ExactPredicate... query)
             throws IndexNotFoundKernelException, IndexNotApplicableKernelException {
         try (IndexReaders indexReaders = new IndexReaders(index, this)) {
-            nodeIndexSeekWithFreshIndexReader(
+            entityIndexSeekWithFreshIndexReader(
                     (EntityIndexSeekClient) valueCursor, cursorContext, indexReaders.createReader(), query);
         }
     }
 
-    private void nodeIndexSeekWithFreshIndexReader(
-            EntityIndexSeekClient cursor,
-            CursorContext cursorContext,
-            ValueIndexReader indexReader,
-            PropertyIndexQuery.ExactPredicate... query)
-            throws IndexNotApplicableKernelException {
-        cursor.initState(this, txStateHolder, accessModeProvider);
-        indexReader.query(cursor, queryContext, cursorContext, unconstrained(), query);
-    }
-
-    @Override
     public void relationshipIndexSeekForExactProperty(
             RelationshipValueIndexCursor valueCursor,
             CursorContext cursorContext,
@@ -362,12 +335,12 @@ public final class KernelRead implements Read, IndexSeekExactProperty {
             PropertyIndexQuery.ExactPredicate... query)
             throws IndexNotFoundKernelException, IndexNotApplicableKernelException {
         try (IndexReaders indexReaders = new IndexReaders(index, this)) {
-            relationshipIndexSeekWithFreshIndexReader(
+            entityIndexSeekWithFreshIndexReader(
                     (EntityIndexSeekClient) valueCursor, cursorContext, indexReaders.createReader(), query);
         }
     }
 
-    private void relationshipIndexSeekWithFreshIndexReader(
+    private void entityIndexSeekWithFreshIndexReader(
             EntityIndexSeekClient cursor,
             CursorContext cursorContext,
             ValueIndexReader indexReader,

@@ -271,6 +271,7 @@ public class KernelSchemaRead implements SchemaRead {
         return !storageReader.indexExists(index);
     }
 
+    @Override
     public void assertIndexExists(IndexDescriptor index) throws IndexNotFoundKernelException {
         if (indexNotExists(index)) {
             throw IndexNotFoundKernelException.indexNotFound(index);

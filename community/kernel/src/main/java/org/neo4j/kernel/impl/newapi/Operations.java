@@ -81,6 +81,7 @@ import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.RelationshipTypeIndexCursor;
+import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.SchemaWrite;
 import org.neo4j.internal.kernel.api.Token;
 import org.neo4j.internal.kernel.api.TokenPredicate;
@@ -177,7 +178,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private final KernelTransactionImplementation ktx;
     private final KernelRead kernelRead;
-    private final KernelSchemaRead schemaRead;
+    private final SchemaRead schemaRead;
     private final AccessModeProvider accessModeProvider;
     private final StorageReader storageReader;
     private final CommandCreationContext commandCreationContext;
@@ -215,7 +216,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             KernelVersionProvider kernelVersionProvider,
             StorageLocks storageLocks,
             KernelTransactionImplementation ktx,
-            KernelSchemaRead schemaRead,
+            SchemaRead schemaRead,
             KernelToken token,
             DefaultPooledCursors cursors,
             ConstraintIndexCreator constraintIndexCreator,
@@ -794,7 +795,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 var valueCursor = cursors.allocateNodeValueIndexCursor(unboundedRelatedContext, memoryTracker)) {
             assertOnlineAndLock(constraint, index, propertyValues);
 
-            ((IndexSeekExactProperty) ktx.dataRead())
+            ((KernelRead) ktx.dataRead())
                     .nodeIndexSeekForExactProperty(valueCursor, unboundedRelatedContext, index, propertyValues);
 
             while (valueCursor.next()) {
@@ -896,7 +897,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                         cursors.allocateRelationshipValueIndexCursor(unboundedRelatedContext, memoryTracker)) {
             assertOnlineAndLock(constraint, index, propertyValues);
 
-            ((IndexSeekExactProperty) ktx.dataRead())
+            ((KernelRead) ktx.dataRead())
                     .relationshipIndexSeekForExactProperty(valueCursor, unboundedRelatedContext, index, propertyValues);
 
             while (valueCursor.next()) {
