@@ -286,6 +286,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.givenCsvFile(java.lang.String,io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.havingExecuted(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.executingQuery(java.lang.String)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.registerUserFunction(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.registerProcedure(java.lang.String,io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.executingControlQuery(java.lang.String)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBeInOrder(io.cucumber.datatable.DataTable)",
