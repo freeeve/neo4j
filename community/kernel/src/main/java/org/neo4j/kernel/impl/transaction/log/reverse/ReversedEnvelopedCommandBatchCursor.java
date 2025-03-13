@@ -54,6 +54,7 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
     private final long logVersion;
     private CommittedCommandBatchRepresentation currentCommandBatch;
     private final LongIterator offsets;
+    private LogPosition currentBatchStartPosition;
 
     ReversedEnvelopedCommandBatchCursor(
             EnvelopeReadChannel channel,
@@ -143,6 +144,7 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
             return next();
         }
         currentCommandBatch = commandBatchCursor.get();
+        currentBatchStartPosition = new LogPosition(logVersion, next);
         return true;
     }
 
@@ -170,6 +172,7 @@ public class ReversedEnvelopedCommandBatchCursor implements CommandBatchCursor {
 
     @Override
     public LogPosition position() {
-        return commandBatchCursor.position();
+        assert currentBatchStartPosition != null;
+        return currentBatchStartPosition;
     }
 }

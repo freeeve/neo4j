@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.reverse;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -152,6 +153,22 @@ class ReversedEnvelopedCommandBatchCursorTest {
                 .build();
         life.add(logFiles);
         logFile = logFiles.getLogFile();
+    }
+
+    @Test
+    void positionShouldBeStartOfCurrentBatch() throws Exception {
+        TransactionLogWriter writer = logFile.getTransactionLogWriter();
+        LogPosition firstTxStart = writer.getCurrentPosition();
+        writeTransactions(1, 1, 1);
+        LogPosition secondTxStart = writer.getCurrentPosition();
+        writeTransactions(1, 1, 1);
+
+        try (ReversedEnvelopedCommandBatchCursor cursor = txCursor(true)) {
+            cursor.next();
+            assertThat(cursor.position()).isEqualTo(secondTxStart);
+            cursor.next();
+            assertThat(cursor.position()).isEqualTo(firstTxStart);
+        }
     }
 
     @Test
