@@ -72,7 +72,13 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
   private def newRelationshipIndexHint(indexType: UsingIndexHintType = UsingAnyIndexType): Hint =
     UsingIndexHint(v"r", labelOrRelTypeName("User"), Seq(PropertyKeyName("name")(pos)), indexType = indexType) _
 
-  private def newJoinHint(): Hint = { UsingJoinHint(Seq(v"a")) _ }
+  private def newJoinHint(variableName: String = "a"): Hint = { UsingJoinHint(Seq(varFor(variableName))) _ }
+
+  private def newQueryWithoutHints() = RegularSinglePlannerQuery(
+    QueryGraph(
+      patternNodes = Set(v"a", v"b")
+    )
+  )
 
   private def newQueryWithNodeIndexHint(
     indexType: UsingIndexHintType = UsingAnyIndexType,
@@ -99,6 +105,15 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
     ).addHints(Set(newJoinHint()))
   )
 
+  private def newQueryWith2JoinHints() = RegularSinglePlannerQuery(
+    QueryGraph(
+      patternNodes = Set(v"a", v"b")
+    ).addHints(Set(
+      newJoinHint("a"),
+      newJoinHint("b")
+    ))
+  )
+
   private def getPlanContext(
     hasIndex: Boolean,
     hasTextIndex: Boolean = false
@@ -116,6 +131,18 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
     selections: Selections = Selections()
   ): LogicalPlan = {
     newMockedLogicalPlan(Set("a", "b"), context.staticComponents.planningAttributes, selections = selections)
+  }
+
+  private def getSimpleLogicalPlanWithAHintedandB(
+    context: LogicalPlanningContext,
+    selections: Selections = Selections()
+  ): LogicalPlan = {
+    newMockedLogicalPlan(
+      Set("a", "b"),
+      context.staticComponents.planningAttributes,
+      selections = selections,
+      hints = ListSet(newJoinHint())
+    )
   }
 
   private def getSimpleLogicalPlanWithAandBandR(
@@ -228,6 +255,19 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
     a[JoinHintException] should be thrownBy {
       VerifyBestPlan(getSimpleLogicalPlanWithAandB(context), newQueryWithJoinHint(), context)
     }
+  }
+
+  test("should issue warning when finding plan that contains fulfilled and unfulfillable join hint") {
+    val notificationLogger = new RecordingNotificationLogger
+    val context =
+      newMockedLogicalPlanningContext(
+        planContext = getPlanContext(hasIndex = false),
+        notificationLogger = notificationLogger,
+        useErrorsOverWarnings = false
+      )
+
+    VerifyBestPlan(getSimpleLogicalPlanWithAHintedandB(context), newQueryWith2JoinHints(), context)
+    notificationLogger.notifications should contain(JoinHintUnfulfillableNotification(Array("b")))
   }
 
   test("should issue warning when finding plan that contains unfulfillable node index hint") {
@@ -429,6 +469,27 @@ class VerifyBestPlanTest extends CypherFunSuite with LogicalPlanningTestSupport 
 
     VerifyBestPlan(plan, newQueryWithJoinHint(), context) // should not throw
     notificationLogger.notifications should be(empty)
+  }
+
+  test("should throw when finding a plan that solves hints that were not specified") {
+    val context = newMockedLogicalPlanningContext(
+      planContext = getPlanContext(hasIndex = true),
+      useErrorsOverWarnings = false
+    )
+
+    val exception = the[HintException] thrownBy {
+      VerifyBestPlan(getSimpleLogicalPlanWithAHintedandB(context), newQueryWithoutHints(), context)
+    }
+    exception.getMessage shouldBe
+      """Failed to fulfil the hints of the query.
+        |Expected hints:
+        |``
+        |
+        |Instead, got:
+        |`USING JOIN ON a`
+        |
+        |Plan .fakeLeafPlan()
+        |.build()""".stripMargin
   }
 
   test("should throw when finding plan that does not contain a fulfillable node index hint") {
