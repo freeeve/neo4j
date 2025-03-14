@@ -127,10 +127,10 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
     causeStatusDescription: String
   ): Self = {
     throws[SyntaxException]
+      .withMessage(message)
       .withError(throwable => {
         val gqlMatcher = invalidSyntaxStatus.withCause(causeGql, causeStatusDescription)
         throwable.asInstanceOf[SyntaxException] should be(gqlMatcher)
-        throwable.getMessage should be(message)
       })
   }
 
