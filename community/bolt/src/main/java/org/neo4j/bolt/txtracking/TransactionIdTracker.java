@@ -19,7 +19,6 @@
  */
 package org.neo4j.bolt.txtracking;
 
-import static org.neo4j.kernel.api.exceptions.Status.Database.DatabaseNotFound;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.time.Duration;
@@ -177,8 +176,7 @@ public class TransactionIdTracker {
     }
 
     private static TransactionIdTrackerException databaseNotFound(NamedDatabaseId namedDatabaseId) {
-        return new TransactionIdTrackerException(
-                DatabaseNotFound, "Database '" + namedDatabaseId.name() + "' does not exist");
+        return TransactionIdTrackerException.databaseNotFound(namedDatabaseId.name());
     }
 
     private static TransactionIdTrackerException databaseUnavailable(AbstractDatabase db) {

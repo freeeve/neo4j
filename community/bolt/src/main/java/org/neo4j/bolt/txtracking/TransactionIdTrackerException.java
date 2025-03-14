@@ -19,6 +19,7 @@
  */
 package org.neo4j.bolt.txtracking;
 
+import static org.neo4j.kernel.api.exceptions.Status.Database.DatabaseNotFound;
 import static org.neo4j.kernel.api.exceptions.Status.General.DatabaseUnavailable;
 import static org.neo4j.kernel.api.exceptions.Status.Transaction.BookmarkTimeout;
 
@@ -34,19 +35,8 @@ import org.neo4j.kernel.database.AbstractDatabase;
 public class TransactionIdTrackerException extends GqlRuntimeException implements Status.HasStatus {
     private final Status status;
 
-    @Deprecated
-    TransactionIdTrackerException(Status status, String message) {
-        this(status, message, null);
-    }
-
     private TransactionIdTrackerException(ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
         this(gqlStatusObject, status, message, null);
-    }
-
-    @Deprecated
-    TransactionIdTrackerException(Status status, String message, Throwable cause) {
-        super(message, cause);
-        this.status = status;
     }
 
     private TransactionIdTrackerException(
@@ -76,6 +66,13 @@ public class TransactionIdTrackerException extends GqlRuntimeException implement
                 DatabaseUnavailable,
                 String.format("Database '%s' unavailable", databaseName),
                 cause);
+    }
+
+    public static TransactionIdTrackerException databaseNotFound(String databaseName) {
+        return new TransactionIdTrackerException(
+                GqlHelper.getGql22000_22N51(databaseName),
+                DatabaseNotFound,
+                "Database '" + databaseName + "' does not exist");
     }
 
     @Override

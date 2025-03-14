@@ -22,7 +22,6 @@ package org.neo4j.bolt.txtracking;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofSeconds;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -38,11 +37,15 @@ import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.time.Duration;
 import java.util.UUID;
+import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlExceptionLikeAssert;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
 import org.neo4j.kernel.database.AbstractDatabase;
 import org.neo4j.kernel.database.Database;
@@ -144,14 +147,10 @@ class TransactionIdTrackerTest {
         var checkException = new RuntimeException();
         doThrow(checkException).when(transactionIdStore).getLastClosedTransactionId();
 
-        // when
-        var exception = assertThrows(
-                TransactionIdTrackerException.class,
-                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, version + 1, ofMillis(50)));
-
         // then
-        assertEquals(BookmarkTimeout, exception.status());
-        assertEquals(checkException, exception.getCause());
+        verifyBookmarkError(
+                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, version + 1, ofMillis(50)),
+                namedDatabaseId.name());
     }
 
     @Test
@@ -162,14 +161,10 @@ class TransactionIdTrackerTest {
         var checkException = new RuntimeException();
         doThrow(checkException).when(transactionIdStore).getLastClosedTransactionId();
 
-        // when
-        var exception = assertThrows(
-                TransactionIdTrackerException.class,
-                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, version + 1, ofMillis(50)));
-
         // then
-        assertEquals(BookmarkTimeout, exception.status());
-        assertEquals(checkException, exception.getCause());
+        verifyBookmarkError(
+                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, version + 1, ofMillis(50)),
+                namedDatabaseId.name());
     }
 
     @Test
@@ -180,14 +175,11 @@ class TransactionIdTrackerTest {
         doThrow(checkException).when(transactionIdStore).getLastClosedTransactionId();
         when(databaseAvailabilityGuard.isAvailable()).thenReturn(true, true, false);
 
-        // when
-        var exception = assertThrows(
-                TransactionIdTrackerException.class,
-                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, version + 1, ofMillis(50)));
-
         // then
-        assertEquals(DatabaseUnavailable, exception.status());
-        assertEquals(checkException, exception.getCause());
+        verifyDbUnavailableError(
+                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, version + 1, ofMillis(50)),
+                namedDatabaseId.name(),
+                true);
     }
 
     @Test
@@ -199,14 +191,11 @@ class TransactionIdTrackerTest {
         doThrow(checkException).when(transactionIdStore).getLastClosedTransactionId();
         when(databaseAvailabilityGuard.isAvailable()).thenReturn(true, true, false);
 
-        // when
-        var exception = assertThrows(
-                TransactionIdTrackerException.class,
-                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, version + 1, ofMillis(50)));
-
         // then
-        assertEquals(DatabaseUnavailable, exception.status());
-        assertEquals(checkException, exception.getCause());
+        verifyDbUnavailableError(
+                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, version + 1, ofMillis(50)),
+                namedDatabaseId.name(),
+                true);
     }
 
     @Test
@@ -214,13 +203,11 @@ class TransactionIdTrackerTest {
         // given
         when(databaseAvailabilityGuard.isAvailable()).thenReturn(false);
 
-        // when
-        var exception = assertThrows(
-                TransactionIdTrackerException.class,
-                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, 1000, ofMillis(60_000)));
-
         // then
-        assertEquals(DatabaseUnavailable, exception.status());
+        verifyDbUnavailableError(
+                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, 1000, ofMillis(60_000)),
+                namedDatabaseId.name(),
+                false);
         verify(transactionIdStore, never()).getLastClosedTransactionId();
     }
 
@@ -230,13 +217,11 @@ class TransactionIdTrackerTest {
         when(db.isSystem()).thenReturn(true);
         when(databaseAvailabilityGuard.isAvailable()).thenReturn(false);
 
-        // when
-        var exception = assertThrows(
-                TransactionIdTrackerException.class,
-                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, 1000, ofMillis(60_000)));
-
         // then
-        assertEquals(DatabaseUnavailable, exception.status());
+        verifyDbUnavailableError(
+                () -> transactionIdTracker.awaitUpToDate(namedDatabaseId, 1000, ofMillis(60_000)),
+                namedDatabaseId.name(),
+                false);
         verifyNoInteractions(transactionIdStore);
     }
 
@@ -266,12 +251,8 @@ class TransactionIdTrackerTest {
         var unknownDatabaseId = from("bar", UUID.randomUUID());
         when(managementService.database(unknownDatabaseId.name())).thenThrow(DatabaseNotFoundException.class);
 
-        // when
-        var exception = assertThrows(
-                TransactionIdTrackerException.class, () -> transactionIdTracker.newestTransactionId(unknownDatabaseId));
-
         // then
-        assertEquals(DatabaseNotFound, exception.status());
+        verifyDbNotFoundError(() -> transactionIdTracker.newestTransactionId(unknownDatabaseId), "bar");
     }
 
     @Test
@@ -280,12 +261,50 @@ class TransactionIdTrackerTest {
         var unknownDatabaseId = from("bar", UUID.randomUUID());
         when(managementService.database(unknownDatabaseId.name())).thenThrow(DatabaseNotFoundException.class);
 
-        // when
-        var exception = assertThrows(
-                TransactionIdTrackerException.class,
-                () -> transactionIdTracker.awaitUpToDate(unknownDatabaseId, 1, ofMillis(1)));
-
         // then
-        assertEquals(DatabaseNotFound, exception.status());
+        verifyDbNotFoundError(() -> transactionIdTracker.awaitUpToDate(unknownDatabaseId, 1, ofMillis(1)), "bar");
+    }
+
+    private void verifyDbNotFoundError(ThrowableAssert.ThrowingCallable callable, String databaseName) {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(callable)
+                .isInstanceOf(TransactionIdTrackerException.class)
+                .hasStatus(DatabaseNotFound)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22000)
+                .hasStatusDescription("error: data exception")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N51)
+                .hasStatusDescription(String.format(
+                        "error: data exception - graph reference not found. "
+                                + "A graph reference with the name `%s` was not found. Verify that the spelling is correct.",
+                        databaseName));
+    }
+
+    private void verifyDbUnavailableError(
+            ThrowableAssert.ThrowingCallable callable, String databaseName, boolean runtimeCause) {
+        GqlExceptionLikeAssert assertion = ErrorGqlStatusObjectAssertions.assertThatThrownBy(callable)
+                .isInstanceOf(TransactionIdTrackerException.class)
+                .hasStatus(DatabaseUnavailable)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N09)
+                .hasStatusDescription(String.format(
+                        "error: connection exception - database unavailable. The database `%s` is currently unavailable. "
+                                + "Check the database status. Retry your request at a later time.",
+                        databaseName));
+
+        if (runtimeCause) {
+            assertion.cause().isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    private void verifyBookmarkError(ThrowableAssert.ThrowingCallable callable, String databaseName) {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(callable)
+                .isInstanceOf(TransactionIdTrackerException.class)
+                .hasStatus(BookmarkTimeout)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_08N13)
+                .hasStatusDescriptionContaining(String.format(
+                        "error: connection exception - database not up to requested bookmark. "
+                                + "The database `%s` is not up to the requested bookmark",
+                        databaseName))
+                .cause()
+                .isInstanceOf(RuntimeException.class);
     }
 }
