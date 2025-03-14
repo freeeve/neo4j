@@ -24,6 +24,7 @@ import static java.lang.String.format;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
@@ -257,9 +258,9 @@ public final class BadCollector implements Collector {
 
         @Override
         public InputException exception() {
-            Type missingField = getMissingDataField();
-            if (missingField != null) {
-                return new MissingRelationshipDataException(missingField, getReportMessage(true));
+            Optional<Type> maybeMissingDataField = getMissingDataField();
+            if (maybeMissingDataField.isPresent()) {
+                return new MissingRelationshipDataException(maybeMissingDataField.get(), getReportMessage(true));
             } else {
                 return new InputException(getReportMessage());
             }
@@ -280,19 +281,19 @@ public final class BadCollector implements Collector {
         }
 
         private String getReportMessage() {
-            return getReportMessage(getMissingDataField() != null);
+            return getReportMessage(getMissingDataField().isPresent());
         }
 
         // Returns the first data field that is missing, or null if none are missing
-        private Type getMissingDataField() {
+        private Optional<Type> getMissingDataField() {
             if (startId == null) {
-                return Type.START_ID;
+                return Optional.of(Type.START_ID);
             } else if (endId == null) {
-                return Type.END_ID;
+                return Optional.of(Type.END_ID);
             } else if (type == null) {
-                return Type.TYPE;
+                return Optional.of(Type.TYPE);
             }
-            return null;
+            return Optional.empty();
         }
     }
 
