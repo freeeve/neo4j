@@ -94,6 +94,24 @@ public class ParameterWrongTypeException extends Neo4jException {
                 gql, String.format("Expected a string or a list of strings, but got: %s", input));
     }
 
+    public static ParameterWrongTypeException expectedStringOrStringList2(String paramName, String input) {
+        var context = "parameter $`%s`".formatted(paramName);
+        var gql = getGql22G03_22N27(input, context, List.of("STRING", "LIST<STRING>"));
+        return new ParameterWrongTypeException(
+                gql,
+                "Expected parameter `$%s` to be a non-empty String or a non-empty List of non-empty Strings but was `%s`."
+                        .formatted(paramName, input));
+    }
+
+    public static ParameterWrongTypeException expectedListParameterToContainStrings(String paramName, String input) {
+        var context = "parameter $`%s`".formatted(paramName);
+        var gql = getGql22G03_22N27(input, context, List.of("LIST<STRING>"));
+        return new ParameterWrongTypeException(
+                gql,
+                "Expected parameter `$%s` to only contain non-empty Strings but contained `%s`."
+                        .formatted(paramName, input));
+    }
+
     public static ParameterWrongTypeException expectedParameterToBeString(
             String paramName, String input, String prettifiedInput) {
         var gql = getGql22G03_22N27(prettifiedInput, GqlParams.StringParam.param.process(paramName), List.of("STRING"));

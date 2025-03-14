@@ -959,15 +959,14 @@ object AdministrationCommandRuntime {
             case tv: TextValue if tv.stringValue().nonEmpty => tv.stringValue()
             case v =>
               v.writeTo(pp)
-              throw new ParameterWrongTypeException(
-                s"Expected parameter `$$${p.name}` to only contain non-empty Strings but contained `${pp.value()}`."
+              throw ParameterWrongTypeException.expectedListParameterToContainStrings(
+                p.name,
+                pp.value()
               )
           }.toList
         case _ =>
           value.writeTo(pp)
-          throw new ParameterWrongTypeException(
-            s"Expected parameter `$$${p.name}` to be a non-empty String or a non-empty List of non-empty Strings but was `${pp.value()}`."
-          )
+          throw ParameterWrongTypeException.expectedStringOrStringList2(p.name, pp.value());
       }
     case _ =>
       // this fails in parsing or semantic checking, but is needed for scala warnings
