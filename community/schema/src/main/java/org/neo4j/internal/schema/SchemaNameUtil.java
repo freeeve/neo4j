@@ -92,12 +92,14 @@ public class SchemaNameUtil {
         key = hf.update(key, rule.schema().entityType().ordinal());
         key = hf.update(key, rule.schema().schemaPatternMatchingType().ordinal());
         switch (rule.schema().entityType()) {
-            case NODE -> key = hf.updateWithArray(key, rule.schema().getEntityTokenIds(), id -> tokenNameLookup
-                    .labelGetName(id)
-                    .hashCode());
-            case RELATIONSHIP -> key = hf.updateWithArray(key, rule.schema().getEntityTokenIds(), id -> tokenNameLookup
-                    .relationshipTypeGetName(id)
-                    .hashCode());
+            case NODE ->
+                key = hf.updateWithArray(key, rule.schema().getEntityTokenIds(), id -> tokenNameLookup
+                        .labelGetName(id)
+                        .hashCode());
+            case RELATIONSHIP ->
+                key = hf.updateWithArray(key, rule.schema().getEntityTokenIds(), id -> tokenNameLookup
+                        .relationshipTypeGetName(id)
+                        .hashCode());
         }
         key = hf.updateWithArray(key, rule.schema().getPropertyIds(), id -> tokenNameLookup
                 .propertyKeyGetName(id)

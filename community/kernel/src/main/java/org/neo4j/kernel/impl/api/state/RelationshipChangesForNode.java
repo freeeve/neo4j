@@ -155,8 +155,9 @@ public class RelationshipChangesForNode {
         return switch (direction) {
             case INCOMING -> aggregatedIds(RelationshipDirection.INCOMING, RelationshipDirection.LOOP);
             case OUTGOING -> aggregatedIds(RelationshipDirection.OUTGOING, RelationshipDirection.LOOP);
-            case BOTH -> aggregatedIds(
-                    RelationshipDirection.INCOMING, RelationshipDirection.OUTGOING, RelationshipDirection.LOOP);
+            case BOTH ->
+                aggregatedIds(
+                        RelationshipDirection.INCOMING, RelationshipDirection.OUTGOING, RelationshipDirection.LOOP);
         };
     }
 

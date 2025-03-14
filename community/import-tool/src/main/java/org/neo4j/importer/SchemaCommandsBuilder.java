@@ -284,8 +284,8 @@ class SchemaCommandsBuilder {
             case NodePoint command -> schemaKey(EntityType.NODE, command.label(), command.property());
             case RelationshipPoint command -> schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
             case NodeFulltext command -> schemaKey(EntityType.NODE, command.labels(), command.properties());
-            case RelationshipFulltext command -> schemaKey(
-                    EntityType.RELATIONSHIP, command.types(), command.properties());
+            case RelationshipFulltext command ->
+                schemaKey(EntityType.RELATIONSHIP, command.types(), command.properties());
             case NodeVector command -> schemaKey(EntityType.NODE, command.label(), command.property());
             case RelationshipVector command -> schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
         };
@@ -294,16 +294,16 @@ class SchemaCommandsBuilder {
     private static String schemaKey(ConstraintCommand.Create constraint) {
         return switch (constraint) {
             case NodeUniqueness command -> schemaKey(EntityType.NODE, command.label(), command.properties());
-            case RelationshipUniqueness command -> schemaKey(
-                    EntityType.RELATIONSHIP, command.type(), command.properties());
+            case RelationshipUniqueness command ->
+                schemaKey(EntityType.RELATIONSHIP, command.type(), command.properties());
             case NodeKey command -> schemaKey(EntityType.NODE, command.label(), command.properties());
             case RelationshipKey command -> schemaKey(EntityType.RELATIONSHIP, command.type(), command.properties());
             case NodeExistence command -> schemaKey(EntityType.NODE, command.label(), command.property());
-            case RelationshipExistence command -> schemaKey(
-                    EntityType.RELATIONSHIP, command.type(), command.property());
+            case RelationshipExistence command ->
+                schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
             case NodePropertyType command -> schemaKey(EntityType.NODE, command.label(), command.property());
-            case RelationshipPropertyType command -> schemaKey(
-                    EntityType.RELATIONSHIP, command.type(), command.property());
+            case RelationshipPropertyType command ->
+                schemaKey(EntityType.RELATIONSHIP, command.type(), command.property());
         };
     }
 

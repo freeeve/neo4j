@@ -89,7 +89,7 @@ public class KeepAliveHandler extends IdleStateHandler {
                     }
                 }
 
-                    // Legacy mode
+                // Legacy mode
                 case ENTER_STREAMING -> {
                     this.streaming = true;
 

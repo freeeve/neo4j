@@ -93,7 +93,7 @@ class NativeIndexUpdater<KEY extends NativeIndexKey<KEY>> implements IndexUpdate
                 break;
             case CHANGED:
                 processRemove(treeKey, update.getEntityId(), update.beforeValues(), writer, ignoreStrategy);
-                // fallthrough
+            // fallthrough
             case ADDED:
                 processAdd(
                         treeKey,

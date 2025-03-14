@@ -288,10 +288,12 @@ abstract class GenericNativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>> 
     private ValueType[] supportedTypesExcludingNonOrderable() {
         return RandomValues.excluding(valueCreatorUtil.supportedTypes(), type -> switch (type) {
             case STRING, STRING_ARRAY -> true; // exclude strings outside the Basic Multilingual Plane
-            default -> switch (type.valueGroup) {
-                case GEOMETRY, GEOMETRY_ARRAY, DURATION, DURATION_ARRAY -> true; // exclude spacial types and durations
-                default -> false;
-            };
+            default ->
+                switch (type.valueGroup) {
+                    case GEOMETRY, GEOMETRY_ARRAY, DURATION, DURATION_ARRAY ->
+                        true; // exclude spacial types and durations
+                    default -> false;
+                };
         });
     }
 

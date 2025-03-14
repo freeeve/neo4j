@@ -41,14 +41,14 @@ public class Utils {
                 if (dataA == dataB) {
                     return true;
                 }
-                // fall through to GT
+            // fall through to GT
             case GT:
                 return dataA < dataB == ((dataA < 0) != (dataB < 0));
             case LE:
                 if (dataA == dataB) {
                     return true;
                 }
-                // fall through to LT
+            // fall through to LT
             case LT:
                 return (dataA < dataB) ^ ((dataA < 0) != (dataB < 0));
             case NE:

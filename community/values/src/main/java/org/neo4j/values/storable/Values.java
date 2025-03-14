@@ -443,8 +443,9 @@ public final class Values {
             case short[] shortArray -> shortArray(Arrays.copyOf(shortArray, shortArray.length));
             case Point point -> point(point);
             case Vector vector -> vectorValue(vector);
-            case Value ignored -> throw new UnsupportedOperationException(
-                    "Converting a Value to a Value using Values.of() is not supported.");
+            case Value ignored ->
+                throw new UnsupportedOperationException(
+                        "Converting a Value to a Value using Values.of() is not supported.");
             default -> null; // otherwise fail
         };
     }
@@ -481,13 +482,13 @@ public final class Values {
             case Short[] array -> shortArray(copy(array, new short[array.length]));
             case PointValue[] array -> pointArray(copyDefensively ? copy(array, new PointValue[value.length]) : array);
             case Point[] array -> pointArray(array); // no need to copy here, pointArray copies
-            case ZonedDateTime[] array -> dateTimeArray(
-                    copyDefensively ? copy(array, new ZonedDateTime[array.length]) : array);
-            case LocalDateTime[] array -> localDateTimeArray(
-                    copyDefensively ? copy(array, new LocalDateTime[array.length]) : array);
+            case ZonedDateTime[] array ->
+                dateTimeArray(copyDefensively ? copy(array, new ZonedDateTime[array.length]) : array);
+            case LocalDateTime[] array ->
+                localDateTimeArray(copyDefensively ? copy(array, new LocalDateTime[array.length]) : array);
             case OffsetTime[] array -> timeArray(copyDefensively ? copy(array, new OffsetTime[array.length]) : array);
-            case LocalTime[] array -> localTimeArray(
-                    copyDefensively ? copy(array, new LocalTime[array.length]) : array);
+            case LocalTime[] array ->
+                localTimeArray(copyDefensively ? copy(array, new LocalTime[array.length]) : array);
             case LocalDate[] array -> dateArray(copyDefensively ? copy(array, new LocalDate[array.length]) : array);
             case TemporalAmount[] array -> durationArray(array); // no need to copy here, durationArray will copy
             default -> null;
@@ -514,8 +515,9 @@ public final class Values {
             case ZONED_DATE_TIME -> DateTimeValue.MIN_VALUE;
             case LOCAL_TIME -> LocalTimeValue.MIN_VALUE;
             case ZONED_TIME -> TimeValue.MIN_VALUE;
-            default -> throw new IllegalStateException(
-                    format("The minValue for valueGroup %s is not defined yet", valueGroup));
+            default ->
+                throw new IllegalStateException(
+                        format("The minValue for valueGroup %s is not defined yet", valueGroup));
         };
     }
 
@@ -529,8 +531,9 @@ public final class Values {
             case ZONED_DATE_TIME -> DateTimeValue.MAX_VALUE;
             case LOCAL_TIME -> LocalTimeValue.MAX_VALUE;
             case ZONED_TIME -> TimeValue.MAX_VALUE;
-            default -> throw new IllegalStateException(
-                    format("The maxValue for valueGroup %s is not defined yet", valueGroup));
+            default ->
+                throw new IllegalStateException(
+                        format("The maxValue for valueGroup %s is not defined yet", valueGroup));
         };
     }
 }

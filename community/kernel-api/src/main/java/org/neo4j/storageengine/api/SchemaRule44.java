@@ -127,8 +127,9 @@ public interface SchemaRule44 {
                         constraint = constraint.withOwnedIndexId(ownedIndex);
                     }
                 }
-                default -> throw new IllegalStateException(
-                        "Unsupported migration for constraint of type " + constraintRuleType.name());
+                default ->
+                    throw new IllegalStateException(
+                            "Unsupported migration for constraint of type " + constraintRuleType.name());
             }
             return constraint.withId(id).withName(name);
         }

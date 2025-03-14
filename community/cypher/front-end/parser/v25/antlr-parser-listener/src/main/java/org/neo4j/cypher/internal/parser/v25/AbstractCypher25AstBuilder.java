@@ -75,92 +75,95 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_letItem -> exitLetItem((Cypher25Parser.LetItemContext) ctx);
             case Cypher25Parser.RULE_callClause -> exitCallClause((Cypher25Parser.CallClauseContext) ctx);
             case Cypher25Parser.RULE_procedureName -> exitProcedureName((Cypher25Parser.ProcedureNameContext) ctx);
-            case Cypher25Parser.RULE_procedureArgument -> exitProcedureArgument(
-                    (Cypher25Parser.ProcedureArgumentContext) ctx);
-            case Cypher25Parser.RULE_procedureResultItem -> exitProcedureResultItem(
-                    (Cypher25Parser.ProcedureResultItemContext) ctx);
+            case Cypher25Parser.RULE_procedureArgument ->
+                exitProcedureArgument((Cypher25Parser.ProcedureArgumentContext) ctx);
+            case Cypher25Parser.RULE_procedureResultItem ->
+                exitProcedureResultItem((Cypher25Parser.ProcedureResultItemContext) ctx);
             case Cypher25Parser.RULE_loadCSVClause -> exitLoadCSVClause((Cypher25Parser.LoadCSVClauseContext) ctx);
             case Cypher25Parser.RULE_foreachClause -> exitForeachClause((Cypher25Parser.ForeachClauseContext) ctx);
             case Cypher25Parser.RULE_subqueryClause -> exitSubqueryClause((Cypher25Parser.SubqueryClauseContext) ctx);
             case Cypher25Parser.RULE_subqueryScope -> exitSubqueryScope((Cypher25Parser.SubqueryScopeContext) ctx);
-            case Cypher25Parser.RULE_subqueryInTransactionsParameters -> exitSubqueryInTransactionsParameters(
-                    (Cypher25Parser.SubqueryInTransactionsParametersContext) ctx);
-            case Cypher25Parser.RULE_subqueryInTransactionsBatchParameters -> exitSubqueryInTransactionsBatchParameters(
-                    (Cypher25Parser.SubqueryInTransactionsBatchParametersContext) ctx);
-            case Cypher25Parser.RULE_subqueryInTransactionsErrorParameters -> exitSubqueryInTransactionsErrorParameters(
-                    (Cypher25Parser.SubqueryInTransactionsErrorParametersContext) ctx);
-            case Cypher25Parser.RULE_subqueryInTransactionsRetryParameters -> exitSubqueryInTransactionsRetryParameters(
-                    (Cypher25Parser.SubqueryInTransactionsRetryParametersContext) ctx);
-            case Cypher25Parser
-                    .RULE_subqueryInTransactionsReportParameters -> exitSubqueryInTransactionsReportParameters(
-                    (Cypher25Parser.SubqueryInTransactionsReportParametersContext) ctx);
-            case Cypher25Parser.RULE_orderBySkipLimitClause -> exitOrderBySkipLimitClause(
-                    (Cypher25Parser.OrderBySkipLimitClauseContext) ctx);
+            case Cypher25Parser.RULE_subqueryInTransactionsParameters ->
+                exitSubqueryInTransactionsParameters((Cypher25Parser.SubqueryInTransactionsParametersContext) ctx);
+            case Cypher25Parser.RULE_subqueryInTransactionsBatchParameters ->
+                exitSubqueryInTransactionsBatchParameters(
+                        (Cypher25Parser.SubqueryInTransactionsBatchParametersContext) ctx);
+            case Cypher25Parser.RULE_subqueryInTransactionsErrorParameters ->
+                exitSubqueryInTransactionsErrorParameters(
+                        (Cypher25Parser.SubqueryInTransactionsErrorParametersContext) ctx);
+            case Cypher25Parser.RULE_subqueryInTransactionsRetryParameters ->
+                exitSubqueryInTransactionsRetryParameters(
+                        (Cypher25Parser.SubqueryInTransactionsRetryParametersContext) ctx);
+            case Cypher25Parser.RULE_subqueryInTransactionsReportParameters ->
+                exitSubqueryInTransactionsReportParameters(
+                        (Cypher25Parser.SubqueryInTransactionsReportParametersContext) ctx);
+            case Cypher25Parser.RULE_orderBySkipLimitClause ->
+                exitOrderBySkipLimitClause((Cypher25Parser.OrderBySkipLimitClauseContext) ctx);
             case Cypher25Parser.RULE_patternList -> exitPatternList((Cypher25Parser.PatternListContext) ctx);
-            case Cypher25Parser.RULE_insertPatternList -> exitInsertPatternList(
-                    (Cypher25Parser.InsertPatternListContext) ctx);
+            case Cypher25Parser.RULE_insertPatternList ->
+                exitInsertPatternList((Cypher25Parser.InsertPatternListContext) ctx);
             case Cypher25Parser.RULE_pattern -> exitPattern((Cypher25Parser.PatternContext) ctx);
             case Cypher25Parser.RULE_insertPattern -> exitInsertPattern((Cypher25Parser.InsertPatternContext) ctx);
             case Cypher25Parser.RULE_quantifier -> exitQuantifier((Cypher25Parser.QuantifierContext) ctx);
-            case Cypher25Parser.RULE_anonymousPattern -> exitAnonymousPattern(
-                    (Cypher25Parser.AnonymousPatternContext) ctx);
-            case Cypher25Parser.RULE_shortestPathPattern -> exitShortestPathPattern(
-                    (Cypher25Parser.ShortestPathPatternContext) ctx);
+            case Cypher25Parser.RULE_anonymousPattern ->
+                exitAnonymousPattern((Cypher25Parser.AnonymousPatternContext) ctx);
+            case Cypher25Parser.RULE_shortestPathPattern ->
+                exitShortestPathPattern((Cypher25Parser.ShortestPathPatternContext) ctx);
             case Cypher25Parser.RULE_patternElement -> exitPatternElement((Cypher25Parser.PatternElementContext) ctx);
             case Cypher25Parser.RULE_selector -> exitSelector((Cypher25Parser.SelectorContext) ctx);
-            case Cypher25Parser.RULE_nonNegativeIntegerSpecification -> exitNonNegativeIntegerSpecification(
-                    (Cypher25Parser.NonNegativeIntegerSpecificationContext) ctx);
+            case Cypher25Parser.RULE_nonNegativeIntegerSpecification ->
+                exitNonNegativeIntegerSpecification((Cypher25Parser.NonNegativeIntegerSpecificationContext) ctx);
             case Cypher25Parser.RULE_groupToken -> exitGroupToken((Cypher25Parser.GroupTokenContext) ctx);
             case Cypher25Parser.RULE_pathToken -> exitPathToken((Cypher25Parser.PathTokenContext) ctx);
-            case Cypher25Parser.RULE_pathPatternNonEmpty -> exitPathPatternNonEmpty(
-                    (Cypher25Parser.PathPatternNonEmptyContext) ctx);
+            case Cypher25Parser.RULE_pathPatternNonEmpty ->
+                exitPathPatternNonEmpty((Cypher25Parser.PathPatternNonEmptyContext) ctx);
             case Cypher25Parser.RULE_nodePattern -> exitNodePattern((Cypher25Parser.NodePatternContext) ctx);
-            case Cypher25Parser.RULE_insertNodePattern -> exitInsertNodePattern(
-                    (Cypher25Parser.InsertNodePatternContext) ctx);
-            case Cypher25Parser.RULE_parenthesizedPath -> exitParenthesizedPath(
-                    (Cypher25Parser.ParenthesizedPathContext) ctx);
+            case Cypher25Parser.RULE_insertNodePattern ->
+                exitInsertNodePattern((Cypher25Parser.InsertNodePatternContext) ctx);
+            case Cypher25Parser.RULE_parenthesizedPath ->
+                exitParenthesizedPath((Cypher25Parser.ParenthesizedPathContext) ctx);
             case Cypher25Parser.RULE_nodeLabels -> exitNodeLabels((Cypher25Parser.NodeLabelsContext) ctx);
             case Cypher25Parser.RULE_nodeLabelsIs -> exitNodeLabelsIs((Cypher25Parser.NodeLabelsIsContext) ctx);
-            case Cypher25Parser.RULE_dynamicExpression -> exitDynamicExpression(
-                    (Cypher25Parser.DynamicExpressionContext) ctx);
-            case Cypher25Parser.RULE_dynamicAnyAllExpression -> exitDynamicAnyAllExpression(
-                    (Cypher25Parser.DynamicAnyAllExpressionContext) ctx);
-            case Cypher25Parser.RULE_dynamicLabelType -> exitDynamicLabelType(
-                    (Cypher25Parser.DynamicLabelTypeContext) ctx);
+            case Cypher25Parser.RULE_dynamicExpression ->
+                exitDynamicExpression((Cypher25Parser.DynamicExpressionContext) ctx);
+            case Cypher25Parser.RULE_dynamicAnyAllExpression ->
+                exitDynamicAnyAllExpression((Cypher25Parser.DynamicAnyAllExpressionContext) ctx);
+            case Cypher25Parser.RULE_dynamicLabelType ->
+                exitDynamicLabelType((Cypher25Parser.DynamicLabelTypeContext) ctx);
             case Cypher25Parser.RULE_labelType -> exitLabelType((Cypher25Parser.LabelTypeContext) ctx);
             case Cypher25Parser.RULE_relType -> exitRelType((Cypher25Parser.RelTypeContext) ctx);
             case Cypher25Parser.RULE_labelOrRelType -> exitLabelOrRelType((Cypher25Parser.LabelOrRelTypeContext) ctx);
             case Cypher25Parser.RULE_properties -> exitProperties((Cypher25Parser.PropertiesContext) ctx);
-            case Cypher25Parser.RULE_relationshipPattern -> exitRelationshipPattern(
-                    (Cypher25Parser.RelationshipPatternContext) ctx);
-            case Cypher25Parser.RULE_insertRelationshipPattern -> exitInsertRelationshipPattern(
-                    (Cypher25Parser.InsertRelationshipPatternContext) ctx);
+            case Cypher25Parser.RULE_relationshipPattern ->
+                exitRelationshipPattern((Cypher25Parser.RelationshipPatternContext) ctx);
+            case Cypher25Parser.RULE_insertRelationshipPattern ->
+                exitInsertRelationshipPattern((Cypher25Parser.InsertRelationshipPatternContext) ctx);
             case Cypher25Parser.RULE_leftArrow -> exitLeftArrow((Cypher25Parser.LeftArrowContext) ctx);
             case Cypher25Parser.RULE_arrowLine -> exitArrowLine((Cypher25Parser.ArrowLineContext) ctx);
             case Cypher25Parser.RULE_rightArrow -> exitRightArrow((Cypher25Parser.RightArrowContext) ctx);
             case Cypher25Parser.RULE_pathLength -> exitPathLength((Cypher25Parser.PathLengthContext) ctx);
-            case Cypher25Parser.RULE_labelExpression -> exitLabelExpression(
-                    (Cypher25Parser.LabelExpressionContext) ctx);
-            case Cypher25Parser.RULE_labelExpression4 -> exitLabelExpression4(
-                    (Cypher25Parser.LabelExpression4Context) ctx);
-            case Cypher25Parser.RULE_labelExpression3 -> exitLabelExpression3(
-                    (Cypher25Parser.LabelExpression3Context) ctx);
-            case Cypher25Parser.RULE_labelExpression2 -> exitLabelExpression2(
-                    (Cypher25Parser.LabelExpression2Context) ctx);
-            case Cypher25Parser.RULE_labelExpression1 -> exitLabelExpression1(
-                    (Cypher25Parser.LabelExpression1Context) ctx);
-            case Cypher25Parser.RULE_insertNodeLabelExpression -> exitInsertNodeLabelExpression(
-                    (Cypher25Parser.InsertNodeLabelExpressionContext) ctx);
-            case Cypher25Parser.RULE_insertRelationshipLabelExpression -> exitInsertRelationshipLabelExpression(
-                    (Cypher25Parser.InsertRelationshipLabelExpressionContext) ctx);
+            case Cypher25Parser.RULE_labelExpression ->
+                exitLabelExpression((Cypher25Parser.LabelExpressionContext) ctx);
+            case Cypher25Parser.RULE_labelExpression4 ->
+                exitLabelExpression4((Cypher25Parser.LabelExpression4Context) ctx);
+            case Cypher25Parser.RULE_labelExpression3 ->
+                exitLabelExpression3((Cypher25Parser.LabelExpression3Context) ctx);
+            case Cypher25Parser.RULE_labelExpression2 ->
+                exitLabelExpression2((Cypher25Parser.LabelExpression2Context) ctx);
+            case Cypher25Parser.RULE_labelExpression1 ->
+                exitLabelExpression1((Cypher25Parser.LabelExpression1Context) ctx);
+            case Cypher25Parser.RULE_insertNodeLabelExpression ->
+                exitInsertNodeLabelExpression((Cypher25Parser.InsertNodeLabelExpressionContext) ctx);
+            case Cypher25Parser.RULE_insertRelationshipLabelExpression ->
+                exitInsertRelationshipLabelExpression((Cypher25Parser.InsertRelationshipLabelExpressionContext) ctx);
             case Cypher25Parser.RULE_expression -> exitExpression((Cypher25Parser.ExpressionContext) ctx);
             case Cypher25Parser.RULE_expression11 -> exitExpression11((Cypher25Parser.Expression11Context) ctx);
             case Cypher25Parser.RULE_expression10 -> exitExpression10((Cypher25Parser.Expression10Context) ctx);
             case Cypher25Parser.RULE_expression9 -> exitExpression9((Cypher25Parser.Expression9Context) ctx);
             case Cypher25Parser.RULE_expression8 -> exitExpression8((Cypher25Parser.Expression8Context) ctx);
             case Cypher25Parser.RULE_expression7 -> exitExpression7((Cypher25Parser.Expression7Context) ctx);
-            case Cypher25Parser.RULE_comparisonExpression6 -> exitComparisonExpression6(
-                    (Cypher25Parser.ComparisonExpression6Context) ctx);
+            case Cypher25Parser.RULE_comparisonExpression6 ->
+                exitComparisonExpression6((Cypher25Parser.ComparisonExpression6Context) ctx);
             case Cypher25Parser.RULE_normalForm -> exitNormalForm((Cypher25Parser.NormalFormContext) ctx);
             case Cypher25Parser.RULE_expression6 -> exitExpression6((Cypher25Parser.Expression6Context) ctx);
             case Cypher25Parser.RULE_expression5 -> exitExpression5((Cypher25Parser.Expression5Context) ctx);
@@ -169,143 +172,143 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_expression2 -> exitExpression2((Cypher25Parser.Expression2Context) ctx);
             case Cypher25Parser.RULE_postFix -> exitPostFix((Cypher25Parser.PostFixContext) ctx);
             case Cypher25Parser.RULE_property -> exitProperty((Cypher25Parser.PropertyContext) ctx);
-            case Cypher25Parser.RULE_dynamicProperty -> exitDynamicProperty(
-                    (Cypher25Parser.DynamicPropertyContext) ctx);
-            case Cypher25Parser.RULE_propertyExpression -> exitPropertyExpression(
-                    (Cypher25Parser.PropertyExpressionContext) ctx);
-            case Cypher25Parser.RULE_dynamicPropertyExpression -> exitDynamicPropertyExpression(
-                    (Cypher25Parser.DynamicPropertyExpressionContext) ctx);
+            case Cypher25Parser.RULE_dynamicProperty ->
+                exitDynamicProperty((Cypher25Parser.DynamicPropertyContext) ctx);
+            case Cypher25Parser.RULE_propertyExpression ->
+                exitPropertyExpression((Cypher25Parser.PropertyExpressionContext) ctx);
+            case Cypher25Parser.RULE_dynamicPropertyExpression ->
+                exitDynamicPropertyExpression((Cypher25Parser.DynamicPropertyExpressionContext) ctx);
             case Cypher25Parser.RULE_expression1 -> exitExpression1((Cypher25Parser.Expression1Context) ctx);
             case Cypher25Parser.RULE_literal -> exitLiteral((Cypher25Parser.LiteralContext) ctx);
             case Cypher25Parser.RULE_caseExpression -> exitCaseExpression((Cypher25Parser.CaseExpressionContext) ctx);
-            case Cypher25Parser.RULE_caseAlternative -> exitCaseAlternative(
-                    (Cypher25Parser.CaseAlternativeContext) ctx);
-            case Cypher25Parser.RULE_extendedCaseExpression -> exitExtendedCaseExpression(
-                    (Cypher25Parser.ExtendedCaseExpressionContext) ctx);
-            case Cypher25Parser.RULE_extendedCaseAlternative -> exitExtendedCaseAlternative(
-                    (Cypher25Parser.ExtendedCaseAlternativeContext) ctx);
+            case Cypher25Parser.RULE_caseAlternative ->
+                exitCaseAlternative((Cypher25Parser.CaseAlternativeContext) ctx);
+            case Cypher25Parser.RULE_extendedCaseExpression ->
+                exitExtendedCaseExpression((Cypher25Parser.ExtendedCaseExpressionContext) ctx);
+            case Cypher25Parser.RULE_extendedCaseAlternative ->
+                exitExtendedCaseAlternative((Cypher25Parser.ExtendedCaseAlternativeContext) ctx);
             case Cypher25Parser.RULE_extendedWhen -> exitExtendedWhen((Cypher25Parser.ExtendedWhenContext) ctx);
-            case Cypher25Parser.RULE_listComprehension -> exitListComprehension(
-                    (Cypher25Parser.ListComprehensionContext) ctx);
-            case Cypher25Parser.RULE_patternComprehension -> exitPatternComprehension(
-                    (Cypher25Parser.PatternComprehensionContext) ctx);
-            case Cypher25Parser.RULE_reduceExpression -> exitReduceExpression(
-                    (Cypher25Parser.ReduceExpressionContext) ctx);
-            case Cypher25Parser.RULE_listItemsPredicate -> exitListItemsPredicate(
-                    (Cypher25Parser.ListItemsPredicateContext) ctx);
-            case Cypher25Parser.RULE_normalizeFunction -> exitNormalizeFunction(
-                    (Cypher25Parser.NormalizeFunctionContext) ctx);
+            case Cypher25Parser.RULE_listComprehension ->
+                exitListComprehension((Cypher25Parser.ListComprehensionContext) ctx);
+            case Cypher25Parser.RULE_patternComprehension ->
+                exitPatternComprehension((Cypher25Parser.PatternComprehensionContext) ctx);
+            case Cypher25Parser.RULE_reduceExpression ->
+                exitReduceExpression((Cypher25Parser.ReduceExpressionContext) ctx);
+            case Cypher25Parser.RULE_listItemsPredicate ->
+                exitListItemsPredicate((Cypher25Parser.ListItemsPredicateContext) ctx);
+            case Cypher25Parser.RULE_normalizeFunction ->
+                exitNormalizeFunction((Cypher25Parser.NormalizeFunctionContext) ctx);
             case Cypher25Parser.RULE_trimFunction -> exitTrimFunction((Cypher25Parser.TrimFunctionContext) ctx);
-            case Cypher25Parser.RULE_patternExpression -> exitPatternExpression(
-                    (Cypher25Parser.PatternExpressionContext) ctx);
-            case Cypher25Parser.RULE_shortestPathExpression -> exitShortestPathExpression(
-                    (Cypher25Parser.ShortestPathExpressionContext) ctx);
-            case Cypher25Parser.RULE_parenthesizedExpression -> exitParenthesizedExpression(
-                    (Cypher25Parser.ParenthesizedExpressionContext) ctx);
+            case Cypher25Parser.RULE_patternExpression ->
+                exitPatternExpression((Cypher25Parser.PatternExpressionContext) ctx);
+            case Cypher25Parser.RULE_shortestPathExpression ->
+                exitShortestPathExpression((Cypher25Parser.ShortestPathExpressionContext) ctx);
+            case Cypher25Parser.RULE_parenthesizedExpression ->
+                exitParenthesizedExpression((Cypher25Parser.ParenthesizedExpressionContext) ctx);
             case Cypher25Parser.RULE_mapProjection -> exitMapProjection((Cypher25Parser.MapProjectionContext) ctx);
-            case Cypher25Parser.RULE_mapProjectionElement -> exitMapProjectionElement(
-                    (Cypher25Parser.MapProjectionElementContext) ctx);
+            case Cypher25Parser.RULE_mapProjectionElement ->
+                exitMapProjectionElement((Cypher25Parser.MapProjectionElementContext) ctx);
             case Cypher25Parser.RULE_countStar -> exitCountStar((Cypher25Parser.CountStarContext) ctx);
-            case Cypher25Parser.RULE_existsExpression -> exitExistsExpression(
-                    (Cypher25Parser.ExistsExpressionContext) ctx);
-            case Cypher25Parser.RULE_countExpression -> exitCountExpression(
-                    (Cypher25Parser.CountExpressionContext) ctx);
-            case Cypher25Parser.RULE_collectExpression -> exitCollectExpression(
-                    (Cypher25Parser.CollectExpressionContext) ctx);
+            case Cypher25Parser.RULE_existsExpression ->
+                exitExistsExpression((Cypher25Parser.ExistsExpressionContext) ctx);
+            case Cypher25Parser.RULE_countExpression ->
+                exitCountExpression((Cypher25Parser.CountExpressionContext) ctx);
+            case Cypher25Parser.RULE_collectExpression ->
+                exitCollectExpression((Cypher25Parser.CollectExpressionContext) ctx);
             case Cypher25Parser.RULE_numberLiteral -> exitNumberLiteral((Cypher25Parser.NumberLiteralContext) ctx);
-            case Cypher25Parser.RULE_signedIntegerLiteral -> exitSignedIntegerLiteral(
-                    (Cypher25Parser.SignedIntegerLiteralContext) ctx);
+            case Cypher25Parser.RULE_signedIntegerLiteral ->
+                exitSignedIntegerLiteral((Cypher25Parser.SignedIntegerLiteralContext) ctx);
             case Cypher25Parser.RULE_listLiteral -> exitListLiteral((Cypher25Parser.ListLiteralContext) ctx);
-            case Cypher25Parser.RULE_propertyKeyName -> exitPropertyKeyName(
-                    (Cypher25Parser.PropertyKeyNameContext) ctx);
+            case Cypher25Parser.RULE_propertyKeyName ->
+                exitPropertyKeyName((Cypher25Parser.PropertyKeyNameContext) ctx);
             case Cypher25Parser.RULE_parameter -> exitParameter((Cypher25Parser.ParameterContext) ctx);
             case Cypher25Parser.RULE_parameterName -> exitParameterName((Cypher25Parser.ParameterNameContext) ctx);
-            case Cypher25Parser.RULE_functionInvocation -> exitFunctionInvocation(
-                    (Cypher25Parser.FunctionInvocationContext) ctx);
-            case Cypher25Parser.RULE_functionArgument -> exitFunctionArgument(
-                    (Cypher25Parser.FunctionArgumentContext) ctx);
+            case Cypher25Parser.RULE_functionInvocation ->
+                exitFunctionInvocation((Cypher25Parser.FunctionInvocationContext) ctx);
+            case Cypher25Parser.RULE_functionArgument ->
+                exitFunctionArgument((Cypher25Parser.FunctionArgumentContext) ctx);
             case Cypher25Parser.RULE_functionName -> exitFunctionName((Cypher25Parser.FunctionNameContext) ctx);
             case Cypher25Parser.RULE_namespace -> exitNamespace((Cypher25Parser.NamespaceContext) ctx);
             case Cypher25Parser.RULE_variable -> exitVariable((Cypher25Parser.VariableContext) ctx);
-            case Cypher25Parser.RULE_nonEmptyNameList -> exitNonEmptyNameList(
-                    (Cypher25Parser.NonEmptyNameListContext) ctx);
+            case Cypher25Parser.RULE_nonEmptyNameList ->
+                exitNonEmptyNameList((Cypher25Parser.NonEmptyNameListContext) ctx);
             case Cypher25Parser.RULE_type -> exitType((Cypher25Parser.TypeContext) ctx);
             case Cypher25Parser.RULE_typePart -> exitTypePart((Cypher25Parser.TypePartContext) ctx);
             case Cypher25Parser.RULE_typeName -> exitTypeName((Cypher25Parser.TypeNameContext) ctx);
-            case Cypher25Parser.RULE_typeNullability -> exitTypeNullability(
-                    (Cypher25Parser.TypeNullabilityContext) ctx);
+            case Cypher25Parser.RULE_typeNullability ->
+                exitTypeNullability((Cypher25Parser.TypeNullabilityContext) ctx);
             case Cypher25Parser.RULE_typeListSuffix -> exitTypeListSuffix((Cypher25Parser.TypeListSuffixContext) ctx);
             case Cypher25Parser.RULE_command -> exitCommand((Cypher25Parser.CommandContext) ctx);
             case Cypher25Parser.RULE_createCommand -> exitCreateCommand((Cypher25Parser.CreateCommandContext) ctx);
             case Cypher25Parser.RULE_dropCommand -> exitDropCommand((Cypher25Parser.DropCommandContext) ctx);
             case Cypher25Parser.RULE_showCommand -> exitShowCommand((Cypher25Parser.ShowCommandContext) ctx);
-            case Cypher25Parser.RULE_showCommandYield -> exitShowCommandYield(
-                    (Cypher25Parser.ShowCommandYieldContext) ctx);
+            case Cypher25Parser.RULE_showCommandYield ->
+                exitShowCommandYield((Cypher25Parser.ShowCommandYieldContext) ctx);
             case Cypher25Parser.RULE_yieldItem -> exitYieldItem((Cypher25Parser.YieldItemContext) ctx);
             case Cypher25Parser.RULE_yieldSkip -> exitYieldSkip((Cypher25Parser.YieldSkipContext) ctx);
             case Cypher25Parser.RULE_yieldLimit -> exitYieldLimit((Cypher25Parser.YieldLimitContext) ctx);
             case Cypher25Parser.RULE_yieldClause -> exitYieldClause((Cypher25Parser.YieldClauseContext) ctx);
             case Cypher25Parser.RULE_commandOptions -> exitCommandOptions((Cypher25Parser.CommandOptionsContext) ctx);
-            case Cypher25Parser.RULE_terminateCommand -> exitTerminateCommand(
-                    (Cypher25Parser.TerminateCommandContext) ctx);
-            case Cypher25Parser.RULE_composableCommandClauses -> exitComposableCommandClauses(
-                    (Cypher25Parser.ComposableCommandClausesContext) ctx);
-            case Cypher25Parser.RULE_composableShowCommandClauses -> exitComposableShowCommandClauses(
-                    (Cypher25Parser.ComposableShowCommandClausesContext) ctx);
-            case Cypher25Parser.RULE_showIndexCommand -> exitShowIndexCommand(
-                    (Cypher25Parser.ShowIndexCommandContext) ctx);
+            case Cypher25Parser.RULE_terminateCommand ->
+                exitTerminateCommand((Cypher25Parser.TerminateCommandContext) ctx);
+            case Cypher25Parser.RULE_composableCommandClauses ->
+                exitComposableCommandClauses((Cypher25Parser.ComposableCommandClausesContext) ctx);
+            case Cypher25Parser.RULE_composableShowCommandClauses ->
+                exitComposableShowCommandClauses((Cypher25Parser.ComposableShowCommandClausesContext) ctx);
+            case Cypher25Parser.RULE_showIndexCommand ->
+                exitShowIndexCommand((Cypher25Parser.ShowIndexCommandContext) ctx);
             case Cypher25Parser.RULE_showIndexType -> exitShowIndexType((Cypher25Parser.ShowIndexTypeContext) ctx);
             case Cypher25Parser.RULE_showIndexesEnd -> exitShowIndexesEnd((Cypher25Parser.ShowIndexesEndContext) ctx);
-            case Cypher25Parser.RULE_showConstraintCommand -> exitShowConstraintCommand(
-                    (Cypher25Parser.ShowConstraintCommandContext) ctx);
-            case Cypher25Parser.RULE_showConstraintEntity -> exitShowConstraintEntity(
-                    (Cypher25Parser.ShowConstraintEntityContext) ctx);
-            case Cypher25Parser.RULE_constraintExistType -> exitConstraintExistType(
-                    (Cypher25Parser.ConstraintExistTypeContext) ctx);
-            case Cypher25Parser.RULE_showConstraintsEnd -> exitShowConstraintsEnd(
-                    (Cypher25Parser.ShowConstraintsEndContext) ctx);
+            case Cypher25Parser.RULE_showConstraintCommand ->
+                exitShowConstraintCommand((Cypher25Parser.ShowConstraintCommandContext) ctx);
+            case Cypher25Parser.RULE_showConstraintEntity ->
+                exitShowConstraintEntity((Cypher25Parser.ShowConstraintEntityContext) ctx);
+            case Cypher25Parser.RULE_constraintExistType ->
+                exitConstraintExistType((Cypher25Parser.ConstraintExistTypeContext) ctx);
+            case Cypher25Parser.RULE_showConstraintsEnd ->
+                exitShowConstraintsEnd((Cypher25Parser.ShowConstraintsEndContext) ctx);
             case Cypher25Parser.RULE_showProcedures -> exitShowProcedures((Cypher25Parser.ShowProceduresContext) ctx);
             case Cypher25Parser.RULE_showFunctions -> exitShowFunctions((Cypher25Parser.ShowFunctionsContext) ctx);
             case Cypher25Parser.RULE_functionToken -> exitFunctionToken((Cypher25Parser.FunctionTokenContext) ctx);
             case Cypher25Parser.RULE_executableBy -> exitExecutableBy((Cypher25Parser.ExecutableByContext) ctx);
-            case Cypher25Parser.RULE_showFunctionsType -> exitShowFunctionsType(
-                    (Cypher25Parser.ShowFunctionsTypeContext) ctx);
-            case Cypher25Parser.RULE_showTransactions -> exitShowTransactions(
-                    (Cypher25Parser.ShowTransactionsContext) ctx);
-            case Cypher25Parser.RULE_terminateTransactions -> exitTerminateTransactions(
-                    (Cypher25Parser.TerminateTransactionsContext) ctx);
+            case Cypher25Parser.RULE_showFunctionsType ->
+                exitShowFunctionsType((Cypher25Parser.ShowFunctionsTypeContext) ctx);
+            case Cypher25Parser.RULE_showTransactions ->
+                exitShowTransactions((Cypher25Parser.ShowTransactionsContext) ctx);
+            case Cypher25Parser.RULE_terminateTransactions ->
+                exitTerminateTransactions((Cypher25Parser.TerminateTransactionsContext) ctx);
             case Cypher25Parser.RULE_showSettings -> exitShowSettings((Cypher25Parser.ShowSettingsContext) ctx);
             case Cypher25Parser.RULE_settingToken -> exitSettingToken((Cypher25Parser.SettingTokenContext) ctx);
-            case Cypher25Parser.RULE_namesAndClauses -> exitNamesAndClauses(
-                    (Cypher25Parser.NamesAndClausesContext) ctx);
-            case Cypher25Parser.RULE_stringsOrExpression -> exitStringsOrExpression(
-                    (Cypher25Parser.StringsOrExpressionContext) ctx);
-            case Cypher25Parser.RULE_commandNodePattern -> exitCommandNodePattern(
-                    (Cypher25Parser.CommandNodePatternContext) ctx);
-            case Cypher25Parser.RULE_commandRelPattern -> exitCommandRelPattern(
-                    (Cypher25Parser.CommandRelPatternContext) ctx);
-            case Cypher25Parser.RULE_createConstraint -> exitCreateConstraint(
-                    (Cypher25Parser.CreateConstraintContext) ctx);
+            case Cypher25Parser.RULE_namesAndClauses ->
+                exitNamesAndClauses((Cypher25Parser.NamesAndClausesContext) ctx);
+            case Cypher25Parser.RULE_stringsOrExpression ->
+                exitStringsOrExpression((Cypher25Parser.StringsOrExpressionContext) ctx);
+            case Cypher25Parser.RULE_commandNodePattern ->
+                exitCommandNodePattern((Cypher25Parser.CommandNodePatternContext) ctx);
+            case Cypher25Parser.RULE_commandRelPattern ->
+                exitCommandRelPattern((Cypher25Parser.CommandRelPatternContext) ctx);
+            case Cypher25Parser.RULE_createConstraint ->
+                exitCreateConstraint((Cypher25Parser.CreateConstraintContext) ctx);
             case Cypher25Parser.RULE_constraintType -> exitConstraintType((Cypher25Parser.ConstraintTypeContext) ctx);
             case Cypher25Parser.RULE_dropConstraint -> exitDropConstraint((Cypher25Parser.DropConstraintContext) ctx);
             case Cypher25Parser.RULE_createIndex -> exitCreateIndex((Cypher25Parser.CreateIndexContext) ctx);
             case Cypher25Parser.RULE_createIndex_ -> exitCreateIndex_((Cypher25Parser.CreateIndex_Context) ctx);
-            case Cypher25Parser.RULE_createFulltextIndex -> exitCreateFulltextIndex(
-                    (Cypher25Parser.CreateFulltextIndexContext) ctx);
-            case Cypher25Parser.RULE_fulltextNodePattern -> exitFulltextNodePattern(
-                    (Cypher25Parser.FulltextNodePatternContext) ctx);
-            case Cypher25Parser.RULE_fulltextRelPattern -> exitFulltextRelPattern(
-                    (Cypher25Parser.FulltextRelPatternContext) ctx);
-            case Cypher25Parser.RULE_createLookupIndex -> exitCreateLookupIndex(
-                    (Cypher25Parser.CreateLookupIndexContext) ctx);
-            case Cypher25Parser.RULE_lookupIndexNodePattern -> exitLookupIndexNodePattern(
-                    (Cypher25Parser.LookupIndexNodePatternContext) ctx);
-            case Cypher25Parser.RULE_lookupIndexRelPattern -> exitLookupIndexRelPattern(
-                    (Cypher25Parser.LookupIndexRelPatternContext) ctx);
+            case Cypher25Parser.RULE_createFulltextIndex ->
+                exitCreateFulltextIndex((Cypher25Parser.CreateFulltextIndexContext) ctx);
+            case Cypher25Parser.RULE_fulltextNodePattern ->
+                exitFulltextNodePattern((Cypher25Parser.FulltextNodePatternContext) ctx);
+            case Cypher25Parser.RULE_fulltextRelPattern ->
+                exitFulltextRelPattern((Cypher25Parser.FulltextRelPatternContext) ctx);
+            case Cypher25Parser.RULE_createLookupIndex ->
+                exitCreateLookupIndex((Cypher25Parser.CreateLookupIndexContext) ctx);
+            case Cypher25Parser.RULE_lookupIndexNodePattern ->
+                exitLookupIndexNodePattern((Cypher25Parser.LookupIndexNodePatternContext) ctx);
+            case Cypher25Parser.RULE_lookupIndexRelPattern ->
+                exitLookupIndexRelPattern((Cypher25Parser.LookupIndexRelPatternContext) ctx);
             case Cypher25Parser.RULE_dropIndex -> exitDropIndex((Cypher25Parser.DropIndexContext) ctx);
             case Cypher25Parser.RULE_propertyList -> exitPropertyList((Cypher25Parser.PropertyListContext) ctx);
-            case Cypher25Parser.RULE_enclosedPropertyList -> exitEnclosedPropertyList(
-                    (Cypher25Parser.EnclosedPropertyListContext) ctx);
+            case Cypher25Parser.RULE_enclosedPropertyList ->
+                exitEnclosedPropertyList((Cypher25Parser.EnclosedPropertyListContext) ctx);
             case Cypher25Parser.RULE_alterCommand -> exitAlterCommand((Cypher25Parser.AlterCommandContext) ctx);
             case Cypher25Parser.RULE_renameCommand -> exitRenameCommand((Cypher25Parser.RenameCommandContext) ctx);
             case Cypher25Parser.RULE_grantCommand -> exitGrantCommand((Cypher25Parser.GrantCommandContext) ctx);
@@ -314,18 +317,18 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_userNames -> exitUserNames((Cypher25Parser.UserNamesContext) ctx);
             case Cypher25Parser.RULE_roleNames -> exitRoleNames((Cypher25Parser.RoleNamesContext) ctx);
             case Cypher25Parser.RULE_roleToken -> exitRoleToken((Cypher25Parser.RoleTokenContext) ctx);
-            case Cypher25Parser.RULE_enableServerCommand -> exitEnableServerCommand(
-                    (Cypher25Parser.EnableServerCommandContext) ctx);
+            case Cypher25Parser.RULE_enableServerCommand ->
+                exitEnableServerCommand((Cypher25Parser.EnableServerCommandContext) ctx);
             case Cypher25Parser.RULE_alterServer -> exitAlterServer((Cypher25Parser.AlterServerContext) ctx);
             case Cypher25Parser.RULE_renameServer -> exitRenameServer((Cypher25Parser.RenameServerContext) ctx);
             case Cypher25Parser.RULE_dropServer -> exitDropServer((Cypher25Parser.DropServerContext) ctx);
             case Cypher25Parser.RULE_showServers -> exitShowServers((Cypher25Parser.ShowServersContext) ctx);
-            case Cypher25Parser.RULE_allocationCommand -> exitAllocationCommand(
-                    (Cypher25Parser.AllocationCommandContext) ctx);
-            case Cypher25Parser.RULE_deallocateDatabaseFromServers -> exitDeallocateDatabaseFromServers(
-                    (Cypher25Parser.DeallocateDatabaseFromServersContext) ctx);
-            case Cypher25Parser.RULE_reallocateDatabases -> exitReallocateDatabases(
-                    (Cypher25Parser.ReallocateDatabasesContext) ctx);
+            case Cypher25Parser.RULE_allocationCommand ->
+                exitAllocationCommand((Cypher25Parser.AllocationCommandContext) ctx);
+            case Cypher25Parser.RULE_deallocateDatabaseFromServers ->
+                exitDeallocateDatabaseFromServers((Cypher25Parser.DeallocateDatabaseFromServersContext) ctx);
+            case Cypher25Parser.RULE_reallocateDatabases ->
+                exitReallocateDatabases((Cypher25Parser.ReallocateDatabasesContext) ctx);
             case Cypher25Parser.RULE_createRole -> exitCreateRole((Cypher25Parser.CreateRoleContext) ctx);
             case Cypher25Parser.RULE_dropRole -> exitDropRole((Cypher25Parser.DropRoleContext) ctx);
             case Cypher25Parser.RULE_renameRole -> exitRenameRole((Cypher25Parser.RenameRoleContext) ctx);
@@ -335,180 +338,182 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_createUser -> exitCreateUser((Cypher25Parser.CreateUserContext) ctx);
             case Cypher25Parser.RULE_dropUser -> exitDropUser((Cypher25Parser.DropUserContext) ctx);
             case Cypher25Parser.RULE_renameUser -> exitRenameUser((Cypher25Parser.RenameUserContext) ctx);
-            case Cypher25Parser.RULE_alterCurrentUser -> exitAlterCurrentUser(
-                    (Cypher25Parser.AlterCurrentUserContext) ctx);
+            case Cypher25Parser.RULE_alterCurrentUser ->
+                exitAlterCurrentUser((Cypher25Parser.AlterCurrentUserContext) ctx);
             case Cypher25Parser.RULE_alterUser -> exitAlterUser((Cypher25Parser.AlterUserContext) ctx);
-            case Cypher25Parser.RULE_removeNamedProvider -> exitRemoveNamedProvider(
-                    (Cypher25Parser.RemoveNamedProviderContext) ctx);
+            case Cypher25Parser.RULE_removeNamedProvider ->
+                exitRemoveNamedProvider((Cypher25Parser.RemoveNamedProviderContext) ctx);
             case Cypher25Parser.RULE_password -> exitPassword((Cypher25Parser.PasswordContext) ctx);
             case Cypher25Parser.RULE_passwordOnly -> exitPasswordOnly((Cypher25Parser.PasswordOnlyContext) ctx);
-            case Cypher25Parser.RULE_passwordExpression -> exitPasswordExpression(
-                    (Cypher25Parser.PasswordExpressionContext) ctx);
-            case Cypher25Parser.RULE_passwordChangeRequired -> exitPasswordChangeRequired(
-                    (Cypher25Parser.PasswordChangeRequiredContext) ctx);
+            case Cypher25Parser.RULE_passwordExpression ->
+                exitPasswordExpression((Cypher25Parser.PasswordExpressionContext) ctx);
+            case Cypher25Parser.RULE_passwordChangeRequired ->
+                exitPasswordChangeRequired((Cypher25Parser.PasswordChangeRequiredContext) ctx);
             case Cypher25Parser.RULE_userStatus -> exitUserStatus((Cypher25Parser.UserStatusContext) ctx);
             case Cypher25Parser.RULE_homeDatabase -> exitHomeDatabase((Cypher25Parser.HomeDatabaseContext) ctx);
             case Cypher25Parser.RULE_setAuthClause -> exitSetAuthClause((Cypher25Parser.SetAuthClauseContext) ctx);
-            case Cypher25Parser.RULE_userAuthAttribute -> exitUserAuthAttribute(
-                    (Cypher25Parser.UserAuthAttributeContext) ctx);
+            case Cypher25Parser.RULE_userAuthAttribute ->
+                exitUserAuthAttribute((Cypher25Parser.UserAuthAttributeContext) ctx);
             case Cypher25Parser.RULE_showUsers -> exitShowUsers((Cypher25Parser.ShowUsersContext) ctx);
-            case Cypher25Parser.RULE_showCurrentUser -> exitShowCurrentUser(
-                    (Cypher25Parser.ShowCurrentUserContext) ctx);
-            case Cypher25Parser.RULE_showSupportedPrivileges -> exitShowSupportedPrivileges(
-                    (Cypher25Parser.ShowSupportedPrivilegesContext) ctx);
+            case Cypher25Parser.RULE_showCurrentUser ->
+                exitShowCurrentUser((Cypher25Parser.ShowCurrentUserContext) ctx);
+            case Cypher25Parser.RULE_showSupportedPrivileges ->
+                exitShowSupportedPrivileges((Cypher25Parser.ShowSupportedPrivilegesContext) ctx);
             case Cypher25Parser.RULE_showPrivileges -> exitShowPrivileges((Cypher25Parser.ShowPrivilegesContext) ctx);
-            case Cypher25Parser.RULE_showRolePrivileges -> exitShowRolePrivileges(
-                    (Cypher25Parser.ShowRolePrivilegesContext) ctx);
-            case Cypher25Parser.RULE_showUserPrivileges -> exitShowUserPrivileges(
-                    (Cypher25Parser.ShowUserPrivilegesContext) ctx);
-            case Cypher25Parser.RULE_privilegeAsCommand -> exitPrivilegeAsCommand(
-                    (Cypher25Parser.PrivilegeAsCommandContext) ctx);
+            case Cypher25Parser.RULE_showRolePrivileges ->
+                exitShowRolePrivileges((Cypher25Parser.ShowRolePrivilegesContext) ctx);
+            case Cypher25Parser.RULE_showUserPrivileges ->
+                exitShowUserPrivileges((Cypher25Parser.ShowUserPrivilegesContext) ctx);
+            case Cypher25Parser.RULE_privilegeAsCommand ->
+                exitPrivilegeAsCommand((Cypher25Parser.PrivilegeAsCommandContext) ctx);
             case Cypher25Parser.RULE_privilegeToken -> exitPrivilegeToken((Cypher25Parser.PrivilegeTokenContext) ctx);
             case Cypher25Parser.RULE_privilege -> exitPrivilege((Cypher25Parser.PrivilegeContext) ctx);
             case Cypher25Parser.RULE_allPrivilege -> exitAllPrivilege((Cypher25Parser.AllPrivilegeContext) ctx);
-            case Cypher25Parser.RULE_allPrivilegeType -> exitAllPrivilegeType(
-                    (Cypher25Parser.AllPrivilegeTypeContext) ctx);
-            case Cypher25Parser.RULE_allPrivilegeTarget -> exitAllPrivilegeTarget(
-                    (Cypher25Parser.AllPrivilegeTargetContext) ctx);
-            case Cypher25Parser.RULE_createPrivilege -> exitCreatePrivilege(
-                    (Cypher25Parser.CreatePrivilegeContext) ctx);
-            case Cypher25Parser.RULE_createPrivilegeForDatabase -> exitCreatePrivilegeForDatabase(
-                    (Cypher25Parser.CreatePrivilegeForDatabaseContext) ctx);
-            case Cypher25Parser.RULE_createNodePrivilegeToken -> exitCreateNodePrivilegeToken(
-                    (Cypher25Parser.CreateNodePrivilegeTokenContext) ctx);
-            case Cypher25Parser.RULE_createRelPrivilegeToken -> exitCreateRelPrivilegeToken(
-                    (Cypher25Parser.CreateRelPrivilegeTokenContext) ctx);
-            case Cypher25Parser.RULE_createPropertyPrivilegeToken -> exitCreatePropertyPrivilegeToken(
-                    (Cypher25Parser.CreatePropertyPrivilegeTokenContext) ctx);
+            case Cypher25Parser.RULE_allPrivilegeType ->
+                exitAllPrivilegeType((Cypher25Parser.AllPrivilegeTypeContext) ctx);
+            case Cypher25Parser.RULE_allPrivilegeTarget ->
+                exitAllPrivilegeTarget((Cypher25Parser.AllPrivilegeTargetContext) ctx);
+            case Cypher25Parser.RULE_createPrivilege ->
+                exitCreatePrivilege((Cypher25Parser.CreatePrivilegeContext) ctx);
+            case Cypher25Parser.RULE_createPrivilegeForDatabase ->
+                exitCreatePrivilegeForDatabase((Cypher25Parser.CreatePrivilegeForDatabaseContext) ctx);
+            case Cypher25Parser.RULE_createNodePrivilegeToken ->
+                exitCreateNodePrivilegeToken((Cypher25Parser.CreateNodePrivilegeTokenContext) ctx);
+            case Cypher25Parser.RULE_createRelPrivilegeToken ->
+                exitCreateRelPrivilegeToken((Cypher25Parser.CreateRelPrivilegeTokenContext) ctx);
+            case Cypher25Parser.RULE_createPropertyPrivilegeToken ->
+                exitCreatePropertyPrivilegeToken((Cypher25Parser.CreatePropertyPrivilegeTokenContext) ctx);
             case Cypher25Parser.RULE_actionForDBMS -> exitActionForDBMS((Cypher25Parser.ActionForDBMSContext) ctx);
             case Cypher25Parser.RULE_dropPrivilege -> exitDropPrivilege((Cypher25Parser.DropPrivilegeContext) ctx);
             case Cypher25Parser.RULE_loadPrivilege -> exitLoadPrivilege((Cypher25Parser.LoadPrivilegeContext) ctx);
             case Cypher25Parser.RULE_showPrivilege -> exitShowPrivilege((Cypher25Parser.ShowPrivilegeContext) ctx);
             case Cypher25Parser.RULE_setPrivilege -> exitSetPrivilege((Cypher25Parser.SetPrivilegeContext) ctx);
             case Cypher25Parser.RULE_passwordToken -> exitPasswordToken((Cypher25Parser.PasswordTokenContext) ctx);
-            case Cypher25Parser.RULE_removePrivilege -> exitRemovePrivilege(
-                    (Cypher25Parser.RemovePrivilegeContext) ctx);
+            case Cypher25Parser.RULE_removePrivilege ->
+                exitRemovePrivilege((Cypher25Parser.RemovePrivilegeContext) ctx);
             case Cypher25Parser.RULE_writePrivilege -> exitWritePrivilege((Cypher25Parser.WritePrivilegeContext) ctx);
-            case Cypher25Parser.RULE_databasePrivilege -> exitDatabasePrivilege(
-                    (Cypher25Parser.DatabasePrivilegeContext) ctx);
+            case Cypher25Parser.RULE_databasePrivilege ->
+                exitDatabasePrivilege((Cypher25Parser.DatabasePrivilegeContext) ctx);
             case Cypher25Parser.RULE_dbmsPrivilege -> exitDbmsPrivilege((Cypher25Parser.DbmsPrivilegeContext) ctx);
-            case Cypher25Parser.RULE_dbmsPrivilegeExecute -> exitDbmsPrivilegeExecute(
-                    (Cypher25Parser.DbmsPrivilegeExecuteContext) ctx);
+            case Cypher25Parser.RULE_dbmsPrivilegeExecute ->
+                exitDbmsPrivilegeExecute((Cypher25Parser.DbmsPrivilegeExecuteContext) ctx);
             case Cypher25Parser.RULE_adminToken -> exitAdminToken((Cypher25Parser.AdminTokenContext) ctx);
             case Cypher25Parser.RULE_procedureToken -> exitProcedureToken((Cypher25Parser.ProcedureTokenContext) ctx);
             case Cypher25Parser.RULE_indexToken -> exitIndexToken((Cypher25Parser.IndexTokenContext) ctx);
-            case Cypher25Parser.RULE_constraintToken -> exitConstraintToken(
-                    (Cypher25Parser.ConstraintTokenContext) ctx);
-            case Cypher25Parser.RULE_transactionToken -> exitTransactionToken(
-                    (Cypher25Parser.TransactionTokenContext) ctx);
+            case Cypher25Parser.RULE_constraintToken ->
+                exitConstraintToken((Cypher25Parser.ConstraintTokenContext) ctx);
+            case Cypher25Parser.RULE_transactionToken ->
+                exitTransactionToken((Cypher25Parser.TransactionTokenContext) ctx);
             case Cypher25Parser.RULE_userQualifier -> exitUserQualifier((Cypher25Parser.UserQualifierContext) ctx);
-            case Cypher25Parser.RULE_executeFunctionQualifier -> exitExecuteFunctionQualifier(
-                    (Cypher25Parser.ExecuteFunctionQualifierContext) ctx);
-            case Cypher25Parser.RULE_executeProcedureQualifier -> exitExecuteProcedureQualifier(
-                    (Cypher25Parser.ExecuteProcedureQualifierContext) ctx);
-            case Cypher25Parser.RULE_settingQualifier -> exitSettingQualifier(
-                    (Cypher25Parser.SettingQualifierContext) ctx);
+            case Cypher25Parser.RULE_executeFunctionQualifier ->
+                exitExecuteFunctionQualifier((Cypher25Parser.ExecuteFunctionQualifierContext) ctx);
+            case Cypher25Parser.RULE_executeProcedureQualifier ->
+                exitExecuteProcedureQualifier((Cypher25Parser.ExecuteProcedureQualifierContext) ctx);
+            case Cypher25Parser.RULE_settingQualifier ->
+                exitSettingQualifier((Cypher25Parser.SettingQualifierContext) ctx);
             case Cypher25Parser.RULE_globs -> exitGlobs((Cypher25Parser.GlobsContext) ctx);
             case Cypher25Parser.RULE_glob -> exitGlob((Cypher25Parser.GlobContext) ctx);
             case Cypher25Parser.RULE_globRecursive -> exitGlobRecursive((Cypher25Parser.GlobRecursiveContext) ctx);
             case Cypher25Parser.RULE_globPart -> exitGlobPart((Cypher25Parser.GlobPartContext) ctx);
-            case Cypher25Parser.RULE_qualifiedGraphPrivilegesWithProperty -> exitQualifiedGraphPrivilegesWithProperty(
-                    (Cypher25Parser.QualifiedGraphPrivilegesWithPropertyContext) ctx);
-            case Cypher25Parser.RULE_qualifiedGraphPrivileges -> exitQualifiedGraphPrivileges(
-                    (Cypher25Parser.QualifiedGraphPrivilegesContext) ctx);
+            case Cypher25Parser.RULE_qualifiedGraphPrivilegesWithProperty ->
+                exitQualifiedGraphPrivilegesWithProperty(
+                        (Cypher25Parser.QualifiedGraphPrivilegesWithPropertyContext) ctx);
+            case Cypher25Parser.RULE_qualifiedGraphPrivileges ->
+                exitQualifiedGraphPrivileges((Cypher25Parser.QualifiedGraphPrivilegesContext) ctx);
             case Cypher25Parser.RULE_labelsResource -> exitLabelsResource((Cypher25Parser.LabelsResourceContext) ctx);
-            case Cypher25Parser.RULE_propertiesResource -> exitPropertiesResource(
-                    (Cypher25Parser.PropertiesResourceContext) ctx);
-            case Cypher25Parser.RULE_nonEmptyStringList -> exitNonEmptyStringList(
-                    (Cypher25Parser.NonEmptyStringListContext) ctx);
+            case Cypher25Parser.RULE_propertiesResource ->
+                exitPropertiesResource((Cypher25Parser.PropertiesResourceContext) ctx);
+            case Cypher25Parser.RULE_nonEmptyStringList ->
+                exitNonEmptyStringList((Cypher25Parser.NonEmptyStringListContext) ctx);
             case Cypher25Parser.RULE_graphQualifier -> exitGraphQualifier((Cypher25Parser.GraphQualifierContext) ctx);
-            case Cypher25Parser.RULE_graphQualifierToken -> exitGraphQualifierToken(
-                    (Cypher25Parser.GraphQualifierTokenContext) ctx);
+            case Cypher25Parser.RULE_graphQualifierToken ->
+                exitGraphQualifierToken((Cypher25Parser.GraphQualifierTokenContext) ctx);
             case Cypher25Parser.RULE_relToken -> exitRelToken((Cypher25Parser.RelTokenContext) ctx);
             case Cypher25Parser.RULE_elementToken -> exitElementToken((Cypher25Parser.ElementTokenContext) ctx);
             case Cypher25Parser.RULE_nodeToken -> exitNodeToken((Cypher25Parser.NodeTokenContext) ctx);
             case Cypher25Parser.RULE_databaseScope -> exitDatabaseScope((Cypher25Parser.DatabaseScopeContext) ctx);
             case Cypher25Parser.RULE_graphScope -> exitGraphScope((Cypher25Parser.GraphScopeContext) ctx);
-            case Cypher25Parser.RULE_createCompositeDatabase -> exitCreateCompositeDatabase(
-                    (Cypher25Parser.CreateCompositeDatabaseContext) ctx);
+            case Cypher25Parser.RULE_createCompositeDatabase ->
+                exitCreateCompositeDatabase((Cypher25Parser.CreateCompositeDatabaseContext) ctx);
             case Cypher25Parser.RULE_createDatabase -> exitCreateDatabase((Cypher25Parser.CreateDatabaseContext) ctx);
-            case Cypher25Parser.RULE_primaryTopology -> exitPrimaryTopology(
-                    (Cypher25Parser.PrimaryTopologyContext) ctx);
+            case Cypher25Parser.RULE_primaryTopology ->
+                exitPrimaryTopology((Cypher25Parser.PrimaryTopologyContext) ctx);
             case Cypher25Parser.RULE_primaryToken -> exitPrimaryToken((Cypher25Parser.PrimaryTokenContext) ctx);
-            case Cypher25Parser.RULE_secondaryTopology -> exitSecondaryTopology(
-                    (Cypher25Parser.SecondaryTopologyContext) ctx);
+            case Cypher25Parser.RULE_secondaryTopology ->
+                exitSecondaryTopology((Cypher25Parser.SecondaryTopologyContext) ctx);
             case Cypher25Parser.RULE_secondaryToken -> exitSecondaryToken((Cypher25Parser.SecondaryTokenContext) ctx);
-            case Cypher25Parser.RULE_defaultLanguageSpecification -> exitDefaultLanguageSpecification(
-                    (Cypher25Parser.DefaultLanguageSpecificationContext) ctx);
+            case Cypher25Parser.RULE_defaultLanguageSpecification ->
+                exitDefaultLanguageSpecification((Cypher25Parser.DefaultLanguageSpecificationContext) ctx);
             case Cypher25Parser.RULE_dropDatabase -> exitDropDatabase((Cypher25Parser.DropDatabaseContext) ctx);
             case Cypher25Parser.RULE_aliasAction -> exitAliasAction((Cypher25Parser.AliasActionContext) ctx);
             case Cypher25Parser.RULE_alterDatabase -> exitAlterDatabase((Cypher25Parser.AlterDatabaseContext) ctx);
-            case Cypher25Parser.RULE_alterDatabaseAccess -> exitAlterDatabaseAccess(
-                    (Cypher25Parser.AlterDatabaseAccessContext) ctx);
-            case Cypher25Parser.RULE_alterDatabaseTopology -> exitAlterDatabaseTopology(
-                    (Cypher25Parser.AlterDatabaseTopologyContext) ctx);
-            case Cypher25Parser.RULE_alterDatabaseOption -> exitAlterDatabaseOption(
-                    (Cypher25Parser.AlterDatabaseOptionContext) ctx);
+            case Cypher25Parser.RULE_alterDatabaseAccess ->
+                exitAlterDatabaseAccess((Cypher25Parser.AlterDatabaseAccessContext) ctx);
+            case Cypher25Parser.RULE_alterDatabaseTopology ->
+                exitAlterDatabaseTopology((Cypher25Parser.AlterDatabaseTopologyContext) ctx);
+            case Cypher25Parser.RULE_alterDatabaseOption ->
+                exitAlterDatabaseOption((Cypher25Parser.AlterDatabaseOptionContext) ctx);
             case Cypher25Parser.RULE_startDatabase -> exitStartDatabase((Cypher25Parser.StartDatabaseContext) ctx);
             case Cypher25Parser.RULE_stopDatabase -> exitStopDatabase((Cypher25Parser.StopDatabaseContext) ctx);
             case Cypher25Parser.RULE_waitClause -> exitWaitClause((Cypher25Parser.WaitClauseContext) ctx);
             case Cypher25Parser.RULE_secondsToken -> exitSecondsToken((Cypher25Parser.SecondsTokenContext) ctx);
             case Cypher25Parser.RULE_showDatabase -> exitShowDatabase((Cypher25Parser.ShowDatabaseContext) ctx);
             case Cypher25Parser.RULE_aliasName -> exitAliasName((Cypher25Parser.AliasNameContext) ctx);
-            case Cypher25Parser.RULE_aliasTargetName -> exitAliasTargetName(
-                    (Cypher25Parser.AliasTargetNameContext) ctx);
+            case Cypher25Parser.RULE_aliasTargetName ->
+                exitAliasTargetName((Cypher25Parser.AliasTargetNameContext) ctx);
             case Cypher25Parser.RULE_databaseName -> exitDatabaseName((Cypher25Parser.DatabaseNameContext) ctx);
             case Cypher25Parser.RULE_createAlias -> exitCreateAlias((Cypher25Parser.CreateAliasContext) ctx);
             case Cypher25Parser.RULE_dropAlias -> exitDropAlias((Cypher25Parser.DropAliasContext) ctx);
             case Cypher25Parser.RULE_alterAlias -> exitAlterAlias((Cypher25Parser.AlterAliasContext) ctx);
-            case Cypher25Parser.RULE_alterAliasTarget -> exitAlterAliasTarget(
-                    (Cypher25Parser.AlterAliasTargetContext) ctx);
+            case Cypher25Parser.RULE_alterAliasTarget ->
+                exitAlterAliasTarget((Cypher25Parser.AlterAliasTargetContext) ctx);
             case Cypher25Parser.RULE_alterAliasUser -> exitAlterAliasUser((Cypher25Parser.AlterAliasUserContext) ctx);
-            case Cypher25Parser.RULE_alterAliasPassword -> exitAlterAliasPassword(
-                    (Cypher25Parser.AlterAliasPasswordContext) ctx);
-            case Cypher25Parser.RULE_alterAliasDriver -> exitAlterAliasDriver(
-                    (Cypher25Parser.AlterAliasDriverContext) ctx);
-            case Cypher25Parser.RULE_alterAliasProperties -> exitAlterAliasProperties(
-                    (Cypher25Parser.AlterAliasPropertiesContext) ctx);
+            case Cypher25Parser.RULE_alterAliasPassword ->
+                exitAlterAliasPassword((Cypher25Parser.AlterAliasPasswordContext) ctx);
+            case Cypher25Parser.RULE_alterAliasDriver ->
+                exitAlterAliasDriver((Cypher25Parser.AlterAliasDriverContext) ctx);
+            case Cypher25Parser.RULE_alterAliasProperties ->
+                exitAlterAliasProperties((Cypher25Parser.AlterAliasPropertiesContext) ctx);
             case Cypher25Parser.RULE_showAliases -> exitShowAliases((Cypher25Parser.ShowAliasesContext) ctx);
-            case Cypher25Parser.RULE_symbolicNameOrStringParameter -> exitSymbolicNameOrStringParameter(
-                    (Cypher25Parser.SymbolicNameOrStringParameterContext) ctx);
-            case Cypher25Parser.RULE_commandNameExpression -> exitCommandNameExpression(
-                    (Cypher25Parser.CommandNameExpressionContext) ctx);
-            case Cypher25Parser.RULE_symbolicNameOrStringParameterList -> exitSymbolicNameOrStringParameterList(
-                    (Cypher25Parser.SymbolicNameOrStringParameterListContext) ctx);
-            case Cypher25Parser.RULE_symbolicAliasNameList -> exitSymbolicAliasNameList(
-                    (Cypher25Parser.SymbolicAliasNameListContext) ctx);
-            case Cypher25Parser.RULE_symbolicAliasNameOrParameter -> exitSymbolicAliasNameOrParameter(
-                    (Cypher25Parser.SymbolicAliasNameOrParameterContext) ctx);
-            case Cypher25Parser.RULE_symbolicAliasName -> exitSymbolicAliasName(
-                    (Cypher25Parser.SymbolicAliasNameContext) ctx);
-            case Cypher25Parser.RULE_stringListLiteral -> exitStringListLiteral(
-                    (Cypher25Parser.StringListLiteralContext) ctx);
+            case Cypher25Parser.RULE_symbolicNameOrStringParameter ->
+                exitSymbolicNameOrStringParameter((Cypher25Parser.SymbolicNameOrStringParameterContext) ctx);
+            case Cypher25Parser.RULE_commandNameExpression ->
+                exitCommandNameExpression((Cypher25Parser.CommandNameExpressionContext) ctx);
+            case Cypher25Parser.RULE_symbolicNameOrStringParameterList ->
+                exitSymbolicNameOrStringParameterList((Cypher25Parser.SymbolicNameOrStringParameterListContext) ctx);
+            case Cypher25Parser.RULE_symbolicAliasNameList ->
+                exitSymbolicAliasNameList((Cypher25Parser.SymbolicAliasNameListContext) ctx);
+            case Cypher25Parser.RULE_symbolicAliasNameOrParameter ->
+                exitSymbolicAliasNameOrParameter((Cypher25Parser.SymbolicAliasNameOrParameterContext) ctx);
+            case Cypher25Parser.RULE_symbolicAliasName ->
+                exitSymbolicAliasName((Cypher25Parser.SymbolicAliasNameContext) ctx);
+            case Cypher25Parser.RULE_stringListLiteral ->
+                exitStringListLiteral((Cypher25Parser.StringListLiteralContext) ctx);
             case Cypher25Parser.RULE_stringList -> exitStringList((Cypher25Parser.StringListContext) ctx);
             case Cypher25Parser.RULE_stringLiteral -> exitStringLiteral((Cypher25Parser.StringLiteralContext) ctx);
-            case Cypher25Parser.RULE_stringOrParameterExpression -> exitStringOrParameterExpression(
-                    (Cypher25Parser.StringOrParameterExpressionContext) ctx);
-            case Cypher25Parser.RULE_stringOrParameter -> exitStringOrParameter(
-                    (Cypher25Parser.StringOrParameterContext) ctx);
-            case Cypher25Parser.RULE_uIntOrIntParameter -> exitUIntOrIntParameter(
-                    (Cypher25Parser.UIntOrIntParameterContext) ctx);
+            case Cypher25Parser.RULE_stringOrParameterExpression ->
+                exitStringOrParameterExpression((Cypher25Parser.StringOrParameterExpressionContext) ctx);
+            case Cypher25Parser.RULE_stringOrParameter ->
+                exitStringOrParameter((Cypher25Parser.StringOrParameterContext) ctx);
+            case Cypher25Parser.RULE_uIntOrIntParameter ->
+                exitUIntOrIntParameter((Cypher25Parser.UIntOrIntParameterContext) ctx);
             case Cypher25Parser.RULE_mapOrParameter -> exitMapOrParameter((Cypher25Parser.MapOrParameterContext) ctx);
             case Cypher25Parser.RULE_map -> exitMap((Cypher25Parser.MapContext) ctx);
-            case Cypher25Parser.RULE_symbolicVariableNameString -> exitSymbolicVariableNameString(
-                    (Cypher25Parser.SymbolicVariableNameStringContext) ctx);
-            case Cypher25Parser.RULE_escapedSymbolicVariableNameString -> exitEscapedSymbolicVariableNameString(
-                    (Cypher25Parser.EscapedSymbolicVariableNameStringContext) ctx);
-            case Cypher25Parser.RULE_unescapedSymbolicVariableNameString -> exitUnescapedSymbolicVariableNameString(
-                    (Cypher25Parser.UnescapedSymbolicVariableNameStringContext) ctx);
-            case Cypher25Parser.RULE_symbolicNameString -> exitSymbolicNameString(
-                    (Cypher25Parser.SymbolicNameStringContext) ctx);
-            case Cypher25Parser.RULE_escapedSymbolicNameString -> exitEscapedSymbolicNameString(
-                    (Cypher25Parser.EscapedSymbolicNameStringContext) ctx);
-            case Cypher25Parser.RULE_unescapedSymbolicNameString -> exitUnescapedSymbolicNameString(
-                    (Cypher25Parser.UnescapedSymbolicNameStringContext) ctx);
-            case Cypher25Parser.RULE_unescapedSymbolicNameString_ -> exitUnescapedSymbolicNameString_(
-                    (Cypher25Parser.UnescapedSymbolicNameString_Context) ctx);
+            case Cypher25Parser.RULE_symbolicVariableNameString ->
+                exitSymbolicVariableNameString((Cypher25Parser.SymbolicVariableNameStringContext) ctx);
+            case Cypher25Parser.RULE_escapedSymbolicVariableNameString ->
+                exitEscapedSymbolicVariableNameString((Cypher25Parser.EscapedSymbolicVariableNameStringContext) ctx);
+            case Cypher25Parser.RULE_unescapedSymbolicVariableNameString ->
+                exitUnescapedSymbolicVariableNameString(
+                        (Cypher25Parser.UnescapedSymbolicVariableNameStringContext) ctx);
+            case Cypher25Parser.RULE_symbolicNameString ->
+                exitSymbolicNameString((Cypher25Parser.SymbolicNameStringContext) ctx);
+            case Cypher25Parser.RULE_escapedSymbolicNameString ->
+                exitEscapedSymbolicNameString((Cypher25Parser.EscapedSymbolicNameStringContext) ctx);
+            case Cypher25Parser.RULE_unescapedSymbolicNameString ->
+                exitUnescapedSymbolicNameString((Cypher25Parser.UnescapedSymbolicNameStringContext) ctx);
+            case Cypher25Parser.RULE_unescapedSymbolicNameString_ ->
+                exitUnescapedSymbolicNameString_((Cypher25Parser.UnescapedSymbolicNameString_Context) ctx);
             case Cypher25Parser.RULE_endOfFile -> exitEndOfFile((Cypher25Parser.EndOfFileContext) ctx);
             default -> throw new IllegalStateException("Unknown rule index " + ctx.getRuleIndex());
         }

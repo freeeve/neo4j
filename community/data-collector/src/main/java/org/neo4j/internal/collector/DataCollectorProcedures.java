@@ -75,14 +75,16 @@ public class DataCollectorProcedures {
         return switch (upperSection) {
             case Sections.GRAPH_COUNTS -> GraphCountsSection.retrieve(dataCollector.getKernel(), Anonymizer.PLAIN_TEXT);
             case Sections.TOKENS -> TokensSection.retrieve(dataCollector.getKernel());
-            case Sections.META -> MetaSection.retrieve(
-                    null,
-                    dataCollector.getKernel(),
-                    dataCollector.getQueryCollector().numSilentQueryDrops());
-            case Sections.QUERIES -> QueriesSection.retrieve(
-                    dataCollector.getQueryCollector().getData(),
-                    new PlainText((ValueMapper.JavaMapper) valueMapper),
-                    RetrieveConfig.of(config).maxInvocations);
+            case Sections.META ->
+                MetaSection.retrieve(
+                        null,
+                        dataCollector.getKernel(),
+                        dataCollector.getQueryCollector().numSilentQueryDrops());
+            case Sections.QUERIES ->
+                QueriesSection.retrieve(
+                        dataCollector.getQueryCollector().getData(),
+                        new PlainText((ValueMapper.JavaMapper) valueMapper),
+                        RetrieveConfig.of(config).maxInvocations);
             default -> throw Sections.unknownSectionException(section);
         };
     }

@@ -181,22 +181,24 @@ public class SchemaMigrator {
                                         yield ConstraintDescriptorFactory.uniqueForSchema(
                                                 schema, indexBacked.indexType());
                                     }
-                                    case EXISTS -> ConstraintDescriptorFactory.existsForSchema(
-                                            schema,
-                                            constraintDescriptor.graphTypeDependence()
-                                                    == GraphTypeDependence.DEPENDENT);
+                                    case EXISTS ->
+                                        ConstraintDescriptorFactory.existsForSchema(
+                                                schema,
+                                                constraintDescriptor.graphTypeDependence()
+                                                        == GraphTypeDependence.DEPENDENT);
                                     case UNIQUE_EXISTS -> {
                                         IndexBackedConstraintDescriptor indexBacked =
                                                 constraintDescriptor.asIndexBackedConstraint();
                                         yield ConstraintDescriptorFactory.keyForSchema(schema, indexBacked.indexType());
                                     }
-                                    case PROPERTY_TYPE -> ConstraintDescriptorFactory.typeForSchema(
-                                            schema,
-                                            constraintDescriptor
-                                                    .asPropertyTypeConstraint()
-                                                    .propertyType(),
-                                            constraintDescriptor.graphTypeDependence()
-                                                    == GraphTypeDependence.DEPENDENT);
+                                    case PROPERTY_TYPE ->
+                                        ConstraintDescriptorFactory.typeForSchema(
+                                                schema,
+                                                constraintDescriptor
+                                                        .asPropertyTypeConstraint()
+                                                        .propertyType(),
+                                                constraintDescriptor.graphTypeDependence()
+                                                        == GraphTypeDependence.DEPENDENT);
                                     case RELATIONSHIP_ENDPOINT_LABEL -> {
                                         var relationshipEndpointLabelSchemaDescriptor =
                                                 constraintDescriptor.asRelationshipEndpointLabelConstraint();

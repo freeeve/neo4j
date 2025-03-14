@@ -238,8 +238,8 @@ public class SchemaStore44Reader implements AutoCloseable {
         return switch (schemaRuleType) {
             case "INDEX" -> buildIndexRule(ruleId, props);
             case "CONSTRAINT" -> buildConstraintRule(ruleId, props);
-            default -> throw new MalformedSchemaRuleException(
-                    "Can not create a schema rule of type: " + schemaRuleType);
+            default ->
+                throw new MalformedSchemaRuleException("Can not create a schema rule of type: " + schemaRuleType);
         };
     }
 

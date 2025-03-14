@@ -188,9 +188,10 @@ public enum PrivilegeAction {
         public boolean satisfies(PrivilegeAction action) {
             return switch (action) {
                 case CREATE_DATABASE, DROP_DATABASE -> true;
-                default -> ALTER_DATABASE.satisfies(action)
-                        || COMPOSITE_DATABASE_MANAGEMENT.satisfies(action)
-                        || this == action;
+                default ->
+                    ALTER_DATABASE.satisfies(action)
+                            || COMPOSITE_DATABASE_MANAGEMENT.satisfies(action)
+                            || this == action;
             };
         }
     },

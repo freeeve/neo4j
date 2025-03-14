@@ -225,16 +225,17 @@ public class AtomicSchedulingConnection extends AbstractConnection {
                 case SCHEDULED -> this.schedule(false);
 
                 case CLOSING ->
-                // if we did not successfully return the connection to its idle state, and it has been marked for
-                // termination, we'll make sure to terminate it now as the original caller did not complete this
-                // step during our execution phase
-                this.doClose();
+                    // if we did not successfully return the connection to its idle state, and it has been marked for
+                    // termination, we'll make sure to terminate it now as the original caller did not complete this
+                    // step during our execution phase
+                    this.doClose();
 
                 case CLOSED ->
-                // if the connection has been closed during this execution cycle, we'll simply log this fact for
-                // debugging purposes - there is nothing else to do here as this object is effectively considered dead
-                // at this point and has already been removed from the connection registry
-                log.debug("[%s] Connection has already been terminated via its worker thread", this.id);
+                    // if the connection has been closed during this execution cycle, we'll simply log this fact for
+                    // debugging purposes - there is nothing else to do here as this object is effectively considered
+                    // dead
+                    // at this point and has already been removed from the connection registry
+                    log.debug("[%s] Connection has already been terminated via its worker thread", this.id);
             }
         }
     }

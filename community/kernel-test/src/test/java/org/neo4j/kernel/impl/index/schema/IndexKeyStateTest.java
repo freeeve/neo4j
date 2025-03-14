@@ -769,27 +769,27 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
             case NUMBER -> getNumberSize(value);
             case BOOLEAN -> 2;
             case DATE ->
-            // typeName: Date
-            9;
+                // typeName: Date
+                9;
             case ZONED_TIME ->
-            // typeName: Time
-            13;
+                // typeName: Time
+                13;
             case LOCAL_TIME ->
-            // typeName: LocalTime
-            9;
+                // typeName: LocalTime
+                9;
             case ZONED_DATE_TIME ->
-            // typeName: DateTime
-            17;
+                // typeName: DateTime
+                17;
             case LOCAL_DATE_TIME ->
-            // typeName: LocalDateTime
-            13;
+                // typeName: LocalDateTime
+                13;
             case DURATION ->
-            // typeName: Duration or Period
-            29;
+                // typeName: Duration or Period
+                29;
             case GEOMETRY -> getGeometrySize(value);
             case TEXT -> getStringSize(value);
-            default -> throw new RuntimeException(
-                    "Did not expect this type to be tested in this test. Value was " + value);
+            default ->
+                throw new RuntimeException("Did not expect this type to be tested in this test. Value was " + value);
         };
         assertKeySize(expectedSizeOfData, actualSizeOfData, typeName);
     }
@@ -867,8 +867,9 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
                 assertTextArraySize(value, actualSizeOfData, normalArrayOverhead, typeName);
                 return;
             }
-            default -> throw new RuntimeException("Did not expect this type to be tested in this test. Value was "
-                    + value + " is value group " + value.valueGroup());
+            default ->
+                throw new RuntimeException("Did not expect this type to be tested in this test. Value was " + value
+                        + " is value group " + value.valueGroup());
         }
         int expectedSizeOfData = arrayOverhead + arrayLength * arrayElementSize;
         assertKeySize(expectedSizeOfData, actualSizeOfData, typeName);

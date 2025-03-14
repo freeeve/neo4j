@@ -1145,16 +1145,23 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
                 assert pos > 0 : "attempt to replace key left to the leftmost key";
                 structurePropagation.hasLeftKeyReplace = false;
                 switch (structurePropagation.keyReplaceStrategy) {
-                    case REPLACE -> overwriteKeyInternal(
-                            cursor,
-                            structurePropagation,
-                            structurePropagation.leftKey,
-                            pos - 1,
-                            stableGeneration,
-                            unstableGeneration,
-                            cursorContext);
-                    case BUBBLE -> replaceKeyByBubbleRightmostFromSubtree(
-                            cursor, structurePropagation, pos - 1, stableGeneration, unstableGeneration, cursorContext);
+                    case REPLACE ->
+                        overwriteKeyInternal(
+                                cursor,
+                                structurePropagation,
+                                structurePropagation.leftKey,
+                                pos - 1,
+                                stableGeneration,
+                                unstableGeneration,
+                                cursorContext);
+                    case BUBBLE ->
+                        replaceKeyByBubbleRightmostFromSubtree(
+                                cursor,
+                                structurePropagation,
+                                pos - 1,
+                                stableGeneration,
+                                unstableGeneration,
+                                cursorContext);
                 }
             }
 
@@ -1180,8 +1187,9 @@ class InternalTreeLogic<KEY, VALUE> implements InternalAccess<KEY, VALUE> {
                             structurePropagation.hasRightKeyReplace = true;
                         }
                     }
-                    case BUBBLE -> replaceKeyByBubbleRightmostFromSubtree(
-                            cursor, structurePropagation, pos, stableGeneration, unstableGeneration, cursorContext);
+                    case BUBBLE ->
+                        replaceKeyByBubbleRightmostFromSubtree(
+                                cursor, structurePropagation, pos, stableGeneration, unstableGeneration, cursorContext);
                 }
             }
 

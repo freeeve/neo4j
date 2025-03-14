@@ -306,8 +306,8 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
                 switch (state) {
                     case ONLINE, FAILED -> proxy.start();
                     case POPULATING ->
-                    // Remember for rebuilding right below in this method
-                    rebuildingDescriptors.put(indexId, descriptor);
+                        // Remember for rebuilding right below in this method
+                        rebuildingDescriptors.put(indexId, descriptor);
                     default -> throw new IllegalStateException("Unknown state: " + state);
                 }
             });
@@ -705,13 +705,14 @@ public class IndexingService extends LifecycleAdapter implements IndexUpdateList
             indexMap.putIndexProxy(
                     switch (state) {
                         case ONLINE -> indexProxyCreator.createOnlineIndexProxy(descriptor);
-                        case POPULATING -> indexProxyCreator.createPopulatingIndexProxy(
-                                descriptor,
-                                IndexMonitor.NO_MONITOR,
-                                newIndexPopulationJob(
-                                        descriptor.schema().entityType(), SYSTEM, CursorContext.NULL_CONTEXT));
-                        case FAILED -> indexProxyCreator.createFailedIndexProxy(
-                                descriptor, failure("test forced failure"));
+                        case POPULATING ->
+                            indexProxyCreator.createPopulatingIndexProxy(
+                                    descriptor,
+                                    IndexMonitor.NO_MONITOR,
+                                    newIndexPopulationJob(
+                                            descriptor.schema().entityType(), SYSTEM, CursorContext.NULL_CONTEXT));
+                        case FAILED ->
+                            indexProxyCreator.createFailedIndexProxy(descriptor, failure("test forced failure"));
                     });
             return indexMap;
         });

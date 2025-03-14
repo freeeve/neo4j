@@ -112,8 +112,8 @@ public class SchemaRuleMapifier {
         return switch (schemaRuleType) {
             case "INDEX" -> buildIndexRule(ruleId, map);
             case "CONSTRAINT" -> buildConstraintRule(ruleId, map);
-            default -> throw new MalformedSchemaRuleException(
-                    "Can not create a schema rule of type: " + schemaRuleType);
+            default ->
+                throw new MalformedSchemaRuleException("Can not create a schema rule of type: " + schemaRuleType);
         };
     }
 
@@ -363,8 +363,9 @@ public class SchemaRuleMapifier {
                 yield constraint;
             }
 
-            case EXISTS -> ConstraintDescriptorFactory.existsForSchema(
-                    schema, graphTypeDependence == GraphTypeDependence.DEPENDENT);
+            case EXISTS ->
+                ConstraintDescriptorFactory.existsForSchema(
+                        schema, graphTypeDependence == GraphTypeDependence.DEPENDENT);
 
             case UNIQUE_EXISTS -> {
                 var constraint = ConstraintDescriptorFactory.keyForSchema(
@@ -376,18 +377,21 @@ public class SchemaRuleMapifier {
                 yield constraint;
             }
 
-            case PROPERTY_TYPE -> ConstraintDescriptorFactory.typeForSchema(
-                    schema,
-                    getAllowedTypes(getStringArray(PROP_CONSTRAINT_ALLOWED_TYPES, props)),
-                    graphTypeDependence == GraphTypeDependence.DEPENDENT);
+            case PROPERTY_TYPE ->
+                ConstraintDescriptorFactory.typeForSchema(
+                        schema,
+                        getAllowedTypes(getStringArray(PROP_CONSTRAINT_ALLOWED_TYPES, props)),
+                        graphTypeDependence == GraphTypeDependence.DEPENDENT);
 
-            case RELATIONSHIP_ENDPOINT_LABEL -> ConstraintDescriptorFactory.relationshipEndpointLabelForSchema(
-                    schema.asRelationshipEndpointLabelDescriptor(),
-                    (int) getLong(PROP_SCHEMA_ENDPOINT_LABEL_ID, props),
-                    getEndpointType(props));
-            case NODE_LABEL_EXISTENCE -> ConstraintDescriptorFactory.nodeLabelExistenceForSchema(
-                    schema.asNodeLabelExistenceSchemaDescriptor(),
-                    (int) getLong(PROP_SCHEMA_NODE_LABEL_EXISTENCE_REQUIRED_LABEL_ID, props));
+            case RELATIONSHIP_ENDPOINT_LABEL ->
+                ConstraintDescriptorFactory.relationshipEndpointLabelForSchema(
+                        schema.asRelationshipEndpointLabelDescriptor(),
+                        (int) getLong(PROP_SCHEMA_ENDPOINT_LABEL_ID, props),
+                        getEndpointType(props));
+            case NODE_LABEL_EXISTENCE ->
+                ConstraintDescriptorFactory.nodeLabelExistenceForSchema(
+                        schema.asNodeLabelExistenceSchemaDescriptor(),
+                        (int) getLong(PROP_SCHEMA_NODE_LABEL_EXISTENCE_REQUIRED_LABEL_ID, props));
         };
     }
 

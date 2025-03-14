@@ -55,12 +55,14 @@ class TrigramIndexPopulatingUpdater implements IndexUpdater {
             validator.validate(entityId, value);
             final var updateMode = valueUpdate.updateMode();
             switch (updateMode) {
-                case ADDED -> writer.updateDocument(
-                        TrigramDocumentStructure.newTermForChangeOrRemove(entityId),
-                        TrigramDocumentStructure.createLuceneDocument(entityId, value));
-                case CHANGED -> writer.updateOrDeleteDocument(
-                        TrigramDocumentStructure.newTermForChangeOrRemove(entityId),
-                        TrigramDocumentStructure.createLuceneDocument(entityId, value));
+                case ADDED ->
+                    writer.updateDocument(
+                            TrigramDocumentStructure.newTermForChangeOrRemove(entityId),
+                            TrigramDocumentStructure.createLuceneDocument(entityId, value));
+                case CHANGED ->
+                    writer.updateOrDeleteDocument(
+                            TrigramDocumentStructure.newTermForChangeOrRemove(entityId),
+                            TrigramDocumentStructure.createLuceneDocument(entityId, value));
                 case REMOVED -> writer.deleteDocuments(TrigramDocumentStructure.newTermForChangeOrRemove(entityId));
             }
         } catch (IOException e) {

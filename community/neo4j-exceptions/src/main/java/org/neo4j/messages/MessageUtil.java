@@ -152,8 +152,8 @@ public class MessageUtil {
         var predicatesString =
                 switch (foundPredicates) {
                     case NONE ->
-                    // this should be caught semantic checking but let's provide a meaningful error message anyways
-                    "no matching predicate was found.";
+                        // this should be caught semantic checking but let's provide a meaningful error message anyways
+                        "no matching predicate was found.";
                     case SINGULAR -> "the predicate found cannot be used by a text index.";
                     case PLURAL -> "none of the predicates found can be used by a text index.";
                 };

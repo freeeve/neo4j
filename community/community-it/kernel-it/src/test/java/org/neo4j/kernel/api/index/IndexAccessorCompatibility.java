@@ -115,10 +115,11 @@ abstract class IndexAccessorCompatibility extends PropertyIndexProviderCompatibi
     ValueType[] randomSetOfSupportedAndSortableTypes() {
         ValueType[] types = RandomValues.excluding(testSuite.supportedValueTypes(), type -> switch (type) {
             case STRING, STRING_ARRAY -> true; // exclude strings outside the Basic Multilingual Plane
-            default -> switch (type.valueGroup) {
-                case GEOMETRY, GEOMETRY_ARRAY, DURATION, DURATION_ARRAY -> true; // exclude spacial types
-                default -> false;
-            };
+            default ->
+                switch (type.valueGroup) {
+                    case GEOMETRY, GEOMETRY_ARRAY, DURATION, DURATION_ARRAY -> true; // exclude spacial types
+                    default -> false;
+                };
         });
 
         return random.randomValues().selection(types, 2, types.length, false);

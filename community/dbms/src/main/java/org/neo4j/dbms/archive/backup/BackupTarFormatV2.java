@@ -69,8 +69,9 @@ public class BackupTarFormatV2 implements BackupCompressionFormat {
         var metadataVersion = inputStream.read();
         return switch (metadataVersion) {
             case BackupMetadataV2.VERSION -> BackupMetadataV2.readFromStream(inputStream);
-            default -> throw new IOException(
-                    String.format("Unsupported metadata version %d found in backup", metadataVersion));
+            default ->
+                throw new IOException(
+                        String.format("Unsupported metadata version %d found in backup", metadataVersion));
         };
     }
 }

@@ -154,57 +154,70 @@ public abstract class RandomSchemaBase implements Supplier<SchemaRule> {
         long ruleId = nextRuleIdForConstraint();
         int choice = rng.nextInt(12);
         return switch (choice) {
-            case 0 -> ConstraintDescriptorFactory.existsForSchema(nextRelationshipSchema(), rng.nextBoolean())
-                    .withId(ruleId)
-                    .withName(nextName());
-            case 1 -> ConstraintDescriptorFactory.existsForSchema(nextNodeSchema(), rng.nextBoolean())
-                    .withId(ruleId)
-                    .withName(nextName());
-            case 2 -> ConstraintDescriptorFactory.uniqueForSchema(nextNodeSchema())
-                    .withId(ruleId)
-                    .withName(nextName());
-            case 3 -> ConstraintDescriptorFactory.uniqueForSchema(nextNodeSchema())
-                    .withId(ruleId)
-                    .withOwnedIndexId(existingIndexId())
-                    .withName(nextName());
-            case 4 -> ConstraintDescriptorFactory.keyForSchema(nextNodeSchema())
-                    .withId(ruleId)
-                    .withName(nextName());
-            case 5 -> ConstraintDescriptorFactory.keyForSchema(nextNodeSchema())
-                    .withId(ruleId)
-                    .withOwnedIndexId(existingIndexId())
-                    .withName(nextName());
-            case 6 -> ConstraintDescriptorFactory.keyForSchema(nextRelationshipSchema())
-                    .withId(ruleId)
-                    .withName(nextName());
-            case 7 -> ConstraintDescriptorFactory.keyForSchema(nextRelationshipSchema())
-                    .withId(ruleId)
-                    .withOwnedIndexId(existingIndexId())
-                    .withName(nextName());
-            case 8 -> ConstraintDescriptorFactory.uniqueForSchema(nextRelationshipSchema())
-                    .withId(ruleId)
-                    .withName(nextName());
-            case 9 -> ConstraintDescriptorFactory.uniqueForSchema(nextRelationshipSchema())
-                    .withId(ruleId)
-                    .withOwnedIndexId(existingIndexId())
-                    .withName(nextName());
-            case 10 -> ConstraintDescriptorFactory.typeForSchema(
-                            nextRelationshipSchema(), randomAllowedTypes(), rng.nextBoolean())
-                    .withId(ruleId)
-                    .withName(nextName());
-            case 11 -> ConstraintDescriptorFactory.typeForSchema(
-                            nextNodeSchema(), randomAllowedTypes(), rng.nextBoolean())
-                    .withId(ruleId)
-                    .withName(nextName());
-            case 12 -> ConstraintDescriptorFactory.relationshipEndpointLabelForRelType(
-                            nextRelationshipTypeId(),
-                            nextLabelId(),
-                            rng.nextBoolean() ? EndpointType.START : EndpointType.END)
-                    .withId(ruleId)
-                    .withName(nextName());
-            case 13 -> ConstraintDescriptorFactory.nodeLabelExistenceForLabel(nextLabelId(), nextLabelId())
-                    .withId(ruleId)
-                    .withName(nextName());
+            case 0 ->
+                ConstraintDescriptorFactory.existsForSchema(nextRelationshipSchema(), rng.nextBoolean())
+                        .withId(ruleId)
+                        .withName(nextName());
+            case 1 ->
+                ConstraintDescriptorFactory.existsForSchema(nextNodeSchema(), rng.nextBoolean())
+                        .withId(ruleId)
+                        .withName(nextName());
+            case 2 ->
+                ConstraintDescriptorFactory.uniqueForSchema(nextNodeSchema())
+                        .withId(ruleId)
+                        .withName(nextName());
+            case 3 ->
+                ConstraintDescriptorFactory.uniqueForSchema(nextNodeSchema())
+                        .withId(ruleId)
+                        .withOwnedIndexId(existingIndexId())
+                        .withName(nextName());
+            case 4 ->
+                ConstraintDescriptorFactory.keyForSchema(nextNodeSchema())
+                        .withId(ruleId)
+                        .withName(nextName());
+            case 5 ->
+                ConstraintDescriptorFactory.keyForSchema(nextNodeSchema())
+                        .withId(ruleId)
+                        .withOwnedIndexId(existingIndexId())
+                        .withName(nextName());
+            case 6 ->
+                ConstraintDescriptorFactory.keyForSchema(nextRelationshipSchema())
+                        .withId(ruleId)
+                        .withName(nextName());
+            case 7 ->
+                ConstraintDescriptorFactory.keyForSchema(nextRelationshipSchema())
+                        .withId(ruleId)
+                        .withOwnedIndexId(existingIndexId())
+                        .withName(nextName());
+            case 8 ->
+                ConstraintDescriptorFactory.uniqueForSchema(nextRelationshipSchema())
+                        .withId(ruleId)
+                        .withName(nextName());
+            case 9 ->
+                ConstraintDescriptorFactory.uniqueForSchema(nextRelationshipSchema())
+                        .withId(ruleId)
+                        .withOwnedIndexId(existingIndexId())
+                        .withName(nextName());
+            case 10 ->
+                ConstraintDescriptorFactory.typeForSchema(
+                                nextRelationshipSchema(), randomAllowedTypes(), rng.nextBoolean())
+                        .withId(ruleId)
+                        .withName(nextName());
+            case 11 ->
+                ConstraintDescriptorFactory.typeForSchema(nextNodeSchema(), randomAllowedTypes(), rng.nextBoolean())
+                        .withId(ruleId)
+                        .withName(nextName());
+            case 12 ->
+                ConstraintDescriptorFactory.relationshipEndpointLabelForRelType(
+                                nextRelationshipTypeId(),
+                                nextLabelId(),
+                                rng.nextBoolean() ? EndpointType.START : EndpointType.END)
+                        .withId(ruleId)
+                        .withName(nextName());
+            case 13 ->
+                ConstraintDescriptorFactory.nodeLabelExistenceForLabel(nextLabelId(), nextLabelId())
+                        .withId(ruleId)
+                        .withName(nextName());
             default -> throw new RuntimeException("Bad constraint choice: " + choice);
         };
     }

@@ -132,16 +132,16 @@ class LiteralInterpreterBuilder implements ParseTreeListener {
             case Cypher5Parser.RULE_listLiteral -> exitListLiteral((Cypher5Parser.ListLiteralContext) ctx);
             case Cypher5Parser.RULE_map -> exitMap((Cypher5Parser.MapContext) ctx);
             case Cypher5Parser.RULE_propertyKeyName -> exitPropertyKeyName((Cypher5Parser.PropertyKeyNameContext) ctx);
-            case Cypher5Parser.RULE_symbolicNameString -> exitSymbolicNameString(
-                    (Cypher5Parser.SymbolicNameStringContext) ctx);
-            case Cypher5Parser.RULE_escapedSymbolicNameString -> exitEscapedSymbolicNameString(
-                    (Cypher5Parser.EscapedSymbolicNameStringContext) ctx);
-            case Cypher5Parser.RULE_unescapedSymbolicNameString -> exitUnescapedSymbolicNameString(
-                    (Cypher5Parser.UnescapedSymbolicNameStringContext) ctx);
-            case Cypher5Parser.RULE_functionInvocation -> exitFunctionInvocation(
-                    (Cypher5Parser.FunctionInvocationContext) ctx);
-            case Cypher5Parser.RULE_functionArgument -> exitFunctionArgument(
-                    (Cypher5Parser.FunctionArgumentContext) ctx);
+            case Cypher5Parser.RULE_symbolicNameString ->
+                exitSymbolicNameString((Cypher5Parser.SymbolicNameStringContext) ctx);
+            case Cypher5Parser.RULE_escapedSymbolicNameString ->
+                exitEscapedSymbolicNameString((Cypher5Parser.EscapedSymbolicNameStringContext) ctx);
+            case Cypher5Parser.RULE_unescapedSymbolicNameString ->
+                exitUnescapedSymbolicNameString((Cypher5Parser.UnescapedSymbolicNameStringContext) ctx);
+            case Cypher5Parser.RULE_functionInvocation ->
+                exitFunctionInvocation((Cypher5Parser.FunctionInvocationContext) ctx);
+            case Cypher5Parser.RULE_functionArgument ->
+                exitFunctionArgument((Cypher5Parser.FunctionArgumentContext) ctx);
             case Cypher5Parser.RULE_functionName -> exitFunctionName((Cypher5Parser.FunctionNameContext) ctx);
             case Cypher5Parser.RULE_expression -> exitDefault((AstRuleCtx) ctx);
             case Cypher5Parser.RULE_expression1 -> exitExpression1((Cypher5Parser.Expression1Context) ctx);
@@ -156,8 +156,8 @@ class LiteralInterpreterBuilder implements ParseTreeListener {
             case Cypher5Parser.RULE_expression10 -> exitDefault((AstRuleCtx) ctx);
             case Cypher5Parser.RULE_expression11 -> exitDefault((AstRuleCtx) ctx);
             case Cypher5Parser.RULE_namespace -> exitNameSpace((Cypher5Parser.NamespaceContext) ctx);
-            case Cypher5Parser.RULE_unescapedLabelSymbolicNameString_ -> exitUnescapedLabelSymbolicNameString_(
-                    (Cypher5Parser.UnescapedLabelSymbolicNameString_Context) ctx);
+            case Cypher5Parser.RULE_unescapedLabelSymbolicNameString_ ->
+                exitUnescapedLabelSymbolicNameString_((Cypher5Parser.UnescapedLabelSymbolicNameString_Context) ctx);
 
             default -> exitDefault((AstRuleCtx) ctx);
         }

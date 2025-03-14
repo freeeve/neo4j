@@ -34,13 +34,14 @@ public class TraceProviderFactory {
         return switch (tracingLevel) {
             case DISABLED -> () -> TransactionInitializationTrace.NONE;
             case ALL -> TransactionInitializationTrace::new;
-            case SAMPLE -> () -> {
-                if (ThreadLocalRandom.current().nextInt(1, 101) <= config.get(transaction_sampling_percentage)) {
-                    return new TransactionInitializationTrace();
-                } else {
-                    return TransactionInitializationTrace.NONE;
-                }
-            };
+            case SAMPLE ->
+                () -> {
+                    if (ThreadLocalRandom.current().nextInt(1, 101) <= config.get(transaction_sampling_percentage)) {
+                        return new TransactionInitializationTrace();
+                    } else {
+                        return TransactionInitializationTrace.NONE;
+                    }
+                };
         };
     }
 }

@@ -652,10 +652,11 @@ public final class UTF8StringValue extends StringValue {
         return switch (bytesNeeded) {
             case 2 -> (currentByte << 4) | (bytes[i + 1] & HIGH_BIT_MASK);
             case 3 -> (currentByte << 9) | ((bytes[i + 1] & HIGH_BIT_MASK) << 6) | (bytes[i + 2] & HIGH_BIT_MASK);
-            case 4 -> (currentByte << 14)
-                    | ((bytes[i + 1] & HIGH_BIT_MASK) << 12)
-                    | ((bytes[i + 2] & HIGH_BIT_MASK) << 6)
-                    | (bytes[i + 3] & HIGH_BIT_MASK);
+            case 4 ->
+                (currentByte << 14)
+                        | ((bytes[i + 1] & HIGH_BIT_MASK) << 12)
+                        | ((bytes[i + 2] & HIGH_BIT_MASK) << 6)
+                        | (bytes[i + 3] & HIGH_BIT_MASK);
             default -> throw new IllegalArgumentException("Malformed UTF8 value");
         };
     }

@@ -144,19 +144,20 @@ public class AuraClient {
             int responseCode = connection.getResponseCode();
 
             return switch (responseCode) {
-                    // fallthrough
+                // fallthrough
                 case HTTP_NOT_FOUND, HTTP_MOVED_PERM -> throw updatePluginErrorResponse(connection);
-                case HTTP_UNAUTHORIZED -> throw errorResponse(
-                        verbose, connection, "The given authorization token is invalid or has expired");
+                case HTTP_UNAUTHORIZED ->
+                    throw errorResponse(verbose, connection, "The given authorization token is invalid or has expired");
                 case HTTP_UNPROCESSABLE_ENTITY -> throw validationFailureErrorResponse(connection, fullSize);
-                case HTTP_GATEWAY_TIMEOUT, HTTP_BAD_GATEWAY, HTTP_UNAVAILABLE -> throw new RetryableHttpException(
-                        commandResponseHandler.unexpectedResponse(verbose, connection, "Initiating upload target"));
+                case HTTP_GATEWAY_TIMEOUT, HTTP_BAD_GATEWAY, HTTP_UNAVAILABLE ->
+                    throw new RetryableHttpException(
+                            commandResponseHandler.unexpectedResponse(verbose, connection, "Initiating upload target"));
                 case HTTP_ACCEPTED ->
-                // the import request was accepted, and the server has not seen this dump file, meaning the import
-                // request is a new operation.
-                extractSignedURIFromResponse(connection);
-                default -> throw commandResponseHandler.unexpectedResponse(
-                        verbose, connection, "Initiating upload target");
+                    // the import request was accepted, and the server has not seen this dump file, meaning the import
+                    // request is a new operation.
+                    extractSignedURIFromResponse(connection);
+                default ->
+                    throw commandResponseHandler.unexpectedResponse(verbose, connection, "Initiating upload target");
             };
         }
     }
@@ -178,22 +179,25 @@ public class AuraClient {
             connection.setRequestProperty("Confirmed", String.valueOf(consentConfirmed));
             int responseCode = connection.getResponseCode();
             switch (responseCode) {
-                case HTTP_NOT_FOUND -> throw errorResponse(
-                        verbose,
-                        connection,
-                        "We encountered a problem while contacting your Neo4j Aura instance, "
-                                + "please check your Bolt URI");
+                case HTTP_NOT_FOUND ->
+                    throw errorResponse(
+                            verbose,
+                            connection,
+                            "We encountered a problem while contacting your Neo4j Aura instance, "
+                                    + "please check your Bolt URI");
                 case HTTP_MOVED_PERM -> throw updatePluginErrorResponse(connection);
-                case HTTP_UNAUTHORIZED -> throw errorResponse(
-                        verbose, connection, "Invalid username/password credentials");
-                case HTTP_FORBIDDEN -> throw errorResponse(
-                        verbose,
-                        connection,
-                        "The credentials provided do not give administrative access to the target database");
-                case HTTP_CONFLICT -> throw errorResponse(
-                        verbose, connection, "No consent to overwrite database. Aborting");
-                case HTTP_GATEWAY_TIMEOUT, HTTP_BAD_GATEWAY, HTTP_UNAVAILABLE -> throw new RetryableHttpException(
-                        commandResponseHandler.unexpectedResponse(verbose, connection, "Authorization"));
+                case HTTP_UNAUTHORIZED ->
+                    throw errorResponse(verbose, connection, "Invalid username/password credentials");
+                case HTTP_FORBIDDEN ->
+                    throw errorResponse(
+                            verbose,
+                            connection,
+                            "The credentials provided do not give administrative access to the target database");
+                case HTTP_CONFLICT ->
+                    throw errorResponse(verbose, connection, "No consent to overwrite database. Aborting");
+                case HTTP_GATEWAY_TIMEOUT, HTTP_BAD_GATEWAY, HTTP_UNAVAILABLE ->
+                    throw new RetryableHttpException(
+                            commandResponseHandler.unexpectedResponse(verbose, connection, "Authorization"));
                 case HTTP_OK -> {
                     try (InputStream responseData = connection.getInputStream()) {
                         String json = new String(toByteArray(responseData), UTF_8);
@@ -264,8 +268,9 @@ public class AuraClient {
             switch (responseCode) {
                 case HTTP_UNPROCESSABLE_ENTITY -> throw validationFailureErrorResponse(connection, size);
                 case HTTP_OK -> {}
-                case HTTP_GATEWAY_TIMEOUT, HTTP_BAD_GATEWAY, HTTP_UNAVAILABLE -> throw new RetryableHttpException(
-                        commandResponseHandler.unexpectedResponse(verbose, connection, "Size check"));
+                case HTTP_GATEWAY_TIMEOUT, HTTP_BAD_GATEWAY, HTTP_UNAVAILABLE ->
+                    throw new RetryableHttpException(
+                            commandResponseHandler.unexpectedResponse(verbose, connection, "Size check"));
                 default -> throw commandResponseHandler.unexpectedResponse(verbose, connection, "Size check");
             }
         }
@@ -351,10 +356,11 @@ public class AuraClient {
                 int loadProgressEstimation = (int) Math.min(98, (elapsed * 98) / importTimeEstimateMillis);
                 return 1 + loadProgressEstimation;
             }
-            default -> throw new CommandFailedException(String.format(
-                    "We're sorry, something has failed during the loading of your database. "
-                            + "Please try again and if this problem persists, please open up a support case. Database status: %s",
-                    databaseStatus));
+            default ->
+                throw new CommandFailedException(String.format(
+                        "We're sorry, something has failed during the loading of your database. "
+                                + "Please try again and if this problem persists, please open up a support case. Database status: %s",
+                        databaseStatus));
         }
     }
 
@@ -367,7 +373,7 @@ public class AuraClient {
 
             int responseCode = connection.getResponseCode();
             switch (responseCode) {
-                    // fallthrough
+                // fallthrough
                 case HTTP_NOT_FOUND, HTTP_MOVED_PERM -> throw updatePluginErrorResponse(connection);
                 case HTTP_OK -> {
                     try (InputStream responseData = connection.getInputStream()) {
@@ -381,8 +387,9 @@ public class AuraClient {
                     throw new RetryableHttpException(commandResponseHandler.unexpectedResponse(
                             verbose, connection, "Trigger import/restore after successful upload"));
                 }
-                default -> throw commandResponseHandler.unexpectedResponse(
-                        verbose, connection, "Trigger import/restore after successful upload");
+                default ->
+                    throw commandResponseHandler.unexpectedResponse(
+                            verbose, connection, "Trigger import/restore after successful upload");
             }
         }
     }
@@ -464,7 +471,7 @@ public class AuraClient {
 
         switch (responseCode) {
             case HTTP_NOT_FOUND:
-                // fallthrough
+            // fallthrough
             case HTTP_MOVED_PERM:
                 throw updatePluginErrorResponse(connection);
             case HTTP_TOO_MANY_REQUESTS:

@@ -1696,8 +1696,9 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         if (indexType == IndexType.VECTOR) {
             switch (prototype.schema().entityType()) {
-                case NODE -> assertSupportedInVersion(
-                        KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED, "Failed to create node vector index.");
+                case NODE ->
+                    assertSupportedInVersion(
+                            KernelVersion.VERSION_NODE_VECTOR_INDEX_INTRODUCED, "Failed to create node vector index.");
                 case RELATIONSHIP -> {
                     boolean supported = true;
                     final var descriptor = prototype.getIndexProvider();
@@ -2755,10 +2756,11 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         if (maybeDuplicateProperty.isPresent()) {
             var duplicateProperty = token.propertyKeyGetName(maybeDuplicateProperty.getAsInt());
             throw switch (context) {
-                case CONSTRAINT_CREATION -> RepeatedPropertyInSchemaException.repeatedPropertyInConstraint(
-                        descriptor, token, duplicateProperty);
-                case INDEX_CREATION -> RepeatedPropertyInSchemaException.repeatedPropertyInIndex(
-                        descriptor, token, duplicateProperty);
+                case CONSTRAINT_CREATION ->
+                    RepeatedPropertyInSchemaException.repeatedPropertyInConstraint(
+                            descriptor, token, duplicateProperty);
+                case INDEX_CREATION ->
+                    RepeatedPropertyInSchemaException.repeatedPropertyInIndex(descriptor, token, duplicateProperty);
             };
         }
 
@@ -2771,17 +2773,20 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     };
             if (descriptor.entityType() == NODE) {
                 throw switch (context) {
-                    case CONSTRAINT_CREATION -> RepeatedLabelInSchemaException.repeatedLabelInConstraint(
-                            descriptor, token, duplicateLabelOrRelType);
-                    case INDEX_CREATION -> RepeatedLabelInSchemaException.repeatedLabelInIndex(
-                            descriptor, token, duplicateLabelOrRelType);
+                    case CONSTRAINT_CREATION ->
+                        RepeatedLabelInSchemaException.repeatedLabelInConstraint(
+                                descriptor, token, duplicateLabelOrRelType);
+                    case INDEX_CREATION ->
+                        RepeatedLabelInSchemaException.repeatedLabelInIndex(descriptor, token, duplicateLabelOrRelType);
                 };
             } else {
                 throw switch (context) {
-                    case CONSTRAINT_CREATION -> RepeatedRelationshipTypeInSchemaException
-                            .repeatedRelationshipTypeInConstraint(descriptor, token, duplicateLabelOrRelType);
-                    case INDEX_CREATION -> RepeatedRelationshipTypeInSchemaException.repeatedRelationshipTypeInIndex(
-                            descriptor, token, duplicateLabelOrRelType);
+                    case CONSTRAINT_CREATION ->
+                        RepeatedRelationshipTypeInSchemaException.repeatedRelationshipTypeInConstraint(
+                                descriptor, token, duplicateLabelOrRelType);
+                    case INDEX_CREATION ->
+                        RepeatedRelationshipTypeInSchemaException.repeatedRelationshipTypeInIndex(
+                                descriptor, token, duplicateLabelOrRelType);
                 };
             }
         }

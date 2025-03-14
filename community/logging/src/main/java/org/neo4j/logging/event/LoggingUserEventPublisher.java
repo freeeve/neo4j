@@ -42,8 +42,8 @@ public class LoggingUserEventPublisher implements UserEventPublisher {
         var message = eventType.getMessage();
         var separator = parameters.isEmpty() ? "" : " - ";
         switch (eventType.getLoggingLevel()) {
-            case Begin, Finish -> userLog.info(
-                    "%s - %s%s%s", eventType.getLoggingLevel(), message, separator, parameters);
+            case Begin, Finish ->
+                userLog.info("%s - %s%s%s", eventType.getLoggingLevel(), message, separator, parameters);
             case Info -> userLog.info("%s%s%s", message, separator, parameters);
             case Warn -> userLog.warn("%s%s%s", message, separator, parameters);
             case Error -> userLog.error("%s%s%s", message, separator, parameters);

@@ -58,18 +58,20 @@ public class PopulatingIndexProxy implements IndexProxy {
     @Override
     public IndexUpdater newUpdater(final IndexUpdateMode mode, CursorContext cursorContext, boolean parallel) {
         return switch (mode) {
-            case ONLINE, RECOVERY -> new PopulatingIndexUpdater() {
-                @Override
-                public void process(IndexEntryUpdate update) {
-                    job.queueConcurrentUpdate(update, cursorContext);
-                }
-            };
-            default -> new PopulatingIndexUpdater() {
-                @Override
-                public void process(IndexEntryUpdate update) {
-                    throw new IllegalArgumentException("Unsupported update mode: " + mode);
-                }
-            };
+            case ONLINE, RECOVERY ->
+                new PopulatingIndexUpdater() {
+                    @Override
+                    public void process(IndexEntryUpdate update) {
+                        job.queueConcurrentUpdate(update, cursorContext);
+                    }
+                };
+            default ->
+                new PopulatingIndexUpdater() {
+                    @Override
+                    public void process(IndexEntryUpdate update) {
+                        throw new IllegalArgumentException("Unsupported update mode: " + mode);
+                    }
+                };
         };
     }
 

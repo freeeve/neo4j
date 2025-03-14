@@ -62,7 +62,7 @@ public abstract class LogCommandSerialization extends BaseCommandReader {
 
             case NeoCommandType.INDEX_UPDATE_COMMAND -> readIndexUpdateCommand(channel);
 
-                // legacy indexes
+            // legacy indexes
             case NeoCommandType.INDEX_DEFINE_COMMAND -> readIndexDefineCommand(channel);
             case NeoCommandType.INDEX_ADD_COMMAND -> readIndexAddNodeCommand(channel);
             case NeoCommandType.INDEX_ADD_RELATIONSHIP_COMMAND -> readIndexAddRelationshipCommand(channel);

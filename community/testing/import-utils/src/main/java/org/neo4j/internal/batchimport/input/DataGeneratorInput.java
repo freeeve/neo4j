@@ -544,8 +544,9 @@ public class DataGeneratorInput implements Input {
                 case "float[]" -> random.nextFloatArray().asObjectCopy();
                 case "double" -> random.nextDoubleValue().asObjectCopy();
                 case "double[]" -> random.nextDoubleArray().asObjectCopy();
-                default -> throw new IllegalArgumentException(
-                        entry + " " + entry.extractor().name());
+                default ->
+                    throw new IllegalArgumentException(
+                            entry + " " + entry.extractor().name());
             };
         }
 

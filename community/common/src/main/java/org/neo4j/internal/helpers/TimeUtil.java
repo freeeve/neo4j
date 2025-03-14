@@ -98,8 +98,8 @@ public final class TimeUtil {
             case "m" -> MINUTES.toNanos(amount);
             case "h" -> HOURS.toNanos(amount);
             case "d" -> DAYS.toNanos(amount);
-            default -> throw new IllegalArgumentException(
-                    "Unrecognized unit `" + unit + "`. " + VALID_TIME_DESCRIPTION);
+            default ->
+                throw new IllegalArgumentException("Unrecognized unit `" + unit + "`. " + VALID_TIME_DESCRIPTION);
         };
     }
 

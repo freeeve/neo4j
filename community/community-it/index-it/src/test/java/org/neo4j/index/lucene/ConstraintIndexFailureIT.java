@@ -105,10 +105,12 @@ class ConstraintIndexFailureIT {
 
     private void createConstraint(EntityType entityType, TransactionImpl tx) throws KernelException {
         switch (entityType) {
-            case NODE -> IndexingTestUtil.createNodePropUniqueConstraintWithSpecifiedProvider(
-                    tx, DESCRIPTOR, label("Label1"), "key1");
-            case RELATIONSHIP -> IndexingTestUtil.createRelPropUniqueConstraintWithSpecifiedProvider(
-                    tx, DESCRIPTOR, RelationshipType.withName("Type1"), "key1");
+            case NODE ->
+                IndexingTestUtil.createNodePropUniqueConstraintWithSpecifiedProvider(
+                        tx, DESCRIPTOR, label("Label1"), "key1");
+            case RELATIONSHIP ->
+                IndexingTestUtil.createRelPropUniqueConstraintWithSpecifiedProvider(
+                        tx, DESCRIPTOR, RelationshipType.withName("Type1"), "key1");
         }
     }
 

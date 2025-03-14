@@ -96,11 +96,12 @@ public class PackstreamValueReader<CTX> {
             case LIST -> this.readPrimitiveList(limit);
             case MAP -> this.readPrimitiveMap(limit);
             case STRING -> this.readText(limit);
-            default -> throw UnexpectedTypeException.wrongType(
-                    // DRI-030
-                    String.valueOf(limit),
-                    List.of("NONE", "BYTES", "BOOLEAN", "FLOAT", "INT", "LIST", "MAP", "STRING"),
-                    type);
+            default ->
+                throw UnexpectedTypeException.wrongType(
+                        // DRI-030
+                        String.valueOf(limit),
+                        List.of("NONE", "BYTES", "BOOLEAN", "FLOAT", "INT", "LIST", "MAP", "STRING"),
+                        type);
         };
     }
 

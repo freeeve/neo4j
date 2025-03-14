@@ -483,8 +483,8 @@ abstract class NativeIndexAccessorTests<KEY extends NativeIndexKey<KEY>>
                     removal = valueCreatorUtil.add(update.getEntityId(), update.beforeValues()[0]);
                 }
                 case REMOVED -> removal = valueCreatorUtil.add(update.getEntityId(), update.values()[0]);
-                default -> throw new IllegalArgumentException(
-                        update.updateMode().name());
+                default ->
+                    throw new IllegalArgumentException(update.updateMode().name());
             }
 
             if (removal != null) {

@@ -865,8 +865,8 @@ abstract class SimpleIndexAccessorCompatibility extends IndexAccessorCompatibili
             IndexOrder order, RangeSeekMode rangeSeekMode, int expectedSize, Object... objects) throws Exception {
         PropertyIndexQuery range =
                 switch (rangeSeekMode) {
-                    case CLOSED -> range(
-                            100, Values.of(objects[0]), true, Values.of(objects[objects.length - 1]), true);
+                    case CLOSED ->
+                        range(100, Values.of(objects[0]), true, Values.of(objects[objects.length - 1]), true);
                     case OPEN_END -> range(100, Values.of(objects[0]), true, null, false);
                     case OPEN_START -> range(100, null, false, Values.of(objects[objects.length - 1]), true);
                 };

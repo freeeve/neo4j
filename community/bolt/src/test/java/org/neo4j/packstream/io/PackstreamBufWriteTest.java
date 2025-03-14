@@ -143,8 +143,9 @@ public class PackstreamBufWriteTest {
                         case UINT8 -> actualLength = buf.readUnsignedByte();
                         case UINT16 -> actualLength = buf.readUnsignedShort();
                         case UINT32 -> actualLength = buf.readUnsignedInt();
-                        default -> throw new AssertionError(
-                                "Invalid length prefix type " + marker.getType() + " for marker " + marker);
+                        default ->
+                            throw new AssertionError(
+                                    "Invalid length prefix type " + marker.getType() + " for marker " + marker);
                     }
 
                     assertThat(actualMarker).isEqualTo(marker.getValue());
@@ -775,8 +776,8 @@ public class PackstreamBufWriteTest {
                                     case LIST8 -> buf.readUnsignedByte();
                                     case LIST16 -> buf.readUnsignedShort();
                                     case LIST32 -> buf.readInt();
-                                    default -> throw new IllegalArgumentException(
-                                            "Invalid expectation: " + expectation);
+                                    default ->
+                                        throw new IllegalArgumentException("Invalid expectation: " + expectation);
                                 };
 
                         assertThat(marker).isEqualTo(expectation.marker().getValue());

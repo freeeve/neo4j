@@ -193,10 +193,10 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                     yield PointValue.parse(object.toString());
                 }
                 case DATE -> DateValue.parse(object.toString());
-                case TIME -> TimeValue.parse(
-                        object.toString(), parquetColumn.getTimezone(defaultTimezoneSupplier), null);
-                case DATE_TIME -> DateTimeValue.parse(
-                        object.toString(), parquetColumn.getTimezone(defaultTimezoneSupplier), null);
+                case TIME ->
+                    TimeValue.parse(object.toString(), parquetColumn.getTimezone(defaultTimezoneSupplier), null);
+                case DATE_TIME ->
+                    DateTimeValue.parse(object.toString(), parquetColumn.getTimezone(defaultTimezoneSupplier), null);
                 case LOCAL_TIME -> LocalTimeValue.parse(object.toString());
                 case LOCAL_DATE_TIME -> LocalDateTimeValue.parse(object.toString());
                 case DURATION -> DurationValue.parse(object.toString());

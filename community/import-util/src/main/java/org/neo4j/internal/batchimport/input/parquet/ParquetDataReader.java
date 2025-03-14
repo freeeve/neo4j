@@ -318,9 +318,8 @@ class ParquetDataReader implements Closeable {
 
         private static Object readPrimitiveType(ColumnReader columnReader, PrimitiveType primitiveType) {
             return switch (primitiveType.getPrimitiveTypeName()) {
-                case BINARY, FIXED_LEN_BYTE_ARRAY, INT96 -> primitiveType
-                        .stringifier()
-                        .stringify(columnReader.getBinary());
+                case BINARY, FIXED_LEN_BYTE_ARRAY, INT96 ->
+                    primitiveType.stringifier().stringify(columnReader.getBinary());
                 case BOOLEAN -> columnReader.getBoolean();
                 case DOUBLE -> columnReader.getDouble();
                 case FLOAT -> columnReader.getFloat();

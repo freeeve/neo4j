@@ -114,8 +114,9 @@ public class StoreInfoCommand extends AbstractAdminCommand {
             return switch (lowerCase) {
                 case PLAIN_FORMAT, FALSE -> false;
                 case JSON_FORMAT, TRUE -> true;
-                default -> throw new CommandLine.TypeConversionException(
-                        format("Invalid format '%s'. Supported options are 'text' or 'json'", name));
+                default ->
+                    throw new CommandLine.TypeConversionException(
+                            format("Invalid format '%s'. Supported options are 'text' or 'json'", name));
             };
         }
     }

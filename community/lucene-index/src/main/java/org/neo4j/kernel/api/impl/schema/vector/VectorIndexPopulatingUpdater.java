@@ -60,12 +60,14 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
             final var candidate = VectorCandidate.maybeFrom(values[0]);
             final var updateMode = valueUpdate.updateMode();
             switch (updateMode) {
-                case ADDED -> writer.updateDocument(
-                        VectorDocumentStructure.newTermForChangeOrRemove(entityId),
-                        documentStructure.createLuceneDocument(entityId, candidate, similarityFunction));
-                case CHANGED -> writer.updateOrDeleteDocument(
-                        VectorDocumentStructure.newTermForChangeOrRemove(entityId),
-                        documentStructure.createLuceneDocument(entityId, candidate, similarityFunction));
+                case ADDED ->
+                    writer.updateDocument(
+                            VectorDocumentStructure.newTermForChangeOrRemove(entityId),
+                            documentStructure.createLuceneDocument(entityId, candidate, similarityFunction));
+                case CHANGED ->
+                    writer.updateOrDeleteDocument(
+                            VectorDocumentStructure.newTermForChangeOrRemove(entityId),
+                            documentStructure.createLuceneDocument(entityId, candidate, similarityFunction));
                 case REMOVED -> writer.deleteDocuments(VectorDocumentStructure.newTermForChangeOrRemove(entityId));
             }
         } catch (IOException e) {

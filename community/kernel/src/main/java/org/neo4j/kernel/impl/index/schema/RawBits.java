@@ -50,7 +50,7 @@ class RawBits {
             case LONG -> Values.longValue(rawBits);
             case FLOAT -> Values.floatValue(Float.intBitsToFloat((int) rawBits));
             case DOUBLE -> Values.doubleValue(Double.longBitsToDouble(rawBits));
-                // If type is not recognized, interpret as long.
+            // If type is not recognized, interpret as long.
             default -> Values.longValue(rawBits);
         };
     }

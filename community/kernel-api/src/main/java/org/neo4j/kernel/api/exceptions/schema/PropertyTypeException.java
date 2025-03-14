@@ -111,21 +111,23 @@ public class PropertyTypeException extends ConstraintValidationException {
         String propertyKey = tokenNameLookup.propertyKeyGetName(schema.getPropertyId());
 
         return switch (phase) {
-            case VERIFICATION -> format(
-                    "%s(%s) property `%s` is of type `%s`.",
-                    entityString,
-                    entityId,
-                    propertyKey,
-                    TypeRepresentation.infer(value).userDescription());
-            case VALIDATION -> format(
-                    "%s(%s) with %s `%s` required the property `%s` to be of type `%s`, but was of type `%s`.",
-                    entityString,
-                    entityId,
-                    entityTokenType,
-                    entityToken,
-                    propertyKey,
-                    descriptor.propertyType().userDescription(),
-                    TypeRepresentation.infer(value).userDescription());
+            case VERIFICATION ->
+                format(
+                        "%s(%s) property `%s` is of type `%s`.",
+                        entityString,
+                        entityId,
+                        propertyKey,
+                        TypeRepresentation.infer(value).userDescription());
+            case VALIDATION ->
+                format(
+                        "%s(%s) with %s `%s` required the property `%s` to be of type `%s`, but was of type `%s`.",
+                        entityString,
+                        entityId,
+                        entityTokenType,
+                        entityToken,
+                        propertyKey,
+                        descriptor.propertyType().userDescription(),
+                        TypeRepresentation.infer(value).userDescription());
         };
     }
 }

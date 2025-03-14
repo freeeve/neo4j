@@ -71,10 +71,10 @@ public class FabricDatabaseManager {
 
     private Optional<? extends DatabaseContext> getDatabaseContext(DatabaseReference databaseReference) {
         return switch (databaseReference) {
-            case DatabaseReferenceImpl.Composite composite -> databaseContextProvider.getDatabaseContext(
-                    composite.databaseId());
-            case DatabaseReferenceImpl.Internal internal -> databaseContextProvider.getDatabaseContext(
-                    internal.databaseId());
+            case DatabaseReferenceImpl.Composite composite ->
+                databaseContextProvider.getDatabaseContext(composite.databaseId());
+            case DatabaseReferenceImpl.Internal internal ->
+                databaseContextProvider.getDatabaseContext(internal.databaseId());
             default -> Optional.empty();
         };
     }

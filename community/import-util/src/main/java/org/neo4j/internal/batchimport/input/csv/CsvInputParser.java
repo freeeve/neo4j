@@ -94,24 +94,27 @@ public class CsvInputParser implements Closeable {
                 }
 
                 doContinue = switch (entry.type()) {
-                    case ID -> switch (idType) {
-                        case STRING, INTEGER -> {
-                            idValueBuilder.part(value, entry);
-                            yield true;
-                        }
-                        case ACTUAL -> visitor.id((Long) value);
-                    };
-                    case START_ID -> switch (idType) {
-                        case STRING, INTEGER -> visitor.startId(value, entry.group());
-                        case ACTUAL -> visitor.startId((Long) value);
-                    };
-                    case END_ID -> switch (idType) {
-                        case STRING, INTEGER -> visitor.endId(value, entry.group());
-                        case ACTUAL -> visitor.endId((Long) value);
-                    };
+                    case ID ->
+                        switch (idType) {
+                            case STRING, INTEGER -> {
+                                idValueBuilder.part(value, entry);
+                                yield true;
+                            }
+                            case ACTUAL -> visitor.id((Long) value);
+                        };
+                    case START_ID ->
+                        switch (idType) {
+                            case STRING, INTEGER -> visitor.startId(value, entry.group());
+                            case ACTUAL -> visitor.startId((Long) value);
+                        };
+                    case END_ID ->
+                        switch (idType) {
+                            case STRING, INTEGER -> visitor.endId(value, entry.group());
+                            case ACTUAL -> visitor.endId((Long) value);
+                        };
                     case TYPE -> visitor.type((String) value);
-                    case PROPERTY -> !isEmptyArray(value)
-                            && visitor.property(entry.name(), value, entry.isIdentifier());
+                    case PROPERTY ->
+                        !isEmptyArray(value) && visitor.property(entry.name(), value, entry.isIdentifier());
                     case REMOVE_PROPERTY -> {
                         var keys = entry.name() == null ? toStringArray(value) : new String[] {entry.name()};
                         yield visitor.removedProperties(keys);

@@ -256,9 +256,10 @@ public class FabricExecutor {
         private FragmentResult run(Fragment fragment, Record argument) {
             return switch (fragment) {
                 case Fragment.Init init -> runInit();
-                case Fragment.Apply apply -> apply.inTransactionsParameters().isEmpty()
-                        ? runApply(apply, argument)
-                        : runCallInTransactions(apply, argument);
+                case Fragment.Apply apply ->
+                    apply.inTransactionsParameters().isEmpty()
+                            ? runApply(apply, argument)
+                            : runCallInTransactions(apply, argument);
                 case Fragment.Union union -> runUnion(union, argument);
                 case Fragment.Exec exec -> runExec(exec, argument);
                 default -> throw notImplemented("Invalid query fragment", fragment);

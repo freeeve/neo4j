@@ -107,12 +107,14 @@ public class IndexHintException extends Neo4jException {
                 };
 
         return switch (entityType) {
-            case NODE -> String.format(
-                    "%sINDEX FOR (%s:%s) ON (%s)",
-                    typeString, escapedVarName, escapedLabelOrRelTypeName, propertyNames);
-            case RELATIONSHIP -> String.format(
-                    "%sINDEX FOR ()-[%s:%s]-() ON (%s)",
-                    typeString, escapedVarName, escapedLabelOrRelTypeName, propertyNames);
+            case NODE ->
+                String.format(
+                        "%sINDEX FOR (%s:%s) ON (%s)",
+                        typeString, escapedVarName, escapedLabelOrRelTypeName, propertyNames);
+            case RELATIONSHIP ->
+                String.format(
+                        "%sINDEX FOR ()-[%s:%s]-() ON (%s)",
+                        typeString, escapedVarName, escapedLabelOrRelTypeName, propertyNames);
         };
     }
 

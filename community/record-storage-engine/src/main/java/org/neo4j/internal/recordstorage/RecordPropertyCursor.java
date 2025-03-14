@@ -235,9 +235,9 @@ public class RecordPropertyCursor implements StoragePropertyCursor {
             case BYTE, SHORT, INT, LONG, FLOAT, DOUBLE -> ValueGroup.NUMBER;
             case STRING, CHAR, SHORT_STRING -> ValueGroup.TEXT;
             case TEMPORAL, GEOMETRY, SHORT_ARRAY, ARRAY ->
-            // value read is needed to get correct value group since type is not fine grained enough to match all
-            // ValueGroups
-            propertyValue().valueGroup();
+                // value read is needed to get correct value group since type is not fine grained enough to match all
+                // ValueGroups
+                propertyValue().valueGroup();
         };
     }
 

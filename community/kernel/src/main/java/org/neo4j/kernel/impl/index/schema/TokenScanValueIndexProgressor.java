@@ -76,8 +76,8 @@ public abstract sealed class TokenScanValueIndexProgressor implements IndexProgr
 
         return switch (indexOrder) {
             case DESCENDING -> new DescendingTokenScanValueProgressor(cursor, client, range, idLayout, tokenId);
-            case ASCENDING, NONE -> new AscendingOrNoneTokenScanValueProgressor(
-                    cursor, client, indexOrder, range, idLayout, tokenId);
+            case ASCENDING, NONE ->
+                new AscendingOrNoneTokenScanValueProgressor(cursor, client, indexOrder, range, idLayout, tokenId);
         };
     }
 

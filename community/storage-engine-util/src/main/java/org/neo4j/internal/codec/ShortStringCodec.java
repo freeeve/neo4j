@@ -38,7 +38,7 @@ public enum ShortStringCodec {
                 return b - '0';
             }
             return switch (b) {
-                    // interm.    encoded
+                // interm.    encoded
                 case 0 -> 0xA;
                 case 2 -> 0xB;
                 case 3 -> 0xC;
@@ -418,7 +418,7 @@ public enum ShortStringCodec {
                 case 0x01 -> 0x60; // UNDERSCORE
                 case 0x02 -> 0x17; // DOT
                 case 0x03 -> 0x37; // DASH
-                    // TODO
+                // TODO
                 case 0x07 -> 0;
                 default -> throw cannotEncode(b);
             };

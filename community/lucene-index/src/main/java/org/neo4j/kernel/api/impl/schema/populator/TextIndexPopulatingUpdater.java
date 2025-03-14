@@ -59,15 +59,18 @@ public class TextIndexPopulatingUpdater implements IndexUpdater {
             final var values = valueUpdate.values();
             final var updateMode = valueUpdate.updateMode();
             switch (updateMode) {
-                case ADDED -> writer.updateDocument(
-                        TextDocumentStructure.newTermForChangeOrRemove(entityId),
-                        TextDocumentStructure.documentRepresentingProperties(entityId, values));
-                case CHANGED -> writer.updateOrDeleteDocument(
-                        TextDocumentStructure.newTermForChangeOrRemove(entityId),
-                        TextDocumentStructure.documentRepresentingProperties(entityId, values));
+                case ADDED ->
+                    writer.updateDocument(
+                            TextDocumentStructure.newTermForChangeOrRemove(entityId),
+                            TextDocumentStructure.documentRepresentingProperties(entityId, values));
+                case CHANGED ->
+                    writer.updateOrDeleteDocument(
+                            TextDocumentStructure.newTermForChangeOrRemove(entityId),
+                            TextDocumentStructure.documentRepresentingProperties(entityId, values));
                 case REMOVED -> writer.deleteDocuments(TextDocumentStructure.newTermForChangeOrRemove(entityId));
-                default -> throw new IllegalStateException(
-                        "Unknown update mode " + updateMode + " for values " + Arrays.toString(values));
+                default ->
+                    throw new IllegalStateException(
+                            "Unknown update mode " + updateMode + " for values " + Arrays.toString(values));
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

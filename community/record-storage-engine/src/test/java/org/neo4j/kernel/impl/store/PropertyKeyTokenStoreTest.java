@@ -111,8 +111,8 @@ class PropertyKeyTokenStoreTest extends TokenStoreTestTemplate<PropertyKeyTokenR
         public PageCursor writeCursor(CursorType type) {
             return switch ((RecordCursorTypes) type) {
                 case PROPERTY_KEY_TOKEN_CURSOR -> store.openPageCursorForWriting(0, CursorContext.NULL_CONTEXT);
-                case DYNAMIC_PROPERTY_KEY_TOKEN_CURSOR -> nameStore.openPageCursorForWriting(
-                        0, CursorContext.NULL_CONTEXT);
+                case DYNAMIC_PROPERTY_KEY_TOKEN_CURSOR ->
+                    nameStore.openPageCursorForWriting(0, CursorContext.NULL_CONTEXT);
                 default -> super.writeCursor(type);
             };
         }

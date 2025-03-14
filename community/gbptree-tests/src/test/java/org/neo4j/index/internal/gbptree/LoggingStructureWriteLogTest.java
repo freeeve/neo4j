@@ -78,23 +78,21 @@ class LoggingStructureWriteLogTest {
                                 var type = TYPES[rng.nextInt(TYPES.length)];
                                 var event =
                                         switch (type) {
-                                            case SPLIT, MERGE, SUCCESSOR -> new Event(
-                                                    type,
-                                                    randomGeneration(rng),
-                                                    randomTreeNodeId(rng),
-                                                    randomTreeNodeId(rng),
-                                                    randomTreeNodeId(rng));
-                                            case TREE_GROW,
-                                                    TREE_SHRINK,
-                                                    FREELIST,
-                                                    CREATE_ROOT,
-                                                    DELETE_ROOT -> new Event(
-                                                    type, randomGeneration(rng), randomTreeNodeId(rng));
-                                            case CHECKPOINT -> new Event(
-                                                    type,
-                                                    randomGeneration(rng),
-                                                    randomGeneration(rng),
-                                                    randomGeneration(rng));
+                                            case SPLIT, MERGE, SUCCESSOR ->
+                                                new Event(
+                                                        type,
+                                                        randomGeneration(rng),
+                                                        randomTreeNodeId(rng),
+                                                        randomTreeNodeId(rng),
+                                                        randomTreeNodeId(rng));
+                                            case TREE_GROW, TREE_SHRINK, FREELIST, CREATE_ROOT, DELETE_ROOT ->
+                                                new Event(type, randomGeneration(rng), randomTreeNodeId(rng));
+                                            case CHECKPOINT ->
+                                                new Event(
+                                                        type,
+                                                        randomGeneration(rng),
+                                                        randomGeneration(rng),
+                                                        randomGeneration(rng));
                                         };
                                 event.fire(session, log);
                                 threadEvents.add(event);

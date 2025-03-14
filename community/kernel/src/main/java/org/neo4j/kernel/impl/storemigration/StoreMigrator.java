@@ -369,21 +369,25 @@ public class StoreMigrator {
         return switch (checkResult.outcome()) {
             case MIGRATION_POSSIBLE -> new CheckResult(false, fromVersion, toVersion);
             case NO_OP -> new CheckResult(true, fromVersion, toVersion);
-            case STORE_VERSION_RETRIEVAL_FAILURE -> throw new UnableToMigrateException(
-                    "Failed to read current store version. This usually indicate a store corruption",
-                    checkResult.cause());
-            case UNSUPPORTED_MIGRATION_PATH -> throw new UnableToMigrateException(String.format(
-                    "Store migration from '%s' to '%s' not supported",
-                    fromVersion.getStoreVersionUserString(),
-                    toVersion != null ? toVersion.getStoreVersionUserString() : formatToMigrateTo));
-            case UNSUPPORTED_TARGET_VERSION -> throw new UnableToMigrateException(
-                    "The current store version is not supported. " + "Please migrate the store to be able to continue");
-            case UNSUPPORTED_MIGRATION_LIMITS -> throw new UnableToMigrateException(
-                    String.format(
-                            "Store migration from '%s' to '%s' not supported for this store",
-                            fromVersion.getStoreVersionUserString(),
-                            toVersion != null ? toVersion.getStoreVersionUserString() : formatToMigrateTo),
-                    checkResult.cause());
+            case STORE_VERSION_RETRIEVAL_FAILURE ->
+                throw new UnableToMigrateException(
+                        "Failed to read current store version. This usually indicate a store corruption",
+                        checkResult.cause());
+            case UNSUPPORTED_MIGRATION_PATH ->
+                throw new UnableToMigrateException(String.format(
+                        "Store migration from '%s' to '%s' not supported",
+                        fromVersion.getStoreVersionUserString(),
+                        toVersion != null ? toVersion.getStoreVersionUserString() : formatToMigrateTo));
+            case UNSUPPORTED_TARGET_VERSION ->
+                throw new UnableToMigrateException("The current store version is not supported. "
+                        + "Please migrate the store to be able to continue");
+            case UNSUPPORTED_MIGRATION_LIMITS ->
+                throw new UnableToMigrateException(
+                        String.format(
+                                "Store migration from '%s' to '%s' not supported for this store",
+                                fromVersion.getStoreVersionUserString(),
+                                toVersion != null ? toVersion.getStoreVersionUserString() : formatToMigrateTo),
+                        checkResult.cause());
         };
     }
 
@@ -392,17 +396,18 @@ public class StoreMigrator {
                 storageEngineFactory.versionCheck(fs, databaseLayout, config, pageCache, logService, contextFactory);
         var checkResult = storeVersionCheck.getAndCheckUpgradeTargetVersion(cursorContext);
         return switch (checkResult.outcome()) {
-            case UPGRADE_POSSIBLE -> new CheckResult(
-                    false, checkResult.versionToUpgradeFrom(), checkResult.versionToUpgradeTo());
+            case UPGRADE_POSSIBLE ->
+                new CheckResult(false, checkResult.versionToUpgradeFrom(), checkResult.versionToUpgradeTo());
             case NO_OP -> new CheckResult(true, checkResult.versionToUpgradeFrom(), checkResult.versionToUpgradeTo());
-                // since an upgrade is an implicit action we need to be a bit careful about the error given
-                // when the retrieval of the current store version fails
-            case STORE_VERSION_RETRIEVAL_FAILURE -> throw new IllegalStateException(
-                    "Failed to read current store version.", checkResult.cause());
-            case UNSUPPORTED_TARGET_VERSION -> throw new UnableToMigrateException(String.format(
-                    "The selected target store format '%s' (introduced in %s) is no longer supported",
-                    checkResult.versionToUpgradeTo().getStoreVersionUserString(),
-                    storeVersionCheck.getIntroductionVersionFromVersion(checkResult.versionToUpgradeTo())));
+            // since an upgrade is an implicit action we need to be a bit careful about the error given
+            // when the retrieval of the current store version fails
+            case STORE_VERSION_RETRIEVAL_FAILURE ->
+                throw new IllegalStateException("Failed to read current store version.", checkResult.cause());
+            case UNSUPPORTED_TARGET_VERSION ->
+                throw new UnableToMigrateException(String.format(
+                        "The selected target store format '%s' (introduced in %s) is no longer supported",
+                        checkResult.versionToUpgradeTo().getStoreVersionUserString(),
+                        storeVersionCheck.getIntroductionVersionFromVersion(checkResult.versionToUpgradeTo())));
         };
     }
 

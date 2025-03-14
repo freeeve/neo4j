@@ -66,28 +66,29 @@ public class TentativeConstraintIndexProxy extends AbstractDelegatingIndexProxy 
     @Override
     public IndexUpdater newUpdater(IndexUpdateMode mode, CursorContext cursorContext, boolean parallel) {
         return switch (mode) {
-            case ONLINE, RECOVERY -> new DeferredConflictCheckingIndexUpdater(
-                    target.accessor.newUpdater(mode, cursorContext, parallel),
-                    target::newValueReader,
-                    target.getDescriptor()) {
-                @Override
-                public void process(IndexEntryUpdate update) {
-                    try {
-                        super.process(update);
-                    } catch (IndexEntryConflictException conflict) {
-                        failures.add(conflict);
+            case ONLINE, RECOVERY ->
+                new DeferredConflictCheckingIndexUpdater(
+                        target.accessor.newUpdater(mode, cursorContext, parallel),
+                        target::newValueReader,
+                        target.getDescriptor()) {
+                    @Override
+                    public void process(IndexEntryUpdate update) {
+                        try {
+                            super.process(update);
+                        } catch (IndexEntryConflictException conflict) {
+                            failures.add(conflict);
+                        }
                     }
-                }
 
-                @Override
-                public void close() {
-                    try {
-                        super.close();
-                    } catch (IndexEntryConflictException conflict) {
-                        failures.add(conflict);
+                    @Override
+                    public void close() {
+                        try {
+                            super.close();
+                        } catch (IndexEntryConflictException conflict) {
+                            failures.add(conflict);
+                        }
                     }
-                }
-            };
+                };
             default -> throw new IllegalArgumentException("Unsupported update mode: " + mode);
         };
     }

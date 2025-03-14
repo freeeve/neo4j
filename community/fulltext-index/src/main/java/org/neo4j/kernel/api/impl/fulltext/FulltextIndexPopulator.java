@@ -100,12 +100,13 @@ public class FulltextIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<F
                 long nodeId = valueUpdate.getEntityId();
                 Term term = LuceneFulltextDocumentStructure.newTermForChangeOrRemove(nodeId);
                 switch (valueUpdate.updateMode()) {
-                    case ADDED, CHANGED -> luceneIndex
-                            .getIndexWriter()
-                            .updateOrDeleteDocument(
-                                    term,
-                                    LuceneFulltextDocumentStructure.documentRepresentingProperties(
-                                            nodeId, propertyNames, valueUpdate.values()));
+                    case ADDED, CHANGED ->
+                        luceneIndex
+                                .getIndexWriter()
+                                .updateOrDeleteDocument(
+                                        term,
+                                        LuceneFulltextDocumentStructure.documentRepresentingProperties(
+                                                nodeId, propertyNames, valueUpdate.values()));
                     case REMOVED -> luceneIndex.getIndexWriter().deleteDocuments(term);
                     default -> throw new UnsupportedOperationException();
                 }

@@ -226,24 +226,27 @@ public abstract class KernelIntegrationTest {
             }
 
             return switch (direction) {
-                case OUTGOING -> outgoingIterator(
-                        transaction.cursors(),
-                        cursor,
-                        types,
-                        RelationshipCursor::relationshipReference,
-                        transaction.cursorContext());
-                case INCOMING -> incomingIterator(
-                        transaction.cursors(),
-                        cursor,
-                        types,
-                        RelationshipCursor::relationshipReference,
-                        transaction.cursorContext());
-                case BOTH -> allIterator(
-                        transaction.cursors(),
-                        cursor,
-                        types,
-                        RelationshipCursor::relationshipReference,
-                        transaction.cursorContext());
+                case OUTGOING ->
+                    outgoingIterator(
+                            transaction.cursors(),
+                            cursor,
+                            types,
+                            RelationshipCursor::relationshipReference,
+                            transaction.cursorContext());
+                case INCOMING ->
+                    incomingIterator(
+                            transaction.cursors(),
+                            cursor,
+                            types,
+                            RelationshipCursor::relationshipReference,
+                            transaction.cursorContext());
+                case BOTH ->
+                    allIterator(
+                            transaction.cursors(),
+                            cursor,
+                            types,
+                            RelationshipCursor::relationshipReference,
+                            transaction.cursorContext());
             };
         }
     }

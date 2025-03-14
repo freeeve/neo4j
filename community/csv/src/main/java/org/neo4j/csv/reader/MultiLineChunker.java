@@ -64,7 +64,7 @@ public class MultiLineChunker extends NewLineChunker {
                     switch (states.peek().state) {
                         case END_TEXT_CELL -> states.push(ParseState.startText(pos + 1));
                         case END_OTHER_CELLS -> states.push(ParseState.startOthers(pos + 1));
-                            // first char read is the end of some text cell
+                        // first char read is the end of some text cell
                         case DELIMITER, EOB -> states.push(ParseState.endText(pos + 1));
                         case CR -> {
                             final var currentPos = pos;
@@ -107,9 +107,9 @@ public class MultiLineChunker extends NewLineChunker {
                     switch (states.peek().state) {
                         case EOB -> states.push(ParseState.newline(posAfterCR));
                         case DELIMITER, CR -> ensureInTextCellForCR(states, posAfterCR);
-                            // , or ," would already have consumed delimiter (and be in END_X state)
-                        case START_TEXT_CELL, START_OTHER_CELLS -> throw error(
-                                "found CR outside a text cell", posAfterCR);
+                        // , or ," would already have consumed delimiter (and be in END_X state)
+                        case START_TEXT_CELL, START_OTHER_CELLS ->
+                            throw error("found CR outside a text cell", posAfterCR);
                         case END_OTHER_CELLS -> {
                             // after a run of cells non text cells found the start of the row
                             return posAfterCR;

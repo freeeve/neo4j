@@ -239,8 +239,9 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
             final var schemaDescriptor =
                     switch (entityType) {
                         case NODE -> SchemaDescriptors.forLabel(Tokens.Factories.LABEL.getId(ktx, LABEL), propKeyId);
-                        case RELATIONSHIP -> SchemaDescriptors.forRelType(
-                                Tokens.Factories.RELATIONSHIP_TYPE.getId(ktx, REL_TYPE), propKeyId);
+                        case RELATIONSHIP ->
+                            SchemaDescriptors.forRelType(
+                                    Tokens.Factories.RELATIONSHIP_TYPE.getId(ktx, REL_TYPE), propKeyId);
                     };
             final var prototype = IndexPrototype.forSchema(schemaDescriptor)
                     .withIndexType(IndexType.VECTOR)
@@ -271,8 +272,9 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
                     case V5_10 -> ZippedStoreCommunity.REC_AF11_V510_EMPTY;
                     case V5_15 -> ZippedStoreCommunity.REC_AF11_V515_EMPTY;
                     case V5_22 -> ZippedStoreCommunity.REC_AF11_V522_EMPTY;
-                    default -> throw new InvalidArgumentException("Test not setup to find a %s for %s."
-                            .formatted(ZippedStore.class.getSimpleName(), kernelVersion));
+                    default ->
+                        throw new InvalidArgumentException("Test not setup to find a %s for %s."
+                                .formatted(ZippedStore.class.getSimpleName(), kernelVersion));
                 };
         setup(store);
     }

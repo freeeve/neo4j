@@ -77,8 +77,9 @@ public final class DefaultStructWriter extends UtcStructWriter implements Struct
         switch (coords.length) {
             case 2 -> writePoint2d(ctx, crs, coords[0], coords[1]);
             case 3 -> writePoint3d(ctx, crs, coords[0], coords[1], coords[2]);
-            default -> throw new IllegalArgumentException("Point with 2D or 3D coordinate expected, " + "got crs=" + crs
-                    + ", coordinate=" + Arrays.toString(coords));
+            default ->
+                throw new IllegalArgumentException("Point with 2D or 3D coordinate expected, " + "got crs=" + crs
+                        + ", coordinate=" + Arrays.toString(coords));
         }
     }
 

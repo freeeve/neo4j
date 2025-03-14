@@ -179,8 +179,8 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
                         // TODO VECTOR: handle transaction state!
                     }
 
-                    default -> throw new UnsupportedOperationException(
-                            "Query not supported: " + Arrays.toString(query));
+                    default ->
+                        throw new UnsupportedOperationException("Query not supported: " + Arrays.toString(query));
                 }
             }
         }

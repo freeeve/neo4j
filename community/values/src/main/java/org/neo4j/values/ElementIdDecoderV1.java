@@ -111,8 +111,9 @@ public class ElementIdDecoderV1 implements ElementIdDecoder.VersionedElementIdDe
         return switch (entityTypeId) {
             case 0 -> EntityType.NODE;
             case 1 -> EntityType.RELATIONSHIP;
-            default -> throw new IllegalArgumentException(
-                    format("Element ID %s has unknown entity type ID %s", id, entityTypeId));
+            default ->
+                throw new IllegalArgumentException(
+                        format("Element ID %s has unknown entity type ID %s", id, entityTypeId));
         };
     }
 

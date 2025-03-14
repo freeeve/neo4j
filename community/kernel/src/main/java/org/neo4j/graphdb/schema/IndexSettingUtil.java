@@ -124,8 +124,8 @@ public class IndexSettingUtil {
     @VisibleForTesting
     public static Map<IndexSetting, Object> defaultSettingsForTesting(IndexType type) {
         return switch (type) {
-            case VECTOR -> Map.of(
-                    IndexSetting.vector_Dimensions(), 1024, IndexSetting.vector_Similarity_Function(), "COSINE");
+            case VECTOR ->
+                Map.of(IndexSetting.vector_Dimensions(), 1024, IndexSetting.vector_Similarity_Function(), "COSINE");
             default -> Map.of();
         };
     }

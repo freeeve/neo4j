@@ -278,12 +278,30 @@ class LoggingStructureWriteLog implements StructureWriteLog {
                 var timeMillis = channel.getLong();
                 var generation = channel.getLong();
                 switch (type) {
-                    case SPLIT -> events.split(
-                            timeMillis, sessionId, generation, channel.getLong(), channel.getLong(), channel.getLong());
-                    case MERGE -> events.merge(
-                            timeMillis, sessionId, generation, channel.getLong(), channel.getLong(), channel.getLong());
-                    case SUCCESSOR -> events.createSuccessor(
-                            timeMillis, sessionId, generation, channel.getLong(), channel.getLong(), channel.getLong());
+                    case SPLIT ->
+                        events.split(
+                                timeMillis,
+                                sessionId,
+                                generation,
+                                channel.getLong(),
+                                channel.getLong(),
+                                channel.getLong());
+                    case MERGE ->
+                        events.merge(
+                                timeMillis,
+                                sessionId,
+                                generation,
+                                channel.getLong(),
+                                channel.getLong(),
+                                channel.getLong());
+                    case SUCCESSOR ->
+                        events.createSuccessor(
+                                timeMillis,
+                                sessionId,
+                                generation,
+                                channel.getLong(),
+                                channel.getLong(),
+                                channel.getLong());
                     case FREELIST -> events.addToFreeList(timeMillis, sessionId, generation, channel.getLong());
                     case TREE_GROW -> events.growTree(timeMillis, sessionId, generation, channel.getLong());
                     case TREE_SHRINK -> events.shrinkTree(timeMillis, sessionId, generation, channel.getLong());

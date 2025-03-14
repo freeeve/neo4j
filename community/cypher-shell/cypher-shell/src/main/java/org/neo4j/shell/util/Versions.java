@@ -62,8 +62,9 @@ public final class Versions {
                 case 1 -> new Version(parseInt(split[0]), 0, 0);
                 case 2 -> new Version(parseInt(split[0]), parseInt(split[1]), 0);
                 case 3 -> new Version(parseInt(split[0]), parseInt(split[1]), parseInt(split[2]));
-                default -> throw new FailedToParseException(
-                        format("%s is not a proper version string, it should be of the form X.Y.Z ", version));
+                default ->
+                    throw new FailedToParseException(
+                            format("%s is not a proper version string, it should be of the form X.Y.Z ", version));
             };
         } catch (NumberFormatException e) {
             throw new FailedToParseException(

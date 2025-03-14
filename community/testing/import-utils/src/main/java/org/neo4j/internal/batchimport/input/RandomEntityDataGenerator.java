@@ -69,8 +69,9 @@ public class RandomEntityDataGenerator extends GeneratingInputIterator<RandomVal
                                     visitor.property(entry.name(), value, false);
                                 }
                             }
-                            case LABEL -> visitor.labels(
-                                    dataDistribution.labelsGenerator().apply(randoms));
+                            case LABEL ->
+                                visitor.labels(
+                                        dataDistribution.labelsGenerator().apply(randoms));
                             case START_ID, END_ID -> {
                                 long nodeId =
                                         randoms.nextLong(dataDistribution.nodeCount() + dataDistribution.startNodeId());
@@ -98,8 +99,10 @@ public class RandomEntityDataGenerator extends GeneratingInputIterator<RandomVal
                                     visitor.endId(idValue(entry, nodeId), entry.group());
                                 }
                             }
-                            case TYPE -> visitor.type(
-                                    dataDistribution.relationshipTypeGenerator().apply(randoms));
+                            case TYPE ->
+                                visitor.type(dataDistribution
+                                        .relationshipTypeGenerator()
+                                        .apply(randoms));
                             default -> throw new IllegalArgumentException(entry.toString());
                         }
                     }
@@ -128,14 +131,15 @@ public class RandomEntityDataGenerator extends GeneratingInputIterator<RandomVal
         for (Header.Entry entry : header.entries()) {
             switch (entry.type()) {
                 case ID -> deserialization.handle(entry, entity.hasLongId ? entity.longId : entity.objectId);
-                case PROPERTY -> deserialization.handle(
-                        entry, entity.getProperty(entry.name()).value());
+                case PROPERTY ->
+                    deserialization.handle(
+                            entry, entity.getProperty(entry.name()).value());
                 case LABEL -> deserialization.handle(entry, entity.labels());
                 case TYPE -> deserialization.handle(entry, entity.hasIntType ? entity.intType : entity.stringType);
-                case START_ID -> deserialization.handle(
-                        entry, entity.hasLongStartId ? entity.longStartId : entity.objectStartId);
-                case END_ID -> deserialization.handle(
-                        entry, entity.hasLongEndId ? entity.longEndId : entity.objectEndId);
+                case START_ID ->
+                    deserialization.handle(entry, entity.hasLongStartId ? entity.longStartId : entity.objectStartId);
+                case END_ID ->
+                    deserialization.handle(entry, entity.hasLongEndId ? entity.longEndId : entity.objectEndId);
                 default -> {} // ignore other types
             }
         }

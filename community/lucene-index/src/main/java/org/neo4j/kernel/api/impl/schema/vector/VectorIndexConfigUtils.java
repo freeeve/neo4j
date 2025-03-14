@@ -132,18 +132,19 @@ public class VectorIndexConfigUtils {
         // JEP 441: Pattern Matching for switch
         final var settingName = invalidRecord.settingName();
         throw switch (invalidRecord.state()) {
-                // this is a logic error
-            case VALID -> new IllegalStateException("%s should not be %s at this point. Provided: %s"
-                    .formatted(IndexConfigValidationRecord.class.getSimpleName(), VALID, invalidRecord));
+            // this is a logic error
+            case VALID ->
+                new IllegalStateException("%s should not be %s at this point. Provided: %s"
+                        .formatted(IndexConfigValidationRecord.class.getSimpleName(), VALID, invalidRecord));
 
-                // this is an implementation mistake
+            // this is an implementation mistake
             case PENDING -> new IllegalStateException("Validation for '%s' is incomplete.".formatted(settingName));
 
-                // these are likely user mistakes
-            case UNRECOGNIZED_SETTING -> unrecognizedSetting(
-                    invalidRecord.settingName(), descriptor, validSettingNames);
-            case MISSING_SETTING -> new IllegalArgumentException(
-                    "'%s' is expected to have been set".formatted(settingName));
+            // these are likely user mistakes
+            case UNRECOGNIZED_SETTING ->
+                unrecognizedSetting(invalidRecord.settingName(), descriptor, validSettingNames);
+            case MISSING_SETTING ->
+                new IllegalArgumentException("'%s' is expected to have been set".formatted(settingName));
             case INCORRECT_TYPE -> {
                 final var incorrectType = (IncorrectType) invalidRecord;
                 yield new IllegalArgumentException("'%s' is expected to have been '%s', but was '%s'"

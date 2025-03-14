@@ -109,9 +109,9 @@ public class AuthorizationEnabledFilter extends AuthorizationFilter {
 
             switch (securityContext.subject().getAuthenticationResult()) {
                 case PASSWORD_CHANGE_REQUIRED:
-                    // Fall through
-                    // You should be able to authenticate with PASSWORD_CHANGE_REQUIRED but will be stopped
-                    // from the server side if you try to do anything else than changing you own password.
+                // Fall through
+                // You should be able to authenticate with PASSWORD_CHANGE_REQUIRED but will be stopped
+                // from the server side if you try to do anything else than changing you own password.
                 case SUCCESS:
                     try {
                         filterChain.doFilter(

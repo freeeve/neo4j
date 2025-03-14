@@ -250,17 +250,19 @@ public class IndexStatisticsStore extends LifecycleAdapter
             scanTree(
                     (key, value) -> {
                         switch (key.getType()) {
-                            case TYPE_SAMPLE -> visitor.visitSampleStatistics(
-                                    key.getIndexId(),
-                                    value.get(IndexStatisticsValue.INDEX_SAMPLE_UNIQUE_VALUES),
-                                    value.get(IndexStatisticsValue.INDEX_SAMPLE_SIZE),
-                                    value.get(IndexStatisticsValue.INDEX_SAMPLE_UPDATES_COUNT),
-                                    value.get(IndexStatisticsValue.INDEX_SAMPLE_INDEX_SIZE));
-                            case TYPE_USAGE -> visitor.visitUsageStatistics(
-                                    key.getIndexId(),
-                                    value.get(IndexStatisticsValue.INDEX_USAGE_LAST_READ),
-                                    value.get(IndexStatisticsValue.INDEX_USAGE_READ_COUNT),
-                                    value.get(IndexStatisticsValue.INDEX_USAGE_TRACKED_SINCE));
+                            case TYPE_SAMPLE ->
+                                visitor.visitSampleStatistics(
+                                        key.getIndexId(),
+                                        value.get(IndexStatisticsValue.INDEX_SAMPLE_UNIQUE_VALUES),
+                                        value.get(IndexStatisticsValue.INDEX_SAMPLE_SIZE),
+                                        value.get(IndexStatisticsValue.INDEX_SAMPLE_UPDATES_COUNT),
+                                        value.get(IndexStatisticsValue.INDEX_SAMPLE_INDEX_SIZE));
+                            case TYPE_USAGE ->
+                                visitor.visitUsageStatistics(
+                                        key.getIndexId(),
+                                        value.get(IndexStatisticsValue.INDEX_USAGE_LAST_READ),
+                                        value.get(IndexStatisticsValue.INDEX_USAGE_READ_COUNT),
+                                        value.get(IndexStatisticsValue.INDEX_USAGE_TRACKED_SINCE));
                             default -> throw new IllegalArgumentException("Unknown key type for " + key);
                         }
                     },

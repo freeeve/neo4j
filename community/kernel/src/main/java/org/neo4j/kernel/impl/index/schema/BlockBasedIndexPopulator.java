@@ -377,8 +377,9 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
                     long otherEntityId = key.getEntityId();
                     var values = key.asValues();
                     switch (conflictHandler.indexEntryConflict(firstEntityId, otherEntityId, values)) {
-                        case THROW -> throw IndexEntryConflictException.indexEntryConflict(
-                                descriptor.schema(), firstEntityId, otherEntityId, values);
+                        case THROW ->
+                            throw IndexEntryConflictException.indexEntryConflict(
+                                    descriptor.schema(), firstEntityId, otherEntityId, values);
                         case DELETE -> deleteConflict(seek.key(), cursorContext);
                     }
                 }

@@ -378,9 +378,10 @@ public class RecordRelationshipTraversalCursorTest {
             switch (direction) {
                 case OUTGOING -> assertThat(cursor.sourceNodeReference()).isEqualTo(FIRST_OWNING_NODE);
                 case INCOMING -> assertThat(cursor.targetNodeReference()).isEqualTo(FIRST_OWNING_NODE);
-                case BOTH -> assertThat(FIRST_OWNING_NODE == cursor.sourceNodeReference()
-                                || FIRST_OWNING_NODE == cursor.targetNodeReference())
-                        .isTrue();
+                case BOTH ->
+                    assertThat(FIRST_OWNING_NODE == cursor.sourceNodeReference()
+                                    || FIRST_OWNING_NODE == cursor.targetNodeReference())
+                            .isTrue();
             }
         }
         assertThat(found).isEqualTo(count);

@@ -2975,43 +2975,46 @@ class BFSPruningVarExpandCursorTest {
 
             BFSPruningVarExpandCursor build() {
                 return switch (direction) {
-                    case BOTH -> BFSPruningVarExpandCursor.allExpander(
-                            startNode,
-                            types,
-                            includeStartNode,
-                            maxDepth,
-                            tx.dataRead(),
-                            nodeCursor,
-                            relCursor,
-                            nodeFilter,
-                            relFilter,
-                            soughtEndNode,
-                            true,
-                            memoryTracker);
-                    case INCOMING -> BFSPruningVarExpandCursor.incomingExpander(
-                            startNode,
-                            types,
-                            includeStartNode,
-                            maxDepth,
-                            tx.dataRead(),
-                            nodeCursor,
-                            relCursor,
-                            nodeFilter,
-                            relFilter,
-                            soughtEndNode,
-                            memoryTracker);
-                    case OUTGOING -> BFSPruningVarExpandCursor.outgoingExpander(
-                            startNode,
-                            types,
-                            includeStartNode,
-                            maxDepth,
-                            tx.dataRead(),
-                            nodeCursor,
-                            relCursor,
-                            nodeFilter,
-                            relFilter,
-                            soughtEndNode,
-                            memoryTracker);
+                    case BOTH ->
+                        BFSPruningVarExpandCursor.allExpander(
+                                startNode,
+                                types,
+                                includeStartNode,
+                                maxDepth,
+                                tx.dataRead(),
+                                nodeCursor,
+                                relCursor,
+                                nodeFilter,
+                                relFilter,
+                                soughtEndNode,
+                                true,
+                                memoryTracker);
+                    case INCOMING ->
+                        BFSPruningVarExpandCursor.incomingExpander(
+                                startNode,
+                                types,
+                                includeStartNode,
+                                maxDepth,
+                                tx.dataRead(),
+                                nodeCursor,
+                                relCursor,
+                                nodeFilter,
+                                relFilter,
+                                soughtEndNode,
+                                memoryTracker);
+                    case OUTGOING ->
+                        BFSPruningVarExpandCursor.outgoingExpander(
+                                startNode,
+                                types,
+                                includeStartNode,
+                                maxDepth,
+                                tx.dataRead(),
+                                nodeCursor,
+                                relCursor,
+                                nodeFilter,
+                                relFilter,
+                                soughtEndNode,
+                                memoryTracker);
                 };
             }
 

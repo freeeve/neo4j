@@ -197,9 +197,8 @@ final class StateMachineImpl implements StateMachine, Context {
             // Convert the admission control response in to a state machine friendly error.
             switch (response) {
                 case RELEASED -> {}
-                case UNABLE_TO_ALLOCATE_NEW_TOKEN,
-                        ADMISSION_CONTROL_PROCESS_STOPPED,
-                        NO_TENANT_CREDIT -> throw new AdmissionControlException();
+                case UNABLE_TO_ALLOCATE_NEW_TOKEN, ADMISSION_CONTROL_PROCESS_STOPPED, NO_TENANT_CREDIT ->
+                    throw new AdmissionControlException();
             }
         }
     }

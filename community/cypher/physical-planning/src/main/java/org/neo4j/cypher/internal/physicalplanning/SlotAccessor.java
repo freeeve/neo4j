@@ -142,8 +142,8 @@ public class SlotAccessor {
     private static boolean isNode(CypherRow row, SlotConfiguration.KeyedSlot slot, long node) {
         return switch (slot.slotType()) {
             case NodeNonNullLongSlot, NodeNullableLongSlot -> row.getLongAt(slot.offset()) == node;
-            case NodeNonNullRefSlot, NodeNullableRefSlot -> row.getRefAt(slot.offset()) instanceof VirtualNodeValue n
-                    && n.id() == node;
+            case NodeNonNullRefSlot, NodeNullableRefSlot ->
+                row.getRefAt(slot.offset()) instanceof VirtualNodeValue n && n.id() == node;
             default -> false; // Note! The slot can contain a node here too, but this mimics previous behaviour
         };
     }
@@ -151,9 +151,8 @@ public class SlotAccessor {
     private static boolean isRel(CypherRow row, SlotConfiguration.KeyedSlot slot, long rel) {
         return switch (slot.slotType()) {
             case RelNonNullLongSlot, RelNullableLongSlot -> row.getLongAt(slot.offset()) == rel;
-            case RelNonNullRefSlot, RelNullableRefSlot -> row.getRefAt(slot.offset())
-                            instanceof VirtualRelationshipValue n
-                    && n.id() == rel;
+            case RelNonNullRefSlot, RelNullableRefSlot ->
+                row.getRefAt(slot.offset()) instanceof VirtualRelationshipValue n && n.id() == rel;
             default -> false; // Note! The slot can contain a relationship here too, but this mimics previous behaviour
         };
     }

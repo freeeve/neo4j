@@ -431,37 +431,41 @@ class PointValueTest {
 
     private static Stream<PointValue> extremePointValues(CoordinateReferenceSystem crs) {
         return switch (crs) {
-            case CARTESIAN -> Stream.of(
-                    pointValue(crs, -Double.MAX_VALUE, -Double.MAX_VALUE),
-                    pointValue(crs, -Double.MAX_VALUE, Double.MAX_VALUE),
-                    pointValue(crs, Double.MAX_VALUE, -Double.MAX_VALUE),
-                    pointValue(crs, Double.MAX_VALUE, Double.MAX_VALUE));
+            case CARTESIAN ->
+                Stream.of(
+                        pointValue(crs, -Double.MAX_VALUE, -Double.MAX_VALUE),
+                        pointValue(crs, -Double.MAX_VALUE, Double.MAX_VALUE),
+                        pointValue(crs, Double.MAX_VALUE, -Double.MAX_VALUE),
+                        pointValue(crs, Double.MAX_VALUE, Double.MAX_VALUE));
 
-            case CARTESIAN_3D -> Stream.of(
-                    pointValue(crs, -Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE),
-                    pointValue(crs, -Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE),
-                    pointValue(crs, -Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE),
-                    pointValue(crs, -Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE),
-                    pointValue(crs, Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE),
-                    pointValue(crs, Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE),
-                    pointValue(crs, Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE),
-                    pointValue(crs, Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE));
+            case CARTESIAN_3D ->
+                Stream.of(
+                        pointValue(crs, -Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE),
+                        pointValue(crs, -Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE),
+                        pointValue(crs, -Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE),
+                        pointValue(crs, -Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE),
+                        pointValue(crs, Double.MAX_VALUE, -Double.MAX_VALUE, -Double.MAX_VALUE),
+                        pointValue(crs, Double.MAX_VALUE, -Double.MAX_VALUE, Double.MAX_VALUE),
+                        pointValue(crs, Double.MAX_VALUE, Double.MAX_VALUE, -Double.MAX_VALUE),
+                        pointValue(crs, Double.MAX_VALUE, Double.MAX_VALUE, Double.MAX_VALUE));
 
-            case WGS_84 -> Stream.of(
-                    pointValue(crs, -180, -90),
-                    pointValue(crs, -180, 90),
-                    pointValue(crs, 180, -90),
-                    pointValue(crs, 180, 90));
+            case WGS_84 ->
+                Stream.of(
+                        pointValue(crs, -180, -90),
+                        pointValue(crs, -180, 90),
+                        pointValue(crs, 180, -90),
+                        pointValue(crs, 180, 90));
 
-            case WGS_84_3D -> Stream.of(
-                    pointValue(crs, -180, -90, -Double.MAX_VALUE),
-                    pointValue(crs, -180, -90, Double.MAX_VALUE),
-                    pointValue(crs, -180, 90, -Double.MAX_VALUE),
-                    pointValue(crs, -180, 90, Double.MAX_VALUE),
-                    pointValue(crs, 180, -90, -Double.MAX_VALUE),
-                    pointValue(crs, 180, -90, Double.MAX_VALUE),
-                    pointValue(crs, 180, 90, -Double.MAX_VALUE),
-                    pointValue(crs, 180, 90, Double.MAX_VALUE));
+            case WGS_84_3D ->
+                Stream.of(
+                        pointValue(crs, -180, -90, -Double.MAX_VALUE),
+                        pointValue(crs, -180, -90, Double.MAX_VALUE),
+                        pointValue(crs, -180, 90, -Double.MAX_VALUE),
+                        pointValue(crs, -180, 90, Double.MAX_VALUE),
+                        pointValue(crs, 180, -90, -Double.MAX_VALUE),
+                        pointValue(crs, 180, -90, Double.MAX_VALUE),
+                        pointValue(crs, 180, 90, -Double.MAX_VALUE),
+                        pointValue(crs, 180, 90, Double.MAX_VALUE));
         };
     }
 

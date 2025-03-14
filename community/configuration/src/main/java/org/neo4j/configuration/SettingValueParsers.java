@@ -858,8 +858,9 @@ public final class SettingValueParsers {
             case "k" -> ByteUnit.KibiByte;
             case "m" -> ByteUnit.MebiByte;
             case "g" -> ByteUnit.GibiByte;
-            default -> throw new IllegalArgumentException(
-                    "Illegal unit '" + unit + "' for number '" + numberWithPotentialUnit + "'");
+            default ->
+                throw new IllegalArgumentException(
+                        "Illegal unit '" + unit + "' for number '" + numberWithPotentialUnit + "'");
         };
     }
 

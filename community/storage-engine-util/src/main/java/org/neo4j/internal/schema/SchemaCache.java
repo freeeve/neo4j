@@ -623,26 +623,29 @@ public class SchemaCache {
                         final var constraintProperties = descriptor.schema().getPropertyIds();
                         switch (descriptor.type()) {
                             case UNIQUE_EXISTS -> logicalProps.add(IntSets.mutable.of(constraintProperties));
-                            case UNIQUE -> logicalMatches.computeIfAbsent(
-                                    constraintProperties, keyProperties -> IntSets.mutable.empty());
-                            case EXISTS -> logicalMatches.forEachKeyValue((keyProperties, matched) -> {
-                                // scan through the UNIQUE groups and look for any partial logical groupings that still
-                                // require matching properties to become full logical keys
-                                if (matched.size() < keyProperties.length) {
-                                    for (var keyProperty : keyProperties) {
-                                        for (var constraintProperty : constraintProperties) {
-                                            if (constraintProperty == keyProperty) {
-                                                matched.add(constraintProperty);
+                            case UNIQUE ->
+                                logicalMatches.computeIfAbsent(
+                                        constraintProperties, keyProperties -> IntSets.mutable.empty());
+                            case EXISTS ->
+                                logicalMatches.forEachKeyValue((keyProperties, matched) -> {
+                                    // scan through the UNIQUE groups and look for any partial logical groupings that
+                                    // still
+                                    // require matching properties to become full logical keys
+                                    if (matched.size() < keyProperties.length) {
+                                        for (var keyProperty : keyProperties) {
+                                            for (var constraintProperty : constraintProperties) {
+                                                if (constraintProperty == keyProperty) {
+                                                    matched.add(constraintProperty);
+                                                }
                                             }
                                         }
-                                    }
 
-                                    if (matched.size() == keyProperties.length) {
-                                        // partially matched key  => full logical key
-                                        logicalProps.add(matched);
+                                        if (matched.size() == keyProperties.length) {
+                                            // partially matched key  => full logical key
+                                            logicalProps.add(matched);
+                                        }
                                     }
-                                }
-                            });
+                                });
                             default -> {}
                         }
                     });

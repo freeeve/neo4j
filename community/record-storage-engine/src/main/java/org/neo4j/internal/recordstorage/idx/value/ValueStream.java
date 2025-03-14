@@ -650,8 +650,8 @@ public class ValueStream {
             case INT_8 -> in.get();
             case INT_16 -> in.getShort();
             case INT_32 -> in.getInt();
-            case INT_64 -> throw new IllegalStateException(
-                    "Unexpectedly large Integer value unpacked (" + in.getLong() + ")");
+            case INT_64 ->
+                throw new IllegalStateException("Unexpectedly large Integer value unpacked (" + in.getLong() + ")");
             default -> throw new IllegalStateException("Unexpected: " + markerByte);
         };
     }

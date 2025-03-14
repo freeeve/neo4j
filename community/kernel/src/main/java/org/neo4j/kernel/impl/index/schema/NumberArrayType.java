@@ -170,7 +170,7 @@ class NumberArrayType extends AbstractArrayType<Number> {
             case RawBits.LONG -> ValueWriter.ArrayType.LONG;
             case RawBits.FLOAT -> ValueWriter.ArrayType.FLOAT;
             case RawBits.DOUBLE -> ValueWriter.ArrayType.DOUBLE;
-                // bad read, hopefully
+            // bad read, hopefully
             default -> null;
         };
     }

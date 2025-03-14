@@ -187,26 +187,28 @@ public class FileImporter {
     private Input importInput(
             Iterable<DataFactory> nodeData, Supplier<ZoneId> defaultTimeZone, Iterable<DataFactory> relationshipsData) {
         return switch (fileImportType) {
-            case CSV -> new CsvInput(
-                    nodeData,
-                    defaultFormatNodeFileHeader(defaultTimeZone, normalizeTypes),
-                    relationshipsData,
-                    defaultFormatRelationshipFileHeader(defaultTimeZone, normalizeTypes),
-                    schemaCommands,
-                    idType,
-                    csvConfig,
-                    autoSkipHeaders,
-                    new CsvInput.PrintingMonitor(stdOut),
-                    new Groups(),
-                    memoryTracker);
-            case PARQUET -> new ParquetInput(
-                    nodeFiles,
-                    relationshipFiles,
-                    schemaCommands,
-                    idType,
-                    csvConfig,
-                    new Groups(),
-                    new ParquetMonitor(stdOut));
+            case CSV ->
+                new CsvInput(
+                        nodeData,
+                        defaultFormatNodeFileHeader(defaultTimeZone, normalizeTypes),
+                        relationshipsData,
+                        defaultFormatRelationshipFileHeader(defaultTimeZone, normalizeTypes),
+                        schemaCommands,
+                        idType,
+                        csvConfig,
+                        autoSkipHeaders,
+                        new CsvInput.PrintingMonitor(stdOut),
+                        new Groups(),
+                        memoryTracker);
+            case PARQUET ->
+                new ParquetInput(
+                        nodeFiles,
+                        relationshipFiles,
+                        schemaCommands,
+                        idType,
+                        csvConfig,
+                        new Groups(),
+                        new ParquetMonitor(stdOut));
         };
     }
 

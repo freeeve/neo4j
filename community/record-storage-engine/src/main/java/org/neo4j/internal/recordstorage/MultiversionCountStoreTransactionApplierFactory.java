@@ -36,10 +36,12 @@ class MultiversionCountStoreTransactionApplierFactory implements TransactionAppl
     public TransactionApplier startTx(StorageEngineTransaction transaction, BatchContext batchContext) {
         return switch (mode) {
             case REVERSE_RECOVERY, MVCC_INCOMPLETE_REVERSE_RECOVERY -> new TransactionApplier.Adapter();
-            case MVCC_ROLLBACK -> new MultiVersionCountsStoreTransactionApplier(
-                    () -> countsStore.rollbackUpdater(transaction.transactionId(), transaction.cursorContext()));
-            default -> new MultiVersionCountsStoreTransactionApplier(() -> countsStore.updater(
-                    transaction.transactionId(), transaction.commandBatch().isLast(), transaction.cursorContext()));
+            case MVCC_ROLLBACK ->
+                new MultiVersionCountsStoreTransactionApplier(
+                        () -> countsStore.rollbackUpdater(transaction.transactionId(), transaction.cursorContext()));
+            default ->
+                new MultiVersionCountsStoreTransactionApplier(() -> countsStore.updater(
+                        transaction.transactionId(), transaction.commandBatch().isLast(), transaction.cursorContext()));
         };
     }
 }

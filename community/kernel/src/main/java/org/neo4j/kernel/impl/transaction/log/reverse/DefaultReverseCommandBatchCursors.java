@@ -87,11 +87,12 @@ public final class DefaultReverseCommandBatchCursors implements CommandBatchCurs
         ReadableLogChannel channel = logFile.getReader(position, NO_MORE_CHANNELS);
         try {
             return switch (channel) {
-                case ReadAheadLogChannel aheadChannel -> new ReversedSingleFileCommandBatchCursor(
-                        aheadChannel, reader, failOnCorruptedLogFiles, monitor);
-                case EnvelopeReadChannel readChannel -> new ReversedEnvelopedCommandBatchCursor(
-                        readChannel, reader, failOnCorruptedLogFiles, monitor, (EnvelopeReadChannel)
-                                logFile.getReader(position));
+                case ReadAheadLogChannel aheadChannel ->
+                    new ReversedSingleFileCommandBatchCursor(aheadChannel, reader, failOnCorruptedLogFiles, monitor);
+                case EnvelopeReadChannel readChannel ->
+                    new ReversedEnvelopedCommandBatchCursor(
+                            readChannel, reader, failOnCorruptedLogFiles, monitor, (EnvelopeReadChannel)
+                                    logFile.getReader(position));
                 default -> eagerlyReverse(new CommittedCommandBatchCursor(channel, reader));
             };
         } catch (Exception e) {

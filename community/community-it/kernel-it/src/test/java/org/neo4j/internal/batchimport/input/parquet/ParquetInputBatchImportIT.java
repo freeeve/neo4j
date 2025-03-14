@@ -779,8 +779,9 @@ class ParquetInputBatchImportIT {
                                 .formatted(type.getLogicalTypeAnnotation()));
                     }
                 }
-                default -> throw new UnsupportedOperationException(
-                        "writing of %s primitive types is not supported.".formatted(type.getPrimitiveTypeName()));
+                default ->
+                    throw new UnsupportedOperationException(
+                            "writing of %s primitive types is not supported.".formatted(type.getPrimitiveTypeName()));
             }
             recordConsumer.endField(name, fieldIndex);
         }

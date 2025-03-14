@@ -423,22 +423,24 @@ class SubtractionNodeLabelIndexCursorTest {
                 .next();
         TokenReadSession tokenReadSession = read.tokenReadSession(index);
         return switch (order) {
-            case ASCENDING -> SubtractionNodeLabelIndexCursor.ascendingSubtractionNodeLabelIndexCursor(
-                    read,
-                    tokenReadSession,
-                    tx.cursorContext(),
-                    positiveLabels,
-                    negativeLabels,
-                    positiveCursors,
-                    negativeCursors);
-            case DESCENDING -> SubtractionNodeLabelIndexCursor.descendingSubtractionNodeLabelIndexCursor(
-                    read,
-                    tokenReadSession,
-                    tx.cursorContext(),
-                    positiveLabels,
-                    negativeLabels,
-                    positiveCursors,
-                    negativeCursors);
+            case ASCENDING ->
+                SubtractionNodeLabelIndexCursor.ascendingSubtractionNodeLabelIndexCursor(
+                        read,
+                        tokenReadSession,
+                        tx.cursorContext(),
+                        positiveLabels,
+                        negativeLabels,
+                        positiveCursors,
+                        negativeCursors);
+            case DESCENDING ->
+                SubtractionNodeLabelIndexCursor.descendingSubtractionNodeLabelIndexCursor(
+                        read,
+                        tokenReadSession,
+                        tx.cursorContext(),
+                        positiveLabels,
+                        negativeLabels,
+                        positiveCursors,
+                        negativeCursors);
         };
     }
 

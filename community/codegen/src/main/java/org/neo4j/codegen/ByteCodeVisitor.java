@@ -336,7 +336,7 @@ public interface ByteCodeVisitor {
 
         private static String opcode(int opcode) {
             switch (opcode) {
-                    // visitInsn
+                // visitInsn
                 case Opcodes.NOP:
                     return "NOP";
                 case Opcodes.ACONST_NULL:
@@ -551,14 +551,14 @@ public interface ByteCodeVisitor {
                     return "MONITORENTER";
                 case Opcodes.MONITOREXIT:
                     return "MONITOREXIT";
-                    // visitIntInsn
+                // visitIntInsn
                 case Opcodes.BIPUSH:
                     return "BIPUSH";
                 case Opcodes.SIPUSH:
                     return "SIPUSH";
                 case Opcodes.NEWARRAY:
                     return "NEWARRAY";
-                    // visitVarInsn
+                // visitVarInsn
                 case Opcodes.ILOAD:
                     return "ILOAD";
                 case Opcodes.LLOAD:
@@ -581,7 +581,7 @@ public interface ByteCodeVisitor {
                     return "ASTORE";
                 case Opcodes.RET:
                     return "RET";
-                    // visitTypeInsn
+                // visitTypeInsn
                 case Opcodes.NEW:
                     return "NEW";
                 case Opcodes.ANEWARRAY:
@@ -590,7 +590,7 @@ public interface ByteCodeVisitor {
                     return "CHECKCAST";
                 case Opcodes.INSTANCEOF:
                     return "INSTANCEOF";
-                    // visitFieldInsn
+                // visitFieldInsn
                 case Opcodes.GETSTATIC:
                     return "GETSTATIC";
                 case Opcodes.PUTSTATIC:
@@ -599,7 +599,7 @@ public interface ByteCodeVisitor {
                     return "GETFIELD";
                 case Opcodes.PUTFIELD:
                     return "PUTFIELD";
-                    // visitMethodInsn
+                // visitMethodInsn
                 case Opcodes.INVOKEVIRTUAL:
                     return "INVOKEVIRTUAL";
                 case Opcodes.INVOKESPECIAL:
@@ -608,7 +608,7 @@ public interface ByteCodeVisitor {
                     return "INVOKESTATIC";
                 case Opcodes.INVOKEINTERFACE:
                     return "INVOKEINTERFACE";
-                    // visitJumpInsn
+                // visitJumpInsn
                 case Opcodes.IFEQ:
                     return "IFEQ";
                 case Opcodes.IFNE:

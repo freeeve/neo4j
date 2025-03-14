@@ -121,9 +121,8 @@ public class IndexTxStateUpdater {
                         indexingService.validateBeforeCommit(index, values, node.nodeReference());
                         txStateHolder.txState().indexDoUpdateEntry(index, node.nodeReference(), null, valueTuple);
                     }
-                    case REMOVED_LABEL -> txStateHolder
-                            .txState()
-                            .indexDoUpdateEntry(index, node.nodeReference(), valueTuple, null);
+                    case REMOVED_LABEL ->
+                        txStateHolder.txState().indexDoUpdateEntry(index, node.nodeReference(), valueTuple, null);
                 }
             }
         }

@@ -142,8 +142,8 @@ public class DefaultNodeBasedRelationshipTypeIndexCursor
                     readState = ReadState.INDEX_READ;
                 }
                 case INDEX_READ ->
-                // indexNext() calls acceptEntity() with data from index
-                readState = indexNext() ? ReadState.NODE_READ : ReadState.UNAVAILABLE;
+                    // indexNext() calls acceptEntity() with data from index
+                    readState = indexNext() ? ReadState.NODE_READ : ReadState.UNAVAILABLE;
                 case NODE_READ -> {
                     nodeCursor.single(nodeFromIndex, read, txStateHolder, accessModeProvider);
                     if (nodeCursor.next()) {

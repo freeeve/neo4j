@@ -423,8 +423,9 @@ class SchemaChecker {
                                 context.memoryTracker);
                     }
                 }
-                default -> throw new IllegalArgumentException(
-                        "Schema with given entity type is not supported: " + schema.entityType());
+                default ->
+                    throw new IllegalArgumentException(
+                            "Schema with given entity type is not supported: " + schema.entityType());
             }
         }
 

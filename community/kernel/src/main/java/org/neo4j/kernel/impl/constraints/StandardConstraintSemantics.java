@@ -138,8 +138,8 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             case EXISTS -> throw new IllegalStateException(ERROR_MESSAGE_EXISTS);
             case UNIQUE_EXISTS -> throw new IllegalStateException(keyConstraintErrorMessage(constraint.schema()));
             case PROPERTY_TYPE -> throw new IllegalStateException(ERROR_MESSAGE_TYPE);
-            case RELATIONSHIP_ENDPOINT_LABEL -> throw new IllegalStateException(
-                    ERROR_MESSAGE_RELATIONSHIP_ENDPOINT_LABEL);
+            case RELATIONSHIP_ENDPOINT_LABEL ->
+                throw new IllegalStateException(ERROR_MESSAGE_RELATIONSHIP_ENDPOINT_LABEL);
             case NODE_LABEL_EXISTENCE -> throw new IllegalStateException(ERROR_MESSAGE_NODE_LABEL_EXISTENCE);
         };
     }
