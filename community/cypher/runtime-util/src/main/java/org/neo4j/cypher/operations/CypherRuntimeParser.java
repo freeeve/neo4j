@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.operations;
 
-import static java.lang.String.format;
 import static org.neo4j.cypher.operations.VectorUtils.assertNoOverflow;
 import static org.neo4j.values.storable.Values.NO_VALUE;
 import static org.neo4j.values.storable.Values.doubleValue;
@@ -169,7 +168,10 @@ abstract class CypherRuntimeParser {
                 if (bigDecimal.compareTo(MAX_LONG) <= 0 && bigDecimal.compareTo(MIN_LONG) >= 0) {
                     return longValue(bigDecimal.longValue());
                 } else {
-                    throw new CypherTypeException(format("integer, %s, is too large", expression));
+                    // This can happen for the functions toInteger(input), toIntegerOrNull(input) and
+                    // toIntegerList(input),
+                    // but will only surface for toInteger() as the others convert errors to null values
+                    throw CypherTypeException.integerOutOfBounds("input", Long.MIN_VALUE, Long.MAX_VALUE, expression);
                 }
             } catch (NumberFormatException ignore2) {
                 // Fallback to parsing the expression in Cypher.

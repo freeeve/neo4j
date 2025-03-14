@@ -54,13 +54,6 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
   private val parsing = CompilationPhases.parsing(ParsingConfig()) andThen Namespacer
 
   private val dummyExceptionFactory = new CypherExceptionFactory {
-
-    override def arithmeticException(
-      gqlStatusObject: ErrorGqlStatusObject,
-      message: String,
-      cause: Exception
-    ): RuntimeException = new DummyException
-    override def arithmeticException(message: String, cause: Exception): RuntimeException = new DummyException
     override def syntaxException(message: String, pos: InputPosition): RuntimeException = new DummyException
 
     override def syntaxException(

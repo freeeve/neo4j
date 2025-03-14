@@ -110,12 +110,6 @@ class FabricParsingPropertyTest extends CypherFunSuite
 
   private val dummyExceptionFactory = new CypherExceptionFactory {
 
-    override def arithmeticException(
-      gqlStatusObject: ErrorGqlStatusObject,
-      message: String,
-      cause: Exception
-    ): RuntimeException = new DummyException
-    override def arithmeticException(message: String, cause: Exception): RuntimeException = new DummyException
     override def syntaxException(message: String, pos: InputPosition): RuntimeException = new DummyException
 
     override def syntaxException(

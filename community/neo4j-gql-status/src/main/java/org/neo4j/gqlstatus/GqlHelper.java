@@ -123,6 +123,16 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getGql22007_22N01(String value, List<String> valueTypeList, String valueType) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N01)
+                        .withParam(GqlParams.StringParam.value, value)
+                        .withParam(GqlParams.ListParam.valueTypeList, valueTypeList)
+                        .withParam(GqlParams.StringParam.valueType, valueType)
+                        .build())
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql22007_22N03(
             String component, String valueType, Number lower, Number upper, Object value) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)

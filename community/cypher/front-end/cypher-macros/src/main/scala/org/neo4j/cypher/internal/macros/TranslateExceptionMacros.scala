@@ -49,7 +49,7 @@ object TranslateExceptionMacros {
             throw new org.neo4j.exceptions.CypherExecutionException(e.getMessage, e)
 
           case e: java.lang.ArithmeticException =>
-            throw new org.neo4j.exceptions.ArithmeticException(e.getMessage, e)
+            throw org.neo4j.exceptions.ArithmeticException.wrappedArithmeticException("", "", e)
         }
       """
   }

@@ -512,12 +512,12 @@ public final class DateTimeValue extends TemporalValue<ZonedDateTime, DateTimeVa
 
     @Override
     public DateTimeValue add(DurationValue duration) {
-        return replacement(assertValidArithmetic(() -> value.plus(duration)));
+        return replacement(assertValidArithmetic(() -> value.plus(duration), value + " + " + duration, "+"));
     }
 
     @Override
     public DateTimeValue sub(DurationValue duration) {
-        return replacement(assertValidArithmetic(() -> value.minus(duration)));
+        return replacement(assertValidArithmetic(() -> value.minus(duration), value + " - " + duration, "-"));
     }
 
     @Override

@@ -983,8 +983,7 @@ public abstract class ListValue extends VirtualValue implements SequenceValue, I
         try {
             return Numbers.safeCastLongToInt(actualSize());
         } catch (java.lang.ArithmeticException e) {
-            // TODO: STATUS_22003
-            throw new ArithmeticException("numeric value out of range", e);
+            throw ArithmeticException.numericValueOutOfRangeWithCause(String.valueOf(actualSize()), "Long to Int", e);
         }
     }
 

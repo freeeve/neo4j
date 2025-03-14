@@ -141,8 +141,7 @@ public abstract class IntegralRangeListValue extends ListValue {
         public ArrayValue toStorableArray() {
             int size = intSize();
             if (size < 0) {
-                // TODO: STATUS_22003
-                throw new ArithmeticException("numeric value out of range");
+                throw ArithmeticException.numericValueOutOfRange(String.valueOf(size), "range()");
             }
 
             int current = start;
@@ -180,8 +179,7 @@ public abstract class IntegralRangeListValue extends ListValue {
                     try {
                         return Math.addExact(diff, 1L);
                     } catch (java.lang.ArithmeticException e) {
-                        // TODO: STATUS_22003
-                        throw new ArithmeticException("numeric value out of range", e);
+                        throw ArithmeticException.numericValueOutOfRangeWithCause(diff + "+1", "+", e);
                     }
                 }
             }
@@ -243,8 +241,7 @@ public abstract class IntegralRangeListValue extends ListValue {
             public ArrayValue toStorableArray() {
                 int size = (int) actualSize();
                 if (size < 0) {
-                    // TODO: STATUS_22003
-                    throw new ArithmeticException("numeric value out of range");
+                    throw ArithmeticException.numericValueOutOfRange(String.valueOf(size), "range()");
                 }
 
                 long current = start;

@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.util
 
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory.ArithmeticException
 import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory.SyntaxException
 import org.neo4j.gqlstatus.CommonGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
@@ -49,17 +48,6 @@ object OpenCypherExceptionFactory {
 }
 
 case class OpenCypherExceptionFactory(preParserOffset: Option[InputPosition]) extends CypherExceptionFactory {
-
-  override def arithmeticException(message: String, cause: Exception): CypherException =
-    new ArithmeticException(message, cause)
-
-  override def arithmeticException(
-    gqlStatusObject: ErrorGqlStatusObject,
-    message: String,
-    cause: Exception
-  ): CypherException = {
-    new ArithmeticException(gqlStatusObject, message, cause)
-  }
 
   override def syntaxException(message: String, pos: InputPosition): CypherException = {
     val adjustedPosition = pos.withOffset(preParserOffset)

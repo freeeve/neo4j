@@ -51,6 +51,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.neo4j.exceptions.ArithmeticException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.TemporalParseException;
 import org.neo4j.exceptions.UnsupportedTemporalUnitException;
@@ -468,6 +469,20 @@ class DateTimeValueTest {
     }
 
     @Test
+    void shouldFailOnOverflowWhenAddingDurationToDateTimes() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> DateTimeValue.MAX_VALUE.add(DurationValue.duration(0, 0, 0, 1)))
+                .isInstanceOf(ArithmeticException.class)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22003)
+                .hasStatusDescription(
+                        "error: data exception - numeric value out of range. The numeric value +999999999-12-31T23:59:59.999999999+18:00 + PT0.000000001S is outside the required range.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N28)
+                .hasStatusDescription(
+                        "error: data exception - overflow error. The result of the operation '+' has caused an overflow.");
+    }
+
+    @Test
     void shouldReuseInstanceInArithmetics() {
         final DateTimeValue datetime = datetime(date(2018, 2, 1), time(1, 17, 3, 0, UTC));
         assertSame(datetime, datetime.add(DurationValue.duration(0, 0, 0, 0)));
@@ -484,6 +499,20 @@ class DateTimeValueTest {
         assertEquals(
                 datetime(date(2018, 2, 28), time(0, 0, 0, 0, UTC)),
                 datetime(date(2018, 1, 31), time(0, 0, 0, 0, UTC)).sub(DurationValue.duration(-1, 0, 0, 0)));
+    }
+
+    @Test
+    void shouldFailOnOverflowWhenSubtractionDurationFromDateTimes() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> DateTimeValue.MIN_VALUE.sub(DurationValue.duration(0, 0, 1, 0)))
+                .isInstanceOf(ArithmeticException.class)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22003)
+                .hasStatusDescription(
+                        "error: data exception - numeric value out of range. The numeric value -999999999-01-01T00:00-18:00 - PT1S is outside the required range.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N28)
+                .hasStatusDescription(
+                        "error: data exception - overflow error. The result of the operation '-' has caused an overflow.");
     }
 
     @Test

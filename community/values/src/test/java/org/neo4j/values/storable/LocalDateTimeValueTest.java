@@ -33,6 +33,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.neo4j.exceptions.ArithmeticException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
@@ -83,6 +84,36 @@ class LocalDateTimeValueTest {
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N11)
                 .hasStatusDescription(
                         "error: data exception - invalid argument. Invalid argument: cannot process 'epochSecond'.");
+    }
+
+    @Test
+    void shouldFailOnOverflowWhenAddingDurationToLocalDateTimes() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> localDateTime(date(+999999999, 10, 29), localTime(0, 0, 0, 0))
+                                .add(DurationValue.duration(8, 7, 87, 0)))
+                .isInstanceOf(ArithmeticException.class)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22003)
+                .hasStatusDescription(
+                        "error: data exception - numeric value out of range. The numeric value +999999999-10-29T00:00 + P8M7DT1M27S is outside the required range.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N28)
+                .hasStatusDescription(
+                        "error: data exception - overflow error. The result of the operation '+' has caused an overflow.");
+    }
+
+    @Test
+    void shouldFailOnOverflowWhenSubtractionDurationFromLocalDateTimes() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> localDateTime(date(-999999999, 1, 1), localTime(1, 0, 0, 0))
+                                .sub(DurationValue.duration(0, 0, 3700, 0)))
+                .isInstanceOf(ArithmeticException.class)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22003)
+                .hasStatusDescription(
+                        "error: data exception - numeric value out of range. The numeric value -999999999-01-01T01:00 - PT1H1M40S is outside the required range.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N28)
+                .hasStatusDescription(
+                        "error: data exception - overflow error. The result of the operation '-' has caused an overflow.");
     }
 
     @Test

@@ -19,6 +19,8 @@
  */
 package org.neo4j.exceptions;
 
+import static java.lang.String.format;
+
 import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
@@ -486,6 +488,11 @@ public class CypherTypeException extends Neo4jException {
                                 .build())
                         .build(),
                 legacyMessage);
+    }
+
+    public static CypherTypeException integerOutOfBounds(String component, Number lower, Number upper, String input) {
+        var gql = GqlHelper.getGql22003_22N03(component, "INTEGER", lower, upper, input);
+        return new CypherTypeException(gql, format("integer, %s, is too large", input));
     }
 
     @Override

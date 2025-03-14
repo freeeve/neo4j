@@ -54,8 +54,11 @@ import java.time.temporal.Temporal;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.neo4j.exceptions.ArithmeticException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.TemporalParseException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.values.utils.TemporalUtil;
 
@@ -351,6 +354,34 @@ class DurationValueTest {
         assertEquals(LocalDate.of(2017, 12, 4), LocalDate.of(2017, 12, 4).minus(parse("PT24H-1S")), "seconds");
         assertEquals(LocalDate.of(2017, 12, 5), LocalDate.of(2017, 12, 4).plus(parse("P1D")), "days");
         assertEquals(LocalDate.of(2017, 12, 3), LocalDate.of(2017, 12, 4).minus(parse("P1D")), "days");
+    }
+
+    @Test
+    void shouldFailOnOverflowWhenAddingDurationToTemporal() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> DurationValue.MAX_VALUE.addTo(LocalDate.of(2017, 12, 3)))
+                .isInstanceOf(ArithmeticException.class)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22003)
+                .hasStatusDescription(
+                        "error: data exception - numeric value out of range. The numeric value 2017-12-03 + 106751991167300 Days is outside the required range.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N28)
+                .hasStatusDescription(
+                        "error: data exception - overflow error. The result of the operation '+' has caused an overflow.");
+    }
+
+    @Test
+    void shouldFailOnOverflowWhenSubtractingDurationFromTemporal() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(
+                        () -> DurationValue.MAX_VALUE.subtractFrom(LocalDate.of(2017, 12, 3)))
+                .isInstanceOf(ArithmeticException.class)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22003)
+                .hasStatusDescription(
+                        "error: data exception - numeric value out of range. The numeric value 2017-12-03 - 106751991167300 Days is outside the required range.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N28)
+                .hasStatusDescription(
+                        "error: data exception - overflow error. The result of the operation '-' has caused an overflow.");
     }
 
     @Test

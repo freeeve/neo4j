@@ -824,6 +824,17 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, String.format("Cannot construct %s from: %s", temporal, got));
     }
 
+    public static InvalidArgumentException durationBetweenNonTemporalValues(
+            String value, List<String> valueTypeList, String valueType) {
+        var gql = GqlHelper.getGql22007_22N01(value, valueTypeList, valueType);
+        return new InvalidArgumentException(gql, "Can only compute durations between TemporalValues.");
+    }
+
+    public static InvalidArgumentException emptyBuilderState() {
+        var gql = GqlHelper.getGql22007_22N12("null");
+        return new InvalidArgumentException(gql, "Builder state empty");
+    }
+
     public static InvalidArgumentException needIntegerOrFloat(String gotPretty, String gotType) {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("INTEGER", "FLOAT"), gotType);
         return new InvalidArgumentException(gql, "Factor must be either integer of floating point number.");

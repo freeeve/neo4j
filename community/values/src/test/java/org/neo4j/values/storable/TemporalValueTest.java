@@ -21,18 +21,27 @@ package org.neo4j.values.storable;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.neo4j.values.storable.DateTimeValue.builder;
 import static org.neo4j.values.storable.DateTimeValue.datetime;
 import static org.neo4j.values.virtual.VirtualValues.EMPTY_MAP;
 
+import java.time.Year;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.Temporal;
 import java.time.temporal.TemporalUnit;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.values.virtual.MapValue;
 
-public class TemporalValueTest {
+class TemporalValueTest {
+
+    private FrozenClock clock = new FrozenClock("UTC");
 
     @Test
     void shouldTruncateNicely() {
@@ -46,5 +55,35 @@ public class TemporalValueTest {
                 .satisfies(e -> assertEquals(
                         e.cause().get().statusDescription(),
                         "error: data exception - invalid argument. Invalid argument: cannot process 'Weeks'."));
+    }
+
+    @Test
+    void shouldNotAcceptNonTemporalValuesInUntil() {
+        TemporalValue<ZonedDateTime, DateTimeValue> t = datetime(0, 1, 1, 14, 0, 3, 0, "UTC");
+        TemporalUnit unit = ChronoUnit.WEEKS;
+        Temporal nonTemporalValue = Year.of(2025);
+
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> t.until(nonTemporalValue, unit))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Can only compute durations between TemporalValues.")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22007)
+                .hasStatusDescription("error: data exception - invalid date, time, or datetime format")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N01)
+                .hasStatusDescription(
+                        "error: data exception - invalid type. Expected the value 2025 to be of type DATE, LOCAL DATETIME, LOCAL TIME, ZONED DATETIME or ZONED TIME, but was of type java.time.temporal.Temporal.");
+    }
+
+    @Test
+    void shouldNotAcceptEmptyBuilderState() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> builder(clock).build())
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasMessage("Builder state empty")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22007)
+                .hasStatusDescription("error: data exception - invalid date, time, or datetime format")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N12)
+                .hasStatusDescription(
+                        "error: data exception - invalid date, time, or datetime format. Invalid argument: cannot process 'null'.");
     }
 }

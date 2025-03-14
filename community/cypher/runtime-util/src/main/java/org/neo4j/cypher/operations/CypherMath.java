@@ -59,7 +59,7 @@ public final class CypherMath {
             try {
                 return ((NumberValue) lhs).plus((NumberValue) rhs);
             } catch (java.lang.ArithmeticException e) {
-                throw new ArithmeticException(e.getMessage(), e);
+                throw ArithmeticException.wrappedArithmeticException(lhs.prettify() + " + " + rhs.prettify(), "+", e);
             }
         }
         // List addition
@@ -144,7 +144,7 @@ public final class CypherMath {
             try {
                 return ((NumberValue) lhs).minus((NumberValue) rhs);
             } catch (java.lang.ArithmeticException e) {
-                throw new ArithmeticException(e.getMessage(), e);
+                throw ArithmeticException.wrappedArithmeticException(lhs.prettify() + " - " + rhs.prettify(), "-", e);
             }
         }
         // Temporal values
@@ -181,7 +181,7 @@ public final class CypherMath {
             try {
                 return ((NumberValue) lhs).times((NumberValue) rhs);
             } catch (java.lang.ArithmeticException e) {
-                throw new ArithmeticException(e.getMessage(), e);
+                throw ArithmeticException.wrappedArithmeticException(lhs.prettify() + " * " + rhs.prettify(), "*", e);
             }
         }
         // Temporal values
@@ -256,7 +256,7 @@ public final class CypherMath {
                     return longValue(((NumberValue) lhs).longValue() % ((NumberValue) rhs).longValue());
                 }
             } catch (java.lang.ArithmeticException e) {
-                throw new ArithmeticException(e.getMessage(), e);
+                throw ArithmeticException.wrappedArithmeticException(lhs.prettify() + " % " + rhs.prettify(), "%", e);
             }
         }
 

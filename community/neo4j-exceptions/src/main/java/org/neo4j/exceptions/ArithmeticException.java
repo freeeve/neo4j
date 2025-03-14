@@ -26,16 +26,9 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class ArithmeticException extends Neo4jException {
-    public ArithmeticException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     public ArithmeticException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
-    }
-
-    public ArithmeticException(String message) {
-        super(message);
     }
 
     public ArithmeticException(ErrorGqlStatusObject gqlStatusObject, String message) {
@@ -52,6 +45,17 @@ public class ArithmeticException extends Neo4jException {
         return new ArithmeticException(gql, "long overflow");
     }
 
+    public static ArithmeticException integerOverflow(String value, String operation, Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, value)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N28)
+                        .withParam(GqlParams.StringParam.operation, operation)
+                        .build())
+                .build();
+        return new ArithmeticException(
+                gql, String.format("Integer overflow, cannot count to number larger than %s", Long.MAX_VALUE), cause);
+    }
+
     public static ArithmeticException floatOverflow(String value, String operation) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
                 .withParam(GqlParams.StringParam.value, value)
@@ -62,6 +66,26 @@ public class ArithmeticException extends Neo4jException {
         return new ArithmeticException(gql, value + " caused an overflow.");
     }
 
+    public static ArithmeticException numericValueOutOfRange(String value, String operation) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, value)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N28)
+                        .withParam(GqlParams.StringParam.operation, operation)
+                        .build())
+                .build();
+        return new ArithmeticException(gql, "numeric value out of range");
+    }
+
+    public static ArithmeticException numericValueOutOfRangeWithCause(String value, String operation, Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, value)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N28)
+                        .withParam(GqlParams.StringParam.operation, operation)
+                        .build())
+                .build();
+        return new ArithmeticException(gql, "numeric value out of range", cause);
+    }
+
     public static ArithmeticException divisionByZero() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22012)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N28)
@@ -69,6 +93,16 @@ public class ArithmeticException extends Neo4jException {
                         .build())
                 .build();
         return new ArithmeticException(gql, "/ by zero");
+    }
+
+    public static ArithmeticException wrappedArithmeticException(String value, String operation, Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, value)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N28)
+                        .withParam(GqlParams.StringParam.operation, operation)
+                        .build())
+                .build();
+        return new ArithmeticException(gql, cause.getMessage(), cause);
     }
 
     @Override

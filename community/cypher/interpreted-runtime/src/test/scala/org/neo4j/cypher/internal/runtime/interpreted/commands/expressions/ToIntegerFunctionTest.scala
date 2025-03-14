@@ -25,7 +25,10 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.LiteralHelper.lite
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.functionArgumentGqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.CypherTypeException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.CoordinateReferenceSystem
 import org.neo4j.values.storable.LongValue
@@ -119,18 +122,42 @@ class ToIntegerFunctionTest extends CypherFunSuite with CypherScalaCheckDrivenPr
   }
 
   test(s"toInteger should fail for larger integers larger that 8 bytes") {
-    val caughtException = the[CypherTypeException] thrownBy toInteger("10508455564958384115")
-    caughtException.getMessage should be("integer, 10508455564958384115, is too large")
+    the[CypherTypeException] thrownBy toInteger("10508455564958384115") should be(gqlException(
+      "integer, 10508455564958384115, is too large",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22003,
+        "error: data exception - numeric value out of range. The numeric value 10508455564958384115 is outside the required range."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_22N03,
+        "error: data exception - specified numeric value out of range. Expected 'input' to be of type INTEGER and in the range -9223372036854775808 to 9223372036854775807 but found 10508455564958384115."
+      )
+    ))
   }
 
   test(s"toInteger cannot handle -2^63-1") {
-    val caughtException = the[CypherTypeException] thrownBy toInteger("-9223372036854775809")
-    caughtException.getMessage should be("integer, -9223372036854775809, is too large")
+    the[CypherTypeException] thrownBy toInteger("-9223372036854775809") should be(gqlException(
+      "integer, -9223372036854775809, is too large",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22003,
+        "error: data exception - numeric value out of range. The numeric value -9223372036854775809 is outside the required range."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_22N03,
+        "error: data exception - specified numeric value out of range. Expected 'input' to be of type INTEGER and in the range -9223372036854775808 to 9223372036854775807 but found -9223372036854775809."
+      )
+    ))
   }
 
   test(s"toInteger cannot handle 2^63") {
-    val caughtException = the[CypherTypeException] thrownBy toInteger("9223372036854775808")
-    caughtException.getMessage should be("integer, 9223372036854775808, is too large")
+    the[CypherTypeException] thrownBy toInteger("9223372036854775808") should be(gqlException(
+      "integer, 9223372036854775808, is too large",
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22003,
+        "error: data exception - numeric value out of range. The numeric value 9223372036854775808 is outside the required range."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_22N03,
+        "error: data exception - specified numeric value out of range. Expected 'input' to be of type INTEGER and in the range -9223372036854775808 to 9223372036854775807 but found 9223372036854775808."
+      )
+    ))
   }
 
   test(

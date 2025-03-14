@@ -247,13 +247,17 @@ public final class DateValue extends TemporalValue<LocalDate, DateValue> {
     @Override
     public DateValue add(DurationValue duration) {
         return replacement(assertValidArithmetic(
-                () -> value.plusMonths(duration.totalMonths()).plusDays(duration.totalDays())));
+                () -> value.plusMonths(duration.totalMonths()).plusDays(duration.totalDays()),
+                value + " + " + duration,
+                "+"));
     }
 
     @Override
     public DateValue sub(DurationValue duration) {
         return replacement(assertValidArithmetic(
-                () -> value.minusMonths(duration.totalMonths()).minusDays(duration.totalDays())));
+                () -> value.minusMonths(duration.totalMonths()).minusDays(duration.totalDays()),
+                value + " - " + duration,
+                "-"));
     }
 
     @Override

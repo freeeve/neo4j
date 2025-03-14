@@ -500,14 +500,16 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
             try {
                 from = from.plus(months, ChronoUnit.MONTHS);
             } catch (DateTimeException | java.lang.ArithmeticException e) {
-                throw new org.neo4j.exceptions.ArithmeticException(e.getMessage(), e);
+                throw org.neo4j.exceptions.ArithmeticException.wrappedArithmeticException(
+                        String.format("durationBetween(%s, %s)", from, to), "durationBetween()", e);
             }
 
             days = assertValidUntil(from, to, ChronoUnit.DAYS);
             try {
                 from = from.plus(days, ChronoUnit.DAYS);
             } catch (DateTimeException | java.lang.ArithmeticException e) {
-                throw new org.neo4j.exceptions.ArithmeticException(e.getMessage(), e);
+                throw org.neo4j.exceptions.ArithmeticException.wrappedArithmeticException(
+                        String.format("durationBetween(%s, %s)", from, to), "durationBetween()", e);
             }
         }
         long nanos = assertValidUntil(from, to, NANOS);
@@ -940,7 +942,8 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
         try {
             return temporal.plus(amountToAdd, unit);
         } catch (DateTimeException | java.lang.ArithmeticException e) {
-            throw new org.neo4j.exceptions.ArithmeticException(e.getMessage(), e);
+            throw org.neo4j.exceptions.ArithmeticException.wrappedArithmeticException(
+                    String.format("%s + %s %s", temporal, amountToAdd, unit), "+", e);
         }
     }
 
@@ -948,7 +951,8 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
         try {
             return temporal.minus(amountToAdd, unit);
         } catch (DateTimeException | java.lang.ArithmeticException e) {
-            throw new org.neo4j.exceptions.ArithmeticException(e.getMessage(), e);
+            throw org.neo4j.exceptions.ArithmeticException.wrappedArithmeticException(
+                    String.format("%s - %s %s", temporal, amountToAdd, unit), "-", e);
         }
     }
 

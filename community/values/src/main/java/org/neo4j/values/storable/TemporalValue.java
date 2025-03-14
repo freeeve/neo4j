@@ -47,6 +47,7 @@ import java.time.temporal.UnsupportedTemporalTypeException;
 import java.time.temporal.ValueRange;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -168,7 +169,10 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
     @Override
     public final long until(Temporal endExclusive, TemporalUnit unit) {
         if (!(endExclusive instanceof TemporalValue to)) {
-            throw new InvalidArgumentException("Can only compute durations between TemporalValues.");
+            throw InvalidArgumentException.durationBetweenNonTemporalValues(
+                    endExclusive.toString(),
+                    List.of("DATE", "LOCAL DATETIME", "LOCAL TIME", "ZONED DATETIME", "ZONED TIME"),
+                    Temporal.class.getName());
         }
         TemporalValue from = this;
 
@@ -411,7 +415,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         @Override
         public final Result build() {
             if (state == null) {
-                throw new InvalidArgumentException("Builder state empty");
+                throw InvalidArgumentException.emptyBuilderState();
             }
             state.checkAssignments(this.supportsDate());
             return buildInternal();
@@ -1242,11 +1246,11 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         }
     }
 
-    static <TEMP extends Temporal> TEMP assertValidArithmetic(Supplier<TEMP> func) {
+    static <TEMP extends Temporal> TEMP assertValidArithmetic(Supplier<TEMP> func, String value, String operation) {
         try {
             return func.get();
         } catch (DateTimeException | ArithmeticException e) {
-            throw new ArithmeticException(e.getMessage(), e);
+            throw org.neo4j.exceptions.ArithmeticException.wrappedArithmeticException(value, operation, e);
         }
     }
 

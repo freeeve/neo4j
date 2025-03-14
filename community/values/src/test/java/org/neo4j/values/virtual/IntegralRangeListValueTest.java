@@ -27,6 +27,8 @@ import static org.neo4j.values.virtual.VirtualValues.list;
 import static org.neo4j.values.virtual.VirtualValues.range;
 
 import org.junit.jupiter.api.Test;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.values.storable.ArrayValue;
 import org.neo4j.values.storable.Values;
 
@@ -90,6 +92,21 @@ class IntegralRangeListValueTest {
         ArrayValue expected = Values.longArray(new long[] {5, 7, 9, 11});
 
         assertEquals(expected, range.toStorableArray());
+    }
+
+    @Test
+    void rangeListsShouldFailOnSizeOverflow() {
+        ListValue range = range(0, Long.MAX_VALUE, 1L);
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(range::actualSize)
+                .isInstanceOf(org.neo4j.exceptions.ArithmeticException.class)
+                .hasMessage("numeric value out of range")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22003)
+                .hasStatusDescription(
+                        "error: data exception - numeric value out of range. The numeric value 9223372036854775807+1 is outside the required range.")
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N28)
+                .hasStatusDescription(
+                        "error: data exception - overflow error. The result of the operation '+' has caused an overflow.");
     }
 
     private void assertSame(ListValue list, ListValue expected) {

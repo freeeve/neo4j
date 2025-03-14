@@ -39,26 +39,36 @@ case class NodeCountFromCountStorePipe(ident: String, labels: List[Option[LazyLa
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     var count = 1L
     val it = labels.iterator
-    try {
-      while (it.hasNext) {
-        it.next() match {
-          case Some(lazyLabel) =>
-            val idOfLabel = lazyLabel.getId(state.query)
-            if (idOfLabel == LazyLabel.UNKNOWN) {
-              count = 0
-            } else {
+    while (it.hasNext) {
+      it.next() match {
+        case Some(lazyLabel) =>
+          val idOfLabel = lazyLabel.getId(state.query)
+          if (idOfLabel == LazyLabel.UNKNOWN) {
+            count = 0
+          } else {
+            try {
               count = Math.multiplyExact(count, state.query.nodeCountByCountStore(idOfLabel))
+            } catch {
+              case e: ArithmeticException =>
+                throw org.neo4j.exceptions.ArithmeticException.integerOverflow(
+                  count + "*" + state.query.nodeCountByCountStore(idOfLabel),
+                  "count()",
+                  e
+                )
             }
-          case _ =>
+          }
+        case _ =>
+          try {
             count = Math.multiplyExact(count, state.query.nodeCountByCountStore(NameId.WILDCARD))
-        }
+          } catch {
+            case e: ArithmeticException =>
+              throw org.neo4j.exceptions.ArithmeticException.integerOverflow(
+                count + "*" + state.query.nodeCountByCountStore(NameId.WILDCARD),
+                "count()",
+                e
+              )
+          }
       }
-    } catch {
-      case e: ArithmeticException =>
-        throw new org.neo4j.exceptions.ArithmeticException(
-          s"Integer overflow, cannot count to number larger than ${Long.MaxValue}",
-          e
-        )
     }
 
     val baseContext = state.newRowWithArgument(rowFactory)
