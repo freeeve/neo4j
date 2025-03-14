@@ -26,6 +26,7 @@ import static org.neo4j.kernel.KernelVersion.VERSION_REL_UNIQUE_CONSTRAINTS_INTR
 import static org.neo4j.kernel.KernelVersion.VERSION_TYPE_CONSTRAINTS_INTRODUCED;
 import static org.neo4j.kernel.KernelVersion.VERSION_UNIONS_AND_LIST_TYPE_CONSTRAINTS_INTRODUCED;
 import static org.neo4j.kernel.KernelVersion.VERSION_VECTOR_2_INTRODUCED;
+import static org.neo4j.kernel.KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED;
 
 import org.neo4j.internal.kernel.api.exceptions.DeletedNodeStillHasRelationshipsException;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
@@ -102,6 +103,11 @@ class IntegrityValidator {
                         && kernelVersion.isLessThan(VERSION_UNIONS_AND_LIST_TYPE_CONSTRAINTS_INTRODUCED)) {
                     throw upgradeNeededForSchemaRule(
                             schemaType, constraint, kernelVersion, VERSION_UNIONS_AND_LIST_TYPE_CONSTRAINTS_INTRODUCED);
+                }
+                if ((TypeRepresentation.hasVectorTypes(propertyType))
+                        && kernelVersion.isLessThan(VERSION_VECTOR_TYPE_INTRODUCED)) {
+                    throw upgradeNeededForSchemaRule(
+                            schemaType, constraint, kernelVersion, VERSION_VECTOR_TYPE_INTRODUCED);
                 }
             }
 

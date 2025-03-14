@@ -1,0 +1,60 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.internal.schema.constraints;
+
+import static org.junit.jupiter.api.Assertions.assertSame;
+
+import java.util.stream.Stream;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.values.storable.Value;
+import org.neo4j.values.storable.Values;
+
+@ExtendWith(RandomExtension.class)
+class VectorTypeTest {
+    static Stream<Arguments> values() {
+        return Stream.of(
+                Arguments.of(Values.int8Vector(new byte[] {2, 3, 5, 7, 11}), VectorType.int8Vector(5)),
+                Arguments.of(Values.int16Vector(new short[] {2, 3, 5, 7, 11}), VectorType.int16Vector(5)),
+                Arguments.of(Values.int32Vector(new int[] {2, 3, 5, 7, 11}), VectorType.int32Vector(5)),
+                Arguments.of(Values.int64Vector(new long[] {2, 3, 5, 7, 11}), VectorType.int64Vector(5)),
+                Arguments.of(Values.float32Vector(new float[] {2, 3, 5, 7, 11}), VectorType.float32Vector(5)),
+                Arguments.of(Values.float64Vector(new double[] {2, 3, 5, 7, 11}), VectorType.float64Vector(5)));
+    }
+
+    @ParameterizedTest
+    @MethodSource("values")
+    void testInferringTypeProduceInternedObjects(Value val, ConstrainableType expected) {
+        var actual = TypeRepresentation.infer(val);
+        // Check object identity
+        assertSame(actual, expected);
+    }
+
+    @ParameterizedTest
+    @MethodSource("values")
+    void testDeserializingTypeProduceInternedObjects(Value ignored, ConstrainableType expected) {
+        var actual = TypeRepresentation.deserialize(expected.serialize());
+        // Check object identity
+        assertSame(actual, expected);
+    }
+}

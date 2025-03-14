@@ -27,8 +27,8 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.schema.ConstraintType;
 import org.neo4j.graphdb.schema.PropertyType;
 import org.neo4j.internal.schema.ConstraintDescriptor;
+import org.neo4j.internal.schema.constraints.ConstrainableType;
 import org.neo4j.internal.schema.constraints.PropertyTypeSet;
-import org.neo4j.internal.schema.constraints.SchemaValueType;
 
 public class RelationshipPropertyTypeConstraintDefinition extends RelationshipConstraintDefinition {
     public RelationshipPropertyTypeConstraintDefinition(
@@ -95,6 +95,6 @@ public class RelationshipPropertyTypeConstraintDefinition extends RelationshipCo
     public PropertyType[] getPropertyType() {
         assertInUnterminatedTransaction();
         PropertyTypeSet propertyTypeSet = constraint.asPropertyTypeConstraint().propertyType();
-        return propertyTypeSet.stream().map(SchemaValueType::toPublicApi).toArray(PropertyType[]::new);
+        return propertyTypeSet.stream().map(ConstrainableType::toPublicApi).toArray(PropertyType[]::new);
     }
 }

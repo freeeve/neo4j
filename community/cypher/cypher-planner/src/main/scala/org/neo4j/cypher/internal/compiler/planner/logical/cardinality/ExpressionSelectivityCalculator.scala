@@ -113,7 +113,7 @@ import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.PointType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.internal.helpers.MathUtil.Erf.erf
-import org.neo4j.internal.schema.constraints.SchemaValueType
+import org.neo4j.internal.schema.constraints.ConstrainableType
 
 case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: SelectivityCombiner) {
 
@@ -153,7 +153,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo,
     existenceConstraints: Set[(ElementTypeName, String)],
-    typeConstraints: Map[ElementTypeName, Map[String, Seq[SchemaValueType]]]
+    typeConstraints: Map[ElementTypeName, Map[String, Seq[ConstrainableType]]]
   )(
     implicit semanticTable: SemanticTable,
     indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
@@ -490,7 +490,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo,
     propertyKey: PropertyKeyName,
-    typeConstraints: Map[ElementTypeName, Map[String, Seq[SchemaValueType]]]
+    typeConstraints: Map[ElementTypeName, Map[String, Seq[ConstrainableType]]]
   )(implicit semanticTable: SemanticTable): Selectivity = {
     val valueTypeContradictsTypeConstraint =
       propertyTypeSelectivityFromTypeConstraints(
@@ -820,7 +820,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     typeName: CypherType,
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo,
-    typeConstraints: Map[ElementTypeName, Map[String, Seq[SchemaValueType]]]
+    typeConstraints: Map[ElementTypeName, Map[String, Seq[ConstrainableType]]]
   )(implicit semanticTable: SemanticTable): Selectivity = {
     val typeConstraintSelectivity: Option[Selectivity] =
       propertyTypeSelectivityFromTypeConstraints(
@@ -847,7 +847,7 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
     typeName: CypherType,
     labelInfo: LabelInfo,
     relTypeInfo: RelTypeInfo,
-    typeConstraints: Map[ElementTypeName, Map[String, Seq[SchemaValueType]]]
+    typeConstraints: Map[ElementTypeName, Map[String, Seq[ConstrainableType]]]
   ): Option[Selectivity] = {
     val labels = labelInfo.getOrElse(variable, Set.empty)
     val relTypes = relTypeInfo.get(variable)

@@ -66,7 +66,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Selectivity
-import org.neo4j.internal.schema.constraints.SchemaValueType
+import org.neo4j.internal.schema.constraints.ConstrainableType
 
 import scala.annotation.tailrec
 
@@ -118,12 +118,12 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
     }
 
   private val getNodePropertiesWithTypeConstraint =
-    CachedFunction[LabelName, (ElementTypeName, Map[String, Seq[SchemaValueType]])] {
+    CachedFunction[LabelName, (ElementTypeName, Map[String, Seq[ConstrainableType]])] {
       label => label -> planContext.getNodePropertiesWithTypeConstraint(label.name)
     }
 
   private val getRelationshipPropertiesWithTypeConstraint =
-    CachedFunction[RelTypeName, (ElementTypeName, Map[String, Seq[SchemaValueType]])] {
+    CachedFunction[RelTypeName, (ElementTypeName, Map[String, Seq[ConstrainableType]])] {
       relTypeName => relTypeName -> planContext.getRelationshipPropertiesWithTypeConstraint(relTypeName.name)
     }
 
@@ -155,7 +155,7 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
       forLabels ++ forRelationships
     }
 
-    val typeConstraints: Map[ElementTypeName, Map[String, Seq[SchemaValueType]]] = {
+    val typeConstraints: Map[ElementTypeName, Map[String, Seq[ConstrainableType]]] = {
       val forLabels = labelInfo.values.flatten.map(getNodePropertiesWithTypeConstraint).toMap
       val forRelationships = relTypeInfo.values.map(getRelationshipPropertiesWithTypeConstraint).toMap
       forLabels ++ forRelationships

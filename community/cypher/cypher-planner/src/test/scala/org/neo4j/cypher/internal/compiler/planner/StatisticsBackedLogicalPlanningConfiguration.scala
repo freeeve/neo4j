@@ -112,7 +112,7 @@ import org.neo4j.internal.schema.IndexType.POINT
 import org.neo4j.internal.schema.IndexType.RANGE
 import org.neo4j.internal.schema.IndexType.TEXT
 import org.neo4j.internal.schema.IndexType.VECTOR
-import org.neo4j.internal.schema.constraints.SchemaValueType
+import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.notifications.NotificationWrapping
 import org.neo4j.values.storable.Values.NO_VALUE
@@ -269,7 +269,7 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
   case class PropertyTypeDefinition(
     entityType: IndexDefinition.EntityType,
     propertyKey: String,
-    propertyType: SchemaValueType
+    propertyType: ConstrainableType
   )
 
   def getProvidesOrder(indexType: IndexType): IndexOrderCapability = indexType match {
@@ -531,7 +531,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
   def addNodePropertyTypeConstraint(
     label: String,
     property: String,
-    propertyType: SchemaValueType
+    propertyType: ConstrainableType
   ): StatisticsBackedLogicalPlanningConfigurationBuilder = {
     val constraintDef = PropertyTypeDefinition(IndexDefinition.EntityType.Node(label), property, propertyType)
 
@@ -543,7 +543,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
   def addRelationshipPropertyTypeConstraint(
     relType: String,
     property: String,
-    propertyType: SchemaValueType
+    propertyType: ConstrainableType
   ): StatisticsBackedLogicalPlanningConfigurationBuilder = {
     val constraintDef = PropertyTypeDefinition(IndexDefinition.EntityType.Relationship(relType), property, propertyType)
 
@@ -1265,7 +1265,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
       override def hasNodePropertyTypeConstraint(
         labelName: String,
         propertyKey: String,
-        cypherType: SchemaValueType
+        cypherType: ConstrainableType
       ): Boolean = {
         propertyTypeConstraints.exists {
           case PropertyTypeDefinition(IndexDefinition.EntityType.Node(`labelName`), `propertyKey`, `cypherType`) => true
@@ -1273,7 +1273,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         }
       }
 
-      override def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[SchemaValueType]] = {
+      override def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[ConstrainableType]] = {
         propertyTypeConstraints.collect {
           case PropertyTypeDefinition(IndexDefinition.EntityType.Node(`labelName`), property, cypherType) =>
             property -> Seq(cypherType)
@@ -1283,7 +1283,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
       override def hasRelationshipPropertyTypeConstraint(
         relTypeName: String,
         propertyKey: String,
-        cypherType: SchemaValueType
+        cypherType: ConstrainableType
       ): Boolean = {
         propertyTypeConstraints.exists {
           case PropertyTypeDefinition(
@@ -1296,7 +1296,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
       }
 
       override def getRelationshipPropertiesWithTypeConstraint(relTypeName: String)
-        : Map[String, Seq[SchemaValueType]] = {
+        : Map[String, Seq[ConstrainableType]] = {
         propertyTypeConstraints.collect {
           case PropertyTypeDefinition(IndexDefinition.EntityType.Relationship(`relTypeName`), property, cypherType) =>
             property -> Seq(cypherType)

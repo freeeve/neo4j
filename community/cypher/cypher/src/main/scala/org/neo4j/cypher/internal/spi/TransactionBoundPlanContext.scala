@@ -59,7 +59,7 @@ import org.neo4j.internal.schema
 import org.neo4j.internal.schema.ConstraintDescriptor
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.SchemaDescriptors
-import org.neo4j.internal.schema.constraints.SchemaValueType
+import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.logging.InternalLog
@@ -464,7 +464,7 @@ class TransactionBoundPlanContext(
   override def hasNodePropertyTypeConstraint(
     labelName: String,
     propertyKey: String,
-    cypherType: SchemaValueType
+    cypherType: ConstrainableType
   ): Boolean = {
     getNodePropertiesWithTypeConstraint(labelName).get(propertyKey) match {
       case Some(Seq(`cypherType`)) => true
@@ -472,7 +472,7 @@ class TransactionBoundPlanContext(
     }
   }
 
-  override def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[SchemaValueType]] = {
+  override def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[ConstrainableType]] = {
     try {
       val labelId = getLabelId(labelName)
 
@@ -493,7 +493,7 @@ class TransactionBoundPlanContext(
   override def hasRelationshipPropertyTypeConstraint(
     relTypeName: String,
     propertyKey: String,
-    cypherType: SchemaValueType
+    cypherType: ConstrainableType
   ): Boolean = {
     getRelationshipPropertiesWithTypeConstraint(relTypeName).get(propertyKey) match {
       case Some(Seq(`cypherType`)) => true
@@ -501,7 +501,7 @@ class TransactionBoundPlanContext(
     }
   }
 
-  override def getRelationshipPropertiesWithTypeConstraint(relTypeName: String): Map[String, Seq[SchemaValueType]] = {
+  override def getRelationshipPropertiesWithTypeConstraint(relTypeName: String): Map[String, Seq[ConstrainableType]] = {
     try {
       val relTypeId = getRelTypeId(relTypeName)
 

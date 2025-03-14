@@ -30,8 +30,10 @@ import java.time.OffsetDateTime;
 import java.time.OffsetTime;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -115,7 +117,19 @@ class TypeRepresentationTest {
                 // Special cases
                 Arguments.of(Values.byteArray(new byte[] {}), SpecialTypes.LIST_NOTHING),
                 Arguments.of(Values.NO_VALUE, SpecialTypes.NULL),
-                Arguments.of(null, SpecialTypes.NULL));
+                Arguments.of(null, SpecialTypes.NULL),
+                Arguments.of(Values.int8Vector(new byte[] {1}), VectorType.int8Vector(1)),
+                Arguments.of(Values.int8Vector(new byte[] {1, 2, 3}), VectorType.int8Vector(3)),
+                Arguments.of(Values.int16Vector(new short[] {1}), VectorType.int16Vector(1)),
+                Arguments.of(Values.int16Vector(new short[] {1, 2, 3}), VectorType.int16Vector(3)),
+                Arguments.of(Values.int32Vector(new int[] {1}), VectorType.int32Vector(1)),
+                Arguments.of(Values.int32Vector(new int[] {1, 2, 3}), VectorType.int32Vector(3)),
+                Arguments.of(Values.int64Vector(new long[] {1}), VectorType.int64Vector(1)),
+                Arguments.of(Values.int64Vector(new long[] {1, 2, 3}), VectorType.int64Vector(3)),
+                Arguments.of(Values.float32Vector(new float[] {1}), VectorType.float32Vector(1)),
+                Arguments.of(Values.float32Vector(new float[] {1, 2, 3}), VectorType.float32Vector(3)),
+                Arguments.of(Values.float64Vector(new double[] {1}), VectorType.float64Vector(1)),
+                Arguments.of(Values.float64Vector(new double[] {1, 2, 3}), VectorType.float64Vector(3)));
     }
 
     @ParameterizedTest
@@ -124,12 +138,22 @@ class TypeRepresentationTest {
         assertThat(TypeRepresentation.infer(value)).isEqualTo(expectedType);
     }
 
-    private static Stream<TypeRepresentation> enums() {
-        return Stream.concat(Stream.of(SchemaValueType.values()), Stream.of(SpecialTypes.values()));
+    private static Stream<TypeRepresentation> types() {
+        return Stream.of(
+                        Arrays.stream(SchemaValueType.values()),
+                        Arrays.stream(SpecialTypes.values()),
+                        Stream.of(
+                                VectorType.int8Vector(1), VectorType.int8Vector(3),
+                                VectorType.int16Vector(1), VectorType.int16Vector(3),
+                                VectorType.int32Vector(1), VectorType.int32Vector(3),
+                                VectorType.int64Vector(1), VectorType.int64Vector(3),
+                                VectorType.float32Vector(1), VectorType.float32Vector(3),
+                                VectorType.float64Vector(1), VectorType.float64Vector(3)))
+                .flatMap(Function.identity());
     }
 
     @ParameterizedTest
-    @MethodSource("enums")
+    @MethodSource("types")
     void testAllTypesHaveOrdering(TypeRepresentation type) {
         assertThat(TypeRepresentation.compare(type, type)).isEqualTo(0);
     }
@@ -174,7 +198,7 @@ class TypeRepresentationTest {
     @Test
     void testCIP_100Ordering() {
         // GIVEN
-        var entries = enums().collect(Collectors.toCollection(ArrayList<TypeRepresentation>::new));
+        var entries = types().collect(Collectors.toCollection(ArrayList<TypeRepresentation>::new));
         Collections.shuffle(entries, random.random());
 
         // WHEN
@@ -196,6 +220,18 @@ class TypeRepresentationTest {
             "ZONED DATETIME",
             "DURATION",
             "POINT",
+            "VECTOR<INTEGER8>(1)",
+            "VECTOR<INTEGER8>(3)",
+            "VECTOR<INTEGER16>(1)",
+            "VECTOR<INTEGER16>(3)",
+            "VECTOR<INTEGER32>(1)",
+            "VECTOR<INTEGER32>(3)",
+            "VECTOR<INTEGER64>(1)",
+            "VECTOR<INTEGER64>(3)",
+            "VECTOR<FLOAT32>(1)",
+            "VECTOR<FLOAT32>(3)",
+            "VECTOR<FLOAT64>(1)",
+            "VECTOR<FLOAT64>(3)",
             "LIST<NOTHING>",
             "LIST<BOOLEAN NOT NULL>",
             "LIST<STRING NOT NULL>",
@@ -212,5 +248,24 @@ class TypeRepresentationTest {
             "ANY",
         };
         assertThat(actual).isEqualTo(expected);
+    }
+
+    private static Stream<ConstrainableType> constrainableTypes() {
+        return Stream.of(
+                        Arrays.stream(SchemaValueType.values()),
+                        Stream.of(
+                                VectorType.int8Vector(1), VectorType.int8Vector(3),
+                                VectorType.int16Vector(1), VectorType.int16Vector(3),
+                                VectorType.int32Vector(1), VectorType.int32Vector(3),
+                                VectorType.int64Vector(1), VectorType.int64Vector(3),
+                                VectorType.float32Vector(1), VectorType.float32Vector(3),
+                                VectorType.float64Vector(1), VectorType.float64Vector(3)))
+                .flatMap(Function.identity());
+    }
+
+    @ParameterizedTest
+    @MethodSource("constrainableTypes")
+    void testSerializationRecoversValues(ConstrainableType type) {
+        assertThat(type).isEqualTo(TypeRepresentation.deserialize(type.serialize()));
     }
 }

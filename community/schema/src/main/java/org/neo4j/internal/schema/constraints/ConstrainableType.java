@@ -17,20 +17,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.internal.schema;
+package org.neo4j.internal.schema.constraints;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.neo4j.graphdb.schema.PropertyType;
 
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.neo4j.internal.schema.constraints.SchemaValueType;
+// Marker interface for Constrainable types
+public sealed interface ConstrainableType extends TypeRepresentation permits SchemaValueType, VectorType {
+    String serialize();
 
-class SchemaValueTypesTest {
-    @ParameterizedTest
-    @EnumSource(SchemaValueType.class)
-    void schemaValueTypeConversions(SchemaValueType canonicalType) {
-        assertThat(SchemaValueTypes.convertToSchemaValueType(
-                        SchemaValueTypes.convertToStringRepresentation(canonicalType)))
-                .isEqualTo(canonicalType);
-    }
+    PropertyType toPublicApi();
 }

@@ -101,7 +101,7 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_PARTITIONED_BLOCK_INDEX_RULE_VALUES = V5_23;
     public static final KernelVersion VERSION_PARTITIONED_BLOCK_TOKENS = V5_25;
     public static final KernelVersion VERSION_SPDFORMAT_INTRODUCED = V5_25;
-
+    public static final KernelVersion VERSION_VECTOR_TYPE_INTRODUCED = GLORIOUS_FUTURE;
     // Keep updated each time there is an new schema rule added
     // related to IntegrityValidator
     public static final KernelVersion LATEST_SCHEMA_CHANGE = VERSION_VECTOR_QUANTIZATION_AND_HYPER_PARAMS;

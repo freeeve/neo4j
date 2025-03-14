@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal.planner.spi
 
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
-import org.neo4j.internal.schema.constraints.SchemaValueType
+import org.neo4j.internal.schema.constraints.ConstrainableType
 
 /**
  * This is used to determine the kind of database that is being used.
@@ -172,16 +172,16 @@ trait PlanContext extends ReadTokenContext with ScopedProcedureSignatureResolver
 
   def getPropertiesWithExistenceConstraint: Set[String]
 
-  def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[SchemaValueType]]
+  def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[ConstrainableType]]
 
-  def hasNodePropertyTypeConstraint(labelName: String, propertyKey: String, cypherType: SchemaValueType): Boolean
+  def hasNodePropertyTypeConstraint(labelName: String, propertyKey: String, cypherType: ConstrainableType): Boolean
 
-  def getRelationshipPropertiesWithTypeConstraint(relTypeName: String): Map[String, Seq[SchemaValueType]]
+  def getRelationshipPropertiesWithTypeConstraint(relTypeName: String): Map[String, Seq[ConstrainableType]]
 
   def hasRelationshipPropertyTypeConstraint(
     relTypeName: String,
     propertyKey: String,
-    cypherType: SchemaValueType
+    cypherType: ConstrainableType
   ): Boolean
 
   /**

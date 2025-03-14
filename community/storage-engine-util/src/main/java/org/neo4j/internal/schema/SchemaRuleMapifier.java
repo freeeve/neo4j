@@ -30,13 +30,14 @@ import org.eclipse.collections.api.RichIterable;
 import org.eclipse.collections.api.tuple.Pair;
 import org.neo4j.common.EntityType;
 import org.neo4j.internal.kernel.api.exceptions.schema.MalformedSchemaRuleException;
+import org.neo4j.internal.schema.constraints.ConstrainableType;
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory;
 import org.neo4j.internal.schema.constraints.IndexBackedConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.NodeLabelExistenceConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.PropertyTypeSet;
 import org.neo4j.internal.schema.constraints.RelationshipEndpointLabelConstraintDescriptor;
-import org.neo4j.internal.schema.constraints.SchemaValueType;
 import org.neo4j.internal.schema.constraints.TypeConstraintDescriptor;
+import org.neo4j.internal.schema.constraints.TypeRepresentation;
 import org.neo4j.values.storable.IntArray;
 import org.neo4j.values.storable.LongValue;
 import org.neo4j.values.storable.StringArray;
@@ -189,11 +190,11 @@ public class SchemaRuleMapifier {
             }
             case PROPERTY_TYPE -> {
                 TypeConstraintDescriptor typeConstraintDescriptor = rule.asPropertyTypeConstraint();
-                PropertyTypeSet schemaValueTypes = typeConstraintDescriptor.propertyType();
-                String[] typeArray = new String[schemaValueTypes.size()];
+                PropertyTypeSet typeSet = typeConstraintDescriptor.propertyType();
+                String[] typeArray = new String[typeSet.size()];
                 int i = 0;
-                for (SchemaValueType schemaValueType : schemaValueTypes) {
-                    typeArray[i++] = schemaValueType.serialize();
+                for (ConstrainableType constraintType : typeSet) {
+                    typeArray[i++] = constraintType.serialize();
                 }
                 putStringArrayProperty(map, PROP_CONSTRAINT_ALLOWED_TYPES, typeArray);
             }
@@ -438,10 +439,10 @@ public class SchemaRuleMapifier {
     }
 
     private static PropertyTypeSet getAllowedTypes(String[] allowedTypes) throws MalformedSchemaRuleException {
-        List<SchemaValueType> types = new ArrayList<>();
+        List<ConstrainableType> types = new ArrayList<>();
         for (String allowedType : allowedTypes) {
             try {
-                types.add(SchemaValueTypes.convertToSchemaValueType(allowedType));
+                types.add(TypeRepresentation.deserialize(allowedType));
             } catch (Exception e) {
                 throw new MalformedSchemaRuleException(
                         "Did not recognize schema value type '%s' in: %s"

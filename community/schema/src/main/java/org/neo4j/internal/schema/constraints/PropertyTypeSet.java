@@ -21,7 +21,6 @@ package org.neo4j.internal.schema.constraints;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -29,16 +28,19 @@ import java.util.StringJoiner;
 import java.util.stream.Stream;
 
 /**
- * An ordered set of {@link SchemaValueType}s, used to represent unions of types.
+ * An ordered set of {@link ConstrainableType}s, used to represent unions of types.
  * The order is defined in CIP-100 and implemented in terms of the natural ordering of {@link TypeRepresentation.Ordering}.
  */
-public class PropertyTypeSet implements Iterable<SchemaValueType> {
+public class PropertyTypeSet implements Iterable<ConstrainableType> {
 
-    private final Set<SchemaValueType> lookup;
-    private final List<SchemaValueType> types;
+    private final Set<? extends ConstrainableType> lookup;
+    private final List<? extends ConstrainableType> types;
     private final boolean acceptsEmptyList;
 
-    private PropertyTypeSet(Set<SchemaValueType> lookup, List<SchemaValueType> types, boolean acceptsEmptyList) {
+    private PropertyTypeSet(
+            Set<? extends ConstrainableType> lookup,
+            List<? extends ConstrainableType> types,
+            boolean acceptsEmptyList) {
         this.lookup = lookup;
         this.types = types;
         this.acceptsEmptyList = acceptsEmptyList;
@@ -48,19 +50,19 @@ public class PropertyTypeSet implements Iterable<SchemaValueType> {
         return new PropertyTypeSet(Set.of(), List.of(), false);
     }
 
-    public static PropertyTypeSet of(Collection<SchemaValueType> types) {
+    public static PropertyTypeSet of(Collection<? extends ConstrainableType> types) {
         if (types.isEmpty()) {
             return empty();
         }
 
-        var lookup = EnumSet.copyOf(types);
+        var lookup = Set.copyOf(types);
         var uniqueTypes = lookup.stream().sorted(TypeRepresentation::compare).toList();
         var acceptsEmptyList = types.stream().anyMatch(TypeRepresentation::isList);
 
         return new PropertyTypeSet(lookup, uniqueTypes, acceptsEmptyList);
     }
 
-    public static PropertyTypeSet of(SchemaValueType... types) {
+    public static PropertyTypeSet of(ConstrainableType... types) {
         return of(Arrays.asList(types));
     }
 
@@ -106,7 +108,7 @@ public class PropertyTypeSet implements Iterable<SchemaValueType> {
     }
 
     public boolean contains(TypeRepresentation repr) {
-        if (repr instanceof SchemaValueType type) {
+        if (repr instanceof ConstrainableType type) {
             return lookup.contains(type);
         }
 
@@ -131,16 +133,16 @@ public class PropertyTypeSet implements Iterable<SchemaValueType> {
         return of(stream().filter(v -> !other.lookup.contains(v)).toList());
     }
 
-    public Stream<SchemaValueType> stream() {
+    public Stream<? extends ConstrainableType> stream() {
         return types.stream();
     }
 
     @Override
-    public Iterator<SchemaValueType> iterator() {
-        return types.iterator();
+    public Iterator<ConstrainableType> iterator() {
+        return (Iterator<ConstrainableType>) types.iterator();
     }
 
-    public SchemaValueType[] values() {
-        return types.toArray(SchemaValueType[]::new);
+    public ConstrainableType[] values() {
+        return types.toArray(ConstrainableType[]::new);
     }
 }

@@ -121,7 +121,7 @@ import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.devNullLogger
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParamsOnTree
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
-import org.neo4j.internal.schema.constraints.SchemaValueType
+import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.scalatestplus.mockito.MockitoSugar
 
 import scala.language.implicitConversions
@@ -418,7 +418,7 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
         getRelationshipPropertiesWithExistenceConstraint(relTypeName).contains(propertyKey)
       }
 
-      override def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[SchemaValueType]] = {
+      override def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[ConstrainableType]] = {
         // This trait does not support adding property type constraints
         Map.empty
       }
@@ -426,13 +426,14 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
       override def hasNodePropertyTypeConstraint(
         labelName: String,
         propertyKey: String,
-        cypherType: SchemaValueType
+        cypherType: ConstrainableType
       ): Boolean = {
         // This trait does not support adding property type constraints
         false
       }
 
-      override def getRelationshipPropertiesWithTypeConstraint(labelName: String): Map[String, Seq[SchemaValueType]] = {
+      override def getRelationshipPropertiesWithTypeConstraint(labelName: String)
+        : Map[String, Seq[ConstrainableType]] = {
         // This trait does not support adding property type constraints
         Map.empty
       }
@@ -440,7 +441,7 @@ trait LogicalPlanningTestSupport2 extends AstConstructionTestSupport with Logica
       override def hasRelationshipPropertyTypeConstraint(
         relTypeName: String,
         propertyKey: String,
-        cypherType: SchemaValueType
+        cypherType: ConstrainableType
       ): Boolean = {
 
         // This trait does not support adding property type constraints

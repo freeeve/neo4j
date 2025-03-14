@@ -206,6 +206,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private CursorContext cursorContext;
     private boolean hasCursors; // have we initialize cursors for this transaction ?
+    private boolean typeConstraintVectorTypeEnabled;
 
     public Operations(
             KernelRead kernelRead,
@@ -248,6 +249,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints);
         this.alwaysUseLatestIndexProvider = config.get(GraphDatabaseInternalSettings.always_use_latest_index_provider);
         this.transactionStateBehaviour = transactionStateBehaviour;
+        this.typeConstraintVectorTypeEnabled = config.get(GraphDatabaseInternalSettings.vector_type_enabled);
     }
 
     public void initialize(CursorContext cursorContext) {
@@ -2579,6 +2581,13 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         if (isUnion || hasListType) {
             assertSupportedInVersion(
                     KernelVersion.VERSION_UNIONS_AND_LIST_TYPE_CONSTRAINTS_INTRODUCED,
+                    "Failed to create property type constraint with %s.",
+                    propertyType.userDescription());
+        }
+
+        if (!typeConstraintVectorTypeEnabled && TypeRepresentation.hasVectorTypes(propertyType)) {
+            assertSupportedInVersion(
+                    KernelVersion.VERSION_VECTOR_TYPE_INTRODUCED,
                     "Failed to create property type constraint with %s.",
                     propertyType.userDescription());
         }

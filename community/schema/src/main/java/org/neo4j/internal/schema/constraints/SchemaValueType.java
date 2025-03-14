@@ -24,7 +24,7 @@ import org.neo4j.graphdb.schema.PropertyType;
 /**
  * Note: ordering and name (user description) is defined by CIP-100.
  */
-public enum SchemaValueType implements TypeRepresentation {
+public enum SchemaValueType implements ConstrainableType {
     BOOLEAN("BOOLEAN", Ordering.BOOLEAN_ORDER),
     STRING("STRING", Ordering.STRING_ORDER),
     INTEGER("INTEGER", Ordering.INTEGER_ORDER),
@@ -69,6 +69,10 @@ public enum SchemaValueType implements TypeRepresentation {
 
     public String serialize() {
         return this.name();
+    }
+
+    public static SchemaValueType deserialize(String s) throws IllegalArgumentException {
+        return SchemaValueType.valueOf(s);
     }
 
     @Override

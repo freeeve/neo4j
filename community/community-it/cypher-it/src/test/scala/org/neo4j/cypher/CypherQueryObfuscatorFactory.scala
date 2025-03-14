@@ -48,7 +48,7 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.devNullLogger
-import org.neo4j.internal.schema.constraints.SchemaValueType
+import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.neo4j.kernel.api.query.QueryObfuscator
 import org.neo4j.procedure.impl.GlobalProceduresRegistry
 
@@ -188,18 +188,18 @@ class CypherQueryObfuscatorFactory {
     override def hasNodePropertyTypeConstraint(
       labelName: String,
       propertyKey: String,
-      cypherType: SchemaValueType
+      cypherType: ConstrainableType
     ): Nothing = fail()
 
-    override def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[SchemaValueType]] = fail()
+    override def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[ConstrainableType]] = fail()
 
-    override def getRelationshipPropertiesWithTypeConstraint(relTypeName: String): Map[String, Seq[SchemaValueType]] =
+    override def getRelationshipPropertiesWithTypeConstraint(relTypeName: String): Map[String, Seq[ConstrainableType]] =
       fail()
 
     override def hasRelationshipPropertyTypeConstraint(
       relTypeName: String,
       propertyKey: String,
-      cypherType: SchemaValueType
+      cypherType: ConstrainableType
     ): Boolean = fail()
 
     private def fail() = throw new IllegalStateException("Should not have been called in this test.")

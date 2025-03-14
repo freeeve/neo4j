@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
-import org.neo4j.internal.schema.constraints.SchemaValueType
+import org.neo4j.internal.schema.constraints.ConstrainableType
 
 //noinspection NotImplementedCode
 class NotImplementedPlanContext extends PlanContext {
@@ -68,18 +68,19 @@ class NotImplementedPlanContext extends PlanContext {
   override def hasNodePropertyTypeConstraint(
     labelName: String,
     propertyKey: String,
-    cypherType: SchemaValueType
+    cypherType: ConstrainableType
   ): Boolean = ???
 
-  override def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[SchemaValueType]] = ???
+  override def getNodePropertiesWithTypeConstraint(labelName: String): Map[String, Seq[ConstrainableType]] = ???
 
   override def hasRelationshipPropertyTypeConstraint(
     relTypeName: String,
     propertyKey: String,
-    cypherType: SchemaValueType
+    cypherType: ConstrainableType
   ): Boolean = ???
 
-  override def getRelationshipPropertiesWithTypeConstraint(relTypeName: String): Map[String, Seq[SchemaValueType]] = ???
+  override def getRelationshipPropertiesWithTypeConstraint(relTypeName: String): Map[String, Seq[ConstrainableType]] =
+    ???
 
   override def getPropertiesWithExistenceConstraint: Set[String] = ???
 

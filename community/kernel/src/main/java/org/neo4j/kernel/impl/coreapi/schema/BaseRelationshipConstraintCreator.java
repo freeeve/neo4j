@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.coreapi.schema;
 
 import static org.neo4j.graphdb.schema.IndexSettingUtil.toIndexConfigFromIndexSettingObjectMap;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +30,9 @@ import org.neo4j.graphdb.schema.IndexSetting;
 import org.neo4j.graphdb.schema.IndexType;
 import org.neo4j.graphdb.schema.PropertyType;
 import org.neo4j.internal.schema.IndexConfig;
+import org.neo4j.internal.schema.constraints.ConstrainableType;
 import org.neo4j.internal.schema.constraints.PropertyTypeSet;
-import org.neo4j.internal.schema.constraints.SchemaValueType;
+import org.neo4j.internal.schema.constraints.TypeRepresentation;
 import org.neo4j.util.VisibleForTesting;
 
 public class BaseRelationshipConstraintCreator extends AbstractConstraintCreator implements ConstraintCreator {
@@ -77,13 +77,11 @@ public class BaseRelationshipConstraintCreator extends AbstractConstraintCreator
     }
 
     @VisibleForTesting
-    public ConstraintCreator assertPropertyHasType(
-            String propertyKey, SchemaValueType propertyType, SchemaValueType... propertyTypes) {
-        var entries = new ArrayList<SchemaValueType>();
-        entries.add(propertyType);
-        entries.addAll(Arrays.asList(propertyTypes));
+    public ConstraintCreator assertPropertyHasType(String propertyKey, ConstrainableType... propertyTypes) {
+        var propertyTypeSet = PropertyTypeSet.of(Arrays.asList(propertyTypes));
+        TypeRepresentation.validate(propertyTypeSet);
         return new RelationshipPropertyTypeConstraintCreator(
-                actions, name, type, propertyKey, indexType, indexConfig, PropertyTypeSet.of(entries));
+                actions, name, type, propertyKey, indexType, indexConfig, propertyTypeSet);
     }
 
     @Override

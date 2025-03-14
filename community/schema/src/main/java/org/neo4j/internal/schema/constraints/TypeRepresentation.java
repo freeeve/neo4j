@@ -30,8 +30,14 @@ import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
 import org.neo4j.values.storable.DurationArray;
 import org.neo4j.values.storable.DurationValue;
+import org.neo4j.values.storable.Float32Vector;
+import org.neo4j.values.storable.Float64Vector;
 import org.neo4j.values.storable.FloatingPointArray;
 import org.neo4j.values.storable.FloatingPointValue;
+import org.neo4j.values.storable.Int16Vector;
+import org.neo4j.values.storable.Int32Vector;
+import org.neo4j.values.storable.Int64Vector;
+import org.neo4j.values.storable.Int8Vector;
 import org.neo4j.values.storable.IntegralArray;
 import org.neo4j.values.storable.IntegralValue;
 import org.neo4j.values.storable.LocalDateTimeArray;
@@ -48,7 +54,7 @@ import org.neo4j.values.storable.TimeValue;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
-public sealed interface TypeRepresentation permits SchemaValueType, SpecialTypes {
+public sealed interface TypeRepresentation permits ConstrainableType, SpecialTypes {
 
     String userDescription();
 
@@ -67,6 +73,12 @@ public sealed interface TypeRepresentation permits SchemaValueType, SpecialTypes
         ZONED_DATETIME_ORDER,
         DURATION_ORDER,
         POINT_ORDER,
+        VECTOR_INT8_ORDER,
+        VECTOR_INT16_ORDER,
+        VECTOR_INT32_ORDER,
+        VECTOR_INT64_ORDER,
+        VECTOR_FLOAT32_ORDER,
+        VECTOR_FLOAT64_ORDER,
         LIST_NOTHING_ORDER,
         LIST_BOOLEAN_ORDER,
         LIST_STRING_ORDER,
@@ -84,7 +96,7 @@ public sealed interface TypeRepresentation permits SchemaValueType, SpecialTypes
         ANY_ORDER;
     }
 
-    Set<SchemaValueType> CONSTRAINABLE_LIST_TYPES = Set.of(
+    Set<TypeRepresentation> CONSTRAINABLE_LIST_TYPES = Set.of(
             SchemaValueType.LIST_BOOLEAN,
             SchemaValueType.LIST_STRING,
             SchemaValueType.LIST_INTEGER,
@@ -98,7 +110,11 @@ public sealed interface TypeRepresentation permits SchemaValueType, SpecialTypes
             SchemaValueType.LIST_POINT);
 
     static int compare(TypeRepresentation t1, TypeRepresentation t2) {
-        return t1.order().compareTo(t2.order());
+        int order = t1.order().compareTo(t2.order());
+        if (order == 0 && t1 instanceof VectorType v1 && t2 instanceof VectorType v2) {
+            return Integer.compare(v1.dimensions(), v2.dimensions());
+        }
+        return order;
     }
 
     /**
@@ -134,6 +150,18 @@ public sealed interface TypeRepresentation permits SchemaValueType, SpecialTypes
                 return SchemaValueType.LOCAL_TIME;
             } else if (value instanceof PointValue) {
                 return SchemaValueType.POINT;
+            } else if (value instanceof Int8Vector v) {
+                return VectorType.int8Vector(v.dimensions());
+            } else if (value instanceof Int16Vector v) {
+                return VectorType.int16Vector(v.dimensions());
+            } else if (value instanceof Int32Vector v) {
+                return VectorType.int32Vector(v.dimensions());
+            } else if (value instanceof Int64Vector v) {
+                return VectorType.int64Vector(v.dimensions());
+            } else if (value instanceof Float32Vector v) {
+                return VectorType.float32Vector(v.dimensions());
+            } else if (value instanceof Float64Vector v) {
+                return VectorType.float64Vector(v.dimensions());
             }
         } else if (value instanceof ArrayValue array) {
             if (array.isEmpty()) {
@@ -180,7 +208,7 @@ public sealed interface TypeRepresentation permits SchemaValueType, SpecialTypes
         return !set.contains(infer(value));
     }
 
-    static boolean isList(SchemaValueType type) {
+    static boolean isList(TypeRepresentation type) {
         return CONSTRAINABLE_LIST_TYPES.contains(type);
     }
 
@@ -197,6 +225,15 @@ public sealed interface TypeRepresentation permits SchemaValueType, SpecialTypes
         return set.size() > 1;
     }
 
+    static boolean hasVectorTypes(PropertyTypeSet set) {
+        for (var member : set) {
+            if (member instanceof VectorType) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Evaluate if a PropertyTypeSet follows the business rules for the type constraints.
      *
@@ -209,6 +246,14 @@ public sealed interface TypeRepresentation permits SchemaValueType, SpecialTypes
         if (size == 0) {
             throw new IllegalArgumentException("Unable to create property type constraint because the provided union '"
                     + set.userDescription() + "' is not legal: Must specify at least one property type.");
+        }
+    }
+
+    static ConstrainableType deserialize(String s) throws IllegalArgumentException {
+        try {
+            return SchemaValueType.deserialize(s);
+        } catch (IllegalArgumentException exc) {
+            return VectorType.deserialize(s);
         }
     }
 }

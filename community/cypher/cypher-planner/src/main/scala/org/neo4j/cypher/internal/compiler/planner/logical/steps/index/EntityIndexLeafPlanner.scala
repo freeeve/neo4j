@@ -64,6 +64,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTStringNotNull
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType
+import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.neo4j.internal.schema.constraints.SchemaValueType
 
 /**
@@ -118,7 +119,7 @@ object EntityIndexLeafPlanner {
    */
   private def resolveConstraintTypes(
     predicate: IndexCompatiblePredicate,
-    typeConstraints: Map[String, Seq[SchemaValueType]]
+    typeConstraints: Map[String, Seq[ConstrainableType]]
   ): Seq[IndexCompatiblePredicate] = {
     typeConstraints.get(predicate.propertyKeyName.name) match {
       case Some(Seq(SchemaValueType.STRING)) =>
@@ -145,7 +146,7 @@ object EntityIndexLeafPlanner {
     predicates: Set[IndexCompatiblePredicate],
     interestingOrderConfig: InterestingOrderConfig,
     semanticTable: SemanticTable,
-    typeConstraints: Map[String, Seq[SchemaValueType]],
+    typeConstraints: Map[String, Seq[ConstrainableType]],
     providedOrderFactory: ProvidedOrderFactory
   ): Set[PredicatesForIndex] = {
 
