@@ -172,15 +172,11 @@ public abstract class IntegralRangeListValue extends ListValue {
 
             @Override
             public long actualSize() {
-                long diff = (end - start) / step;
+                long diff = divideExact(subtractExact(end, start), step);
                 if (diff < 0L) {
                     return 0L;
                 } else {
-                    try {
-                        return Math.addExact(diff, 1L);
-                    } catch (java.lang.ArithmeticException e) {
-                        throw ArithmeticException.numericValueOutOfRangeWithCause(diff + "+1", "+", e);
-                    }
+                    return addExact(diff, 1L);
                 }
             }
 
@@ -251,6 +247,30 @@ public abstract class IntegralRangeListValue extends ListValue {
                 }
                 return Values.longArray(array);
             }
+        }
+    }
+
+    private static long addExact(long a, long b) {
+        try {
+            return Math.addExact(a, b);
+        } catch (java.lang.ArithmeticException e) {
+            throw ArithmeticException.numericValueOutOfRangeWithCause(a + "+" + b, "+", e);
+        }
+    }
+
+    private static long subtractExact(long a, long b) {
+        try {
+            return Math.subtractExact(a, b);
+        } catch (java.lang.ArithmeticException e) {
+            throw ArithmeticException.numericValueOutOfRangeWithCause(a + "-" + b, "-", e);
+        }
+    }
+
+    private static long divideExact(long a, long b) {
+        try {
+            return Math.divideExact(a, b);
+        } catch (java.lang.ArithmeticException e) {
+            throw ArithmeticException.numericValueOutOfRangeWithCause(a + "/" + b, "/", e);
         }
     }
 }

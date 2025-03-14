@@ -1792,6 +1792,32 @@ trait ExpressionWithTxStateChangesTests[CONTEXT <: RuntimeContext] {
     an[org.neo4j.exceptions.ArithmeticException] should be thrownBy consume(execute(logicalQuery, runtime))
   }
 
+  test("should not overflow when returning size of a ridiculously huge list") {
+    // given, an empty db
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("size")
+      .projection(s"size(range(${Long.MinValue} ,${Long.MaxValue}))  AS size")
+      .argument()
+      .build()
+
+    // then
+    an[org.neo4j.exceptions.ArithmeticException] should be thrownBy consume(execute(logicalQuery, runtime))
+  }
+
+  test("should not overflow when returning size of a too huge negative range list") {
+    // given, an empty db
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("size")
+      .projection(s"size(range(0, ${Long.MinValue}, -1))  AS size")
+      .argument()
+      .build()
+
+    // then
+    an[org.neo4j.exceptions.ArithmeticException] should be thrownBy consume(execute(logicalQuery, runtime))
+  }
+
   test("should be able to index into a huge list") {
     // given, an empty db
     // when
