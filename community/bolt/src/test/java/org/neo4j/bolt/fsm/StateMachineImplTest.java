@@ -27,6 +27,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.neo4j.bolt.fsm.error.AdmissionControlException;
 import org.neo4j.bolt.fsm.error.ConnectionTerminating;
 import org.neo4j.bolt.fsm.error.NoSuchStateException;
 import org.neo4j.bolt.fsm.error.StateMachineException;
@@ -46,6 +47,7 @@ import org.neo4j.bolt.testing.mock.StateMockFactory;
 import org.neo4j.dbms.admissioncontrol.AdmissionControlResponse;
 import org.neo4j.dbms.admissioncontrol.AdmissionControlToken;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.HasQuery;
@@ -520,7 +522,18 @@ class StateMachineImplTest {
         var captor = ArgumentCaptor.forClass(Error.class);
         Mockito.verify(responseHandler, Mockito.times(1)).onFailure(captor.capture());
 
-        ErrorAssertions.assertThat(captor.getValue()).hasStatus(Request.ResourceExhaustion);
+        Error captorError = captor.getValue();
+        ErrorAssertions.assertThat(captorError).hasStatus(Request.ResourceExhaustion);
+
+        Throwable wrappedThrowable = captorError.wrappedThrowable();
+
+        Assertions.assertThat(wrappedThrowable).isInstanceOf(AdmissionControlException.class);
+        ErrorGqlStatusObjectAssertions.assertThat((AdmissionControlException) wrappedThrowable)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_51N59)
+                .hasStatusDescription(
+                        "error: system configuration or operation exception - internal resource exhaustion. "
+                                + "The DBMS is unable to handle the request, please retry later or contact the system operator. "
+                                + "More information is present in the logs.");
     }
 
     public static Stream<AdmissionControlResponse> responses() {

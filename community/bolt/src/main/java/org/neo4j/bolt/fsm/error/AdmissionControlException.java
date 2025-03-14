@@ -19,19 +19,46 @@
  */
 package org.neo4j.bolt.fsm.error;
 
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.ErrorMessageHolder;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.exceptions.Status.HasStatus;
 
 /**
  * Admission Control exceptions in the context of bolt, This class of exception is transient.
  */
-public final class AdmissionControlException extends StateMachineException implements HasStatus {
-    public AdmissionControlException() {
-        super(Status.Request.ResourceExhaustion.code().description());
+public final class AdmissionControlException extends StateMachineException implements HasStatus, ErrorGqlStatusObject {
+
+    private final ErrorGqlStatusObject gqlStatusObject;
+    private final String legacyMessage;
+
+    private AdmissionControlException(ErrorGqlStatusObject gqlStatusObject, String message) {
+        super(ErrorMessageHolder.getMessage(gqlStatusObject, message));
+        this.gqlStatusObject = gqlStatusObject;
+        this.legacyMessage = message;
+    }
+
+    public static AdmissionControlException resourceExhaustion() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N59)
+                .build();
+        var legacyMessage = Status.Request.ResourceExhaustion.code().description();
+        return new AdmissionControlException(gql, legacyMessage);
     }
 
     @Override
     public Status status() {
         return Status.Request.ResourceExhaustion;
+    }
+
+    @Override
+    public ErrorGqlStatusObject gqlStatusObject() {
+        return gqlStatusObject;
+    }
+
+    @Override
+    public String legacyMessage() {
+        return legacyMessage;
     }
 }
