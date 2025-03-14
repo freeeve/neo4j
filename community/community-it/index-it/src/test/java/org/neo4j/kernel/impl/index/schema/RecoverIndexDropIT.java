@@ -27,7 +27,6 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.test.TestLabels.LABEL_ONE;
 
 import java.io.IOException;
-import java.nio.ByteOrder;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -35,25 +34,28 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
-import org.neo4j.io.fs.PhysicalFlushableLogChannel;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.impl.api.index.IndexMap;
 import org.neo4j.kernel.impl.api.index.IndexProxy;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.CommandBatchCursor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
+import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
+import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
+import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.recovery.RecoveryMonitor;
 import org.neo4j.kernel.recovery.RecoveryStartInformation;
@@ -151,17 +153,29 @@ class RecoverIndexDropIT {
                 .build();
         LogFile logFile = logFiles.getLogFile();
 
-        try (ReadableLogChannel reader =
-                logFile.getReader(logFile.extractHeader(0).getStartPosition())) {
+        LogHeader logHeader = logFile.extractHeader(0);
+        try (ReadableLogChannel reader = logFile.getReader(logHeader.getStartPosition())) {
             LogEntryReader logEntryReader = new VersionAwareLogEntryReader(
                     storageEngineFactory.commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
             while (logEntryReader.readLogEntry(reader) != null) {}
             LogPosition position = logEntryReader.lastPosition();
-            StoreChannel storeChannel = fs.write(logFile.getLogFileForVersion(logFile.getHighestLogVersion()));
+            Path logFileForVersion = logFile.getLogFileForVersion(logFile.getHighestLogVersion());
+            StoreChannel storeChannel = fs.write(logFileForVersion);
             storeChannel.position(position.getByteOffset());
-            try (var writeChannel = new PhysicalFlushableLogChannel(
-                    storeChannel, new HeapScopedBuffer(100, ByteOrder.LITTLE_ENDIAN, INSTANCE))) {
-                new LogEntryWriter<>(writeChannel, LatestVersions.BINARY_VERSIONS).serialize(dropBatch);
+
+            try (PhysicalFlushableLogPositionAwareChannel physicalFlushableLogPositionAwareChannel =
+                    new PhysicalFlushableLogPositionAwareChannel(
+                            new PhysicalLogVersionedStoreChannel(
+                                    storeChannel,
+                                    logHeader.getLogVersion(),
+                                    logHeader.getLogFormatVersion(),
+                                    logFileForVersion,
+                                    ChannelNativeAccessor.EMPTY_ACCESSOR,
+                                    DatabaseTracer.NULL),
+                            logHeader,
+                            INSTANCE)) {
+                new LogEntryWriter<>(physicalFlushableLogPositionAwareChannel, LatestVersions.BINARY_VERSIONS)
+                        .serialize(dropBatch);
             }
         }
     }
