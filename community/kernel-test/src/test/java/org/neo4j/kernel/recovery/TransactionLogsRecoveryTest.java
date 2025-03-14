@@ -518,6 +518,7 @@ class TransactionLogsRecoveryTest {
             // incomplete tx
             channel.getCurrentLogPosition(marker); // <-- marker has the last good position
             writer.writeStartEntry(LATEST_KERNEL_VERSION, 5L, 4L, 4L, previousChecksum, EMPTY_BYTE_ARRAY);
+            writer.getChannel().putChecksum();
 
             return true;
         });
