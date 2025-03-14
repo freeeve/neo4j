@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyType
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.exceptions.InternalException
+import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.kernel.api.StatementConstants.NO_SUCH_NODE
 import org.neo4j.kernel.api.StatementConstants.NO_SUCH_RELATIONSHIP
 
@@ -69,7 +69,7 @@ abstract class EntityCreateSlottedPipe(source: Pipe) extends BaseCreatePipe(sour
     def handleMissingNode(nodeName: String) =
       if (state.lenientCreateRelationship) NO_SUCH_RELATIONSHIP
       else {
-        throw InternalException.createRelationshipMissingNode(command.relName, nodeName)
+        throw InvalidArgumentException.createRelationshipMissingNode(command.relName, nodeName)
       }
 
     val startNodeId = command.startNodeIdGetter.applyAsLong(context)

@@ -36,7 +36,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.CreateRelationshipSlotted
 import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
-import org.neo4j.exceptions.InternalException
+import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.kernel.api.StatementConstants
 import org.neo4j.kernel.api.StatementConstants.NO_SUCH_RELATIONSHIP
 import org.neo4j.values.AnyValue
@@ -92,7 +92,7 @@ case class CreateSlottedRelationship(command: CreateRelationshipSlottedCommand, 
     def handleMissingNode(nodeName: String) =
       if (state.lenientCreateRelationship) NO_SUCH_RELATIONSHIP
       else {
-        throw InternalException.createRelationshipMissingNode(command.relName, nodeName)
+        throw InvalidArgumentException.createRelationshipMissingNode(command.relName, nodeName)
       }
 
     val start = command.startNodeIdGetter.applyAsLong(row)

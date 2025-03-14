@@ -27,7 +27,8 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.exceptions.InternalException
+import org.neo4j.cypher.operations.CypherTypeValueMapper
+import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.HeapEstimator
 import org.neo4j.memory.HeapEstimator.shallowSizeOfInstance
@@ -310,7 +311,11 @@ case class PruningVarLengthExpandPipe(
             case IsNoValue() => null
 
             case _ =>
-              throw InternalException.expectedNode(String.valueOf(fromValue), fromName)
+              throw CypherTypeException.expectedANodeButGot(
+                fromValue.prettyPrint(),
+                fromValue.getTypeName,
+                CypherTypeValueMapper.valueType(fromValue)
+              );
           }
         } else {
           var maybeEndNode: VirtualNodeValue = null

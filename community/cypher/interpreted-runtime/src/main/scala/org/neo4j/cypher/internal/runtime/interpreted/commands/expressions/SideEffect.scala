@@ -34,7 +34,7 @@ import org.neo4j.cypher.internal.runtime.makeValueNeoSafe
 import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
-import org.neo4j.exceptions.InternalException
+import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.FloatingPointValue
@@ -144,9 +144,14 @@ case class CreateRelationship(command: CreateRelationshipCommand, allowNullOrNaN
       case IsNoValue() =>
         if (lenient) null
         else {
-          throw InternalException.createRelationshipMissingNode(relName, name)
+          throw InvalidArgumentException.createRelationshipMissingNode(relName, name)
         }
-      case x => throw InternalException.expectedNodeFoundInsteadValue(String.valueOf(x), name)
+      case x =>
+        throw CypherTypeException.expectedNodeButGot(
+          x.prettyPrint(),
+          x.getTypeName,
+          CypherTypeValueMapper.valueType(x)
+        )
     }
 }
 

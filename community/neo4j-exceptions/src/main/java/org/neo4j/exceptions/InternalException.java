@@ -19,7 +19,6 @@
  */
 package org.neo4j.exceptions;
 
-import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -28,33 +27,27 @@ import org.neo4j.kernel.api.exceptions.Status;
 
 public class InternalException extends Neo4jException {
 
-    private final Status status;
-
     @Deprecated
     public InternalException(String message, Throwable cause) {
         super(message, cause);
-        this.status = Status.Statement.ExecutionFailed;
     }
 
     private InternalException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
-        this.status = Status.Statement.ExecutionFailed;
     }
 
     @Deprecated
     public InternalException(String message) {
         super(message);
-        this.status = Status.Statement.ExecutionFailed;
     }
 
-    protected InternalException(Status status, ErrorGqlStatusObject gqlStatusObject, String message) {
+    protected InternalException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
-        this.status = status;
     }
 
     public static InternalException internalError(String msgTitle, String message) {
         var gql = GqlHelper.get50N00(msgTitle, message);
-        return new InternalException(Status.Statement.ExecutionFailed, gql, message);
+        return new InternalException(gql, message);
     }
 
     public static InternalException internalError(String msgTitle, String message, Throwable cause) {
@@ -62,22 +55,11 @@ public class InternalException extends Neo4jException {
         return new InternalException(gql, message, cause);
     }
 
-    public static InternalException createRelationshipMissingNode(String relName, String nodeName) {
-        var gql = GqlHelper.getGql22G03_22N01("NULL", List.of("NODE"), "NULL");
-        return new InternalException(
-                Status.Statement.UnsupportedOperationError,
-                gql,
-                String.format(
-                        "Failed to create relationship `%s`, node `%s` is missing. If you prefer to simply ignore rows "
-                                + "where a relationship node is missing, set 'dbms.cypher.lenient_create_relationship = true' in neo4j.conf",
-                        relName, nodeName));
-    }
 
     public static InternalException foundNoSolutionForBlock(int blockSize, String blockCandidates, String table) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N24)
                 .build();
         return new InternalException(
-                Status.Statement.ExecutionFailed,
                 gql,
                 String.format(
                         """
@@ -90,7 +72,6 @@ public class InternalException extends Neo4jException {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N24)
                 .build();
         return new InternalException(
-                Status.Statement.ExecutionFailed,
                 gql,
                 String.format(
                         """
@@ -101,32 +82,8 @@ public class InternalException extends Neo4jException {
                         setting1, setting2));
     }
 
-    public static InternalException expectedNode(String value, String name) {
-        var gql = GqlHelper.getGql22G03_22N27(value, name, List.of("NODE"));
-        return new InternalException(
-                Status.Statement.TypeError,
-                gql,
-                String.format("Expected variable `%s` to be a node, got %s", name, value));
-    }
-
-    public static InternalException expectedNodeFoundInsteadValue(String value, String name) {
-        var gql = GqlHelper.getGql22G03_22N27(value, name, List.of("NODE"));
-        return new InternalException(
-                Status.Statement.TypeError,
-                gql,
-                String.format("Expected to find a node at '%s' but found instead: %s", name, value));
-    }
-
-    public static InternalException expectedNodeFoundValueInstead(String value, String name) {
-        var gql = GqlHelper.getGql22G03_22N27(value, name, List.of("NODE"));
-        return new InternalException(
-                Status.Statement.TypeError,
-                gql,
-                String.format("Expected to find a node at '%s' but found %s instead", name, value));
-    }
-
     @Override
     public Status status() {
-        return status;
+        return Status.Statement.ExecutionFailed;
     }
 }

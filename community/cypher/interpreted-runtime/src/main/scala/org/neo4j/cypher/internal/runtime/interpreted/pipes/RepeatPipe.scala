@@ -35,7 +35,8 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.WalkModeCo
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.RepeatPipe.emptyLists
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.exceptions.InternalException
+import org.neo4j.cypher.operations.CypherTypeValueMapper
+import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.memory.EmptyMemoryTracker
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.AnyValue
@@ -292,7 +293,12 @@ case class RepeatPipe(
           }
 
         case IsNoValue() => ClosingIterator.empty
-        case value       => throw InternalException.expectedNodeFoundValueInstead(String.valueOf(value), start)
+        case value =>
+          throw CypherTypeException.expectedNodeButGot(
+            value.prettyPrint(),
+            value.getTypeName,
+            CypherTypeValueMapper.valueType(value)
+          )
       }
     }
   }

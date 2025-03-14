@@ -1195,4 +1195,14 @@ public class InvalidArgumentException extends Neo4jException {
                 gql,
                 "User has no auth provider. Add at least one auth provider for the user or consider suspending them.");
     }
+
+    public static InvalidArgumentException createRelationshipMissingNode(String relName, String nodeName) {
+        var gql = GqlHelper.getGql22G03_22N01("NULL", List.of("NODE"), "NULL");
+        return new InvalidArgumentException(
+                gql,
+                String.format(
+                        "Failed to create relationship `%s`, node `%s` is missing. If you prefer to simply ignore rows "
+                                + "where a relationship node is missing, set 'dbms.cypher.lenient_create_relationship = true' in neo4j.conf",
+                        relName, nodeName));
+    }
 }

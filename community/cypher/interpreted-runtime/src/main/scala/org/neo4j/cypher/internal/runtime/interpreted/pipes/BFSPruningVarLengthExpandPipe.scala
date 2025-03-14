@@ -33,7 +33,8 @@ import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.PrimitiveCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.BFSPruningVarLengthExpandPipe.bfsIterator
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.exceptions.InternalException
+import org.neo4j.cypher.operations.CypherTypeValueMapper
+import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.internal.kernel.api.RelationshipTraversalEntities
 import org.neo4j.internal.kernel.api.helpers.BFSPruningVarExpandCursor.allExpander
 import org.neo4j.internal.kernel.api.helpers.BFSPruningVarExpandCursor.incomingExpander
@@ -119,12 +120,20 @@ case class BFSPruningVarLengthExpandPipe(
                 case toNode: VirtualNodeValue => expand(row, fromNode, toNode.id())
                 case IsNoValue()              => ClosingIterator.empty
                 case value =>
-                  throw InternalException.expectedNodeFoundValueInstead(String.valueOf(value), toName)
+                  throw CypherTypeException.expectedNodeButGot(
+                    value.prettyPrint(),
+                    value.getTypeName,
+                    CypherTypeValueMapper.valueType(value)
+                  )
               }
           }
         case IsNoValue() => ClosingIterator.empty
         case value =>
-          throw InternalException.expectedNodeFoundValueInstead(String.valueOf(value), fromName)
+          throw CypherTypeException.expectedNodeButGot(
+            value.prettyPrint(),
+            value.getTypeName,
+            CypherTypeValueMapper.valueType(value)
+          )
       }
     }
   }

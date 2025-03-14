@@ -29,7 +29,8 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands
 import org.neo4j.cypher.internal.runtime.interpreted.commands.convert.DirectionConverter.toGraphDb
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.True
 import org.neo4j.cypher.internal.util.attribution.Id
-import org.neo4j.exceptions.InternalException
+import org.neo4j.cypher.operations.CypherTypeValueMapper
+import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.exceptions.ShortestPathCommonEndNodesForbiddenException.shortestPathCommonEndNodes
 import org.neo4j.internal.kernel.api.helpers.traversal.BiDirectionalBFS
 import org.neo4j.values.virtual.VirtualNodeValue
@@ -131,10 +132,18 @@ case class ShortestPathPipe(
 
               case (IsNoValue(), _) | (_, IsNoValue()) => ClosingIterator.empty
 
-              case value =>
-                throw InternalException.expectedNodeFoundValueInstead(
-                  String.valueOf(value),
-                  s"($sourceNodeName, $targetNodeName)"
+              case (value, _: VirtualNodeValue) =>
+                throw CypherTypeException.expectedNodeButGot(
+                  value.prettyPrint(),
+                  value.getTypeName,
+                  CypherTypeValueMapper.valueType(value)
+                )
+
+              case (_, value) =>
+                throw CypherTypeException.expectedNodeButGot(
+                  value.prettyPrint(),
+                  value.getTypeName,
+                  CypherTypeValueMapper.valueType(value)
                 )
             }
           }

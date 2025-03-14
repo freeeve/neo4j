@@ -190,7 +190,6 @@ import org.neo4j.cypher.internal.util.symbols.CTPath
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.exceptions.InternalException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
-import org.neo4j.kernel.api.exceptions.Status
 
 import java.util
 
@@ -1441,7 +1440,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
 }
 
 class SlotAllocationFailed(gqlStatusObject: ErrorGqlStatusObject, str: String)
-    extends InternalException(Status.Statement.ExecutionFailed, gqlStatusObject, str) {
+    extends InternalException(gqlStatusObject, str) {
 
   @deprecated("Use the class constructor with gqlStatusObject", since = "2025-04")
   def this(str: String) = {

@@ -32,7 +32,7 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
-import org.neo4j.exceptions.InternalException
+import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Value
 import org.neo4j.values.storable.Values
@@ -142,9 +142,14 @@ abstract class EntityCreatePipe(src: Pipe) extends BaseCreatePipe(src) {
       case IsNoValue() =>
         if (lenient) null
         else {
-          throw InternalException.createRelationshipMissingNode(relName, name)
+          throw InvalidArgumentException.createRelationshipMissingNode(relName, name)
         }
-      case x => throw InternalException.expectedNodeFoundInsteadValue(String.valueOf(x), name)
+      case x =>
+        throw CypherTypeException.expectedNodeButGot(
+          x.prettyPrint(),
+          x.getTypeName,
+          CypherTypeValueMapper.valueType(x)
+        )
     }
 }
 
