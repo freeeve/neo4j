@@ -37,13 +37,10 @@ import org.neo4j.cypher.internal.expressions.PathExpression
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
-import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
-import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
-import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.scalatest.matchers.Matcher
 
@@ -704,26 +701,13 @@ class VarLengthPlanningIntegrationTest
     ) should equal(
       planner.planBuilder()
         .produceResults("r")
-        .filter("r = anon_2")
+        .filter("r = anon_0")
         .nodeHashJoin("a")
         .|.filter("c:C")
-        .|.expand("(a)-[anon_2:R*1..5]->(c)", matchMode = TraversalMatchMode.Walk)
+        .|.expand("(a)-[anon_0:R*1..5]->(c)", matchMode = TraversalMatchMode.Walk)
         .|.nodeByLabelScan("a", "A", IndexOrderNone)
         .filter("size(r) >= 1", "size(r) <= 5", "a:A")
-        .repeatWalk(WalkParameters(
-          1,
-          Limited(5),
-          "b",
-          "a",
-          "anon_1",
-          "anon_0",
-          Set(),
-          Set(("r", "r")),
-          reverseGroupVariableProjections = true,
-          expansionMode = ExpandAll
-        ))
-        .|.expandAll("(anon_1)<-[r:R]-(anon_0)")
-        .|.argument("anon_1")
+        .expand("(b)<-[r:R*1..5]-(a)", matchMode = TraversalMatchMode.Walk)
         .nodeByLabelScan("b", "B", IndexOrderNone)
         .build()
     )

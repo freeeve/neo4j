@@ -508,6 +508,7 @@ abstract class RepeatWalkTestBase[CONTEXT <: RuntimeContext](
       groupNodes = Set(("b_inner", "b"), ("c_inner", "c"), ("a_inner", "a")),
       groupRelationships = Set(("r_inner", "r"), ("s_inner", "s")),
       reverseGroupVariableProjections = false,
+      innerRelationships = Set(("r_inner"), ("s_inner")),
       ExpandAll
     )
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -1263,6 +1264,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
       groupRelationships = Set(("r_inner", "r")),
       reverseGroupVariableProjections = false,
+      innerRelationships = Set("r_inner"),
       ExpandAll
     )
   }
@@ -1278,6 +1280,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("c_inner", "c"), ("d_inner", "d")),
       groupRelationships = Set(("rr_inner", "rr")),
       reverseGroupVariableProjections = false,
+      innerRelationships = Set(("rr_inner")),
       ExpandAll
     )
   }
@@ -1325,6 +1328,7 @@ object RepeatWalkTestBase {
     groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
     groupRelationships = Set(("r_inner", "r")),
     reverseGroupVariableProjections = false,
+    innerRelationships = Set("r_inner"),
     ExpandAll
   )
 
@@ -1338,6 +1342,7 @@ object RepeatWalkTestBase {
     groupNodes = Set(),
     groupRelationships = Set(),
     reverseGroupVariableProjections = false,
+    innerRelationships = Set("r_inner"),
     ExpandAll
   )
 
@@ -1351,6 +1356,7 @@ object RepeatWalkTestBase {
     groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
     groupRelationships = Set(("r1_inner", "r1")),
     reverseGroupVariableProjections = false,
+    innerRelationships = Set("r1_inner"),
     ExpandAll
   )
 
@@ -1364,6 +1370,7 @@ object RepeatWalkTestBase {
     groupNodes = Set(("c_inner", "c"), ("d_inner", "d")),
     groupRelationships = Set(("r2_inner", "r2")),
     reverseGroupVariableProjections = false,
+    innerRelationships = Set("r2_inner"),
     ExpandAll
   )
 
@@ -1378,6 +1385,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b")),
       groupRelationships = Set(("r_inner", "r")),
       reverseGroupVariableProjections = true,
+      innerRelationships = Set("r_inner"),
       ExpandAll
     )
 
@@ -1392,6 +1400,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b"), ("c_inner", "c")),
       groupRelationships = Set(("r_inner", "r"), ("rr_inner", "rr")),
       reverseGroupVariableProjections = false,
+      innerRelationships = Set("r_inner", "rr_inner"),
       ExpandAll
     )
 
@@ -1405,6 +1414,7 @@ object RepeatWalkTestBase {
     Set(("b_inner", "b"), ("c_inner", "c")),
     Set(("r_inner", "r")),
     false,
+    innerRelationships = Set("r_inner"),
     ExpandAll
   )
 
@@ -1418,6 +1428,7 @@ object RepeatWalkTestBase {
     Set(("d_inner", "d"), ("aa_inner", "aa")),
     Set(("rr_inner", "rr")),
     false,
+    innerRelationships = Set("rr_inner"),
     ExpandAll
   )
 
@@ -1431,6 +1442,7 @@ object RepeatWalkTestBase {
     Set(("e_inner", "e"), ("f_inner", "f")),
     Set(("rrr_inner", "rrr")),
     false,
+    innerRelationships = Set("rrr_inner"),
     ExpandAll
   )
 
@@ -1445,6 +1457,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("b_inner", "b"), ("c_inner", "c")),
       groupRelationships = Set(("r_inner", "r")),
       reverseGroupVariableProjections = false,
+      innerRelationships = Set("r_inner"),
       ExpandAll
     )
 
@@ -1459,6 +1472,7 @@ object RepeatWalkTestBase {
       groupNodes = Set(("a_inner", "a"), ("b_inner", "b"), ("c_inner", "c"), ("d_inner", "d")),
       groupRelationships = Set(("r_inner", "r"), ("rr_inner", "rr"), ("rrr_inner", "rrr")),
       reverseGroupVariableProjections = false,
+      innerRelationships = Set("r_inner", "rr_inner", "rrr_inner"),
       ExpandAll
     )
 
@@ -1472,6 +1486,7 @@ object RepeatWalkTestBase {
     groupNodes = Set(("bb_inner", "bb"), ("aa_inner", "aa")),
     groupRelationships = Set(("rr_inner", "rr")),
     reverseGroupVariableProjections = false,
+    innerRelationships = Set("rr_inner"),
     ExpandAll
   )
 }
@@ -1972,6 +1987,7 @@ trait OrderedWalkTestBase[CONTEXT <: RuntimeContext] {
       groupNodes = Set(("b_inner", "b"), ("c_inner", "c"), ("a_inner", "a")),
       groupRelationships = Set(("r_inner", "r"), ("s_inner", "s")),
       reverseGroupVariableProjections = false,
+      innerRelationships = Set("r_inner", "s_inner"),
       ExpandAll
     )
     val logicalQuery = new LogicalQueryBuilder(this)

@@ -53,7 +53,7 @@ object convertToInlinedPredicates {
 
   object Mode {
 
-    case object Trail extends Mode {
+    case object Repeat extends Mode {
       override def predicatesOutsideRepetition: Seq[Expression] = Seq.empty
     }
 

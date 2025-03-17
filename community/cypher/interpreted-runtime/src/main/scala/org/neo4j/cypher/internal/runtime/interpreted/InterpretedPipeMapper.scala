@@ -2143,6 +2143,7 @@ case class InterpretedPipeMapper(
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
+          innerRelationships,
           expansionMode
         ) =>
         val nodeInScope = expansionMode match {

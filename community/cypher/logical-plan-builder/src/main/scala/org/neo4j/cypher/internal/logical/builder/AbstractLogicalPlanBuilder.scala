@@ -3178,6 +3178,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           VariableGrouping(varFor(inner), varFor(outer))(pos)
         },
         walkParameters.reverseGroupVariableProjections,
+        walkParameters.innerRelationships.map(varFor),
         walkParameters.expansionMode
       )(_)
     ))
@@ -3399,6 +3400,7 @@ object AbstractLogicalPlanBuilder {
     groupNodes: Set[(String, String)],
     groupRelationships: Set[(String, String)],
     reverseGroupVariableProjections: Boolean,
+    innerRelationships: Set[String],
     expansionMode: ExpansionMode
   )
 

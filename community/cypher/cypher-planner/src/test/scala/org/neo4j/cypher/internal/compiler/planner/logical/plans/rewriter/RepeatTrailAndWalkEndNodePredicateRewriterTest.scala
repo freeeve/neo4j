@@ -62,6 +62,7 @@ class RepeatTrailAndWalkEndNodePredicateRewriterTest extends CypherFunSuite with
     groupNodes = Set(("n_i", "n"), ("m_i", "m")),
     groupRelationships = Set(("r_i", "r")),
     reverseGroupVariableProjections = false,
+    innerRelationships = Set("r_i"),
     expansionMode = ExpandAll
   )
 

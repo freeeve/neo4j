@@ -743,6 +743,7 @@ object LogicalPlanToPlanBuilderString {
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
+          innerRelationships,
           expansionMode
         ) =>
         walkParametersString(
@@ -754,6 +755,7 @@ object LogicalPlanToPlanBuilderString {
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
+          innerRelationships,
           expansionMode
         )
 
@@ -1582,6 +1584,7 @@ object LogicalPlanToPlanBuilderString {
     groupNodes: Set[VariableGrouping],
     groupRelationships: Set[VariableGrouping],
     reverseGroupVariableProjections: Boolean,
+    innerRelationships: Set[LogicalVariable],
     expansionMode: ExpansionMode
   ) =
     call(
@@ -1595,6 +1598,7 @@ object LogicalPlanToPlanBuilderString {
       groupNodes,
       groupRelationships,
       reverseGroupVariableProjections,
+      innerRelationships,
       expansionMode
     )
 

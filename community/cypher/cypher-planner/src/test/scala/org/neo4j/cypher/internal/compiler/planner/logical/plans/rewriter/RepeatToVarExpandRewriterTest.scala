@@ -24,18 +24,21 @@ import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanTestOps
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.TrailToVarExpandRewriter.RewritableTrailExtractor
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.TrailToVarExpandRewriterTest.DbFormat
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.TrailToVarExpandRewriterTest.TrailParametersOps
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.TrailToVarExpandRewriterTest.`(a) ((n)-[r]-(m))+ (b)`
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.TrailToVarExpandRewriterTest.`(b) ((x)-[rr]-(y))+ (c)`
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriter.RewritableRepeatExtractor
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriterTest.DbFormat
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriterTest.TrailParametersOps
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriterTest.WalkParametersOps
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriterTest.`(a) ((n)-[r]-(m))+ (b)`
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RepeatToVarExpandRewriterTest.`(b) ((x)-[rr]-(y))+ (c)`
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.WalkParameters
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Walk
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
@@ -47,13 +50,13 @@ import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 // Additional tests can be found in QuantifiedPathPatternPlanningIntegrationTest
-class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport with LogicalPlanTestOps {
+class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTestSupport with LogicalPlanTestOps {
 
   // happy case
   test("Rewrites MATCH (a) ((n)-[r]->(m))+ (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -73,7 +76,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m))+ (b) RETURN r AS r") {
     val trail = new LogicalPlanBuilder()
       .produceResults("r")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.nmless)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.nmlessTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -90,7 +93,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   // node variable n is used
   test("Preserves MATCH (a) ((n)-[r]->(m))+ (b) RETURN n") {
     val trail = subPlanBuilder
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.rmless)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.rmlessTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -102,7 +105,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   // node variable m is used
   test("Preserves MATCH (a) ((n)-[r]->(m))+ (b) RETURN m") {
     val trail = subPlanBuilder
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.rnless)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.rnlessTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -114,7 +117,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   // node variables n and m are used
   test("Preserves MATCH (a) ((n)-[r]->(m))+ (b) RETURN n,m") {
     val trail = subPlanBuilder
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.rless)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.rlessTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -127,7 +130,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n WHERE n.prop > 123)-[r]->(m))+ (b) RETURN 1 AS s, depending on extractor") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.filter("n_i.prop > 123")
@@ -144,8 +147,8 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
       .nodeByLabelScan("a", "N")
       .build()
 
-    rewrites(trail, expand, extractor = RewritableTrailExtractor.FilterBeforeAndAfterExpand)
-    preserves(trail, extractor = RewritableTrailExtractor.FilterAfterExpand)
+    rewrites(trail, expand, extractor = RewritableRepeatExtractor.FilterBeforeAndAfterExpand)
+    preserves(trail, extractor = RewritableRepeatExtractor.FilterAfterExpand)
   }
 
   // the qpp relationship chain contains multiple relationships
@@ -186,7 +189,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Preserves MATCH (a) ((n)-[r]->(m) WHERE 1 = true)+ (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.filter("1 = true")
@@ -201,7 +204,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m) WHERE r.p = true)+ (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpressionOrString("r_i.p = true", isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -222,7 +225,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Preserves MATCH (a) ((n)-[r]->(m) WHERE n.p = true)+ (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.filter("n_i.p = true")
@@ -236,7 +239,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)<-[r]-(m) WHERE n.p = true)+ (b) RETURN 1 AS s in the INCOMING direction") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpressionOrString("n_i.p = true", isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)<-[r_i]-(m_i)")
       .|.argument("n_i")
@@ -257,7 +260,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m) WHERE n.p <> m.p)+ (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpressionOrString("n_i.p <> m_i.p", isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -277,7 +280,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites bidirectional MATCH (a) ((n)-[r]-(m) WHERE n.p <> m.p)+ (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpressionOrString("n_i.p <> m_i.p", isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]-(m_i)")
       .|.argument("n_i")
@@ -307,7 +310,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
     val trail = subPlanBuilder
       .projection("1 AS s")
       .apply()
-      .|.repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .|.repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.|.filterExpressionOrString("r_i.p = cacheN[z.p]", isRepeatTrailUnique("r_i"))
       .|.|.expandAll("(n_i)-[r_i]->(m_i)")
       .|.|.argument("n_i", "z_i")
@@ -335,7 +338,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   // pre-filter relationship type predicate
   test("Rewrites MATCH (a) ((n)-[r:T]->(m))+ (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i:T]->(m_i)")
       .|.argument("n_i")
@@ -351,7 +354,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   // pre-filter relationship property predicate
   test(s"Rewrites MATCH (a) ((n)-[r WHERE r.p = 0]->(m))+ (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpressionOrString("r_i.p = 0", isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -372,7 +375,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
     val trail = subPlanBuilder
       .projection("1 AS s")
       .filter("all(x IN r WHERE x:T)")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.nmless)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.nmlessTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -392,7 +395,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m))* (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.withQuantifier(0, Unlimited))
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.withQuantifier(0, Unlimited))
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -412,7 +415,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m)){,2} (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.withQuantifier(0, Limited(2)))
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.withQuantifier(0, Limited(2)))
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -432,7 +435,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m)){2,} (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.withQuantifier(2, Unlimited))
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.withQuantifier(2, Unlimited))
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -452,7 +455,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m)){2,2} (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.withQuantifier(2, Limited(2)))
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.withQuantifier(2, Limited(2)))
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -472,7 +475,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m)){2,5} (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.withQuantifier(2, Limited(5)))
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.withQuantifier(2, Limited(5)))
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -492,7 +495,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Preserves MATCH (a) ((n)-[r]->(m){,3000000000} (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.withQuantifier(0, Limited(3000000000L)))
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.withQuantifier(0, Limited(3000000000L)))
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -505,7 +508,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m))+ (b) RETURN 1 AS s, reverseGroupVariableProjections=true") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.reverse)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.reverse)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(m_i)<-[r_i]-(n_i)")
       .|.argument("m_i")
@@ -525,7 +528,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)<-[r]-(m))+ (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)<-[r_i]-(m_i)")
       .|.argument("n_i")
@@ -545,7 +548,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)<-[r]-(m))+ (b) RETURN 1 AS s, reverseGroupVariableProjections=true") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.reverse)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.reverse)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(m_i)-[r_i]->(n_i)")
       .|.argument("m_i")
@@ -565,7 +568,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]-(m))+ (b) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n)-[r]-(m)")
       .|.argument("n_i")
@@ -585,7 +588,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]-(m))+ (b) RETURN 1 AS s, reverseGroupVariableProjections=true") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.reverse)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.reverse)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(m_i)-[r_i]-(n_i)")
       .|.argument("m_i")
@@ -606,7 +609,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m))+ (b)-[rr]-(c) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.reverse.withPreviouslyBoundRel("rr"))
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.reverse.withPreviouslyBoundRel("rr"))
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(m_i)<-[r_i]-(n_i)")
       .|.argument("m_i")
@@ -630,7 +633,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
       .projection("1 AS s")
       .filter("not rr IN r")
       .expand("(b)-[rr]-(c)")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.nmless)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.nmlessTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -653,7 +656,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r:R]->(m))+ (b)-[rr:RR]-(c) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.reverse)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.reverse)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(m_i)<-[r_i:R]-(n_i)")
       .|.argument("m_i")
@@ -674,11 +677,11 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m))+ (b) ((x)-[rr]->(y))+ (c) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.reverse.withPreviouslyBoundRelGroup("rr"))
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.reverse.withPreviouslyBoundRelGroup("rr"))
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(m_i)<-[r_i]-(n_i)")
       .|.argument("m_i")
-      .repeatTrail(`(b) ((x)-[rr]-(y))+ (c)`.xyless)
+      .repeatTrail(`(b) ((x)-[rr]-(y))+ (c)`.xylessTrail)
       .|.filterExpression(isRepeatTrailUnique("rr"))
       .|.expand("(x_i)-[rr_i]->(y_i)")
       .|.argument("x_i")
@@ -701,13 +704,13 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m))+ (b) ((x {p: 0})-[rr]->(y))+ (c) RETURN 1 AS s") {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(b) ((x)-[rr]-(y))+ (c)`.empty.withPreviouslyBoundRelGroup("r"))
+      .repeatTrail(`(b) ((x)-[rr]-(y))+ (c)`.emptyTrail.withPreviouslyBoundRelGroup("r"))
       .|.filterExpression(isRepeatTrailUnique("rr"))
       .|.expand("(x_i)-[rr_i]->(y_i)")
       .|.filter("x_i.p = 0")
       .|.argument("x_i")
       .filter("b.p = 0")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.nmless)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.nmlessTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -716,7 +719,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(b) ((x)-[rr]-(y))+ (c)`.empty.withPreviouslyBoundRelGroup("r"))
+      .repeatTrail(`(b) ((x)-[rr]-(y))+ (c)`.emptyTrail.withPreviouslyBoundRelGroup("r"))
       .|.filterExpression(isRepeatTrailUnique("rr"))
       .|.expand("(x_i)-[rr_i]->(y_i)")
       .|.filter("x_i.p = 0")
@@ -753,7 +756,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
 
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.reverse.withPreviouslyBoundRelGroup("rr", "rrr"))
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.reverse.withPreviouslyBoundRelGroup("rr", "rrr"))
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(m_i)<-[r_i]-(n_i)")
       .|.argument("m_i")
@@ -791,11 +794,11 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
 
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.reverse)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.reverse)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(m_i)<-[r_i:R]-(n_i)")
       .|.argument("m_i")
-      .repeatTrail(`(b) ((x)-[rr]-(y))+ (c)`.empty)
+      .repeatTrail(`(b) ((x)-[rr]-(y))+ (c)`.emptyTrail)
       .|.filterExpression(isRepeatTrailUnique("rr_i"))
       .|.expand("(x_i)-[rr_i:RR]->(y_i)")
       .|.argument("x_i")
@@ -818,11 +821,11 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
 
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty.reverse)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail.reverse)
       .|.filterExpressionOrString("n_i.prop <> m_i.prop", isRepeatTrailUnique("r_i"))
       .|.expand("(m_i)<-[r_i:R]-(n_i)")
       .|.argument("m_i")
-      .repeatTrail(`(b) ((x)-[rr]-(y))+ (c)`.empty)
+      .repeatTrail(`(b) ((x)-[rr]-(y))+ (c)`.emptyTrail)
       .|.filterExpressionOrString("y_i.name = 'foo'", isRepeatTrailUnique("rr_i"))
       .|.expand("(x_i)-[rr_i:RR]->(y_i)")
       .|.argument("x_i")
@@ -873,7 +876,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
       .|.argument("x_i")
       .filterExpression(noneOfRels(v"rr", v"r"))
       .expand("(b)-[rr]->(c)")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.nmless)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.nmlessTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -897,7 +900,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Rewrites MATCH (a) ((n)-[r]->(m))+ (b) RETURN DISTINCT b") {
     val trail = subPlanBuilder
       .distinct("b AS b")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -916,7 +919,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   test("Preserves MATCH p = (a) ((n)-[r]->(m))+ (b) RETURN p") {
     val trail = subPlanBuilder
       .projection(Map("p" -> qppPath(v"a", Seq(v"n", v"r"), v"b")))
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.mless)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.mlessTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -1093,7 +1096,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
     val selectionAndTrail = subPlanBuilder
       .projection("1 AS s")
       .filter("b = c")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
       .|.argument("  UNNAMED1")
@@ -1136,7 +1139,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   ) {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpressionOrString("m_i.prop < 321", isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.filter("n_i.prop > 123")
@@ -1155,8 +1158,8 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
       .allNodeScan("a")
       .build()
 
-    rewrites(trail, expand, extractor = RewritableTrailExtractor.FilterBeforeAndAfterExpand)
-    preserves(trail, extractor = RewritableTrailExtractor.FilterAfterExpand)
+    rewrites(trail, expand, extractor = RewritableRepeatExtractor.FilterBeforeAndAfterExpand)
+    preserves(trail, extractor = RewritableRepeatExtractor.FilterAfterExpand)
   }
 
   test(
@@ -1164,7 +1167,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   ) {
     val trail = subPlanBuilder
       .projection("1 AS s")
-      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.empty)
+      .repeatTrail(`(a) ((n)-[r]-(m))+ (b)`.emptyTrail)
       .|.filterExpressionOrString("m_i.prop < 321", isRepeatTrailUnique("r_i"))
       .|.expand("(n_i)-[r_i]-(m_i)")
       .|.filter("n_i.prop > 123")
@@ -1187,16 +1190,1002 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
       .allNodeScan("a")
       .build()
 
-    rewrites(trail, expand, extractor = RewritableTrailExtractor.FilterBeforeAndAfterExpand)
-    preserves(trail, extractor = RewritableTrailExtractor.FilterAfterExpand)
+    rewrites(trail, expand, extractor = RewritableRepeatExtractor.FilterBeforeAndAfterExpand)
+    preserves(trail, extractor = RewritableRepeatExtractor.FilterAfterExpand)
+  }
+
+  // happy case
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m))+ (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)-[r_i*1..]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // relationship group variable r is used
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m))+ (b) RETURN r AS r") {
+    val walk = new LogicalPlanBuilder()
+      .produceResults("r")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.nmlessWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    val expand = new LogicalPlanBuilder()
+      .produceResults("r")
+      .expand("(a)-[r*]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+    rewrites(walk, expand)
+  }
+
+  // node variable n is used
+  test("Preserves MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m))+ (b) RETURN n") {
+    val walk = subPlanBuilder
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.rmlessWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    preserves(walk)
+  }
+
+  // node variable m is used
+  test("Preserves MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m))+ (b) RETURN m") {
+    val walk = subPlanBuilder
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.rnlessWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    preserves(walk)
+  }
+
+  // node variables n and m are used
+  test("Preserves MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m))+ (b) RETURN n,m") {
+    val walk = subPlanBuilder
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.rlessWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    preserves(walk)
+  }
+
+  // node variable n has a predicate
+  test(
+    "Rewrites MATCH REPEATABLE ELEMENTS (a) ((n WHERE n.prop > 123)-[r]->(m))+ (b) RETURN 1 AS s, depending on extractor"
+  ) {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.filter("n_i.prop > 123")
+      .|.argument("n_i")
+      .nodeByLabelScan("a", "N")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand(
+        "(a)-[r_i*1..]->(b)",
+        relationshipPredicates = Seq(Predicate("  UNNAMED1", "startNode(`  UNNAMED1`).prop > 123")),
+        matchMode = Walk
+      )
+      .nodeByLabelScan("a", "N")
+      .build()
+
+    rewrites(walk, expand, extractor = RewritableRepeatExtractor.FilterBeforeAndAfterExpand)
+    preserves(walk, extractor = RewritableRepeatExtractor.FilterAfterExpand)
+  }
+
+  // the qpp relationship chain contains multiple relationships
+  test("Preserves MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m)->[rr]->(o))+ (b) RETURN 1 AS s") {
+    object `(a) ((n)-[r]->(m)->[rr]->(o))+ (b)` {
+
+      val empty: WalkParameters = WalkParameters(
+        min = 1,
+        max = Unlimited,
+        start = "a",
+        end = "b",
+        innerStart = "n_i",
+        innerEnd = "o_i",
+        groupNodes = Set.empty,
+        groupRelationships = Set.empty,
+        innerRelationships = Set("r_i", "rr_i"),
+        reverseGroupVariableProjections = false,
+        expansionMode = ExpandAll
+      )
+    }
+
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]->(m)->[rr]->(o))+ (b)`.empty)
+      .|.expand("(m)-[rr_i]->(o)")
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    preserves(walk)
+  }
+
+  // pre-filter predicate with no dependency
+  test("Preserves MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m) WHERE 1 = true)+ (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.filter("1 = true")
+      .|.argument("n_i")
+      .filter("1 = true")
+      .allNodeScan("a")
+      .build()
+    preserves(walk)
+  }
+
+  // pre-filter predicate with inner relationship dependency
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m) WHERE r.p = true)+ (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.filterExpressionOrString("r_i.p = true")
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand(
+        "(a)-[r_i*1..]->(b)",
+        relationshipPredicates = Seq(Predicate("  UNNAMED1", "`  UNNAMED1`.p = true")),
+        matchMode = Walk
+      )
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand, dbFormat = DbFormat.Aligned)
+    rewrites(walk, expand, executionModels = Seq(ExecutionModel.Volcano))
+    preserves(walk, dbFormat = DbFormat.Block, executionModels = Seq(ExecutionModel.Batched.default))
+  }
+
+  // pre-filter predicate with inner node dependency
+  test("Preserves MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m) WHERE n.p = true)+ (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.filter("n_i.p = true")
+      .|.argument("n_i")
+      .filter("a.p = true")
+      .allNodeScan("a")
+      .build()
+    preserves(walk)
+  }
+
+  test(
+    "Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)<-[r]-(m) WHERE n.p = true)+ (b) RETURN 1 AS s in the INCOMING direction"
+  ) {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.filterExpressionOrString("n_i.p = true")
+      .|.expand("(n_i)<-[r_i]-(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand(
+        "(a)<-[r_i*1..]-(b)",
+        projectedDir = INCOMING,
+        relationshipPredicates = Seq(Predicate("  UNNAMED1", "endNode(`  UNNAMED1`).p = true")),
+        matchMode = Walk
+      )
+      .allNodeScan("a")
+      .build()
+    rewrites(walk, expand)
+  }
+
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m) WHERE n.p <> m.p)+ (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.filterExpressionOrString("n_i.p <> m_i.p")
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand(
+        "(a)-[r_i*1..]->(b)",
+        relationshipPredicates = Seq(Predicate("  UNNAMED1", "startNode(`  UNNAMED1`).p <> endNode(`  UNNAMED1`).p")),
+        matchMode = Walk
+      )
+      .allNodeScan("a")
+      .build()
+    rewrites(walk, expand)
+  }
+
+  test("Rewrites bidirectional MATCH REPEATABLE ELEMENTS (a) ((n)-[r]-(m) WHERE n.p <> m.p)+ (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.filterExpressionOrString("n_i.p <> m_i.p")
+      .|.expand("(n_i)-[r_i]-(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expandExpr(
+        "(a)-[r_i*1..]-(b)",
+        relationshipPredicates = Seq(VariablePredicate(
+          v"  UNNAMED1",
+          notEquals(
+            propExpression(TraversalEndpoint(v"  UNNAMED2", From), "p"),
+            propExpression(TraversalEndpoint(v"  UNNAMED3", To), "p")
+          )
+        )),
+        matchMode = Walk
+      )
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // pre-filter predicate with dependency on variable from previous clause
+  test(
+    "Rewrites MATCH REPEATABLE ELEMENTS (z) MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m) WHERE r.p = z.p)+ (b) RETURN 1 AS s"
+  ) {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .apply()
+      .|.repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.|.filterExpressionOrString("r_i.p = cacheN[z.p]")
+      .|.|.expandAll("(n_i)-[r_i]->(m_i)")
+      .|.|.argument("n_i", "z_i")
+      .|.allNodeScan("a", "z")
+      .cacheProperties("cacheNFromStore[z.p]")
+      .allNodeScan("z")
+      .build()
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .apply()
+      .|.expand(
+        "(a)-[r_i*1..]->(b)",
+        relationshipPredicates = Seq(Predicate("  UNNAMED1", "`  UNNAMED1`.p = cacheN[z.p]")),
+        matchMode = Walk
+      )
+      .|.allNodeScan("a", "z")
+      .cacheProperties("cacheNFromStore[z.p]")
+      .allNodeScan("z")
+      .build()
+
+    rewrites(walk, expand, dbFormat = DbFormat.Aligned)
+    rewrites(walk, expand, executionModels = Seq(ExecutionModel.Volcano))
+    preserves(walk, dbFormat = DbFormat.Block, executionModels = Seq(ExecutionModel.Batched.default))
+  }
+
+  // pre-filter relationship type predicate
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r:T]->(m))+ (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.expand("(n_i)-[r_i:T]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    val expand = subPlanBuilder
+      .expand("(a)-[r_i:T*1..]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+    rewrites(walk, expand)
+  }
+
+  // pre-filter relationship property predicate
+  test(s"Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r WHERE r.p = 0]->(m))+ (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.filterExpressionOrString("r_i.p = 0")
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    val expand = subPlanBuilder
+      .expand(
+        "(a)-[r_i*1..]->(b)",
+        relationshipPredicates = Seq(Predicate("  UNNAMED1", "`  UNNAMED1`.p = 0")),
+        matchMode = Walk
+      )
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand, dbFormat = DbFormat.Aligned)
+    rewrites(walk, expand, executionModels = Seq(ExecutionModel.Volcano))
+    preserves(walk, dbFormat = DbFormat.Block, executionModels = Seq(ExecutionModel.Batched.default))
+  }
+
+  // post-filter predicate
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m))+ (b) WHERE all(x IN r WHERE x:T) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .filter("all(x IN r WHERE x:T)")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.nmlessWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .filter("all(x IN r WHERE x:T)")
+      .expand("(a)-[r*1..]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // quantifier with kleene star
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m))* (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.withWalkQuantifier(0, Unlimited))
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)-[r_i*0..]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // quantifier with limited ub
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m)){,2} (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.withWalkQuantifier(0, Limited(2)))
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)-[r_i*0..2]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // quantifier with unlimited ub
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m)){2,} (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.withWalkQuantifier(2, Unlimited))
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)-[r_i*2..]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // quantifier with equal lb and ub
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m)){2,2} (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.withWalkQuantifier(2, Limited(2)))
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)-[r_i*2..2]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // quantifier with different lb and ub
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m)){2,5} (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.withWalkQuantifier(2, Limited(5)))
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)-[r_i*2..5]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // cannot convert quantifier from long to int
+  test("Preserves MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m){,3000000000} (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.withWalkQuantifier(0, Limited(3000000000L)))
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    preserves(walk)
+  }
+
+  // dir=outgoing, reverseGroupVariableProjections
+  test(
+    "Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m))+ (b) RETURN 1 AS s, reverseGroupVariableProjections=true"
+  ) {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.reverse)
+      .|.expand("(m_i)<-[r_i]-(n_i)")
+      .|.argument("m_i")
+      .allNodeScan("b")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(b)<-[r_i*1..]-(a)", matchMode = Walk)
+      .allNodeScan("b")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // dir=incoming
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)<-[r]-(m))+ (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.expand("(n_i)<-[r_i]-(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)<-[r_i*1..]-(b)", projectedDir = INCOMING, matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // dir=incoming, reverseGroupVariableProjections
+  test(
+    "Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)<-[r]-(m))+ (b) RETURN 1 AS s, reverseGroupVariableProjections=true"
+  ) {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.reverse)
+      .|.expand("(m_i)-[r_i]->(n_i)")
+      .|.argument("m_i")
+      .allNodeScan("b")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(b)-[r_i*1..]->(a)", projectedDir = INCOMING, matchMode = Walk)
+      .allNodeScan("b")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // dir=both
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]-(m))+ (b) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.expand("(n)-[r]-(m)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)-[r_i*1..]-(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // dir=both, reverseGroupVariableProjections
+  test(
+    "Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]-(m))+ (b) RETURN 1 AS s, reverseGroupVariableProjections=true"
+  ) {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.reverse)
+      .|.expand("(m_i)-[r_i]-(n_i)")
+      .|.argument("m_i")
+      .allNodeScan("b")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(b)-[r_i*1..]-(a)", projectedDir = INCOMING, matchMode = Walk)
+      .allNodeScan("b")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // qpp + relationship pattern, does not insert relationship uniqueness predicate because Walk has no previously bound
+  // relationships
+  test("Rewrites MATCH REPEATABLE ELEMENTS (b)-[rr]-(a) ((n)-[r]->(m))+ RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .filter("not rr IN r")
+      .expand("(b)-[rr]-(c)", matchMode = Walk)
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.nmlessWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .filter("not rr IN r")
+      .expand("(b)-[rr]-(c)", matchMode = Walk)
+      .expand("(a)-[r*1..]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // qpp + relationship pattern, does not insert relationship uniqueness predicate because Walk has no previously bound
+  // relationships
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r:R]->(m))+ (b)-[rr:RR]-(c) RETURN 1 AS s") {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.reverse)
+      .|.expand("(m_i)<-[r_i:R]-(n_i)")
+      .|.argument("m_i")
+      .allRelationshipsScan("(b)-[rr:RR]-(c)")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(b)<-[r_i:R*1..]-(a)", matchMode = Walk)
+      .allRelationshipsScan("(b)-[rr:RR]-(c)")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // two qpps with provably different relationship types. do not insert any relationship uniqueness predicates because
+  // there are no previously bound relationship group variables
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r:R]->(m))+ (b) ((x)-[rr:RR]->(y))+ (c) RETURN 1 AS s") {
+
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.reverse)
+      .|.expand("(m_i)<-[r_i:R]-(n_i)")
+      .|.argument("m_i")
+      .repeatWalk(`(b) ((x)-[rr]-(y))+ (c)`.emptyWalk)
+      .|.expand("(x_i)-[rr_i:RR]->(y_i)")
+      .|.argument("x_i")
+      .allNodeScan("b")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(b)<-[r_i:R*1..]-(a)", matchMode = Walk)
+      .expand("(b)-[rr_i:RR*1..]->(c)", matchMode = Walk)
+      .allNodeScan("b")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  test(
+    "Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r:R]->(m) WHERE n.prop <> m.prop)+ (b) ((x)-[rr:RR]->(y {name: 'foo'))+ (c) RETURN 1 AS s"
+  ) {
+
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk.reverse)
+      .|.filterExpressionOrString("n_i.prop <> m_i.prop")
+      .|.expand("(m_i)<-[r_i:R]-(n_i)")
+      .|.argument("m_i")
+      .repeatWalk(`(b) ((x)-[rr]-(y))+ (c)`.emptyWalk)
+      .|.filterExpressionOrString("y_i.name = 'foo'")
+      .|.expand("(x_i)-[rr_i:RR]->(y_i)")
+      .|.argument("x_i")
+      .allNodeScan("b")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand(
+        "(b)<-[r_i:R*1..]-(a)",
+        relationshipPredicates =
+          Seq(Predicate("  UNNAMED1", "startNode(`  UNNAMED1`).prop <> endNode(`  UNNAMED1`).prop")),
+        matchMode = Walk
+      )
+      .expand(
+        "(b)-[rr_i:RR*1..]->(c)",
+        relationshipPredicates = Seq(Predicate("  UNNAMED3", "endNode(`  UNNAMED3`).name = 'foo'")),
+        matchMode = Walk
+      )
+      .allNodeScan("b")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // mix qpps and relationship pattern, does not insert relationship uniqueness predicates for walk
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m))+ (b)-[rr]->(c) ((x)-[rrr]->(y))+ (d) RETURN 1 AS s") {
+    object `(c) ((x)-[rrr]-(y))+ (d)` {
+      val empty: WalkParameters = WalkParameters(
+        min = 1,
+        max = Unlimited,
+        start = "c",
+        end = "d",
+        innerStart = "x_i",
+        innerEnd = "y_i",
+        groupNodes = Set.empty,
+        groupRelationships = Set.empty,
+        innerRelationships = Set("rrr_i"),
+        reverseGroupVariableProjections = false,
+        expansionMode = ExpandAll
+      )
+    }
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(c) ((x)-[rrr]-(y))+ (d)`.empty)
+      .|.expand("(x_i)-[rrr_i]->(y_i)")
+      .|.argument("x_i")
+      .filterExpression(noneOfRels(v"rr", v"r"))
+      .expand("(b)-[rr]->(c)", matchMode = Walk)
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.nmlessWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(c)-[rrr_i*1..]->(d)", matchMode = Walk)
+      .filterExpression(noneOfRels(v"rr", v"r"))
+      .expand("(b)-[rr]->(c)", matchMode = Walk)
+      .expand("(a)-[r*1..]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // does not rewrite directly to PruningVarExpand (responsibility of pruningVarExpander)
+  test("Rewrites MATCH REPEATABLE ELEMENTS (a) ((n)-[r]->(m))+ (b) RETURN DISTINCT b") {
+    val walk = subPlanBuilder
+      .distinct("b AS b")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    val expand = subPlanBuilder
+      .distinct("b AS b")
+      .expand("(a)-[r_i*1..]->(b)", matchMode = Walk)
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand)
+  }
+
+  // named path uses group node variables
+  test("Preserves MATCH REPEATABLE ELEMENTS p = (a) ((n)-[r]->(m))+ (b) RETURN p") {
+    val walk = subPlanBuilder
+      .projection(Map("p" -> qppPath(v"a", Seq(v"n", v"r"), v"b")))
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.mlessWalk)
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    preserves(walk)
+  }
+
+  val `Walk (a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`: WalkParameters = WalkParameters(
+    min = 1,
+    max = Unlimited,
+    start = "a",
+    end = "  UNNAMED4",
+    innerStart = "x_i",
+    innerEnd = "y_i",
+    groupNodes = Set.empty,
+    groupRelationships = Set.empty,
+    innerRelationships = Set("r_i"),
+    reverseGroupVariableProjections = false,
+    expansionMode = ExpandAll
+  )
+
+  test("Rewrite selection and walk to VarLengthExpand(Into)") {
+    val selectionAndWalk = subPlanBuilder
+      .projection("1 AS s")
+      .filter("`  UNNAMED4` = b")
+      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
+      .|.argument("  UNNAMED1")
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)-[r_i*1..]->(b)", ExpandInto, matchMode = Walk)
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    rewrites(selectionAndWalk, expand)
+  }
+
+  test(
+    "Rewrite selection and walk to VarLengthExpand(Into) - cartesian product and expandInto for the first relationship"
+  ) {
+    val selectionAndWalk = subPlanBuilder
+      .projection("1 AS s")
+      .filter("`  UNNAMED4` = b")
+      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
+      .|.argument("  UNNAMED1")
+      .expandInto("(a)-[r_j]->(b)")
+      .cartesianProduct()
+      .|.allNodeScan("b")
+      .allNodeScan("a")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand("(a)-[r_i*1..]->(b)", ExpandInto, matchMode = Walk)
+      .expandInto("(a)-[r_j]->(b)")
+      .cartesianProduct()
+      .|.allNodeScan("b")
+      .allNodeScan("a")
+      .build()
+
+    rewrites(selectionAndWalk, expand)
+  }
+
+  test(
+    "Do not rewrite selection and walk to VarLengthExpand(Into) when the selection does not refer to the end node of the walk - it refers to the innerEnd"
+  ) {
+    // This plan cannot be generated because the filter cannot refer to the innerEnd node of the QPP.
+    // It tests that having a `  UNNAMED` node is not enough. It should be the end point of the QPP.
+    val selectionAndWalk = subPlanBuilder
+      .projection("1 AS s")
+      .filter("`  UNNAMED3` = b")
+      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
+      .|.argument("  UNNAMED1")
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .filter("`  UNNAMED3` = b")
+      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, matchMode = Walk)
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    rewrites(selectionAndWalk, expand)
+  }
+
+  test(
+    "Do not rewrite selection and walk to VarLengthExpand(Into) when the selection does not refer to the end node of the walk - it refers to a previously bound node"
+  ) {
+    val selectionAndWalk = subPlanBuilder
+      .projection("1 AS s")
+      .filter("a = b")
+      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
+      .|.argument("  UNNAMED1")
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .filter("a = b")
+      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, matchMode = Walk)
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    rewrites(selectionAndWalk, expand)
+  }
+
+  test(
+    "Do not rewrite selection and walk to VarLengthExpand(Into) when the selection does not refer a previously bound node"
+  ) {
+    // This plan cannot be generated because 'c' in the filter does not refer to anything
+    val selectionAndWalk = subPlanBuilder
+      .projection("1 AS s")
+      .expandAll("(b)-[r_k]->(c)")
+      .filter("`  UNNAMED4` = c")
+      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
+      .|.argument("  UNNAMED1")
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expandAll("(b)-[r_k]->(c)")
+      .filter("`  UNNAMED4` = c")
+      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, matchMode = Walk)
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    rewrites(selectionAndWalk, expand)
+  }
+
+  test(
+    "Do not rewrite selection and walk to VarLengthExpand(Into) when the selection does not refer a previously bound node - it refers to the innerEnd"
+  ) {
+    val selectionAndWalk = subPlanBuilder
+      .projection("1 AS s")
+      .filter("`  UNNAMED4` = `  UNNAMED3`")
+      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
+      .|.argument("  UNNAMED1")
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .filter("`  UNNAMED4` = `  UNNAMED3`")
+      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, matchMode = Walk)
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    rewrites(selectionAndWalk, expand)
+  }
+
+  test(
+    "Do not rewrite selection and walk to VarLengthExpand(Into) when the endpoint of the walk is not an UNNAMED node"
+  ) {
+    // Node 'b' might be used in other places of the query, therefore we cannot override it with 'c' to create a VarLengthExpand(Into)
+    val selectionAndWalk = subPlanBuilder
+      .projection("1 AS s")
+      .filter("b = c")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
+      .|.argument("  UNNAMED1")
+      .allRelationshipsScan("(a)-[r_j]->(c)")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .filter("b = c")
+      .expand("(a)-[r_i*1..]->(b)", ExpandAll, matchMode = Walk)
+      .allRelationshipsScan("(a)-[r_j]->(c)")
+      .build()
+
+    rewrites(selectionAndWalk, expand)
+  }
+
+  test("Do not rewrite selection and walk to VarLengthExpand(Into) when the selection has more than 1 predicate") {
+    val selectionAndWalk = subPlanBuilder
+      .projection("1 AS s")
+      .filter("`  UNNAMED4` = b", "not a = b")
+      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
+      .|.argument("  UNNAMED1")
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .filter("`  UNNAMED4` = b", "not a = b")
+      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, matchMode = Walk)
+      .allRelationshipsScan("(a)-[r_j]->(b)")
+      .build()
+
+    rewrites(selectionAndWalk, expand)
+  }
+
+  test(
+    "Rewrites MATCH REPEATABLE ELEMENTS (a) ((n WHERE n.prop > 123)-[r]->(m WHERE m.prop < 321))+ (b) RETURN 1 AS s (directed relationship)"
+  ) {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.filterExpressionOrString("m_i.prop < 321")
+      .|.expand("(n_i)-[r_i]->(m_i)")
+      .|.filter("n_i.prop > 123")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expand(
+        "(a)-[r_i*1..]->(b)",
+        relationshipPredicates = Seq(
+          Predicate("  UNNAMED1", "endNode(`  UNNAMED1`).prop < 321"),
+          Predicate("  UNNAMED1", "startNode(`  UNNAMED1`).prop > 123")
+        ),
+        matchMode = Walk
+      )
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand, extractor = RewritableRepeatExtractor.FilterBeforeAndAfterExpand)
+    preserves(walk, extractor = RewritableRepeatExtractor.FilterAfterExpand)
+  }
+
+  test(
+    "Rewrites MATCH REPEATABLE ELEMENTS (a) ((n WHERE n.prop > 123)-[r]-(m WHERE m.prop < 321))+ (b) RETURN 1 AS s (undirected relationship)"
+  ) {
+    val walk = subPlanBuilder
+      .projection("1 AS s")
+      .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.emptyWalk)
+      .|.filterExpressionOrString("m_i.prop < 321")
+      .|.expand("(n_i)-[r_i]-(m_i)")
+      .|.filter("n_i.prop > 123")
+      .|.argument("n_i")
+      .allNodeScan("a")
+      .build()
+
+    val TO = TraversalEndpoint(tempVar = v"  UNNAMED2", endpoint = To)
+    val FROM = TraversalEndpoint(tempVar = v"  UNNAMED3", endpoint = From)
+
+    val expand = subPlanBuilder
+      .projection("1 AS s")
+      .expandExpr(
+        "(a)-[r_i*1..]-(b)",
+        relationshipPredicates = Seq(
+          VariablePredicate(v"  UNNAMED1", lessThan(prop(TO, "prop"), literalInt(321))),
+          VariablePredicate(v"  UNNAMED1", greaterThan(prop(FROM, "prop"), literalInt(123)))
+        ),
+        matchMode = Walk
+      )
+      .allNodeScan("a")
+      .build()
+
+    rewrites(walk, expand, extractor = RewritableRepeatExtractor.FilterBeforeAndAfterExpand)
+    preserves(walk, extractor = RewritableRepeatExtractor.FilterAfterExpand)
   }
 
   private def rewrites(
-    trail: LogicalPlan,
+    repeat: LogicalPlan,
     expand: LogicalPlan,
     dbFormat: DbFormat = DbFormat.All,
     executionModels: Seq[ExecutionModel] = Seq(ExecutionModel.Volcano, ExecutionModel.Batched.default),
-    extractor: RewritableTrailExtractor = RewritableTrailExtractor.FilterAfterExpand
+    extractor: RewritableRepeatExtractor = RewritableRepeatExtractor.FilterAfterExpand
   ): Unit =
     for {
       isBlockFormat <- dbFormat.isBlockFormat
@@ -1206,7 +2195,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
       s"isBlockFormat = $isBlockFormat, supportsCursorReuse = $supportsCursorReuse, extractor = $extractor\n"
     ) {
       rewrite(
-        trail,
+        repeat,
         isBlockFormat,
         supportsCursorReuse,
         extractor
@@ -1214,10 +2203,10 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
     }
 
   private def preserves(
-    trail: LogicalPlan,
+    repeat: LogicalPlan,
     dbFormat: DbFormat = DbFormat.All,
     executionModels: Seq[ExecutionModel] = Seq(ExecutionModel.Volcano, ExecutionModel.Batched.default),
-    extractor: RewritableTrailExtractor = RewritableTrailExtractor.FilterAfterExpand
+    extractor: RewritableRepeatExtractor = RewritableRepeatExtractor.FilterAfterExpand
   ): Unit = {
     for {
       isBlockFormat <- dbFormat.isBlockFormat
@@ -1227,11 +2216,11 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
       s"isBlockFormat = $isBlockFormat, supportsCursorReuse = $supportsCursorReuse, extractor = $extractor\n"
     ) {
       rewrite(
-        trail,
+        repeat,
         isBlockFormat,
         supportsCursorReuse,
         extractor
-      ).stripProduceResults shouldEqual trail.stripProduceResults
+      ).stripProduceResults shouldEqual repeat.stripProduceResults
     }
   }
 
@@ -1239,13 +2228,13 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
     p: LogicalPlan,
     isBlockFormat: Boolean,
     executionModelSupportsCursorReuseInBlockFormat: Boolean,
-    extractor: TrailToVarExpandRewriter.RewritableTrailExtractor
+    extractor: RepeatToVarExpandRewriter.RewritableRepeatExtractor
   ): LogicalPlan =
-    p.endoRewrite(TrailToVarExpandRewriter(
+    p.endoRewrite(RepeatToVarExpandRewriter(
       new StubLabelAndRelTypeInfos,
       Attributes(idGen, new StubSolveds),
       new AnonymousVariableNameGenerator,
-      rewritableTrailExtractor = extractor,
+      rewritableRepeatExtractor = extractor,
       isBlockFormat = isBlockFormat,
       executionModelSupportsCursorReuseInBlockFormat = executionModelSupportsCursorReuseInBlockFormat,
       isShardedDatabase = false
@@ -1254,7 +2243,7 @@ class TrailToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningTe
   private def subPlanBuilder = new LogicalPlanBuilder(wholePlan = false)
 }
 
-object TrailToVarExpandRewriterTest {
+object RepeatToVarExpandRewriterTest {
 
   implicit class TrailParametersOps(params: TrailParameters) {
 
@@ -1275,9 +2264,23 @@ object TrailToVarExpandRewriterTest {
       params.copy(min = min, max = max)
   }
 
+  implicit class WalkParametersOps(params: WalkParameters) {
+
+    def reverse: WalkParameters = params.copy(
+      end = params.start,
+      start = params.end,
+      innerEnd = params.innerStart,
+      innerStart = params.innerEnd,
+      reverseGroupVariableProjections = !params.reverseGroupVariableProjections
+    )
+
+    def withWalkQuantifier(min: Int, max: UpperBound): WalkParameters =
+      params.copy(min = min, max = max)
+  }
+
   private object `(a) ((n)-[r]-(m))+ (b)` {
 
-    val full: TrailParameters = TrailParameters(
+    val trail: TrailParameters = TrailParameters(
       min = 1,
       max = Unlimited,
       start = "a",
@@ -1293,24 +2296,53 @@ object TrailToVarExpandRewriterTest {
       expansionMode = ExpandAll
     )
 
-    val nless: TrailParameters = full.copy(groupNodes = Set(("m_i", "m")))
+    val walk: WalkParameters = WalkParameters(
+      min = 1,
+      max = Unlimited,
+      start = "a",
+      end = "b",
+      innerStart = "n_i",
+      innerEnd = "m_i",
+      groupNodes = Set(("n_i", "n"), ("m_i", "m")),
+      groupRelationships = Set(("r_i", "r")),
+      reverseGroupVariableProjections = false,
+      innerRelationships = Set("r_i"),
+      expansionMode = ExpandAll
+    )
 
-    val rless: TrailParameters = full.copy(groupRelationships = Set.empty)
+    val nlessTrail: TrailParameters = trail.copy(groupNodes = Set(("m_i", "m")))
 
-    val mless: TrailParameters = full.copy(groupNodes = Set(("n_i", "n")))
+    val rlessTrail: TrailParameters = trail.copy(groupRelationships = Set.empty)
 
-    val nmless: TrailParameters = full.copy(groupNodes = Set.empty)
+    val mlessTrail: TrailParameters = trail.copy(groupNodes = Set(("n_i", "n")))
 
-    val rnless: TrailParameters = full.copy(groupNodes = Set(("m_i", "m")), groupRelationships = Set.empty)
+    val nmlessTrail: TrailParameters = trail.copy(groupNodes = Set.empty)
 
-    val rmless: TrailParameters = full.copy(groupNodes = Set(("n_i", "n")), groupRelationships = Set.empty)
+    val rnlessTrail: TrailParameters = trail.copy(groupNodes = Set(("m_i", "m")), groupRelationships = Set.empty)
 
-    val empty: TrailParameters = full.copy(groupNodes = Set.empty, groupRelationships = Set.empty)
+    val rmlessTrail: TrailParameters = trail.copy(groupNodes = Set(("n_i", "n")), groupRelationships = Set.empty)
+
+    val emptyTrail: TrailParameters = trail.copy(groupNodes = Set.empty, groupRelationships = Set.empty)
+
+    val nlessWalk: WalkParameters = walk.copy(groupNodes = Set(("m_i", "m")))
+
+    val rlessWalk: WalkParameters = walk.copy(groupRelationships = Set.empty)
+
+    val mlessWalk: WalkParameters = walk.copy(groupNodes = Set(("n_i", "n")))
+
+    val nmlessWalk: WalkParameters = walk.copy(groupNodes = Set.empty)
+
+    val rnlessWalk: WalkParameters = walk.copy(groupNodes = Set(("m_i", "m")), groupRelationships = Set.empty)
+
+    val rmlessWalk: WalkParameters = walk.copy(groupNodes = Set(("n_i", "n")), groupRelationships = Set.empty)
+
+    val emptyWalk: WalkParameters = walk.copy(groupNodes = Set.empty, groupRelationships = Set.empty)
+
   }
 
   private object `(b) ((x)-[rr]-(y))+ (c)` {
 
-    val empty: TrailParameters = TrailParameters(
+    val emptyTrail: TrailParameters = TrailParameters(
       min = 1,
       max = Unlimited,
       start = "b",
@@ -1326,7 +2358,23 @@ object TrailToVarExpandRewriterTest {
       expansionMode = ExpandAll
     )
 
-    val xyless: TrailParameters = empty.copy(groupRelationships = Set(("rr_i", "rr")))
+    val xylessTrail: TrailParameters = emptyTrail.copy(groupRelationships = Set(("rr_i", "rr")))
+
+    val emptyWalk: WalkParameters = WalkParameters(
+      min = 1,
+      max = Unlimited,
+      start = "b",
+      end = "c",
+      innerStart = "x_i",
+      innerEnd = "y_i",
+      groupNodes = Set.empty,
+      groupRelationships = Set.empty,
+      innerRelationships = Set("rr_i"),
+      reverseGroupVariableProjections = false,
+      expansionMode = ExpandAll
+    )
+
+    val xylessWalk: WalkParameters = emptyWalk.copy(groupRelationships = Set(("rr_i", "rr")))
   }
 
   sealed private trait DbFormat {

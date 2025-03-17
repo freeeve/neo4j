@@ -3499,6 +3499,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       groupNodes = Set(("n", "n"), ("m", "m")),
       groupRelationships = Set.empty,
       reverseGroupVariableProjections = false,
+      innerRelationships = Set("anon_1"),
       expansionMode = ExpandAll
     )
 
@@ -3532,6 +3533,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         groupNodes = Set.empty,
         groupRelationships = Set.empty,
         reverseGroupVariableProjections = false,
+        innerRelationships = Set("anon_1", "anon_2"),
         expansionMode = ExpandAll
       )
       val `(p)((r)-...-(t)) {, 100}` = WalkParameters(
@@ -3544,6 +3546,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         groupNodes = Set(("t", "t")),
         groupRelationships = Set.empty,
         reverseGroupVariableProjections = false,
+        innerRelationships = Set("anon_3", "anon_4"),
         expansionMode = ExpandAll
       )
 

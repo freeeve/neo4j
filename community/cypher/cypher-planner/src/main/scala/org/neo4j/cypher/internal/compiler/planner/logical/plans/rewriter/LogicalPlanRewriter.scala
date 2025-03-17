@@ -75,11 +75,11 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
     readOnly: Boolean
   ): Rewriter = {
     val isShardedDatabase = context.planContext.databaseMode == DatabaseMode.SHARDED
-    val trailToVarExpandRewriter = TrailToVarExpandRewriter(
+    val trailToVarExpandRewriter = RepeatToVarExpandRewriter(
       labelAndRelTypeInfos,
       otherAttributes.withAlso(solveds, cardinalities, effectiveCardinalities, providedOrders),
       anonymousVariableNameGenerator,
-      rewritableTrailExtractor = TrailToVarExpandRewriter.RewritableTrailExtractor.FilterAfterExpand,
+      rewritableRepeatExtractor = RepeatToVarExpandRewriter.RewritableRepeatExtractor.FilterAfterExpand,
       isBlockFormat = context.planContext.storageHasPropertyColocation,
       executionModelSupportsCursorReuseInBlockFormat = context.executionModel.supportsCursorReuseInBlockFormat,
       isShardedDatabase = isShardedDatabase
@@ -235,11 +235,11 @@ case object PlanRewriter extends LogicalPlanRewriter with StepSequencer.Step wit
    * But _only_ if the resulting VarExpand is in turn rewritable by [[pruningVarExpander]].
    */
   private def trailWithTwoFiltersToPruningVarExpand(
-    originalTrailRewriter: TrailToVarExpandRewriter,
+    originalTrailRewriter: RepeatToVarExpandRewriter,
     pruningRewriter: Rewriter
   ): Rewriter = {
     val trailRewriter = originalTrailRewriter.copy(
-      rewritableTrailExtractor = TrailToVarExpandRewriter.RewritableTrailExtractor.FilterBeforeAndAfterExpand
+      rewritableRepeatExtractor = RepeatToVarExpandRewriter.RewritableRepeatExtractor.FilterBeforeAndAfterExpand
     )
     new Rewriter {
       override def apply(start: AnyRef): AnyRef = {

@@ -70,7 +70,7 @@ class convertToInlinedPredicatesTest extends CypherFunSuite with AstConstruction
     innerPredicates: Seq[Expression] = Seq.empty,
     minRep: Int = 0,
     direction: SemanticDirection = BOTH,
-    mode: convertToInlinedPredicates.Mode = convertToInlinedPredicates.Mode.Trail
+    mode: convertToInlinedPredicates.Mode = convertToInlinedPredicates.Mode.Repeat
   ): Option[InlinedPredicates] = {
     convertToInlinedPredicates(
       outerStart,

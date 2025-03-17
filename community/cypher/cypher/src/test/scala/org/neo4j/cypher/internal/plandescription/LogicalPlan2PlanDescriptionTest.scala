@@ -8410,6 +8410,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           ),
           Set(variableGrouping(varFor("  r@1"), varFor("  r@2"))),
           reverseGroupVariableProjections = false,
+          Set(varFor("  r@1")),
           ExpandInto
         ),
         2345.0
@@ -8439,6 +8440,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           ),
           Set(variableGrouping(varFor("  r@1"), varFor("  r@2"))),
           reverseGroupVariableProjections = false,
+          Set(varFor("  r@1")),
           ExpandAll
         ),
         2345.0

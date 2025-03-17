@@ -1352,7 +1352,8 @@ case class LogicalPlanProducer(
           innerEnd = endBinding.inner,
           nodeVariableGroupings = pattern.nodeVariableGroupings,
           relationshipVariableGroupings = pattern.relationshipVariableGroupings,
-          reverseGroupVariableProjections = reverseGroupVariableProjections
+          reverseGroupVariableProjections = reverseGroupVariableProjections,
+          innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet
         )
       case _ => throw new IllegalStateException(s"Unknown match mode: $matchMode")
     }

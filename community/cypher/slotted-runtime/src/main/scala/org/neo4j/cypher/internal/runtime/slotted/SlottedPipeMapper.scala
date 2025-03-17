@@ -2058,6 +2058,7 @@ class SlottedPipeMapper(
           groupNodes,
           groupRelationships,
           reverseGroupVariableProjections,
+          _,
           expansionMode
         ) =>
         val nodeInScope = expansionMode match {

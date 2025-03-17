@@ -51,7 +51,7 @@ import org.neo4j.cypher.internal.util.topDown
  * will be rewritten so that it does not generate any unused group variables. 
  * Given that group variables are lists, this optimisation can save time and space.
  *
- * Should run before [[TrailToVarExpandRewriter]] as these rewrites cannot happen if group variables are not removed.
+ * Should run before [[RepeatToVarExpandRewriter]] as these rewrites cannot happen if group variables are not removed.
  */
 case object RemoveUnusedGroupVariablesRewriter extends Rewriter {
 

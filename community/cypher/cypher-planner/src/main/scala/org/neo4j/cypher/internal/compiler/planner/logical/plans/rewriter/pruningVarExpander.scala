@@ -82,7 +82,7 @@ import scala.collection.mutable
  * .pruningVarExpand((n)-[r*]->(m))
  * .allNodeScan(n)
  *
- * Should run after [[TrailToVarExpandRewriter]] in order to rewrite as many VarExpand as possible.
+ * Should run after [[RepeatToVarExpandRewriter]] in order to rewrite as many VarExpand as possible.
  *
  * @param policy Determines whether a VarExpand(Into) should be planned as a BFS or DFS
  */
