@@ -40,8 +40,10 @@ public class TransactionAppenderFactory {
             JobScheduler scheduler,
             InternalLogProvider logProvider,
             TransactionMetadataCache metadataCache) {
+        String formatName = databaseConfig.get(db_format);
         if (databaseConfig.get(dedicated_transaction_appender)
-                || "multiversion".equals(databaseConfig.get(db_format))) {
+                || formatName.equals("multiversion")
+                || formatName.equals("multiversion_block")) {
             var queue = new TransactionLogQueue(
                     logFiles,
                     transactionIdStore,

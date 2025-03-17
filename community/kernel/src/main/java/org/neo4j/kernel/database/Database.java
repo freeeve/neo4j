@@ -1316,7 +1316,10 @@ public class Database extends AbstractDatabase {
     }
 
     private static boolean isNotMultiVersioned(DatabaseConfig databaseConfig, NamedDatabaseId namedDatabaseId) {
-        return namedDatabaseId.isSystemDatabase() || !"multiversion".equals(databaseConfig.get(db_format));
+        String formatName = databaseConfig.get(db_format);
+
+        return namedDatabaseId.isSystemDatabase()
+                || !formatName.equals("multiversion") && !formatName.equals("multiversion_block");
     }
 
     private class KernelTransactionVisibilityProvider implements TransactionVisibilityProvider {
