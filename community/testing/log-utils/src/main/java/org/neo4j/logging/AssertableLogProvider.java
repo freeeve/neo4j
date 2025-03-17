@@ -301,6 +301,10 @@ public class AssertableLogProvider extends AbstractLogProvider<InternalLog> {
         return serialize0(logCalls.iterator(), LogCall::toLogLikeString);
     }
 
+    public Iterator<String> logLines() {
+        return logCalls.stream().map(LogCall::toLogLikeString).iterator();
+    }
+
     private static String serialize0(Iterator<LogCall> events, Function<LogCall, String> serializer) {
         StringBuilder sb = new StringBuilder();
         while (events.hasNext()) {
