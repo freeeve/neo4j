@@ -73,7 +73,7 @@ class LogicalQueryBuilder(
   def build(readOnly: Boolean = true): LogicalQuery = {
     val logicalPlan = buildLogicalPlan()
     LogicalQuery(
-      logicalPlan,
+      logicalPlan.endoRewrite(expressionRewriter),
       "<<queryText>>",
       readOnly,
       resultColumns,

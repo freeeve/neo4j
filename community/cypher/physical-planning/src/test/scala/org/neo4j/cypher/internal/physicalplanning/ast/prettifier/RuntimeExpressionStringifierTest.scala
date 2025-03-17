@@ -25,6 +25,8 @@ import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
+import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
+import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationBuilder
 import org.neo4j.cypher.internal.physicalplanning.ast.GetDegreePrimitive
 import org.neo4j.cypher.internal.physicalplanning.ast.HasALabelFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.HasAnyLabelFromSlot
@@ -40,6 +42,7 @@ import org.neo4j.cypher.internal.physicalplanning.ast.IsEmpty
 import org.neo4j.cypher.internal.physicalplanning.ast.IsPrimitiveNull
 import org.neo4j.cypher.internal.physicalplanning.ast.LabelsFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.NodeElementIdFromSlot
+import org.neo4j.cypher.internal.physicalplanning.ast.NodeFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.NodeProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NodePropertyExists
 import org.neo4j.cypher.internal.physicalplanning.ast.NodePropertyExistsLate
@@ -48,10 +51,13 @@ import org.neo4j.cypher.internal.physicalplanning.ast.NonEmpty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheck
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckReferenceProperty
+import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckVariable
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveAnds
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveEquals
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveNotEquals
+import org.neo4j.cypher.internal.physicalplanning.ast.ReferenceFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipElementIdFromSlot
+import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipPropertyExists
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipPropertyExistsLate
@@ -61,16 +67,25 @@ import org.neo4j.cypher.internal.physicalplanning.ast.SlottedCachedHasPropertyWi
 import org.neo4j.cypher.internal.physicalplanning.ast.SlottedCachedHasPropertyWithoutPropertyToken
 import org.neo4j.cypher.internal.physicalplanning.ast.SlottedCachedPropertyWithPropertyToken
 import org.neo4j.cypher.internal.physicalplanning.ast.SlottedCachedPropertyWithoutPropertyToken
+import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifierTest.tokenContext
+import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
 import org.neo4j.cypher.internal.runtime.ast.DefaultValueLiteral
+import org.neo4j.cypher.internal.runtime.ast.ExpressionVariable
 import org.neo4j.cypher.internal.runtime.ast.MakeTraversable
 import org.neo4j.cypher.internal.runtime.ast.ParameterFromSlot
 import org.neo4j.cypher.internal.runtime.ast.PropertiesUsingCachedProperties
 import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
 import org.neo4j.cypher.internal.runtime.ast.RuntimeExpression
 import org.neo4j.cypher.internal.runtime.ast.RuntimeProperty
+import org.neo4j.cypher.internal.runtime.ast.RuntimeVariable
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
+import org.neo4j.cypher.internal.runtime.ast.VariableRef
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.cypher.internal.util.symbols.CTDate
+import org.neo4j.cypher.internal.util.symbols.CTNode
+import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.values.storable.Values
@@ -84,8 +99,27 @@ import scala.jdk.CollectionConverters.CollectionHasAsScala
 class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructionTestSupport
     with TableDrivenPropertyChecks {
 
-  private val ctx = ExpressionStringifier.apply()
-  private val stringifier = RuntimeExpressionStringifier
+  private val slots: SlotConfiguration = SlotConfigurationBuilder.empty
+    .newLong("x", nullable = true, CTNode)
+    .newLong("r", nullable = true, CTRelationship)
+    .newLong("a", nullable = true, typ = CTNode)
+    .addAlias("alias", "a")
+    .newArgument(Id(1))
+    .build()
+
+  private val readTokenContext: ReadTokenContext =
+    tokenContext(nodeLabelTokens = Map(0 -> "A", 1 -> "B"), relationshipTypeTokens = Map(0 -> "R", 1 -> "S"))
+
+  private val stringifier = RuntimeExpressionStringifier(readTokenContext, slots)
+
+  private val ctx = ExpressionStringifier.apply(
+    extensionStringifier = stringifier,
+    alwaysParens = false,
+    alwaysBacktick = false,
+    preferSingleQuotes = false,
+    sensitiveParamsAsParams = false,
+    javaCompatible = false
+  )
 
   private val supportedRuntimeExpressions = Table(
     ("runtime expression", "stringified"),
@@ -104,39 +138,84 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
       ).asInstanceOf[RuntimeExpression],
       "x.prop"
     ),
+    (
+      SlottedCachedPropertyWithPropertyToken(
+        "a",
+        propName("prop"),
+        1,
+        offsetIsForLongSlot = true,
+        2,
+        3,
+        NODE_TYPE,
+        nullable = false,
+        needsValue = true
+      ).asInstanceOf[RuntimeExpression],
+      "a.prop"
+    ),
+    (
+      SlottedCachedPropertyWithPropertyToken(
+        "alias",
+        propName("prop"),
+        1,
+        offsetIsForLongSlot = true,
+        2,
+        3,
+        NODE_TYPE,
+        nullable = false,
+        needsValue = true
+      ).asInstanceOf[RuntimeExpression],
+      "alias.prop"
+    ),
     (SlottedCachedPropertyWithoutPropertyToken("x", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false), "x.prop"),
+    (SlottedCachedPropertyWithoutPropertyToken("a", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false), "a.prop"),
+    (
+      SlottedCachedPropertyWithoutPropertyToken("alias", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false),
+      "alias.prop"
+    ),
     (SlottedCachedHasPropertyWithPropertyToken("x", propName("prop"), 0, true, 1, 2, NODE_TYPE, false), "x.prop"),
     (
       SlottedCachedHasPropertyWithoutPropertyToken("x", propName("prop"), 0, true, "prop", 1, NODE_TYPE, false),
       "x.prop"
-    )
+    ),
+    (
+      RuntimeConstant(varFor("x"), function("datetime", parameter("param", CTDate))),
+      "datetime($param)"
+    ),
+    (HasAnyLabelFromSlot(0, Seq(0), Seq.empty), "x:A"),
+    (HasAnyLabelFromSlot(0, Seq.empty, Seq("C")), "x:C"),
+    (HasAnyLabelFromSlot(0, Seq(0), Seq("C")), "(x:A OR x:C)"),
+    (HasAnyLabelFromSlot(0, Seq(0, 1), Seq("C", "D")), "(x:A OR x:B OR x:C OR x:D)"),
+    (HasLabelsFromSlot(0, Seq(0), Seq.empty), "x:A"),
+    (HasLabelsFromSlot(0, Seq.empty, Seq("C")), "x:C"),
+    (HasLabelsFromSlot(0, Seq(0), Seq("C")), "(x:A AND x:C)"),
+    (HasLabelsFromSlot(0, Seq(0, 1), Seq("C", "D")), "(x:A AND x:B AND x:C AND x:D)"),
+    (HasTypesFromSlot(1, Seq(0), Seq()), "r:R"),
+    (HasTypesFromSlot(1, Seq.empty, Seq("T")), "r:T"),
+    (HasTypesFromSlot(1, Seq(0, 1), Seq("T", "U")), "(r:R AND r:S AND r:T AND r:U)"),
+    (LabelsFromSlot(0), "labels(x)"),
+    (RelationshipTypeFromSlot(1), "type(r)"),
+    (PrimitiveEquals(0, 1), "x = r"),
+    (IsPrimitiveNull(0), "x IS NULL"),
+    (NullCheck(0, varFor("x")), "x"),
+    (NullCheck(0, varFor("z")), "z")
   )
 
   private val unsupportedExpressions = Table(
     "expressions",
-    RelationshipTypeFromSlot(1),
     PropertiesUsingCachedProperties(varFor("x"), Set(cachedNodeProp("x", "prop"))),
     RelationshipElementIdFromSlot(0),
     NodeElementIdFromSlot(0),
     HasDegreeLessThanPrimitive(0, None, OUTGOING, literalInt(1)),
     HasDegreeLessThanOrEqualPrimitive(0, None, OUTGOING, literalInt(1)),
     HasDegreePrimitive(0, None, OUTGOING, literalInt(1)),
-    HasTypesFromSlot(0, Seq(1), Seq()),
     HasDegreeGreaterThanOrEqualPrimitive(0, None, OUTGOING, literalInt(1)),
-    PrimitiveEquals(0, 1),
     PrimitiveNotEquals(0, 1),
     PrimitiveAnds(Seq(PrimitiveEquals(0, 1), PrimitiveNotEquals(0, 1))),
-    IsPrimitiveNull(1),
-    HasAnyLabelFromSlot(1, Seq(1), Seq()),
     HasALabelFromSlot(1),
     HasDegreeGreaterThanPrimitive(1, None, INCOMING, literalInt(1)),
-    HasLabelsFromSlot(1, Seq(1, 2), Seq("L")),
-    NullCheck(1, varFor("x")),
     IdFromSlot(1),
     DefaultValueLiteral(Values.intValue(1)),
     GetDegreePrimitive(1, None, BOTH),
-    LabelsFromSlot(1),
-    RuntimeConstant(varFor("x"), literalString("y")),
     MakeTraversable(varFor("x")),
     TraversalEndpoint(varFor("x"), To),
     NonEmpty,
@@ -152,13 +231,28 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     (RelationshipProperty(0, 1, "x.prop")(prop("x", "prop", InputPosition.NONE)), "x.prop"),
     (RelationshipPropertyLate(0, "prop", "x.prop")(prop("x", "prop", InputPosition.NONE)), "x.prop"),
     (RelationshipPropertyExists(0, 1, "x.prop")(prop("x", "prop", InputPosition.NONE)), "x.prop IS NOT NULL"),
-    (RelationshipPropertyExistsLate(0, "prop", "x.prop")(prop("x", "prop", InputPosition.NONE)), "x.prop IS NOT NULL")
+    (RelationshipPropertyExistsLate(0, "prop", "x.prop")(prop("x", "prop", InputPosition.NONE)), "x.prop IS NOT NULL"),
+    (NullCheckProperty(0, prop("x", "prop", InputPosition.NONE)), "x.prop"),
+    (NullCheckProperty(0, NodePropertyLate(0, "prop", "x.prop")(prop("x", "prop", InputPosition.NONE))), "x.prop")
   )
 
   private val unsupportedRuntimeProperties = Table(
     "runtime property",
-    NullCheckProperty(0, prop("x", "prop", InputPosition.NONE)),
     NullCheckReferenceProperty(0, cachedNodeProp("n", "prop"))
+  )
+
+  private val supportedRuntimVariables = Table(
+    ("runtime variable", "stringified"),
+    (NodeFromSlot(0, "x"), "x"),
+    (RelationshipFromSlot(1, "r"), "r"),
+    (NullCheckVariable(0, varFor("x")), "x")
+  )
+
+  private val unsupportedRuntimeVariables = Table(
+    "runtime variable",
+    VariableRef("x"),
+    ExpressionVariable(0, "x"),
+    ReferenceFromSlot(0, "x")
   )
 
   test("should stringify runtime expression") {
@@ -173,7 +267,7 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     }
   }
 
-  test("should deduplicate generated names") {
+  test("should backtick generated names") {
     val generatedVariables = Table(
       ("expression", "stringified"),
       (
@@ -187,10 +281,10 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
           NODE_TYPE,
           false
         ),
-        "x.prop"
+        "`  x@10`.prop"
       ),
-      (NodeProperty(0, 1, "  x@10.prop")(prop("  x@10", "prop", InputPosition.NONE)), "x.prop"),
-      (NodePropertyExists(0, 1, "  x@10.prop")(prop("  x@10", "prop", InputPosition.NONE)), "x.prop IS NOT NULL")
+      (NodeProperty(0, 1, "  x@10.prop")(prop("  x@10", "prop", InputPosition.NONE)), "`  x@10`.prop"),
+      (NodePropertyExists(0, 1, "  x@10.prop")(prop("  x@10", "prop", InputPosition.NONE)), "`  x@10`.prop IS NOT NULL")
     )
 
     forEvery(generatedVariables) { (expression, stringified) =>
@@ -231,6 +325,19 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     }
   }
 
+  test("should throw for slot offset out of bounds") {
+    val oob = slots.numberOfLongs
+    val offsetOOB = HasAnyLabelFromSlot(offset = oob, Seq(0), Seq.empty)
+    val ex = intercept[IllegalArgumentException](stringifier(ctx)(offsetOOB))
+    ex.getMessage shouldEqual s"No LongSlot with offset $oob, last offset is ${oob - 1}"
+  }
+
+  test("should throw for unexptected slot key type") {
+    val notVariableSlotOffset = HasAnyLabelFromSlot(3, Seq(0), Seq.empty)
+    val ex = intercept[IllegalStateException](stringifier(ctx)(notVariableSlotOffset))
+    ex.getMessage should equal("Expected a VariableSlotKey at offset 3 but found ApplyPlanSlotKey(Id(1))")
+  }
+
   test("should test all RuntimeProperties") {
     val reflections = new Reflections("org.neo4j.cypher")
 
@@ -246,4 +353,59 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
       allRuntimeProperties -- testedClasses should be(empty)
     }
   }
+
+  test("should stringify runtime variables") {
+    forEvery(supportedRuntimVariables) { (expression, stringified) =>
+      stringifier(ctx)(expression) shouldBe stringified
+    }
+  }
+
+  test("should throw for unsupported runtime variables") {
+    forEvery(unsupportedRuntimeVariables) { expression =>
+      assertThrows[UnsupportedOperationException](stringifier(ctx)(expression))
+    }
+  }
+
+  test("should test all RuntimeVariables") {
+    val reflections = new Reflections("org.neo4j.cypher")
+
+    val allRuntimeProperties: Set[Class[_ <: RuntimeVariable]] =
+      reflections.getSubTypesOf[RuntimeVariable](classOf[RuntimeVariable]).asScala
+        .filter(planClass => !Modifier.isAbstract(planClass.getModifiers)).toSet
+
+    val testedClasses: Set[Class[_ <: RuntimeVariable]] =
+      supportedRuntimVariables.map(_._1.getClass).toSet ++ unsupportedRuntimeVariables.map(_.getClass).toSet
+
+    withClue("tests missing for these runtime expressions: ") {
+      allRuntimeProperties should not be empty
+      allRuntimeProperties -- testedClasses should be(empty)
+    }
+  }
+}
+
+object RuntimeExpressionStringifierTest {
+
+  private def tokenContext(
+    nodeLabelTokens: Map[Int, String],
+    relationshipTypeTokens: Map[Int, String]
+  ): ReadTokenContext =
+    new ReadTokenContext {
+      override def getLabelName(id: Int): String = nodeLabelTokens(id)
+
+      override def getOptLabelId(labelName: String): Option[Int] = ???
+
+      override def getLabelId(labelName: String): Int = ???
+
+      override def getPropertyKeyName(id: Int): String = ???
+
+      override def getOptPropertyKeyId(propertyKeyName: String): Option[Int] = ???
+
+      override def getPropertyKeyId(propertyKeyName: String): Int = ???
+
+      override def getRelTypeName(id: Int): String = relationshipTypeTokens(id)
+
+      override def getOptRelTypeId(relType: String): Option[Int] = ???
+
+      override def getRelTypeId(relType: String): Int = ???
+    }
 }

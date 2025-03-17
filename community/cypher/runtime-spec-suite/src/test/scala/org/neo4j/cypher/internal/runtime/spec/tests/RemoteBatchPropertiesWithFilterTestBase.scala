@@ -20,17 +20,27 @@
 package org.neo4j.cypher.internal.runtime.spec.tests
 
 import org.neo4j.cypher.internal.CypherRuntime
+import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.RuntimeContext
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.extractRuntimeConstants
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
+import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.test_helpers.CypherScalaCheckDrivenPropertyChecks
+import org.neo4j.graphdb.Label
+import org.neo4j.graphdb.RelationshipType
+import org.neo4j.values.storable.DateTimeValue
+import org.neo4j.values.storable.DateValue
 import org.neo4j.values.storable.PointValue
 import org.scalatest.prop.TableDrivenPropertyChecks.forEvery
+import org.scalatest.prop.TableFor1
 import org.scalatest.prop.Tables.Table
+
+import java.time.ZoneOffset.UTC
 
 object RemoteBatchPropertiesWithFilterTestBase
 
@@ -40,44 +50,104 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
   val sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) with CypherScalaCheckDrivenPropertyChecks {
 
+  private val nodePredicates: TableFor1[String] = Table(
+    "predicate",
+    "cache[x.prop1] < 10",
+    "cache[x.prop1] <= 10",
+    "cache[x.prop1] <> cache[x.prop2]",
+    "cache[x.prop1] = $intParam",
+    "cache[x.prop1] = $stringParam",
+    "cache[x.prop1] = 'prop'",
+    "cache[x.prop1] = 10",
+    "cache[x.prop1] = cache[x.prop2]",
+    "cache[x.prop1] =~ 'prop.*'",
+    "cache[x.prop1] > 10",
+    "cache[x.prop1] >= 10",
+    "cache[x.prop1] CONTAINS 'prop'",
+    "cache[x.prop1] ENDS WITH 'prop'",
+    "cache[x.prop1] in $listParam",
+    "cache[x.prop1] in [1,2,3]",
+    "cache[x.prop1] IS :: INTEGER NOT NULL",
+//    "cache[x.prop1] IS :: INTEGER",
+    "cache[x.prop1] IS NOT NULL",
+    "cache[x.prop1] STARTS WITH 'prop'",
+    "cache[x.prop2] IS NULL",
+    "labels(x)[0] = 'A'",
+    "point.withinBBox(x.prop1, point({ x:1, y:1 }), point({ x:4, y:4 }))",
+    "x.prop1 < 10",
+    "x.prop1 <= 10",
+    "x.prop1 <> x.prop2",
+    "x.prop1 = $intParam",
+    "x.prop1 = $stringParam",
+    "x.prop1 = 'prop'",
+    "x.prop1 = 10",
+    "x.prop1 = x.prop2",
+    "x.prop1 =~ 'prop.*'",
+    "x.prop1 > 10",
+    "x.prop1 >= 10",
+    "x.prop1 CONTAINS 'prop'",
+    "x.prop1 ENDS WITH 'prop'",
+    "x.prop1 in $listParam",
+    "x.prop1 in [1,2,3]",
+    "x.prop1 IS :: INTEGER NOT NULL",
+//    "x.prop1 IS :: INTEGER",
+    "x.prop1 IS NOT NULL",
+    "x.prop1 STARTS WITH 'prop'",
+    "x.prop2 IS NULL",
+    "x:A AND NOT x:B",
+    "x:A AND x:B",
+    "x:A OR size(labels(x)) > 1",
+    "x:A OR x.prop > 20",
+    "x:A OR x:B",
+    "x:A",
+    "x:A|B"
+  )
+
+  private val relationshipPredicates = Table(
+    "predicates",
+    "cacheR[x.prop1] < 10",
+    "cacheR[x.prop1] <= 10",
+    "cacheR[x.prop1] = $intParam",
+    "cacheR[x.prop1] = $stringParam",
+    "cacheR[x.prop1] = 'prop'",
+    "cacheR[x.prop1] = 10",
+    "cacheR[x.prop1] =~ 'prop.*'",
+    "cacheR[x.prop1] > 10",
+    "cacheR[x.prop1] >= 10",
+    "cacheR[x.prop1] CONTAINS 'prop'",
+    "cacheR[x.prop1] ENDS WITH 'prop'",
+    "cacheR[x.prop1] IS NOT NULL",
+    "cacheR[x.prop1] STARTS WITH 'prop'",
+    "cacheR[x.prop1] in $listParam",
+    "cacheR[x.prop1] in [1,2,3]",
+    "point.withinBBox(x.prop1, point({ x:1, y:1 }), point({ x:4, y:4 }))",
+    "type(x) = 'A'",
+    "type(x) IN ['A', 'B']",
+    "x.prop1 < 10",
+    "x.prop1 <= 10",
+    "x.prop1 = $intParam",
+    "x.prop1 = $stringParam",
+    "x.prop1 = 'prop'",
+    "x.prop1 = 10",
+    "x.prop1 =~ 'prop.*'",
+    "x.prop1 > 10",
+    "x.prop1 >= 10",
+    "x.prop1 CONTAINS 'prop'",
+    "x.prop1 ENDS WITH 'prop'",
+    "x.prop1 IS NOT NULL",
+    "x.prop1 STARTS WITH 'prop'",
+    "x.prop1 in $listParam",
+    "x.prop1 in [1,2,3]",
+    "x:A AND x.prop > 10",
+    "x:A AND x:B",
+    "x:A OR x:B",
+    "x:A",
+    "x:A|B"
+  )
+
   test("should return nothing - on empty graph - for all predicates") {
 
-    val predicates = Table(
-      "predicate",
-      "x.prop1 IS NULL",
-      "x.prop1 in [1,2,3]",
-      "x.prop1 in $listParam",
-      "x.prop1 = 10",
-      "x.prop1 = 'prop'",
-      "x.prop1 = $intParam",
-      "x.prop1 = $stringParam",
-      "x.prop1 STARTS WITH 'prop'",
-      "x.prop1 ENDS WITH 'prop'",
-      "x.prop1 CONTAINS 'prop'",
-      "x.prop1 IS NOT NULL",
-      "x.prop1 > 10",
-      "x.prop1 >= 10",
-      "x.prop1 < 10",
-      "x.prop1 <= 10",
-      "point.withinBBox(x.prop1, point({ x:1, y:1 }), point({ x:4, y:4 }))",
-      "cache[x.prop1] IS NULL",
-      "cache[x.prop1] in [1,2,3]",
-      "cache[x.prop1] in $listParam",
-      "cache[x.prop1] = 10",
-      "cache[x.prop1] = 'prop'",
-      "cache[x.prop1] = $intParam",
-      "cache[x.prop1] = $stringParam",
-      "cache[x.prop1] STARTS WITH 'prop'",
-      "cache[x.prop1] ENDS WITH 'prop'",
-      "cache[x.prop1] CONTAINS 'prop'",
-      "cache[x.prop1] IS NOT NULL",
-      "cache[x.prop1] > 10",
-      "cache[x.prop1] >= 10",
-      "cache[x.prop1] < 10",
-      "cache[x.prop1] <= 10"
-    )
-
-    forEvery(predicates) { (predicate: String) =>
+    forEvery(nodePredicates) { (predicate: String) =>
       withClue(s"predicate: $predicate") {
         val query = new LogicalQueryBuilder(this)
           .produceResults("prop1")
@@ -93,48 +163,59 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     }
   }
 
+  test("should return nothing on empty node") {
+    givenGraph {
+      tx.createNode()
+    }
+
+    forEvery(nodePredicates) { (predicate: String) =>
+      withClue(s"predicate: $predicate") {
+        val query = new LogicalQueryBuilder(this)
+          .produceResults("prop1")
+          .projection("cache[x.prop1] as prop1")
+          .remoteBatchPropertiesWithFilter("cache[x.prop1]")(
+            predicate
+          )
+          .allNodeScan("x")
+          .build()
+
+        val result =
+          execute(query, runtime, Map("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3)))
+        result should beColumns("prop1").withNoRows()
+      }
+    }
+  }
+
+  test("should return nothing on empty relationship") {
+    givenGraph {
+      lineGraph(2, "R")
+    }
+
+    forEvery(relationshipPredicates) { (predicate: String) =>
+      withClue(s"predicate: $predicate") {
+        val query = new LogicalQueryBuilder(this)
+          .produceResults("prop1")
+          .projection("cacheR[x.prop1] as prop1")
+          .remoteBatchPropertiesWithFilter("cacheR[x.prop1]")(
+            predicate
+          )
+          .allRelationshipsScan("()-[x]->()")
+          .build()
+
+        val result =
+          execute(query, runtime, Map("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3)))
+        result should beColumns("prop1").withNoRows()
+      }
+    }
+  }
+
   test("should return nothing on non-existing property - for all predicates") {
 
     givenGraph {
       nodePropertyGraph(sizeHint, { case i => Map("prop2" -> i) })
     }
 
-    val predicates = Table(
-      "predicate",
-      "x.prop1 = 10",
-      "x.prop1 = 'prop'",
-      "x.prop1 = $intParam",
-      "x.prop1 = $stringParam",
-      "x.prop1 STARTS WITH 'prop'",
-      "x.prop1 ENDS WITH 'prop'",
-      "x.prop1 CONTAINS 'prop'",
-      "x.prop1 IS NOT NULL",
-      "x.prop1 > 10",
-      "x.prop1 >= 10",
-      "x.prop1 < 10",
-      "x.prop1 <= 10",
-      "x.prop1 in [1,2,3]",
-      "x.prop1 in $listParam",
-      "x.prop2 IS NULL",
-      "point.withinBBox(x.prop1, point({ x:1, y:1 }), point({ x:4, y:4 }))",
-      "cache[x.prop1] = 10",
-      "cache[x.prop1] = 'prop'",
-      "cache[x.prop1] = $intParam",
-      "cache[x.prop1] = $stringParam",
-      "cache[x.prop1] STARTS WITH 'prop'",
-      "cache[x.prop1] ENDS WITH 'prop'",
-      "cache[x.prop1] CONTAINS 'prop'",
-      "cache[x.prop1] IS NOT NULL",
-      "cache[x.prop1] > 10",
-      "cache[x.prop1] >= 10",
-      "cache[x.prop1] < 10",
-      "cache[x.prop1] <= 10",
-      "cache[x.prop1] in [1,2,3]",
-      "cache[x.prop1] in $listParam",
-      "cache[x.prop2] IS NULL"
-    )
-
-    forEvery(predicates) { (predicate: String) =>
+    forEvery(nodePredicates) { (predicate: String) =>
       withClue(s"predicate: $predicate") {
         val query = new LogicalQueryBuilder(this)
           .produceResults("prop1", "prop2")
@@ -164,42 +245,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       tx.createNode().setProperty("prop2", 30)
     }
 
-    val predicates = Table(
-      "predicate",
-      "x.prop1 = 10",
-      "x.prop1 = 'prop'",
-      "x.prop1 = $intParam",
-      "x.prop1 = $stringParam",
-      "x.prop1 STARTS WITH 'prop'",
-      "x.prop1 ENDS WITH 'prop'",
-      "x.prop1 CONTAINS 'prop'",
-      "x.prop1 IS NOT NULL",
-      "x.prop1 > 10",
-      "x.prop1 >= 10",
-      "x.prop1 < 10",
-      "x.prop1 <= 10",
-      "x.prop1 in [1,2,3]",
-      "x.prop1 in $listParam",
-      "x.prop2 IS NULL",
-      "point.withinBBox(x.prop1, point({ x:1, y:1 }), point({ x:4, y:4 }))",
-      "cache[x.prop1] = 10",
-      "cache[x.prop1] = 'prop'",
-      "cache[x.prop1] = $intParam",
-      "cache[x.prop1] = $stringParam",
-      "cache[x.prop1] STARTS WITH 'prop'",
-      "cache[x.prop1] ENDS WITH 'prop'",
-      "cache[x.prop1] CONTAINS 'prop'",
-      "cache[x.prop1] IS NOT NULL",
-      "cache[x.prop1] > 10",
-      "cache[x.prop1] >= 10",
-      "cache[x.prop1] < 10",
-      "cache[x.prop1] <= 10",
-      "cache[x.prop1] in [1,2,3]",
-      "cache[x.prop1] in $listParam",
-      "cache[x.prop2] IS NULL"
-    )
-
-    forEvery(predicates) { (predicate: String) =>
+    forEvery(nodePredicates) { (predicate: String) =>
       withClue(s"predicate: $predicate") {
         val query = new LogicalQueryBuilder(this)
           .produceResults("prop1", "prop2")
@@ -226,42 +272,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       rels(2).setProperty("prop2", 30)
     }
 
-    val predicates = Table(
-      "predicate",
-      "x.prop1 = 10",
-      "x.prop1 = 'prop'",
-      "x.prop1 = $intParam",
-      "x.prop1 = $stringParam",
-      "x.prop1 STARTS WITH 'prop'",
-      "x.prop1 ENDS WITH 'prop'",
-      "x.prop1 CONTAINS 'prop'",
-      "x.prop1 IS NOT NULL",
-      "x.prop1 > 10",
-      "x.prop1 >= 10",
-      "x.prop1 < 10",
-      "x.prop1 <= 10",
-      "x.prop1 in [1,2,3]",
-      "x.prop1 in $listParam",
-      "x.prop2 IS NULL",
-      "point.withinBBox(x.prop1, point({ x:1, y:1 }), point({ x:4, y:4 }))",
-      "cacheR[x.prop1] = 10",
-      "cacheR[x.prop1] = 'prop'",
-      "cacheR[x.prop1] = $intParam",
-      "cacheR[x.prop1] = $stringParam",
-      "cacheR[x.prop1] STARTS WITH 'prop'",
-      "cacheR[x.prop1] ENDS WITH 'prop'",
-      "cacheR[x.prop1] CONTAINS 'prop'",
-      "cacheR[x.prop1] IS NOT NULL",
-      "cacheR[x.prop1] > 10",
-      "cacheR[x.prop1] >= 10",
-      "cacheR[x.prop1] < 10",
-      "cacheR[x.prop1] <= 10",
-      "cacheR[x.prop1] in [1,2,3]",
-      "cacheR[x.prop1] in $listParam",
-      "cacheR[x.prop2] IS NULL"
-    )
-
-    forEvery(predicates) { (predicate: String) =>
+    forEvery(relationshipPredicates) { (predicate: String) =>
       withClue(s"predicate: $predicate") {
         val query = new LogicalQueryBuilder(this)
           .produceResults("prop1", "prop2")
@@ -310,6 +321,50 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
   // one property column - on tiny graph
   // ------------------------------------------------
 
+  private val propertyPredicates = Table(
+    ("predicate", "expected"),
+    ("cache[x.prop] < 20", Seq(10)),
+    ("cache[x.prop] <= 20", Seq(10, 20)),
+    ("cache[x.prop] <> 20", Seq(10, 30)),
+    ("cache[x.prop] <> cache[x.prop]", Seq.empty),
+    ("cache[x.prop] = $param", Seq(20)),
+    ("cache[x.prop] = 20", Seq(20)),
+    ("cache[x.prop] = cache[x.prop]", Seq(10, 20, 30)),
+    ("cache[x.prop] > 20", Seq(30)),
+    ("cache[x.prop] >= 20", Seq(20, 30)),
+    ("cache[x.prop] IN $listParam", Seq(10, 30)),
+    ("cache[x.prop] IN [10, 30]", Seq(10, 30)),
+    ("cache[x.prop] IS NOT NULL", Seq(10, 20, 30)),
+    ("cache[x.prop] IS NULL", Seq.empty),
+    ("NOT cache[x.prop] = 20", Seq(10, 30)),
+    ("NOT cache[x.prop] IS NOT NULL", Seq.empty),
+    ("NOT cache[x.prop] IS NULL", Seq(10, 20, 30)),
+    ("NOT x.prop = 20", Seq(10, 30)),
+    ("NOT x.prop IS NOT NULL", Seq.empty),
+    ("NOT x.prop IS NULL", Seq(10, 20, 30)),
+    ("x <> x", Seq.empty),
+    ("x = x", Seq(10, 20, 30)),
+    ("x.prop < $param", Seq(10)),
+    ("x.prop < 20", Seq(10)),
+    ("x.prop <= $param", Seq(10, 20)),
+    ("x.prop <= 20", Seq(10, 20)),
+    ("x.prop <> 20", Seq(10, 30)),
+    ("x.prop <> x.prop", Seq.empty),
+    ("x.prop = $param + 10", Seq(30)),
+    ("x.prop = $param", Seq(20)),
+    ("x.prop = 20", Seq(20)),
+    ("x.prop = x.prop", Seq(10, 20, 30)),
+    ("x.prop > $param", Seq(30)),
+    ("x.prop > 20", Seq(30)),
+    ("x.prop >= $param", Seq(20, 30)),
+    ("x.prop >= 10 + $param", Seq(30)),
+    ("x.prop >= 20", Seq(20, 30)),
+    ("x.prop IN $listParam", Seq(10, 30)),
+    ("x.prop IN [10, 30]", Seq(10, 30)),
+    ("x.prop IS NOT NULL", Seq(10, 20, 30)),
+    ("x.prop IS NULL", Seq.empty)
+  )
+
   test("should return one node property column - on tiny graph - numeric values") {
     givenGraph {
       tx.createNode().setProperty("prop", 10)
@@ -317,37 +372,8 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       tx.createNode().setProperty("prop", 30)
 
     }
-    val predicates = Table(
-      ("predicate", "expected"),
-      ("x.prop IS NULL", Seq()),
-      ("x.prop IN [10, 30]", Seq(10, 30)),
-      ("x.prop IN $listParam", Seq(10, 30)),
-      ("x.prop IS NOT NULL", Seq(10, 20, 30)),
-      ("x.prop = 20", Seq(20)),
-      ("x.prop = $param", Seq(20)),
-      ("x.prop = $param + 10", Seq(30)),
-      ("x.prop > 20", Seq(30)),
-      ("x.prop > $param", Seq(30)),
-      ("x.prop >= 20", Seq(20, 30)),
-      ("x.prop >= $param", Seq(20, 30)),
-      ("x.prop < 20", Seq(10)),
-      ("x.prop < $param", Seq(10)),
-      ("x.prop <= 20", Seq(10, 20)),
-      ("x.prop <= $param", Seq(10, 20)),
-      ("x.prop >= 10 + $param", Seq(30)),
-      ("cache[x.prop] IS NULL", Seq()),
-      ("cache[x.prop] IN [10, 30]", Seq(10, 30)),
-      ("cache[x.prop] IN $listParam", Seq(10, 30)),
-      ("cache[x.prop] IS NOT NULL", Seq(10, 20, 30)),
-      ("cache[x.prop] = 20", Seq(20)),
-      ("cache[x.prop] = $param", Seq(20)),
-      ("cache[x.prop] > 20", Seq(30)),
-      ("cache[x.prop] >= 20", Seq(20, 30)),
-      ("cache[x.prop] < 20", Seq(10)),
-      ("cache[x.prop] <= 20", Seq(10, 20))
-    )
 
-    forEvery(predicates) { (predicate: String, expected) =>
+    forEvery(propertyPredicates) { (predicate: String, expected) =>
       withClue(s"predicate: $predicate") {
         val query = new LogicalQueryBuilder(this)
           .produceResults("prop")
@@ -371,35 +397,8 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       rels(2).setProperty("prop", 30)
     }
 
-    val predicates = Table(
-      ("predicate", "expected"),
-      ("x.prop IS NULL", Seq()),
-      ("x.prop IN [10, 30]", Seq(10, 30)),
-      ("x.prop IN $listParam", Seq(10, 30)),
-      ("x.prop IS NOT NULL", Seq(10, 20, 30)),
-      ("x.prop = 20", Seq(20)),
-      ("x.prop = $param", Seq(20)),
-      ("x.prop = $param + 10", Seq(30)),
-      ("x.prop > 20", Seq(30)),
-      ("x.prop > $param", Seq(30)),
-      ("x.prop >= 20", Seq(20, 30)),
-      ("x.prop >= $param", Seq(20, 30)),
-      ("x.prop < 20", Seq(10)),
-      ("x.prop < $param", Seq(10)),
-      ("x.prop <= 20", Seq(10, 20)),
-      ("x.prop <= $param", Seq(10, 20)),
-      ("x.prop >= 10 + $param", Seq(30)),
-      ("cacheR[x.prop] IS NULL", Seq()),
-      ("cacheR[x.prop] IN [10, 30]", Seq(10, 30)),
-      ("cacheR[x.prop] IN $listParam", Seq(10, 30)),
-      ("cacheR[x.prop] IS NOT NULL", Seq(10, 20, 30)),
-      ("cacheR[x.prop] = 20", Seq(20)),
-      ("cacheR[x.prop] = $param", Seq(20)),
-      ("cacheR[x.prop] > 20", Seq(30)),
-      ("cacheR[x.prop] >= 20", Seq(20, 30)),
-      ("cacheR[x.prop] < 20", Seq(10)),
-      ("cacheR[x.prop] <= 20", Seq(10, 20))
-    )
+    val relationshipPredicates = propertyPredicates.map(p => (p._1.replace("cache", "cacheR"), p._2))
+    val predicates = Table(("predicate", "expected"), relationshipPredicates: _*)
 
     forEvery(predicates) { (predicate: String, expected) =>
       withClue(s"predicate: $predicate") {
@@ -441,12 +440,14 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       ("x.prop ENDS WITH $param", Seq("1prop", "2prop", "3prop")),
       ("x.prop CONTAINS 'prp'", Seq("1prp", "prp1", "1prp1")),
       ("x.prop CONTAINS $contains", Seq("1prp", "prp1", "1prp1")),
+      ("x.prop =~ '1pr.*'", Seq("1prop", "1prp", "1prp1")),
       ("cache[x.prop] STARTS WITH 'prop'", Seq("prop1", "prop2", "prop3")),
       ("cache[x.prop] STARTS WITH $param", Seq("prop1", "prop2", "prop3")),
       ("cache[x.prop] ENDS WITH 'prop'", Seq("1prop", "2prop", "3prop")),
       ("cache[x.prop] ENDS WITH $param", Seq("1prop", "2prop", "3prop")),
       ("cache[x.prop] CONTAINS 'prp'", Seq("1prp", "prp1", "1prp1")),
-      ("cache[x.prop] CONTAINS $contains", Seq("1prp", "prp1", "1prp1"))
+      ("cache[x.prop] CONTAINS $contains", Seq("1prp", "prp1", "1prp1")),
+      ("cache[x.prop] =~ '1pr.*'", Seq("1prop", "1prp", "1prp1"))
     )
 
     forEvery(predicates) { (predicate: String, expected) =>
@@ -489,12 +490,14 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       ("x.prop ENDS WITH $param", Seq("1prop", "2prop", "3prop")),
       ("x.prop CONTAINS 'prp'", Seq("1prp", "prp1", "1prp1")),
       ("x.prop CONTAINS $contains", Seq("1prp", "prp1", "1prp1")),
+      ("x.prop =~ '1pr.*'", Seq("1prop", "1prp", "1prp1")),
       ("cacheR[x.prop] STARTS WITH 'prop'", Seq("prop1", "prop2", "prop3")),
       ("cacheR[x.prop] STARTS WITH $param", Seq("prop1", "prop2", "prop3")),
       ("cacheR[x.prop] ENDS WITH 'prop'", Seq("1prop", "2prop", "3prop")),
       ("cacheR[x.prop] ENDS WITH $param", Seq("1prop", "2prop", "3prop")),
       ("cacheR[x.prop] CONTAINS 'prp'", Seq("1prp", "prp1", "1prp1")),
-      ("cacheR[x.prop] CONTAINS $contains", Seq("1prp", "prp1", "1prp1"))
+      ("cacheR[x.prop] CONTAINS $contains", Seq("1prp", "prp1", "1prp1")),
+      ("cacheR[x.prop] =~ '1pr.*'", Seq("1prop", "1prp", "1prp1"))
     )
 
     forEvery(predicates) { (predicate: String, expected) =>
@@ -706,6 +709,164 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     result should beColumns("prop").withRows(singleColumn(Seq(15)))
   }
 
+  test("should handle datetime() function as RuntimeConstant") {
+    val expectedDate = DateTimeValue.parse("2024-01-01T00:00", () => UTC)
+    givenGraph {
+      tx.createNode().setProperty("created", expectedDate)
+      tx.createNode().setProperty("created", DateTimeValue.parse("2025-01-01T00:00", () => UTC))
+      tx.createNode().setProperty("created", DateTimeValue.parse("2026-01-01T00:00", () => UTC))
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("created")
+      .projection("cache[x.created] as created")
+      .remoteBatchPropertiesWithFilter("cache[x.created]")("cache[x.created] < datetime({date: $param})")
+      .allNodeScan("x")
+      .build()
+
+    val rewrittenQuery = extractRuntimeConstants(new AnonymousVariableNameGenerator)(query).asInstanceOf[LogicalQuery]
+
+    val result = execute(rewrittenQuery, runtime, Map("param" -> DateValue.date(2025, 1, 1)))
+    result should beColumns("created").withRows(singleColumn(Seq(expectedDate)))
+  }
+
+  private val labelPredicates =
+    Table(
+      ("predicate", "expected"),
+      ("x:A", Seq(10, 40)),
+      ("x:A AND NOT x:B", Seq(10)),
+      ("x:A OR x:C", Seq(10, 30, 40)),
+      ("x:A|B", Seq(10, 20, 40)),
+      ("x:A AND x:B", Seq(40)),
+      ("x:A OR (x:B AND x.prop > 30)", Seq(10, 40)),
+      ("x:A AND x.prop > 10", Seq(40)),
+      ("x:C AND x.prop > 30", Seq.empty),
+      ("x:A OR x.prop > 20", Seq(10, 30, 40)),
+      ("x:C OR size(labels(x)) > 1", Seq(30, 40)),
+      ("labels(x)[0] = 'C'", Seq(30)),
+      ("labels(x)[1] = 'F'", Seq.empty)
+    )
+
+  test("should match node labels") {
+    givenGraph {
+      val n1 = tx.createNode(Label.label("A"))
+      n1.setProperty("prop", 10)
+      val n2 = tx.createNode(Label.label("B"))
+      n2.setProperty("prop", 20)
+      val n3 = tx.createNode(Label.label("C"))
+      n3.setProperty("prop", 30)
+      val n4 = tx.createNode(Label.label("A"), Label.label("B"))
+      n4.setProperty("prop", 40)
+    }
+
+    forEvery(labelPredicates) { (predicate, expected) =>
+      val builder = new LogicalQueryBuilder(this)
+      val query = builder
+        .produceResults("prop")
+        .projection("cache[x.prop] as prop")
+        .remoteBatchPropertiesWithFilter("cache[x.prop]")(predicate)
+        .allNodeScan("x")
+        .build()
+
+      val result = execute(query, runtime)
+
+      result should beColumns("prop").withRows(singleColumn(expected))
+    }
+  }
+
+  test("should match node labels - with extra slots") {
+    givenGraph {
+      val n1 = tx.createNode(Label.label("A"))
+      n1.setProperty("prop", 10)
+      val n2 = tx.createNode(Label.label("B"))
+      n2.setProperty("prop", 20)
+      val n3 = tx.createNode(Label.label("C"))
+      n3.setProperty("prop", 30)
+      val n4 = tx.createNode(Label.label("A"), Label.label("B"))
+      n4.setProperty("prop", 40)
+    }
+
+    forEvery(labelPredicates) { (predicate, expected) =>
+      val builder = new LogicalQueryBuilder(this)
+      val query = builder
+        .produceResults("prop")
+        .apply()
+        .|.projection("cache[x.prop] as prop")
+        .|.remoteBatchPropertiesWithFilter("cache[x.prop]")(predicate)
+        .|.argument("x")
+        .distinct("x as x")
+        .apply()
+        .|.allNodeScan("x")
+        .unwind("[1] as a")
+        .allNodeScan("y")
+        .build()
+
+      val result = execute(query, runtime)
+
+      result should beColumns("prop").withRows(singleColumn(expected))
+    }
+  }
+
+  private val relationshipTypePredicates = Table(
+    ("predicate", "expected"),
+    ("x:A", Seq(10, 40)),
+    ("x:A OR x:B", Seq(10, 20, 40)),
+    ("x:A|C", Seq(10, 30, 40)),
+    ("x:A AND x:B", Seq.empty),
+    ("x:A AND x.prop > 10", Seq(40)),
+    ("x:C AND x.prop > 30", Seq.empty),
+    ("x:A OR x.prop > 20", Seq(10, 30, 40)),
+    ("type(x) = 'A' OR x.prop = 30", Seq(10, 30, 40)),
+    ("type(x) IN ['B', 'C']", Seq(20, 30))
+  )
+
+  test("should match relationship types") {
+    givenGraph {
+      val nodes = nodeGraph(5)
+      nodes.head.createRelationshipTo(nodes(1), RelationshipType.withName("A")).setProperty("prop", 10)
+      nodes(1).createRelationshipTo(nodes(2), RelationshipType.withName("B")).setProperty("prop", 20)
+      nodes(2).createRelationshipTo(nodes(3), RelationshipType.withName("C")).setProperty("prop", 30)
+      nodes(3).createRelationshipTo(nodes(4), RelationshipType.withName("A")).setProperty("prop", 40)
+    }
+
+    forEvery(relationshipTypePredicates) { (predicate, expected) =>
+      val query = new LogicalQueryBuilder(this)
+        .produceResults("prop")
+        .projection("cacheR[x.prop] as prop")
+        .remoteBatchPropertiesWithFilter("cacheR[x.prop]")(predicate)
+        .allRelationshipsScan("()-[x]->()")
+        .build()
+
+      val result = execute(query, runtime)
+      result should beColumns("prop").withRows(singleColumn(expected))
+    }
+  }
+
+  test("should match relationship types - with extra slots") {
+    givenGraph {
+      val nodes = nodeGraph(5)
+      nodes.head.createRelationshipTo(nodes(1), RelationshipType.withName("A")).setProperty("prop", 10)
+      nodes(1).createRelationshipTo(nodes(2), RelationshipType.withName("B")).setProperty("prop", 20)
+      nodes(2).createRelationshipTo(nodes(3), RelationshipType.withName("C")).setProperty("prop", 30)
+      nodes(3).createRelationshipTo(nodes(4), RelationshipType.withName("A")).setProperty("prop", 40)
+    }
+
+    forEvery(relationshipTypePredicates) { (predicate, expected) =>
+      val query = new LogicalQueryBuilder(this)
+        .produceResults("prop")
+        .projection("cacheR[x.prop] as prop")
+        .remoteBatchPropertiesWithFilter("cacheR[x.prop]")(predicate)
+        .distinct("x as x")
+        .apply()
+        .|.allRelationshipsScan("(start)-[x]->(end)")
+        .allNodeScan("y")
+        .build()
+
+      val result = execute(query, runtime)
+      result should beColumns("prop").withRows(singleColumn(expected))
+    }
+  }
+
   // ------------------------------------
   // two node property columns
   // ------------------------------------
@@ -720,28 +881,43 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       // n2.prop2 is null
       val n3 = tx.createNode()
       n3.setProperty("prop1", 20)
-      n3.setProperty("prop2", 21)
+      n3.setProperty("prop2", 20)
+      val n4 = tx.createNode()
+      n4.setProperty("prop1", "one")
+      n4.setProperty("prop2", "two")
     }
 
     val rowN1 = Array(10, 11)
-    val rowN2 = Array[Any](20, null)
-    val rowN3 = Array(20, 21)
+    val rowN2 = Array(20, null)
+    val rowN3 = Array(20, 20)
+    val rowN4 = Array("one", "two")
+
     val predicates = Table(
       ("predicate(s)", "expected"),
       (Seq("x.prop1 = 20"), Seq(rowN2, rowN3)),
-      (Seq("x.prop1 = 20", "x.prop2 = 21"), Seq(rowN3)),
-      (Seq("x.prop2 = 21"), Seq(rowN3)),
-      (Seq("x.prop1 IS NOT NULL"), Seq(rowN1, rowN2, rowN3)),
-      (Seq("x.prop2 IS NOT NULL"), Seq(rowN1, rowN3)),
+      (Seq("x.prop1 = 20", "x.prop2 = 20"), Seq(rowN3)),
+      (Seq("x.prop2 = 20"), Seq(rowN3)),
+      (Seq("x.prop1 IS NOT NULL"), Seq(rowN1, rowN2, rowN3, rowN4)),
+      (Seq("x.prop2 IS NOT NULL"), Seq(rowN1, rowN3, rowN4)),
       (Seq("x.prop1 IS NULL"), Seq()),
       (Seq("x.prop2 IS NULL"), Seq(rowN2)),
+      (Seq("x.prop1 <> x.prop2"), Seq(rowN1, rowN4)),
+      (Seq("x.prop1 = x.prop2"), Seq(rowN3)),
+      (Seq("x.prop1 IS :: INTEGER"), Seq(rowN1, rowN2, rowN3)),
+      (Seq("x.prop2 IS :: INTEGER"), Seq(rowN1, rowN2, rowN3)),
+      (Seq("x.prop2 IS :: INTEGER NOT NULL"), Seq(rowN1, rowN3)),
       (Seq("cache[x.prop1] = 20"), Seq(rowN2, rowN3)),
-      (Seq("cache[x.prop1] = 20", "cache[x.prop2] = 21"), Seq(rowN3)),
-      (Seq("cache[x.prop2] = 21"), Seq(rowN3)),
-      (Seq("cache[x.prop1] IS NOT NULL"), Seq(rowN1, rowN2, rowN3)),
-      (Seq("cache[x.prop2] IS NOT NULL"), Seq(rowN1, rowN3)),
+      (Seq("cache[x.prop1] = 20", "cache[x.prop2] = 20"), Seq(rowN3)),
+      (Seq("cache[x.prop2] = 20"), Seq(rowN3)),
+      (Seq("cache[x.prop1] IS NOT NULL"), Seq(rowN1, rowN2, rowN3, rowN4)),
+      (Seq("cache[x.prop2] IS NOT NULL"), Seq(rowN1, rowN3, rowN4)),
       (Seq("cache[x.prop1] IS NULL"), Seq()),
-      (Seq("cache[x.prop2] IS NULL"), Seq(rowN2))
+      (Seq("cache[x.prop2] IS NULL"), Seq(rowN2)),
+      (Seq("cache[x.prop1] <> cache[x.prop2]"), Seq(rowN1, rowN4)),
+      (Seq("cache[x.prop1] = cache[x.prop2]"), Seq(rowN3)),
+      (Seq("cache[x.prop1] IS :: INTEGER"), Seq(rowN1, rowN2, rowN3)),
+      (Seq("cache[x.prop2] IS :: INTEGER"), Seq(rowN1, rowN2, rowN3)),
+      (Seq("cache[x.prop2] IS :: INTEGER NOT NULL"), Seq(rowN1, rowN3))
     )
 
     forEvery(predicates) { (predicate: Seq[String], expected) =>
@@ -866,7 +1042,7 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
   test("should work with deduplicated node names on union - on tiny graph") {
 
     givenGraph {
-      val n1 = tx.createNode()
+      val n1 = tx.createNode(Label.label("A"))
       n1.setProperty("prop", 10)
       n1.setProperty("maybeProp", true)
       val n2 = tx.createNode()
@@ -887,7 +1063,11 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       ("`  x@10`.notProp IS NOT NULL", Seq(30)),
       ("`  x@10`.notProp IS NULL", Seq(10, 20, 30, 30)),
       ("cache[`  x@10`.notProp] IS NOT NULL", Seq(30)),
-      ("cache[`  x@10`.notProp] IS NULL", Seq(10, 20, 30, 30))
+      ("cache[`  x@10`.notProp] IS NULL", Seq(10, 20, 30, 30)),
+      ("`  x@10`:A", Seq(10, 30)),
+      ("NOT `  x@10`:A", Seq(20, 30, 30)),
+      ("`  x@10`.prop IS :: INTEGER", Seq(10, 20, 30, 30)),
+      ("cache[`  x@10`.prop] IS :: INTEGER", Seq(10, 20, 30, 30))
     )
     forEvery(predicates) { (predicate: String, expected) =>
       withClue(s"predicate: $predicate") {
@@ -926,6 +1106,85 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     result should beColumns("prop1", "prop2").withRows(expected)
   }
 
+  test("should return one nullable property columns when under Apply and Optional") {
+    givenGraph {
+
+      tx.createNode(Label.label("START"))
+      val s1 = tx.createNode(Label.label("START"))
+
+      val e1 = tx.createNode()
+      e1.setProperty("prop", 10)
+      val e2 = tx.createNode()
+      e2.setProperty("prop", 20)
+      val e3 = tx.createNode()
+      e3.setProperty("prop", 30)
+
+      s1.createRelationshipTo(e1, RelationshipType.withName("R"))
+      s1.createRelationshipTo(e2, RelationshipType.withName("R"))
+      s1.createRelationshipTo(e3, RelationshipType.withName("R"))
+
+    }
+
+    val rowsWithNull = propertyPredicates.map {
+      case (predicate, expected) if expected.isEmpty => (predicate, Seq(null, null))
+      case (predicate, expected)                     => (predicate, expected ++ Seq(null))
+    }
+
+    val newTable = Table(("predicate", "expected"), rowsWithNull: _*)
+    forEvery(newTable) { (predicate, expected) =>
+      {
+
+        val query = new LogicalQueryBuilder(this)
+          .produceResults("prop")
+          .apply()
+          .|.optional("a")
+          .|.projection("cache[x.prop] as prop")
+          .|.remoteBatchPropertiesWithFilter("cache[x.prop]")(predicate)
+          .|.expandAll("(s)-[]->(x)")
+          .|.argument("s")
+          .unwind("[1] as a")
+          .nodeByLabelScan("s", "START")
+          .build()
+
+        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+
+        result should beColumns("prop").withRows(singleColumn(expected))
+      }
+    }
+  }
+
+  test("should return nullable property columns when under Apply and Optional") {
+    givenGraph {
+      val (nodes, _) = lineGraph(10, "L")
+      var i = 0
+      while (i < nodes.size) {
+        nodes(i).setProperty("prop1", i % 2)
+        nodes(i).setProperty("prop2", i * 2)
+        i += 1
+      }
+    }
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("prop1", "prop2")
+      .apply()
+      .|.optional("a")
+      .|.projection("cache[y.prop1] as prop1", "cache[y.prop2] as prop2")
+      .|.remoteBatchPropertiesWithFilter("cache[y.prop1]", "cache[y.prop2]")("y.prop1 = 1")
+      .|.expandAll("(x)-[]->(y)")
+      .|.argument("x")
+      .unwind("[1] as a")
+      .allNodeScan("x")
+      .build()
+
+    val result = execute(query, runtime)
+    val expected = (0 until 10).map(i =>
+      i % 2 match {
+        case 1 => Array(1, i * 2)
+        case _ => Array(null, null)
+      }
+    )
+    result should beColumns("prop1", "prop2").withRows(expected)
+  }
+
   test("should return one relationship property columns when under Apply") {
     givenGraph {
       val (_, rels) = lineGraph(sizeHint, "R")
@@ -947,6 +1206,38 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
 
     val result = execute(query, runtime)
     val expected = (0 until sizeHint).filter(_ % 2 == 0).map(i => Array(0, i * 2))
+    result should beColumns("prop1", "prop2").withRows(expected)
+  }
+
+  test("should return nullable relationship property columns when under Apply and Optional") {
+    givenGraph {
+      val (_, rels) = lineGraph(10, "R")
+      rels.zipWithIndex.foreach {
+        case (r, i) =>
+          r.setProperty("prop1", i % 2)
+          r.setProperty("prop2", i * 2)
+      }
+    }
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("prop1", "prop2")
+      .apply()
+      .|.optional("a")
+      .|.projection("cacheR[x.prop1] as prop1", "cacheR[x.prop2] as prop2")
+      .|.remoteBatchPropertiesWithFilter("cacheR[x.prop1]", "cacheR[x.prop2]")("x.prop1 = 0")
+      .|.expandAll("(n)-[x:R]->()")
+      .|.argument("n")
+      .unwind("[1] as a")
+      .allNodeScan("n")
+      .build()
+
+    val result = execute(query, runtime)
+    val expected = (0 until 10).map(i =>
+      i % 2 match {
+        case 0 => Array(0, i * 2)
+        case _ => Array(null, null)
+      }
+    )
+
     result should beColumns("prop1", "prop2").withRows(expected)
   }
 

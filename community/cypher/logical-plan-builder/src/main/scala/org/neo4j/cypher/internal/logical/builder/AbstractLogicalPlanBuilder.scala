@@ -3267,12 +3267,20 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     override def isRelationship(expr: Expression): Boolean = semanticTable.typeFor(expr).is(CTRelationship)
   }
 
+  private val resolvedFunction = topDown(
+    Rewriter.lift {
+      case f: FunctionInvocation if f.needsToBeResolved =>
+        ResolvedFunctionInvocation(resolver.functionSignature)(f).coerceArguments
+    }
+  )
+
   protected def expressionRewriter: Rewriter =
     inSequence(
       RemoveSyntaxTracking.instance,
       hasLabelsAndHasTypeNormalizer,
       combineHasLabels,
-      DesugarMapProjection.instance
+      DesugarMapProjection.instance,
+      resolvedFunction
     )
 
   /**
@@ -3282,11 +3290,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
   // HELPERS
   private def parseExpression(expression: String): Expression = {
-    (parser.parseExpression(expression) match {
-      case f: FunctionInvocation if f.needsToBeResolved =>
-        ResolvedFunctionInvocation(resolver.functionSignature)(f).coerceArguments
-      case e => e
-    }).endoRewrite(expressionRewriter)
+    parser.parseExpression(expression).endoRewrite(expressionRewriter)
   }
 
   private def parseProjections(projections: String*): Map[LogicalVariable, Expression] = {
