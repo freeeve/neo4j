@@ -19,6 +19,9 @@
  */
 package org.neo4j.dbms.admissioncontrol;
 
+import java.util.Optional;
+import org.neo4j.kernel.database.NamedDatabaseId;
+
 public interface Tenant {
     Tenant DEFAULT = new Tenant() {
         @Override
@@ -41,4 +44,12 @@ public interface Tenant {
     };
 
     String name();
+
+    /**
+     * Get the database tied to this tenant.
+     * @return database name if tenant is tied to a single database.
+     */
+    default Optional<NamedDatabaseId> database() {
+        return Optional.empty();
+    }
 }
