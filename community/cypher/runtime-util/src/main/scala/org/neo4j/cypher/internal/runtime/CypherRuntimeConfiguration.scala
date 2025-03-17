@@ -23,6 +23,7 @@ import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.config.MemoryTrackingController
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
+import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.util.Preconditions
 
 import java.io.File
@@ -46,7 +47,8 @@ object CypherRuntimeConfiguration {
       operatorFusingMethodLimit = config.operatorFusingMethodLimit,
       freeMemoryOfUnusedColumns = config.freeMemoryOfUnusedColumns,
       expressionEngineOption = config.expressionEngineOption,
-      spdBatchSize = config.shardedPropertyBatchSize
+      spdBatchSize = config.shardedPropertyBatchSize,
+      parallelRuntimeConfig = config.parallel_runtime_config
     )
   }
 
@@ -70,7 +72,8 @@ case class CypherRuntimeConfiguration(
   operatorFusingMethodLimit: Int,
   freeMemoryOfUnusedColumns: Boolean,
   expressionEngineOption: CypherExpressionEngineOption,
-  spdBatchSize: Int
+  spdBatchSize: Int,
+  parallelRuntimeConfig: CypherParallelRuntimeConfigOption
 ) {
 
   Preconditions.checkArgument(
