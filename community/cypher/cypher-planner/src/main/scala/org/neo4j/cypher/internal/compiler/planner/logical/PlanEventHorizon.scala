@@ -185,7 +185,6 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       if (selections.isEmpty) {
         p
       } else {
-        val predicatesToReport = selections.flatPredicates
         val remoteBatchingResult =
           context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForHorizonSelections(
             query.queryGraph,
@@ -196,8 +195,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           )
         context.staticComponents.logicalPlanProducer.planHorizonSelection(
           source = remoteBatchingResult.plan,
-          predicates = remoteBatchingResult.rewrittenExpressionsWithCachedProperties.selections.toSeq,
-          predicatesToReport = predicatesToReport,
+          previouslyRewrittenPredicates = remoteBatchingResult.rewrittenExpressionsWithCachedProperties,
           interestingOrderConfig = interestingOrderConfig,
           context = context
         )
@@ -210,7 +208,9 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       if (expressions.isEmpty) {
         (RewrittenExpressions.empty, p)
       } else {
-        context.settings.remoteBatchPropertiesStrategy.planRemoteBatchProperties(p, context, expressions)
+        val RemoteBatchingResult(rewrittenExpressions, planWithProperties) =
+          context.settings.remoteBatchPropertiesStrategy.planRemoteBatchProperties(p, context, expressions)
+        (rewrittenExpressions, planWithProperties)
       }
 
     def solveSubqueryexpressions(
@@ -223,7 +223,7 @@ case object PlanEventHorizon extends EventHorizonPlanner {
       val solvedRewrittenExprs = (groupingExpressions ++ aggregationExpressions).map {
         case (k, expr) => expr -> solver.solve(previouslyRewrittenExprs.rewrittenExpressionOrSelf(expr), Some(k))
       }
-      (RewrittenExpressions(solvedRewrittenExprs), solver.rewrittenPlan())
+      (RewrittenExpressions.forMap(solvedRewrittenExprs), solver.rewrittenPlan())
     }
 
     def isPlanBreakingOrder(p: LogicalPlan): Boolean =

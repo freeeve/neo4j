@@ -24,22 +24,22 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class RewrittenExpressionsTest extends CypherFunSuite with LogicalPlanAstConstructionTestSupport {
 
   test("RewrittenExpressions.empty should use an empty map") {
-    RewrittenExpressions.empty.backingStore shouldBe empty
+    RewrittenExpressions.empty shouldBe empty
     RewrittenExpressions.empty.isEmpty shouldBe true
   }
 
   test("rewrittenExpressionOrSelf should get rewritten expression if it exists") {
-    val rewrittenExpressions = RewrittenExpressions(Map(prop("a", "foo") -> cachedNodeProp("a", "foo")))
+    val rewrittenExpressions = RewrittenExpressions.forMap(Map(prop("a", "foo") -> cachedNodeProp("a", "foo")))
     rewrittenExpressions.rewrittenExpressionOrSelf(prop("a", "foo")) shouldEqual cachedNodeProp("a", "foo")
   }
 
   test("rewrittenExpressionOrSelf should return the original expression if no rewrittenExpressionExists") {
-    val rewrittenExpressions = RewrittenExpressions(Map(prop("a", "foo") -> cachedNodeProp("a", "foo")))
+    val rewrittenExpressions = RewrittenExpressions.forMap(Map(prop("a", "foo") -> cachedNodeProp("a", "foo")))
     rewrittenExpressions.rewrittenExpressionOrSelf(prop("b", "bar")) shouldEqual prop("b", "bar")
   }
 
   test("allRewrittenExpressions should return all the rewritten expressions from the map") {
-    val rewrittenExpressions = RewrittenExpressions(Map(
+    val rewrittenExpressions = RewrittenExpressions.forMap(Map(
       prop("a", "foo") -> cachedNodeProp("a", "foo"),
       prop("b", "bar") -> cachedNodeProp("b", "bar")
     ))

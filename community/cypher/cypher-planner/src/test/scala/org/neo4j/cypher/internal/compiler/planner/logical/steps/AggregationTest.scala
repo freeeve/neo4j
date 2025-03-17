@@ -104,7 +104,7 @@ class AggregationTest extends CypherFunSuite with LogicalPlanningTestSupport {
   test("should replace with rewritten expressions where possible") {
     val groupingMap = Map[LogicalVariable, Expression](v"x.prop" -> prop("x", "prop"))
     val aggregatingPropMap = Map[LogicalVariable, Expression](v"x" -> collect(prop("x", "prop2")))
-    val rewrittenExpressions = RewrittenExpressions(Map(
+    val rewrittenExpressions = RewrittenExpressions.forMap(Map(
       collect(prop("x", "prop2")) -> collect(cachedNodeProp("x", "prop2"))
     ))
     val projection = AggregatingQueryProjection(

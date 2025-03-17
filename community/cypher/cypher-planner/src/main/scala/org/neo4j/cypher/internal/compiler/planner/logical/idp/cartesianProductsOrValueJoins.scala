@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanRestrictions
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryPlannerKit
+import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingResult
 import org.neo4j.cypher.internal.compiler.planner.logical.SortPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.SortPlanner.SatisfiedForPlan
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
@@ -581,13 +582,8 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
     singleComponentPlanner: SingleComponentPlannerTrait
   ): Iterator[LogicalPlan] = {
     // pre-fetch remote batch properties on the LHS if they can be used with the plan
-    val (_, lhsPlanWithPrefetchedProperties) =
-      context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForExpressionsWithLookahead(
-        lhsQG,
-        lhsPlan,
-        context,
-        predicates
-      )
+    val RemoteBatchingResult(_, lhsPlanWithPrefetchedProperties) =
+      context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForExpressionsWithLookahead(lhsQG, lhsPlan, context, predicates)
 
     // Replan the RHS with the LHS arguments available. If good indexes exist, they can now be used
     // Also keep any hints we might have gotten in the rhsQG so they get considered during planning

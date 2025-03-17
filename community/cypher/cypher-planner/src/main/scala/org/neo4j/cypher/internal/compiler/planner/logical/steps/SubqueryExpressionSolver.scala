@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
+import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingResult
 import org.neo4j.cypher.internal.compiler.planner.logical.irExpressionRewriter
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.plannerQueryPlanner
@@ -496,18 +497,17 @@ object SubqueryExpressionSolver {
       context: LogicalPlanningContext
     ): (Expression, LogicalPlan) = {
       val solver = SubqueryExpressionSolver.solverFor(inner, context)
-      val rewrittenExpression = solver.solve(expression)
+      val solvedExpr = solver.solve(expression)
       val rewrittenInner = solver.rewrittenPlan()
-      context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForExpressionWithLookahead(
-        context.staticComponents.planningAttributes.solveds.get(rewrittenInner.id).asSinglePlannerQuery.queryGraph,
-        rewrittenInner,
-        context,
-        rewrittenExpression
-      ) match {
-        case (rewrittenExprWithProperties: Expression, planWithProperties: LogicalPlan) =>
-          (rewrittenExprWithProperties, planWithProperties)
-        case _ => (rewrittenExpression, rewrittenInner)
-      }
+      val RemoteBatchingResult(rewrittenExprWithProperties, planWithProperties) =
+        context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForExpressionsWithLookahead(
+          context.staticComponents.planningAttributes.solveds.get(rewrittenInner.id).asSinglePlannerQuery.queryGraph,
+          rewrittenInner,
+          context,
+          Iterable(solvedExpr)
+        )
+
+      (rewrittenExprWithProperties.rewrittenExpressionOrSelf(solvedExpr), planWithProperties)
     }
   }
 

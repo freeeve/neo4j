@@ -44,6 +44,7 @@ import org.neo4j.cypher.internal.ir.Selections
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 
@@ -59,8 +60,7 @@ case object countStorePlanner {
           val projectionPlan = projection(plan, groupingKeys, Some(groupingKeys), context)
           context.staticComponents.logicalPlanProducer.planHorizonSelection(
             projectionPlan,
-            selections.flatPredicates,
-            selections.flatPredicates,
+            RewrittenExpressions.withNoRewrittenExprs(selections.flatPredicates),
             InterestingOrderConfig.empty,
             context
           )

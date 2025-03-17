@@ -55,15 +55,16 @@ object projection {
         rewrittenExpressionsWithCachedProperties,
         planWithProperties
       ) =
-        context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForProjections(
+        context.settings.remoteBatchPropertiesStrategy.planRemoteBatchProperties(
           plan,
           context,
-          projections = projectionsDiff
+          projectionsDiff.values
         )
 
+      val rewrittenProjections = projectionsDiff.map{ case (variable, expression) => (variable, rewrittenExpressionsWithCachedProperties.rewrittenExpressionOrSelf(expression))}
       context.staticComponents.logicalPlanProducer.planRegularProjection(
         planWithProperties,
-        rewrittenExpressionsWithCachedProperties.projections,
+        rewrittenProjections,
         projectionsToMarkSolved,
         context
       )

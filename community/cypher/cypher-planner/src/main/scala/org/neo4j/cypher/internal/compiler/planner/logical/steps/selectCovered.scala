@@ -54,16 +54,11 @@ case object selectCovered extends SelectionCandidateGenerator {
           unsolvedScalarPredicates
         )
 
-      val plan = rewrittenExpressionsWithCachedProperties.selections match {
-        case rewrittenSelections: Set[Expression] if rewrittenSelections.nonEmpty =>
-          context.staticComponents.logicalPlanProducer.planSelectionWithSolvedPredicates(
-            planWithProperties,
-            rewrittenExpressionsWithCachedProperties.selections.toVector,
-            unsolvedScalarPredicates.toVector,
-            context
-          )
-        case _ => planWithProperties
-      }
+      val plan = context.staticComponents.logicalPlanProducer.planSelectionWithSolvedPredicates(
+        planWithProperties,
+        rewrittenExpressionsWithCachedProperties,
+        context
+      )
 
       Iterator(SelectionCandidate(plan, unsolvedScalarPredicates))
     }
