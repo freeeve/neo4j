@@ -164,26 +164,26 @@
     <metrics.version>4.2.30</metrics.version>
     <scala.target.vm>${vm.target.version}</scala.target.vm>
     <jersey.version>2.43</jersey.version>
-    <junit.version>5.11.4</junit.version>
-    <junit.platform.version>1.11.4</junit.platform.version>
-    <mockito.version>5.15.2</mockito.version>
+    <junit.version>5.12.1</junit.version>
+    <junit.platform.version>1.12.1</junit.platform.version>
+    <mockito.version>5.16.1</mockito.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
     <cucumber.version>7.21.1</cucumber.version>
     <cucumber.scala.version>8.26.1</cucumber.scala.version>
     <caffeine.version>3.2.0</caffeine.version>
     <required.maven.version>3.8.2</required.maven.version>
-    <jackson.version>2.18.2</jackson.version>
-    <jackson-databind.version>2.18.2</jackson-databind.version>
+    <jackson.version>2.18.3</jackson.version>
+    <jackson-databind.version>2.18.3</jackson-databind.version>
     <amazon-sdk.version>1.12.772</amazon-sdk.version>
-    <awssdk.version>2.30.20</awssdk.version>
-    <awssdk-crt.version>0.34.1</awssdk-crt.version>
+    <awssdk.version>2.31.1</awssdk.version>
+    <awssdk-crt.version>0.36.2</awssdk-crt.version>
     <guava.version>33.4.0-jre</guava.version>
-    <awaitility.version>4.2.2</awaitility.version>
+    <awaitility.version>4.3.0</awaitility.version>
     <log4j.version>2.20.0</log4j.version>
     <slf4j.version>2.0.9</slf4j.version>
     <neo4j-java-driver.version>5.28.3</neo4j-java-driver.version>
     <eclipse-collections.version>11.1.0</eclipse-collections.version>
-    <parquet-floor.version>1.49</parquet-floor.version>
+    <parquet-floor.version>1.50</parquet-floor.version>
     <picocli.version>4.7.6</picocli.version>
     <jakarta.activation-api.version>1.2.2</jakarta.activation-api.version>
     <jakarta.ws.rs-api.version>2.1.6</jakarta.ws.rs-api.version>
@@ -192,8 +192,8 @@
     <protobuf.version>3.25.6</protobuf.version>
     <teavm.version>0.10.2</teavm.version>
     <javapoet.version>1.13.0</javapoet.version>
-    <grpc.version>1.70.0</grpc.version>
-    <testcontainers.version>1.20.4</testcontainers.version>
+    <grpc.version>1.71.0</grpc.version>
+    <testcontainers.version>1.20.6</testcontainers.version>
     <build-resources.version>2024-12.1</build-resources.version>
     <s3mock.version>3.12.0</s3mock.version>
   </properties>
@@ -1166,7 +1166,7 @@
       <dependency>
         <groupId>net.java.dev.jna</groupId>
         <artifactId>jna</artifactId>
-        <version>5.16.0</version>
+        <version>5.17.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.lucene</groupId>
@@ -1275,7 +1275,7 @@
       <dependency>
         <groupId>io.projectreactor</groupId>
         <artifactId>reactor-bom</artifactId>
-        <version>2024.0.3</version>
+        <version>2024.0.4</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -1617,7 +1617,7 @@
       <dependency>
         <groupId>com.github.luben</groupId>
         <artifactId>zstd-jni</artifactId>
-        <version>1.5.6-10</version>
+        <version>1.5.7-2</version>
       </dependency>
 
       <!--
@@ -1902,7 +1902,7 @@
       <dependency>
         <groupId>net.bytebuddy</groupId>
         <artifactId>byte-buddy</artifactId>
-        <version>1.17.1</version>
+        <version>1.17.2</version>
       </dependency>
       <dependency>
         <groupId>software.amazon.awssdk</groupId>
