@@ -84,8 +84,6 @@ public class SchemaCommandReader {
     }
 
     public List<SchemaCommand> parse(String cypherText) {
-        var semanticState = SemanticState.clean();
-
         final var preParsedQuery = preParser.preParse(cypherText);
         final var cypherVersion = preParsedQuery.resolvedLanguage();
 
@@ -128,7 +126,7 @@ public class SchemaCommandReader {
             return changesBuilder.build();
         }
 
-        errors.add(0, "Unable to parse the Cypher in import change commands.");
+        errors.addFirst("Unable to parse the Cypher in import change commands.");
         throw new SchemaCommandReaderException(String.join(System.lineSeparator(), errors));
     }
 

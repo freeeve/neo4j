@@ -159,8 +159,9 @@ public class ImportCommand {
                 names = "--schema",
                 paramLabel = "<path>",
                 description =
-                        "Path to the file containing the Cypher commands for creating indexes and constraints during data import.")
-        private Path schemaCommands;
+                        "Path to the file containing the Cypher commands for creating indexes and constraints during data import.\n"
+                                + "It is possible to load commands from AWS S3 buckets, Google Cloud storage buckets, and Azure buckets using the appropriate URI as the path.")
+        private String schemaCommands;
 
         @Parameters(
                 index = "0",
@@ -577,16 +578,18 @@ public class ImportCommand {
             return setupIndexConfigForImport(indexConfig);
         }
 
-        private List<SchemaCommand> parseSchemaCommands(FileSystemAbstraction fileSystem, Config config) {
+        private List<SchemaCommand> parseSchemaCommands(SchemeFileSystemAbstraction fileSystem, Config config)
+                throws IOException {
             if (schemaCommands == null) {
                 return List.of();
             }
 
-            if (!fileSystem.fileExists(schemaCommands)) {
+            final var schemaPath = fileSystem.resolve(schemaCommands);
+            if (!fileSystem.fileExists(schemaPath)) {
                 throw new CommandFailedException("The provided schema commands file does not exist.", ExitCode.IOERR);
             }
 
-            if (fileSystem.isDirectory(schemaCommands)) {
+            if (fileSystem.isDirectory(schemaPath)) {
                 throw new CommandFailedException(
                         "The provided schema commands file is not a regular file.", ExitCode.IOERR);
             }
@@ -597,7 +600,7 @@ public class ImportCommand {
                     schemaCommandsReaderConfig(
                             VectorIndexVersion.latestSupportedVersion(KernelVersion.getLatestVersion(config))));
             try {
-                return reader.parse(schemaCommands);
+                return reader.parse(schemaPath);
             } catch (SchemaCommandReaderException ex) {
                 throw new CommandFailedException(ex.getMessage(), ex, ExitCode.SOFTWARE);
             }
