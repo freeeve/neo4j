@@ -21,11 +21,15 @@ package org.neo4j.kernel.impl.transaction.log.pruning;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.impl.transaction.log.LogFileInformation;
+import org.neo4j.logging.NullLogProvider;
 
 class FileCountThresholdTest {
     private final Path file = mock(Path.class);
@@ -36,7 +40,7 @@ class FileCountThresholdTest {
     void shouldReturnFalseWhenTheMaxNonEmptyLogCountIsNotReached() {
         // given
         final int maxNonEmptyLogCount = 2;
-        final FileCountThreshold threshold = new FileCountThreshold(maxNonEmptyLogCount);
+        final FileCountThreshold threshold = new FileCountThreshold(maxNonEmptyLogCount, NullLogProvider.getInstance());
 
         // when
         threshold.init();
@@ -47,10 +51,12 @@ class FileCountThresholdTest {
     }
 
     @Test
-    void shouldReturnTrueWhenTheMaxNonEmptyLogCountIsReached() {
+    void shouldReturnTrueWhenTheMaxNonEmptyLogCountIsReached() throws IOException {
         // given
         final int maxNonEmptyLogCount = 2;
-        final FileCountThreshold threshold = new FileCountThreshold(maxNonEmptyLogCount);
+        final FileCountThreshold threshold = new FileCountThreshold(maxNonEmptyLogCount, NullLogProvider.getInstance());
+        when(source.getLastEntryAppendIndex()).thenReturn(5L);
+        when(source.getPreviousAppendIndexFromHeader(anyLong())).thenReturn(3L);
 
         // when
         threshold.init();
@@ -62,10 +68,28 @@ class FileCountThresholdTest {
     }
 
     @Test
+    void shouldReturnFalseWhenTheMaxNonEmptyLogCountIsReachedButNotTheMinimumOneWholeChunk() throws IOException {
+        // given
+        final int maxNonEmptyLogCount = 2;
+        final FileCountThreshold threshold = new FileCountThreshold(maxNonEmptyLogCount, NullLogProvider.getInstance());
+        when(source.getLastEntryAppendIndex()).thenReturn(5L);
+        when(source.getPreviousAppendIndexFromHeader(anyLong())).thenReturn(5L);
+
+        // then
+        threshold.init();
+        threshold.reached(file, version, source);
+        assertFalse(threshold.reached(file, version, source));
+
+        // But then when also satisfying the minimum of one whole chunk it should be true
+        when(source.getPreviousAppendIndexFromHeader(anyLong())).thenReturn(4L);
+        assertTrue(threshold.reached(file, version, source));
+    }
+
+    @Test
     void shouldResetTheCounterWhenInitIsCalled() {
         // given
         final int maxNonEmptyLogCount = 2;
-        final FileCountThreshold threshold = new FileCountThreshold(maxNonEmptyLogCount);
+        final FileCountThreshold threshold = new FileCountThreshold(maxNonEmptyLogCount, NullLogProvider.getInstance());
 
         // when
         threshold.init();

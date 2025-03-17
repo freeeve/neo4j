@@ -87,7 +87,7 @@ public class LogPruneStrategyFactory {
         long thresholdValue = configuredThreshold.value();
 
         return switch (configuredThreshold.type()) {
-            case "files" -> new FileCountThreshold(thresholdValue);
+            case "files" -> new FileCountThreshold(thresholdValue, logProvider);
             case "size" -> new FileSizeThreshold(fileSystem, thresholdValue, logProvider);
             // txs and entries are synonyms
             case "txs", "entries" -> new EntryCountThreshold(logProvider, thresholdValue);

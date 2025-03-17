@@ -24,7 +24,6 @@ import static org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata.EMPTY_A
 import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.TransactionIdSnapshot;
 import org.neo4j.kernel.KernelVersion;
@@ -44,13 +43,14 @@ public class SimpleMetaDataProvider implements MetadataProvider {
     private final SimpleTransactionIdStore transactionIdStore;
     private final SimpleLogVersionRepository logVersionRepository;
     private final ExternalStoreId externalStoreId = new ExternalStoreId(UUID.randomUUID());
-    private final AtomicLong appendIndex = new AtomicLong();
     private final HighestAppendBatch appendBatchInfo = new HighestAppendBatch(EMPTY_APPEND_BATCH_INFO);
+    private final SimpleAppendIndexProvider appendIndexProvider;
     private volatile long lowestAvailableCommittedTransactionId = TransactionIdStore.UNKNOWN_TX_ID;
 
     public SimpleMetaDataProvider() {
         transactionIdStore = new SimpleTransactionIdStore();
         logVersionRepository = new SimpleLogVersionRepository();
+        appendIndexProvider = new SimpleAppendIndexProvider();
     }
 
     @Override
@@ -164,7 +164,7 @@ public class SimpleMetaDataProvider implements MetadataProvider {
                 byteOffset,
                 logVersion,
                 appendIndex);
-        this.appendIndex.set(appendIndex);
+        appendIndexProvider.setAppendIndex(appendIndex);
         this.appendBatchInfo.set(appendIndex, LogPosition.UNSPECIFIED);
     }
 
@@ -265,12 +265,12 @@ public class SimpleMetaDataProvider implements MetadataProvider {
 
     @Override
     public long nextAppendIndex() {
-        return appendIndex.incrementAndGet();
+        return appendIndexProvider.nextAppendIndex();
     }
 
     @Override
     public long getLastAppendIndex() {
-        return appendIndex.getAcquire();
+        return appendIndexProvider.getLastAppendIndex();
     }
 
     @Override

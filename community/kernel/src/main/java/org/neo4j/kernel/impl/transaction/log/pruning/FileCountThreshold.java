@@ -21,24 +21,29 @@ package org.neo4j.kernel.impl.transaction.log.pruning;
 
 import java.nio.file.Path;
 import org.neo4j.kernel.impl.transaction.log.LogFileInformation;
+import org.neo4j.logging.InternalLogProvider;
 
 public final class FileCountThreshold implements Threshold {
     private final long maxNonEmptyLogs;
+    private final EntryCountThreshold entryCountThreshold;
 
     private long nonEmptyLogCount;
 
-    FileCountThreshold(long maxNonEmptyLogs) {
+    FileCountThreshold(long maxNonEmptyLogs, InternalLogProvider logProvider) {
         this.maxNonEmptyLogs = maxNonEmptyLogs;
+        this.entryCountThreshold = new EntryCountThreshold(logProvider, 1);
     }
 
     @Override
     public void init() {
         nonEmptyLogCount = 0;
+        entryCountThreshold.init();
     }
 
     @Override
     public boolean reached(Path file, long version, LogFileInformation source) {
-        return ++nonEmptyLogCount >= maxNonEmptyLogs;
+        // Always save at the very least one whole chunk
+        return ++nonEmptyLogCount >= maxNonEmptyLogs && entryCountThreshold.reached(file, version, source);
     }
 
     @Override
