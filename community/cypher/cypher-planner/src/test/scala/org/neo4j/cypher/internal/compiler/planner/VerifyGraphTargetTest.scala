@@ -264,8 +264,8 @@ class VerifyGraphTargetTest extends CypherFunSuite {
   private def checkDatabaseNotFoundError(query: String, dbName: String, version: CypherVersion): Unit = {
     val e = the[DatabaseNotFoundException] thrownBy verifyGraphTarget(query, version)
     e should have message s"Database $dbName not found"
-    e.gqlStatus() shouldBe "42002"
-    e.statusDescription() shouldBe "error: syntax error or access rule violation - invalid reference"
+    e.gqlStatus() shouldBe "42001"
+    e.statusDescription() shouldBe "error: syntax error or access rule violation - invalid syntax"
 
     e.cause() should not be empty
     val cause = e.cause().get()

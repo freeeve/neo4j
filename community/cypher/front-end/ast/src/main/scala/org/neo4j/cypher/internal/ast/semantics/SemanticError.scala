@@ -1144,7 +1144,7 @@ object SemanticError {
   }
 
   private def unknownFunction(functionName: String, legacyMessage: String, position: InputPosition): SemanticError = {
-    val gql = GqlHelper.getGql42002_42N48(functionName, position.offset, position.line, position.column)
+    val gql = GqlHelper.getGql42001_42N48(functionName, position.offset, position.line, position.column)
     SemanticError(gql, legacyMessage, position)
   }
 

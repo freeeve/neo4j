@@ -37,7 +37,7 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
  * There are two GQL status variants for database not found:
  * <ul>
  *  <li>
- *      {@link org.neo4j.gqlstatus.GqlStatusInfoCodes#STATUS_42002} - Syntax Error: Thrown when the database is considered to be an entity that can be modified, usually in admin commands such as ALTER DB, DROP DB, USE DB, etc.
+ *      {@link org.neo4j.gqlstatus.GqlStatusInfoCodes#STATUS_42001} - Syntax Error: Thrown when the database is considered to be an entity that can be modified, usually in admin commands such as ALTER DB, DROP DB, USE DB, etc.
  *      <br>
  *      They should probably throw {@link org.neo4j.exceptions.InvalidArgumentException} instead.
  *  </li>
@@ -172,7 +172,7 @@ public class DatabaseNotFoundHelper {
     }
 
     public static DatabaseNotFoundException byElementIdFunction(String elementId) {
-        var gqlStatus = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+        var gqlStatus = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA7)
                         .withParam(GqlParams.StringParam.db, "graph.byElementId(" + elementId + ")")
                         .build())

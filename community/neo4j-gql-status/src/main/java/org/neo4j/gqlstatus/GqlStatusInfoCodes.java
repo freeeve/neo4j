@@ -2467,15 +2467,6 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid syntax",
             ErrorClassification.CLIENT_ERROR),
-    STATUS_42002(
-            new GqlStatus("42002"),
-            """
-                    """,
-            new GqlParams.GqlParam[] {},
-            emptyMap(),
-            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "invalid reference",
-            ErrorClassification.CLIENT_ERROR),
     STATUS_42004(
             new GqlStatus("42004"),
             """

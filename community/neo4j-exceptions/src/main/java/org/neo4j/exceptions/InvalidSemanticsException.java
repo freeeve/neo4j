@@ -51,7 +51,7 @@ public class InvalidSemanticsException extends Neo4jException {
 
     public static InvalidSemanticsException unsupportedAccessOfCompositeDatabase(
             String accessedGraph, String sessionGraph) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N04)
                         .withParam(GqlParams.StringParam.db1, accessedGraph)
                         .withParam(GqlParams.StringParam.db2, sessionGraph)
@@ -157,7 +157,7 @@ public class InvalidSemanticsException extends Neo4jException {
     }
 
     public static InvalidSemanticsException unsupportedAccessOfStandardDb(String graph, String composite) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N05)
                         .withParam(GqlParams.StringParam.db1, graph)
                         .withParam(GqlParams.StringParam.db2, composite)

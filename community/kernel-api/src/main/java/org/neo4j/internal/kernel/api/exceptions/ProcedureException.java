@@ -154,7 +154,7 @@ public class ProcedureException extends KernelException {
     }
 
     public static ProcedureException noSuchConstituentGraph(String graphName, String ctxDatabaseName) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N01)
                         .withParam(GqlParams.StringParam.graph, graphName)
                         .withParam(GqlParams.StringParam.db, ctxDatabaseName)
@@ -914,7 +914,7 @@ public class ProcedureException extends KernelException {
     }
 
     public static ProcedureException graphPropertiesNotFound(String graphName) {
-        var gql = GqlHelper.getGql42002_42N00(graphName);
+        var gql = GqlHelper.getGql42001_42N00(graphName);
 
         return new ProcedureException(
                 gql,

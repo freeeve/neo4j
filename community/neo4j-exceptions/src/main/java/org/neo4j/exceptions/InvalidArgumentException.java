@@ -481,19 +481,19 @@ public class InvalidArgumentException extends Neo4jException {
 
     public static InvalidArgumentException invalidCommandMissingUser(
             String command, String username, String parameterName) {
-        var gql = GqlHelper.getGql42002_42NA8_ifRelevant42N51_42N09(command, username, parameterName);
+        var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N09(command, username, parameterName);
         return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
     }
 
     public static InvalidArgumentException invalidCommandMissingRole(
             String command, String role, String parameterName) {
-        var gql = GqlHelper.getGql42002_42NA8_ifRelevant42N51_42N10(command, role, parameterName);
+        var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N10(command, role, parameterName);
         return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
     }
 
     public static InvalidArgumentException invalidCommandDatabaseDoesNotExists(
             String command, String dbname, String parameterName) {
-        var gql = GqlHelper.getGql42002_42NA8_ifRelevant42N51_42N00(command, dbname, parameterName);
+        var gql = GqlHelper.getGql42001_42NA8_ifRelevant42N51_42N00(command, dbname, parameterName);
         return new InvalidArgumentException(gql, GqlHelper.getCompleteMessage(gql));
     }
 

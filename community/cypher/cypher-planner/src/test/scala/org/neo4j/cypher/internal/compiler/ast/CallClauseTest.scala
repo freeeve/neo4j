@@ -308,7 +308,7 @@ class CallClauseTest extends CypherFunSuite with AstConstructionTestSupport {
     errorTexts(result) should equal(Seq(
       "Unknown procedure output: `p` (line 0, column 0 (offset: 0))"
     ))
-    result.errors.head.gqlStatusObject should equal(GqlHelper.getGql42002_42N50("p", 0, 0, 0))
+    result.errors.head.gqlStatusObject should equal(GqlHelper.getGql42001_42N50("p", 0, 0, 0))
   }
 
   test("should verify result types during semantic checking of resolved calls") {

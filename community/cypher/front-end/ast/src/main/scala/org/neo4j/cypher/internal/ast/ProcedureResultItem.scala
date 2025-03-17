@@ -51,7 +51,7 @@ case class ProcedureResultItem(output: Option[ProcedureOutput], variable: Logica
       .get(outputName)
       .map { typ => declareVariable(variable, typ.covariant): SemanticCheck }
       .getOrElse(error(
-        GqlHelper.getGql42002_42N50(outputName, position.offset, position.line, position.column),
+        GqlHelper.getGql42001_42N50(outputName, position.offset, position.line, position.column),
         s"Unknown procedure output: `$outputName`",
         position
       ))

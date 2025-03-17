@@ -32,7 +32,7 @@ public class EntityNotFoundException extends Neo4jException {
     }
 
     public static EntityNotFoundException databaseNotFound(String kind, String dbName) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N00)
                         .withParam(GqlParams.StringParam.db, dbName)
                         .build())
@@ -42,7 +42,7 @@ public class EntityNotFoundException extends Neo4jException {
     }
 
     public static EntityNotFoundException databaseWithElementIdNotFound(String elementId) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA7)
                         .withParam(GqlParams.StringParam.db, elementId)
                         .build())
@@ -75,7 +75,7 @@ public class EntityNotFoundException extends Neo4jException {
     }
 
     public static EntityNotFoundException unsupportedAccessOfStandardDb(String graph, String composite) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N05)
                         .withParam(GqlParams.StringParam.db1, graph)
                         .withParam(GqlParams.StringParam.db2, composite)

@@ -65,7 +65,7 @@ public enum PrivilegeGqlCodeEntity {
     }
 
     private static ErrorGqlStatusObject invalidReference(ErrorGqlStatusObject cause) {
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(cause)
                 .build();
     }

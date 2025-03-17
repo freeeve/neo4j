@@ -63,7 +63,7 @@ public class IndexHintException extends Neo4jException {
             IndexHintIndexType indexType,
             String formattedIndex) {
 
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N69)
                         .withParam(GqlParams.StringParam.idxDescrOrName, formattedIndex)
                         .build())

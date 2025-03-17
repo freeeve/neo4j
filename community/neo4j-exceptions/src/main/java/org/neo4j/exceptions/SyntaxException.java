@@ -158,7 +158,7 @@ public class SyntaxException extends Neo4jException {
     }
 
     public static SyntaxException unknownFunction(String functionName, int offset, int line, int column) {
-        var gql = GqlHelper.getGql42002_42N48(functionName, offset, line, column);
+        var gql = GqlHelper.getGql42001_42N48(functionName, offset, line, column);
         return new SyntaxException(gql, String.format("Unknown function '%s'", functionName));
     }
 

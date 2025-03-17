@@ -918,8 +918,8 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42002_42N48(String functionName, int offset, int line, int column) {
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+    public static ErrorGqlStatusObject getGql42001_42N48(String functionName, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N48)
                         .withParam(GqlParams.StringParam.fun, functionName)
@@ -928,8 +928,8 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42002_42N50(String returnColumn, int offset, int line, int column) {
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+    public static ErrorGqlStatusObject getGql42001_42N50(String returnColumn, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .atPosition(offset, line, column)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N50)
                         .withParam(GqlParams.StringParam.variable, returnColumn)
@@ -1076,8 +1076,8 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42002_42N00(String db) {
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+    public static ErrorGqlStatusObject getGql42001_42N00(String db) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N00)
                         .withClassification(ErrorClassification.CLIENT_ERROR)
@@ -1086,26 +1086,26 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42002_42NA8_ifRelevant42N51_42N00(
+    public static ErrorGqlStatusObject getGql42001_42NA8_ifRelevant42N51_42N00(
             String command, String db, String paramName) {
         var invalidDbCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N00)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withParam(GqlParams.StringParam.db, db)
                 .build();
 
-        return getGql42002_42NA8_ifRelevant42N51_cause(command, invalidDbCause, paramName);
+        return getGql42001_42NA8_ifRelevant42N51_cause(command, invalidDbCause, paramName);
     }
 
-    public static ErrorGqlStatusObject getGql42002_42N09(String user) {
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+    public static ErrorGqlStatusObject getGql42001_42N09(String user) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N09)
                         .withParam(GqlParams.StringParam.user, user)
                         .build())
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42002_42N81(String param, List<?> paramList) {
-        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002)
+    public static ErrorGqlStatusObject getGql42001_42N81(String param, List<?> paramList) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N81)
                         .withClassification(ErrorClassification.CLIENT_ERROR)
@@ -1115,27 +1115,27 @@ public class GqlHelper {
                 .build();
     }
 
-    public static ErrorGqlStatusObject getGql42002_42NA8_ifRelevant42N51_42N09(
+    public static ErrorGqlStatusObject getGql42001_42NA8_ifRelevant42N51_42N09(
             String command, String user, String paramName) {
         var invalidUserCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N09)
                 .withParam(GqlParams.StringParam.user, user)
                 .build();
 
-        return getGql42002_42NA8_ifRelevant42N51_cause(command, invalidUserCause, paramName);
+        return getGql42001_42NA8_ifRelevant42N51_cause(command, invalidUserCause, paramName);
     }
 
-    public static ErrorGqlStatusObject getGql42002_42NA8_ifRelevant42N51_42N10(
+    public static ErrorGqlStatusObject getGql42001_42NA8_ifRelevant42N51_42N10(
             String command, String role, String paramName) {
         var invalidRoleCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N10)
                 .withParam(GqlParams.StringParam.role, role)
                 .build();
 
-        return getGql42002_42NA8_ifRelevant42N51_cause(command, invalidRoleCause, paramName);
+        return getGql42001_42NA8_ifRelevant42N51_cause(command, invalidRoleCause, paramName);
     }
 
-    private static ErrorGqlStatusObject getGql42002_42NA8_ifRelevant42N51_cause(
+    private static ErrorGqlStatusObject getGql42001_42NA8_ifRelevant42N51_cause(
             String command, ErrorGqlStatusObject cause, String paramName) {
-        var gqlBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42002);
+        var gqlBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001);
         var invalidCommandCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NA8)
                 .withParam(GqlParams.StringParam.cmd, command);
 

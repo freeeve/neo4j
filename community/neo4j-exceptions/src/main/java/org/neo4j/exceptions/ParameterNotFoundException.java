@@ -35,14 +35,14 @@ public class ParameterNotFoundException extends Neo4jException {
     }
 
     public static ParameterNotFoundException expectedParam(String expectedParam, Iterable<String> gotParams) {
-        var gql = GqlHelper.getGql42002_42N81(
+        var gql = GqlHelper.getGql42001_42N81(
                 expectedParam,
                 StreamSupport.stream(gotParams.spliterator(), false).collect(Collectors.toList()));
         return new ParameterNotFoundException(gql, String.format("Expected parameter(s): %s", expectedParam));
     }
 
     public static ParameterNotFoundException expectedParamNamed(String expectedParam, Iterable<String> gotParams) {
-        var gql = GqlHelper.getGql42002_42N81(
+        var gql = GqlHelper.getGql42001_42N81(
                 expectedParam,
                 StreamSupport.stream(gotParams.spliterator(), false).collect(Collectors.toList()));
         return new ParameterNotFoundException(gql, String.format("Expected a parameter named %s", expectedParam));

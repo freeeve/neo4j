@@ -131,8 +131,8 @@ class ConstituentTransactionFactoryImplTest {
                         () -> constituentTransactionFactory.transactionFor(getTargetDatabase("invalid")))
                 .hasMessage(
                         "When connected to a composite database, access is allowed only to its constituents. Attempted to access 'invalid' while connected to 'composite'")
-                .hasGqlStatus(GqlStatusInfoCodes.STATUS_42002)
-                .hasStatusDescription("error: syntax error or access rule violation - invalid reference")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_42001)
+                .hasStatusDescription("error: syntax error or access rule violation - invalid syntax")
                 .gqlCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_42N05)
                 .hasStatusDescription(
