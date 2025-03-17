@@ -25,6 +25,7 @@ import java.time.LocalTime;
 import java.time.OffsetTime;
 import java.time.ZonedDateTime;
 import org.neo4j.exceptions.CypherTypeException;
+import org.neo4j.exceptions.InternalException;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.SequenceValue;
 
@@ -421,17 +422,21 @@ public enum ValueRepresentation {
 
         for (AnyValue value : values) {
             if (value == Values.NO_VALUE) {
+                // Null cannot be stored as a property
                 throw CypherTypeException.propertyWithNullInCollection(serializeList(values, value));
             } else if (value instanceof SequenceValue) {
+                // Nested lists cannot be stored as a property
                 throw CypherTypeException.propertyWithCollectionInCollection(serializeList(values, value));
             } else if (prev != null
                     && prev.valueRepresentation().valueGroup()
                             != (value.valueRepresentation().valueGroup())) {
+                // Mixed type lists cannot be stored as a property
                 throw CypherTypeException.genericPropertyError(String.valueOf(value));
             } else if (!value.valueRepresentation().canCreateArrayOfValueGroup()) {
+                // Type which is not supported to be stored in lists in properties e.g. vector or map
                 if (value instanceof Value v)
                     throw CypherTypeException.expectedPrimitivePropertyValue(
-                            String.valueOf(v), v.prettyPrint(), v.getTypeName().toUpperCase(), true);
+                            String.valueOf(v), v.prettify(), v.getTypeName().toUpperCase(), true);
                 else
                     throw CypherTypeException.expectedPrimitivePropertyValue(
                             String.valueOf(value),
@@ -442,7 +447,12 @@ public enum ValueRepresentation {
             prev = value;
         }
 
-        throw failureOld(); // TODO: figure out what gql to use with SequenceValue here
+        // If we come here canCreateArrayOf=true, meaning this method should have been overridden
+        throw InternalException.internalError(
+                ValueRepresentation.class.getName(),
+                String.format(
+                        "The value representation corresponding to %s has canCreateArrayOf=true, but is missing an implementation of arrayOf()",
+                        prev.getTypeName()));
     }
 
     /**
@@ -470,10 +480,6 @@ public enum ValueRepresentation {
         } else {
             throw failure(value);
         }
-    }
-
-    private static CypherTypeException failureOld() {
-        throw new CypherTypeException("Property values can only be of primitive types or arrays thereof");
     }
 
     private static CypherTypeException failure(AnyValue got) {

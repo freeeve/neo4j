@@ -41,7 +41,7 @@ public abstract sealed class VectorValue extends HashMemoizingScalarValue implem
     public String prettyPrint() {
         final var pp = new PrettyPrinter();
         writeTo(pp);
-        return pp.toString();
+        return pp.value();
     }
 
     @Override
