@@ -87,7 +87,10 @@ public abstract class AbstractDatabaseContextFactory<CONTEXT, OPTIONS>
     }
 
     private static VersionContextSupplier.Factory internalVersionContextSupplierFactory(DatabaseConfig databaseConfig) {
-        return databaseId -> "multiversion".equals(databaseConfig.get(db_format)) || databaseConfig.get(snapshot_query)
+        String formatString = databaseConfig.get(db_format);
+        return databaseId -> formatString.equals("multiversion")
+                        || formatString.equals("multiversion_block")
+                        || databaseConfig.get(snapshot_query)
                 ? new TransactionVersionContextSupplier()
                 : EMPTY_CONTEXT_SUPPLIER;
     }
