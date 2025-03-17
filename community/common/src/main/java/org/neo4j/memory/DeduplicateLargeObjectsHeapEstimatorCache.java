@@ -28,9 +28,9 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
 
     private final int sizeLimit;
     private final long largeObjectThreshold;
-    private final Measurable[] cacheRefs;
-    private final long[] cacheEstimates;
-    private final int[] cacheHits;
+    private Measurable[] cacheRefs;
+    private long[] cacheEstimates;
+    private int[] cacheHits;
     private int currentSize;
 
     DeduplicateLargeObjectsHeapEstimatorCache(HeapEstimatorCacheConfig config) {
@@ -40,9 +40,6 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
     DeduplicateLargeObjectsHeapEstimatorCache(int sizeLimit, long largeObjectThreshold) {
         this.sizeLimit = sizeLimit;
         this.largeObjectThreshold = largeObjectThreshold;
-        this.cacheRefs = new Measurable[sizeLimit];
-        this.cacheEstimates = new long[sizeLimit];
-        this.cacheHits = new int[sizeLimit];
     }
 
     public DeduplicateLargeObjectsHeapEstimatorCache() {
@@ -54,6 +51,7 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
         if (estimate < largeObjectThreshold) {
             return estimate;
         }
+        ensureCache();
 
         var index = find(measurable, estimate);
         if (index >= 0) {
@@ -72,7 +70,9 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
 
     @Override
     public void fullReset() {
-        Arrays.fill(cacheRefs, 0, currentSize, null);
+        if (cacheRefs != null) {
+            Arrays.fill(cacheRefs, 0, currentSize, null);
+        }
         currentSize = 0;
     }
 
@@ -86,6 +86,14 @@ public class DeduplicateLargeObjectsHeapEstimatorCache implements HeapEstimatorC
         return String.format(
                 "%s:%08x,size:%d,thres:%d",
                 getClass().getSimpleName(), System.identityHashCode(this), sizeLimit, largeObjectThreshold);
+    }
+
+    private void ensureCache() {
+        if (cacheRefs == null) {
+            cacheRefs = new Measurable[sizeLimit];
+            cacheEstimates = new long[sizeLimit];
+            cacheHits = new int[sizeLimit];
+        }
     }
 
     private int find(Measurable measurable, long estimate) {
