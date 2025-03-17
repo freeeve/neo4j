@@ -41,6 +41,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import org.apache.parquet.column.ColumnDescriptor;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
@@ -49,6 +50,7 @@ import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.DelegatingSeekableInputStream;
 import org.apache.parquet.io.InputFile;
 import org.apache.parquet.io.SeekableInputStream;
+import org.eclipse.collections.api.factory.Lists;
 import org.neo4j.batchimport.api.InputIterable;
 import org.neo4j.batchimport.api.input.Collector;
 import org.neo4j.batchimport.api.input.IdType;
@@ -102,22 +104,8 @@ public class ParquetInput implements Input {
         this.schemaCommands = schemaCommands;
 
         this.verifiedColumns = verifyColumns(nodeFiles, relationshipFiles);
-        this.nodeDatas = nodeFiles.entrySet().stream()
-                .flatMap(e -> e.getValue().stream().map(p -> Map.entry(e.getKey(), p)))
-                .flatMap(e -> Arrays.stream(e.getValue())
-                        .filter(files -> !files.toString().endsWith(".csv"))
-                        .map(p -> Map.entry(e.getKey(), p)))
-                .map(e -> new ParquetData(
-                        e.getKey(), e.getValue(), verifiedColumns.get(e.getValue()), defaultTimezoneSupplier))
-                .toList();
-        this.relationshipDatas = relationshipFiles.entrySet().stream()
-                .flatMap(e -> e.getValue().stream().map(p -> Map.entry(e.getKey(), p)))
-                .flatMap(e -> Arrays.stream(e.getValue())
-                        .filter(files -> !files.toString().endsWith(".csv"))
-                        .map(p -> Map.entry(e.getKey(), p)))
-                .map(e -> new ParquetData(
-                        Set.of(e.getKey()), e.getValue(), verifiedColumns.get(e.getValue()), defaultTimezoneSupplier))
-                .toList();
+        this.nodeDatas = nodeData(verifiedColumns, nodeFiles);
+        this.relationshipDatas = relationshipData(verifiedColumns, relationshipFiles);
     }
 
     @Override
@@ -143,6 +131,37 @@ public class ParquetInput implements Input {
     @Override
     public List<SchemaCommand> schemaCommands() {
         return schemaCommands;
+    }
+
+    private static List<ParquetData> nodeData(
+            Map<Path, List<ParquetColumn>> verifiedColumns, Map<Set<String>, List<Path[]>> nodeFiles) {
+        return parquetData(verifiedColumns, nodeFiles, Function.identity());
+    }
+
+    private static List<ParquetData> relationshipData(
+            Map<Path, List<ParquetColumn>> verifiedColumns, Map<String, List<Path[]>> relationshipFiles) {
+        return parquetData(
+                verifiedColumns,
+                relationshipFiles,
+                typeGroupOrNull -> typeGroupOrNull == null ? Set.of() : Set.of(typeGroupOrNull));
+    }
+
+    private static <KEY> List<ParquetData> parquetData(
+            Map<Path, List<ParquetColumn>> verifiedColumns,
+            Map<KEY, List<Path[]>> files,
+            Function<KEY, Set<String>> keyExtractor) {
+        final var columnData = Lists.mutable.<ParquetData>empty();
+        files.forEach((key, allPaths) -> {
+            for (var paths : allPaths) {
+                for (var path : paths) {
+                    if (!path.toString().endsWith(".csv")) {
+                        columnData.add(new ParquetData(
+                                keyExtractor.apply(key), path, verifiedColumns.get(path), defaultTimezoneSupplier));
+                    }
+                }
+            }
+        });
+        return columnData;
     }
 
     private static class HeaderContext {
@@ -229,7 +248,7 @@ public class ParquetInput implements Input {
                         headerContext.setHeaderFileExistsFor(labelsAndNodeFilesEntry.getKey());
                         continue;
                     }
-                    ParquetMetadata metadata = null;
+                    ParquetMetadata metadata;
                     try {
                         metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(nodeFile));
                     } catch (RuntimeException e) {
@@ -338,7 +357,7 @@ public class ParquetInput implements Input {
                         headerContext.setHeaderFileExistsFor(typeAndRelationshipFilesEntry.getKey());
                         continue;
                     }
-                    ParquetMetadata metadata = null;
+                    ParquetMetadata metadata;
                     try {
                         metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(relationshipFile));
                     } catch (RuntimeException e) {

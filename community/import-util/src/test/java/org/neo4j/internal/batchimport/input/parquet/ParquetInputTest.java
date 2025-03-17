@@ -61,10 +61,12 @@ import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Types;
 import org.assertj.core.api.Assertions;
+import org.eclipse.collections.api.factory.Maps;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.batchimport.api.InputIterator;
 import org.neo4j.batchimport.api.input.Collector;
@@ -100,6 +102,7 @@ import org.neo4j.values.storable.Values;
 @TestDirectoryExtension
 @ExtendWith(RandomExtension.class)
 class ParquetInputTest {
+
     @Inject
     private RandomSupport random;
 
@@ -121,8 +124,10 @@ class ParquetInputTest {
         directory.cleanup();
     }
 
-    @Test
-    void shouldProvideNodesFromParquetInput() throws Exception {
+    @ParameterizedTest
+    @MethodSource("groupNames")
+    void shouldProvideNodesFromParquetInput(String groupName) throws Exception {
+        final var group = groupName == null ? Set.<String>of() : Set.of("");
         // GIVEN
         Path nodeFile = createParquetFile(
                 List.of(
@@ -135,7 +140,7 @@ class ParquetInputTest {
                                 .named(":LABEL")),
                 List.<Object[]>of(new Object[] {123L, "Mattias Persson", "HACKER"}));
         Input input = createParquetInput(
-                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+                Map.of(group, List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
             assertNextNode(nodes, 123L, properties("name", "Mattias Persson"), labels("HACKER"));
@@ -694,8 +699,9 @@ class ParquetInputTest {
         }
     }
 
-    @Test
-    void shouldProvideRelationshipsFromParquetInput() throws Exception {
+    @ParameterizedTest
+    @MethodSource("groupNames")
+    void shouldProvideRelationshipsFromParquetInput(String groupName) throws Exception {
         // GIVEN
         Path relationshipFile = createParquetFile(
                 List.of(
@@ -713,7 +719,11 @@ class ParquetInputTest {
                         new Object[] {"node1", "node2", "KNOWS", 1234567L},
                         new Object[] {"node2", "node10", "HACKS", 987654L}));
         Input input = createParquetInput(
-                Map.of(), Map.of("", List.<Path[]>of(new Path[] {relationshipFile})), STRING, groups, MONITOR);
+                Map.of(),
+                Maps.mutable.of(groupName, List.<Path[]>of(new Path[] {relationshipFile})),
+                STRING,
+                groups,
+                MONITOR);
         // WHEN/THEN
         try (InputIterator relationships = input.relationships(EMPTY).iterator()) {
             assertNextRelationship(relationships, "node1", "node2", "KNOWS", properties("since", 1234567L));
@@ -2443,5 +2453,9 @@ class ParquetInputTest {
 
     private static Set<String> labels(String... labels) {
         return asSet(labels);
+    }
+
+    private static Stream<String> groupNames() {
+        return Stream.of("", null);
     }
 }
