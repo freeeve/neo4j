@@ -45,13 +45,21 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
   }
 
   test("(n:A|B)") {
-    run().hasErrorMessages(labelExprErrorMessage)
+    run().hasError(
+      GqlHelper.getGql42001_42I30(s"a $statement clause", offset + 4, 1, offset + 5),
+      labelExprErrorMessage,
+      InputPosition(offset + 4, 1, offset + 5)
+    )
   }
 
   test("(n:A|:B)") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42I30(s"a $statement clause", offset + 4, 1, offset + 5),
       labelExprErrorMessage,
-      "Label expressions are not allowed to contain '|:'."
+      InputPosition(offset + 4, 1, offset + 5),
+      GqlHelper.getGql42001_42I20("|:", "|", offset + 4, 1, offset + 5),
+      "Label expressions are not allowed to contain '|:'.",
+      InputPosition(offset + 4, 1, offset + 5)
     )
   }
 
@@ -64,33 +72,45 @@ abstract class LabelExpressionSemanticAnalysisTestSuiteWithUpdateStatement(state
   }
 
   test("(n IS !(A&B))") {
-    run().hasErrorMessages(
-      labelExprErrorMessage
+    run().hasError(
+      GqlHelper.getGql42001_42I30(s"a $statement clause", offset + 6, 1, offset + 7),
+      labelExprErrorMessage,
+      InputPosition(offset + 6, 1, offset + 7)
     )
   }
 
   test("(n IS A&!B)") {
-    run().hasErrorMessages(
-      labelExprErrorMessage
+    run().hasError(
+      GqlHelper.getGql42001_42I30(s"a $statement clause", offset + 7, 1, offset + 8),
+      labelExprErrorMessage,
+      InputPosition(offset + 7, 1, offset + 8)
     )
   }
 
   test("(n IS A|B)") {
-    run().hasErrorMessages(
-      labelExprErrorMessage
+    run().hasError(
+      GqlHelper.getGql42001_42I30(s"a $statement clause", offset + 7, 1, offset + 8),
+      labelExprErrorMessage,
+      InputPosition(offset + 7, 1, offset + 8)
     )
   }
 
   test("(n IS %)") {
-    run().hasErrorMessages(
-      labelExprErrorMessage
+    run().hasError(
+      GqlHelper.getGql42001_42I30(s"a $statement clause", offset + 6, 1, offset + 7),
+      labelExprErrorMessage,
+      InputPosition(offset + 6, 1, offset + 7)
     )
   }
 
   test("(n IS A|:B)") {
-    run().hasErrorMessages(
+    run().hasErrors(
+      GqlHelper.getGql42001_42I30(s"a $statement clause", offset + 7, 1, offset + 8),
       labelExprErrorMessage,
-      "Label expressions are not allowed to contain '|:'."
+      InputPosition(offset + 7, 1, offset + 8),
+      GqlHelper.getGql42001_42I20("|:", "|", offset + 7, 1, offset + 8),
+      "Label expressions are not allowed to contain '|:'.",
+      InputPosition(offset + 7, 1, offset + 8)
     )
   }
 

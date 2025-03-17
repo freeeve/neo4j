@@ -27,7 +27,11 @@ import org.scalatest.LoneElement
 class OtherLabelExpressionSemanticAnalysisTest extends NameBasedSemanticAnalysisTestSuite with LoneElement {
 
   test("MATCH (a), (b) WITH shortestPath((a:A|B)-[:REL*]->(b:B|C)) AS p RETURN length(p) AS result") {
-    run().hasErrorMessages("Label expressions in shortestPath are not allowed in an expression")
+    run().hasError(
+      GqlHelper.getGql42001_42I30("shortestPath", 20, 1, 21),
+      "Label expressions in shortestPath are not allowed in an expression",
+      InputPosition(20, 1, 21)
+    )
   }
 
   test("MATCH (a), (b) WITH shortestPath((a IS A)-[:REL*]->(b:B)) AS p RETURN length(p) AS result") {

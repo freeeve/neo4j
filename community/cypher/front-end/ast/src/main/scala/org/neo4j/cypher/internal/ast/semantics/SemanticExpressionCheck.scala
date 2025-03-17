@@ -559,7 +559,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           when(x.pattern.element.folder.treeExists {
             case node: NodePattern => node.labelExpression.exists(_.containsGpmSpecificLabelExpression)
           }) {
-            error("Label expressions in shortestPath are not allowed in an expression", x.position)
+            error(SemanticError.invalidLabelExpressionInShortestPath(x.position))
           } chain
           specifyType(if (x.pattern.single) CTPath else CTList(CTPath), x)
 

@@ -2848,7 +2848,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42I30(
             new GqlStatus("42I30"),
             """
-                    Label expressions cannot be used in a { %s }.""",
+                    Label expressions cannot be used in { %s }.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,

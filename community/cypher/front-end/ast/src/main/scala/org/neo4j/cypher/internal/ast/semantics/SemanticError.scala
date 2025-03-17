@@ -1612,6 +1612,22 @@ object SemanticError {
     )
   }
 
+  def invalidLabelExpressionInShortestPath(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I30("shortestPath", position.offset, position.line, position.column)
+    SemanticError(
+      gql,
+      "Label expressions in shortestPath are not allowed in an expression",
+      position
+    )
+  }
+
+  def invalidLabelExpressionInPattern(clause: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql42001_42I30(clause, position.offset, position.line, position.column)
+    val legacyMsg =
+      s"Label expressions in patterns are not allowed in $clause, but only in a MATCH clause and in expressions"
+    SemanticError(gql, legacyMsg, position)
+  }
+
   def functionCallWrongNumberOfArguments(
     expectedNumArgs: Int,
     actualNumArgs: Int,

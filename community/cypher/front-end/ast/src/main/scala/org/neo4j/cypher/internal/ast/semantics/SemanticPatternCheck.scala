@@ -860,8 +860,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
         labelExpression.containsMatchSpecificLabelExpression && (ctx != SemanticContext.Match && ctx != SemanticContext.Expression)
       ) {
         error(
-          s"Label expressions in patterns are not allowed in ${ctx.description}, but only in a MATCH clause and in expressions",
-          labelExpression.position
+          SemanticError.invalidLabelExpressionInPattern(ctx.description, labelExpression.position)
         )
       } chain
         SemanticExpressionCheck.checkLabelExpression(Some(NODE_TYPE), labelExpression)
