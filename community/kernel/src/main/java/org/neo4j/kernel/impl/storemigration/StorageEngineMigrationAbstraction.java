@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.storemigration;
 import static org.neo4j.storageengine.migration.StoreMigrationParticipant.NOT_PARTICIPATING;
 import static org.neo4j.util.Preconditions.checkState;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -93,7 +94,9 @@ public class StorageEngineMigrationAbstraction {
             CursorContextFactory contextFactory,
             MemoryTracker memoryTracker,
             IndexProviderMap indexProviderMap,
-            long maxOffHeapMemory) {
+            long maxOffHeapMemory,
+            PrintStream verboseProgressOutput,
+            boolean verboseOutput) {
         List<StoreMigrationParticipant> storeParticipants = new ArrayList<>();
         if (migrationAcrossEngine) {
             // One participant that copies over the data and schema. It doesn't care about any other
@@ -111,7 +114,9 @@ public class StorageEngineMigrationAbstraction {
                     targetStorageEngineFactory,
                     forceBtreeIndexesToRange,
                     keepNodeIds,
-                    maxOffHeapMemory));
+                    maxOffHeapMemory,
+                    verboseProgressOutput,
+                    verboseOutput));
         } else {
             // Get all the participants from the storage engine and add them where they want to be
             storeParticipants.addAll(storageEngineFactory.migrationParticipants(

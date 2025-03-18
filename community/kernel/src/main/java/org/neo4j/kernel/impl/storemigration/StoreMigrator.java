@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.storemigration;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -105,6 +106,8 @@ public class StoreMigrator {
     private static final String MIGRATION_STATUS_FILE = "_status";
 
     private final CursorContextFactory contextFactory;
+    private final PrintStream verboseProgressOutput;
+    private final boolean verboseOutput;
     private final DatabaseTracers databaseTracers;
     private final DatabaseLayout databaseLayout;
     private final FileSystemAbstraction fs;
@@ -134,7 +137,9 @@ public class StoreMigrator {
             IndexProviderMap indexProviderMap,
             MemoryTracker memoryTracker,
             Supplier<LogTailMetadata> logTailSupplier,
-            long maxOffHeapMemory) {
+            long maxOffHeapMemory,
+            PrintStream verboseProgressOutput,
+            boolean verboseOutput) {
         this.fs = fs;
         this.config = config;
         this.logService = logService;
@@ -151,6 +156,8 @@ public class StoreMigrator {
         this.logTailSupplier = logTailSupplier;
         this.contextFactory =
                 new CursorContextFactory(databaseTracers.getPageCacheTracer(), new LazyVersionContextSupplier());
+        this.verboseProgressOutput = verboseProgressOutput;
+        this.verboseOutput = verboseOutput;
         this.storageEngineMigrationAbstraction =
                 new StorageEngineMigrationAbstraction(storageEngineFactory, targetStorageEngineFactory);
         this.maxOffHeapMemory = maxOffHeapMemory;
@@ -508,7 +515,9 @@ public class StoreMigrator {
                 contextFactory,
                 memoryTracker,
                 indexProviderMap,
-                maxOffHeapMemory);
+                maxOffHeapMemory,
+                verboseProgressOutput,
+                verboseOutput);
     }
 
     private void migrateToIsolatedDirectory(

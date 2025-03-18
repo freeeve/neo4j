@@ -570,6 +570,8 @@ class StoreMigratorTest {
                 indexProviderMap,
                 INSTANCE,
                 supplier,
-                ByteUnit.mebiBytes(80));
+                ByteUnit.mebiBytes(80),
+                System.out,
+                false);
     }
 }

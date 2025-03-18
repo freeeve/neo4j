@@ -25,10 +25,10 @@ import static org.neo4j.kernel.impl.storemigration.FileOperation.MOVE;
 import static org.neo4j.kernel.impl.storemigration.StoreMigratorFileOperation.fileOperation;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Set;
+import org.apache.logging.log4j.core.util.NullOutputStream;
 import org.eclipse.collections.api.factory.Sets;
 import org.neo4j.batchimport.api.AdditionalInitialIds;
 import org.neo4j.batchimport.api.BatchImporter;
@@ -84,6 +84,8 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
     private final boolean forceBtreeIndexesToRange;
     private final boolean keepNodeIds;
     private final long maxOffHeapMemory;
+    private final PrintStream verboseProgressOutput;
+    private final boolean verboseOutput;
 
     public AcrossEngineMigrationParticipant(
             FileSystemAbstraction fileSystem,
@@ -98,7 +100,9 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
             StorageEngineFactory targetStorageEngine,
             boolean forceBtreeIndexesToRange,
             boolean keepNodeIds,
-            long maxOffHeapMemory) {
+            long maxOffHeapMemory,
+            PrintStream verboseProgressOutput,
+            boolean verboseOutput) {
         super(NAME);
         this.fileSystem = fileSystem;
         this.pageCache = pageCache;
@@ -113,6 +117,8 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
         this.forceBtreeIndexesToRange = forceBtreeIndexesToRange;
         this.keepNodeIds = keepNodeIds;
         this.maxOffHeapMemory = maxOffHeapMemory;
+        this.verboseProgressOutput = verboseProgressOutput;
+        this.verboseOutput = verboseOutput;
     }
 
     @Override
@@ -136,6 +142,21 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
         AdditionalInitialIds additionalInitialIds = getInitialIds(tailMetadata);
         var indexProviders = life.add(new DefaultIndexProvidersAccess(
                 targetStorageEngine, fileSystem, config, jobScheduler, logService, pageCacheTracer, contextFactory));
+
+        // The default progress output is a condensed and consolidated 0..100% progress,
+        // which (probably for legacy reasons) is done via the special VisibleMigrationProgressMonitorFactory.
+        // However, for greater insight into what goes on during migration across formats
+        // (which may be a large undertaking) then skip that condensed progress and instead show the real progress
+        // from the importer which contains a lot more details.
+        Monitor progressTrackingMonitor;
+        PrintStream progressOutput;
+        if (verboseOutput) {
+            progressTrackingMonitor = Monitor.NO_MONITOR;
+            progressOutput = verboseProgressOutput;
+        } else {
+            progressTrackingMonitor = progressTrackingMonitor(progressListener);
+            progressOutput = new PrintStream(NullOutputStream.nullOutputStream());
+        }
 
         BatchImporter importer = targetStorageEngine.batchImporter(
                 migrationLayoutArg,
@@ -169,12 +190,11 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
                     }
                 },
                 logService,
-                // No progress printing or updating progressReporter right now. Probably should be..
-                new PrintStream(OutputStream.nullOutputStream()),
-                false,
+                progressOutput,
+                verboseOutput,
                 additionalInitialIds,
                 localConfig,
-                progressTrackingMonitor(progressListener),
+                progressTrackingMonitor,
                 jobScheduler,
                 Collector.EMPTY,
                 TransactionLogInitializer.getLogFilesInitializer(),

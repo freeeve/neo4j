@@ -332,7 +332,9 @@ public class MigrateStoreCommand extends AbstractAdminCommand {
                                         DatabaseTracers.EMPTY,
                                         databaseLayout,
                                         memoryTracker)),
-                                remainingMaxOffHeapMemory);
+                                remainingMaxOffHeapMemory,
+                                ctx.out(),
+                                verbose);
 
                         storeMigrator.migrateIfNeeded(formatForDb, forceBtreeToRange, keepNodeIds);
                     } catch (FileLockException e) {

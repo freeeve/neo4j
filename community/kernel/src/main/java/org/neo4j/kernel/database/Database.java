@@ -34,6 +34,8 @@ import static org.neo4j.scheduler.Group.INDEX_CLEANUP;
 import static org.neo4j.scheduler.Group.INDEX_CLEANUP_WORK;
 
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -811,7 +813,9 @@ public class Database extends AbstractDatabase {
                 indexProviderMap,
                 memoryTracker,
                 logTailSupplier,
-                StoreMigrationParticipant.UNSPECIFIED_MAX_OFF_HEAP_MEMORY);
+                StoreMigrationParticipant.UNSPECIFIED_MAX_OFF_HEAP_MEMORY,
+                new PrintStream(OutputStream.nullOutputStream()),
+                false);
         storeMigrator.upgradeIfNeeded();
     }
 

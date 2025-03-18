@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.storemigration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.configuration.Config.defaults;
@@ -33,12 +32,16 @@ import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.neo4j.batchimport.api.BatchImporter;
 import org.neo4j.batchimport.api.Configuration;
+import org.neo4j.batchimport.api.Monitor;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -72,6 +75,9 @@ class AcrossEngineMigrationParticipantTest {
     private StorageEngineFactory sourceSef;
     private StorageEngineFactory targetSef;
     private ArgumentCaptor<Configuration> importerConfigurationCaptor;
+    private ArgumentCaptor<PrintStream> progressOutputCaptor;
+    private ArgumentCaptor<Boolean> verboseCaptor;
+    private ArgumentCaptor<Monitor> monitorCaptor;
 
     @BeforeEach
     void start() {
@@ -82,17 +88,20 @@ class AcrossEngineMigrationParticipantTest {
         targetSef = mock(StorageEngineFactory.class);
         var importer = mock(BatchImporter.class);
         importerConfigurationCaptor = ArgumentCaptor.forClass(Configuration.class);
+        progressOutputCaptor = ArgumentCaptor.forClass(PrintStream.class);
+        verboseCaptor = ArgumentCaptor.forClass(Boolean.TYPE);
+        monitorCaptor = ArgumentCaptor.forClass(Monitor.class);
         when(targetSef.batchImporter(
                         any(),
                         any(),
                         any(),
                         importerConfigurationCaptor.capture(),
                         any(),
+                        progressOutputCaptor.capture(),
+                        verboseCaptor.capture(),
                         any(),
-                        anyBoolean(),
                         any(),
-                        any(),
-                        any(),
+                        monitorCaptor.capture(),
                         any(),
                         any(),
                         any(),
@@ -124,7 +133,9 @@ class AcrossEngineMigrationParticipantTest {
                 targetSef,
                 false,
                 false,
-                -1);
+                -1,
+                null,
+                false);
 
         // when
         participant.migrate(
@@ -157,7 +168,9 @@ class AcrossEngineMigrationParticipantTest {
                 targetSef,
                 false,
                 false,
-                maxOffHeapMemory);
+                maxOffHeapMemory,
+                null,
+                false);
 
         // when
         participant.migrate(
@@ -172,5 +185,47 @@ class AcrossEngineMigrationParticipantTest {
         // then
         assertThat(importerConfigurationCaptor.getValue().providedPageCache()).isNull();
         assertThat(importerConfigurationCaptor.getValue().maxOffHeapMemory()).isEqualTo(maxOffHeapMemory);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void shouldSelectCorrectOutputsDependingOnVerbose(boolean verbose) throws IOException, KernelException {
+        // given
+        var participant = new AcrossEngineMigrationParticipant(
+                fs,
+                pageCache,
+                NULL,
+                defaults(),
+                NullLogService.getInstance(),
+                scheduler,
+                NULL_CONTEXT_FACTORY,
+                INSTANCE,
+                sourceSef,
+                targetSef,
+                false,
+                false,
+                mebiBytes(80),
+                System.out,
+                verbose);
+
+        // when
+        participant.migrate(
+                fromLayout,
+                toLayout,
+                NONE,
+                mock(StoreVersion.class),
+                mock(StoreVersion.class),
+                new IndexImporterFactoryImpl(),
+                mock(LogTailMetadata.class));
+
+        // then
+        assertThat(verboseCaptor.getValue()).isEqualTo(verbose);
+        if (verbose) {
+            assertThat(monitorCaptor.getValue()).isEqualTo(Monitor.NO_MONITOR);
+            assertThat(progressOutputCaptor.getValue()).isEqualTo(System.out);
+        } else {
+            assertThat(monitorCaptor.getValue()).isNotEqualTo(Monitor.NO_MONITOR);
+            assertThat(progressOutputCaptor.getValue()).isNotEqualTo(System.out);
+        }
     }
 }
