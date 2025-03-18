@@ -25,6 +25,7 @@ import static org.neo4j.internal.counts.CountsKey.MAX_STRAY_TX_ID;
 import static org.neo4j.internal.counts.CountsKey.MIN_STRAY_TX_ID;
 import static org.neo4j.internal.counts.CountsKey.strayTxId;
 import static org.neo4j.io.IOUtils.closeAllUnchecked;
+import static org.neo4j.io.IOUtils.closeUnchecked;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 import static org.neo4j.util.Preconditions.checkState;
 import static org.neo4j.util.concurrent.OutOfOrderSequence.EMPTY_META;
@@ -268,7 +269,7 @@ public class GBPTreeGenericCountsStore implements AutoCloseable, ConsistencyChec
 
     @Override
     public void close() {
-        closeAllUnchecked(tree);
+        closeUnchecked(tree);
     }
 
     // === Writes ===
