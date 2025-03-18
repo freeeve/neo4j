@@ -2368,10 +2368,10 @@
   {
     "admin": false,
     "name": "dbms.cluster.recreateDatabase",
-    "isDeprecated": false,
-    "deprecatedBy": null,
+    "isDeprecated": true,
+    "deprecatedBy": "dbms.recreateDatabase",
     "option": {
-      "deprecated": false
+      "deprecated": true
     },
     "signature": "dbms.cluster.recreateDatabase(database :: STRING, options = {} :: MAP)",
     "rolesBoostedExecution": [
@@ -3278,6 +3278,44 @@
       "deprecated": false
     },
     "enterpriseOnly": false,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "admin": false,
+    "name": "dbms.recreateDatabase",
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "signature": "dbms.recreateDatabase(database :: STRING, options = {} :: MAP)",
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "worksOnSystem": true,
+    "returnDescription": [],
+    "description": "Recreates a database while keeping all RBAC settings. The procedure initiates a process, which when complete, will have synchronized and started all database instances within the cluster.",
+    "rolesExecution": [
+      "PUBLIC",
+      "admin"
+    ],
+    "argumentDescription": [
+      {
+        "name": "database",
+        "description": "The name of the database to recreate.",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "options",
+        "description": "The seeding and topology options to use for recreating the database.",
+        "type": "MAP",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value={}, type=MAP}"
+      }
+    ],
+    "mode": "WRITE",
+    "enterpriseOnly": true,
     "cypherVersionScope": [5, 25]
   },
   {
