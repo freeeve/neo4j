@@ -20,20 +20,22 @@ import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersionHelpers.equalInAllVersions
 import org.neo4j.cypher.internal.CypherVersionTestSupport
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
+import org.neo4j.cypher.internal.ast.semantics.SemanticError.errorMessageForSizeFunction
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.frontend.helpers.ErrorCollectingContext
 import org.neo4j.cypher.internal.frontend.helpers.NoPlannerName
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ListCoercedToBooleanCheck
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
-import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PatternExpressionInNonExistenceCheck
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.cypher.messages.MessageUtilProvider
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.LoneElement
 
 class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherVersionTestSupport {
@@ -84,8 +86,20 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherV
 
     queries.foreach { query =>
       withClue(s"Failing query: $query") {
-        runPipeline(query).map(_.msg) should contain(
-          PatternExpressionInNonExistenceCheck.errorMessageForSizeFunction
+        val errors = runPipeline(query).map(e => e.asInstanceOf[SemanticError])
+        errors should have length 1
+        val error = errors.head
+
+        error.msg should be(errorMessageForSizeFunction)
+
+        error.gqlStatusObject should be(
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_42001,
+            "error: syntax error or access rule violation - invalid syntax"
+          ).withCause(
+            GqlStatusInfoCodes.STATUS_42I52,
+            s"error: syntax error or access rule violation - no longer valid syntax. $errorMessageForSizeFunction"
+          )
         )
       }
     }

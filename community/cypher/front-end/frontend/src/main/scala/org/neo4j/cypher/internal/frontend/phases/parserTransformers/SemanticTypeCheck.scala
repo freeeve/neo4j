@@ -123,16 +123,12 @@ object PatternExpressionInNonExistenceCheck extends ExpectedBooleanTypeCheck {
       // The replacement for size(PatternExpression) is COUNT {PatternExpression} and not size(PatternComprehension).
       case FunctionInvocation(FunctionName(_, "size"), _, IndexedSeq(p: PatternExpression), _, _)
         if !isExpectedTypeBoolean(baseState.semanticTable(), p) =>
-        errors => SkipChildren(errors :+ SemanticError(errorMessageForSizeFunction, p.position))
+        errors => SkipChildren(errors :+ SemanticError.patternExpressionInSize(p.position))
 
       case p: PatternExpression if !isExpectedTypeBoolean(baseState.semanticTable(), p) =>
         errors => SkipChildren(errors :+ SemanticError.invalidUseOfPatternExpression(p.position))
     }
   }
-
-  val errorMessageForSizeFunction: String =
-    "A pattern expression should only be used in order to test the existence of a pattern. " +
-      "It can no longer be used inside the function size(), an alternative is to replace size() with COUNT {}."
 }
 
 trait VariableReferenceCheck {

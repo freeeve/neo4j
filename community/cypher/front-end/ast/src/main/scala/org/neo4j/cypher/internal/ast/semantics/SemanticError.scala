@@ -1812,6 +1812,18 @@ object SemanticError {
     )
   }
 
+  def patternExpressionInSize(position: InputPosition): SemanticError = {
+    SemanticError(
+      GqlHelper.getGql42001_42I52(errorMessageForSizeFunction, position.offset, position.line, position.column),
+      errorMessageForSizeFunction,
+      position
+    )
+  }
+
+  val errorMessageForSizeFunction: String =
+    "A pattern expression should only be used in order to test the existence of a pattern. " +
+      "It can no longer be used inside the function size(), an alternative is to replace size() with COUNT {}."
+
   def duplicateVariableDefinitionUnknown(
     clause: String,
     varName: String,
