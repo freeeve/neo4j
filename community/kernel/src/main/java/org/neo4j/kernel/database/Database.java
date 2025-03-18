@@ -1319,7 +1319,7 @@ public class Database extends AbstractDatabase {
         String formatName = databaseConfig.get(db_format);
 
         return namedDatabaseId.isSystemDatabase()
-                || !formatName.equals("multiversion") && !formatName.equals("multiversion_block");
+                || !databaseConfig.get(db_format).contains("multiversion");
     }
 
     private class KernelTransactionVisibilityProvider implements TransactionVisibilityProvider {

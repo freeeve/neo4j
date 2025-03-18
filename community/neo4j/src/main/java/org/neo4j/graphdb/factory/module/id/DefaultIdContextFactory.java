@@ -106,7 +106,6 @@ public class DefaultIdContextFactory implements IdContextFactory {
     }
 
     protected static boolean isMultiVersion(DatabaseConfig databaseConfig) {
-        String formatName = databaseConfig.get(db_format);
-        return formatName.equals("multiversion") || formatName.equals("multiversion_block");
+        return databaseConfig.get(db_format).contains("multiversion");
     }
 }
