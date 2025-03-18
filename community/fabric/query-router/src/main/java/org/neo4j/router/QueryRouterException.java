@@ -20,6 +20,7 @@
 package org.neo4j.router;
 
 import static org.neo4j.fabric.executor.FabricExecutor.WRITING_IN_READ_NOT_ALLOWED_MSG;
+import static org.neo4j.kernel.api.exceptions.Status.Transaction.TransactionCommitFailed;
 
 import org.neo4j.fabric.executor.Location;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
@@ -125,6 +126,12 @@ public class QueryRouterException extends GqlRuntimeException implements Status.
                 "Writing to more than one database per transaction is not allowed. Attempted write to %s, currently writing to %s",
                 attemptedGraph,
                 currentGraph);
+    }
+
+    public static QueryRouterException transactionCommitFailed() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_2DN01)
+                .build();
+        return new QueryRouterException(gql, TransactionCommitFailed, "Trying to commit closed transaction");
     }
 
     @Override

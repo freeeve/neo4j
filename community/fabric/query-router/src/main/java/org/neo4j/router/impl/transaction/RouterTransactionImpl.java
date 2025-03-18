@@ -222,7 +222,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
             }
 
             if (state.get() == State.CLOSED) {
-                throw new QueryRouterException(TransactionCommitFailed, "Trying to commit closed transaction");
+                throw QueryRouterException.transactionCommitFailed();
             }
         }
 
