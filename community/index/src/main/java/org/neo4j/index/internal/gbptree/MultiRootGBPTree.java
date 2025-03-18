@@ -1201,17 +1201,13 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                 return;
             }
             withCheckpointAndWriterLock(() -> {
+                if (closed) {
+                    return;
+                }
                 try {
-                    if (closed) {
-                        if (structureWriteLog != null) {
-                            structureWriteLog.close();
-                        }
-                        return;
-                    }
                     try (var flushEvent = pageCacheTracer.beginFileFlush()) {
                         maybeForceCleanState(flushEvent, cursorContext);
                     }
-                    doClose();
                 } catch (IOException ioe) {
                     try {
                         if (!pagedFile.isDeleteOnClose()) {
@@ -1227,6 +1223,8 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
                         ioe.addSuppressed(e);
                         throw ioe;
                     }
+                } finally {
+                    doClose();
                 }
             });
         }
@@ -1272,9 +1270,14 @@ public class MultiRootGBPTree<ROOT_KEY, KEY, VALUE> implements Closeable {
     }
 
     private void doClose() {
+        if (closed) {
+            return;
+        }
         try (pagedFile;
-                structureWriteLog) {}
-        closed = true;
+                structureWriteLog) {
+        } finally {
+            closed = true;
+        }
     }
 
     /**

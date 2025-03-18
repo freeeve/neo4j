@@ -30,6 +30,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.index.internal.gbptree.DataTree.W_BATCHED_SINGLE_THREADED;
 import static org.neo4j.index.internal.gbptree.GBPTree.NO_HEADER_READER;
@@ -222,7 +224,11 @@ class GBPTreeTest {
     @Test
     void shouldNotHaveStoreFileIfFailedDuringConstructor() throws Exception {
         try (PageCache pageCache = createPageCache(defaultPageSize)) {
-            index(pageCache).with(new FailInConstructorMonitor()).build().close();
+            index(pageCache)
+                    .with(new FailInConstructorMonitor())
+                    .with(StructureWriteLog.EMPTY)
+                    .build()
+                    .close();
         } catch (Exception e) {
             // Ignore
         }
@@ -1889,7 +1895,10 @@ class GBPTreeTest {
     void mustFailGracefullyIfFileNotExistInReadOnlyMode() {
         // given
         try (PageCache pageCache = createPageCache(defaultPageSize)) {
-            assertThatThrownBy(() -> index(pageCache).readOnly().build())
+            assertThatThrownBy(() -> index(pageCache)
+                            .with(StructureWriteLog.EMPTY)
+                            .readOnly()
+                            .build())
                     .isInstanceOf(TreeFileNotFoundException.class)
                     .hasMessageContaining("Can not create new tree file")
                     .hasMessageContaining(indexFile.toAbsolutePath().toString());
@@ -2170,6 +2179,30 @@ class GBPTreeTest {
             var stateAfterOpenReadOnly = captureTreeState(pageCache);
             assertThat(stateAfterOpenReadOnly).isEqualTo(stateBeforeOpenReadOnly);
         }
+    }
+
+    @Test
+    void shouldCloseResourcesEvenOnCloseFailure() throws IOException {
+        // given
+        var structureWriteLog = mock(StructureWriteLog.class);
+        try (var pageCache = createPageCache(defaultPageSize)) {
+            boolean errorClosingTree = false;
+            try (var tree = index(pageCache).with(structureWriteLog).build()) {
+                // when Intentional messing about by closing the page cache before closing the tree
+                var backingMappedFile = pageCache.map(indexFile, pageCache.pageSize(), DEFAULT_DATABASE_NAME);
+                // a cheeky way of finding the mapped file backing this tree and closing it
+                // - once for the mapping we just did, and
+                // - once for the "actual" mapping that the tree did
+                backingMappedFile.close();
+                backingMappedFile.close();
+            } catch (IllegalStateException e) {
+                errorClosingTree = true;
+            }
+            assertThat(errorClosingTree).isTrue();
+        }
+
+        // then
+        verify(structureWriteLog).close();
     }
 
     private Pair<TreeState, TreeState> captureTreeState(PageCache pageCache) throws IOException {

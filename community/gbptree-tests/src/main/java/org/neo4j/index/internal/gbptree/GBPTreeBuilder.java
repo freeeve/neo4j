@@ -59,6 +59,7 @@ public class GBPTreeBuilder<ROOT_KEY, KEY, VALUE> {
     private ImmutableSet<OpenOption> openOptions = immutable.empty();
     private TreeNodeLayoutFactory treeNodeLayoutFactory = TreeNodeLayoutFactory.getInstance();
     private DependencyResolver dependencyResolver = EmptyDependencyResolver.EMPTY_RESOLVER;
+    private StructureWriteLog structureWriteLog;
 
     public GBPTreeBuilder(
             PageCache pageCache, FileSystemAbstraction fileSystem, Path path, Layout<KEY, VALUE> dataLayout) {
@@ -142,6 +143,18 @@ public class GBPTreeBuilder<ROOT_KEY, KEY, VALUE> {
         return this;
     }
 
+    public GBPTreeBuilder<ROOT_KEY, KEY, VALUE> with(StructureWriteLog structureWriteLog) {
+        this.structureWriteLog = structureWriteLog;
+        return this;
+    }
+
+    private StructureWriteLog structureWriteLog() {
+        if (structureWriteLog != null) {
+            return structureWriteLog;
+        }
+        return LoggingStructureWriteLog.forGBPTree(fileSystem, path);
+    }
+
     public GBPTree<KEY, VALUE> build() {
         CursorContextFactory cursorContextFactory = new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER);
         return new GBPTree<>(
@@ -160,7 +173,7 @@ public class GBPTreeBuilder<ROOT_KEY, KEY, VALUE> {
                 pageCacheTracer,
                 dependencyResolver,
                 treeNodeLayoutFactory,
-                LoggingStructureWriteLog.forGBPTree(fileSystem, path));
+                structureWriteLog());
     }
 
     public MultiRootGBPTree<ROOT_KEY, KEY, VALUE> buildMultiRoot() {
@@ -182,6 +195,6 @@ public class GBPTreeBuilder<ROOT_KEY, KEY, VALUE> {
                 pageCacheTracer,
                 dependencyResolver,
                 treeNodeLayoutFactory,
-                LoggingStructureWriteLog.forGBPTree(fileSystem, path));
+                structureWriteLog());
     }
 }
