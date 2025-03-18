@@ -85,15 +85,8 @@ class MethodSignatureCompiler {
                         .orElseGet(
                                 () -> inputField(name, valueConverter.type(), isDeprecated, isSensitive, description)));
             } catch (ProcedureException e) {
-                throw new ProcedureException(
-                        e.status(),
-                        "Argument `%s` at position %d in `%s` with%n"
-                                + "type `%s` cannot be converted to a Neo4j type: %s",
-                        name,
-                        i,
-                        method.getName(),
-                        param.getType().getSimpleName(),
-                        e.getMessage());
+                throw ProcedureException.argumentWithUnsupportedType(
+                        name, i, method.getName(), param.getType().getSimpleName(), e);
             }
         }
 

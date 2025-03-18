@@ -48,6 +48,8 @@ import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes;
@@ -174,25 +176,30 @@ public class UserFunctionTest {
 
     @Test
     void shouldNotAllowVoidOutput() {
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(FunctionWithVoidOutput.class));
-        assertThat(exception.getMessage()).startsWith("Don't know how to map `void` to the Neo4j Type System.");
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> compile(FunctionWithVoidOutput.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessageStartingWith("Don't know how to map `void` to the Neo4j Type System.")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22NB8)
+                .hasStatusDescription(
+                        "error: data exception - invalid Neo4j type. 'void' is not a recognized Neo4j type.");
     }
 
     @Test
     void shouldGiveHelpfulErrorOnFunctionReturningInvalidType() {
+        String expectedMsg = (String.format("Don't know how to map `char[]` to the Neo4j Type System.%n"
+                + "Please refer to to the documentation for full details.%n"
+                + "For your reference, known types are: [boolean, byte[], double, java.lang.Boolean, "
+                + "java.lang.Double, java.lang.Long, java.lang.Number, java.lang.Object, "
+                + "java.lang.String, java.time.LocalDate, java.time.LocalDateTime, "
+                + "java.time.LocalTime, java.time.OffsetTime, java.time.ZonedDateTime, "
+                + "java.time.temporal.TemporalAmount, java.util.List, java.util.Map, long]"));
 
-        // When
-        ProcedureException exception =
-                assertThrows(ProcedureException.class, () -> compile(FunctionWithInvalidOutput.class));
-        assertThat(exception.getMessage())
-                .isEqualTo(String.format("Don't know how to map `char[]` to the Neo4j Type System.%n"
-                        + "Please refer to to the documentation for full details.%n"
-                        + "For your reference, known types are: [boolean, byte[], double, java.lang.Boolean, "
-                        + "java.lang.Double, java.lang.Long, java.lang.Number, java.lang.Object, "
-                        + "java.lang.String, java.time.LocalDate, java.time.LocalDateTime, "
-                        + "java.time.LocalTime, java.time.OffsetTime, java.time.ZonedDateTime, "
-                        + "java.time.temporal.TemporalAmount, java.util.List, java.util.Map, long]"));
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> compile(FunctionWithInvalidOutput.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessage(expectedMsg)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22NB8)
+                .hasStatusDescription(
+                        "error: data exception - invalid Neo4j type. 'char[]' is not a recognized Neo4j type.");
     }
 
     @Test

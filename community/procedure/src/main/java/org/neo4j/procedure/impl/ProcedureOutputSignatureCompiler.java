@@ -106,13 +106,7 @@ class ProcedureOutputSignatureCompiler {
                 }
 
             } catch (ProcedureException e) {
-                throw new ProcedureException(
-                        e.status(),
-                        e,
-                        "Field `%s` in record `%s` cannot be converted to a Neo4j type: %s",
-                        field.getName(),
-                        userClass.getSimpleName(),
-                        e.getMessage());
+                throw ProcedureException.fieldWithUnsupportedType(field.getName(), userClass.getSimpleName(), e);
             }
         }
 

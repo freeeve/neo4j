@@ -2161,6 +2161,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "input empty",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NB8(
+            new GqlStatus("22NB8"),
+            """
+                    { %s } is not a recognized Neo4j type.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "invalid Neo4j type",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
             """

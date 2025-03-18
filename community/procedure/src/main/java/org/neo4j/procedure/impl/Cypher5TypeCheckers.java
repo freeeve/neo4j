@@ -64,7 +64,6 @@ import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.DefaultParameterValue;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes;
 import org.neo4j.internal.kernel.api.procs.Neo4jTypes.AnyType;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.procedure.Name;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.AnyValue;
@@ -242,13 +241,7 @@ public class Cypher5TypeCheckers {
                 .sorted(String::compareTo)
                 .collect(Collectors.toList());
 
-        return new ProcedureException(
-                Status.Statement.TypeError,
-                "Don't know how to map `%s` to the Neo4j Type System.%n"
-                        + "Please refer to to the documentation for full details.%n"
-                        + "For your reference, known types are: %s",
-                cls.getTypeName(),
-                types);
+        return ProcedureException.unsupportedType(cls.getTypeName(), types);
     }
 
     public abstract static class TypeChecker {

@@ -27,6 +27,8 @@ import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTString;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.FieldSignature;
 
@@ -104,11 +106,14 @@ public class ProcedureOutputSignatureCompilerTest {
 
     @Test
     void shouldGiveHelpfulErrorOnUnmappable() {
-        ProcedureException exception = assertThrows(ProcedureException.class, () -> signatures(UnmappableRecord.class));
-        assertThat(exception.getMessage())
-                .startsWith(
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> signatures(UnmappableRecord.class))
+                .isInstanceOf(ProcedureException.class)
+                .hasMessageStartingWith(
                         "Field `wat` in record `UnmappableRecord` cannot be converted to a Neo4j type: "
-                                + "Don't know how to map `org.neo4j.procedure.impl.ProcedureOutputSignatureCompilerTest$UnmappableRecord`");
+                                + "Don't know how to map `org.neo4j.procedure.impl.ProcedureOutputSignatureCompilerTest$UnmappableRecord`")
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22NB8)
+                .hasStatusDescription(
+                        "error: data exception - invalid Neo4j type. 'UnmappableRecord' is not a recognized Neo4j type.");
     }
 
     @Test

@@ -112,6 +112,16 @@ public class CypherExecutionException extends Neo4jException {
                 gql, "Unable to execute procedure, because it requires an unrecognized execution mode: " + mode, null);
     }
 
+    public static CypherExecutionException unrecognisedCypherType(String input) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N52)
+                        .withParam(GqlParams.StringParam.input, input)
+                        .build())
+                .build();
+        return new CypherExecutionException(
+                gql, "Unable to execute procedure, because the signature has an unrecognized type: " + input, null);
+    }
+
     public static CypherExecutionException failedCopyPrivileges(String to, String from, Throwable cause) {
         var msg = String.format("Failed to create role '%s' as copy of '%s': Failed to copy privileges.", to, from);
         var gql = GqlHelper.get50N00(CypherExecutionException.class.getSimpleName(), msg);

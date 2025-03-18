@@ -1294,6 +1294,20 @@ object SemanticError {
     )
   }
 
+  def procedureCallWithImplicitNaming(position: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N25)
+        .atPosition(position.offset, position.line, position.column)
+        .build())
+      .build()
+    SemanticError(
+      gql,
+      s"Procedure call inside a query does not support naming results implicitly (name explicitly using `YIELD` instead)",
+      position
+    )
+  }
+
   def nestedQPP(position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)

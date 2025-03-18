@@ -203,10 +203,7 @@ object SignatureResolver {
     case Neo4jTypes.NTGeometry      => CTGeometry
     case Neo4jTypes.NTMap           => CTMap
     case Neo4jTypes.NTAny           => CTAny
-    case _ => throw new CypherExecutionException(
-        "Unable to execute procedure, because the signature has an unrecognized type: " + neoType.toString,
-        null
-      )
+    case _                          => throw CypherExecutionException.unrecognisedCypherType(neoType.toString)
   }
 
   private def asCypherProcMode(signature: String, mode: Mode): ProcedureAccessMode = mode match {

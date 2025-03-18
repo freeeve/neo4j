@@ -965,4 +965,49 @@ public class ProcedureException extends KernelException {
                 "This is an administration command and it should be executed against the system database: %s",
                 procedure);
     }
+
+    public static ProcedureException unsupportedType(String input, List<String> cypherTypes) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB8)
+                .withParam(GqlParams.StringParam.input, input)
+                .build();
+        return new ProcedureException(
+                gql,
+                Status.Statement.TypeError,
+                "Don't know how to map `%s` to the Neo4j Type System.%n"
+                        + "Please refer to to the documentation for full details.%n"
+                        + "For your reference, known types are: %s",
+                input,
+                cypherTypes);
+    }
+
+    public static ProcedureException argumentWithUnsupportedType(
+            String arg, int pos, String method, String javaType, ProcedureException cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB8)
+                .withParam(GqlParams.StringParam.input, javaType)
+                .build();
+        return new ProcedureException(
+                gql,
+                cause.status(),
+                "Argument `%s` at position %d in `%s` with%n" + "type `%s` cannot be converted to a Neo4j type: %s",
+                arg,
+                pos,
+                method,
+                javaType,
+                cause.getMessage());
+    }
+
+    public static ProcedureException fieldWithUnsupportedType(
+            String field, String userClass, ProcedureException cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB8)
+                .withParam(GqlParams.StringParam.input, userClass)
+                .build();
+        return new ProcedureException(
+                gql,
+                cause.status(),
+                cause,
+                "Field `%s` in record `%s` cannot be converted to a Neo4j type: %s",
+                field,
+                userClass,
+                cause.getMessage());
+    }
 }

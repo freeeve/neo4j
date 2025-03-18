@@ -244,8 +244,7 @@ case class ResolvedCall(
     } // CALL wo YIELD of non-VOID or non-empty procedure in query => Error
     else {
       error(
-        s"Procedure call inside a query does not support naming results implicitly (name explicitly using `YIELD` instead)",
-        position
+        SemanticError.procedureCallWithImplicitNaming(position)
       )
     }
 
