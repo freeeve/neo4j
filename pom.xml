@@ -92,6 +92,7 @@
     <test.runner.jvm.settings.additional/>
     <test.runner.jvm.settings.db.format/>
     <test.runner.jvm.settings.log.format/>
+    <test.runner.jvm.settings.dbms.factory/>
     <test.runner.jvm.settings>
       ${test.runner.mockito.agent}
       -Xmx${test.vm.heap.size}
@@ -137,6 +138,7 @@
       ${test.runner.jvm.settings.db.format}
       ${test.runner.jvm.settings.additional}
       ${test.runner.jvm.settings.log.format}
+      ${test.runner.jvm.settings.dbms.factory}
     </test.runner.jvm.settings>
     <default.jupiter.test.timeout>20m</default.jupiter.test.timeout>
     <default.jupiter.test.mode>same_thread</default.jupiter.test.mode>
@@ -1100,6 +1102,18 @@
         <test.runner.jvm.settings.log.format>
           -DNEO4J_OVERRIDE_LOG_FORMAT=envelopes
         </test.runner.jvm.settings.log.format>
+      </properties>
+    </profile>
+    <profile>
+      <id>test-spd</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <properties>
+        <test.runner.jvm.settings.dbms.factory>
+          -DNEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER=spd
+          -Dorg.neo4j.ByteBuffers.TRACK_BUFFERS=false
+        </test.runner.jvm.settings.dbms.factory>
       </properties>
     </profile>
     <profile>

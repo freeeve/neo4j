@@ -24,6 +24,7 @@ import static org.neo4j.util.Preconditions.checkState;
 
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -52,6 +53,7 @@ import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.procedure.LazyProcedures;
+import org.neo4j.service.Services;
 import org.neo4j.time.SystemNanoClock;
 
 /**
@@ -61,6 +63,7 @@ import org.neo4j.time.SystemNanoClock;
  */
 public class TestDatabaseManagementServiceBuilder extends DatabaseManagementServiceBuilderImplementation
         implements TestNeo4jDatabaseManagementServiceBuilder {
+    private static final String FACTORY_SUPPLIER_KEY = "NEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER";
     private static final Path EPHEMERAL_PATH =
             Path.of("/target/test data/" + GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
 
@@ -127,11 +130,25 @@ public class TestDatabaseManagementServiceBuilder extends DatabaseManagementServ
 
     @Override
     protected DatabaseManagementService newDatabaseManagementService(Config config, ExternalDependencies dependencies) {
-        var factory = new TestDatabaseManagementServiceFactory(
-                getDbmsInfo(config), getEditionFactory(config), fileSystem, clock, internalLogProvider);
+        var factory = testDbmsFactory()
+                .create(getDbmsInfo(config), getEditionFactory(config), fileSystem, clock, internalLogProvider);
 
         return factory.build(
                 augmentConfig(config), daemonMode, GraphDatabaseDependencies.newDependencies(dependencies));
+    }
+
+    protected TestDatabaseManagementServiceFactorySupplier testDbmsFactory() {
+        TestDatabaseManagementServiceFactorySupplier supplier = TestDatabaseManagementServiceFactorySupplier.DEFAULT;
+        String name = System.getProperty(FACTORY_SUPPLIER_KEY);
+        if (name != null) {
+            Collection<TestDatabaseManagementServiceFactorySupplier> factories =
+                    Services.loadAll(TestDatabaseManagementServiceFactorySupplier.class);
+            supplier = factories.stream()
+                    .filter(f -> f.name().equals(name))
+                    .findAny()
+                    .orElseThrow(() -> new IllegalArgumentException("No factory supplier named " + name));
+        }
+        return supplier;
     }
 
     @Override
