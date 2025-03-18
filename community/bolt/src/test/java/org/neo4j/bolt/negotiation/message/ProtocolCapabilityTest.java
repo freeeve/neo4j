@@ -62,30 +62,42 @@ class ProtocolCapabilityTest {
         var values = EnumSet.of(ProtocolCapability.FABRIC);
         var mask = ProtocolCapability.toBitMask(UnpooledByteBufAllocator.DEFAULT, values);
 
-        assertThat(mask).hasAtLeastRemaining(1).hasBit(true, atIndex(0));
+        try {
+            assertThat(mask).hasAtLeastRemaining(1).hasBit(true, atIndex(0));
+        } finally {
+            mask.release();
+        }
     }
 
     @Test
     void shouldConvertFromEmptyBitMask() {
         var mask = new BitMask(UnpooledByteBufAllocator.DEFAULT, 8);
-        for (var i = 0; i < 8; ++i) {
-            mask.write(false);
+        try {
+            for (var i = 0; i < 8; ++i) {
+                mask.write(false);
+            }
+
+            var actual = ProtocolCapability.fromBitMask(mask);
+
+            assertThat(actual).isEmpty();
+        } finally {
+            mask.release();
         }
-
-        var actual = ProtocolCapability.fromBitMask(mask);
-
-        assertThat(actual).isEmpty();
     }
 
     @Test
     void shouldConvertFromFullBitMask() {
         var mask = new BitMask(UnpooledByteBufAllocator.DEFAULT, 8);
-        for (var i = 0; i < 8; ++i) {
-            mask.write(true);
+        try {
+            for (var i = 0; i < 8; ++i) {
+                mask.write(true);
+            }
+
+            var actual = ProtocolCapability.fromBitMask(mask);
+
+            assertThat(actual).hasSize(1).contains(ProtocolCapability.FABRIC);
+        } finally {
+            mask.release();
         }
-
-        var actual = ProtocolCapability.fromBitMask(mask);
-
-        assertThat(actual).hasSize(1).contains(ProtocolCapability.FABRIC);
     }
 }

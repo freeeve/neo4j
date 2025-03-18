@@ -24,6 +24,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import java.util.EnumSet;
 import java.util.List;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.bolt.negotiation.ProtocolVersion;
@@ -39,6 +40,11 @@ class ModernProtocolNegotiationInitMessageEncoderTest {
     @BeforeEach
     void prepare() {
         this.channel = new EmbeddedChannel(new ModernProtocolNegotiationInitMessageEncoder());
+    }
+
+    @AfterEach
+    void tearDown() {
+        channel.finishAndReleaseAll();
     }
 
     @Test
@@ -60,37 +66,41 @@ class ModernProtocolNegotiationInitMessageEncoderTest {
 
         var buffer = this.channel.<ByteBuf>readOutbound();
 
-        ByteBufAssertions.assertThat(buffer).isNotNull().hasReadableBytes(9);
+        try {
+            ByteBufAssertions.assertThat(buffer).isNotNull().hasReadableBytes(9);
 
-        var version = new ProtocolVersion(buffer.readInt());
+            var version = new ProtocolVersion(buffer.readInt());
 
-        ProtocolVersionAssertions.assertThat(version)
-                .hasMajor(ProtocolVersion.MAX_MAJOR_BIT)
-                .hasMinor(2)
-                .hasRange(0);
+            ProtocolVersionAssertions.assertThat(version)
+                    .hasMajor(ProtocolVersion.MAX_MAJOR_BIT)
+                    .hasMinor(2)
+                    .hasRange(0);
 
-        Assertions.assertThat(buffer.readUnsignedByte()).isEqualTo((short) 4);
+            Assertions.assertThat(buffer.readUnsignedByte()).isEqualTo((short) 4);
 
-        ProtocolVersionAssertions.assertThat(new ProtocolVersion(buffer.readInt()))
-                .hasMajor(4)
-                .hasMinor(3)
-                .hasRange(1);
+            ProtocolVersionAssertions.assertThat(new ProtocolVersion(buffer.readInt()))
+                    .hasMajor(4)
+                    .hasMinor(3)
+                    .hasRange(1);
 
-        ProtocolVersionAssertions.assertThat(new ProtocolVersion(buffer.readInt()))
-                .hasMajor(5)
-                .hasMinor(6)
-                .hasRange(1);
+            ProtocolVersionAssertions.assertThat(new ProtocolVersion(buffer.readInt()))
+                    .hasMajor(5)
+                    .hasMinor(6)
+                    .hasRange(1);
 
-        ProtocolVersionAssertions.assertThat(new ProtocolVersion(buffer.readInt()))
-                .hasMajor(5)
-                .hasMinor(9)
-                .hasRange(1);
+            ProtocolVersionAssertions.assertThat(new ProtocolVersion(buffer.readInt()))
+                    .hasMajor(5)
+                    .hasMinor(9)
+                    .hasRange(1);
 
-        ProtocolVersionAssertions.assertThat(new ProtocolVersion(buffer.readInt()))
-                .hasMajor(5)
-                .hasMinor(11)
-                .representsSingleVersion();
+            ProtocolVersionAssertions.assertThat(new ProtocolVersion(buffer.readInt()))
+                    .hasMajor(5)
+                    .hasMinor(11)
+                    .representsSingleVersion();
 
-        Assertions.assertThat(buffer.readUnsignedByte()).isEqualTo((short) 1);
+            Assertions.assertThat(buffer.readUnsignedByte()).isEqualTo((short) 1);
+        } finally {
+            buffer.release();
+        }
     }
 }

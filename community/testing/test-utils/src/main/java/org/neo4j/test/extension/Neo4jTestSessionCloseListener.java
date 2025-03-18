@@ -23,12 +23,14 @@ import static org.neo4j.io.memory.ByteBuffers.BUFFER_LEAK_TRACKER;
 
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.junit.platform.launcher.LauncherSession;
 import org.junit.platform.launcher.LauncherSessionListener;
 import org.junit.platform.launcher.TestExecutionListener;
 import org.junit.platform.launcher.TestIdentifier;
 import org.junit.platform.launcher.TestPlan;
+import org.neo4j.test.extension.netty.Neo4jLeakListener;
 
 public class Neo4jTestSessionCloseListener implements LauncherSessionListener {
 
@@ -48,7 +50,11 @@ public class Neo4jTestSessionCloseListener implements LauncherSessionListener {
     @Override
     public void launcherSessionClosed(LauncherSession session) {
         var testPlan = sessions.remove(session);
-        BUFFER_LEAK_TRACKER.checkLeaks(() -> describeTestPlan(testPlan));
+        Supplier<String> testPlanDescriptor = () -> describeTestPlan(testPlan);
+        // check neo4j native buffer leaks
+        BUFFER_LEAK_TRACKER.checkLeaks(testPlanDescriptor);
+        // check netty leaks
+        Neo4jLeakListener.checkLeaks(testPlanDescriptor);
     }
 
     String describeTestPlan(TestPlan testPlan) {

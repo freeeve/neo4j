@@ -167,7 +167,11 @@ public final class BitMask implements ReferenceCounted {
 
     @Override
     public boolean release() {
-        return this.encoded.release();
+        ByteBuf byteBuf = this.encoded;
+        if (byteBuf == null) {
+            return false;
+        }
+        return byteBuf.release();
     }
 
     @Override

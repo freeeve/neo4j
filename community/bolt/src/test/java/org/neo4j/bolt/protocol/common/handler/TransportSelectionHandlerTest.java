@@ -148,19 +148,22 @@ class TransportSelectionHandlerTest {
         var channel = ConnectionMockFactory.newFactory()
                 .withMemoryTracker(memoryTracker)
                 .createChannel(new TransportSelectionHandler(NullLogProvider.getInstance()));
+        try {
+            channel.writeInbound(Unpooled.wrappedBuffer("GET /\r\n".getBytes(StandardCharsets.UTF_8)));
 
-        channel.writeInbound(Unpooled.wrappedBuffer("GET /\r\n".getBytes(StandardCharsets.UTF_8)));
+            verify(memoryTracker)
+                    .allocateHeap(TransportSelectionHandler.HTTP_SERVER_CODEC_SHALLOW_SIZE
+                            + TransportSelectionHandler.HTTP_OBJECT_AGGREGATOR_SHALLOW_SIZE
+                            + DiscoveryResponseHandler.SHALLOW_SIZE
+                            + TransportSelectionHandler.WEB_SOCKET_SERVER_PROTOCOL_HANDLER_SHALLOW_SIZE
+                            + TransportSelectionHandler.WEB_SOCKET_FRAME_AGGREGATOR_SHALLOW_SIZE
+                            + WebSocketFramePackingEncoder.SHALLOW_SIZE
+                            + WebSocketFrameUnpackingDecoder.SHALLOW_SIZE);
 
-        verify(memoryTracker)
-                .allocateHeap(TransportSelectionHandler.HTTP_SERVER_CODEC_SHALLOW_SIZE
-                        + TransportSelectionHandler.HTTP_OBJECT_AGGREGATOR_SHALLOW_SIZE
-                        + DiscoveryResponseHandler.SHALLOW_SIZE
-                        + TransportSelectionHandler.WEB_SOCKET_SERVER_PROTOCOL_HANDLER_SHALLOW_SIZE
-                        + TransportSelectionHandler.WEB_SOCKET_FRAME_AGGREGATOR_SHALLOW_SIZE
-                        + WebSocketFramePackingEncoder.SHALLOW_SIZE
-                        + WebSocketFrameUnpackingDecoder.SHALLOW_SIZE);
-
-        verify(memoryTracker).releaseHeap(TransportSelectionHandler.SHALLOW_SIZE);
+            verify(memoryTracker).releaseHeap(TransportSelectionHandler.SHALLOW_SIZE);
+        } finally {
+            channel.finishAndReleaseAll();
+        }
     }
 
     @Test
@@ -171,21 +174,24 @@ class TransportSelectionHandlerTest {
                 .withConfiguration(config -> config.withProtocolLogging(ProtocolLoggingMode.BOTH))
                 .withMemoryTracker(memoryTracker)
                 .createChannel(new TransportSelectionHandler(NullLogProvider.getInstance()));
+        try {
+            // generate an incomplete handshake which exceeds the 5-byte threshold of the selection
+            // handler
+            channel.writeInbound(Unpooled.buffer().writeInt(0x6060B017).writeInt(0x00090005));
 
-        // generate an incomplete handshake which exceeds the 5-byte threshold of the selection
-        // handler
-        channel.writeInbound(Unpooled.buffer().writeInt(0x6060B017).writeInt(0x00090005));
+            var handlers = channel.pipeline().names();
 
-        var handlers = channel.pipeline().names();
+            Assertions.assertThat(handlers)
+                    .containsSequence(ProtocolLoggingHandler.RAW_NAME, "protocolNegotiationRequestEncoder")
+                    .containsSubsequence(
+                            "protocolNegotiationRequestDecoder",
+                            ProtocolLoggingHandler.DECODED_NAME,
+                            "protocolHandshakeHandler");
 
-        Assertions.assertThat(handlers)
-                .containsSequence(ProtocolLoggingHandler.RAW_NAME, "protocolNegotiationRequestEncoder")
-                .containsSubsequence(
-                        "protocolNegotiationRequestDecoder",
-                        ProtocolLoggingHandler.DECODED_NAME,
-                        "protocolHandshakeHandler");
-
-        Mockito.verify(memoryTracker, Mockito.times(2)).allocateHeap(ProtocolLoggingHandler.SHALLOW_SIZE);
+            Mockito.verify(memoryTracker, Mockito.times(2)).allocateHeap(ProtocolLoggingHandler.SHALLOW_SIZE);
+        } finally {
+            channel.finishAndReleaseAll();
+        }
     }
 
     @Test
@@ -196,18 +202,21 @@ class TransportSelectionHandlerTest {
                 .withConfiguration(config -> config.withProtocolLogging(ProtocolLoggingMode.RAW))
                 .withMemoryTracker(memoryTracker)
                 .createChannel(new TransportSelectionHandler(NullLogProvider.getInstance()));
+        try {
+            // generate an incomplete handshake which exceeds the 5-byte threshold of the selection
+            // handler
+            channel.writeInbound(Unpooled.buffer().writeInt(0x6060B017).writeInt(0x00090005));
 
-        // generate an incomplete handshake which exceeds the 5-byte threshold of the selection
-        // handler
-        channel.writeInbound(Unpooled.buffer().writeInt(0x6060B017).writeInt(0x00090005));
+            var handlers = channel.pipeline().names();
 
-        var handlers = channel.pipeline().names();
+            Assertions.assertThat(handlers)
+                    .containsSequence(ProtocolLoggingHandler.RAW_NAME, "protocolNegotiationRequestEncoder")
+                    .doesNotContain(ProtocolLoggingHandler.DECODED_NAME);
 
-        Assertions.assertThat(handlers)
-                .containsSequence(ProtocolLoggingHandler.RAW_NAME, "protocolNegotiationRequestEncoder")
-                .doesNotContain(ProtocolLoggingHandler.DECODED_NAME);
-
-        Mockito.verify(memoryTracker).allocateHeap(ProtocolLoggingHandler.SHALLOW_SIZE);
+            Mockito.verify(memoryTracker).allocateHeap(ProtocolLoggingHandler.SHALLOW_SIZE);
+        } finally {
+            channel.finishAndReleaseAll();
+        }
     }
 
     @Test
@@ -218,20 +227,23 @@ class TransportSelectionHandlerTest {
                 .withConfiguration(config -> config.withProtocolLogging(ProtocolLoggingMode.DECODED))
                 .withMemoryTracker(memoryTracker)
                 .createChannel(new TransportSelectionHandler(NullLogProvider.getInstance()));
+        try {
+            // generate an incomplete handshake which exceeds the 5-byte threshold of the selection
+            // handler
+            channel.writeInbound(Unpooled.buffer().writeInt(0x6060B017).writeInt(0x00090005));
 
-        // generate an incomplete handshake which exceeds the 5-byte threshold of the selection
-        // handler
-        channel.writeInbound(Unpooled.buffer().writeInt(0x6060B017).writeInt(0x00090005));
+            var handlers = channel.pipeline().names();
 
-        var handlers = channel.pipeline().names();
+            Assertions.assertThat(handlers)
+                    .containsSubsequence(
+                            "protocolNegotiationRequestDecoder",
+                            ProtocolLoggingHandler.DECODED_NAME,
+                            "protocolHandshakeHandler")
+                    .doesNotContain(ProtocolLoggingHandler.RAW_NAME);
 
-        Assertions.assertThat(handlers)
-                .containsSubsequence(
-                        "protocolNegotiationRequestDecoder",
-                        ProtocolLoggingHandler.DECODED_NAME,
-                        "protocolHandshakeHandler")
-                .doesNotContain(ProtocolLoggingHandler.RAW_NAME);
-
-        Mockito.verify(memoryTracker).allocateHeap(ProtocolLoggingHandler.SHALLOW_SIZE);
+            Mockito.verify(memoryTracker).allocateHeap(ProtocolLoggingHandler.SHALLOW_SIZE);
+        } finally {
+            channel.finishAndReleaseAll();
+        }
     }
 }

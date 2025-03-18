@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.DynamicTest.dynamicTest;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.util.ReferenceCountUtil;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -64,18 +65,22 @@ class ChunkFrameDecoderTest {
                             .writeShort(expected.readableBytes())
                             .writeBytes(expected.slice())
                             .writeShort(0x0000);
+                    try {
+                        this.channel.writeInbound(encoded);
+                        this.channel.checkException();
 
-                    this.channel.writeInbound(encoded);
-                    this.channel.checkException();
+                        var actual = this.channel.<PackstreamBuf>readInbound().getTarget();
+                        try {
+                            assertNotNull(actual);
+                            assertEquals(expected, actual);
 
-                    var actual = this.channel.<PackstreamBuf>readInbound().getTarget();
-
-                    assertNotNull(actual);
-                    assertEquals(expected, actual);
-
-                    assertEquals(1, actual.refCnt());
-                    expected.release();
-                    actual.release();
+                            assertEquals(1, actual.refCnt());
+                        } finally {
+                            release(actual);
+                        }
+                    } finally {
+                        release(encoded);
+                    }
                 }))
                 .collect(Collectors.toList());
     }
@@ -103,14 +108,20 @@ class ChunkFrameDecoderTest {
                             .writeShort(fragmentedSize)
                             .writeBytes(expected.slice(fragmentedSize, fragmentedSize))
                             .writeShort(0x0000);
+                    try {
+                        this.channel.writeInbound(encoded);
+                        this.channel.checkException();
 
-                    this.channel.writeInbound(encoded);
-                    this.channel.checkException();
-
-                    var actual = this.channel.<PackstreamBuf>readInbound().getTarget();
-
-                    assertNotNull(actual);
-                    assertEquals(expected, actual);
+                        var actual = this.channel.<PackstreamBuf>readInbound().getTarget();
+                        try {
+                            assertNotNull(actual);
+                            assertEquals(expected, actual);
+                        } finally {
+                            release(actual);
+                        }
+                    } finally {
+                        release(encoded);
+                    }
                 }))
                 .collect(Collectors.toList());
     }
@@ -139,28 +150,36 @@ class ChunkFrameDecoderTest {
                             .writeBytes(expected.slice(fragmentedSize, fragmentedSize));
                     var encoded3 = Unpooled.buffer().writeShort(0x0000);
 
-                    this.channel.writeInbound(encoded1);
-                    this.channel.checkException();
+                    try {
+                        this.channel.writeInbound(encoded1);
+                        this.channel.checkException();
 
-                    ByteBuf actualIncomplete = this.channel.readInbound();
+                        ByteBuf actualIncomplete = this.channel.readInbound();
 
-                    assertNull(actualIncomplete);
+                        assertNull(actualIncomplete);
 
-                    this.channel.writeInbound(encoded2);
-                    this.channel.checkException();
+                        this.channel.writeInbound(encoded2);
+                        this.channel.checkException();
 
-                    actualIncomplete = this.channel.readInbound();
+                        actualIncomplete = this.channel.readInbound();
 
-                    assertNull(actualIncomplete);
+                        assertNull(actualIncomplete);
 
-                    this.channel.writeInbound(encoded3);
-                    this.channel.checkException();
+                        this.channel.writeInbound(encoded3);
+                        this.channel.checkException();
 
-                    var actualComplete =
-                            this.channel.<PackstreamBuf>readInbound().getTarget();
+                        var actualComplete =
+                                this.channel.<PackstreamBuf>readInbound().getTarget();
+                        try {
+                            assertNotNull(actualComplete);
+                            assertEquals(expected, actualComplete);
+                        } finally {
+                            release(actualComplete);
+                        }
 
-                    assertNotNull(actualComplete);
-                    assertEquals(expected, actualComplete);
+                    } finally {
+                        release(encoded1, encoded2, encoded3);
+                    }
                 }))
                 .collect(Collectors.toList());
     }
@@ -196,19 +215,25 @@ class ChunkFrameDecoderTest {
                 .writeBytes(new byte[] {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07})
                 .writeShort(0x0000)
                 .writeShort(0x0000);
+        try {
+            this.channel.writeInbound(payload);
+            this.channel.checkException();
 
-        this.channel.writeInbound(payload);
-        this.channel.checkException();
-
-        var firstMessage = this.channel.<PackstreamBuf>readInbound().getTarget();
-        var secondMessage = this.channel.<PackstreamBuf>readInbound().getTarget();
-        var nullMessage = this.channel.<PackstreamBuf>readInbound();
-
-        assertNotNull(firstMessage);
-        assertEquals(8, firstMessage.readableBytes());
-        assertNotNull(secondMessage);
-        assertEquals(8, secondMessage.readableBytes());
-        assertNull(nullMessage);
+            var firstMessage = this.channel.<PackstreamBuf>readInbound().getTarget();
+            var secondMessage = this.channel.<PackstreamBuf>readInbound().getTarget();
+            var nullMessage = this.channel.<PackstreamBuf>readInbound();
+            try {
+                assertNotNull(firstMessage);
+                assertEquals(8, firstMessage.readableBytes());
+                assertNotNull(secondMessage);
+                assertEquals(8, secondMessage.readableBytes());
+                assertNull(nullMessage);
+            } finally {
+                release(firstMessage, secondMessage);
+            }
+        } finally {
+            release(payload);
+        }
     }
 
     @Test
@@ -217,5 +242,16 @@ class ChunkFrameDecoderTest {
 
         this.channel.writeInbound(payload);
         this.channel.checkException();
+    }
+
+    private static void release(ByteBuf... buffers) {
+        if (buffers == null) {
+            return;
+        }
+        for (ByteBuf buffer : buffers) {
+            while (buffer.refCnt() > 0) {
+                ReferenceCountUtil.release(buffer);
+            }
+        }
     }
 }

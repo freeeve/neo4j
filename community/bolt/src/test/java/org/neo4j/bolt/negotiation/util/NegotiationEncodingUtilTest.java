@@ -19,9 +19,10 @@
  */
 package org.neo4j.bolt.negotiation.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.netty.buffer.Unpooled;
 import io.netty.buffer.UnpooledByteBufAllocator;
-import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.neo4j.bolt.testing.assertions.BitMaskAssertions;
 import org.neo4j.bolt.testing.assertions.ByteBufAssertions;
@@ -32,22 +33,30 @@ class NegotiationEncodingUtilTest {
     void shouldWriteBitMask() {
         var mask = new BitMask(UnpooledByteBufAllocator.DEFAULT, 24);
 
-        var s = true;
-        for (var i = 0; i < mask.length(); ++i) {
-            mask.write(s);
-            s = !s;
+        try {
+            var s = true;
+            for (var i = 0; i < mask.length(); ++i) {
+                mask.write(s);
+                s = !s;
+            }
+
+            var actual = Unpooled.buffer();
+            try {
+                NegotiationEncodingUtil.writeBitMask(actual, mask);
+
+                ByteBufAssertions.assertThat(actual)
+                        .hasReadableBytes(4)
+                        .containsByte(0b11010101)
+                        .containsByte(0b10101010)
+                        .containsByte(0b11010101)
+                        .containsByte(0b00000010)
+                        .hasNoRemainingReadableBytes();
+            } finally {
+                actual.release();
+            }
+        } finally {
+            mask.release();
         }
-
-        var actual = Unpooled.buffer();
-        NegotiationEncodingUtil.writeBitMask(actual, mask);
-
-        ByteBufAssertions.assertThat(actual)
-                .hasReadableBytes(4)
-                .containsByte(0b11010101)
-                .containsByte(0b10101010)
-                .containsByte(0b11010101)
-                .containsByte(0b00000010)
-                .hasNoRemainingReadableBytes();
     }
 
     @Test
@@ -57,17 +66,21 @@ class NegotiationEncodingUtilTest {
                 .writeByte(0xFF)
                 .writeByte(0x81)
                 .writeByte(0x0F);
-
-        Assertions.assertThat(NegotiationEncodingUtil.isBitMaskReadable(buf, 32))
-                .isTrue();
+        try {
+            assertThat(NegotiationEncodingUtil.isBitMaskReadable(buf, 32)).isTrue();
+        } finally {
+            buf.release();
+        }
     }
 
     @Test
     void shouldIndicateTruncatedBitMasks() {
         var buf = Unpooled.buffer().writeByte(0x80).writeByte(0xFF).writeByte(0x81);
-
-        Assertions.assertThat(NegotiationEncodingUtil.isBitMaskReadable(buf, 32))
-                .isFalse();
+        try {
+            assertThat(NegotiationEncodingUtil.isBitMaskReadable(buf, 32)).isFalse();
+        } finally {
+            buf.release();
+        }
     }
 
     @Test
@@ -78,8 +91,11 @@ class NegotiationEncodingUtilTest {
                 .writeByte(0x80)
                 .writeByte(0x80)
                 .writeByte(0x01);
-
-        Assertions.assertThat(NegotiationEncodingUtil.isBitMaskReadable(buf, 4)).isFalse();
+        try {
+            assertThat(NegotiationEncodingUtil.isBitMaskReadable(buf, 4)).isFalse();
+        } finally {
+            buf.release();
+        }
     }
 
     @Test
@@ -89,14 +105,21 @@ class NegotiationEncodingUtilTest {
                 .writeByte(0b10101010)
                 .writeByte(0b11010101)
                 .writeByte(0b00000010);
+        try {
+            var actual = NegotiationEncodingUtil.readBitMask(buffer);
 
-        var actual = NegotiationEncodingUtil.readBitMask(buffer);
-
-        BitMaskAssertions.assertThat(actual)
-                .hasAtLeastRemaining(24)
-                .hasBits(0b01010101, 8)
-                .hasBits(0b01010101, 8)
-                .hasBits(0b01010101, 8)
-                .hasAtMostRemaining(5); // network padding
+            try {
+                BitMaskAssertions.assertThat(actual)
+                        .hasAtLeastRemaining(24)
+                        .hasBits(0b01010101, 8)
+                        .hasBits(0b01010101, 8)
+                        .hasBits(0b01010101, 8)
+                        .hasAtMostRemaining(5); // network padding
+            } finally {
+                actual.release();
+            }
+        } finally {
+            buffer.release();
+        }
     }
 }

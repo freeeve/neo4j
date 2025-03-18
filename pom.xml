@@ -124,6 +124,8 @@
       -Djunit.jupiter.execution.parallel.enabled=${parallel.tests}
       -Djunit.jupiter.execution.timeout.default=${default.jupiter.test.timeout}
       -Djunit.jupiter.execution.parallel.mode.classes.default=${default.jupiter.test.mode}
+      -Dio.netty.leakDetection.level=${test.vm.netty.leakDetection.level}
+      -Dio.netty.customResourceLeakDetector=org.neo4j.test.extension.netty.Neo4jResourceLeakDetectionFactory
       -XX:+UnlockExperimentalVMOptions
       -XX:+TrustFinalNonStaticFields
       -XX:FlightRecorderOptions=stackdepth=256
@@ -141,6 +143,7 @@
     <excludedTestGroups/>
     <test.vm.heap.size>2G</test.vm.heap.size>
     <test.vm.maxmetaspace>550m</test.vm.maxmetaspace>
+    <test.vm.netty.leakDetection.level>PARANOID</test.vm.netty.leakDetection.level>
     <forkCounts>1</forkCounts>
     <parallel.tests>false</parallel.tests>
     <maven.build.timestamp.format>yyMMddHHmmssSSS</maven.build.timestamp.format>

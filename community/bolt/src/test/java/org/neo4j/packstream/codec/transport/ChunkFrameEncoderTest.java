@@ -31,6 +31,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
@@ -42,6 +43,11 @@ class ChunkFrameEncoderTest {
     @BeforeEach
     void prepareChannel() {
         this.channel = new EmbeddedChannel(new ChunkFrameEncoder(64));
+    }
+
+    @AfterEach
+    void tearDown() {
+        channel.finishAndReleaseAll();
     }
 
     @TestFactory
@@ -71,7 +77,7 @@ class ChunkFrameEncoderTest {
                         var chunkLength = actual.readUnsignedShort();
 
                         if (payload.readableBytes() > 64) {
-                            assertEquals(chunkLength, 64);
+                            assertEquals(64, chunkLength);
                             assertTrue(payload.readableBytes() > 64);
 
                             var slice = actual.readSlice(chunkLength);

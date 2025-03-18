@@ -40,9 +40,13 @@ class BitMaskTest {
 
                     var mask = new BitMask(allocator, bits);
 
-                    BitMaskAssertions.assertThat(mask).hasLength(bits);
+                    try {
+                        BitMaskAssertions.assertThat(mask).hasLength(bits);
 
-                    Mockito.verify(allocator).buffer(expected);
+                        Mockito.verify(allocator).buffer(expected);
+                    } finally {
+                        mask.release();
+                    }
                 }));
     }
 
@@ -54,8 +58,11 @@ class BitMaskTest {
                     var buffer = new byte[bytes];
 
                     var mask = new BitMask(buffer);
-
-                    BitMaskAssertions.assertThat(mask).hasLength(expected);
+                    try {
+                        BitMaskAssertions.assertThat(mask).hasLength(expected);
+                    } finally {
+                        mask.release();
+                    }
                 }));
     }
 
@@ -77,18 +84,22 @@ class BitMaskTest {
 
                     var mask = new BitMask(encoded);
 
-                    var nibble = value & 0xF;
-                    var octet = (value & 0xFF0) >>> 4;
-                    var bit0 = (value >>> 12) & 1;
-                    var bit1 = (value >>> 13) & 1;
-                    var remainder = value >>> 14;
+                    try {
+                        var nibble = value & 0xF;
+                        var octet = (value & 0xFF0) >>> 4;
+                        var bit0 = (value >>> 12) & 1;
+                        var bit1 = (value >>> 13) & 1;
+                        var remainder = value >>> 14;
 
-                    BitMaskAssertions.assertThat(mask)
-                            .hasBits(nibble, 4)
-                            .hasBits(octet, 8)
-                            .hasBit(bit0 == 1)
-                            .hasBit(bit1 == 1)
-                            .hasBits(remainder, 18);
+                        BitMaskAssertions.assertThat(mask)
+                                .hasBits(nibble, 4)
+                                .hasBits(octet, 8)
+                                .hasBit(bit0 == 1)
+                                .hasBit(bit1 == 1)
+                                .hasBits(remainder, 18);
+                    } finally {
+                        mask.release();
+                    }
                 }));
     }
 
@@ -98,13 +109,16 @@ class BitMaskTest {
                 .map(i -> i * 7)
                 .mapToObj(bits -> DynamicTest.dynamicTest(bits + " bits", () -> {
                     var mask = new BitMask(UnpooledByteBufAllocator.DEFAULT, bits);
+                    try {
+                        BitMaskAssertions.assertThat(mask).hasLength(bits).hasRemaining(bits);
 
-                    BitMaskAssertions.assertThat(mask).hasLength(bits).hasRemaining(bits);
+                        for (var i = 0; i < bits; ++i) {
+                            mask.read();
 
-                    for (var i = 0; i < bits; ++i) {
-                        mask.read();
-
-                        BitMaskAssertions.assertThat(mask).hasLength(bits).hasRemaining(bits - i - 1);
+                            BitMaskAssertions.assertThat(mask).hasLength(bits).hasRemaining(bits - i - 1);
+                        }
+                    } finally {
+                        mask.release();
                     }
                 }));
     }
@@ -115,13 +129,16 @@ class BitMaskTest {
                 .map(i -> i * 7)
                 .mapToObj(bits -> DynamicTest.dynamicTest(bits + " bits", () -> {
                     var mask = new BitMask(UnpooledByteBufAllocator.DEFAULT, bits);
+                    try {
+                        BitMaskAssertions.assertThat(mask).hasLength(bits).isWritable(bits);
 
-                    BitMaskAssertions.assertThat(mask).hasLength(bits).isWritable(bits);
+                        for (var i = 0; i < bits; ++i) {
+                            mask.write(true);
 
-                    for (var i = 0; i < bits; ++i) {
-                        mask.write(true);
-
-                        BitMaskAssertions.assertThat(mask).hasLength(bits).isWritable(bits - i - 1);
+                            BitMaskAssertions.assertThat(mask).hasLength(bits).isWritable(bits - i - 1);
+                        }
+                    } finally {
+                        mask.release();
                     }
                 }));
     }

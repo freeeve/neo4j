@@ -414,6 +414,7 @@ class MigrateConfigCommandTest {
                 "-Dio.netty.tryReflectionSetAccessible=true",
                 "-Djdk.tls.ephemeralDHKeySize=2048",
                 "-Djdk.tls.rejectClientInitiatedRenegotiation=true",
+                "-Dio.netty.leakDetection.level=DISABLED",
                 "-XX:FlightRecorderOptions=stackdepth=256",
                 "-XX:+UnlockDiagnosticVMOptions",
                 "-XX:+DebugNonSafepoints",

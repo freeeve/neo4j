@@ -34,22 +34,42 @@ class ProtocolNegotiationResponseEncoderTest {
         var msg = new ProtocolNegotiationResponse(new ProtocolVersion(4, 3));
 
         var channel = new EmbeddedChannel(new ProtocolNegotiationResponseEncoder());
+        try {
+            channel.writeOutbound(msg);
 
-        channel.writeOutbound(msg);
-
-        var buf = channel.<ByteBuf>readOutbound();
-
-        assertThat(buf).isNotNull().hasReadableBytes(4).containsInt(0x00000304).hasNoRemainingReadableBytes();
+            var buf = channel.<ByteBuf>readOutbound();
+            try {
+                assertThat(buf)
+                        .isNotNull()
+                        .hasReadableBytes(4)
+                        .containsInt(0x00000304)
+                        .hasNoRemainingReadableBytes();
+            } finally {
+                buf.release();
+            }
+        } finally {
+            channel.finishAndReleaseAll();
+        }
     }
 
     @Test
     void shouldEncodeRejectionResponse() {
         var channel = new EmbeddedChannel(new ProtocolNegotiationResponseEncoder());
+        try {
+            channel.writeOutbound(new ProtocolNegotiationResponse(ProtocolVersion.INVALID));
 
-        channel.writeOutbound(new ProtocolNegotiationResponse(ProtocolVersion.INVALID));
-
-        var buf = channel.<ByteBuf>readOutbound();
-
-        assertThat(buf).isNotNull().hasReadableBytes(4).containsInt(0x00000000).hasNoRemainingReadableBytes();
+            var buf = channel.<ByteBuf>readOutbound();
+            try {
+                assertThat(buf)
+                        .isNotNull()
+                        .hasReadableBytes(4)
+                        .containsInt(0x00000000)
+                        .hasNoRemainingReadableBytes();
+            } finally {
+                buf.release();
+            }
+        } finally {
+            channel.finishAndReleaseAll();
+        }
     }
 }

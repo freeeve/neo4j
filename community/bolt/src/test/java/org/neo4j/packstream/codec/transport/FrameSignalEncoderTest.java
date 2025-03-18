@@ -32,6 +32,7 @@ import static org.mockito.Mockito.when;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.util.ReferenceCountUtil;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DynamicTest;
@@ -46,14 +47,20 @@ class FrameSignalEncoderTest {
         return Stream.of(FrameSignal.values())
                 .map(signal -> dynamicTest(signal.name(), () -> {
                     var channel = new EmbeddedChannel(new FrameSignalEncoder());
+                    try {
+                        channel.writeOutbound(signal);
 
-                    channel.writeOutbound(signal);
-
-                    ByteBuf buf = channel.readOutbound();
-
-                    assertNotNull(buf);
-                    assertEquals(0x00, buf.readUnsignedShort());
-                    assertFalse(buf.isReadable());
+                        ByteBuf buf = channel.readOutbound();
+                        try {
+                            assertNotNull(buf);
+                            assertEquals(0x00, buf.readUnsignedShort());
+                            assertFalse(buf.isReadable());
+                        } finally {
+                            buf.release();
+                        }
+                    } finally {
+                        channel.finishAndReleaseAll();
+                    }
                 }));
     }
 
@@ -61,33 +68,49 @@ class FrameSignalEncoderTest {
     void shouldIgnoreSignalsWhenInsideOfMessage() {
         var channel = new EmbeddedChannel(new FrameSignalEncoder());
 
-        channel.writeOutbound(Unpooled.buffer(1).writeByte(0x42));
+        ByteBuf buffer = Unpooled.buffer(1);
+        try {
+            channel.writeOutbound(buffer.writeByte(0x42));
 
-        ByteBuf payload = channel.readOutbound();
+            ByteBuf payload = channel.readOutbound();
+            assertNotNull(payload);
+            assertEquals(0x42, payload.readByte());
+            assertFalse(payload.isReadable());
 
-        assertNotNull(payload);
-        assertEquals(0x42, payload.readByte());
-        assertFalse(payload.isReadable());
+            channel.writeOutbound(FrameSignal.NOOP);
 
-        channel.writeOutbound(FrameSignal.NOOP);
+            ByteBuf signal = channel.readOutbound();
+            try {
+                assertFalse(signal.isReadable());
+            } finally {
+                ReferenceCountUtil.release(signal);
+            }
 
-        ByteBuf signal = channel.readOutbound();
+            channel.writeOutbound(FrameSignal.MESSAGE_END);
 
-        assertFalse(signal.isReadable());
+            signal = channel.readOutbound();
 
-        channel.writeOutbound(FrameSignal.MESSAGE_END);
+            try {
+                assertEquals(0x00, signal.readShort());
+                assertFalse(signal.isReadable());
+            } finally {
+                ReferenceCountUtil.release(signal);
+            }
 
-        signal = channel.readOutbound();
+            channel.writeOutbound(FrameSignal.NOOP);
 
-        assertEquals(0x00, signal.readShort());
-        assertFalse(signal.isReadable());
+            signal = channel.readOutbound();
 
-        channel.writeOutbound(FrameSignal.NOOP);
-
-        signal = channel.readOutbound();
-
-        assertEquals(0x00, signal.readShort());
-        assertFalse(signal.isReadable());
+            try {
+                assertEquals(0x00, signal.readShort());
+                assertFalse(signal.isReadable());
+            } finally {
+                ReferenceCountUtil.release(signal);
+            }
+        } finally {
+            ReferenceCountUtil.release(buffer);
+            channel.finishAndReleaseAll();
+        }
     }
 
     @Test
@@ -98,21 +121,29 @@ class FrameSignalEncoderTest {
         when(predicate.test(FrameSignal.NOOP)).thenReturn(true);
 
         var channel = new EmbeddedChannel(new FrameSignalEncoder(predicate));
+        try {
 
-        channel.writeOutbound(FrameSignal.NOOP);
+            channel.writeOutbound(FrameSignal.NOOP);
 
-        ByteBuf signal = channel.readOutbound();
+            ByteBuf signal = channel.readOutbound();
 
-        assertFalse(signal.isReadable());
+            assertFalse(signal.isReadable());
 
-        channel.writeOutbound(FrameSignal.MESSAGE_END);
+            channel.writeOutbound(FrameSignal.MESSAGE_END);
 
-        signal = channel.readOutbound();
+            signal = channel.readOutbound();
+            try {
 
-        assertTrue(signal.isReadable(2));
+                assertTrue(signal.isReadable(2));
 
-        verify(predicate).test(FrameSignal.NOOP);
-        verify(predicate).test(FrameSignal.MESSAGE_END);
-        verifyNoMoreInteractions(predicate);
+                verify(predicate).test(FrameSignal.NOOP);
+                verify(predicate).test(FrameSignal.MESSAGE_END);
+                verifyNoMoreInteractions(predicate);
+            } finally {
+                ReferenceCountUtil.release(signal);
+            }
+        } finally {
+            channel.finishAndReleaseAll();
+        }
     }
 }

@@ -112,7 +112,6 @@ public class LegacyNegotiationIT {
                 .writeInt(ProtocolVersion.INVALID.encode())
                 .writeInt(ProtocolVersion.INVALID.encode())
                 .writeInt(ProtocolVersion.INVALID.encode());
-
         otherThread.execute(() -> {
             while (handshakeBytes.isReadable()) {
                 connection.sendRaw(handshakeBytes.readSlice(1));

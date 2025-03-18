@@ -17,6 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.packstream.io;
+package org.neo4j.test.extension.netty;
 
-public class NativeStructReadTest {}
+import io.netty.util.ResourceLeakDetector;
+
+public class Neo4jResourceLeakDetectionFactory<T> extends ResourceLeakDetector<T> {
+
+    public Neo4jResourceLeakDetectionFactory(Class<?> resourceType, int samplingInterval, long maxActive) {
+        super(resourceType, samplingInterval, maxActive);
+        setLeakListener(new Neo4jLeakListener());
+    }
+
+    public Neo4jResourceLeakDetectionFactory(Class resourceType, int samplingInterval) {
+        super(resourceType, samplingInterval);
+        setLeakListener(new Neo4jLeakListener());
+    }
+}
