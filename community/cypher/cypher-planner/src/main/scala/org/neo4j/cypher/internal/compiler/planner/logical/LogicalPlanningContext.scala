@@ -141,8 +141,6 @@ object LogicalPlanningContext {
       GraphDatabaseInternalSettings.stateful_shortest_planning_rewrite_quantifiers_above.defaultValue(),
     planVarExpandInto: CypherPlanVarExpandInto = CypherPlanVarExpandInto.default,
     remoteBatchPropertiesStrategy: RemoteBatchingStrategy = RemoteBatchingStrategy.defaultValue(),
-    cachePropertiesForEntitiesWithFilter: Boolean =
-      GraphDatabaseInternalSettings.push_predicates_into_remote_batch_properties.defaultValue(),
     multiRelationshipExpansion: Boolean =
       GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.defaultValue()
   ) {
@@ -165,7 +163,6 @@ object LogicalPlanningContext {
           statefulShortestPlanningRewriteQuantifiersAbove: Int,
           planVarExpandInto: CypherPlanVarExpandInto,
           remoteBatchPropertiesStrategy: RemoteBatchingStrategy,
-          cachePropertiesForEntitiesWithFilter: Boolean,
           multiRelationshipExpansion: Boolean
         ) =>
         val builder = Seq.newBuilder[Any]
@@ -204,9 +201,6 @@ object LogicalPlanningContext {
 
         if (GraphDatabaseInternalSettings.cypher_remote_batch_properties_implementation.dynamic())
           builder.addOne(remoteBatchPropertiesStrategy)
-
-        if (GraphDatabaseInternalSettings.push_predicates_into_remote_batch_properties.dynamic())
-          builder.addOne(cachePropertiesForEntitiesWithFilter)
 
         if (GraphDatabaseInternalSettings.multi_relationship_expansion_enabled.dynamic())
           builder.addOne(multiRelationshipExpansion)

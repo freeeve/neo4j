@@ -3819,7 +3819,9 @@ case class LogicalPlanProducer(
     val plan = inner match {
       case RemoteBatchProperties(nestedInner, nestedProperties) =>
         RemoteBatchProperties(nestedInner, nestedProperties ++ properties)
-      case RemoteBatchPropertiesWithFilter(nestedInner, predicates, nestedProperties) =>
+      // remote batch properties with filter is restricted to a single variable, so only merge if all the next properties to cache match that variable.
+      case RemoteBatchPropertiesWithFilter(nestedInner, predicates, nestedProperties)
+        if nestedProperties.headOption.exists(_.dependencies == properties.flatMap(_.dependencies)) =>
         RemoteBatchPropertiesWithFilter(nestedInner, predicates, nestedProperties ++ properties)
       case _ => RemoteBatchProperties(inner, properties.map(identity))
     }
@@ -3848,48 +3850,61 @@ case class LogicalPlanProducer(
     )
   }
 
+  def planRemoteBatchPropertiesForHorizonFilters(
+    inner: LogicalPlan,
+    properties: Set[CachedProperty],
+    context: LogicalPlanningContext,
+    inlinablePredicates: Seq[Expression]
+  ): LogicalPlan = {
+    val cachedProperties = cachedPropertiesPerPlan.get(inner.id).addAll(properties)
+    val solved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.updateHorizon {
+      case p: QueryProjection => p.addPredicates(inlinablePredicates: _*)
+      case p                  => p
+    })
+
+    val plan = mergeAndPlanRemoteBatchPropertiesWithFilter(properties, inlinablePredicates, inner)
+    annotate(plan, solved, ProvidedOrder.Left, cachedProperties, context)
+  }
+
   def planRemoteBatchPropertiesWithFilter(
     inner: LogicalPlan,
     properties: Set[CachedProperty],
     context: LogicalPlanningContext,
-    inlinablePredicates: Seq[Expression],
-    solvedPredicates: Seq[Expression],
-    predsToPushDown: Seq[Expression]
+    inlinablePredicates: Seq[Expression]
   ): LogicalPlan = {
-    def addSelectionBefore =
-      if (predsToPushDown.nonEmpty) {
-        val pushedDownSolved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
-          _.amendQueryGraph(_.addPredicates(predsToPushDown: _*))
-        )
-        Some(annotateSelection(
-          Selection(predsToPushDown, inner),
-          pushedDownSolved,
-          ProvidedOrder.Left,
-          cachedPropertiesPerPlan.get(inner.id),
-          context
-        ))
-      } else {
-        None
-      }
+    val cachedProperties = cachedPropertiesPerPlan.get(inner.id).addAll(properties)
+    val solved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
+      _.amendQueryGraph(_.addPredicates(inlinablePredicates: _*))
+    )
+    val plan = mergeAndPlanRemoteBatchPropertiesWithFilter(properties, inlinablePredicates, inner)
+    annotate(plan, solved, ProvidedOrder.Left, cachedProperties, context)
+  }
 
-    val newInner = addSelectionBefore.getOrElse(inner)
-    val cachedProperties = cachedPropertiesPerPlan.get(newInner.id).addAll(properties)
-    val solved =
-      solveds.get(newInner.id).asSinglePlannerQuery.updateTailOrSelf(
-        _.amendQueryGraph(_.addPredicates(solvedPredicates: _*))
-      )
-    val plan = newInner match {
-      case RemoteBatchProperties(nestedInner, nestedProperties) =>
+  /**
+   * RemoteBatchPropertiesWithFilter will only fetch properties for a SINGLE variable.
+   * To maintain the correctness of this assumption, we can merge the current set of properties with the previous operator only if
+   * 1. the previous operator is RemoteBatchProperties where all the properties being fetched are for the same variable as the current remoteBatchProperties
+   * 2. the previous operator is a RemoteBatchPropertiesWithFilter  where all the properties being fetched are for the same variable.
+   */
+  private def mergeAndPlanRemoteBatchPropertiesWithFilter(
+    properties: Set[CachedProperty],
+    inlinablePredicates: Seq[Expression],
+    inner: LogicalPlan
+  ): RemoteBatchPropertiesWithFilter = {
+    val logicalVariablesOfProperties = properties.map(_.entityVariable)
+    inner match {
+      case RemoteBatchProperties(nestedInner, nestedProperties)
+        if nestedProperties.forall(_.dependencies == logicalVariablesOfProperties) =>
         RemoteBatchPropertiesWithFilter(nestedInner, inlinablePredicates.toSet, nestedProperties ++ properties)
-      case RemoteBatchPropertiesWithFilter(nestedInner, nestedPredicates, nestedProperties) =>
+      case RemoteBatchPropertiesWithFilter(nestedInner, nestedPredicates, nestedProperties)
+        if nestedProperties.headOption.exists(_.dependencies == logicalVariablesOfProperties) =>
         RemoteBatchPropertiesWithFilter(
           nestedInner,
           nestedPredicates ++ inlinablePredicates,
           nestedProperties ++ properties
         )
-      case _ => RemoteBatchPropertiesWithFilter(newInner, inlinablePredicates.toSet, properties.map(identity))
+      case _ => RemoteBatchPropertiesWithFilter(inner, inlinablePredicates.toSet, properties.map(identity))
     }
-    annotate(plan, solved, ProvidedOrder.Left, cachedProperties, context)
   }
 
   def addMissingStandaloneArgumentPatternNodes(
@@ -4296,4 +4311,5 @@ object LogicalPlanProducer {
   ): SinglePlannerQuery = {
     solveds.get(left.id).asSinglePlannerQuery.updateTailOrSelf(_.withTail(solveds.get(right.id).asSinglePlannerQuery))
   }
+
 }

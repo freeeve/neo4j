@@ -3415,15 +3415,11 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         reverseGroupVariableProjections = false,
         expansionMode = ExpandAll
       ))
-      .|.filterExpressionOrString(
-        not(equals(cachedNodeProp("next", "name"), literalString("Foo"))),
-        isRepeatTrailUnique("anon_1")
-      )
-      .|.remoteBatchProperties("cacheNFromStore[next.name]")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[next.name]")("NOT next.name = 'Foo'")
+      .|.filterExpression(isRepeatTrailUnique("anon_1"))
       .|.expandAll("(anon_0)-[anon_1:R]->(next)")
       .|.argument("anon_0")
-      .filter("cacheN[a.name] = 'Foo'")
-      .remoteBatchProperties("cacheNFromStore[a.name]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[a.name]")("a.name = 'Foo'")
       .nodeByLabelScan("a", "User")
       .build()
   }
@@ -3446,8 +3442,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         relationshipPredicates = Seq(VariablePredicate(v"anon_0", hasLabels(endNode("anon_0"), "User"))),
         mode = ExpandAll
       )
-      .filter("cacheN[a.name] = 'Foo'")
-      .remoteBatchProperties("cacheNFromStore[a.name]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[a.name]")("a.name = 'Foo'")
       .nodeByLabelScan("a", "User", IndexOrderNone)
       .build()
   }

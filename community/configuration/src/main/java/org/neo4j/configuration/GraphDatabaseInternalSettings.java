@@ -1556,12 +1556,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("Push valid predicates into Remote Batch Properties")
-    public static final Setting<Boolean> push_predicates_into_remote_batch_properties = newBuilder(
-                    "internal.cypher.push_predicates_into_remote_batch_properties", BOOL, false)
-            .build();
-
-    @Internal
     @Description(
             "Enables returning the client address provided by a driver as the sole router in routing tables. This makes it easier for networking "
                     + "middleware to migrate workload to new Neo4j servers, or even a new DBMS.")

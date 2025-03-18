@@ -186,12 +186,14 @@ case object PlanEventHorizon extends EventHorizonPlanner {
         p
       } else {
         val predicatesToReport = selections.flatPredicates
-        val remoteBatchingResult = context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForSelections(
-          query.queryGraph,
-          p,
-          context,
-          selections.flatPredicatesSet
-        )
+        val remoteBatchingResult =
+          context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForHorizonSelections(
+            query.queryGraph,
+            p,
+            context,
+            selections.flatPredicatesSet,
+            interestingOrderConfig
+          )
         context.staticComponents.logicalPlanProducer.planHorizonSelection(
           source = remoteBatchingResult.plan,
           predicates = remoteBatchingResult.rewrittenExpressionsWithCachedProperties.selections.toSeq,

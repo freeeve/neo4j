@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
-import org.neo4j.cypher.internal.expressions.HasDegreeGreaterThan
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
@@ -46,8 +45,8 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
-class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest
-    extends AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(ExecutionModel.default) {
+class RemoteBatchPropertiesPlanningIntegrationTest
+    extends AbstractRemoteBatchPropertiesPlanningIntegrationTest(ExecutionModel.default) {
 
   test("should batch properties for ordered aggregations") {
     val query =
@@ -183,8 +182,9 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest
         .produceResults("name")
         .projection("cacheN[person.firstName] AS name")
         .semiApply()
-        .|.filter("cacheN[person.firstName] = cacheN[dog.name]", "dog:Dog")
+        .|.filter("cacheN[person.firstName] = cacheN[dog.name]")
         .|.remoteBatchProperties("cacheNFromStore[person.firstName]", "cacheNFromStore[dog.name]")
+        .|.filter("dog:Dog")
         .|.expandAll("(person)-[anon_0:HAS_DOG]->(dog)")
         .|.argument("person")
         .nodeByLabelScan("person", "Person", IndexOrderAscending)
@@ -193,9 +193,9 @@ class RemoteBatchPropertiesUsingPlannerPlanningIntegrationTest
 }
 
 class ParallelRuntimeRemoteBatchPropertiesPlanningIntegrationTest
-    extends AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(BatchedParallel(1, 2))
+    extends AbstractRemoteBatchPropertiesPlanningIntegrationTest(BatchedParallel(1, 2))
 
-abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(executionModel: ExecutionModel)
+abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionModel: ExecutionModel)
     extends CypherFunSuite
     with LogicalPlanningIntegrationTestSupport with AstConstructionTestSupport {
 
@@ -339,8 +339,7 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         "personFirstName" -> cachedNodeProp("person", "firstName", "x")
       ))
       .projection("person AS x")
-      .filter("cacheN[person.firstName] IS NOT NULL")
-      .remoteBatchProperties("cacheNFromStore[person.firstName]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[person.firstName]")("person.firstName IS NOT NULL")
       .nodeIndexOperator(
         "person:Person(id = ???)",
         paramExpr = Some(parameter("Person", CTAny)),
@@ -439,8 +438,7 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       )
       .optional()
       .expandAll("(n0)-[r1]->(n1)")
-      .filter("cacheN[n0.prop] = 42")
-      .remoteBatchProperties("cacheNFromStore[n0.prop]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[n0.prop]")("n0.prop = 42")
       .allNodeScan("n0")
       .build()
   }
@@ -463,16 +461,10 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         "cacheN[friend.firstName] AS friendFirstName",
         "cacheR[knows.creationDate] AS knowsSince"
       )
-      .filter(
-        "cacheN[person.lastName] = cacheN[friend.lastName]",
-        "cacheR[knows.creationDate] < $max_creation_date",
-        "person:Person"
-      )
-      .remoteBatchProperties(
-        "cacheNFromStore[person.lastName]",
-        "cacheNFromStore[person.firstName]",
-        "cacheRFromStore[knows.creationDate]"
-      )
+      .filter("cacheN[person.lastName] = cacheN[friend.lastName]")
+      .remoteBatchProperties("cacheNFromStore[person.lastName]", "cacheNFromStore[person.firstName]")
+      .remoteBatchPropertiesWithFilter("cacheRFromStore[knows.creationDate]")("knows.creationDate < $max_creation_date")
+      .filter("person:Person")
       .expandAll("(friend)<-[knows:KNOWS]-(person)")
       .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
       .nodeByLabelScan("friend", "Person")
@@ -569,8 +561,9 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         )
         .apply()
         .|.optional("friend")
-        .|.filter("cacheN[message.creationDate] IS NOT NULL")
-        .|.remoteBatchProperties("cacheNFromStore[message.creationDate]", "cacheNFromStore[message.id]")
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[message.creationDate]", "cacheNFromStore[message.id]")(
+          "message.creationDate IS NOT NULL"
+        )
         .|.expandAll("(friend)<-[has_creator:POST_HAS_CREATOR|COMMENT_HAS_CREATOR]-(message)")
         .|.argument("friend")
         .filter("cacheN[person.firstName] = cacheN[friend.firstName]")
@@ -646,13 +639,14 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .remoteBatchProperties("cacheNFromStore[p.creationDate]")
       .union()
       .|.projection("p AS p")
-      .|.filter("cacheN[p.creationDate] < $max_creation_date", "p:Message")
-      .|.remoteBatchProperties("cacheNFromStore[p.creationDate]")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[p.creationDate]")(
+        "p.creationDate < $max_creation_date"
+      )
+      .|.filter("p:Message")
       .|.expandAll("(anon_1)<-[anon_0:POST_HAS_CREATOR]-(p)")
       .|.nodeIndexOperator("anon_1:Person(firstName = 'Smith')", getValue = Map("firstName" -> DoNotGetValue))
       .projection("p AS p")
-      .filter("cacheN[p.creationDate] > $max_creation_date")
-      .remoteBatchProperties("cacheNFromStore[p.creationDate]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[p.creationDate]")("p.creationDate > $max_creation_date")
       .nodeIndexOperator("p:Person(firstName = 'Smith')", getValue = Map("firstName" -> DoNotGetValue))
       .build()
   }
@@ -664,32 +658,45 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         |WITH person AS earlyAdopter, person.creationDate AS earlyAdopterSince ORDER BY earlyAdopterSince LIMIT 10
         |MATCH (earlyAdopter)-[knows:KNOWS]->(friend:Person)
         |RETURN earlyAdopter.lastName AS personLastName,
-        |       friend.lastName AS friendLastName""".stripMargin
+        | earlyAdopter.creationDate AS personCreationDate,
+        | friend.lastName AS friendLastName""".stripMargin
 
     val plan = planner.plan(query)
 
-    plan shouldEqual planner
+    val expectedPlan = planner
       .planBuilder()
-      .produceResults("personLastName", "friendLastName")
+      .produceResults("personLastName", "personCreationDate", "friendLastName")
       .projection(Map(
         "personLastName" -> cachedNodeProp(
-          // notice how `originalEntity` and `entityVariable` differ here
+          // notice how `originalEntity` and `entityVariable`differ here
           variable = "person",
           propKey = "lastName",
           currentVarName = "earlyAdopter"
         ),
+        "personCreationDate" -> cachedNodeProp(
+          // notice how `originalEntity` and `entityVariable` differ here
+          variable = "person",
+          propKey = "creationDate",
+          currentVarName = "earlyAdopter"
+        ),
         "friendLastName" -> cachedNodeProp(variable = "friend", propKey = "lastName", currentVarName = "friend")
       ))
-      .remoteBatchProperties("cacheNFromStore[friend.lastName]")
+      .remoteBatchPropertiesByExpr(Set(
+        cachedNodeProp("person", "lastName", "earlyAdopter", knownToAccessStore = true),
+        cachedNodeProp("friend", "lastName", "friend", knownToAccessStore = true)
+      ))
       .filter("friend:Person")
       .expandAll("(earlyAdopter)-[knows:KNOWS]->(friend)")
       .projection("person AS earlyAdopter")
       .top(10, "earlyAdopterSince ASC")
       .projection("cacheN[person.creationDate] AS earlyAdopterSince")
-      .filter("cacheN[person.creationDate] < $max_creation_date", "cacheN[person.lastName] IS NOT NULL")
-      .remoteBatchProperties("cacheNFromStore[person.lastName]", "cacheNFromStore[person.creationDate]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[person.creationDate]")( // person.lastName is not retrieved even though it is used later. This is because we don't identify renames early in the plan.
+        "person.lastName IS NOT NULL",
+        "person.creationDate < $max_creation_date"
+      )
       .nodeByLabelScan("person", "Person")
       .build()
+    plan shouldEqual (expectedPlan)
   }
 
   test("probably should but currently does not batch properties when returning entire entities") {
@@ -786,13 +793,12 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       )
       .top(20, "`message.creationDate` DESC", "`message.id` ASC")
       .projection("cacheN[message.creationDate] AS `message.creationDate`", "cacheN[message.id] AS `message.id`")
-      .filter("cacheN[message.creationDate] < $Date0")
-      .remoteBatchProperties(
+      .remoteBatchPropertiesWithFilter(
         "cacheNFromStore[message.imageFile]",
         "cacheNFromStore[message.creationDate]",
         "cacheNFromStore[message.content]",
         "cacheNFromStore[message.id]"
-      )
+      )("message.creationDate < $Date0")
       .expandAll("(friend)<-[anon_0:POST_HAS_CREATOR|COMMENT_HAS_CREATOR]-(message)")
       .projection("friend AS friend")
       .filter("NOT person = friend")
@@ -840,8 +846,7 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .projection("cacheN[person.id] AS `person.id`")
       .remoteBatchProperties("cacheNFromStore[person.id]")
       .aggregation(Seq("person AS person"), Seq("count(post) AS threadCount", "count(reply) AS messageCount"))
-      .filter("cacheN[reply.creationDate] <= $endDate")
-      .remoteBatchProperties("cacheNFromStore[reply.creationDate]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[reply.creationDate]")("reply.creationDate <= $endDate")
       .expand("(post)<-[anon_1:REPLY_OF*0..]-(reply)", expandMode = ExpandAll, projectedDir = INCOMING)
       .filter("person:Person")
       .expandAll("(post)-[anon_0:POST_HAS_CREATOR]->(person)")
@@ -873,12 +878,12 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         "cacheN[person.firstName] AS personFirstName",
         "cacheN[person.lastName] AS personLastName"
       )
-      .remoteBatchProperties("cacheNFromStore[message.content]", "cacheNFromStore[message.imageFile]")
-      .filterExpressionOrString(
-        "cacheN[person.firstName] IS NOT NULL",
-        hasLabels("person", "Person")
-      )
-      .remoteBatchProperties("cacheNFromStore[person.lastName]", "cacheNFromStore[person.firstName]")
+      .remoteBatchProperties("cacheNFromStore[message.imageFile]", "cacheNFromStore[message.content]")
+      .remoteBatchPropertiesWithFilter(
+        "cacheNFromStore[person.lastName]",
+        "cacheNFromStore[person.firstName]"
+      )("person.firstName IS NOT NULL")
+      .filter("person:Person")
       .relationshipIndexOperator(
         "(message)-[r:COMMENT_HAS_CREATOR(location = 'London')]->(person)",
         getValue = Map("location" -> GetValue)
@@ -906,12 +911,12 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         "cacheN[person.firstName] AS personFirstName",
         "cacheN[person.lastName] AS personLastName"
       )
-      .remoteBatchProperties("cacheNFromStore[message.content]", "cacheNFromStore[message.imageFile]")
-      .filterExpressionOrString(
-        "cacheN[person.firstName] IS NOT NULL",
-        hasLabels("person", "Person")
-      )
-      .remoteBatchProperties("cacheNFromStore[person.lastName]", "cacheNFromStore[person.firstName]")
+      .remoteBatchProperties("cacheNFromStore[message.imageFile]", "cacheNFromStore[message.content]")
+      .remoteBatchPropertiesWithFilter(
+        "cacheNFromStore[person.lastName]",
+        "cacheNFromStore[person.firstName]"
+      )("person.firstName IS NOT NULL")
+      .filter("person:Person")
       .relationshipIndexOperator(
         "(message)-[r:COMMENT_HAS_CREATOR(id = ???)]->(person)",
         paramExpr = Some(ExplicitParameter("CommentCreatorId", CTAny)(InputPosition.NONE)),
@@ -1012,8 +1017,9 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
 
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[n.firstName] AS `n.firstName`", "cacheN[friend.firstName] AS `friend.firstName`")
-      .filter("cacheN[friend.lastName] = foo", "friend:Person")
+      .filter("cacheN[friend.lastName] = foo")
       .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
+      .filter("friend:Person")
       .expandAll("(n)-[anon_0:KNOWS]-(friend)")
       .unwind("[cacheN[n.firstName]] AS foo")
       .remoteBatchProperties("cacheNFromStore[n.firstName]")
@@ -1047,8 +1053,8 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[a.firstName] AS `a.firstName`", "cacheN[a.age] AS `a.age`")
       .selectOrSemiApply("anon_4")
-      .|.filter("cacheN[anon_3.lastName] = 'Smith'", "anon_3:Person")
-      .|.remoteBatchProperties("cacheNFromStore[anon_3.lastName]")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_3.lastName]")("anon_3.lastName = 'Smith'")
+      .|.filter("anon_3:Person")
       .|.expandAll("(a)-[anon_2:KNOWS]-(anon_3)")
       .|.argument("a")
       .letSelectOrAntiSemiApply("anon_4", "cacheN[a.age] > 30")
@@ -1073,17 +1079,16 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         .projection("cacheN[a.firstName] AS `a.firstName`", "cacheN[a.lastName] AS `a.lastName`")
         .remoteBatchProperties("cacheNFromStore[a.firstName]")
         .selectOrAntiSemiApply("anon_4")
-        .|.filter("cacheN[anon_3.lastName] = 'Smith'", "anon_3:Person")
-        .|.remoteBatchProperties("cacheNFromStore[anon_3.lastName]")
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_3.lastName]")("anon_3.lastName = 'Smith'")
+        .|.filter("anon_3:Person")
         .|.expandAll("(a)-[anon_2:KNOWS]-(anon_3)")
         .|.filter("cacheN[a.lastName] = 'Smyth'")
         .|.argument("a")
         .letSemiApply("anon_4")
-        .|.filter("cacheN[anon_1.lastName] = 'Smyth'", "anon_1:Person")
-        .|.remoteBatchProperties("cacheNFromStore[anon_1.lastName]")
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_1.lastName]")("anon_1.lastName = 'Smyth'")
+        .|.filter("anon_1:Person")
         .|.expandAll("(a)-[anon_0:KNOWS]-(anon_1)")
-        .|.filter("cacheN[a.lastName] = 'Smith'")
-        .|.remoteBatchProperties("cacheNFromStore[a.lastName]")
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[a.lastName]")("a.lastName = 'Smith'")
         .|.argument("a")
         .nodeByLabelScan("a", "Person")
         .build()
@@ -1130,8 +1135,9 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
       .apply()
       .|.optional("p")
-      .|.filter("NOT cacheN[s.firstName] = cacheN[p.firstName]", "s:Person")
+      .|.filter("NOT cacheN[s.firstName] = cacheN[p.firstName]")
       .|.remoteBatchProperties("cacheNFromStore[s.firstName]")
+      .|.filter("s:Person")
       .|.expandAll("(p)-[anon_0:KNOWS]-(s)")
       .|.argument("p")
       .nodeIndexOperator("p:Person(firstName = 'foo')", getValue = Map("firstName" -> GetValue))
@@ -1195,14 +1201,12 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
           relationshipPredicates = Seq(Predicate("r", "r.creationDate < $max_creation_date")),
           pathPredicates = Seq("length(p) > 5"),
           withFallback = true
-        ) // TODO: this shortestPath should eventually be rewritten into a stateful shortest path to allow batching of properties.
+        )
         .|.argument("a", "b")
         .cartesianProduct()
-        .|.filter("cacheN[b.lastName] = 'Smith'")
-        .|.remoteBatchProperties("cacheNFromStore[b.lastName]")
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[b.lastName]")("b.lastName = 'Smith'")
         .|.nodeByLabelScan("b", "Person")
-        .filter("cacheN[a.lastName] = 'Smith'")
-        .remoteBatchProperties("cacheNFromStore[a.lastName]")
+        .remoteBatchPropertiesWithFilter("cacheNFromStore[a.lastName]")("a.lastName = 'Smith'")
         .nodeByLabelScan("a", "Person")
         .build()
     )
@@ -1252,8 +1256,9 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         ExpandAll,
         reverseGroupVariableProjections = true
       )
-      .filter("cacheN[b.lastName] = 'Smith'")
-      .remoteBatchProperties("cacheNFromStore[b.lastName]", "cacheNFromStore[b.firstName]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[b.firstName]")(
+        "b.lastName = 'Smith'"
+      )
       .allNodeScan("b")
       .build())
   }
@@ -1322,8 +1327,7 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
     planner.plan(query).stripProduceResults shouldEqual
       planner.subPlanBuilder()
         .aggregation(Seq("cacheN[friend.firstName] AS `friend.firstName`"), Seq("min(anon_1) AS distance"))
-        .filter("cacheN[friend.firstName] = $Name")
-        .remoteBatchProperties("cacheNFromStore[friend.firstName]")
+        .remoteBatchPropertiesWithFilter("cacheNFromStore[friend.firstName]")("friend.firstName = $Name")
         .bfsPruningVarExpand("(anon_0)-[:KNOWS*1..3]-(friend)", depthName = Some("anon_1"), mode = ExpandAll)
         .nodeIndexOperator(
           "anon_0:Person(id = ???)",
@@ -1332,52 +1336,6 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
           unique = true
         )
         .build()
-  }
-
-  test("should plan node hash join instead of expandAlls") { // offshore leaks: Q6_no_hint
-    val query =
-      """
-        |MATCH (o1:Person)<-[r1]-(m:Message)-[r2]->(o2:Person)
-        |WHERE id(o1) < id(o2)
-        |  AND NOT o1.firstName CONTAINS "John"
-        |  AND NOT o2.firstName CONTAINS "John"
-        |  AND size([p = (o1)-->() | p]) > 10
-        |  AND size([p = (o2)-->() | p]) > 10
-        |WITH o1,o2,count(*) as freq, collect(m)[0..10] as messages
-        |WHERE freq > 10
-        |WITH *
-        |ORDER BY freq DESC
-        |LIMIT 10
-        |RETURN o1.firstName, o2.firstName, freq, [m IN messages | m.title]
-        |""".stripMargin
-
-    planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
-      .projection(
-        "cacheN[o1.firstName] AS `o1.firstName`",
-        "cacheN[o2.firstName] AS `o2.firstName`",
-        "[m IN messages | m.title] AS `[m IN messages | m.title]`"
-      )
-      .remoteBatchProperties("cacheNFromStore[o1.firstName]", "cacheNFromStore[o2.firstName]")
-      .top(10, "freq DESC")
-      .filter("freq > 10")
-      .projection("anon_0[0..10] AS messages")
-      .aggregation(Seq("o1 AS o1", "o2 AS o2"), Seq("collect(m) AS anon_0", "count(*) AS freq"))
-      .filter("id(o1) < id(o2)", "NOT r2 = r1")
-      .nodeHashJoin("m")
-      .|.expandAll("(o2)<-[r2]-(m)")
-      .|.filterExpressionOrString(
-        not(contains(cachedNodeProp("o2", "firstName"), literalString("John"))),
-        HasDegreeGreaterThan(v"o2", None, OUTGOING, literalInt(10))(pos)
-      )
-      .|.nodeIndexOperator("o2:Person(firstName)", getValue = Map("firstName" -> GetValue))
-      .filterExpression(hasLabels("m", "Message"))
-      .expandAll("(o1)<-[r1]-(m)")
-      .filterExpressionOrString(
-        not(contains(cachedNodeProp("o1", "firstName"), literalString("John"))),
-        HasDegreeGreaterThan(v"o1", None, OUTGOING, literalInt(10))(pos)
-      )
-      .nodeIndexOperator("o1:Person(firstName)", getValue = Map("firstName" -> GetValue))
-      .build()
   }
 
   test("should insert remoteBatchProperties between an aggregation and projection on the same property") {
@@ -1412,8 +1370,8 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
           "anon_3"
         ).inTo("anon_4", "person").outTo("anon_5", "friend").build())))
       )
-      .filter("NOT anon_5 IN anon_2", "cacheN[friend.firstName] IN $interests")
-      .remoteBatchProperties("cacheNFromStore[friend.firstName]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[friend.firstName]")("friend.firstName IN $interests")
+      .filter("NOT anon_5 IN anon_2")
       .expandAll("(person)-[anon_5:KNOWS]->(friend)")
       .filter("NOT person = subject", "NOT anon_4 = anon_0")
       .expandAll("(anon_3)<-[anon_4:POST_HAS_CREATOR]-(person)")
@@ -1528,8 +1486,8 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
       .expandAll("(message)-[anon_9:MESSAGE_HAS_TAG]-(tag)")
       .filter("message:Message")
       .semiApply()
-      .|.filter("cacheN[anon_8.name] = $tagClass", "anon_8:TagClass")
-      .|.remoteBatchProperties("cacheNFromStore[anon_8.name]")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_8.name]")("anon_8.name = $tagClass")
+      .|.filter("anon_8:TagClass")
       .|.expandAll("(anon_6)-[anon_7:HAS_TYPE]->(anon_8)")
       .|.filter("anon_6:Tag")
       .|.expandAll("(message)-[anon_5:MESSAGE_HAS_TAG]->(anon_6)")
@@ -1625,16 +1583,17 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         paramExpr = Some(parameter("tagClass", CTAny)),
         getValue = Map("name" -> DoNotGetValue)
       )
-      .|.filter("cacheN[message.creationDate] >= $date", "message:Message")
-      .|.remoteBatchProperties("cacheNFromStore[message.creationDate]", "cacheNFromStore[message.title]")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[message.creationDate]", "cacheNFromStore[message.title]")(
+        "message.creationDate >= $date"
+      )
+      .|.filter("message:Message")
       .|.expandAll("(anon_3)<-[anon_2:MESSAGE_HAS_TAG]-(message)")
       .|.nodeIndexOperator(
         "anon_3:Tag(name = ???)",
         paramExpr = Some(parameter("tagClass", CTAny)),
         getValue = Map("name" -> DoNotGetValue)
       )
-      .filter("cacheN[person.name] = $tagClass")
-      .remoteBatchProperties("cacheNFromStore[person.name]")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[person.name]")("person.name = $tagClass")
       .nodeByLabelScan("person", "Person")
       .build())(SymmetricalLogicalPlanEquality)
   }
@@ -1732,6 +1691,65 @@ abstract class AbstractRemoteBatchPropertiesUsingPlannerPlanningIntegrationTest(
         getValue = Map("id" -> DoNotGetValue),
         unique = true
       )
+      .build()
+  }
+
+  test("should report pushed down predicates to horizon when required") {
+    val query =
+      """
+        |MATCH (p: Person {id:$id})<-[:POST_HAS_CREATOR]-()<-[:REPLY_OF]-(reply:Message)-[:POST_HAS_CREATOR]->(friend: Person)
+        |WITH p,  friend, max(reply.creationDate) AS latestReply
+        |WHERE friend.year=2000
+        |RETURN p.name,latestReply,friend.name
+        |""".stripMargin
+    planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.name] AS `p.name`", "cacheN[friend.name] AS `friend.name`")
+      .remoteBatchProperties("cacheNFromStore[p.name]")
+      .remoteBatchPropertiesWithFilter(
+        "cacheNFromStore[friend.year]",
+        "cacheNFromStore[friend.name]"
+      )("friend.year = 2000")
+      .aggregation(Seq("p AS p", "friend AS friend"), Seq("max(cacheN[reply.creationDate]) AS latestReply"))
+      .remoteBatchProperties("cacheNFromStore[reply.creationDate]")
+      .filter("NOT anon_3 = anon_0", "friend:Person")
+      .expandAll("(reply)-[anon_3:POST_HAS_CREATOR]->(friend)")
+      .filter("reply:Message")
+      .expandAll("(anon_1)<-[anon_2:REPLY_OF]-(reply)")
+      .expandAll("(p)<-[anon_0:POST_HAS_CREATOR]-(anon_1)")
+      .nodeIndexOperator(
+        "p:Person(id = ???)",
+        paramExpr = Some(parameter("id", CTAny)),
+        getValue = Map("id" -> DoNotGetValue),
+        unique = true
+      )
+      .build()
+  }
+
+  test(
+    "should only fetch property from pushed down predicates if no other properties are used from the same variable later in the query"
+  ) {
+    // remotebatchpropertieswithfilter will require at least one property to be fetched from shards
+    val query =
+      """
+        |MATCH (p: Person {name: "Smith"})
+        |RETURN p
+        |""".stripMargin
+    planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[p.name]")("p.name = 'Smith'")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("should not fetch property from pushed down predicates if other properties to fetch") {
+    val query =
+      """
+        |MATCH (p: Person {name: "Smith"})
+        |RETURN p.lastName
+        |""".stripMargin
+    planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
+      .projection("cacheN[p.lastName] AS `p.lastName`")
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[p.lastName]")("p.name = 'Smith'")
+      .nodeByLabelScan("p", "Person")
       .build()
   }
 }
