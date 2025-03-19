@@ -120,7 +120,7 @@ public class TransactionLogFileInformation implements LogFileInformation {
                         if (channel instanceof EnvelopeReadChannel envelopeReadChannel) {
                             try {
                                 // Make sure we look at the beginning of a transaction
-                                envelopeReadChannel.goToNextEntry();
+                                envelopeReadChannel.alignWithStartEntry();
                             } catch (ReadPastEndException e) {
                                 // If there was no start/full envelopes in the file we could reach the end
                                 return -1;
