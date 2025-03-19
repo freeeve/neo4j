@@ -28,6 +28,7 @@ import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FlushableChannel;
+import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
@@ -122,6 +123,11 @@ class ValueTypeTest {
                 return this;
             }
             return put(version);
+        }
+
+        @Override
+        public WritableChannel putAppendIndex(long appendIndex) {
+            return putLong(appendIndex);
         }
 
         @Override

@@ -40,6 +40,7 @@ import java.nio.channels.ClosedChannelException;
 import java.util.zip.Checksum;
 import org.neo4j.io.fs.PhysicalLogChannel;
 import org.neo4j.io.fs.StoreChannel;
+import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.io.memory.ScopedBuffer;
 import org.neo4j.kernel.impl.transaction.log.LogTracers;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
@@ -410,6 +411,16 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     public EnvelopeWriteChannel putContentType(byte contentType) {
         assert contentType >= 0;
         this.currentContentType = contentType;
+        return this;
+    }
+
+    @Override
+    public WritableChannel putAppendIndex(long appendIndex) {
+        // Tracked internally but let's assert that it is as expected
+        // offset for currentIndex not increased until first header of a tx/chunk is written
+        assert appendIndex == currentIndex + (begin ? 1 : 0)
+                : "Append index %s should be the same as current index %s"
+                        .formatted(appendIndex, currentIndex + (begin ? 1 : 0));
         return this;
     }
 

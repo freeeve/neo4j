@@ -82,6 +82,11 @@ public class InputStreamReadableChannel implements ReadableChannel {
     }
 
     @Override
+    public long getAppendIndex() throws IOException {
+        return getLong();
+    }
+
+    @Override
     public boolean isOpen() {
         return !isClosed;
     }

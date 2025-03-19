@@ -343,6 +343,11 @@ public class WriteEnrichmentChannel implements WritableChannel {
     }
 
     @Override
+    public WritableChannel putAppendIndex(long appendIndex) {
+        return putLong(appendIndex);
+    }
+
+    @Override
     public int write(ByteBuffer src) {
         final var allToWrite = src.remaining();
         var remaining = allToWrite;

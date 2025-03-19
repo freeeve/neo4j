@@ -135,4 +135,15 @@ public interface WritableChannel extends WritableByteChannel, ChecksumWriter {
     default WritableChannel putContentType(byte contentType) {
         return this;
     }
+
+    /**
+     * Write an append index represented by a {@code long} to this channel.
+     * <p>
+     * Implementations can keep append index information separate from the stream of data, so
+     * a call to this method will not always move the position one long.
+     *
+     * @return this channel, for fluent usage.
+     * @throws IOException if I/O error occurs.
+     */
+    WritableChannel putAppendIndex(long appendIndex) throws IOException;
 }

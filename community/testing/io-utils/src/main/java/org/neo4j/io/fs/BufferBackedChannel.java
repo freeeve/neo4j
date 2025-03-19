@@ -77,6 +77,11 @@ public class BufferBackedChannel implements WritableChannel, ReadableChannel {
     }
 
     @Override
+    public long getAppendIndex() throws IOException {
+        return getLong();
+    }
+
+    @Override
     public int read(ByteBuffer dst) {
         final var remaining = buffer.remaining();
         if (remaining >= dst.remaining()) {
@@ -142,6 +147,11 @@ public class BufferBackedChannel implements WritableChannel, ReadableChannel {
     @Override
     public BufferBackedChannel putVersion(byte version) {
         return put(version);
+    }
+
+    @Override
+    public WritableChannel putAppendIndex(long appendIndex) {
+        return putLong(appendIndex);
     }
 
     @Override

@@ -148,6 +148,11 @@ public class ReadAheadChannel<T extends StoreChannel> implements ReadableChannel
     }
 
     @Override
+    public long getAppendIndex() throws IOException {
+        return getLong();
+    }
+
+    @Override
     public int read(ByteBuffer dst) throws IOException {
         int length = dst.remaining();
         if (aheadBuffer.remaining() >= length) {

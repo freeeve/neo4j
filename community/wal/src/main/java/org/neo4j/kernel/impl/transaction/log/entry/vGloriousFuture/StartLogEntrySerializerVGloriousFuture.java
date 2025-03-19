@@ -47,7 +47,7 @@ public class StartLogEntrySerializerVGloriousFuture extends LogEntrySerializer<L
 
         long timeWritten = channel.getLong();
         long latestCommittedTxWhenStarted = channel.getLong();
-        long appendIndex = channel.getLong();
+        long appendIndex = channel.getAppendIndex();
         int additionalHeaderLength = channel.getInt();
         if (additionalHeaderLength > LogEntryStart.MAX_ADDITIONAL_HEADER_SIZE) {
             throw new BadLogEntryException("Additional header length limit(" + LogEntryStart.MAX_ADDITIONAL_HEADER_SIZE
@@ -66,7 +66,7 @@ public class StartLogEntrySerializerVGloriousFuture extends LogEntrySerializer<L
         byte[] additionalHeaderData = logEntry.getAdditionalHeader();
         channel.putLong(logEntry.getTimeWritten())
                 .putLong(logEntry.getLastCommittedTxWhenTransactionStarted())
-                .putLong(logEntry.getAppendIndex())
+                .putAppendIndex(logEntry.getAppendIndex())
                 .putInt(additionalHeaderData.length)
                 .put(additionalHeaderData, additionalHeaderData.length);
         return NO_RETURN_VALUE;

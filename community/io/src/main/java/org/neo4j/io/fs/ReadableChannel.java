@@ -86,4 +86,11 @@ public interface ReadableChannel extends ReadableByteChannel, ChecksumReader, Se
      * @throws ReadPastEndException if not enough data was available.
      */
     byte getVersion() throws IOException;
+
+    /**
+     * @return the append index from this channel.
+     * @throws IOException I/O error from channel.
+     * @throws ReadPastEndException if not enough data was available.
+     */
+    long getAppendIndex() throws IOException;
 }

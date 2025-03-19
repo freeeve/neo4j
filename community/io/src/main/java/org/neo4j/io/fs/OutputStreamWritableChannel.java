@@ -104,6 +104,11 @@ public class OutputStreamWritableChannel implements FlushableChannel {
     }
 
     @Override
+    public WritableChannel putAppendIndex(long appendIndex) throws IOException {
+        return putLong(appendIndex);
+    }
+
+    @Override
     public boolean isOpen() {
         return !isClosed;
     }

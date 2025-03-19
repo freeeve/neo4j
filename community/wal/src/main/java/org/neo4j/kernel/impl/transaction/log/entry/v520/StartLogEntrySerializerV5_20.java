@@ -47,7 +47,7 @@ public class StartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntrySta
         long timeWritten = channel.getLong();
         long latestCommittedTxWhenStarted = channel.getLong();
         int previousChecksum = channel.getInt();
-        long appendIndex = channel.getLong();
+        long appendIndex = channel.getAppendIndex();
         int additionalHeaderLength = channel.getInt();
         if (additionalHeaderLength > LogEntryStart.MAX_ADDITIONAL_HEADER_SIZE) {
             throw new BadLogEntryException("Additional header length limit(" + LogEntryStart.MAX_ADDITIONAL_HEADER_SIZE
@@ -67,7 +67,7 @@ public class StartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntrySta
         channel.putLong(logEntry.getTimeWritten())
                 .putLong(logEntry.getLastCommittedTxWhenTransactionStarted())
                 .putInt(logEntry.getPreviousChecksum())
-                .putLong(logEntry.getAppendIndex())
+                .putAppendIndex(logEntry.getAppendIndex())
                 .putInt(additionalHeaderData.length)
                 .put(additionalHeaderData, additionalHeaderData.length);
         return NO_RETURN_VALUE;

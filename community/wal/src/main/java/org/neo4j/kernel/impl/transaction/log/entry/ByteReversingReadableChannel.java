@@ -75,6 +75,11 @@ public class ByteReversingReadableChannel implements ReadableChannel {
     }
 
     @Override
+    public long getAppendIndex() throws IOException {
+        return delegate.getAppendIndex();
+    }
+
+    @Override
     public void beginChecksum() {
         delegate.beginChecksum();
     }

@@ -424,6 +424,11 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         return payloadVersion;
     }
 
+    @Override
+    public long getAppendIndex() throws IOException {
+        return entryIndex();
+    }
+
     /**
      * Move the channel to the next start of the next entry.
      *

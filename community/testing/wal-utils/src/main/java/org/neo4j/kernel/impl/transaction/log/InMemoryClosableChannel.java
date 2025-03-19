@@ -32,6 +32,7 @@ import java.util.Arrays;
 import java.util.zip.Checksum;
 import org.neo4j.io.fs.ChecksumMismatchException;
 import org.neo4j.io.fs.ReadPastEndException;
+import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
 
 /**
@@ -147,6 +148,11 @@ public class InMemoryClosableChannel
     }
 
     @Override
+    public WritableChannel putAppendIndex(long appendIndex) {
+        return writer.putAppendIndex(appendIndex);
+    }
+
+    @Override
     public boolean isOpen() {
         return open;
     }
@@ -201,6 +207,11 @@ public class InMemoryClosableChannel
     @Override
     public byte getVersion() throws IOException {
         return reader.getVersion();
+    }
+
+    @Override
+    public long getAppendIndex() throws IOException {
+        return reader.getAppendIndex();
     }
 
     @Override
@@ -466,6 +477,11 @@ public class InMemoryClosableChannel
         }
 
         @Override
+        public long getAppendIndex() throws IOException {
+            return getLong();
+        }
+
+        @Override
         public int endChecksumAndValidate() throws IOException {
             if (currentVersion.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
                 int fakeChecksum = (int) this.checksum.getValue();
@@ -590,6 +606,11 @@ public class InMemoryClosableChannel
                 return put(version);
             }
             return this;
+        }
+
+        @Override
+        public WritableChannel putAppendIndex(long appendIndex) {
+            return putLong(appendIndex);
         }
 
         @Override

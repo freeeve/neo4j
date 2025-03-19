@@ -165,6 +165,11 @@ public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
     }
 
     @Override
+    public long getAppendIndex() throws IOException {
+        return delegate.getAppendIndex();
+    }
+
+    @Override
     public void position(long byteOffset) throws IOException {
         delegate.position(byteOffset);
     }

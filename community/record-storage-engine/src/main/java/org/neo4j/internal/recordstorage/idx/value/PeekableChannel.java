@@ -95,6 +95,11 @@ public class PeekableChannel implements ReadableChannel {
     }
 
     @Override
+    public long getAppendIndex() throws IOException {
+        return channel.getAppendIndex();
+    }
+
+    @Override
     public int read(ByteBuffer dst) throws IOException {
         return 0;
     }

@@ -32,6 +32,7 @@ import org.neo4j.io.fs.FlushableChannel;
 import org.neo4j.io.fs.PhysicalFlushableChannel;
 import org.neo4j.io.fs.PhysicalFlushableLogChannel;
 import org.neo4j.io.fs.PhysicalLogChannel;
+import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.io.memory.ScopedBuffer;
@@ -103,6 +104,11 @@ public class PhysicalFlushableLogPositionAwareChannel implements FlushableLogPos
     @Override
     public FlushableChannel putContentType(byte type) {
         return checksumChannel.putContentType(type);
+    }
+
+    @Override
+    public WritableChannel putAppendIndex(long appendIndex) throws IOException {
+        return checksumChannel.putAppendIndex(appendIndex);
     }
 
     @Override
