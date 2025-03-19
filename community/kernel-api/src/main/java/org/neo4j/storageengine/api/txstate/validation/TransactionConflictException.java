@@ -55,7 +55,7 @@ public class TransactionConflictException extends TransientFailureException {
     }
 
     private TransactionConflictException(
-            ErrorGqlStatusObject gqlStatusObject, RecordDatabaseFile databaseFile, long pageId) {
+            ErrorGqlStatusObject gqlStatusObject, DatabaseFile databaseFile, long pageId) {
         super(gqlStatusObject, createPageIdPagedMessage(databaseFile.getName(), pageId));
         this.databaseFile = databaseFile;
     }
