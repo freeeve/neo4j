@@ -85,13 +85,13 @@ import org.neo4j.storageengine.api.CommandReaderFactory;
  *     </tr>
  * </table>
  */
-public class StartLogEntrySerializerV4_2 extends LogEntrySerializer<LogEntryStart> {
+public class StartLogEntrySerializerV4_2 extends LogEntrySerializer<LogEntryStartV4_2> {
     public StartLogEntrySerializerV4_2() {
         super(LogEntryTypeCodes.TX_START);
     }
 
     @Override
-    public LogEntryStart parse(
+    public LogEntryStartV4_2 parse(
             KernelVersion version,
             ReadableChannel channel,
             LogPositionMarker marker,
@@ -112,7 +112,7 @@ public class StartLogEntrySerializerV4_2 extends LogEntrySerializer<LogEntryStar
     }
 
     @Override
-    public int write(WritableChannel channel, LogEntryStart logEntry) throws IOException {
+    public int write(WritableChannel channel, LogEntryStartV4_2 logEntry) throws IOException {
         channel.beginChecksumForWriting();
         writeLogEntryHeader(logEntry.kernelVersion(), TX_START, channel);
         byte[] additionalHeaderData = logEntry.getAdditionalHeader();

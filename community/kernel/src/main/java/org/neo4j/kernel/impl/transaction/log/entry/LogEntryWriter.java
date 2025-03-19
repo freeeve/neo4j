@@ -75,6 +75,12 @@ public class LogEntryWriter<T extends WritableChannel> {
                                 additionalHeaderData));
     }
 
+    public void writeStartEntry(LogEntryStart startEntry) throws IOException {
+        updateSerializationSet(startEntry.kernelVersion());
+
+        logEntrySerializationSet.select(TX_START).write(channel, startEntry);
+    }
+
     public void writeChunkStartEntry(
             KernelVersion kernelVersion,
             long timeWritten,

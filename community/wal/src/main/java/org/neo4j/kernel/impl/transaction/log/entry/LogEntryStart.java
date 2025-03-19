@@ -60,10 +60,6 @@ public class LogEntryStart extends AbstractVersionAwareLogEntry {
         return BASE_APPEND_INDEX;
     }
 
-    public int getPreviousChecksum() {
-        return 0;
-    }
-
     @Override
     public String toString(Mask mask) {
         return "Start[" + "kernelVersion="

@@ -37,7 +37,6 @@ public class LogEntryStartV4_2 extends LogEntryStart {
         this.previousChecksum = previousChecksum;
     }
 
-    @Override
     public int getPreviousChecksum() {
         return previousChecksum;
     }

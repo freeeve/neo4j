@@ -65,13 +65,7 @@ public record CompleteBatchRepresentation(
     @Override
     public int serialize(LogEntryWriter<? extends WritableChannel> writer) throws IOException {
         KernelVersion kernelVersion = startEntry.kernelVersion();
-        writer.writeStartEntry(
-                kernelVersion,
-                startEntry.getTimeWritten(),
-                startEntry.getLastCommittedTxWhenTransactionStarted(),
-                startEntry.getAppendIndex(),
-                startEntry.getPreviousChecksum(),
-                startEntry.getAdditionalHeader());
+        writer.writeStartEntry(startEntry);
 
         writer.serialize(commandBatch);
         return writer.writeCommitEntry(kernelVersion, commitEntry.getTxId(), commitEntry.getTimeWritten());

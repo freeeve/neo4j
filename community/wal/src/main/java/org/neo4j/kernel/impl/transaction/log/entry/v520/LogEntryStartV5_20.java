@@ -41,7 +41,6 @@ public class LogEntryStartV5_20 extends LogEntryStart {
         this.appendIndex = appendIndex;
     }
 
-    @Override
     public int getPreviousChecksum() {
         return previousChecksum;
     }
