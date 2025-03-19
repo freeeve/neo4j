@@ -778,10 +778,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         if (channel.size() == channel.position()) {
             // We are at the end, don't try to load in the next segment because that will change the position and
             // it should be correct on calling getPosition if ReadPastEndException is thrown.
-            do {
-                goToNextFileOrThrow();
-            } while (buffer.position() == buffer.limit()
-                    && channel.size() == channel.position()); // Handle file with only header
+            goToNextFileOrThrow();
             read = loadSegmentIntoBuffer(1);
         } else {
             read = loadSegmentIntoBuffer(currentSegment + 1);
