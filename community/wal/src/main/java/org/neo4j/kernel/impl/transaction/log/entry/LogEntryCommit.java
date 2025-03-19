@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.transaction.log.entry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_COMMIT;
 
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.string.Mask;
 
 public abstract class LogEntryCommit extends AbstractVersionAwareLogEntry {
     protected final long txId;
@@ -42,4 +43,13 @@ public abstract class LogEntryCommit extends AbstractVersionAwareLogEntry {
     }
 
     public abstract int getChecksum();
+
+    @Override
+    public abstract int hashCode();
+
+    @Override
+    public abstract boolean equals(Object obj);
+
+    @Override
+    public abstract String toString(Mask mask);
 }

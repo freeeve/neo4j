@@ -48,6 +48,8 @@ import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadAheadUtils;
+import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryStartV4_2;
+import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryStartV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
@@ -134,7 +136,12 @@ class LogEntrySerializerDispatcherTest {
 
         channel.putLong(start.getTimeWritten());
         channel.putLong(start.getLastCommittedTxWhenTransactionStarted());
-        channel.putInt(start.getPreviousChecksum());
+        if (start instanceof LogEntryStartV4_2 v42) {
+            channel.putInt(v42.getPreviousChecksum());
+        } else if (start instanceof LogEntryStartV5_20 v520) {
+            channel.putInt(v520.getPreviousChecksum());
+        }
+
         if (version.isAtLeast(KernelVersion.VERSION_APPEND_INDEX_INTRODUCED)) {
             channel.putLong(start.getAppendIndex());
         }
@@ -159,7 +166,11 @@ class LogEntrySerializerDispatcherTest {
         try (final InMemoryClosableChannel channel = new InMemoryClosableChannel()) {
             channel.putLong(start.getTimeWritten());
             channel.putLong(start.getLastCommittedTxWhenTransactionStarted());
-            channel.putInt(start.getPreviousChecksum());
+            if (start instanceof LogEntryStartV4_2 v42) {
+                channel.putInt(v42.getPreviousChecksum());
+            } else if (start instanceof LogEntryStartV5_20 v520) {
+                channel.putInt(v520.getPreviousChecksum());
+            }
             if (version.isAtLeast(KernelVersion.VERSION_APPEND_INDEX_INTRODUCED)) {
                 channel.putLong(start.getAppendIndex());
             }

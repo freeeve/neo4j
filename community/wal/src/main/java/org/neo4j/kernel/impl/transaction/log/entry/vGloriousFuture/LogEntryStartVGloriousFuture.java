@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction.log.entry.v520;
+package org.neo4j.kernel.impl.transaction.log.entry.vGloriousFuture;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -25,24 +25,17 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.string.Mask;
 
-public class LogEntryStartV5_20 extends LogEntryStart {
+public class LogEntryStartVGloriousFuture extends LogEntryStart {
     private final long appendIndex;
-    private final int previousChecksum;
 
-    public LogEntryStartV5_20(
+    public LogEntryStartVGloriousFuture(
             KernelVersion kernelVersion,
             long timeWritten,
             long lastCommittedTxWhenTransactionStarted,
             long appendIndex,
-            int previousChecksum,
             byte[] additionalHeader) {
         super(kernelVersion, timeWritten, lastCommittedTxWhenTransactionStarted, additionalHeader);
-        this.previousChecksum = previousChecksum;
         this.appendIndex = appendIndex;
-    }
-
-    public int getPreviousChecksum() {
-        return previousChecksum;
     }
 
     @Override
@@ -52,12 +45,11 @@ public class LogEntryStartV5_20 extends LogEntryStart {
 
     @Override
     public String toString(Mask mask) {
-        return "LogEntryStartV5_20[" + "kernelVersion=" + kernelVersion() + ",time=" + timestamp(timeWritten)
+        return "LogEntryStartVGloriousFuture[" + "kernelVersion=" + kernelVersion() + ",time=" + timestamp(timeWritten)
                 + ",lastCommittedTxWhenTransactionStarted=" + lastCommittedTxWhenTransactionStarted
                 + ",additionalHeaderLength=" + (additionalHeader == null ? -1 : additionalHeader.length) + ","
                 + (additionalHeader == null ? "" : Arrays.toString(additionalHeader))
-                + ", appendIndex="
-                + appendIndex + ", previousChecksum=" + previousChecksum + "]";
+                + ", appendIndex=" + appendIndex + "]";
     }
 
     @Override
@@ -68,13 +60,12 @@ public class LogEntryStartV5_20 extends LogEntryStart {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        LogEntryStartV5_20 start = (LogEntryStartV5_20) o;
+        LogEntryStartVGloriousFuture start = (LogEntryStartVGloriousFuture) o;
         return lastCommittedTxWhenTransactionStarted == start.lastCommittedTxWhenTransactionStarted
                 && timeWritten == start.timeWritten
                 && kernelVersion() == start.kernelVersion()
                 && Arrays.equals(additionalHeader, start.additionalHeader)
-                && appendIndex == start.appendIndex
-                && previousChecksum == start.previousChecksum;
+                && appendIndex == start.appendIndex;
     }
 
     @Override
@@ -83,6 +74,6 @@ public class LogEntryStartV5_20 extends LogEntryStart {
         result = 31 * result
                 + (int) (lastCommittedTxWhenTransactionStarted ^ (lastCommittedTxWhenTransactionStarted >>> 32));
         result = 31 * result + (additionalHeader != null ? Arrays.hashCode(additionalHeader) : 0);
-        return Objects.hash(result, appendIndex, previousChecksum);
+        return Objects.hash(result, appendIndex);
     }
 }

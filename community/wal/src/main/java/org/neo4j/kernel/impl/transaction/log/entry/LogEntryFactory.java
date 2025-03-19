@@ -28,6 +28,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryStartV4_2;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStartV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryRollbackV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryStartV5_20;
+import org.neo4j.kernel.impl.transaction.log.entry.vGloriousFuture.LogEntryStartVGloriousFuture;
 
 public final class LogEntryFactory {
     private LogEntryFactory() {}
@@ -40,13 +41,8 @@ public final class LogEntryFactory {
             int previousChecksum,
             byte[] additionalHeader) {
         if (version.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
-            return new LogEntryStartV5_20(
-                    version,
-                    timeWritten,
-                    lastCommittedTxWhenTransactionStarted,
-                    appendIndex,
-                    previousChecksum,
-                    additionalHeader);
+            return new LogEntryStartVGloriousFuture(
+                    version, timeWritten, lastCommittedTxWhenTransactionStarted, appendIndex, additionalHeader);
         }
         if (version.isAtLeast(VERSION_APPEND_INDEX_INTRODUCED)) {
             return new LogEntryStartV5_20(

@@ -22,11 +22,10 @@ package org.neo4j.kernel.impl.transaction.log.entry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
 import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
 
-import java.util.Arrays;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.string.Mask;
 
-public class LogEntryStart extends AbstractVersionAwareLogEntry {
+public abstract class LogEntryStart extends AbstractVersionAwareLogEntry {
     public static final int MAX_ADDITIONAL_HEADER_SIZE = Long.BYTES;
 
     protected final long timeWritten;
@@ -61,39 +60,11 @@ public class LogEntryStart extends AbstractVersionAwareLogEntry {
     }
 
     @Override
-    public String toString(Mask mask) {
-        return "Start[" + "kernelVersion="
-                + kernelVersion() + ",time="
-                + timestamp(timeWritten) + ",lastCommittedTxWhenTransactionStarted="
-                + lastCommittedTxWhenTransactionStarted + ",additionalHeaderLength="
-                + (additionalHeader == null ? -1 : additionalHeader.length) + ","
-                + (additionalHeader == null ? "" : Arrays.toString(additionalHeader))
-                + "]";
-    }
+    public abstract String toString(Mask mask);
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        LogEntryStart start = (LogEntryStart) o;
-
-        return lastCommittedTxWhenTransactionStarted == start.lastCommittedTxWhenTransactionStarted
-                && timeWritten == start.timeWritten
-                && kernelVersion() == start.kernelVersion()
-                && Arrays.equals(additionalHeader, start.additionalHeader);
-    }
+    public abstract boolean equals(Object o);
 
     @Override
-    public int hashCode() {
-        int result = (int) (timeWritten ^ (timeWritten >>> 32));
-        result = 31 * result
-                + (int) (lastCommittedTxWhenTransactionStarted ^ (lastCommittedTxWhenTransactionStarted >>> 32));
-        result = 31 * result + (additionalHeader != null ? Arrays.hashCode(additionalHeader) : 0);
-        return result;
-    }
+    public abstract int hashCode();
 }
