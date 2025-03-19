@@ -22,7 +22,6 @@ package org.neo4j.kernel.impl.transaction.log.entry;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkSmallChunkOfTail;
 import static org.neo4j.kernel.impl.transaction.log.entry.TailUtils.checkTail;
-import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 
 import java.io.IOException;
 import org.neo4j.io.fs.ReadPastEndException;
@@ -31,38 +30,24 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
-import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
 import org.neo4j.kernel.impl.transaction.log.enveloped.IncompleteEnvelopeReadException;
 import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidLogEnvelopeReadException;
 import org.neo4j.storageengine.api.CommandReaderFactory;
-import org.neo4j.util.FeatureToggles;
 
 /**
  * Reads {@link LogEntry log entries} off of a channel. Supported versions can be read intermixed.
  */
 public class VersionAwareLogEntryReader implements LogEntryReader {
-    private static final boolean VERIFY_CHECKSUM_CHAIN =
-            FeatureToggles.flag(LogEntryReader.class, "verifyChecksumChain", false);
     private final CommandReaderFactory commandReaderFactory;
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final LogPositionMarker positionMarker;
-    private final boolean verifyChecksumChain;
     private boolean brokenLastEntry;
     private LogEntrySerializationSet parserSet;
-    private int lastTxChecksum = BASE_TX_CHECKSUM;
 
     public VersionAwareLogEntryReader(
             CommandReaderFactory commandReaderFactory, BinarySupportedKernelVersions binarySupportedKernelVersions) {
-        this(commandReaderFactory, true, binarySupportedKernelVersions);
-    }
-
-    public VersionAwareLogEntryReader(
-            CommandReaderFactory commandReaderFactory,
-            boolean verifyChecksumChain,
-            BinarySupportedKernelVersions binarySupportedKernelVersions) {
         this.commandReaderFactory = commandReaderFactory;
         this.positionMarker = new LogPositionMarker();
-        this.verifyChecksumChain = verifyChecksumChain;
         this.binarySupportedKernelVersions = binarySupportedKernelVersions;
     }
 
@@ -83,9 +68,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
             updateParserSet(channel, versionCode);
 
             byte typeCode = channel.get();
-            LogEntry entry = readEntry(channel, versionCode, typeCode);
-            verifyChecksumChain(entry);
-            return entry;
+            return readEntry(channel, versionCode, typeCode);
         } catch (ReadPastEndException e) {
             return null;
         } catch (UnsupportedLogVersionException | IllegalStateException | InvalidLogEnvelopeReadException e) {
@@ -155,23 +138,6 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                 throw new UnsupportedLogVersionException(versionCode, message, e);
             }
             throw new IOException(message, e);
-        }
-    }
-
-    private void verifyChecksumChain(LogEntry e) {
-        if (VERIFY_CHECKSUM_CHAIN && verifyChecksumChain) {
-            if (e instanceof LogEntryStart logEntryStart) {
-                int previousChecksum = logEntryStart.getPreviousChecksum();
-                if (lastTxChecksum != BASE_TX_CHECKSUM) {
-                    if (previousChecksum != lastTxChecksum) {
-                        throw new IllegalStateException("The checksum chain is broken. " + positionMarker);
-                    }
-                }
-            } else if (e instanceof LogEntryCommit logEntryCommit) {
-                lastTxChecksum = logEntryCommit.getChecksum();
-            } else if (e instanceof LogEntryRollback rollback) {
-                lastTxChecksum = rollback.getChecksum();
-            }
         }
     }
 
