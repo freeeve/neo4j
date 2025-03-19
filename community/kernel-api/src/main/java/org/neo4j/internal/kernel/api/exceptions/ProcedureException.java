@@ -636,6 +636,17 @@ public class ProcedureException extends KernelException {
         }
     }
 
+    public static ProcedureException functionError(String name, String msg) {
+        ErrorGqlStatusObject gql = GqlHelper.get53N37(
+                name,
+                ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_53U00)
+                        .withParam(GqlParams.StringParam.fun, name)
+                        .withParam(GqlParams.StringParam.msgTitle, ProcedureException.class.getSimpleName())
+                        .withParam(GqlParams.StringParam.msg, msg)
+                        .build());
+        return new ProcedureException(gql, Status.Procedure.ProcedureCallFailed, msg);
+    }
+
     private static ErrorGqlStatusObject getInvocationFailedGqlStatus(
             Throwable cause, Throwable rootCause, String type, String name) {
         if (type.equals("procedure")) {
