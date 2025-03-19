@@ -72,8 +72,7 @@ public class LogEntryWriter<T extends WritableChannel> {
                                 latestCommittedTxWhenStarted,
                                 appendIndex,
                                 previousChecksum,
-                                additionalHeaderData,
-                                null));
+                                additionalHeaderData));
     }
 
     public void writeChunkStartEntry(

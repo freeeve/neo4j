@@ -39,7 +39,6 @@ import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
@@ -159,8 +158,7 @@ class TransactionLogFileInformationTest {
         var logEntryReader = mock(LogEntryReader.class);
         var readableLogChannel = mock(ReadableLogChannel.class);
         when(logEntryReader.readLogEntry(readableLogChannel))
-                .thenReturn(newStartEntry(
-                        LatestVersions.LATEST_KERNEL_VERSION, 1, 1, 1, 1, new byte[] {}, LogPosition.UNSPECIFIED));
+                .thenReturn(newStartEntry(LatestVersions.LATEST_KERNEL_VERSION, 1, 1, 1, 1, new byte[] {}));
         var fileInfo = new TransactionLogFileInformation(logFiles, logHeaderCache, context, () -> logEntryReader);
 
         var expectedHeader = LATEST_LOG_FORMAT.newHeader(

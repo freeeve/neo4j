@@ -26,7 +26,6 @@ import java.util.zip.CRC32C;
 import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.entry.BadLogEntryException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer;
@@ -98,7 +97,6 @@ public class StartLogEntrySerializerV4_2 extends LogEntrySerializer<LogEntryStar
             LogPositionMarker marker,
             CommandReaderFactory commandReaderFactory)
             throws IOException {
-        LogPosition position = marker.newPosition();
         long timeWritten = channel.getLong();
         long latestCommittedTxWhenStarted = channel.getLong();
         int previousChecksum = channel.getInt();
@@ -110,7 +108,7 @@ public class StartLogEntrySerializerV4_2 extends LogEntrySerializer<LogEntryStar
         byte[] additionalHeader = new byte[additionalHeaderLength];
         channel.get(additionalHeader, additionalHeaderLength);
         return new LogEntryStartV4_2(
-                version, timeWritten, latestCommittedTxWhenStarted, previousChecksum, additionalHeader, position);
+                version, timeWritten, latestCommittedTxWhenStarted, previousChecksum, additionalHeader);
     }
 
     @Override

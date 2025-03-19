@@ -37,7 +37,6 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.arguments.KernelVersionSource;
@@ -50,8 +49,7 @@ class VersionAwareLogEntryReaderTest {
     @KernelVersionSource(atLeast = "5.0")
     void shouldReadAStartLogEntry(KernelVersion kernelVersion) throws IOException {
         // given
-        final LogEntryStart start =
-                newStartEntry(kernelVersion, 1, 2, 3, BASE_TX_CHECKSUM, new byte[] {4}, new LogPosition(0, 0));
+        final LogEntryStart start = newStartEntry(kernelVersion, 1, 2, 3, BASE_TX_CHECKSUM, new byte[] {4});
         final InMemoryClosableChannel channel = new InMemoryClosableChannel(true);
 
         writeEntry(channel, start, serializationSet(kernelVersion, BINARY_VERSIONS));
@@ -65,8 +63,7 @@ class VersionAwareLogEntryReaderTest {
     }
 
     static String additionalDebugInfo(KernelVersion kernelVersion, LogEntry start) {
-        final LogEntryStart recreatedStart =
-                newStartEntry(kernelVersion, 1, 2, 3, BASE_TX_CHECKSUM, new byte[] {4}, new LogPosition(0, 0));
+        final LogEntryStart recreatedStart = newStartEntry(kernelVersion, 1, 2, 3, BASE_TX_CHECKSUM, new byte[] {4});
         return String.format(
                 """
 Additional debug information:

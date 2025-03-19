@@ -44,7 +44,6 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
@@ -64,8 +63,6 @@ import org.neo4j.test.utils.TestDirectory;
 class LogEntrySerializerDispatcherTest {
     private final CommandReaderFactory commandReader = TestCommandReaderFactory.INSTANCE;
     private final LogPositionMarker marker = new LogPositionMarker();
-    private final LogPosition position = new LogPosition(0, 25);
-    private final LogPosition positionV5_20 = new LogPosition(0, 33);
 
     @Inject
     private FileSystemAbstraction fs;
@@ -132,14 +129,7 @@ class LogEntrySerializerDispatcherTest {
     @KernelVersionSource(atLeast = "4.2") // Oldest version we can write
     void parseStartEntry(KernelVersion version) throws IOException {
         // given
-        final LogEntryStart start = newStartEntry(
-                version,
-                1,
-                2,
-                3,
-                4,
-                new byte[] {4},
-                version.isAtLeast(KernelVersion.VERSION_APPEND_INDEX_INTRODUCED) ? positionV5_20 : position);
+        final LogEntryStart start = newStartEntry(version, 1, 2, 3, 4, new byte[] {4});
         final InMemoryClosableChannel channel = new InMemoryClosableChannel();
 
         channel.putLong(start.getTimeWritten());
@@ -165,14 +155,7 @@ class LogEntrySerializerDispatcherTest {
     @ParameterizedTest
     @KernelVersionSource(atLeast = "4.2") // Oldest version we can write
     void parseCorruptedStartEntry(KernelVersion version) throws IOException {
-        final LogEntryStart start = newStartEntry(
-                version,
-                1,
-                2,
-                3,
-                4,
-                new byte[] {4},
-                version.isAtLeast(KernelVersion.VERSION_APPEND_INDEX_INTRODUCED) ? positionV5_20 : position);
+        final LogEntryStart start = newStartEntry(version, 1, 2, 3, 4, new byte[] {4});
         try (final InMemoryClosableChannel channel = new InMemoryClosableChannel()) {
             channel.putLong(start.getTimeWritten());
             channel.putLong(start.getLastCommittedTxWhenTransactionStarted());

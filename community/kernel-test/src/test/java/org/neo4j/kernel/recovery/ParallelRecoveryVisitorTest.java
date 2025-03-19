@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.common.Subject.AUTH_DISABLED;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
-import static org.neo4j.kernel.impl.transaction.log.LogPosition.UNSPECIFIED;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newCommitEntry;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newStartEntry;
 import static org.neo4j.storageengine.api.TransactionApplicationMode.RECOVERY;
@@ -241,7 +240,7 @@ class ParallelRecoveryVisitorTest {
 
     private CompleteBatchRepresentation tx(long txId, List<StorageCommand> commands) {
         commands.forEach(cmd -> ((RecoveryTestBaseCommand) cmd).txId = txId);
-        LogEntryStart startEntry = newStartEntry(LATEST_KERNEL_VERSION, 0, 0, 0, 0, EMPTY_BYTE_ARRAY, UNSPECIFIED);
+        LogEntryStart startEntry = newStartEntry(LATEST_KERNEL_VERSION, 0, 0, 0, 0, EMPTY_BYTE_ARRAY);
         CommandBatch txRepresentation = new CompleteCommandBatch(
                 commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LATEST_KERNEL_VERSION, AUTH_DISABLED);
         LogEntryCommit commitEntry = newCommitEntry(LATEST_KERNEL_VERSION, txId, 0, BASE_TX_CHECKSUM + 1);

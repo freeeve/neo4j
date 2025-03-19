@@ -21,7 +21,6 @@ package org.neo4j.kernel.impl.transaction.log.entry.v42;
 
 import java.util.Arrays;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.string.Mask;
 
@@ -33,9 +32,8 @@ public class LogEntryStartV4_2 extends LogEntryStart {
             long timeWritten,
             long lastCommittedTxWhenTransactionStarted,
             int previousChecksum,
-            byte[] additionalHeader,
-            LogPosition startPosition) {
-        super(version, timeWritten, lastCommittedTxWhenTransactionStarted, additionalHeader, startPosition);
+            byte[] additionalHeader) {
+        super(version, timeWritten, lastCommittedTxWhenTransactionStarted, additionalHeader);
         this.previousChecksum = previousChecksum;
     }
 
@@ -52,8 +50,7 @@ public class LogEntryStartV4_2 extends LogEntryStart {
                 + lastCommittedTxWhenTransactionStarted + ",additionalHeaderLength="
                 + (additionalHeader == null ? -1 : additionalHeader.length) + ","
                 + (additionalHeader == null ? "" : Arrays.toString(additionalHeader))
-                + ",previousChecksum=" + previousChecksum + "," + "position="
-                + startPosition + "]";
+                + ",previousChecksum=" + previousChecksum + "]";
     }
 
     @Override
@@ -70,8 +67,7 @@ public class LogEntryStartV4_2 extends LogEntryStart {
         return lastCommittedTxWhenTransactionStarted == start.lastCommittedTxWhenTransactionStarted
                 && timeWritten == start.timeWritten
                 && previousChecksum == start.previousChecksum
-                && Arrays.equals(additionalHeader, start.additionalHeader)
-                && startPosition.equals(start.startPosition);
+                && Arrays.equals(additionalHeader, start.additionalHeader);
     }
 
     @Override
@@ -81,7 +77,6 @@ public class LogEntryStartV4_2 extends LogEntryStart {
                 + (int) (lastCommittedTxWhenTransactionStarted ^ (lastCommittedTxWhenTransactionStarted >>> 32));
         result = 31 * result + previousChecksum;
         result = 31 * result + (additionalHeader != null ? Arrays.hashCode(additionalHeader) : 0);
-        result = 31 * result + startPosition.hashCode();
         return result;
     }
 }

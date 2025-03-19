@@ -24,7 +24,6 @@ import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
 
 import java.util.Arrays;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.string.Mask;
 
 public class LogEntryStart extends AbstractVersionAwareLogEntry {
@@ -33,23 +32,16 @@ public class LogEntryStart extends AbstractVersionAwareLogEntry {
     protected final long timeWritten;
     protected final long lastCommittedTxWhenTransactionStarted;
     protected final byte[] additionalHeader;
-    protected final LogPosition startPosition;
 
     protected LogEntryStart(
             KernelVersion kernelVersion,
             long timeWritten,
             long lastCommittedTxWhenTransactionStarted,
-            byte[] additionalHeader,
-            LogPosition startPosition) {
+            byte[] additionalHeader) {
         super(kernelVersion, TX_START);
-        this.startPosition = startPosition;
         this.timeWritten = timeWritten;
         this.lastCommittedTxWhenTransactionStarted = lastCommittedTxWhenTransactionStarted;
         this.additionalHeader = additionalHeader;
-    }
-
-    public LogPosition getStartPosition() {
-        return startPosition;
     }
 
     public long getTimeWritten() {
@@ -80,8 +72,7 @@ public class LogEntryStart extends AbstractVersionAwareLogEntry {
                 + lastCommittedTxWhenTransactionStarted + ",additionalHeaderLength="
                 + (additionalHeader == null ? -1 : additionalHeader.length) + ","
                 + (additionalHeader == null ? "" : Arrays.toString(additionalHeader))
-                + "," + "position="
-                + startPosition + "]";
+                + "]";
     }
 
     @Override
@@ -98,8 +89,7 @@ public class LogEntryStart extends AbstractVersionAwareLogEntry {
         return lastCommittedTxWhenTransactionStarted == start.lastCommittedTxWhenTransactionStarted
                 && timeWritten == start.timeWritten
                 && kernelVersion() == start.kernelVersion()
-                && Arrays.equals(additionalHeader, start.additionalHeader)
-                && startPosition.equals(start.startPosition);
+                && Arrays.equals(additionalHeader, start.additionalHeader);
     }
 
     @Override
@@ -108,7 +98,6 @@ public class LogEntryStart extends AbstractVersionAwareLogEntry {
         result = 31 * result
                 + (int) (lastCommittedTxWhenTransactionStarted ^ (lastCommittedTxWhenTransactionStarted >>> 32));
         result = 31 * result + (additionalHeader != null ? Arrays.hashCode(additionalHeader) : 0);
-        result = 31 * result + startPosition.hashCode();
         return result;
     }
 }

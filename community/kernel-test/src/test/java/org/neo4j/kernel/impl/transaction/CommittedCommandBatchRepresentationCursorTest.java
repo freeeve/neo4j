@@ -41,7 +41,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.transaction.log.CommittedCommandBatchCursor;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommand;
@@ -57,7 +56,7 @@ class CommittedCommandBatchRepresentationCursorTest {
 
     private static final LogEntry NULL_ENTRY = null;
     private static final LogEntryStart START_ENTRY =
-            newStartEntry(LATEST_KERNEL_VERSION, 0L, 0L, 0, 5, encodeLogIndex(2), LogPosition.UNSPECIFIED);
+            newStartEntry(LATEST_KERNEL_VERSION, 0L, 0L, 0, 5, encodeLogIndex(2));
     private static final LogEntryCommit COMMIT_ENTRY =
             newCommitEntry(LATEST_KERNEL_VERSION, 42, 0, BASE_TX_CHECKSUM + 1);
     private static final LogEntryCommand COMMAND_ENTRY = new LogEntryCommand(new TestCommand());

@@ -22,7 +22,6 @@ package org.neo4j.kernel.impl.transaction.log.entry.v520;
 import java.util.Arrays;
 import java.util.Objects;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.string.Mask;
 
@@ -36,9 +35,8 @@ public class LogEntryStartV5_20 extends LogEntryStart {
             long lastCommittedTxWhenTransactionStarted,
             long appendIndex,
             int previousChecksum,
-            byte[] additionalHeader,
-            LogPosition startPosition) {
-        super(kernelVersion, timeWritten, lastCommittedTxWhenTransactionStarted, additionalHeader, startPosition);
+            byte[] additionalHeader) {
+        super(kernelVersion, timeWritten, lastCommittedTxWhenTransactionStarted, additionalHeader);
         this.previousChecksum = previousChecksum;
         this.appendIndex = appendIndex;
     }
@@ -60,7 +58,7 @@ public class LogEntryStartV5_20 extends LogEntryStart {
                 + ",additionalHeaderLength=" + (additionalHeader == null ? -1 : additionalHeader.length) + ","
                 + (additionalHeader == null ? "" : Arrays.toString(additionalHeader))
                 + ", appendIndex="
-                + appendIndex + ", previousChecksum=" + previousChecksum + ", position=" + startPosition + "]";
+                + appendIndex + ", previousChecksum=" + previousChecksum + "]";
     }
 
     @Override

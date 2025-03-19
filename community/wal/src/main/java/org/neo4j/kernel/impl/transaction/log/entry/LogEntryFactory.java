@@ -23,7 +23,6 @@ import static org.neo4j.kernel.KernelVersion.VERSION_APPEND_INDEX_INTRODUCED;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
 
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryCommitV4_2;
 import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryStartV4_2;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStartV5_20;
@@ -39,8 +38,7 @@ public final class LogEntryFactory {
             long lastCommittedTxWhenTransactionStarted,
             long appendIndex,
             int previousChecksum,
-            byte[] additionalHeader,
-            LogPosition startPosition) {
+            byte[] additionalHeader) {
         if (version.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
             return new LogEntryStartV5_20(
                     version,
@@ -48,8 +46,7 @@ public final class LogEntryFactory {
                     lastCommittedTxWhenTransactionStarted,
                     appendIndex,
                     previousChecksum,
-                    additionalHeader,
-                    startPosition);
+                    additionalHeader);
         }
         if (version.isAtLeast(VERSION_APPEND_INDEX_INTRODUCED)) {
             return new LogEntryStartV5_20(
@@ -58,16 +55,10 @@ public final class LogEntryFactory {
                     lastCommittedTxWhenTransactionStarted,
                     appendIndex,
                     previousChecksum,
-                    additionalHeader,
-                    startPosition);
+                    additionalHeader);
         }
         return new LogEntryStartV4_2(
-                version,
-                timeWritten,
-                lastCommittedTxWhenTransactionStarted,
-                previousChecksum,
-                additionalHeader,
-                startPosition);
+                version, timeWritten, lastCommittedTxWhenTransactionStarted, previousChecksum, additionalHeader);
     }
 
     public static LogEntryCommit newCommitEntry(KernelVersion version, long txId, long timeWritten, int checksum) {

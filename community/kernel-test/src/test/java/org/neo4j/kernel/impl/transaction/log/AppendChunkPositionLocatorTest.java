@@ -51,8 +51,7 @@ class AppendChunkPositionLocatorTest {
     private static final LogPosition BEFORE_START = new LogPosition(1L, LATEST_LOG_FORMAT.getHeaderSize());
     private static final LogPosition AFTER_COMMIT = new LogPosition(1L, 666L);
 
-    private static final LogEntryStart START =
-            newStartEntry(LATEST_KERNEL_VERSION, 0, 0, APPEND_INDEX, 1, null, BEFORE_START);
+    private static final LogEntryStart START = newStartEntry(LATEST_KERNEL_VERSION, 0, 0, APPEND_INDEX, 1, null);
     private static final LogEntryChunkStart CHUNK_START =
             new LogEntryChunkStartV5_20(LATEST_KERNEL_VERSION, 0, 1, APPEND_INDEX, UNKNOWN_APPEND_INDEX);
     private static final LogEntryRollback ROLLBACK =

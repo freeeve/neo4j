@@ -176,8 +176,7 @@ class TransactionLogsRecoveryTest {
             LogPosition lastCommittedTxPosition = marker.newPosition();
             byte[] headerData = encodeLogIndex(1);
             writer.writeStartEntry(LATEST_KERNEL_VERSION, 2L, 3L, 4L, previousChecksum, headerData);
-            lastCommittedTxStartEntry = newStartEntry(
-                    LATEST_KERNEL_VERSION, 2L, 3L, 4L, previousChecksum, headerData, lastCommittedTxPosition);
+            lastCommittedTxStartEntry = newStartEntry(LATEST_KERNEL_VERSION, 2L, 3L, 4L, previousChecksum, headerData);
             previousChecksum = writer.writeCommitEntry(LATEST_KERNEL_VERSION, 4L, 5L);
             lastCommittedTxCommitEntry = newCommitEntry(LATEST_KERNEL_VERSION, 4L, 5L, previousChecksum);
 
@@ -197,8 +196,7 @@ class TransactionLogsRecoveryTest {
             // tx committed after checkpoint
             channel.getCurrentLogPosition(marker);
             writer.writeStartEntry(LATEST_KERNEL_VERSION, 6L, 4L, 5L, previousChecksum, headerData);
-            expectedStartEntry = newStartEntry(
-                    LATEST_KERNEL_VERSION, 6L, 4L, 5L, previousChecksum, headerData, marker.newPosition());
+            expectedStartEntry = newStartEntry(LATEST_KERNEL_VERSION, 6L, 4L, 5L, previousChecksum, headerData);
 
             previousChecksum = writer.writeCommitEntry(LATEST_KERNEL_VERSION, 5L, 7L);
             expectedCommitEntry = newCommitEntry(LATEST_KERNEL_VERSION, 5L, 7L, previousChecksum);

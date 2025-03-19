@@ -63,8 +63,7 @@ class RecoveryProgressIndicatorTest {
         int expectedMax = transactionsToRecover * 2;
         int appendIndexAndTxId = 14;
         CompleteBatchRepresentation transactionRepresentation = new CompleteBatchRepresentation(
-                newStartEntry(
-                        LATEST_KERNEL_VERSION, 1, 2, appendIndexAndTxId, 4, EMPTY_BYTE_ARRAY, LogPosition.UNSPECIFIED),
+                newStartEntry(LATEST_KERNEL_VERSION, 1, 2, appendIndexAndTxId, 4, EMPTY_BYTE_ARRAY),
                 emptyList(),
                 newCommitEntry(LATEST_KERNEL_VERSION, appendIndexAndTxId, 1L, BASE_TX_CHECKSUM + 1),
                 BASE_TX_CHECKSUM);
