@@ -179,8 +179,6 @@ public class DbRepresentation {
                 + highestRelationshipId + '}';
     }
 
-    // Accessed from HA-robustness, needs to be public
-    @SuppressWarnings("WeakerAccess")
     public Collection<String> compareWith(DbRepresentation other) {
         Collection<String> diffList = new ArrayList<>();
         DiffReport diff = new CollectionDiffReport(diffList);
