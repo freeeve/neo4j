@@ -271,6 +271,8 @@ object TestConf {
 
     final override val conf: TestConf = TestConf(
       neo4jConf = Map(
+        "internal.db.query.default_language" -> "cypher_25",
+        "internal.dbms.cypher.enable_experimental_versions" -> "true",
         // For unknown reasons multiversion store format override (NEO4J_OVERRIDE_STORE_FORMAT) fails here
         "db.format" -> "block",
         "server.bolt.enabled" -> "true",
@@ -282,7 +284,7 @@ object TestConf {
       ),
       useBolt = true,
       useSpd = true,
-      tagContext = Set("spd", "cypher-5", "bolt")
+      tagContext = Set("spd", "cypher-25", "bolt")
     )
     final class ObjectFactory extends GuiceObjectFactory(injector)
   }
@@ -292,6 +294,8 @@ object TestConf {
 
     final override val conf: TestConf = TestConf(
       neo4jConf = Map(
+        "internal.db.query.default_language" -> "cypher_25",
+        "internal.dbms.cypher.enable_experimental_versions" -> "true",
         "server.bolt.enabled" -> "true",
         "server.routing.listen_address" -> "127.0.0.1:0",
         "server.routing.advertised_address" -> "127.0.0.1:0",
@@ -302,7 +306,7 @@ object TestConf {
       preparserOptions = Map("runtime" -> "parallel"),
       useSpd = true,
       useBolt = true,
-      tagContext = Set("spd", "cypher-5", "parallel-runtime", "bolt")
+      tagContext = Set("spd", "cypher-25", "parallel-runtime", "bolt")
     )
     final class ObjectFactory extends GuiceObjectFactory(injector)
   }
