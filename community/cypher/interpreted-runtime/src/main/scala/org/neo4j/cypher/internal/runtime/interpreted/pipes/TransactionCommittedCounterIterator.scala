@@ -52,7 +52,7 @@ object TransactionCommittedCounterIterator {
       case e: StatusWrapCypherException =>
         throw addTransactionInfoToException(e, queryState)
       case e: Neo4jException =>
-        throw addTransactionInfoToException(new StatusWrapCypherException(e), queryState)
+        throw addTransactionInfoToException(StatusWrapCypherException.wrapCypherException(e), queryState)
       case e: Throwable =>
         throw e
     }

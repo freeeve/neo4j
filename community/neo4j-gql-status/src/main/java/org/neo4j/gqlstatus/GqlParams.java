@@ -66,6 +66,7 @@ public class GqlParams {
         db3(new IDENT()),
         edition(new VERBATIM()), // Freeform edition description
         endpointType(new VERBATIM()), // One of 'start', 'end'
+        entityId(new VERBATIM()), // Id of a node or relationship
         entityType(new VERBATIM()), // One of 'node', 'relationship'
         expr(new STRLIT()), // Cypher expression | 1 + n.pro
         exprType(new VERBATIM()), // Freeform expression type

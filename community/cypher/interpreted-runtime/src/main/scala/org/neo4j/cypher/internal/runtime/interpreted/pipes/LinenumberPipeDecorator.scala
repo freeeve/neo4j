@@ -90,7 +90,7 @@ class LinenumberPipeDecorator(private var inner: PipeDecorator = NullPipeDecorat
         case e: StatusWrapCypherException =>
           throw addInformation(e, previousContextSupplier())
         case e: Neo4jException =>
-          throw addInformation(new StatusWrapCypherException(e), previousContextSupplier())
+          throw addInformation(StatusWrapCypherException.wrapCypherException(e), previousContextSupplier())
         case e: Throwable =>
           throw e
       }

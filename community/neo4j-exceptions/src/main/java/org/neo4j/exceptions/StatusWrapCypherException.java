@@ -36,12 +36,21 @@ public class StatusWrapCypherException extends Neo4jException {
 
     private final Map<ExtraInformation, String> extraInfoMap = Maps.mutable.of();
 
-    public StatusWrapCypherException(Neo4jException cause) {
-        super(cause.getMessage(), cause);
+    @Deprecated
+    private StatusWrapCypherException(String message, Throwable cause) {
+        super(message, cause);
     }
 
-    public StatusWrapCypherException(ErrorGqlStatusObject gqlStatusObject, Neo4jException cause) {
-        super(gqlStatusObject, cause.getMessage(), cause);
+    private <EX extends Throwable & ErrorGqlStatusObject> StatusWrapCypherException(EX cause) {
+        super(cause, cause.getMessage(), cause);
+    }
+
+    public static <EX extends Throwable & ErrorGqlStatusObject> StatusWrapCypherException wrapCypherException(EX e) {
+        if (e.gqlStatusObject() != null) {
+            return new StatusWrapCypherException(e);
+        }
+        // This would indicate that the wrapped exception has not been ported yet
+        return new StatusWrapCypherException(e.getMessage(), e);
     }
 
     public StatusWrapCypherException addExtraInfo(ExtraInformation informationType, String extraInfo) {

@@ -2161,6 +2161,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "input empty",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NB7(
+            new GqlStatus("22NB7"),
+            """
+                It is not supported to create element ids on composite databases. Create the element id for { %s } { %s } on the constituent instead.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.entityType, GqlParams.StringParam.entityId},
+            Map.of(),
+            Condition.DATA_EXCEPTION,
+            "element id unsupported on composite database",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_22NB8(
             new GqlStatus("22NB8"),
             """
@@ -3955,7 +3964,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "database operations operations on composite database",
+            "database operations on composite database",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA3(
             new GqlStatus("42NA3"),
@@ -3964,7 +3973,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "schema operations operations on composite database",
+            "schema operations on composite database",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA4(
             new GqlStatus("42NA4"),
@@ -3973,7 +3982,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "transaction operations operations on composite database",
+            "transaction operations on composite database",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA5(
             new GqlStatus("42NA5"),
