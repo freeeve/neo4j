@@ -285,6 +285,13 @@ object ReadFinder {
       )
     }
 
+    def withIntroducedNodeVariable(variable: Option[LogicalVariable]): PlanReads = {
+      variable match {
+        case Some(value) => withIntroducedNodeVariable(value)
+        case None        => this
+      }
+    }
+
     def withIntroducedRelationshipVariable(variable: LogicalVariable): PlanReads = {
       val newExpressions = relationshipFilterExpressions.getOrElse(variable, Seq.empty)
       copy(
@@ -1264,8 +1271,8 @@ object ReadFinder {
     relationship: LogicalVariable,
     relTypeName: String,
     properties: Seq[IndexedProperty],
-    leftNode: LogicalVariable,
-    rightNode: LogicalVariable
+    leftNode: Option[LogicalVariable],
+    rightNode: Option[LogicalVariable]
   ): PlanReads = {
     val tN = RelTypeName(relTypeName)(InputPosition.NONE)
     val hasType = HasTypes(relationship, Seq(tN))(InputPosition.NONE)
@@ -1289,8 +1296,8 @@ object ReadFinder {
 
   private def processRelationshipRead(
     relationshipVariable: LogicalVariable,
-    leftVariable: LogicalVariable,
-    rightVariable: LogicalVariable
+    leftVariable: Option[LogicalVariable],
+    rightVariable: Option[LogicalVariable]
   ): PlanReads = {
     PlanReads()
       .withIntroducedNodeVariable(leftVariable)
@@ -1300,9 +1307,9 @@ object ReadFinder {
 
   private def processUnionRelTypeScan(
     relationship: LogicalVariable,
-    leftNode: LogicalVariable,
+    leftNode: Option[LogicalVariable],
     relTypes: Seq[RelTypeName],
-    rightNode: LogicalVariable
+    rightNode: Option[LogicalVariable]
   ): PlanReads = {
     val filterExpression = relTypeNamesToOrs(relationship, relTypes)
     PlanReads()
@@ -1314,9 +1321,9 @@ object ReadFinder {
 
   private def processRelTypeRead(
     relationship: LogicalVariable,
-    leftNode: LogicalVariable,
+    leftNode: Option[LogicalVariable],
     relType: RelTypeName,
-    rightNode: LogicalVariable
+    rightNode: Option[LogicalVariable]
   ): PlanReads = {
     val hasTypes = HasTypes(relationship, Seq(relType))(InputPosition.NONE)
     PlanReads()

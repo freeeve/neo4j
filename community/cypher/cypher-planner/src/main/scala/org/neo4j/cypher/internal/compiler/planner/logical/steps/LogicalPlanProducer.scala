@@ -682,28 +682,57 @@ case class LogicalPlanProducer(
       val rewrittenValueExpr = solver.solve(valueExpr)
       val newArguments = solver.newArguments
 
-      val planTemplate = (patternForLeafPlan.dir, stringSearchMode) match {
+      val leafPlan = (patternForLeafPlan.dir, stringSearchMode) match {
         case (SemanticDirection.BOTH, ContainsSearchMode) =>
-          UndirectedRelationshipIndexContainsScan(_, _, _, _, _, _, _, _, _)
-        case (SemanticDirection.BOTH, EndsWithSearchMode) =>
-          UndirectedRelationshipIndexEndsWithScan(_, _, _, _, _, _, _, _, _)
-        case (SemanticDirection.INCOMING | SemanticDirection.OUTGOING, ContainsSearchMode) =>
-          DirectedRelationshipIndexContainsScan(_, _, _, _, _, _, _, _, _)
-        case (SemanticDirection.INCOMING | SemanticDirection.OUTGOING, EndsWithSearchMode) =>
-          DirectedRelationshipIndexEndsWithScan(_, _, _, _, _, _, _, _, _)
-      }
 
-      val leafPlan = planTemplate(
-        variable,
-        patternForLeafPlan.inOrder._1,
-        patternForLeafPlan.inOrder._2,
-        relationshipType,
-        properties.head,
-        rewrittenValueExpr,
-        argumentIds ++ newArguments,
-        indexOrder,
-        indexType.toPublicApi
-      )
+          UndirectedRelationshipIndexContainsScan(
+            variable,
+            Some(patternForLeafPlan.inOrder._1),
+            Some(patternForLeafPlan.inOrder._2),
+            relationshipType,
+            properties.head,
+            rewrittenValueExpr,
+            argumentIds ++ newArguments,
+            indexOrder,
+            indexType.toPublicApi
+          )
+        case (SemanticDirection.BOTH, EndsWithSearchMode) =>
+          UndirectedRelationshipIndexEndsWithScan(
+            variable,
+            Some(patternForLeafPlan.inOrder._1),
+            Some(patternForLeafPlan.inOrder._2),
+            relationshipType,
+            properties.head,
+            rewrittenValueExpr,
+            argumentIds ++ newArguments,
+            indexOrder,
+            indexType.toPublicApi
+          )
+        case (SemanticDirection.INCOMING | SemanticDirection.OUTGOING, ContainsSearchMode) =>
+          DirectedRelationshipIndexContainsScan(
+            variable,
+            Some(patternForLeafPlan.inOrder._1),
+            Some(patternForLeafPlan.inOrder._2),
+            relationshipType,
+            properties.head,
+            rewrittenValueExpr,
+            argumentIds ++ newArguments,
+            indexOrder,
+            indexType.toPublicApi
+          )
+        case (SemanticDirection.INCOMING | SemanticDirection.OUTGOING, EndsWithSearchMode) =>
+          DirectedRelationshipIndexEndsWithScan(
+            variable,
+            Some(patternForLeafPlan.inOrder._1),
+            Some(patternForLeafPlan.inOrder._2),
+            relationshipType,
+            properties.head,
+            rewrittenValueExpr,
+            argumentIds ++ newArguments,
+            indexOrder,
+            indexType.toPublicApi
+          )
+      }
 
       solver.rewriteLeafPlan {
         annotateRelationshipLeafPlan(

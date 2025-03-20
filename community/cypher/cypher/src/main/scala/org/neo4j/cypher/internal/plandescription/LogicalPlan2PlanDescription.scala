@@ -747,10 +747,10 @@ case class LogicalPlan2PlanDescription(
       case p @ AssertingMultiRelationshipIndexSeek(_, _, _, _, indexLeafPlans) =>
         val (_, indexDescs) = indexLeafPlans.map(l =>
           getRelIndexDescriptions(
-            l.idName.name,
-            l.leftNode.name,
+            l.idName,
+            l.leftNode,
             l.typeToken,
-            l.rightNode.name,
+            l.rightNode,
             l.directed,
             l.properties.map(_.propertyKeyToken),
             l.indexType,
@@ -771,10 +771,10 @@ case class LogicalPlan2PlanDescription(
         )
       case p @ DirectedRelationshipIndexSeek(idName, start, end, typ, properties, valueExpr, _, _, indexType, _) =>
         val (indexMode, indexDesc) = getRelIndexDescriptions(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = true,
           properties.map(_.propertyKeyToken),
           indexType,
@@ -786,10 +786,10 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(id, indexMode, Seq.empty, Seq(Details(indexDesc)), variables)
       case p @ UndirectedRelationshipIndexSeek(idName, start, end, typ, properties, valueExpr, _, _, indexType, _) =>
         val (indexMode, indexDesc) = getRelIndexDescriptions(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = false,
           properties.map(_.propertyKeyToken),
           indexType,
@@ -809,10 +809,10 @@ case class LogicalPlan2PlanDescription(
         )
       case p @ PartitionedDirectedRelationshipIndexSeek(idName, start, end, typ, properties, valueExpr, _, indexType) =>
         val (indexMode, indexDesc) = getRelIndexDescriptions(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = true,
           properties.map(_.propertyKeyToken),
           indexType,
@@ -833,10 +833,10 @@ case class LogicalPlan2PlanDescription(
           indexType
         ) =>
         val (indexMode, indexDesc) = getRelIndexDescriptions(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = false,
           properties.map(_.propertyKeyToken),
           indexType,
@@ -856,10 +856,10 @@ case class LogicalPlan2PlanDescription(
         )
       case p @ DirectedRelationshipUniqueIndexSeek(idName, start, end, typ, properties, valueExpr, _, _, indexType) =>
         val (indexMode, indexDesc) = getRelIndexDescriptions(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = true,
           properties.map(_.propertyKeyToken),
           indexType,
@@ -871,10 +871,10 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(id, indexMode, Seq.empty, Seq(Details(indexDesc)), variables)
       case p @ UndirectedRelationshipUniqueIndexSeek(idName, start, end, typ, properties, valueExpr, _, _, indexType) =>
         val (indexMode, indexDesc) = getRelIndexDescriptions(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = false,
           properties.map(_.propertyKeyToken),
           indexType,
@@ -897,10 +897,10 @@ case class LogicalPlan2PlanDescription(
         val props = tokens.map(x => asPrettyString(x.name))
         val predicates = props.map(p => pretty"$p IS NOT NULL").mkPrettyString(" AND ")
         val info = relIndexInfoString(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = true,
           tokens,
           indexType,
@@ -921,10 +921,10 @@ case class LogicalPlan2PlanDescription(
         val props = tokens.map(x => asPrettyString(x.name))
         val predicates = props.map(p => pretty"$p IS NOT NULL").mkPrettyString(" AND ")
         val info = relIndexInfoString(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = false,
           tokens,
           indexType,
@@ -945,10 +945,10 @@ case class LogicalPlan2PlanDescription(
         val props = tokens.map(x => asPrettyString(x.name))
         val predicates = props.map(p => pretty"$p IS NOT NULL").mkPrettyString(" AND ")
         val info = relIndexInfoString(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = true,
           tokens,
           indexType,
@@ -969,10 +969,10 @@ case class LogicalPlan2PlanDescription(
         val props = tokens.map(x => asPrettyString(x.name))
         val predicates = props.map(p => pretty"$p IS NOT NULL").mkPrettyString(" AND ")
         val info = relIndexInfoString(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = false,
           tokens,
           indexType,
@@ -991,10 +991,10 @@ case class LogicalPlan2PlanDescription(
       case p @ DirectedRelationshipIndexContainsScan(idName, start, end, typ, property, valueExpr, _, _, indexType) =>
         val predicate = pretty"${asPrettyString(property.propertyKeyToken.name)} CONTAINS ${asPrettyString(valueExpr)}"
         val info = relIndexInfoString(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = true,
           Seq(property.propertyKeyToken),
           indexType,
@@ -1005,10 +1005,10 @@ case class LogicalPlan2PlanDescription(
       case p @ UndirectedRelationshipIndexContainsScan(idName, start, end, typ, property, valueExpr, _, _, indexType) =>
         val predicate = pretty"${asPrettyString(property.propertyKeyToken.name)} CONTAINS ${asPrettyString(valueExpr)}"
         val info = relIndexInfoString(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = false,
           Seq(property.propertyKeyToken),
           indexType,
@@ -1027,10 +1027,10 @@ case class LogicalPlan2PlanDescription(
       case p @ DirectedRelationshipIndexEndsWithScan(idName, start, end, typ, property, valueExpr, _, _, indexType) =>
         val predicate = pretty"${asPrettyString(property.propertyKeyToken.name)} ENDS WITH ${asPrettyString(valueExpr)}"
         val info = relIndexInfoString(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = true,
           Seq(property.propertyKeyToken),
           indexType,
@@ -1049,10 +1049,10 @@ case class LogicalPlan2PlanDescription(
       case p @ UndirectedRelationshipIndexEndsWithScan(idName, start, end, typ, property, valueExpr, _, _, indexType) =>
         val predicate = pretty"${asPrettyString(property.propertyKeyToken.name)} ENDS WITH ${asPrettyString(valueExpr)}"
         val info = relIndexInfoString(
-          idName.name,
-          start.name,
+          idName,
+          start,
           typ,
-          end.name,
+          end,
           isDirected = false,
           Seq(property.propertyKeyToken),
           indexType,
@@ -1079,7 +1079,7 @@ case class LogicalPlan2PlanDescription(
         ArgumentPlanDescription(id, Seq.empty, variables)
 
       case DirectedRelationshipByIdSeek(idName, relIds, startNode, endNode, _) =>
-        val details = Details(relationshipByIdSeekInfo(idName.name, relIds, startNode.name, endNode.name, true, "id"))
+        val details = Details(relationshipByIdSeekInfo(idName, relIds, startNode, endNode, true, "id"))
         PlanDescriptionImpl(
           id,
           "DirectedRelationshipByIdSeek",
@@ -1092,7 +1092,7 @@ case class LogicalPlan2PlanDescription(
 
       case DirectedRelationshipByElementIdSeek(idName, relIds, startNode, endNode, _) =>
         val details =
-          Details(relationshipByIdSeekInfo(idName.name, relIds, startNode.name, endNode.name, true, "elementId"))
+          Details(relationshipByIdSeekInfo(idName, relIds, startNode, endNode, true, "elementId"))
         PlanDescriptionImpl(
           id,
           "DirectedRelationshipByElementIdSeek",
@@ -1104,7 +1104,7 @@ case class LogicalPlan2PlanDescription(
         )
 
       case UndirectedRelationshipByIdSeek(idName, relIds, startNode, endNode, _) =>
-        val details = Details(relationshipByIdSeekInfo(idName.name, relIds, startNode.name, endNode.name, false, "id"))
+        val details = Details(relationshipByIdSeekInfo(idName, relIds, startNode, endNode, false, "id"))
         PlanDescriptionImpl(
           id,
           "UndirectedRelationshipByIdSeek",
@@ -1117,7 +1117,7 @@ case class LogicalPlan2PlanDescription(
 
       case UndirectedRelationshipByElementIdSeek(idName, relIds, startNode, endNode, _) =>
         val details =
-          Details(relationshipByIdSeekInfo(idName.name, relIds, startNode.name, endNode.name, false, "elementId"))
+          Details(relationshipByIdSeekInfo(idName, relIds, startNode, endNode, false, "elementId"))
         PlanDescriptionImpl(
           id,
           "UndirectedRelationshipByElementIdSeek",
@@ -3292,10 +3292,10 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def getRelIndexDescriptions(
-    idName: String,
-    start: String,
+    idName: LogicalVariable,
+    start: Option[LogicalVariable],
     typeToken: RelationshipTypeToken,
-    end: String,
+    end: Option[LogicalVariable],
     isDirected: Boolean,
     propertyKeys: Seq[PropertyKeyToken],
     indexType: IndexType,
@@ -3473,10 +3473,10 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def relationshipByIdSeekInfo(
-    idName: String,
+    idName: LogicalVariable,
     relIds: SeekableArgs,
-    startNode: String,
-    endNode: String,
+    startNode: Option[LogicalVariable],
+    endNode: Option[LogicalVariable],
     isDirectional: Boolean,
     functionName: String
   ): PrettyString = {
@@ -3658,10 +3658,10 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def relIndexInfoString(
-    idName: String,
-    start: String,
+    idName: LogicalVariable,
+    start: Option[LogicalVariable],
     relType: NameToken[_],
-    end: String,
+    end: Option[LogicalVariable],
     isDirected: Boolean,
     propertyKeys: Seq[PropertyKeyToken],
     indexType: IndexType,

@@ -1505,25 +1505,25 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedUnionRelationshipTypesScan(
           varFor(p.relName),
-          varFor(p.from),
+          Some(varFor(p.from)),
           p.relTypes,
-          varFor(p.to),
+          Some(varFor(p.to)),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedUnionRelationshipTypesScan(
           varFor(p.relName),
-          varFor(p.to),
+          Some(varFor(p.to)),
           p.relTypes,
-          varFor(p.from),
+          Some(varFor(p.from)),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(PartitionedUndirectedUnionRelationshipTypesScan(
           varFor(p.relName),
-          varFor(p.from),
+          Some(varFor(p.from)),
           p.relTypes,
-          varFor(p.to),
+          Some(varFor(p.to)),
           args.map(varFor).toSet
         )(_)))
     }
@@ -1751,22 +1751,22 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedAllRelationshipsScan(
           varFor(p.relName),
-          varFor(p.from),
-          varFor(p.to),
+          Some(varFor(p.from)),
+          Some(varFor(p.to)),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedAllRelationshipsScan(
           varFor(p.relName),
-          varFor(p.to),
-          varFor(p.from),
+          Some(varFor(p.to)),
+          Some(varFor(p.from)),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(PartitionedUndirectedAllRelationshipsScan(
           varFor(p.relName),
-          varFor(p.from),
-          varFor(p.to),
+          Some(varFor(p.from)),
+          Some(varFor(p.to)),
           args.map(varFor).toSet
         )(_)))
     }
@@ -1831,25 +1831,25 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedRelationshipTypeScan(
           varFor(p.relName),
-          varFor(p.from),
+          Some(varFor(p.from)),
           typ,
-          varFor(p.to),
+          Some(varFor(p.to)),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedRelationshipTypeScan(
           varFor(p.relName),
-          varFor(p.to),
+          Some(varFor(p.to)),
           typ,
-          varFor(p.from),
+          Some(varFor(p.from)),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(PartitionedUndirectedRelationshipTypeScan(
           varFor(p.relName),
-          varFor(p.from),
+          Some(varFor(p.from)),
           typ,
-          varFor(p.to),
+          Some(varFor(p.to)),
           args.map(varFor).toSet
         )(_)))
     }
@@ -2077,8 +2077,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         supportPartitionedScan
       )(idGen)
       newRelationship(varFor(plan.idName.name))
-      newNode(varFor(plan.leftNode.name))
-      newNode(varFor(plan.rightNode.name))
+      plan.leftNode.foreach(l => newNode(varFor(l.name)))
+      plan.rightNode.foreach(r => newNode(varFor(r.name)))
       plan
     }
     planBuilder
@@ -2108,8 +2108,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         indexType
       )(idGen)
       newRelationship(varFor(plan.idName.name))
-      newNode(varFor(plan.leftNode.name))
-      newNode(varFor(plan.rightNode.name))
+      plan.leftNode.foreach(n => newNode(varFor(n.name)))
+      plan.rightNode.foreach(n => newNode(varFor(n.name)))
       plan
     }
     planBuilder

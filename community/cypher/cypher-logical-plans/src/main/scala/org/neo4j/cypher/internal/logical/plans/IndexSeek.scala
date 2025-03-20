@@ -495,8 +495,8 @@ object IndexSeek {
       if (directed) {
         PartitionedDirectedRelationshipIndexSeek(
           varFor(rel),
-          varFor(startNode),
-          varFor(endNode),
+          Some(varFor(startNode)),
+          Some(varFor(endNode)),
           typeToken,
           properties,
           valueExpr,
@@ -506,8 +506,8 @@ object IndexSeek {
       } else {
         PartitionedUndirectedRelationshipIndexSeek(
           varFor(rel),
-          varFor(startNode),
-          varFor(endNode),
+          Some(varFor(startNode)),
+          Some(varFor(endNode)),
           typeToken,
           properties,
           valueExpr,
@@ -579,8 +579,8 @@ object IndexSeek {
       if (directed) {
         PartitionedDirectedRelationshipIndexScan(
           varFor(rel),
-          varFor(startNode),
-          varFor(endNode),
+          Some(varFor(startNode)),
+          Some(varFor(endNode)),
           typeToken,
           properties,
           argumentIds.map(varFor),
@@ -589,8 +589,8 @@ object IndexSeek {
       } else {
         PartitionedUndirectedRelationshipIndexScan(
           varFor(rel),
-          varFor(startNode),
-          varFor(endNode),
+          Some(varFor(startNode)),
+          Some(varFor(endNode)),
           typeToken,
           properties,
           argumentIds.map(varFor),

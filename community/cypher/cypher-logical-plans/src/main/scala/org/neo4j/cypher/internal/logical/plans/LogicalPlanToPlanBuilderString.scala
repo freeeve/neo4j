@@ -544,7 +544,7 @@ object LogicalPlanToPlanBuilderString {
       case DirectedUnionRelationshipTypesScan(idName, start, types, end, argumentIds, indexOrder) =>
         val typeNames = types.map(l => l.name).mkString("|")
         params(
-          s"(${start.name})-[${idName.name}:$typeNames]->(${end.name})".quoted,
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:$typeNames]->(${end.map(_.name).getOrElse("")})".quoted,
           indexOrder,
           spread(argumentIds)
         )
@@ -552,7 +552,7 @@ object LogicalPlanToPlanBuilderString {
       case UndirectedUnionRelationshipTypesScan(idName, start, types, end, argumentIds, indexOrder) =>
         val typeNames = types.map(l => l.name).mkString("|")
         params(
-          s"(${start.name})-[${idName.name}:$typeNames]-(${end.name})".quoted,
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:$typeNames]-(${end.map(_.name).getOrElse("")})".quoted,
           indexOrder,
           spread(argumentIds)
         )
@@ -560,14 +560,14 @@ object LogicalPlanToPlanBuilderString {
       case PartitionedDirectedUnionRelationshipTypesScan(idName, start, types, end, argumentIds) =>
         val typeNames = types.map(l => l.name).mkString("|")
         params(
-          s"(${start.name})-[${idName.name}:$typeNames]->(${end.name})".quoted,
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:$typeNames]->(${end.map(_.name).getOrElse("")})".quoted,
           spread(argumentIds)
         )
 
       case PartitionedUndirectedUnionRelationshipTypesScan(idName, start, types, end, argumentIds) =>
         val typeNames = types.map(l => l.name).mkString("|")
         params(
-          s"(${start.name})-[${idName.name}:$typeNames]-(${end.name})".quoted,
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:$typeNames]-(${end.map(_.name).getOrElse("")})".quoted,
           spread(argumentIds)
         )
 
@@ -784,21 +784,47 @@ object LogicalPlanToPlanBuilderString {
       case DirectedRelationshipByElementIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
         params(idName, leftNode, rightNode, argumentIds, ids)
       case DirectedAllRelationshipsScan(idName, start, end, argumentIds) =>
-        params(s"(${start.name})-[${idName.name}]->(${end.name})".quoted, spread(argumentIds))
+        params(
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}]->(${end.map(_.name).getOrElse("")})".quoted,
+          spread(argumentIds)
+        )
       case UndirectedAllRelationshipsScan(idName, start, end, argumentIds) =>
-        params(s"(${start.name})-[${idName.name}]-(${end.name})".quoted, spread(argumentIds))
+        params(
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}]-(${end.map(_.name).getOrElse("")})".quoted,
+          spread(argumentIds)
+        )
       case PartitionedDirectedAllRelationshipsScan(idName, start, end, argumentIds) =>
-        params(s"(${start.name})-[${idName.name}]->(${end.name})".quoted, spread(argumentIds))
+        params(
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}]->(${end.map(_.name).getOrElse("")})".quoted,
+          spread(argumentIds)
+        )
       case PartitionedUndirectedAllRelationshipsScan(idName, start, end, argumentIds) =>
-        params(s"(${start.name})-[${idName.name}]-(${end.name})".quoted, spread(argumentIds))
+        params(
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}]-(${end.map(_.name).getOrElse("")})".quoted,
+          spread(argumentIds)
+        )
       case DirectedRelationshipTypeScan(idName, start, typ, end, argumentIds, indexOrder) =>
-        params(s"(${start.name})-[${idName.name}:${typ.name}]->(${end.name})".quoted, indexOrder, spread(argumentIds))
+        params(
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typ.name}]->(${end.map(_.name).getOrElse("")})".quoted,
+          indexOrder,
+          spread(argumentIds)
+        )
       case UndirectedRelationshipTypeScan(idName, start, typ, end, argumentIds, indexOrder) =>
-        params(s"(${start.name})-[${idName.name}:${typ.name}]-(${end.name})".quoted, indexOrder, spread(argumentIds))
+        params(
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typ.name}]-(${end.map(_.name).getOrElse("")})".quoted,
+          indexOrder,
+          spread(argumentIds)
+        )
       case PartitionedDirectedRelationshipTypeScan(idName, start, typ, end, argumentIds) =>
-        params(s"(${start.name})-[${idName.name}:${typ.name}]->(${end.name})".quoted, spread(argumentIds))
+        params(
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typ.name}]->(${end.map(_.name).getOrElse("")})".quoted,
+          spread(argumentIds)
+        )
       case PartitionedUndirectedRelationshipTypeScan(idName, start, typ, end, argumentIds) =>
-        params(s"(${start.name})-[${idName.name}:${typ.name}]-(${end.name})".quoted, spread(argumentIds))
+        params(
+          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typ.name}]-(${end.map(_.name).getOrElse("")})".quoted,
+          spread(argumentIds)
+        )
       case NodeIndexScan(idName, labelToken, properties, argumentIds, indexOrder, indexType, supportPartitionedScan) =>
         val propNames = properties.map(_.propertyKeyToken.name)
         nodeIndexOperator(
@@ -1805,8 +1831,8 @@ object LogicalPlanToPlanBuilderString {
 
   private def relationshipIndexOperator(
     idName: LogicalVariable,
-    start: LogicalVariable,
-    end: LogicalVariable,
+    start: Option[LogicalVariable],
+    end: Option[LogicalVariable],
     typeToken: RelationshipTypeToken,
     properties: Seq[IndexedProperty],
     argumentIds: Set[LogicalVariable],
@@ -1820,7 +1846,7 @@ object LogicalPlanToPlanBuilderString {
   ) = {
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.name})-[${idName.name}:${typeToken.name}($parenthesesContent)]$rarrow(${end.name})".quoted,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       "indexOrder" -> indexOrder,
       "paramExpr" -> paramExpr,
       "argumentIds" -> argumentIds,
@@ -1833,8 +1859,8 @@ object LogicalPlanToPlanBuilderString {
 
   private def partitionedRelationshipIndexOperator(
     idName: LogicalVariable,
-    start: LogicalVariable,
-    end: LogicalVariable,
+    start: Option[LogicalVariable],
+    end: Option[LogicalVariable],
     typeToken: RelationshipTypeToken,
     properties: Seq[IndexedProperty],
     argumentIds: Set[LogicalVariable],
@@ -1844,7 +1870,7 @@ object LogicalPlanToPlanBuilderString {
   ) = {
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.name})-[${idName.name}:${typeToken.name}($parenthesesContent)]$rarrow(${end.name})".quoted,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       "argumentIds" -> argumentIds,
       "getValue" -> Param.mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
       "indexType" -> indexType
@@ -1899,8 +1925,8 @@ object LogicalPlanToPlanBuilderString {
 
   private def pointBoundingBoxRelationshipIndexSeek(
     idName: LogicalVariable,
-    start: LogicalVariable,
-    end: LogicalVariable,
+    start: Option[LogicalVariable],
+    end: Option[LogicalVariable],
     typeToken: RelationshipTypeToken,
     properties: Seq[IndexedProperty],
     lowerLeft: Expression,
@@ -1927,8 +1953,8 @@ object LogicalPlanToPlanBuilderString {
 
   private def pointDistanceRelationshipIndexSeek(
     idName: LogicalVariable,
-    start: LogicalVariable,
-    end: LogicalVariable,
+    start: Option[LogicalVariable],
+    end: Option[LogicalVariable],
     typeToken: RelationshipTypeToken,
     properties: Seq[IndexedProperty],
     point: Expression,

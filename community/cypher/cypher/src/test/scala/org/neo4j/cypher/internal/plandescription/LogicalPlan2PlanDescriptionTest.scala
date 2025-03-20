@@ -858,9 +858,9 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         PartitionedDirectedUnionRelationshipTypesScan(
           varFor("r"),
-          varFor("x"),
+          Some(varFor("x")),
           Seq(relType("A"), relType("B"), relType("C")),
-          varFor("y"),
+          Some(varFor("y")),
           Set.empty
         ),
         23.0
@@ -878,9 +878,9 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         PartitionedUndirectedUnionRelationshipTypesScan(
           varFor("r"),
-          varFor("x"),
+          Some(varFor("x")),
           Seq(relType("A"), relType("B"), relType("C")),
-          varFor("y"),
+          Some(varFor("y")),
           Set.empty
         ),
         23.0
@@ -1875,9 +1875,9 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         PartitionedDirectedRelationshipTypeScan(
           varFor("r"),
-          varFor("x"),
+          Some(varFor("x")),
           RelTypeName("R")(pos),
-          varFor("y"),
+          Some(varFor("y")),
           Set.empty
         ),
         23.0
@@ -1895,9 +1895,9 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         PartitionedUndirectedRelationshipTypeScan(
           varFor("r"),
-          varFor("x"),
+          Some(varFor("x")),
           RelTypeName("R")(pos),
-          varFor("y"),
+          Some(varFor("y")),
           Set.empty
         ),
         23.0
@@ -1973,8 +1973,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         DirectedRelationshipByIdSeek(
           varFor("r"),
           SingleSeekableArg(number("1")),
-          varFor("a"),
-          varFor("b"),
+          Some(varFor("a")),
+          Some(varFor("b")),
           Set(varFor("x"))
         ),
         70.0
