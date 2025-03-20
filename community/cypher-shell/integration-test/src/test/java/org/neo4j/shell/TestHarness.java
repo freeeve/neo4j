@@ -107,7 +107,7 @@ public class TestHarness {
             var args = parseArgs();
             var outPrintStream = new PrintStream(out);
             var errPrintStream = new PrintStream(err);
-            var logger = new AnsiPrinter(Format.VERBOSE, outPrintStream, errPrintStream);
+            var logger = new AnsiPrinter(Format.VERBOSE, args.getErrorFormat(), outPrintStream, errPrintStream);
             if (this.boltStateHandler == null) {
                 this.boltStateHandler =
                         new BoltStateHandler(shouldBeInteractive(args, isOutputInteractive), args.getAccessMode());
@@ -151,8 +151,12 @@ public class TestHarness {
     }
 
     protected void assumeAtLeastVersion(String version) {
+        assumeTrue(isAtLeastVersion(version));
+    }
+
+    protected boolean isAtLeastVersion(String version) {
         try {
-            assumeTrue(serverVersion.compareTo(Versions.version(version)) > 0);
+            return serverVersion.compareTo(Versions.version(version)) >= 0;
         } catch (Versions.FailedToParseException e) {
             throw new RuntimeException(e);
         }

@@ -31,13 +31,14 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.driver.exceptions.ClientException;
+import org.neo4j.shell.cli.ErrorFormat;
 import org.neo4j.shell.cli.Format;
 import org.neo4j.shell.exception.CommandException;
 
 class AnsiPrinterTest {
     private final PrintStream out = mock(PrintStream.class);
     private final PrintStream err = mock(PrintStream.class);
-    private AnsiPrinter logger = new AnsiPrinter(Format.VERBOSE, out, err);
+    private AnsiPrinter logger = new AnsiPrinter(Format.VERBOSE, ErrorFormat.DEFAULT, out, err);
 
     @BeforeEach
     void setup() {
@@ -91,7 +92,7 @@ class AnsiPrinterTest {
 
     @Test
     void printIfVerbose() {
-        logger = new AnsiPrinter(Format.VERBOSE, out, err);
+        logger = new AnsiPrinter(Format.VERBOSE, ErrorFormat.DEFAULT, out, err);
 
         logger.printIfVerbose("foo");
         logger.printIfPlain("bar");
@@ -102,7 +103,7 @@ class AnsiPrinterTest {
 
     @Test
     void printIfPlain() {
-        logger = new AnsiPrinter(Format.PLAIN, out, err);
+        logger = new AnsiPrinter(Format.PLAIN, ErrorFormat.DEFAULT, out, err);
 
         logger.printIfVerbose("foo");
         logger.printIfPlain("bar");

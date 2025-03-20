@@ -525,7 +525,8 @@ class InteractiveShellRunnerTest {
 
         final PrettyPrinter mockedPrettyPrinter = mock(PrettyPrinter.class);
 
-        Printer printer = new AnsiPrinter(Format.VERBOSE, new PrintStream(output), new PrintStream(error));
+        Printer printer =
+                new AnsiPrinter(Format.VERBOSE, ErrorFormat.DEFAULT, new PrintStream(output), new PrintStream(error));
 
         CompletionEngine mockedCompletionEngine = mock(CompletionEngine.class);
         var dbInfo = new StubDbInfo(mock(ParameterService.class), false);

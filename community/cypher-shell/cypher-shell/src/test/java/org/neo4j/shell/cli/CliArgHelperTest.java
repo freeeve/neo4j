@@ -526,6 +526,18 @@ class CliArgHelperTest extends LocaleDependentTestBase {
                 "4h5m6s");
     }
 
+    @Test
+    void errorFormat() {
+        assertEquals(ErrorFormat.GQL, parser.parse("--error-format", "gql").getErrorFormat());
+        assertEquals(
+                ErrorFormat.LEGACY, parser.parse("--error-format", "legacy").getErrorFormat());
+        assertEquals(
+                ErrorFormat.STACKTRACE,
+                parser.parse("--error-format", "stacktrace").getErrorFormat());
+        assertEquals(ErrorFormat.LEGACY, parser.parse().getErrorFormat());
+        assertEquals(ErrorFormat.DEFAULT, parser.parse().getErrorFormat());
+    }
+
     private void assertTimeout(Duration timeout, Duration delay, String... params) {
         final var args = parse(params);
         assertEquals(timeout, args.getIdleTimeout());
@@ -554,7 +566,7 @@ usage: cypher-shell [-h] [-a ADDRESS] [-u USERNAME] [--impersonate IMPERSONATE] 
                     [--non-interactive] [--sample-rows SAMPLE-ROWS] [--wrap {true,false}] [-v]
                     [--driver-version] [-f FILE] [--change-password] [--log [LOG-FILE]]
                     [--history HISTORY-BEHAVIOUR] [--notifications] [--idle-timeout IDLE-TIMEOUT]
-                    [--fail-fast | --fail-at-end] [cypher]
+                    [--error-format {gql,legacy,stacktrace}] [--fail-fast | --fail-at-end] [cypher]
 
 Cypher Shell is a command-line tool used to  run  queries and perform administrative tasks against a
 Neo4j instance. By default, the shell  is  interactive,  but  you  can  also use it for scripting by
@@ -609,6 +621,8 @@ named arguments:
                          interactive  mode.  You  can   specify   the   duration  using  the  format
                          `<hours>h<minutes>m<seconds>s`, for example `1h` (1  hour), `1h30m` (1 hour
                          30 minutes), or `30m` (30 minutes).
+  --error-format {gql,legacy,stacktrace}
+                         Controls how errors are displayed. (default: legacy)
 
 connection arguments:
   -a ADDRESS, --address ADDRESS, --uri ADDRESS
@@ -634,12 +648,8 @@ connection arguments:
   --access-mode {read,write}
                          Access mode. Defaults to WRITE. (default: write)
 """;
-        assertThat(windowsSafe(helpText))
+        assertThat(helpText)
                 .describedAs("\n⚠️️️️⚠️⚠️ Help has changed. Remember to update docs!! ⚠️⚠️⚠️\n")
-                .isEqualTo(windowsSafe(expectedHelpText));
-    }
-
-    private String windowsSafe(String s) {
-        return s.replace("\r\n", "\n");
+                .isEqualToNormalizingNewlines(expectedHelpText);
     }
 }

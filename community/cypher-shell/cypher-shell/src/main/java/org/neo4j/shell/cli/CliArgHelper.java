@@ -205,6 +205,8 @@ public class CliArgHelper {
         ofNullable(ns.<Duration>get("idle-timeout")).ifPresent(cliArgs::setIdleTimeout);
         ofNullable(ns.<Duration>get("hidden-idle-timeout-delay")).ifPresent(cliArgs::setIdleTimeoutDelay);
 
+        cliArgs.setErrorFormat(ns.get("error-format"));
+
         return cliArgs;
     }
 
@@ -419,6 +421,12 @@ public class CliArgHelper {
                 .dest("hidden-idle-timeout-delay")
                 .type(new TimeoutHandler())
                 .help(FeatureControl.SUPPRESS);
+
+        parser.addArgument("--error-format")
+                .dest("error-format")
+                .type(Arguments.caseInsensitiveEnumStringType(ErrorFormat.class))
+                .setDefault(ErrorFormat.DEFAULT)
+                .help("Controls how errors are displayed.");
 
         return parser;
     }

@@ -299,7 +299,7 @@ class MainIntegrationTest extends TestHarness {
                 .addArgs("-u", USER, "-p", PASSWORD, "--file", fileFromResource("invalid.cypher"))
                 .run()
                 .assertFailure()
-                .assertThatErrorOutput(o -> o.contains("Invalid input"))
+                .errorOutputSatisfies(o -> assertThat(o).contains("Invalid input"))
                 .assertOutputLines("result", "42");
     }
 
@@ -523,7 +523,7 @@ class MainIntegrationTest extends TestHarness {
                 .userInputLines(":source " + file, ":exit")
                 .run()
                 .assertSuccessAndConnected(false)
-                .assertThatErrorOutput(o -> o.contains("Invalid input"))
+                .errorOutputSatisfies(o -> assertThat(o).contains("Invalid input"))
                 .assertThatOutput(
                         contains("> :source " + file + format("%nresult%n42%n") + USER + "@"), endsWithInteractiveExit);
     }
@@ -1671,6 +1671,102 @@ class MainIntegrationTest extends TestHarness {
                 .assertSuccessAndConnected(false)
                 .assertThatErrorOutput(contains("Unknown access mode sudo, available modes are READ, WRITE"))
                 .assertThatOutput(endsWithInteractiveExit);
+    }
+
+    @Test
+    void errorFormatGql() throws Exception {
+        final String expected;
+        if (isAtLeastVersion("5.27.0")) {
+            expected =
+                    """
+                    42N08: syntax error or access rule violation - no such procedure. The procedure dibs() was not found. Verify that the spelling is correct.
+                      42001: syntax error or access rule violation - invalid syntax
+
+                    """;
+        } else {
+            expected =
+                    """
+                    There is no procedure with the name `dibs` registered for this database instance. Please ensure you've spelled the procedure name correctly and that the procedure is properly deployed.
+                    """;
+        }
+        buildTest()
+                .addArgs("-u", USER, "-p", PASSWORD, "--error-format", "gql")
+                .userInputLines("call dibs;", ":exit")
+                .run()
+                .assertSuccess(false)
+                .assertThatOutput(
+                        contains(
+                                """
+                        neo4j@neo4j> call dibs;
+                        neo4j@neo4j> :exit"""))
+                .errorOutputSatisfies(err ->
+                        assertThat(err).as("serverVersion=%s", serverVersion).isEqualTo(expected));
+    }
+
+    @Test
+    void errorFormatLegacy() throws Exception {
+        buildTest()
+                .addArgs("-u", USER, "-p", PASSWORD, "--error-format", "legacy")
+                .userInputLines("call dibs;", ":exit")
+                .run()
+                .assertSuccess(false)
+                .assertThatOutput(
+                        contains(
+                                """
+                        neo4j@neo4j> call dibs;
+                        neo4j@neo4j> :exit"""))
+                .errorOutputSatisfies(
+                        err -> assertThat(err)
+                                .isEqualTo(
+                                        """
+                        There is no procedure with the name `dibs` registered for this database instance. Please ensure you've spelled the procedure name correctly and that the procedure is properly deployed.
+                        """));
+    }
+
+    @Test
+    void errorFormatDefault() throws Exception {
+        buildTest()
+                .addArgs("-u", USER, "-p", PASSWORD)
+                .userInputLines("call dibs;", ":exit")
+                .run()
+                .assertSuccess(false)
+                .assertThatOutput(
+                        contains(
+                                """
+                        neo4j@neo4j> call dibs;
+                        neo4j@neo4j> :exit"""))
+                .errorOutputSatisfies(
+                        err -> assertThat(err)
+                                .isEqualTo(
+                                        """
+                    There is no procedure with the name `dibs` registered for this database instance. Please ensure you've spelled the procedure name correctly and that the procedure is properly deployed.
+                    """));
+    }
+
+    @Test
+    void errorFormatStacktrace() throws Exception {
+        final List<String> expected;
+        if (isAtLeastVersion("5.27.0")) {
+            expected = List.of(
+                    "org.neo4j.driver.exceptions.ClientException: There is no procedure with the name `dibs`",
+                    "Suppressed: org.neo4j.driver.internal.util.ErrorUtil$InternalExceptionCause",
+                    "Caused by: org.neo4j.driver.exceptions.Neo4jException: 42N08: The procedure dibs() was not found.");
+        } else {
+            expected = List.of(
+                    "org.neo4j.driver.exceptions.ClientException: There is no procedure with the name `dibs` registered for this database instance",
+                    "Suppressed: org.neo4j.driver.internal.util.ErrorUtil$InternalExceptionCause");
+        }
+        buildTest()
+                .addArgs("-u", USER, "-p", PASSWORD, "--error-format", "stacktrace")
+                .userInputLines("call dibs;", ":exit")
+                .run()
+                .assertSuccess(false)
+                .assertThatOutput(
+                        contains(
+                                """
+                        neo4j@neo4j> call dibs;
+                        neo4j@neo4j> :exit"""))
+                .errorOutputSatisfies(err -> assertThat(err).contains(expected));
     }
 
     private static CypherStatement cypher(String cypher) {

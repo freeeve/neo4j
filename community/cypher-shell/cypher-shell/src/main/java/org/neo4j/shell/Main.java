@@ -64,7 +64,7 @@ public class Main implements AutoCloseable {
 
     public Main(CliArgs args) {
         boolean isInteractive = !args.getNonInteractive() && ShellRunner.isInputInteractive();
-        this.printer = new AnsiPrinter(Format.VERBOSE, System.out, System.err);
+        this.printer = new AnsiPrinter(Format.VERBOSE, args.getErrorFormat(), System.out, System.err);
         this.args = args;
         var boltStateHandler = new BoltStateHandler(shouldBeInteractive(args, isInteractive), args.getAccessMode());
         var completionsEnabledByConfig = args.getEnableAutocompletions();
@@ -99,7 +99,7 @@ public class Main implements AutoCloseable {
             ParameterService parameters) {
         this.terminal = terminal;
         this.args = args;
-        this.printer = new AnsiPrinter(Format.VERBOSE, out, err);
+        this.printer = new AnsiPrinter(Format.VERBOSE, args.getErrorFormat(), out, err);
         final var isInteractive = shouldBeInteractive(args, terminal.isInteractive());
         this.parameters = parameters;
         this.shell = new CypherShell(

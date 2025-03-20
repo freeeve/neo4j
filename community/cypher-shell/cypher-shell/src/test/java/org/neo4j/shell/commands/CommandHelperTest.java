@@ -25,6 +25,8 @@ import static org.mockito.Mockito.mock;
 import org.junit.jupiter.api.Test;
 import org.neo4j.shell.CypherShell;
 import org.neo4j.shell.Historian;
+import org.neo4j.shell.cli.ErrorFormat;
+import org.neo4j.shell.cli.Format;
 import org.neo4j.shell.completions.DbInfo;
 import org.neo4j.shell.parameter.ParameterService;
 import org.neo4j.shell.prettyprint.PrettyConfig;
@@ -33,7 +35,7 @@ import org.neo4j.shell.printer.AnsiPrinter;
 import org.neo4j.shell.state.BoltStateHandler;
 
 class CommandHelperTest {
-    private final AnsiPrinter logger = new AnsiPrinter();
+    private final AnsiPrinter logger = new AnsiPrinter(Format.VERBOSE, ErrorFormat.DEFAULT, null, null);
     private final ParameterService parameters = mock(ParameterService.class);
     private final BoltStateHandler boltStateHandler = mock(BoltStateHandler.class);
     private final DbInfo dbInfo = mock(DbInfo.class);

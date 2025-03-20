@@ -63,6 +63,7 @@ public class CliArgs {
     private boolean notificationsEnabled;
     private Duration idleTimeout = DEFAULT_IDLE_TIMEOUT;
     private Duration idleTimeoutDelay = DEFAULT_IDLE_TIMEOUT_DELAY;
+    private ErrorFormat errorFormat = ErrorFormat.DEFAULT;
 
     /**
      * Set the username to the primary value, or if null, the fallback value.
@@ -292,5 +293,13 @@ public class CliArgs {
 
     public Duration getIdleTimeoutDelay() {
         return idleTimeoutDelay;
+    }
+
+    public void setErrorFormat(ErrorFormat errorFormat) {
+        this.errorFormat = errorFormat;
+    }
+
+    public ErrorFormat getErrorFormat() {
+        return errorFormat;
     }
 }
