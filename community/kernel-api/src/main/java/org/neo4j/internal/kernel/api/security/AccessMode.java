@@ -23,9 +23,11 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
+import org.neo4j.internal.kernel.api.LabelsSupplier;
 import org.neo4j.internal.kernel.api.RelTypeSupplier;
 import org.neo4j.internal.kernel.api.TokenSet;
 import org.neo4j.storageengine.api.PropertySelection;
@@ -202,23 +204,25 @@ public interface AccessMode {
 
         @Override
         public boolean allowsReadNodePropertiesWithPropertyRules(
-                Supplier<TokenSet> labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
+                LabelsSupplier labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
             return read;
         }
 
         @Override
-        public boolean allowsReadNodeProperties(Supplier<TokenSet> labels, int[] propertyKeys) {
+        public boolean allowsReadNodeProperties(LabelsSupplier labels, int[] propertyKeys) {
             return read;
         }
 
         @Override
-        public boolean allowsReadNodePropertyWithPropertyRules(
-                Supplier<TokenSet> labels, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
-            return read;
+        public IntPredicate allowedToReadNodeProperties(
+                LabelsSupplier labels,
+                Supplier<SelectedPropertiesProvider> propertyProvider,
+                PropertySelection selection) {
+            return key -> read;
         }
 
         @Override
-        public boolean allowsReadNodeProperty(Supplier<TokenSet> labels, int propertyKey) {
+        public boolean allowsReadNodeProperty(LabelsSupplier labels, int propertyKey) {
             return read;
         }
 
@@ -244,9 +248,11 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean allowsReadRelPropertyWithPropertyRules(
-                RelTypeSupplier relType, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
-            return read;
+        public IntPredicate allowedToReadRelationshipProperties(
+                RelTypeSupplier relType,
+                Supplier<SelectedPropertiesProvider> propertyProvider,
+                PropertySelection selection) {
+            return key -> read;
         }
 
         @Override
@@ -375,7 +381,7 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean allowsSetProperty(Supplier<TokenSet> labels, int propertyKey) {
+        public boolean allowsSetProperty(LabelsSupplier labels, int propertyKey) {
             return write;
         }
 
@@ -529,7 +535,7 @@ public interface AccessMode {
      * @return {@code true} if the principal is allowed to read ALL of the requested {@code propertyKeys}
      */
     boolean allowsReadNodePropertiesWithPropertyRules(
-            Supplier<TokenSet> labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider);
+            LabelsSupplier labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider);
 
     /**
      * determines whether the authenticated principal is allowed to read the specified {@code propertyKeys} according
@@ -539,19 +545,18 @@ public interface AccessMode {
      * @param propertyKeys the properties which the principal is requesting to read
      * @return {@code true} if the principal is allowed to read ALL of the requested {@code propertyKeys}
      */
-    boolean allowsReadNodeProperties(Supplier<TokenSet> labels, int[] propertyKeys);
+    boolean allowsReadNodeProperties(LabelsSupplier labels, int[] propertyKeys);
 
     /**
-     * determines whether the authenticated principal is allowed to read the specified {@code propertyKey} according
-     * to the property-based RBAC read rules AND the label-based RBAC rules.
-     * Optimised for a single-property reads.
+     * Returns predicate that determines whether the authenticated principal is allowed to read the specified {@code propertyKey}
+     * according to the property-based RBAC read rules AND the label-based RBAC rules.
      * @param labels the labels of the node in question. Used to determine which RBAC rules are applicable.
-     * @param propertyKey the property which the principal is requesting to read
      * @param propertyProvider the provider of the node's property values. Used as operands for the property rules.
-     * @return {@code true} if the principal is allowed to read  the requested {@code propertyKey}
+     * @param selection property selection requested to read.
+     * @return {@code IntPredicate} which when applied to {@code propertyKey} answers {@code true} if the principal is allowed to read that {@code propertyKey}
      */
-    boolean allowsReadNodePropertyWithPropertyRules(
-            Supplier<TokenSet> labels, int propertyKey, ReadSecurityPropertyProvider propertyProvider);
+    IntPredicate allowedToReadNodeProperties(
+            LabelsSupplier labels, Supplier<SelectedPropertiesProvider> propertyProvider, PropertySelection selection);
 
     /**
      * determines whether the authenticated principal is allowed to read the specified {@code propertyKey} according
@@ -561,7 +566,7 @@ public interface AccessMode {
      * @param propertyKey the property which the principal is requesting to read
      * @return {@code true} if the principal is allowed to read  the requested {@code propertyKey}
      */
-    boolean allowsReadNodeProperty(Supplier<TokenSet> labels, int propertyKey);
+    boolean allowsReadNodeProperty(LabelsSupplier labels, int propertyKey);
 
     boolean allowsReadPropertyAllRelTypes(int propertyKey);
 
@@ -590,16 +595,17 @@ public interface AccessMode {
     boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys);
 
     /**
-     * determines whether the authenticated principal is allowed to read the specified {@code propertyKey} according
-     * to the property-based RBAC read rules AND the type-based RBAC rules.
-     * Optimised for a single-property reads.
+     * Returns predicate that determines whether the authenticated principal is allowed to read the specified {@code propertyKey}
+     * according to the property-based RBAC read rules AND the label-based RBAC rules.
      * @param relType the type of the relationship in question. Used to determine which RBAC rules are applicable.
-     * @param propertyKey the property which the principal is requesting to read
      * @param propertyProvider the provider of the relationship's property values. Used as operands for the property rules.
-     * @return {@code true} if the principal is allowed to read  the requested {@code propertyKey}
+     * @param selection property selection requested to read.
+     * @return {@code IntPredicate} which when applied to {@code propertyKey} answers {@code true} if the principal is allowed to read that {@code propertyKey}
      */
-    boolean allowsReadRelPropertyWithPropertyRules(
-            RelTypeSupplier relType, int propertyKey, ReadSecurityPropertyProvider propertyProvider);
+    IntPredicate allowedToReadRelationshipProperties(
+            RelTypeSupplier relType,
+            Supplier<SelectedPropertiesProvider> propertyProvider,
+            PropertySelection selection);
 
     boolean allowsSeePropertyKeyToken(int propertyKey);
 
@@ -750,7 +756,7 @@ public interface AccessMode {
 
     boolean allowsDeleteRelationship(int relType);
 
-    boolean allowsSetProperty(Supplier<TokenSet> labels, int propertyKey);
+    boolean allowsSetProperty(LabelsSupplier labels, int propertyKey);
 
     boolean allowsSetProperty(RelTypeSupplier relType, int propertyKey);
 

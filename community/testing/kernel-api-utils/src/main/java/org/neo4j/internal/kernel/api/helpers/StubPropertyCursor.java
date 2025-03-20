@@ -74,16 +74,6 @@ public class StubPropertyCursor extends DefaultCloseListenable implements Proper
     }
 
     @Override
-    public boolean allowed(int propertyKey) {
-        return true;
-    }
-
-    @Override
-    public boolean allowed(int[] propertyKeys, int[] labels) {
-        return true;
-    }
-
-    @Override
     public void setTracer(KernelReadTracer tracer) {
         throw new UnsupportedOperationException("not implemented");
     }

@@ -21,10 +21,12 @@ package org.neo4j.kernel.impl.api.security;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.factory.primitive.IntSets;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
+import org.neo4j.internal.kernel.api.LabelsSupplier;
 import org.neo4j.internal.kernel.api.RelTypeSupplier;
 import org.neo4j.internal.kernel.api.TokenSet;
 import org.neo4j.internal.kernel.api.security.AccessMode;
@@ -167,26 +169,35 @@ public class RestrictedAccessMode extends WrappedAccessMode {
 
     @Override
     public boolean allowsReadNodePropertiesWithPropertyRules(
-            Supplier<TokenSet> labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
+            LabelsSupplier labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
         return original.allowsReadNodePropertiesWithPropertyRules(labels, propertyKeys, propertyProvider)
                 && wrapping.allowsReadNodePropertiesWithPropertyRules(labels, propertyKeys, propertyProvider);
     }
 
     @Override
-    public boolean allowsReadNodeProperties(Supplier<TokenSet> labels, int[] propertyKeys) {
+    public boolean allowsReadNodeProperties(LabelsSupplier labels, int[] propertyKeys) {
         return original.allowsReadNodeProperties(labels, propertyKeys)
                 && wrapping.allowsReadNodeProperties(labels, propertyKeys);
     }
 
     @Override
-    public boolean allowsReadNodePropertyWithPropertyRules(
-            Supplier<TokenSet> labels, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
-        return original.allowsReadNodePropertyWithPropertyRules(labels, propertyKey, propertyProvider)
-                && wrapping.allowsReadNodePropertyWithPropertyRules(labels, propertyKey, propertyProvider);
+    public IntPredicate allowedToReadNodeProperties(
+            LabelsSupplier labels, Supplier<SelectedPropertiesProvider> propertyProvider, PropertySelection selection) {
+        return original.allowedToReadNodeProperties(labels, propertyProvider, selection)
+                .and(wrapping.allowedToReadNodeProperties(labels, propertyProvider, selection));
     }
 
     @Override
-    public boolean allowsReadNodeProperty(Supplier<TokenSet> labels, int propertyKey) {
+    public IntPredicate allowedToReadRelationshipProperties(
+            RelTypeSupplier relType,
+            Supplier<SelectedPropertiesProvider> propertyProvider,
+            PropertySelection selection) {
+        return original.allowedToReadRelationshipProperties(relType, propertyProvider, selection)
+                .and(wrapping.allowedToReadRelationshipProperties(relType, propertyProvider, selection));
+    }
+
+    @Override
+    public boolean allowsReadNodeProperty(LabelsSupplier labels, int propertyKey) {
         return original.allowsReadNodeProperty(labels, propertyKey)
                 && wrapping.allowsReadNodeProperty(labels, propertyKey);
     }
@@ -214,13 +225,6 @@ public class RestrictedAccessMode extends WrappedAccessMode {
     public boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys) {
         return original.allowsReadRelProperties(relType, propertyKeys)
                 && wrapping.allowsReadRelProperties(relType, propertyKeys);
-    }
-
-    @Override
-    public boolean allowsReadRelPropertyWithPropertyRules(
-            RelTypeSupplier relType, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
-        return original.allowsReadRelPropertyWithPropertyRules(relType, propertyKey, propertyProvider)
-                && wrapping.allowsReadRelPropertyWithPropertyRules(relType, propertyKey, propertyProvider);
     }
 
     @Override
@@ -321,7 +325,7 @@ public class RestrictedAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean allowsSetProperty(Supplier<TokenSet> labels, int propertyKey) {
+    public boolean allowsSetProperty(LabelsSupplier labels, int propertyKey) {
         return original.allowsSetProperty(labels, propertyKey) && wrapping.allowsSetProperty(labels, propertyKey);
     }
 

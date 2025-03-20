@@ -159,10 +159,10 @@ abstract class DefaultRelationshipCursor<SELF extends DefaultRelationshipCursor<
 
     protected abstract boolean allowedToTraverseEndNodes();
 
-    protected AccessControlPropertiesProvider getSelectedPropertiesProvider() {
+    private AccessControlPropertiesProvider getSelectedPropertiesProvider() {
         if (accessControlPropertiesProvider == null) {
             accessControlPropertiesProvider = new AccessControlPropertiesProvider(
-                    storeCursor, internalCursors, applyAccessModeToTxState, this::txStateProperties);
+                    () -> storeCursor::properties, internalCursors, applyAccessModeToTxState, this::txStateProperties);
         }
         return accessControlPropertiesProvider;
     }

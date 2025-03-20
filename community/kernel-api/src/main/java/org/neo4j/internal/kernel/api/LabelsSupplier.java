@@ -19,16 +19,7 @@
  */
 package org.neo4j.internal.kernel.api;
 
-import org.neo4j.values.storable.Value;
-import org.neo4j.values.storable.ValueGroup;
-
-/**
- * Cursor for scanning the properties of a node or relationship.
- */
-public interface PropertyCursor extends Cursor {
-    int propertyKey();
-
-    ValueGroup propertyType();
-
-    Value propertyValue();
+@FunctionalInterface
+public interface LabelsSupplier {
+    TokenSet getLabels();
 }

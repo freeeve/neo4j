@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.newapi;
 import static org.neo4j.collection.PrimitiveLongCollections.mergeToSet;
 
 import org.eclipse.collections.api.set.primitive.LongSet;
+import org.eclipse.collections.impl.factory.primitive.IntLists;
 import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
@@ -120,11 +121,21 @@ class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<DefaultN
         AccessMode accessMode = accessModeProvider.getAccessMode();
         if (accessMode.hasNodePropertyReadRules(propertyIds)) {
             ensureSecurityPropertyCursor();
-            securityNodeCursor.properties(securityPropertyCursor, PropertySelection.selection(propertyIds));
-            return securityPropertyCursor.allowed(propertyIds, labels);
+            PropertySelection propertySelection = PropertySelection.onlyKeysSelection(propertyIds);
+            securityNodeCursor.properties(securityPropertyCursor, propertySelection);
+            return testPropertyCursor();
         } else {
             return accessMode.allowsReadNodeProperties(() -> Labels.from(labels), propertyIds);
         }
+    }
+
+    private boolean testPropertyCursor() {
+        // TODO bring back faster check going directly to accessMode
+        var foundKeys = IntLists.mutable.empty();
+        while (securityPropertyCursor.next()) {
+            foundKeys.add(securityPropertyCursor.propertyKey());
+        }
+        return foundKeys.containsAll(propertyIds);
     }
 
     @Override

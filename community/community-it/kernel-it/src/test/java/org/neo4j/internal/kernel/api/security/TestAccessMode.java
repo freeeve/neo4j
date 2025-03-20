@@ -21,9 +21,11 @@ package org.neo4j.internal.kernel.api.security;
 
 import java.net.InetAddress;
 import java.net.URI;
+import java.util.function.IntPredicate;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
+import org.neo4j.internal.kernel.api.LabelsSupplier;
 import org.neo4j.internal.kernel.api.RelTypeSupplier;
 import org.neo4j.internal.kernel.api.TokenSet;
 import org.neo4j.storageengine.api.PropertySelection;
@@ -162,23 +164,23 @@ public class TestAccessMode implements AccessMode {
 
     @Override
     public boolean allowsReadNodePropertiesWithPropertyRules(
-            Supplier<TokenSet> labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
+            LabelsSupplier labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
         return allowRead;
     }
 
     @Override
-    public boolean allowsReadNodeProperties(Supplier<TokenSet> labels, int[] propertyKeys) {
+    public boolean allowsReadNodeProperties(LabelsSupplier labels, int[] propertyKeys) {
         return allowRead;
     }
 
     @Override
-    public boolean allowsReadNodePropertyWithPropertyRules(
-            Supplier<TokenSet> labels, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
-        return allowRead;
+    public IntPredicate allowedToReadNodeProperties(
+            LabelsSupplier labels, Supplier<SelectedPropertiesProvider> propertyProvider, PropertySelection selection) {
+        return key -> allowRead;
     }
 
     @Override
-    public boolean allowsReadNodeProperty(Supplier<TokenSet> labels, int propertyKey) {
+    public boolean allowsReadNodeProperty(LabelsSupplier labels, int propertyKey) {
         return allowRead;
     }
 
@@ -204,9 +206,11 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean allowsReadRelPropertyWithPropertyRules(
-            RelTypeSupplier relType, int propertyKey, ReadSecurityPropertyProvider propertyProvider) {
-        return allowRead;
+    public IntPredicate allowedToReadRelationshipProperties(
+            RelTypeSupplier relType,
+            Supplier<SelectedPropertiesProvider> propertyProvider,
+            PropertySelection selection) {
+        return key -> allowRead;
     }
 
     @Override
@@ -335,7 +339,7 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean allowsSetProperty(Supplier<TokenSet> labels, int propertyKey) {
+    public boolean allowsSetProperty(LabelsSupplier labels, int propertyKey) {
         return allowWrite;
     }
 

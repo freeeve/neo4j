@@ -72,7 +72,6 @@ import org.neo4j.storageengine.api.Reference;
 import org.neo4j.storageengine.api.RelationshipSelection;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
-import org.neo4j.storageengine.api.txstate.RelationshipState;
 import org.neo4j.token.api.TokenConstants;
 import org.neo4j.util.Preconditions;
 import org.neo4j.values.storable.Value;
@@ -808,38 +807,49 @@ public class KernelRead implements Read {
     @Override
     public Value nodePropertyChangeInBatchOrNull(long node, int propertyKeyId) {
         performCheckBeforeOperation();
-        if (txStateHolder.hasTxStateWithChanges()) {
-            if (applyAccessModeToTxState) {
-                try (NodeCursor nodeCursor = cursors.allocateNodeCursor(queryContext.cursorContext(), memoryTracker)) {
-                    singleNode(node, nodeCursor);
-                    nodeCursor.next();
-                    try (PropertyCursor propertyCursor =
-                            cursors.allocatePropertyCursor(queryContext.cursorContext(), memoryTracker)) {
-                        nodeCursor.properties(propertyCursor, PropertySelection.selection(propertyKeyId));
-                        return propertyCursor.allowed(propertyKeyId)
-                                ? txStateHolder.txState().getNodeState(node).propertyValue(propertyKeyId)
-                                : null;
-                    }
-                }
-            } else {
-                return txStateHolder.txState().getNodeState(node).propertyValue(propertyKeyId);
-            }
+        if (txStateHolder.hasTxStateWithChanges() && nodePropertyAllowed(node, propertyKeyId)) {
+            return txStateHolder.txState().getNodeState(node).propertyValue(propertyKeyId);
         }
         return null;
+    }
+
+    private boolean nodePropertyAllowed(long node, int propertyKeyId) {
+        return !applyAccessModeToTxState || checkNodePropertyAllowedUsingCursor(node, propertyKeyId);
+    }
+
+    private boolean checkNodePropertyAllowedUsingCursor(long node, int propertyKeyId) {
+        try (var nodeCursor = cursors.allocateNodeCursor(queryContext.cursorContext(), memoryTracker)) {
+            singleNode(node, nodeCursor);
+            nodeCursor.next();
+            try (var propertyCursor = cursors.allocatePropertyCursor(queryContext.cursorContext(), memoryTracker)) {
+                nodeCursor.properties(propertyCursor, PropertySelection.selection(propertyKeyId));
+                return propertyCursor.next();
+            }
+        }
     }
 
     @Override
     public Value relationshipPropertyChangeInBatchOrNull(long relationship, int propertyKeyId) {
         performCheckBeforeOperation();
-        if (txStateHolder.hasTxStateWithChanges()) {
-            RelationshipState relationshipState = txStateHolder.txState().getRelationshipState(relationship);
-            return !applyAccessModeToTxState
-                            || (relationshipState.hasPropertyChanges()
-                                    && getAccessMode().allowsReadRelProperty(relationshipState::getType, propertyKeyId))
-                    ? relationshipState.propertyValue(propertyKeyId)
-                    : null;
+        if (txStateHolder.hasTxStateWithChanges() && relPropertyAllowed(relationship, propertyKeyId)) {
+            return txStateHolder.txState().getRelationshipState(relationship).propertyValue(propertyKeyId);
         }
         return null;
+    }
+
+    private boolean relPropertyAllowed(long relationship, int propertyKeyId) {
+        return !applyAccessModeToTxState || checkRelPropertyAllowedUsingCursor(relationship, propertyKeyId);
+    }
+
+    private boolean checkRelPropertyAllowedUsingCursor(long relationship, int propertyKeyId) {
+        try (var cursor = cursors.allocateRelationshipScanCursor(queryContext.cursorContext(), memoryTracker)) {
+            singleRelationship(relationship, cursor);
+            cursor.next();
+            try (var propertyCursor = cursors.allocatePropertyCursor(queryContext.cursorContext(), memoryTracker)) {
+                cursor.properties(propertyCursor, PropertySelection.selection(propertyKeyId));
+                return propertyCursor.next();
+            }
+        }
     }
 
     @Override

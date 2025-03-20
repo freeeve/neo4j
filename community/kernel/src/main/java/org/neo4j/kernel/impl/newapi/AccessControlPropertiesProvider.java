@@ -19,13 +19,13 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.neo4j.internal.kernel.api.security.SelectedPropertiesProvider;
 import org.neo4j.storageengine.api.PropertySelection;
-import org.neo4j.storageengine.api.StorageEntityCursor;
 import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.storageengine.api.StoragePropertyCursor;
 import org.neo4j.values.storable.Value;
@@ -38,18 +38,18 @@ import org.neo4j.values.storable.Value;
  */
 class AccessControlPropertiesProvider implements SelectedPropertiesProvider, AutoCloseable {
 
-    private final StorageEntityCursor storeCursor;
+    private final Supplier<BiConsumer<StoragePropertyCursor, PropertySelection>> propertyInitializer;
     private final InternalCursorFactory internalCursors;
     private final boolean applyAccessModeToTxState;
     private final Supplier<Iterable<StorageProperty>> txStateProperties;
     private StoragePropertyCursor propertyCursor;
 
     public AccessControlPropertiesProvider(
-            StorageEntityCursor storeCursor,
+            Supplier<BiConsumer<StoragePropertyCursor, PropertySelection>> propertyInitializer,
             InternalCursorFactory internalCursors,
             boolean applyAccessModeToTxState,
             Supplier<Iterable<StorageProperty>> txStateProperties) {
-        this.storeCursor = storeCursor;
+        this.propertyInitializer = propertyInitializer;
         this.internalCursors = internalCursors;
         this.applyAccessModeToTxState = applyAccessModeToTxState;
         this.txStateProperties = txStateProperties;
@@ -58,7 +58,7 @@ class AccessControlPropertiesProvider implements SelectedPropertiesProvider, Aut
     @Override
     public IntObjectMap<Value> get(PropertySelection properties) {
         MutableIntObjectMap<Value> result = IntObjectMaps.mutable.empty();
-        fillFromStorage(storeCursor, properties, result);
+        fillFromStorage(propertyInitializer.get(), properties, result);
         fillFromTxState(properties, result);
         return result;
     }
@@ -75,9 +75,11 @@ class AccessControlPropertiesProvider implements SelectedPropertiesProvider, Aut
     }
 
     private void fillFromStorage(
-            StorageEntityCursor storageCursor, PropertySelection propertySelection, MutableIntObjectMap<Value> result) {
+            BiConsumer<StoragePropertyCursor, PropertySelection> propertyInitializer,
+            PropertySelection propertySelection,
+            MutableIntObjectMap<Value> result) {
         var propertyCursor = getPropertyCursor();
-        storageCursor.properties(propertyCursor, propertySelection);
+        propertyInitializer.accept(propertyCursor, propertySelection);
         while (propertyCursor.next()) {
             result.put(propertyCursor.propertyKey(), propertyCursor.propertyValue());
         }
