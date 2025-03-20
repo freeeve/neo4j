@@ -30,8 +30,8 @@ import org.neo4j.cypher.internal.util.attribution.Id
 
 case class UndirectedAllRelationshipsScanSlottedPipe(
   relOffset: Int,
-  fromOffset: Int,
-  toOffset: Int
+  fromOffset: Option[Int],
+  toOffset: Option[Int]
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {

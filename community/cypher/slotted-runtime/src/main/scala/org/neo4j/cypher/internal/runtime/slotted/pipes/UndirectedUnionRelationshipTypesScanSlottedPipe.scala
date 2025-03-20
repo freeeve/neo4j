@@ -30,9 +30,9 @@ import org.neo4j.cypher.internal.util.attribution.Id
 
 case class UndirectedUnionRelationshipTypesScanSlottedPipe(
   relOffset: Int,
-  fromOffset: Int,
+  fromOffset: Option[Int],
   types: Seq[LazyTypeStatic],
-  toOffset: Int,
+  toOffset: Option[Int],
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 

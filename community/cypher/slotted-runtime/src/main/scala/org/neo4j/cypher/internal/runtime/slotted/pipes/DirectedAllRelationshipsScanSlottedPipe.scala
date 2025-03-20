@@ -30,9 +30,11 @@ import org.neo4j.cypher.internal.util.attribution.Id
 
 case class DirectedAllRelationshipsScanSlottedPipe(
   relOffset: Int,
-  fromOffset: Int,
-  toOffset: Int
+  fromOffset: Option[Int],
+  toOffset: Option[Int]
 )(val id: Id = Id.INVALID_ID) extends Pipe {
+
+  private val relationshipWriter = Relationships.compileRelationshipWriter(relOffset, fromOffset, toOffset)
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val query: QueryContext = state.query
@@ -41,9 +43,7 @@ case class DirectedAllRelationshipsScanSlottedPipe(
       relIterator,
       { relId =>
         val context = state.newRowWithArgument(rowFactory)
-        context.setLongAt(relOffset, relId)
-        context.setLongAt(fromOffset, relIterator.startNodeId())
-        context.setLongAt(toOffset, relIterator.endNodeId())
+        relationshipWriter.writeRow(context, relId, relIterator.startNodeId(), relIterator.endNodeId())
         context
       }
     )

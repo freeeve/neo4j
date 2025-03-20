@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.runtime.slotted.pipes
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.QueryExpression
-import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
 import org.neo4j.cypher.internal.physicalplanning.SlottedIndexedProperty
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
@@ -34,19 +33,16 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.attribution.Id
 
 case class DirectedRelationshipIndexSeekSlottedPipe(
-  ident: String,
-  startNode: Option[String],
-  endNode: Option[String],
+  offset: Int,
+  startNode: Option[Int],
+  endNode: Option[Int],
   relType: RelationshipTypeToken,
   properties: IndexedSeq[SlottedIndexedProperty],
   queryIndexId: Int,
   valueExpr: QueryExpression[Expression],
   indexMode: IndexSeekMode,
-  indexOrder: IndexOrder,
-  slots: SlotConfiguration
+  indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe with EntityIndexSeeker with IndexSlottedPipeWithValues {
-
-  override val offset: Int = slots.longOffset(ident)
 
   override val propertyIds: Array[Int] = properties.map(_.propertyKeyId).toArray
 
@@ -62,8 +58,8 @@ case class DirectedRelationshipIndexSeekSlottedPipe(
     val context = state.newRowWithArgument(rowFactory)
     new SlottedRelationshipIndexIterator(
       state,
-      slots.getLongSlot(startNode),
-      slots.getLongSlot(endNode),
+      startNode,
+      endNode,
       relationshipIndexSeek(state, index, needsValues, indexOrder, context)
     )
   }

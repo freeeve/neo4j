@@ -31,11 +31,13 @@ import org.neo4j.cypher.internal.util.attribution.Id
 
 case class DirectedUnionRelationshipTypesScanSlottedPipe(
   relOffset: Int,
-  fromOffset: Int,
+  fromOffset: Option[Int],
   types: Seq[LazyTypeStatic],
-  toOffset: Int,
+  toOffset: Option[Int],
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe {
+
+  private val relationshipWriter = Relationships.compileRelationshipWriter(relOffset, fromOffset, toOffset)
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val relIterator = unionTypeIterator(state, types, indexOrder, state.relTypeTokenReadSession.get)
@@ -43,9 +45,7 @@ case class DirectedUnionRelationshipTypesScanSlottedPipe(
       relIterator,
       { relId =>
         val context = state.newRowWithArgument(rowFactory)
-        context.setLongAt(relOffset, relId)
-        context.setLongAt(fromOffset, relIterator.startNodeId())
-        context.setLongAt(toOffset, relIterator.endNodeId())
+        relationshipWriter.writeRow(context, relId, relIterator.startNodeId(), relIterator.endNodeId())
         context
       }
     )

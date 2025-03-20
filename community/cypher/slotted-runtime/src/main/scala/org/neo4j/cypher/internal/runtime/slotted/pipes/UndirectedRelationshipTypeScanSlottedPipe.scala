@@ -34,9 +34,9 @@ import org.neo4j.cypher.internal.util.attribution.Id
 
 case class UndirectedRelationshipTypeScanSlottedPipe(
   relOffset: Int,
-  fromOffset: Int,
+  fromOffset: Option[Int],
   typ: LazyTypeStatic,
-  toOffset: Int,
+  toOffset: Option[Int],
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
@@ -56,32 +56,29 @@ object UndirectedRelationshipTypeScanSlottedPipe {
   class UndirectedIterator(
     relIterator: ClosingLongIterator with RelationshipIterator,
     relOffset: Int,
-    fromOffset: Int,
-    toOffset: Int,
+    fromOffset: Option[Int],
+    toOffset: Option[Int],
     rowFactory: CypherRowFactory,
     state: QueryState
   ) extends ClosingIterator[CypherRow] {
     private var emitSibling = false
     private var lastRelationship: Long = -1L
-    private var lastStart: Long = -1L
-    private var lastEnd: Long = -1L
+
+    private val relationshipWriter = Relationships.compileRelationshipWriter(relOffset, fromOffset, toOffset)
 
     def next(): CypherRow = {
       val context = state.newRowWithArgument(rowFactory)
       if (emitSibling) {
         emitSibling = false
-        context.setLongAt(fromOffset, lastEnd)
-        context.setLongAt(toOffset, lastStart)
+        relationshipWriter.writeRow(context, lastRelationship, relIterator.endNodeId(), relIterator.startNodeId())
       } else {
         lastRelationship = relIterator.next()
-        lastStart = relIterator.startNodeId()
-        lastEnd = relIterator.endNodeId()
+        val lastStart = relIterator.startNodeId()
+        val lastEnd = relIterator.endNodeId()
         // For self-loops, we don't emit sibling
         emitSibling = lastStart != lastEnd
-        context.setLongAt(fromOffset, lastStart)
-        context.setLongAt(toOffset, lastEnd)
+        relationshipWriter.writeRow(context, lastRelationship, lastStart, lastEnd)
       }
-      context.setLongAt(relOffset, lastRelationship)
       context
     }
 
