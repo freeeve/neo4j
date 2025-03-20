@@ -22,10 +22,8 @@ package org.neo4j.internal.recordstorage.validation;
 import static java.util.Collections.emptyMap;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.multi_version_dump_transaction_validation_page_locks;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.multi_version_transaction_validation_fail_fast;
-import static org.neo4j.internal.recordstorage.MultiversionResourceLocker.PAGE_ID_BITS;
 import static org.neo4j.kernel.impl.store.RecordPageLocationCalculator.pageIdForRecord;
 import static org.neo4j.kernel.impl.store.StoreType.STORE_TYPES;
-import static org.neo4j.lock.ResourceType.PAGE;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -56,6 +54,7 @@ import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.txstate.validation.TransactionConflictException;
 import org.neo4j.storageengine.api.txstate.validation.TransactionValidator;
 import org.neo4j.storageengine.api.txstate.validation.ValidationLockDumper;
+import org.neo4j.storageengine.util.VersionValidation;
 
 public class TransactionCommandValidator implements CommandVisitor, TransactionValidator {
 
@@ -253,21 +252,16 @@ public class TransactionCommandValidator implements CommandVisitor, TransactionV
         }
 
         var versionContext = cursorContext.getVersionContext();
-        long resourceId = pageId | ((long) position << PAGE_ID_BITS);
-        if (failFast) {
-            if (!validationLockClient.tryExclusiveLock(PAGE, resourceId)) {
-                throw TransactionConflictException.transactionConflict(storeType.getDatabaseFile(), pageId);
-            }
-        } else {
-            validationLockClient.acquireExclusive(lockTracer, PAGE, resourceId);
-        }
-        if (pageCursor.next(pageId)) {
-            if (versionContext.invisibleHeadObserved()) {
-                transactionMonitor.transactionValidationFailure(storeType.getDatabaseFile());
-                throw TransactionConflictException.transactionConflict(
-                        storeType.getDatabaseFile(), versionContext, pageId);
-            }
-        }
+        VersionValidation.validatePageVersion(
+                storeType.getDatabaseFile(),
+                pageId,
+                versionContext,
+                pageCursor,
+                position,
+                failFast,
+                validationLockClient,
+                transactionMonitor,
+                lockTracer);
         checkedStorePages.add(pageId);
 
         if (dumpLocks) {
