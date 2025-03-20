@@ -23,6 +23,7 @@ import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.DELETE_ON_CLOSE;
 import static java.nio.file.StandardOpenOption.READ;
 import static java.nio.file.StandardOpenOption.WRITE;
+import static org.neo4j.internal.helpers.MathUtil.roundUp;
 import static org.neo4j.internal.unsafe.UnsafeUtil.getDirectByteBufferAddress;
 import static org.neo4j.internal.unsafe.UnsafeUtil.setMemory;
 
@@ -87,7 +88,7 @@ class SwappingBufferFactory implements BufferFactory, AutoCloseable {
     @Override
     public AllocatedBuffer allocate(int size, MemoryTracker memoryTracker) {
         try {
-            long start = currentEnd.getAndAdd(size);
+            long start = currentEnd.getAndAdd(roundUp(size, Long.BYTES));
             final MappedByteBuffer mapped = channel.map(FileChannel.MapMode.PRIVATE, start, size);
 
             AutoCloseable closeable = FORCE_UNMAP ? (() -> UnsafeUtil.invokeCleaner(mapped)) : null;

@@ -19,6 +19,7 @@
  */
 package org.neo4j.internal.batchimport.cache;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -27,8 +28,10 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.neo4j.internal.batchimport.cache.BufferFactories.fileBacked;
 import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.HEAP;
 import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.OFF_HEAP;
+import static org.neo4j.internal.batchimport.cache.NumberArrayFactories.fromBufferFactory;
 import static org.neo4j.logging.LogAssertions.assertThat;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
@@ -166,5 +169,21 @@ class NumberArrayFactoryTest {
         assertThat(logProvider)
                 .forLevel(AssertableLogProvider.Level.WARN)
                 .containsMessages("Running low on memory and will start swapping to hard drive");
+    }
+
+    /**
+     * Since the backing file is shared for different implementations of arrays we need to make sure that
+     * all allocations are aligned to the largest alignment requirement.
+     */
+    @Test
+    void alignedAccessRestrictions() {
+        try (NumberArrayFactory numberArrayFactory =
+                fromBufferFactory(fileBacked(testDirectory.getFileSystem(), testDirectory.homePath()))) {
+            ByteArray byteArray = numberArrayFactory.newByteArray(5, new byte[1], INSTANCE);
+            byteArray.set(4, new byte[] {1});
+
+            LongArray longArray = numberArrayFactory.newLongArray(2, 0, INSTANCE);
+            assertThatCode(() -> longArray.compareAndSet(1, 0, 1)).doesNotThrowAnyException();
+        }
     }
 }
