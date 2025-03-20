@@ -47,6 +47,7 @@ import org.neo4j.cypher.internal.logical.plans.AlterUser
 import org.neo4j.cypher.internal.logical.plans.AssertAllowedDatabaseAction
 import org.neo4j.cypher.internal.logical.plans.AssertAllowedDbmsActions
 import org.neo4j.cypher.internal.logical.plans.AssertAllowedDbmsActionsOrSelf
+import org.neo4j.cypher.internal.logical.plans.AssertCanAlterDatabase
 import org.neo4j.cypher.internal.logical.plans.AssertManagementActionNotBlocked
 import org.neo4j.cypher.internal.logical.plans.AssertNotCurrentUser
 import org.neo4j.cypher.internal.logical.plans.CheckNativeAuthentication
@@ -217,6 +218,16 @@ case class CommunityAdministrationCommandRuntime(
     // Check Admin Rights for DBMS commands or self
     case AssertAllowedDbmsActionsOrSelf(user, actions) =>
       context => checkAdminRightsForDBMSOrSelf(user, actions)(context)
+
+    // Check rights for ALTER DATABASE, does the same as AssertAllowedDbmsActions
+    // using the non-composite privileges, since community doesn't have composite databases
+    case AssertCanAlterDatabase(source, _, _, actions) => context =>
+        AuthorizationAndPredicateExecutionPlan(
+          securityAuthorizationHandler,
+          (_, securityContext) => checkActions(actions, securityContext),
+          violationMessage = adminActionErrorMessage,
+          source = getSource(Some(source), context)
+        )
 
     // Check that the specified user is not the logged in user (eg. for some CREATE/DROP/ALTER USER commands)
     case AssertNotCurrentUser(source, userName, verb, violationMessage, errorGqlStatusObject) => context =>

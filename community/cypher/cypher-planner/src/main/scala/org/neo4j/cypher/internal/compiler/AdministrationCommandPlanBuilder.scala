@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.ast.AddedInRewriteShowCommands
 import org.neo4j.cypher.internal.ast.AllDatabasesScope
 import org.neo4j.cypher.internal.ast.AllGraphsScope
 import org.neo4j.cypher.internal.ast.AlterAliasAction
+import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabase
 import org.neo4j.cypher.internal.ast.AlterDatabaseOptionsAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseTopologyAction
@@ -1184,8 +1185,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           waitUntilComplete,
           cypherVersion
         ) =>
+        // Composite databases currently don't have any sub-privileges, just ALTER privilege
+        val requiredPrivilegeActionsForCompositeDatabases = Seq(AlterCompositeDatabaseAction)
         // For a set of (predicate -> privilege); If the predicate is true, add the privilege to the set of required privileges
-        val requiredPrivilegedActions: Seq[DbmsAction] = Seq(
+        val requiredPrivilegedActionsForDatabases: Seq[DbmsAction] = Seq(
           // ALTER DATABASE foo SET TOPOLOGY requires internal AlterDatabaseTopology privilege which can be granted by 'ALTER DATABASE':
           topology.nonEmpty -> AlterDatabaseTopologyAction,
           // ALTER DATABASE foo SET OPTION ... requires internal AlterDatabaseOptions privilege which can be granted by 'ALTER DATABASE':
@@ -1199,10 +1202,17 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         ).filter(_._1)
           .map(_._2)
           .distinct
-        val alterIsValidOnSystem = requiredPrivilegedActions == Seq(SetDatabaseDefaultLanguageAction)
+        val alterIsValidOnSystem = requiredPrivilegedActionsForDatabases == Seq(SetDatabaseDefaultLanguageAction)
 
-        Some(plans.AssertManagementActionNotBlocked(requiredPrivilegedActions))
-          .map(s => plans.AssertAllowedDbmsActions(Some(s), requiredPrivilegedActions))
+        Some(plans.AssertManagementActionNotBlocked(requiredPrivilegedActionsForDatabases))
+          .map(s =>
+            plans.AssertCanAlterDatabase(
+              s,
+              dbName,
+              requiredPrivilegeActionsForCompositeDatabases,
+              requiredPrivilegedActionsForDatabases
+            )
+          )
           .map(assertAllowed =>
             if (ifExists) plans.DoNothingIfDatabaseNotExists(
               assertAllowed,

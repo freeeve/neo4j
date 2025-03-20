@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.ast.AllTokenActions
 import org.neo4j.cypher.internal.ast.AllTransactionActions
 import org.neo4j.cypher.internal.ast.AllUserActions
 import org.neo4j.cypher.internal.ast.AlterAliasAction
+import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseOptionsAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseTopologyAction
@@ -173,6 +174,7 @@ object ActionMapper {
     case AlterDatabaseOptionsAction         => security.PrivilegeAction.ALTER_DATABASE_OPTIONS
     case CreateCompositeDatabaseAction      => security.PrivilegeAction.CREATE_COMPOSITE_DATABASE
     case DropCompositeDatabaseAction        => security.PrivilegeAction.DROP_COMPOSITE_DATABASE
+    case AlterCompositeDatabaseAction       => security.PrivilegeAction.ALTER_COMPOSITE_DATABASE
     case CompositeDatabaseManagementActions => security.PrivilegeAction.COMPOSITE_DATABASE_MANAGEMENT
 
     case AllAliasManagementActions => security.PrivilegeAction.ALIAS_MANAGEMENT

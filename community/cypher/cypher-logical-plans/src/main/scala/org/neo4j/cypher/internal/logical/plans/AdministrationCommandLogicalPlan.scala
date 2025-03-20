@@ -236,6 +236,13 @@ case class AssertCanDropDatabase(
   defaultAction: DbmsAction
 )(implicit idGen: IdGen) extends PrivilegePlan(Some(source))
 
+case class AssertCanAlterDatabase(
+  source: PrivilegePlan,
+  namespacedName: DatabaseName,
+  actionsForCompositeDatabases: Seq[DbmsAction],
+  actionsForDatabases: Seq[DbmsAction]
+)(implicit idGen: IdGen) extends PrivilegePlan(Some(source))
+
 case class AssertAllowedDbmsActionsOrSelf(user: Either[String, Parameter], actions: Seq[DbmsAction])(implicit
   idGen: IdGen) extends PrivilegePlan
 

@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.ast.AllTokenActions
 import org.neo4j.cypher.internal.ast.AllTransactionActions
 import org.neo4j.cypher.internal.ast.AllUserActions
 import org.neo4j.cypher.internal.ast.AlterAliasAction
+import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterUserAction
 import org.neo4j.cypher.internal.ast.AssignPrivilegeAction
@@ -362,10 +363,11 @@ trait DdlPrivilegeBuilder extends Cypher5ParserListener {
         case c: TerminalNode => c.getSymbol.getType match {
             case Cypher5Parser.ALIAS => withQualifier(AllAliasManagementActions)
             case Cypher5Parser.ALTER => nodeChild(ctx, 1).getSymbol.getType match {
-                case Cypher5Parser.ALIAS    => withQualifier(AlterAliasAction)
-                case Cypher5Parser.DATABASE => withQualifier(AlterDatabaseAction)
-                case Cypher5Parser.USER     => withQualifier(AlterUserAction)
-                case _                      => throw new IllegalStateException()
+                case Cypher5Parser.ALIAS     => withQualifier(AlterAliasAction)
+                case Cypher5Parser.COMPOSITE => withQualifier(AlterCompositeDatabaseAction)
+                case Cypher5Parser.DATABASE  => withQualifier(AlterDatabaseAction)
+                case Cypher5Parser.USER      => withQualifier(AlterUserAction)
+                case _                       => throw new IllegalStateException()
               }
             case Cypher5Parser.ASSIGN => nodeChild(ctx, 1).getSymbol.getType match {
                 case Cypher5Parser.PRIVILEGE => withQualifier(AssignPrivilegeAction)

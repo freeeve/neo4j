@@ -80,6 +80,7 @@ public enum PrivilegeAction {
     ALTER_DATABASE_TOPOLOGY,
     CREATE_COMPOSITE_DATABASE,
     DROP_COMPOSITE_DATABASE,
+    ALTER_COMPOSITE_DATABASE,
 
     CREATE_ALIAS,
     DROP_ALIAS,
@@ -177,7 +178,7 @@ public enum PrivilegeAction {
         @Override
         public boolean satisfies(PrivilegeAction action) {
             return switch (action) {
-                case CREATE_COMPOSITE_DATABASE, DROP_COMPOSITE_DATABASE -> true;
+                case CREATE_COMPOSITE_DATABASE, DROP_COMPOSITE_DATABASE, ALTER_COMPOSITE_DATABASE -> true;
                 default -> this == action;
             };
         }

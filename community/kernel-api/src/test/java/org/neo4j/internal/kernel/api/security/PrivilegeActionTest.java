@@ -25,6 +25,7 @@ import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ACCESS;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ADMIN;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALIAS_MANAGEMENT;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_ALIAS;
+import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_COMPOSITE_DATABASE;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_DATABASE;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_DATABASE_OPTIONS;
 import static org.neo4j.internal.kernel.api.security.PrivilegeAction.ALTER_DATABASE_TOPOLOGY;
@@ -122,7 +123,9 @@ class PrivilegeActionTest {
         expected.put(
                 DATABASE_MANAGEMENT,
                 Set.of(CREATE_DATABASE, DROP_DATABASE, ALTER_DATABASE, COMPOSITE_DATABASE_MANAGEMENT));
-        expected.put(COMPOSITE_DATABASE_MANAGEMENT, Set.of(CREATE_COMPOSITE_DATABASE, DROP_COMPOSITE_DATABASE));
+        expected.put(
+                COMPOSITE_DATABASE_MANAGEMENT,
+                Set.of(CREATE_COMPOSITE_DATABASE, DROP_COMPOSITE_DATABASE, ALTER_COMPOSITE_DATABASE));
         expected.put(
                 ALTER_DATABASE,
                 Set.of(SET_DATABASE_ACCESS, SET_DEFAULT_LANGUAGE, ALTER_DATABASE_OPTIONS, ALTER_DATABASE_TOPOLOGY));

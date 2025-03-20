@@ -3608,6 +3608,14 @@ class PrettifierIT extends CypherFunSuite {
             s"$action SET DATABASE ACCESS ON DBMS $preposition role",
           s"$action set database default language on dbms $preposition role" ->
             s"$action SET DATABASE DEFAULT LANGUAGE ON DBMS $preposition role",
+          s"$action composite database management on dbms $preposition role" ->
+            s"$action COMPOSITE DATABASE MANAGEMENT ON DBMS $preposition role",
+          s"$action create composite database on dbms $preposition role" ->
+            s"$action CREATE COMPOSITE DATABASE ON DBMS $preposition role",
+          s"$action drop composite database on dbms $preposition $$role" ->
+            s"$action DROP COMPOSITE DATABASE ON DBMS $preposition $$role",
+          s"$action alter composite database on dbms $preposition role" ->
+            s"$action ALTER COMPOSITE DATABASE ON DBMS $preposition role",
           s"$action aliaS Management on dbms $preposition role" ->
             s"$action ALIAS MANAGEMENT ON DBMS $preposition role",
           s"$action  create alias on DBMS $preposition role" ->

@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.AllPrivilegeActions
 import org.neo4j.cypher.internal.ast.AllRoleActions
 import org.neo4j.cypher.internal.ast.AllUserActions
 import org.neo4j.cypher.internal.ast.AlterAliasAction
+import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterUserAction
 import org.neo4j.cypher.internal.ast.AssignPrivilegeAction
@@ -104,6 +105,7 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
           ("COMPOSITE DATABASE MANAGEMENT", CompositeDatabaseManagementActions),
           ("CREATE COMPOSITE DATABASE", CreateCompositeDatabaseAction),
           ("DROP COMPOSITE DATABASE", DropCompositeDatabaseAction),
+          ("ALTER COMPOSITE DATABASE", AlterCompositeDatabaseAction),
           ("ALIAS MANAGEMENT", AllAliasManagementActions),
           ("CREATE ALIAS", CreateAliasAction),
           ("DROP ALIAS", DropAliasAction),

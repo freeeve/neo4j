@@ -1439,7 +1439,7 @@ databasePrivilege
 
 dbmsPrivilege
    : (
-      ALTER (ALIAS | DATABASE | USER)
+      ALTER (ALIAS | COMPOSITE? DATABASE | USER)
       | ASSIGN (PRIVILEGE | ROLE)
       | (ALIAS | COMPOSITE? DATABASE | PRIVILEGE | ROLE | SERVER | USER) MANAGEMENT
       | dbmsPrivilegeExecute

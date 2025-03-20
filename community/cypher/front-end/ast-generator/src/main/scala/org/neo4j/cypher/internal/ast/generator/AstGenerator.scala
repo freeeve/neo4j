@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.ast.AllTokenActions
 import org.neo4j.cypher.internal.ast.AllTransactionActions
 import org.neo4j.cypher.internal.ast.AllUserActions
 import org.neo4j.cypher.internal.ast.AlterAliasAction
+import org.neo4j.cypher.internal.ast.AlterCompositeDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterDatabase
 import org.neo4j.cypher.internal.ast.AlterDatabaseAction
 import org.neo4j.cypher.internal.ast.AlterLocalDatabaseAlias
@@ -2895,6 +2896,7 @@ class AstGenerator(
     CreateCompositeDatabaseAction,
     DropDatabaseAction,
     DropCompositeDatabaseAction,
+    AlterCompositeDatabaseAction,
     CompositeDatabaseManagementActions,
     AlterDatabaseAction,
     SetDatabaseAccessAction,
