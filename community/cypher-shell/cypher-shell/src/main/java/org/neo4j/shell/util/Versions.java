@@ -22,6 +22,7 @@ package org.neo4j.shell.util;
 import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 
+import java.util.Optional;
 import org.neo4j.driver.exceptions.Neo4jException;
 
 @SuppressWarnings({"WeakerAccess", "unused"})
@@ -43,32 +44,42 @@ public final class Versions {
         return version(version).patch();
     }
 
+    public static Optional<Integer> preRelease(String version) throws FailedToParseException {
+        return version(version).preRelease();
+    }
+
     public static Version version(String version) throws FailedToParseException {
         if (version == null) {
             throw new FailedToParseException("null is not a valid version string");
         }
         if (version.isEmpty()) {
-            return new Version(0, 0, 0);
+            return new Version(0, 0, 0, Optional.empty());
         }
         // remove -alpha, and -beta etc
         int offset = version.indexOf("-");
+        Optional<Integer> preRelease = Optional.empty();
         if (offset > 0) {
+            try {
+                preRelease = Optional.of(version.length() > offset + 1 ? parseInt(version.substring(offset + 1)) : 0);
+            } catch (NumberFormatException ignored) {
+            }
             version = version.substring(0, offset);
         }
+
         String[] split = version.split("\\.");
 
         try {
             return switch (split.length) {
-                case 1 -> new Version(parseInt(split[0]), 0, 0);
-                case 2 -> new Version(parseInt(split[0]), parseInt(split[1]), 0);
-                case 3 -> new Version(parseInt(split[0]), parseInt(split[1]), parseInt(split[2]));
+                case 1 -> new Version(parseInt(split[0]), 0, 0, preRelease);
+                case 2 -> new Version(parseInt(split[0]), parseInt(split[1]), 0, preRelease);
+                case 3 -> new Version(parseInt(split[0]), parseInt(split[1]), parseInt(split[2]), preRelease);
                 default ->
                     throw new FailedToParseException(
-                            format("%s is not a proper version string, it should be of the form X.Y.Z ", version));
+                            format("%s is not a proper version string, it should be of the form X.Y.Z-W ", version));
             };
         } catch (NumberFormatException e) {
             throw new FailedToParseException(
-                    format("%s is not a proper version string, it should be of the form X.Y.Z ", version));
+                    format("%s is not a proper version string, it should be of the form X.Y.Z or X.Y.Z-W ", version));
         }
     }
 

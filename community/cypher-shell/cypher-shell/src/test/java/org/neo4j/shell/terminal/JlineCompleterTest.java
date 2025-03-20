@@ -44,6 +44,7 @@ import org.neo4j.shell.completions.SuggestionType;
 import org.neo4j.shell.parameter.ParameterService;
 import org.neo4j.shell.parameter.ParameterService.Parameter;
 import org.neo4j.shell.parser.ShellStatementParser;
+import org.neo4j.shell.state.BoltStateHandler;
 
 class JlineCompleterTest {
     private record Completion(String completion, String display, String group, String desc) {}
@@ -52,6 +53,7 @@ class JlineCompleterTest {
     private JlineCompleter completer;
     private StatementJlineParser parser;
     private StubDbInfo dbInfo;
+    private MockBoltStateHandler mockStateHandler;
     private CompletionEngine completionEngine;
     private final LineReader lineReader = mock(LineReader.class);
     private final CommandHelper.CommandFactoryHelper commandHelper = new CommandHelper.CommandFactoryHelper();
@@ -220,7 +222,8 @@ class JlineCompleterTest {
         var transactionHandler = mock(TransactionHandler.class);
         parameters = ParameterService.create(transactionHandler);
         dbInfo = dbInfoStub();
-        completionEngine = new CompletionEngine(dbInfo);
+        mockStateHandler = new MockBoltStateHandler("5.25.0");
+        completionEngine = new CompletionEngine(dbInfo, mockStateHandler);
         completer = new JlineCompleter(new CommandHelper.CommandFactoryHelper(), completionEngine);
         parser = new StatementJlineParser(new ShellStatementParser());
         parser.setEnableStatementParsing(true);
@@ -305,6 +308,26 @@ class JlineCompleterTest {
     void completeSecondCypherStatementSanity() {
         assertThat(complete("return 1;")).is(emptyStatementMatcher());
         assertThat(complete("return 1;ret")).contains(keyword("RETURN"));
+    }
+
+    @Test
+    void autocompletesCypherVersions() {
+        mockStateHandler.setServerVersion("5.12.0");
+        assertThat(complete("CYPH"))
+                .doesNotContain(keyword("CYPHER 5"), keyword("CYPHER 25"))
+                .contains(keyword("CYPHER"));
+        mockStateHandler.setServerVersion("5.21.0");
+        assertThat(complete("CYPH"))
+                .doesNotContain(keyword("CYPHER 25"))
+                .contains(keyword("CYPHER 5"), keyword("CYPHER"));
+        mockStateHandler.setServerVersion("5.27.0-2025040");
+        // If a new cypher version is added, this test should fail, in which case you need to add another case to
+        // getPreParserRuleCompletions() in CompletionEngine.
+        // And a new case should be added to the test like setServerVersion(<version supporting new CYPHER X>)
+        // -> completion contains CYPHER X, old completions dont
+        assertThat(complete("CYPH"))
+                .filteredOn(completion -> completion.completion.contains("CYPHER"))
+                .containsExactlyInAnyOrder(keyword("CYPHER 25"), keyword("CYPHER 5"), keyword("CYPHER"));
     }
 
     @Test
@@ -580,5 +603,23 @@ class JlineCompleterTest {
         var commands = allCommands;
         return new Condition<>(
                 items -> items.containsAll(firstKeywords) && items.containsAll(commands), "Empty statement matcher");
+    }
+
+    private static class MockBoltStateHandler extends BoltStateHandler {
+        private String serverVersion;
+
+        public MockBoltStateHandler(String serverVersion) {
+            super(false, null);
+            this.serverVersion = serverVersion;
+        }
+
+        @Override
+        public String getServerVersion() {
+            return serverVersion;
+        }
+
+        public void setServerVersion(String serverVersion) {
+            this.serverVersion = serverVersion;
+        }
     }
 }

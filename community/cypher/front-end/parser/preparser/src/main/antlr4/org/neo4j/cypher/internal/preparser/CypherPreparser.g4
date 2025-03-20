@@ -215,10 +215,14 @@ strictlyPreparserOptions
   : option* EOF;
 
 option
-   : CYPHER VERSION? (setting)*
+   : cypher VERSION? (setting)*
    | EXPLAIN
    | PROFILE
    ;
+
+cypher
+  : CYPHER
+  ;
 
 setting
    : IDENTIFIER '=' IDENTIFIER

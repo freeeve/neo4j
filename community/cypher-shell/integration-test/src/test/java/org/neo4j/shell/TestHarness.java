@@ -119,7 +119,7 @@ public class TestHarness {
             if (this.dbInfo == null) {
                 this.dbInfo = new DbInfoImpl(parameters, boltStateHandler, completionsEnabledByConfig);
             }
-            var completionEngine = new CompletionEngine(dbInfo);
+            var completionEngine = new CompletionEngine(dbInfo, boltStateHandler);
 
             var terminalBuilder = terminalBuilder()
                     .dumb()

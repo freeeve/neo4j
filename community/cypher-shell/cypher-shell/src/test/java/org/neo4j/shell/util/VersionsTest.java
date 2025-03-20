@@ -21,7 +21,11 @@ package org.neo4j.shell.util;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class VersionsTest {
@@ -49,6 +53,17 @@ class VersionsTest {
         assertEquals(3, Versions.majorVersion(versionString));
         assertEquals(4, Versions.minorVersion(versionString));
         assertEquals(55, Versions.patch(versionString));
+        assertEquals(Optional.empty(), Versions.preRelease(versionString));
+        assertTrue(Versions.version(versionString).compareTo(Versions.version("3.4.55-2025041")) < 0);
+        versionString = "5.27.0-2025040";
+        assertNotEquals(0, Versions.version(versionString).compareTo(Versions.version("5.27.0")));
+        assertTrue(Versions.version(versionString).compareTo(Versions.version("5.27.0-2025030")) > 0);
+        assertTrue(Versions.version(versionString).compareTo(Versions.version("5.27.0-2025050")) < 0);
+        assertFalse(Versions.version(versionString).compareTo(Versions.version("5.27.0-2025040")) < 0);
+        assertEquals(5, Versions.majorVersion(versionString));
+        assertEquals(27, Versions.minorVersion(versionString));
+        assertEquals(0, Versions.patch(versionString));
+        assertEquals(Optional.of(2025040), Versions.preRelease(versionString));
     }
 
     @Test

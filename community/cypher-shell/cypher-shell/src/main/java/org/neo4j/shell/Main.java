@@ -70,7 +70,7 @@ public class Main implements AutoCloseable {
         var completionsEnabledByConfig = args.getEnableAutocompletions();
         this.parameters = ParameterService.create(boltStateHandler);
         var dbInfo = new DbInfoImpl(parameters, boltStateHandler, completionsEnabledByConfig);
-        CompletionEngine completionEngine = new CompletionEngine(dbInfo);
+        CompletionEngine completionEngine = new CompletionEngine(dbInfo, boltStateHandler);
         this.terminal = terminalBuilder()
                 .interactive(isInteractive)
                 .logger(printer)

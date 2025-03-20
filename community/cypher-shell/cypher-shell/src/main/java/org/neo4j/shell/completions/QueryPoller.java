@@ -79,13 +79,13 @@ public class QueryPoller implements AutoCloseable {
 
             Stream<PollingQuery> totalQueries;
 
-            boolean supportsCypher25;
+            boolean supportsCypher25 = false;
             try {
                 var serverVersion = version(boltStateHandler.getServerVersion());
                 supportsCypher25 =
-                        serverVersion.compareTo(version("2025.04.0")) >= 0; // Switch to "5.26.0" for pre-testing
+                        serverVersion.compareTo(version("5.27.0-2025040")) >= 0; // Switch to "5.26.0" for pre-testing
             } catch (Versions.FailedToParseException e) {
-                throw new RuntimeException(e);
+                log.warn("Failed to parse server version", e);
             }
 
             if (supportsCypher25) {

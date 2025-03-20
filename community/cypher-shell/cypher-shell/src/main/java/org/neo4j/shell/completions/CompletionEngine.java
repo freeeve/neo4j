@@ -20,6 +20,7 @@
 package org.neo4j.shell.completions;
 
 import static java.util.stream.Collectors.toCollection;
+import static org.neo4j.shell.util.Versions.version;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -53,6 +54,9 @@ import org.neo4j.cypher.internal.parser.v25.ast.factory.Cypher25AstLexer;
 import org.neo4j.cypher.internal.preparser.CypherPreparserLexer;
 import org.neo4j.cypher.internal.preparser.CypherPreparserParser;
 import org.neo4j.cypher.internal.preparser.PreparserCypherLexer;
+import org.neo4j.shell.log.Logger;
+import org.neo4j.shell.state.BoltStateHandler;
+import org.neo4j.shell.util.Versions;
 
 public class CompletionEngine {
 
@@ -69,6 +73,7 @@ public class CompletionEngine {
     }
 
     DbInfo dbInfo;
+    BoltStateHandler boltStateHandler;
 
     class VariableCollector implements ParseTreeListener {
         private final List<String> variables = new ArrayList<>();
@@ -145,8 +150,9 @@ public class CompletionEngine {
         }
     }
 
-    public CompletionEngine(DbInfo dbInfo) {
+    public CompletionEngine(DbInfo dbInfo, BoltStateHandler boltStateHandler) {
         this.dbInfo = dbInfo;
+        this.boltStateHandler = boltStateHandler;
     }
 
     private record CompletionResolution(
@@ -243,7 +249,7 @@ public class CompletionEngine {
             }
         }
 
-        static Set<Integer> preferredRules = Set.of();
+        static Set<Integer> preferredRules = Set.of(CypherPreparserParser.RULE_cypher);
     }
 
     /*
@@ -362,8 +368,8 @@ public class CompletionEngine {
         var candidates = completionEngine.collectCandidates(caretIndex, null);
         var tokenCompletions = getTokenCompletions(candidates, ignoredTokens, isPreParserCompletion);
         List<Suggestion> ruleCompletions = isPreParserCompletion
-                ? List.of()
-                : getRuleCompletions(candidates, collectedVariables, parsedVersion, tokens, stopNode);
+                ? getPreParserRuleCompletions(candidates)
+                : getParserRuleCompletions(candidates, collectedVariables, parsedVersion, tokens, stopNode);
         var result = new ArrayList<Suggestion>();
 
         result.addAll(tokenCompletions);
@@ -547,7 +553,37 @@ public class CompletionEngine {
         return text;
     }
 
-    private List<Suggestion> getRuleCompletions(
+    private List<Suggestion> getPreParserRuleCompletions(CodeCompletionCore.CandidatesCollection candidates) {
+        return candidates.rules.entrySet().stream()
+                .flatMap(entry -> {
+                    var ruleNumber = entry.getKey();
+                    if (ruleNumber == CypherPreparserParser.RULE_cypher) {
+                        boolean supportsCypher25 = false;
+                        boolean supportsVersions = false;
+                        if (boltStateHandler != null) {
+                            try {
+                                var serverVersion = version(boltStateHandler.getServerVersion());
+                                supportsCypher25 = serverVersion.compareTo(version("5.27.0-2025040")) >= 0;
+                                supportsVersions = serverVersion.compareTo(version("5.21.0")) >= 0;
+                            } catch (Versions.FailedToParseException e) {
+                                Logger log = Logger.create();
+                                log.warn("Failed to parse server version", e);
+                            }
+                        }
+
+                        Stream<String> validCypherVersions = supportsCypher25
+                                ? Arrays.stream(CypherVersion.values()).map(v -> v.description)
+                                : supportsVersions ? Stream.of(CypherVersion.Cypher5.description) : Stream.of();
+                        return validCypherVersions.map(versionDescription ->
+                                new Suggestion(versionDescription, SuggestionType.KEYWORD, null, false));
+                    }
+
+                    return Stream.empty();
+                })
+                .collect(Collectors.toList());
+    }
+
+    private List<Suggestion> getParserRuleCompletions(
             CodeCompletionCore.CandidatesCollection candidates,
             List<String> collectedVariables,
             CypherVersion parsedVersion,
@@ -639,8 +675,7 @@ public class CompletionEngine {
                 .collect(Collectors.toList());
     }
 
-    private CompletionEngine.ParameterType inferExpectedParameterTypeFromContext(
-            CodeCompletionCore.CandidateRule candidateRule) {
+    private ParameterType inferExpectedParameterTypeFromContext(CodeCompletionCore.CandidateRule candidateRule) {
         var ruleList = candidateRule.ruleList();
         var parentRule = ruleList.get(ruleList.size() - 1);
 
@@ -661,12 +696,12 @@ public class CompletionEngine {
                         Cypher25Parser.RULE_roleNames,
                         Cypher25Parser.RULE_renameRole)
                 .contains(parentRule)) {
-            return CompletionEngine.ParameterType.STRING;
+            return ParameterType.STRING;
         } else if (Set.of(Cypher25Parser.RULE_properties, Cypher25Parser.RULE_mapOrParameter)
                 .contains(parentRule)) {
-            return CompletionEngine.ParameterType.MAP;
+            return ParameterType.MAP;
         } else {
-            return CompletionEngine.ParameterType.ANY;
+            return ParameterType.ANY;
         }
     }
 
@@ -743,7 +778,7 @@ public class CompletionEngine {
         }
 
         // parameters are valid values in all cases of symbolicAliasName
-        var parameterSuggestions = parameterCompletions(CompletionEngine.ParameterType.STRING);
+        var parameterSuggestions = parameterCompletions(ParameterType.STRING);
         var rulesCreatingNewDb =
                 List.of(Cypher25Parser.RULE_createDatabase, Cypher25Parser.RULE_createCompositeDatabase);
 
@@ -898,9 +933,9 @@ public class CompletionEngine {
     }
     ;
 
-    private Stream<Suggestion> parameterCompletions(CompletionEngine.ParameterType expectedType) {
+    private Stream<Suggestion> parameterCompletions(ParameterType expectedType) {
         var result = this.dbInfo.parameters().entrySet().stream()
-                .filter(entry -> expectedType == CompletionEngine.ParameterType.ANY || entry.getValue() == expectedType)
+                .filter(entry -> expectedType == ParameterType.ANY || entry.getValue() == expectedType)
                 .map((parameter) ->
                         Suggestion.parameter("$" + backtickIfNeeded(parameter.getKey()), "$" + parameter.getKey()));
         return result;
