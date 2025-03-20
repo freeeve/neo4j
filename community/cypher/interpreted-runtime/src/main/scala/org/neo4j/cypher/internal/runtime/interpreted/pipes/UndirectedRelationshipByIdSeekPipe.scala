@@ -25,9 +25,15 @@ import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.values.virtual.VirtualValues
 
-case class UndirectedRelationshipByIdSeekPipe(ident: String, relIdExpr: SeekArgs, toNode: String, fromNode: String)(
+case class UndirectedRelationshipByIdSeekPipe(
+  ident: String,
+  relIdExpr: SeekArgs,
+  toNode: Option[String],
+  fromNode: Option[String]
+)(
   val id: Id = Id.INVALID_ID
 ) extends Pipe {
+  private val relationshipWriter = Relationships.compileRelationshipWriter(ident, fromNode, toNode)
 
   override protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val ctx = state.newRowWithArgument(rowFactory)
@@ -40,13 +46,11 @@ case class UndirectedRelationshipByIdSeekPipe(ident: String, relIdExpr: SeekArgs
     PrimitiveLongHelper.map(
       relationships,
       r => {
-        rowFactory.copyWith(
+        relationshipWriter.writeRow(
+          rowFactory,
           ctx,
-          ident,
           relationships.relationship(),
-          fromNode,
           VirtualValues.node(relationships.startNodeId()),
-          toNode,
           VirtualValues.node(relationships.endNodeId())
         )
       }

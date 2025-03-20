@@ -35,8 +35,8 @@ import org.neo4j.cypher.internal.util.attribution.Id
 
 case class DirectedRelationshipIndexSeekSlottedPipe(
   ident: String,
-  startNode: String,
-  endNode: String,
+  startNode: Option[String],
+  endNode: Option[String],
   relType: RelationshipTypeToken,
   properties: IndexedSeq[SlottedIndexedProperty],
   queryIndexId: Int,
@@ -62,8 +62,8 @@ case class DirectedRelationshipIndexSeekSlottedPipe(
     val context = state.newRowWithArgument(rowFactory)
     new SlottedRelationshipIndexIterator(
       state,
-      slots.longOffset(startNode),
-      slots.longOffset(endNode),
+      slots.getLongSlot(startNode),
+      slots.getLongSlot(endNode),
       relationshipIndexSeek(state, index, needsValues, indexOrder, context)
     )
   }

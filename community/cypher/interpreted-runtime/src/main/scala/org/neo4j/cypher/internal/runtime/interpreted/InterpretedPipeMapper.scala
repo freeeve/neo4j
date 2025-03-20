@@ -476,53 +476,53 @@ case class InterpretedPipeMapper(
         DirectedRelationshipByIdSeekPipe(
           ident.name,
           expressionConverters.toCommandSeekArgs(id, relIdExpr),
-          toNode.name,
-          fromNode.name
+          toNode.map(_.name),
+          fromNode.map(_.name)
         )(id = id)
 
       case DirectedRelationshipByElementIdSeek(ident, relIdExpr, fromNode, toNode, _) =>
         DirectedRelationshipByIdSeekPipe(
           ident.name,
           expressionConverters.toCommandElementIdSeekArgs(id, relIdExpr, RELATIONSHIP_TYPE),
-          toNode.name,
-          fromNode.name
+          toNode.map(_.name),
+          fromNode.map(_.name)
         )(id = id)
 
       case UndirectedRelationshipByIdSeek(ident, relIdExpr, fromNode, toNode, _) =>
         UndirectedRelationshipByIdSeekPipe(
           ident.name,
           expressionConverters.toCommandSeekArgs(id, relIdExpr),
-          toNode.name,
-          fromNode.name
+          toNode.map(_.name),
+          fromNode.map(_.name)
         )(id = id)
 
       case UndirectedRelationshipByElementIdSeek(ident, relIdExpr, fromNode, toNode, _) =>
         UndirectedRelationshipByIdSeekPipe(
           ident.name,
           expressionConverters.toCommandElementIdSeekArgs(id, relIdExpr, RELATIONSHIP_TYPE),
-          toNode.name,
-          fromNode.name
+          toNode.map(_.name),
+          fromNode.map(_.name)
         )(id = id)
 
       case DirectedAllRelationshipsScan(ident, fromNode, toNode, _) =>
-        DirectedAllRelationshipsScanPipe(ident.name, fromNode.name, toNode.name)(id = id)
+        DirectedAllRelationshipsScanPipe(ident.name, fromNode.map(_.name), toNode.map(_.name))(id = id)
 
       case UndirectedAllRelationshipsScan(ident, fromNode, toNode, _) =>
-        UndirectedAllRelationshipsScanPipe(ident.name, fromNode.name, toNode.name)(id = id)
+        UndirectedAllRelationshipsScanPipe(ident.name, fromNode.map(_.name), toNode.map(_.name))(id = id)
 
       case PartitionedDirectedAllRelationshipsScan(ident, fromNode, toNode, _) =>
-        DirectedAllRelationshipsScanPipe(ident.name, fromNode.name, toNode.name)(id = id)
+        DirectedAllRelationshipsScanPipe(ident.name, fromNode.map(_.name), toNode.map(_.name))(id = id)
 
       case PartitionedUndirectedAllRelationshipsScan(ident, fromNode, toNode, _) =>
-        UndirectedAllRelationshipsScanPipe(ident.name, fromNode.name, toNode.name)(id = id)
+        UndirectedAllRelationshipsScanPipe(ident.name, fromNode.map(_.name), toNode.map(_.name))(id = id)
 
       case DirectedRelationshipTypeScan(ident, fromNode, typ, toNode, _, indexOrder) =>
         indexRegistrator.registerTypeScan()
         DirectedRelationshipTypeScanPipe(
           ident.name,
-          fromNode.name,
+          fromNode.map(_.name),
           LazyType(typ)(semanticTable),
-          toNode.name,
+          toNode.map(_.name),
           indexOrder
         )(id = id)
 
@@ -530,9 +530,9 @@ case class InterpretedPipeMapper(
         indexRegistrator.registerTypeScan()
         UndirectedRelationshipTypeScanPipe(
           ident.name,
-          fromNode.name,
+          fromNode.map(_.name),
           LazyType(typ)(semanticTable),
-          toNode.name,
+          toNode.map(_.name),
           indexOrder
         )(id = id)
 
@@ -540,9 +540,9 @@ case class InterpretedPipeMapper(
         indexRegistrator.registerTypeScan()
         DirectedRelationshipTypeScanPipe(
           ident.name,
-          fromNode.name,
+          fromNode.map(_.name),
           LazyType(typ)(semanticTable),
-          toNode.name,
+          toNode.map(_.name),
           IndexOrderNone
         )(id = id)
 
@@ -550,9 +550,9 @@ case class InterpretedPipeMapper(
         indexRegistrator.registerTypeScan()
         UndirectedRelationshipTypeScanPipe(
           ident.name,
-          fromNode.name,
+          fromNode.map(_.name),
           LazyType(typ)(semanticTable),
-          toNode.name,
+          toNode.map(_.name),
           IndexOrderNone
         )(id = id)
 
@@ -560,9 +560,9 @@ case class InterpretedPipeMapper(
         indexRegistrator.registerTypeScan()
         DirectedUnionRelationshipTypesScanPipe(
           ident.name,
-          fromNode.name,
+          fromNode.map(_.name),
           types.map(l => LazyType(l)(semanticTable)),
-          endNode.name,
+          endNode.map(_.name),
           indexOrder
         )(id = id)
 
@@ -570,9 +570,9 @@ case class InterpretedPipeMapper(
         indexRegistrator.registerTypeScan()
         UndirectedUnionRelationshipTypesScanPipe(
           ident.name,
-          fromNode.name,
+          fromNode.map(_.name),
           types.map(l => LazyType(l)(semanticTable)),
-          endNode.name,
+          endNode.map(_.name),
           indexOrder
         )(id = id)
 
@@ -580,9 +580,9 @@ case class InterpretedPipeMapper(
         indexRegistrator.registerTypeScan()
         DirectedUnionRelationshipTypesScanPipe(
           ident.name,
-          fromNode.name,
+          fromNode.map(_.name),
           types.map(l => LazyType(l)(semanticTable)),
-          endNode.name,
+          endNode.map(_.name),
           IndexOrderNone
         )(id = id)
 
@@ -590,9 +590,9 @@ case class InterpretedPipeMapper(
         indexRegistrator.registerTypeScan()
         UndirectedUnionRelationshipTypesScanPipe(
           ident.name,
-          fromNode.name,
+          fromNode.map(_.name),
           types.map(l => LazyType(l)(semanticTable)),
-          endNode.name,
+          endNode.map(_.name),
           IndexOrderNone
         )(id = id)
 
@@ -610,8 +610,8 @@ case class InterpretedPipeMapper(
         val indexSeekMode = IndexSeekModeFactory(unique = true, readOnly = readOnly).fromQueryExpression(valueExpr)
         DirectedRelationshipIndexSeekPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           properties.toArray,
           indexRegistrator.registerQueryIndex(indexType, typeToken, properties),
@@ -635,8 +635,8 @@ case class InterpretedPipeMapper(
         val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
         DirectedRelationshipIndexSeekPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           properties.toArray,
           indexRegistrator.registerQueryIndex(indexType, typeToken, properties),
@@ -658,8 +658,8 @@ case class InterpretedPipeMapper(
         val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
         DirectedRelationshipIndexSeekPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           properties.toArray,
           indexRegistrator.registerQueryIndex(indexType, typeToken, properties),
@@ -682,8 +682,8 @@ case class InterpretedPipeMapper(
         val indexSeekMode = IndexSeekModeFactory(unique = true, readOnly = readOnly).fromQueryExpression(valueExpr)
         UndirectedRelationshipIndexSeekPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           properties.toArray,
           indexRegistrator.registerQueryIndex(indexType, typeToken, properties),
@@ -707,8 +707,8 @@ case class InterpretedPipeMapper(
         val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
         UndirectedRelationshipIndexSeekPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           properties.toArray,
           indexRegistrator.registerQueryIndex(indexType, typeToken, properties),
@@ -730,8 +730,8 @@ case class InterpretedPipeMapper(
         val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
         UndirectedRelationshipIndexSeekPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           properties.toArray,
           indexRegistrator.registerQueryIndex(indexType, typeToken, properties),
@@ -753,8 +753,8 @@ case class InterpretedPipeMapper(
         ) =>
         DirectedRelationshipIndexScanPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           properties.toArray,
           indexRegistrator.registerQueryIndex(indexType, typeToken, properties),
@@ -774,8 +774,8 @@ case class InterpretedPipeMapper(
         ) =>
         UndirectedRelationshipIndexScanPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           properties.toArray,
           indexRegistrator.registerQueryIndex(indexType, typeToken, properties),
@@ -784,8 +784,8 @@ case class InterpretedPipeMapper(
       case PartitionedDirectedRelationshipIndexScan(idName, startNode, endNode, typeToken, properties, _, indexType) =>
         DirectedRelationshipIndexScanPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           properties.toArray,
           indexRegistrator.registerQueryIndex(indexType, typeToken, properties),
@@ -803,8 +803,8 @@ case class InterpretedPipeMapper(
         ) =>
         UndirectedRelationshipIndexScanPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           properties.toArray,
           indexRegistrator.registerQueryIndex(indexType, typeToken, properties),
@@ -824,8 +824,8 @@ case class InterpretedPipeMapper(
         ) =>
         DirectedRelationshipIndexContainsScanPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           property,
           indexRegistrator.registerQueryIndex(indexType, typeToken, property),
@@ -846,8 +846,8 @@ case class InterpretedPipeMapper(
         ) =>
         UndirectedRelationshipIndexContainsScanPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           property,
           indexRegistrator.registerQueryIndex(indexType, typeToken, property),
@@ -868,8 +868,8 @@ case class InterpretedPipeMapper(
         ) =>
         DirectedRelationshipIndexEndsWithScanPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           property,
           indexRegistrator.registerQueryIndex(indexType, typeToken, property),
@@ -890,8 +890,8 @@ case class InterpretedPipeMapper(
         ) =>
         UndirectedRelationshipIndexEndsWithScanPipe(
           idName.name,
-          startNode.name,
-          endNode.name,
+          startNode.map(_.name),
+          endNode.map(_.name),
           typeToken,
           property,
           indexRegistrator.registerQueryIndex(indexType, typeToken, property),

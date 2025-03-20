@@ -26,12 +26,15 @@ import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.BaseRelationshipCursorIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedAllRelationshipsScanPipe.allRelationshipsIterator
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.values.virtual.VirtualValues
 
 case class DirectedAllRelationshipsScanPipe(
   ident: String,
-  fromNode: String,
-  toNode: String
+  fromNode: Option[String],
+  toNode: Option[String]
 )(val id: Id = Id.INVALID_ID) extends Pipe {
+
+  private val relationshipWriter = Relationships.compileRelationshipWriter(ident, fromNode, toNode)
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val ctx = state.newRowWithArgument(rowFactory)
@@ -39,11 +42,14 @@ case class DirectedAllRelationshipsScanPipe(
     val relIterator = allRelationshipsIterator(query)
     PrimitiveLongHelper.map(
       relIterator,
-      relationshipId => {
-        val relationship = state.query.relationshipById(relationshipId)
-        val startNode = query.nodeById(relIterator.startNodeId())
-        val endNode = query.nodeById(relIterator.endNodeId())
-        rowFactory.copyWith(ctx, ident, relationship, fromNode, startNode, toNode, endNode)
+      r => {
+        relationshipWriter.writeRow(
+          rowFactory,
+          ctx,
+          VirtualValues.relationship(r),
+          VirtualValues.node(relIterator.startNodeId()),
+          VirtualValues.node(relIterator.endNodeId())
+        )
       }
     )
   }

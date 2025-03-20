@@ -31,8 +31,8 @@ import org.neo4j.cypher.internal.util.attribution.Id
 
 case class UndirectedRelationshipIndexSeekPipe(
   ident: String,
-  startNode: String,
-  endNode: String,
+  startNode: Option[String],
+  endNode: Option[String],
   relType: RelationshipTypeToken,
   properties: Array[IndexedProperty],
   queryIndexId: Int,
@@ -55,7 +55,6 @@ case class UndirectedRelationshipIndexSeekPipe(
     new UndirectedRelIndexIterator(
       startNode,
       endNode,
-      state,
       baseContext,
       relationshipIndexSeek(state, index, needsValues, indexOrder, baseContext)
     )

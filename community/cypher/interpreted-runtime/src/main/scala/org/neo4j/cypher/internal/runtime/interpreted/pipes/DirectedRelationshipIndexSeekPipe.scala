@@ -31,8 +31,8 @@ import org.neo4j.cypher.internal.util.attribution.Id
 
 case class DirectedRelationshipIndexSeekPipe(
   ident: String,
-  startNode: String,
-  endNode: String,
+  startNode: Option[String],
+  endNode: Option[String],
   relType: RelationshipTypeToken,
   properties: Array[IndexedProperty],
   queryIndexId: Int,
@@ -53,7 +53,6 @@ case class DirectedRelationshipIndexSeekPipe(
     val index = state.queryIndexes(queryIndexId)
     val baseContext = state.newRowWithArgument(rowFactory)
     new RelIndexIterator(
-      state,
       startNode,
       endNode,
       baseContext,

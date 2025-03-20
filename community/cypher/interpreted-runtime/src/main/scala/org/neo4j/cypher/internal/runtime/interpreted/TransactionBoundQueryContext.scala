@@ -763,7 +763,7 @@ private[internal] class TransactionBoundReadQueryContext(
       transactionalContext.cursorContext
     )
     resources.trace(typeCursor.getResource)
-    new RelationshipTypeCursorIterator(read, typeCursor)
+    new RelationshipTypeCursorIterator(typeCursor)
   }
 
   override def nodeCursor(): NodeCursor =
@@ -2019,7 +2019,6 @@ object TransactionBoundQueryContext {
   }
 
   class RelationshipTypeCursorIterator(
-    read: Read,
     typeIndexCursor: RelationshipTypeIndexCursor
   ) extends BaseRelationshipCursorIterator {
 

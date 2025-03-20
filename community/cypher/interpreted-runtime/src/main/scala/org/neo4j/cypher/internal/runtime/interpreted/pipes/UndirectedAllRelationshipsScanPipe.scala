@@ -26,8 +26,8 @@ import org.neo4j.cypher.internal.util.attribution.Id
 
 case class UndirectedAllRelationshipsScanPipe(
   ident: String,
-  fromNode: String,
-  toNode: String
+  fromNode: Option[String],
+  toNode: Option[String]
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {

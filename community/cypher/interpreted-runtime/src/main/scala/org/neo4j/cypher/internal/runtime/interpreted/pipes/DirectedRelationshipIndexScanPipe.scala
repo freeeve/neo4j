@@ -29,8 +29,8 @@ import org.neo4j.cypher.internal.util.attribution.Id
 
 case class DirectedRelationshipIndexScanPipe(
   ident: String,
-  startNode: String,
-  endNode: String,
+  startNode: Option[String],
+  endNode: Option[String],
   relType: RelationshipTypeToken,
   properties: Array[IndexedProperty],
   queryIndexId: Int,
@@ -46,6 +46,6 @@ case class DirectedRelationshipIndexScanPipe(
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val baseContext = state.newRowWithArgument(rowFactory)
     val cursor = state.query.relationshipIndexScan(state.queryIndexes(queryIndexId), needsValues, indexOrder)
-    new RelIndexIterator(state, startNode, endNode, baseContext, cursor)
+    new RelIndexIterator(startNode, endNode, baseContext, cursor)
   }
 }

@@ -35,29 +35,35 @@ import org.neo4j.internal.kernel.api.TokenReadSession
 import org.neo4j.internal.kernel.api.helpers.UnionRelationshipTypeIndexCursor.ascendingUnionRelationshipTypeIndexCursor
 import org.neo4j.internal.kernel.api.helpers.UnionRelationshipTypeIndexCursor.descendingUnionRelationshipTypeIndexCursor
 import org.neo4j.io.IOUtils
+import org.neo4j.values.virtual.VirtualValues
 
 case class DirectedUnionRelationshipTypesScanPipe(
   ident: String,
-  fromNode: String,
+  fromNode: Option[String],
   types: Seq[LazyTypeStatic],
-  toNode: String,
+  toNode: Option[String],
   indexOrder: IndexOrder
 )(
   val id: Id =
     Id.INVALID_ID
 ) extends Pipe {
 
+  private val relationshipWriter =
+    Relationships.compileRelationshipWriter(ident, fromNode, toNode)
+
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
-    val query = state.query
     val relIterator = unionTypeIterator(state, types, indexOrder, state.relTypeTokenReadSession.get)
     val ctx = state.newRowWithArgument(rowFactory)
     PrimitiveLongHelper.map(
       relIterator,
       relationshipId => {
-        val relationship = query.relationshipById(relationshipId)
-        val startNode = query.nodeById(relIterator.startNodeId())
-        val endNode = query.nodeById(relIterator.endNodeId())
-        rowFactory.copyWith(ctx, ident, relationship, fromNode, startNode, toNode, endNode)
+        relationshipWriter.writeRow(
+          rowFactory,
+          ctx,
+          VirtualValues.relationship(relationshipId),
+          VirtualValues.node(relIterator.startNodeId()),
+          VirtualValues.node(relIterator.endNodeId())
+        )
       }
     )
   }

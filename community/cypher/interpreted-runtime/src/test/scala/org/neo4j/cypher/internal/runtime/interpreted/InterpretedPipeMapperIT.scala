@@ -174,8 +174,8 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
     pipe should equal(DirectedRelationshipByIdSeekPipe(
       "r",
       SingleSeekArg(commands.expressions.Literal(intValue(42))),
-      toNode,
-      fromNode
+      Some(toNode),
+      Some(fromNode)
     )())
   }
 
@@ -196,8 +196,8 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
     pipe should equal(DirectedRelationshipByIdSeekPipe(
       "r",
       ManySeekArgs(converters.toCommandExpression(logicalPlan.id, astCollection)),
-      toNode,
-      fromNode
+      Some(toNode),
+      Some(fromNode)
     )())
   }
 
@@ -218,8 +218,8 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
     pipe should equal(UndirectedRelationshipByIdSeekPipe(
       "r",
       ManySeekArgs(converters.toCommandExpression(logicalPlan.id, astCollection)),
-      toNode,
-      fromNode
+      Some(toNode),
+      Some(fromNode)
     )())
   }
 

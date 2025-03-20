@@ -33,8 +33,8 @@ import org.neo4j.values.storable.TextValue
 
 abstract class AbstractRelationshipIndexStringScanPipe(
   ident: String,
-  startNode: String,
-  endNode: String,
+  startNode: Option[String],
+  endNode: Option[String],
   property: IndexedProperty,
   queryIndexId: Int,
   valueExpr: Expression
@@ -71,8 +71,8 @@ abstract class AbstractRelationshipIndexStringScanPipe(
 
   protected def iterator(
     state: QueryState,
-    startNode: String,
-    endNode: String,
+    startNode: Option[String],
+    endNode: Option[String],
     baseContext: CypherRow,
     cursor: RelationshipValueIndexCursor
   ): IndexIteratorBase[CypherRow]
@@ -83,12 +83,12 @@ trait Directed {
 
   override protected def iterator(
     state: QueryState,
-    startNode: String,
-    endNode: String,
+    startNode: Option[String],
+    endNode: Option[String],
     baseContext: CypherRow,
     cursor: RelationshipValueIndexCursor
   ): IndexIteratorBase[CypherRow] =
-    new RelIndexIterator(state, startNode, endNode, baseContext, cursor)
+    new RelIndexIterator(startNode, endNode, baseContext, cursor)
 }
 
 trait Undirected {
@@ -96,18 +96,18 @@ trait Undirected {
 
   override protected def iterator(
     state: QueryState,
-    startNode: String,
-    endNode: String,
+    startNode: Option[String],
+    endNode: Option[String],
     baseContext: CypherRow,
     cursor: RelationshipValueIndexCursor
   ): IndexIteratorBase[CypherRow] =
-    new UndirectedRelIndexIterator(startNode, endNode, state, baseContext, cursor)
+    new UndirectedRelIndexIterator(startNode, endNode, baseContext, cursor)
 }
 
 case class DirectedRelationshipIndexContainsScanPipe(
   ident: String,
-  startNode: String,
-  endNode: String,
+  startNode: Option[String],
+  endNode: Option[String],
   typeToken: RelationshipTypeToken,
   property: IndexedProperty,
   queryIndexId: Int,
@@ -127,8 +127,8 @@ case class DirectedRelationshipIndexContainsScanPipe(
 
 case class UndirectedRelationshipIndexContainsScanPipe(
   ident: String,
-  startNode: String,
-  endNode: String,
+  startNode: Option[String],
+  endNode: Option[String],
   typeToken: RelationshipTypeToken,
   property: IndexedProperty,
   queryIndexId: Int,
@@ -148,8 +148,8 @@ case class UndirectedRelationshipIndexContainsScanPipe(
 
 case class DirectedRelationshipIndexEndsWithScanPipe(
   ident: String,
-  startNode: String,
-  endNode: String,
+  startNode: Option[String],
+  endNode: Option[String],
   typeToken: RelationshipTypeToken,
   property: IndexedProperty,
   queryIndexId: Int,
@@ -169,8 +169,8 @@ case class DirectedRelationshipIndexEndsWithScanPipe(
 
 case class UndirectedRelationshipIndexEndsWithScanPipe(
   ident: String,
-  startNode: String,
-  endNode: String,
+  startNode: Option[String],
+  endNode: Option[String],
   typeToken: RelationshipTypeToken,
   property: IndexedProperty,
   queryIndexId: Int,

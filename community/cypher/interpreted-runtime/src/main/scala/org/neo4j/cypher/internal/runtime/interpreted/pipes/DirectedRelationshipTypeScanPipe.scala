@@ -24,14 +24,18 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.values.virtual.VirtualValues
 
 case class DirectedRelationshipTypeScanPipe(
   ident: String,
-  fromNode: String,
+  fromNode: Option[String],
   typ: LazyTypeStatic,
-  toNode: String,
+  toNode: Option[String],
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe {
+
+  private val relationshipWriter =
+    Relationships.compileRelationshipWriter(ident, fromNode, toNode)
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
     val ctx = state.newRowWithArgument(rowFactory)
@@ -43,10 +47,13 @@ case class DirectedRelationshipTypeScanPipe(
       PrimitiveLongHelper.map(
         relIterator,
         relationshipId => {
-          val relationship = state.query.relationshipById(relationshipId)
-          val startNode = query.nodeById(relIterator.startNodeId())
-          val endNode = query.nodeById(relIterator.endNodeId())
-          rowFactory.copyWith(ctx, ident, relationship, fromNode, startNode, toNode, endNode)
+          relationshipWriter.writeRow(
+            rowFactory,
+            ctx,
+            VirtualValues.relationship(relationshipId),
+            VirtualValues.node(relIterator.startNodeId()),
+            VirtualValues.node(relIterator.endNodeId())
+          )
         }
       )
     }
