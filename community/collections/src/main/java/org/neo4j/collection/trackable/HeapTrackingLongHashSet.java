@@ -47,7 +47,7 @@ public final class HeapTrackingLongHashSet extends LongHashSet implements AutoCl
         return new HeapTrackingLongHashSet(memoryTracker, set);
     }
 
-    static HeapTrackingLongHashSet createLongHashSet(MemoryTracker memoryTracker, LongSet set) {
+    public static HeapTrackingLongHashSet createLongHashSet(MemoryTracker memoryTracker, LongSet set) {
         memoryTracker.allocateHeap(SHALLOW_SIZE);
         return new HeapTrackingLongHashSet(memoryTracker, set);
     }
