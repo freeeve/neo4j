@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.IsNormalized
 import org.neo4j.cypher.internal.ast.IsNotNormalized
 import org.neo4j.cypher.internal.ast.IsNotTyped
 import org.neo4j.cypher.internal.ast.IsTyped
+import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
@@ -312,6 +313,9 @@ private class DefaultExpressionStringifier(
 
       case IsNotNormalized(_, normalForm) =>
         s"IS NOT ${normalForm.description} NORMALIZED"
+
+      case VectorValueConstructor(vectorCandidateType, dimension, candidateType) =>
+        s"vector(${inner(ast)(vectorCandidateType)}, ${inner(ast)(dimension)}, ${candidateType.description})"
 
       case lep: LabelExpressionPredicate if !isCaseExpression =>
         s"${inner(ast)(lep.entity)}:${stringifyLabelExpression(lep.labelExpression)}"

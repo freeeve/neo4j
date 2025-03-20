@@ -3075,6 +3075,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "no longer valid syntax",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42I53(
+            new GqlStatus("42I53"),
+            """
+                    Unknown coordinate type: { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "unsupported coordinate type",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
             """

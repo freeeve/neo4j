@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.ast.IsNotTyped
 import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.SubqueryCall
 import org.neo4j.cypher.internal.ast.UnionDistinct
+import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromState
@@ -52,12 +53,14 @@ import org.neo4j.cypher.internal.expressions.DesugaredMapProjection
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.Disjoint
 import org.neo4j.cypher.internal.expressions.Divide
+import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.DynamicLabelsExpressions
 import org.neo4j.cypher.internal.expressions.DynamicLabelsOrTypeExpressions
 import org.neo4j.cypher.internal.expressions.EndsWith
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.Expression.DefaultTypeMismatchMessageGenerator
 import org.neo4j.cypher.internal.expressions.Expression.SemanticContext
 import org.neo4j.cypher.internal.expressions.ExtractScope
 import org.neo4j.cypher.internal.expressions.FilterScope
@@ -100,6 +103,7 @@ import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.NotEquals
 import org.neo4j.cypher.internal.expressions.Null
+import org.neo4j.cypher.internal.expressions.NumberLiteral
 import org.neo4j.cypher.internal.expressions.OctalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Or
 import org.neo4j.cypher.internal.expressions.Ors
@@ -134,6 +138,7 @@ import org.neo4j.cypher.internal.expressions.Xor
 import org.neo4j.cypher.internal.label_expressions.LabelExpression
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.ColonDisjunction
 import org.neo4j.cypher.internal.label_expressions.LabelExpressionPredicate
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.helpers.Math
 import org.neo4j.cypher.internal.util.helpers.Try
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -148,14 +153,18 @@ import org.neo4j.cypher.internal.util.symbols.CTLocalDateTime
 import org.neo4j.cypher.internal.util.symbols.CTLocalTime
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
+import org.neo4j.cypher.internal.util.symbols.CTNumber
 import org.neo4j.cypher.internal.util.symbols.CTPath
 import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.CTVector
+import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.StorableType.storableType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
+import org.neo4j.values.storable.VectorValue
 
 object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
@@ -375,6 +384,56 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
         check(ctx, x.arguments) chain
           expectType(CTList(CTRelationship).covariant, x.relName) chain
           specifyType(CTBoolean, x)
+
+      case x: VectorValueConstructor =>
+        whenState(
+          !_.features.contains(SemanticFeature.VectorType)
+        ) {
+          error(SemanticError.vectorTypeNotSupported("The vector value constructor", x.position))
+        } chain
+          check(ctx, x.arguments) chain
+          CypherTypeName(x.typeName).semanticCheck chain
+          expectType(
+            CTInteger.covariant,
+            x.dimension,
+            TypeMismatchContext.TypeMismatchContextVal(
+              s"argument at index 1 of function vector()"
+            ),
+            DefaultTypeMismatchMessageGenerator
+          ) chain
+          expectType(
+            ClosedDynamicUnionType(Set(CTList(CTNumber), CTString))(InputPosition.NONE).covariant,
+            x.vectorCandidate,
+            TypeMismatchContext.TypeMismatchContextVal(
+              s"argument at index 0 of function vector()"
+            ),
+            DefaultTypeMismatchMessageGenerator
+          ) chain
+          literalShouldBeNumberInRange(
+            x.dimension,
+            "dimension",
+            VectorValue.MIN_VECTOR_DIMENSIONS,
+            VectorValue.MAX_VECTOR_DIMENSIONS
+          ) chain
+          when(
+            !x.validVectorInnerType
+          ) {
+            error(SemanticError.invalidType(
+              x.typeName.toCypherTypeString,
+              List(
+                "INTEGER64",
+                "INTEGER32",
+                "INTEGER16",
+                "INTEGER8",
+                "FLOAT64",
+                "FLOAT32"
+              ),
+              x.typeName.toCypherTypeString,
+              "Invalid vector inner type, expected INTEGER64, INTEGER32, INTEGER16, INTEGER8, FLOAT64 or FLOAT32",
+              x.dimension.position
+            ))
+          } chain
+          specifyType(CTVector, x)
 
       case x: PartialPredicate[_] =>
         check(ctx, x.coveredPredicate)
@@ -1188,6 +1247,35 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       }.toSeq
 
       SemanticCheckResult(inner, errors)
+    }
+  }
+
+  private def literalShouldBeNumberInRange(
+    expression: Expression,
+    name: String,
+    lowerBound: Integer,
+    upperBound: Integer
+  ): SemanticCheck = {
+    try {
+      expression match {
+        case i: IntegerLiteral if i.value >= lowerBound && i.value <= upperBound        => SemanticCheck.success
+        case i: DoubleLiteral if i.value >= 0.0d && i.value <= upperBound.doubleValue() => SemanticCheck.success
+        case lit: NumberLiteral =>
+          SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
+            name,
+            "NUMBER",
+            lowerBound,
+            upperBound,
+            lit.asCanonicalStringVal,
+            s"Invalid input. '${lit.asCanonicalStringVal}' is not a valid value. Must be a number in the range $lowerBound to $upperBound.",
+            lit.position
+          )
+        case _ => SemanticCheck.success
+      }
+    } catch {
+      case _: NumberFormatException =>
+        // We rely on getting a SemanticError from Type checking otherwise
+        SemanticCheck.success
     }
   }
 }

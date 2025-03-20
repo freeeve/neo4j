@@ -52,7 +52,6 @@ import org.neo4j.cypher.internal.expressions.functions.Tail
 import org.neo4j.cypher.internal.expressions.functions.ToBoolean
 import org.neo4j.cypher.internal.expressions.functions.ToString
 import org.neo4j.cypher.internal.expressions.functions.UnresolvedFunction
-import org.neo4j.cypher.internal.expressions.functions.VectorValueConstructor
 import org.neo4j.cypher.internal.expressions.functions.WithinBBox
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
@@ -89,13 +88,6 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
 
       case Reduce =>
         error(SemanticError.invalidReduceAccumulator(invocation.position))
-
-      case VectorValueConstructor =>
-        whenState(
-          !_.features.contains(SemanticFeature.VectorType)
-        ) {
-          error(SemanticError.vectorTypeNotSupported("The vector value constructor", invocation.position))
-        }
 
       case _: Function
         if invocation.name.equalsIgnoreCase("graph.names") || invocation.name.equalsIgnoreCase(

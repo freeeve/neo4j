@@ -17,9 +17,7 @@
 package org.neo4j.cypher.internal.expressions.functions
 
 import org.neo4j.cypher.internal.CypherVersion
-import org.neo4j.cypher.internal.expressions.FunctionInvocation
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
-import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
@@ -28,42 +26,11 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 
-import java.util.Locale
-
 // Remove internal annotation when the feature flag is removed.
+// This is just a dummy function so that the signature turns up in SHOW FUNCTIONS
+// In reality, the parser will pick it up and a VectorValueConstructor Expression is created.
 case object VectorValueConstructor extends Function {
   override def name = "vector"
-
-  sealed trait VectorElementType
-  case object Int8VectorElementType extends VectorElementType
-  case object Int16VectorElementType extends VectorElementType
-  case object Int32VectorElementType extends VectorElementType
-  case object Int64VectorElementType extends VectorElementType
-  case object Float32VectorElementType extends VectorElementType
-  case object Float64VectorElementType extends VectorElementType
-
-  // TODO: this is just a temporary thing, before making this public we should use something that isn't
-  // a normal string interval
-  def vectorElementType(invocation: FunctionInvocation): VectorElementType = {
-    if (!invocation.name.equalsIgnoreCase(name) || invocation.arguments.size != 3) {
-      throw new IllegalStateException(s"$invocation does not have an element type")
-    }
-    invocation.arguments(2) match {
-      case s: StringLiteral => s.value.toUpperCase(Locale.ROOT) match {
-          case "INTEGER8" | "INT8"                              => Int8VectorElementType
-          case "INTEGER16" | "INT16"                            => Int16VectorElementType
-          case "INTEGER32" | "INT32"                            => Int32VectorElementType
-          case "INTEGER64" | "INT64" | "INT" | "SIGNED INTEGER" => Int64VectorElementType
-          case "FLOAT32"                                        => Float32VectorElementType
-          case "FLOAT64" | "FLOAT"                              => Float64VectorElementType
-          case n => throw new IllegalStateException(
-              s"$n is not a valid vector type and should have failed in semantic checking"
-            )
-        }
-      case n =>
-        throw new IllegalStateException(s"$n is not a valid vector type and should have failed in semantic checking")
-    }
-  }
 
   override val signatures = Vector(
     FunctionTypeSignature(

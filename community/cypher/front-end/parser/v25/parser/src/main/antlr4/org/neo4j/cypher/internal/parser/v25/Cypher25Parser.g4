@@ -565,6 +565,7 @@ expression1
    | reduceExpression
    | listItemsPredicate
    | normalizeFunction
+   | vectorFunction
    | trimFunction
    | patternExpression
    | shortestPathExpression
@@ -642,6 +643,10 @@ listItemsPredicate
 
 normalizeFunction
    : NORMALIZE LPAREN expression (COMMA normalForm)? RPAREN
+   ;
+
+vectorFunction
+   : VECTOR LPAREN vectorValue = expression COMMA dimension = expression COMMA vectorCoordinateType RPAREN
    ;
 
 trimFunction
@@ -796,6 +801,23 @@ typeNullability
 typeListSuffix
    : (LIST | ARRAY) typeNullability?
    ;
+
+vectorCoordinateType
+    : (INT
+    | SIGNED? INTEGER
+    | INTEGER64
+    | INTEGER32
+    | INTEGER16
+    | INTEGER8
+    | INT64
+    | INT32
+    | INT16
+    | INT8
+    | FLOAT
+    | FLOAT64
+    | FLOAT32
+    ) typeNullability?
+    ;
 
 // Show, terminate, schema and admin commands
 
@@ -1888,7 +1910,9 @@ unescapedSymbolicNameString_
    | FIELDTERMINATOR
    | FILTER
    | FINISH
-   | FLOAT
+   | FLOAT   
+   | FLOAT64
+   | FLOAT32
    | FOREACH
    | FOR
    | FROM
@@ -1913,7 +1937,15 @@ unescapedSymbolicNameString_
    | INFINITY
    | INSERT
    | INT
+   | INT64
+   | INT32
+   | INT16
+   | INT8
    | INTEGER
+   | INTEGER64
+   | INTEGER32
+   | INTEGER16
+   | INTEGER8
    | IS
    | JOIN
    | KEY

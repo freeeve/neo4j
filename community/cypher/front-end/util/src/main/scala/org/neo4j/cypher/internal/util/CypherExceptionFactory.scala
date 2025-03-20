@@ -124,6 +124,22 @@ trait CypherExceptionFactory {
     )
   }
 
+  def invalidVectorType(vectorType: ASTNode): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(vectorType.position.offset, vectorType.position.line, vectorType.position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I53)
+        .atPosition(vectorType.position.offset, vectorType.position.line, vectorType.position.column)
+        .withParam(GqlParams.StringParam.input, vectorType.asCanonicalStringVal)
+        .build)
+      .build
+
+    syntaxException(
+      gql,
+      "Invalid vector inner type, expected INTEGER64, INTEGER32, INTEGER16, INTEGER8, FLOAT64 or FLOAT32",
+      vectorType.position
+    )
+  }
+
   def invalidNotNullClosedDynamicUnion(position: InputPosition): RuntimeException = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)

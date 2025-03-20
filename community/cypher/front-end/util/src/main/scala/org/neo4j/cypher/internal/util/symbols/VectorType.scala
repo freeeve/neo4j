@@ -38,6 +38,8 @@ case class VectorType(
 
   override val toString: String = if (isNullable) toCypherTypeString else s"$toCypherTypeString!"
 
+  def withDimension(dimension: Long): CypherType = this.copy(dimension = Some(dimension))(position)
+
   // An inner type should never be nullable
   override def simplify: CypherType = {
     innerType match {

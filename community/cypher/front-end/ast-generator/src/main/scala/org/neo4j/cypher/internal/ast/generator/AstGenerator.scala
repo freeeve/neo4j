@@ -346,6 +346,7 @@ import org.neo4j.cypher.internal.ast.UsingIndexHint.UsingTextIndexType
 import org.neo4j.cypher.internal.ast.UsingJoinHint
 import org.neo4j.cypher.internal.ast.UsingScanHint
 import org.neo4j.cypher.internal.ast.VectorIndexes
+import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.ast.WaitUntilComplete
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
@@ -508,7 +509,12 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.Negation
 import org.neo4j.cypher.internal.label_expressions.LabelExpression.Wildcard
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.AnyType
+import org.neo4j.cypher.internal.util.symbols.CTFloat
+import org.neo4j.cypher.internal.util.symbols.CTFloat32
 import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.CTInteger16
+import org.neo4j.cypher.internal.util.symbols.CTInteger32
+import org.neo4j.cypher.internal.util.symbols.CTInteger8
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
@@ -977,6 +983,12 @@ class AstGenerator(
   def _countStar: Gen[CountStar] =
     const(CountStar()(pos))
 
+  def _vectorValueConstructor: Gen[VectorValueConstructor] = for {
+    vectorCandidate <- _expression
+    dimension <- _expression
+    cypherType <- _vectorCandidateType
+  } yield VectorValueConstructor(vectorCandidate, dimension, cypherType)(pos)
+
   // Patterns
   // ----------------------------------
 
@@ -1045,7 +1057,8 @@ class AstGenerator(
     lzy(_nanLit)
   )
 
-  private def _deepExpression: Gen[Expression] = oneOf(
+  // This is now a frozen list
+  private def _deepExpressionCypher5: Gen[Expression] = oneOf(
     lzy(_predicateComparison),
     lzy(_predicateUnary),
     lzy(_predicateBinary),
@@ -1072,14 +1085,50 @@ class AstGenerator(
     lzy(_patternComprehension)
   )
 
+  // For newer expressions
+  private def _deepExpression: Gen[Expression] = oneOf(
+    lzy(_predicateComparison),
+    lzy(_predicateUnary),
+    lzy(_predicateBinary),
+    lzy(_predicateComparisonChain),
+    lzy(_iterablePredicate),
+    lzy(_arithmeticUnary),
+    lzy(_arithmeticBinary),
+    lzy(_case),
+    lzy(_functionInvocation),
+    lzy(_countStar),
+    lzy(_reduceExpr),
+    lzy(_shortestPathExpr),
+    lzy(_patternExpr),
+    lzy(_map),
+    lzy(_mapProjection),
+    lzy(_property),
+    lzy(_list),
+    lzy(_listSlice),
+    lzy(_listComprehension),
+    lzy(_containerIndex),
+    lzy(_existsExpression),
+    lzy(_countExpression),
+    lzy(_collectExpression),
+    lzy(_patternComprehension),
+    lzy(_vectorValueConstructor)
+  )
+
   def _expression: Gen[Expression] = Gen.sized { size =>
     if (size <= 0) {
       _shallowExpression
     } else {
-      frequency(
-        4 -> _shallowExpression,
-        1 -> Gen.resize(size - 1, _deepExpression)
-      )
+      if (whenAstDifferUseCypherVersion == CypherVersion.Cypher5) {
+        frequency(
+          4 -> _shallowExpression,
+          1 -> Gen.resize(size - 1, _deepExpressionCypher5)
+        )
+      } else {
+        frequency(
+          4 -> _shallowExpression,
+          1 -> Gen.resize(size - 1, _deepExpression)
+        )
+      }
     }
   }
 
@@ -2185,6 +2234,17 @@ class AstGenerator(
 
   def _cypherTypeName: Gen[CypherType] = for {
     _type <- oneOf(allCypherTypeNamesFromReflection)
+  } yield _type
+
+  def _vectorCandidateType: Gen[CypherType] = for {
+    _type <- oneOf(
+      CTInteger.withIsNullable(false),
+      CTInteger32.withIsNullable(false),
+      CTInteger16.withIsNullable(false),
+      CTInteger8.withIsNullable(false),
+      CTFloat.withIsNullable(false),
+      CTFloat32.withIsNullable(false)
+    )
   } yield _type
 
   def _normalForm: Gen[NormalForm] = for {

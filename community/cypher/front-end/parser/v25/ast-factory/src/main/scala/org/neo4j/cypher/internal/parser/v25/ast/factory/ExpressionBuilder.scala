@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ast.IsTyped
 import org.neo4j.cypher.internal.ast.Match
 import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.SingleQuery
+import org.neo4j.cypher.internal.ast.VectorValueConstructor
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.expressions.Add
 import org.neo4j.cypher.internal.expressions.AllIterablePredicate
@@ -150,7 +151,11 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.DateType
 import org.neo4j.cypher.internal.util.symbols.DurationType
+import org.neo4j.cypher.internal.util.symbols.Float32Type
 import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer16Type
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
+import org.neo4j.cypher.internal.util.symbols.Integer8Type
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType
@@ -981,6 +986,24 @@ trait ExpressionBuilder extends Cypher25ParserListener {
 
   final override def exitTypeNullability(ctx: Cypher25Parser.TypeNullabilityContext): Unit = {}
 
+  final override def exitVectorCoordinateType(ctx: Cypher25Parser.VectorCoordinateTypeContext): Unit = {
+    // We always parse to IS NOT NULL, as vector inner types may never be null
+    val p = pos(ctx)
+    val firstToken = nodeChild(ctx, 0).getSymbol.getType
+    val cypherType: CypherType = firstToken match {
+      case Cypher25Parser.INTEGER | Cypher25Parser.INT | Cypher25Parser.INTEGER64 | Cypher25Parser.INT64 =>
+        IntegerType(isNullable = false)(p)
+      case Cypher25Parser.INTEGER32 | Cypher25Parser.INT32 => Integer32Type(isNullable = false)(p)
+      case Cypher25Parser.INTEGER16 | Cypher25Parser.INT16 => Integer16Type(isNullable = false)(p)
+      case Cypher25Parser.INTEGER8 | Cypher25Parser.INT8   => Integer8Type(isNullable = false)(p)
+      case Cypher25Parser.FLOAT | Cypher25Parser.FLOAT64   => FloatType(isNullable = false)(p)
+      case Cypher25Parser.FLOAT32                          => Float32Type(isNullable = false)(p)
+      case Cypher25Parser.SIGNED                           => IntegerType(isNullable = false)(p)
+      case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
+    }
+    ctx.ast = cypherType
+  }
+
   final override def exitTypeListSuffix(ctx: Cypher25Parser.TypeListSuffixContext): Unit = {
     ctx.ast = ctx.typeNullability() == null
   }
@@ -1039,6 +1062,20 @@ trait ExpressionBuilder extends Cypher25ParserListener {
         FunctionName("normalize")(pos(ctx)),
         distinct = false,
         IndexedSeq(expression, StringLiteral(normalForm)(pos(ctx).withInputLength(0)))
+      )(pos(ctx))
+  }
+
+  final override def exitVectorFunction(
+    ctx: Cypher25Parser.VectorFunctionContext
+  ): Unit = {
+    val expression = ctx.vectorValue.ast[Expression]()
+    val dimension = ctx.dimension.ast[Expression]()
+
+    ctx.ast =
+      VectorValueConstructor(
+        expression,
+        dimension,
+        ctx.vectorCoordinateType().ast[CypherType]()
       )(pos(ctx))
   }
 

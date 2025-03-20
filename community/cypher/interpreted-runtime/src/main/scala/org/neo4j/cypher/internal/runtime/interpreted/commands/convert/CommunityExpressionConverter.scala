@@ -130,7 +130,6 @@ import org.neo4j.cypher.internal.expressions.functions.Type
 import org.neo4j.cypher.internal.expressions.functions.ValueType
 import org.neo4j.cypher.internal.expressions.functions.VectorSimilarityCosine
 import org.neo4j.cypher.internal.expressions.functions.VectorSimilarityEuclidean
-import org.neo4j.cypher.internal.expressions.functions.VectorValueConstructor
 import org.neo4j.cypher.internal.expressions.functions.WithinBBox
 import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.logical.plans.CoerceToPredicate
@@ -177,6 +176,12 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyPropertyKey
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.attribution.Id
+import org.neo4j.cypher.internal.util.symbols.Float32Type
+import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer16Type
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
+import org.neo4j.cypher.internal.util.symbols.Integer8Type
+import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.exceptions.InternalException
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarity
 import org.neo4j.kernel.impl.util.ValueUtils
@@ -284,10 +289,27 @@ case class CommunityExpressionConverter(
       case e: internal.expressions.Pow =>
         commands.expressions.Pow(self.toCommandExpression(id, e.lhs), self.toCommandExpression(id, e.rhs))
       case e: internal.expressions.FunctionInvocation => toCommandExpression(id, e.function, e, self)
-      case _: internal.expressions.CountStar          => commands.expressions.CountStar()
-      case e: internal.expressions.LogicalProperty    => toCommandProperty(id, e, self)
-      case ParameterFromSlot(offset, name, _)         => commands.expressions.ParameterFromSlot(offset, name)
-      case e: internal.expressions.CaseExpression     => caseExpression(id, e, self)
+      case e: internal.ast.VectorValueConstructor =>
+        val vectorExpression = self.toCommandExpression(id, e.vectorCandidate)
+        val dimensionExpression = self.toCommandExpression(id, e.dimension)
+        e.typeName match {
+          case _: Integer8Type =>
+            Int8VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case _: Integer16Type =>
+            Int16VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case _: Integer32Type =>
+            Int32VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case _: IntegerType =>
+            Int64VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case _: Float32Type =>
+            Float32VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+          case _: FloatType =>
+            Float64VectorValueConstructorFunction(vectorExpression, dimensionExpression)
+        }
+      case _: internal.expressions.CountStar       => commands.expressions.CountStar()
+      case e: internal.expressions.LogicalProperty => toCommandProperty(id, e, self)
+      case ParameterFromSlot(offset, name, _)      => commands.expressions.ParameterFromSlot(offset, name)
+      case e: internal.expressions.CaseExpression  => caseExpression(id, e, self)
       case e: internal.expressions.ShortestPathExpression =>
         commands.expressions
           .ShortestPathExpression(
@@ -813,23 +835,6 @@ case class CommunityExpressionConverter(
           firstArg,
           secondArg
         )
-      case VectorValueConstructor if invocation.arguments.size == 3 =>
-        val vectorExpression = self.toCommandExpression(id, invocation.arguments.head)
-        val dimensionExpression = self.toCommandExpression(id, invocation.arguments(1))
-        VectorValueConstructor.vectorElementType(invocation) match {
-          case VectorValueConstructor.Int8VectorElementType =>
-            Int8VectorValueConstructorFunction(vectorExpression, dimensionExpression)
-          case VectorValueConstructor.Int16VectorElementType =>
-            Int16VectorValueConstructorFunction(vectorExpression, dimensionExpression)
-          case VectorValueConstructor.Int32VectorElementType =>
-            Int32VectorValueConstructorFunction(vectorExpression, dimensionExpression)
-          case VectorValueConstructor.Int64VectorElementType =>
-            Int64VectorValueConstructorFunction(vectorExpression, dimensionExpression)
-          case VectorValueConstructor.Float32VectorElementType =>
-            Float32VectorValueConstructorFunction(vectorExpression, dimensionExpression)
-          case VectorValueConstructor.Float64VectorElementType =>
-            Float64VectorValueConstructorFunction(vectorExpression, dimensionExpression)
-        }
 
       case VectorSimilarityCosine =>
         val firstArg = self.toCommandExpression(id, invocation.arguments.head)

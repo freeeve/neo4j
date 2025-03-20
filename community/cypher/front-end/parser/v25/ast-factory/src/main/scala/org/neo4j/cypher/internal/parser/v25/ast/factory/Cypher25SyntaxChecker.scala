@@ -497,6 +497,13 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     ) {
       val normalForm = ctx.functionArgument(1).expression().ast[Expression]()
       _errors :+= exceptionFactory.invalidNormalForm(normalForm)
+    } else if (
+      functionName.name == "vector" &&
+      functionName.namespace.parts.isEmpty &&
+      ctx.functionArgument().size == 3
+    ) {
+      val coordinateType = ctx.functionArgument(2).expression().ast[Expression]()
+      _errors :+= exceptionFactory.invalidVectorType(coordinateType)
     }
   }
 

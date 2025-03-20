@@ -198,6 +198,7 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
                 exitListItemsPredicate((Cypher25Parser.ListItemsPredicateContext) ctx);
             case Cypher25Parser.RULE_normalizeFunction ->
                 exitNormalizeFunction((Cypher25Parser.NormalizeFunctionContext) ctx);
+            case Cypher25Parser.RULE_vectorFunction -> exitVectorFunction((Cypher25Parser.VectorFunctionContext) ctx);
             case Cypher25Parser.RULE_trimFunction -> exitTrimFunction((Cypher25Parser.TrimFunctionContext) ctx);
             case Cypher25Parser.RULE_patternExpression ->
                 exitPatternExpression((Cypher25Parser.PatternExpressionContext) ctx);
@@ -238,6 +239,8 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_typeNullability ->
                 exitTypeNullability((Cypher25Parser.TypeNullabilityContext) ctx);
             case Cypher25Parser.RULE_typeListSuffix -> exitTypeListSuffix((Cypher25Parser.TypeListSuffixContext) ctx);
+            case Cypher25Parser.RULE_vectorCoordinateType ->
+                exitVectorCoordinateType((Cypher25Parser.VectorCoordinateTypeContext) ctx);
             case Cypher25Parser.RULE_command -> exitCommand((Cypher25Parser.CommandContext) ctx);
             case Cypher25Parser.RULE_createCommand -> exitCreateCommand((Cypher25Parser.CreateCommandContext) ctx);
             case Cypher25Parser.RULE_dropCommand -> exitDropCommand((Cypher25Parser.DropCommandContext) ctx);

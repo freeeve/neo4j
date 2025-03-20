@@ -495,6 +495,13 @@ FLOAT
    : F L O A T
    ;
 
+FLOAT64
+   : F L O A T SIX FOUR
+   ;
+FLOAT32
+   : F L O A T THREE TWO
+   ;
+
 FOR
    : F O R
    ;
@@ -599,8 +606,34 @@ INT
    : I N T
    ;
 
+INT64
+   : I N T SIX FOUR
+   ;
+INT32
+   : I N T THREE TWO
+   ;
+INT16
+   : I N T ONE SIX
+   ;
+INT8
+   : I N T EIGHT
+   ;
+
 INTEGER
    : I N T E G E R
+   ;
+
+INTEGER64
+   : I N T E G E R SIX FOUR
+   ;
+INTEGER32
+   : I N T E G E R THREE TWO
+   ;
+INTEGER16
+   : I N T E G E R ONE SIX
+   ;
+INTEGER8
+   : I N T E G E R EIGHT
    ;
 
 IS
@@ -1417,6 +1450,46 @@ fragment Y
 
 fragment Z
    : [zZ]
+   ;
+
+fragment ZERO
+   : [0]
+   ;
+
+fragment ONE
+   : [1]
+   ;
+
+fragment TWO
+   : [2]
+   ;
+
+fragment THREE
+   : [3]
+   ;
+
+fragment FOUR
+   : [4]
+   ;
+
+fragment FIVE
+   : [5]
+   ;
+
+fragment SIX
+   : [16]
+   ;
+
+fragment SEVEN
+   : [7]
+   ;
+
+fragment EIGHT
+   : [8]
+   ;
+
+fragment NINE
+   : [9]
    ;
 
 // Should always be last in the file before modes

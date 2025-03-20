@@ -113,7 +113,8 @@ object TestConf {
 
     private def baseConf: TestConf = TestConf(
       neo4jConf = Map("server.bolt.enabled" -> "true"),
-      useBolt = true
+      useBolt = true,
+      tagContext = Set("bolt")
     )
 
     object Cypher25 extends InjectedTestConf {
@@ -247,7 +248,7 @@ object TestConf {
       neo4jConf = Map("server.bolt.enabled" -> "true"),
       useBolt = true,
       preparserOptions = Map("runtime" -> "parallel"),
-      tagContext = Set("parallel-runtime")
+      tagContext = Set("parallel-runtime", "bolt")
     )
 
     object Cypher25 extends InjectedTestConf {
@@ -281,7 +282,7 @@ object TestConf {
       ),
       useBolt = true,
       useSpd = true,
-      tagContext = Set("spd", "cypher-5")
+      tagContext = Set("spd", "cypher-5", "bolt")
     )
     final class ObjectFactory extends GuiceObjectFactory(injector)
   }
@@ -301,7 +302,7 @@ object TestConf {
       preparserOptions = Map("runtime" -> "parallel"),
       useSpd = true,
       useBolt = true,
-      tagContext = Set("spd", "cypher-5", "parallel-runtime")
+      tagContext = Set("spd", "cypher-5", "parallel-runtime", "bolt")
     )
     final class ObjectFactory extends GuiceObjectFactory(injector)
   }

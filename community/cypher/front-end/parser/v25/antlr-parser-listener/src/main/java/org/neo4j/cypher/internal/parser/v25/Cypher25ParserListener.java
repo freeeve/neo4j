@@ -267,6 +267,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitNormalizeFunction(Cypher25Parser.NormalizeFunctionContext ctx);
 
+    void exitVectorFunction(Cypher25Parser.VectorFunctionContext ctx);
+
     void exitTrimFunction(Cypher25Parser.TrimFunctionContext ctx);
 
     void exitPatternExpression(Cypher25Parser.PatternExpressionContext ctx);
@@ -320,6 +322,8 @@ public interface Cypher25ParserListener extends ParseTreeListener {
     void exitTypeNullability(Cypher25Parser.TypeNullabilityContext ctx);
 
     void exitTypeListSuffix(Cypher25Parser.TypeListSuffixContext ctx);
+
+    void exitVectorCoordinateType(Cypher25Parser.VectorCoordinateTypeContext ctx);
 
     void exitCommand(Cypher25Parser.CommandContext ctx);
 

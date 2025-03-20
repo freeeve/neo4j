@@ -168,7 +168,10 @@ trait SemanticAnalysisTooling {
   ): SemanticCheckResult = {
     s.expectType(expression, possibleTypes) match {
       case (ss, TypeSpec.none) =>
-        val existingTypesString = ss.expressionType(expression).specified.mkString(", ", " or ")
+        val specifiedExistingTypes = ss.expressionType(expression).specified
+        // If no type is returned, then we don't know the type, so default to Any
+        val existingTypesString =
+          if (specifiedExistingTypes.isEmpty) "Any" else specifiedExistingTypes.mkString(", ", " or ")
         val expectedTypesString = possibleTypes.mkString(", ", " or ")
         expression match {
           case p: Parameter

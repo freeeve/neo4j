@@ -165,6 +165,11 @@ class ExpressionStringifierIT extends CypherFunSuite {
       "x IS not normalized" -> "x IS NOT NFC NORMALIZED"
     )
 
+  val cypher25OnlyTests: Seq[(String, String)] = Seq[(String, String)](
+    "vector([1,2,3], 3, int)" -> "vector([1, 2, 3], 3, INTEGER NOT NULL)",
+    "VECTOR(\"[1,2,3]\", 3, float32!)" -> "vector(\"[1,2,3]\", 3, FLOAT32 NOT NULL)"
+  )
+
   tests foreach {
     case (inputString, expected) =>
       test(inputString) {
@@ -176,6 +181,14 @@ class ExpressionStringifierIT extends CypherFunSuite {
             stringifier(expression) should equal(expected)
           }
         }
+      }
+  }
+
+  cypher25OnlyTests foreach {
+    case (inputString, expected) =>
+      test(inputString) {
+        val expression = parseAntlr(CypherVersion.Cypher25, inputString)
+        stringifier(expression) should equal(expected)
       }
   }
 

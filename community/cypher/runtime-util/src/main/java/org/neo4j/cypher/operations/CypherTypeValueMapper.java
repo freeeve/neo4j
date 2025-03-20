@@ -326,31 +326,31 @@ public final class CypherTypeValueMapper implements ValueMapper<CypherType> {
 
     @Override
     public CypherType mapInt8Vector(Int8Vector value) {
-        return INTEGER8_VECTOR_CYPHER_TYPE_NAME;
+        return INTEGER8_VECTOR_CYPHER_TYPE_NAME.withDimension(value.dimensions());
     }
 
     @Override
     public CypherType mapInt16Vector(Int16Vector value) {
-        return INTEGER16_VECTOR_CYPHER_TYPE_NAME;
+        return INTEGER16_VECTOR_CYPHER_TYPE_NAME.withDimension(value.dimensions());
     }
 
     @Override
     public CypherType mapInt32Vector(Int32Vector value) {
-        return INTEGER32_VECTOR_CYPHER_TYPE_NAME;
+        return INTEGER32_VECTOR_CYPHER_TYPE_NAME.withDimension(value.dimensions());
     }
 
     @Override
     public CypherType mapInt64Vector(Int64Vector value) {
-        return INTEGER64_VECTOR_CYPHER_TYPE_NAME;
+        return INTEGER64_VECTOR_CYPHER_TYPE_NAME.withDimension(value.dimensions());
     }
 
     @Override
     public CypherType mapFloat32Vector(Float32Vector value) {
-        return FLOAT32_VECTOR_CYPHER_TYPE_NAME;
+        return FLOAT32_VECTOR_CYPHER_TYPE_NAME.withDimension(value.dimensions());
     }
 
     @Override
     public CypherType mapFloat64Vector(Float64Vector value) {
-        return FLOAT64_VECTOR_CYPHER_TYPE_NAME;
+        return FLOAT64_VECTOR_CYPHER_TYPE_NAME.withDimension(value.dimensions());
     }
 }
