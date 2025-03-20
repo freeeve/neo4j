@@ -19,9 +19,12 @@
  */
 package org.neo4j.kernel.impl.api.index;
 
+import static org.neo4j.kernel.impl.api.index.IndexPopulationFailure.failure;
+
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.InternalIndexState;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
@@ -96,6 +99,13 @@ public class TentativeConstraintIndexProxy extends AbstractDelegatingIndexProxy 
     @Override
     public InternalIndexState getState() {
         return failures.isEmpty() ? InternalIndexState.POPULATING : InternalIndexState.FAILED;
+    }
+
+    @Override
+    public IndexPopulationFailure getPopulationFailure() throws IllegalStateException {
+        return failures.isEmpty()
+                ? target.getPopulationFailure()
+                : failure(failures.stream().reduce(Exceptions::chain).get());
     }
 
     @Override
