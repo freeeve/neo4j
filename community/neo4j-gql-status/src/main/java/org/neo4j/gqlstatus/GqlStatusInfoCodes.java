@@ -3910,7 +3910,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "provider-id comination already exists",
+            "provider-id combination already exists",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N96(
             new GqlStatus("42N96"),

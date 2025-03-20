@@ -341,8 +341,9 @@ public class AuthenticationIT {
                 .receivesFailureFuzzy(
                         Status.Security.Unauthorized,
                         "Unsupported authentication token, the value associated with the key `principal` must be a String but was: ArrayList",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                        GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .isEventuallyTerminated();
     }
 
@@ -384,8 +385,9 @@ public class AuthenticationIT {
                 .receivesFailureFuzzy(
                         Status.Security.Unauthorized,
                         "Unsupported authentication token, missing key `credentials`",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                        GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .isEventuallyTerminated();
     }
 
@@ -425,8 +427,9 @@ public class AuthenticationIT {
                 .receivesFailureFuzzy(
                         Status.Security.Unauthorized,
                         "Unsupported authentication token, missing key `scheme`",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                        GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .isEventuallyTerminated();
     }
 
@@ -469,8 +472,9 @@ public class AuthenticationIT {
                 .receivesFailure(
                         Status.Security.Unauthorized,
                         "Unsupported authentication token, scheme 'unknown' is not supported.",
-                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                        GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                 .isEventuallyTerminated();
     }
 
@@ -524,8 +528,9 @@ public class AuthenticationIT {
                         .receivesFailure(
                                 Status.Security.AuthenticationRateLimit,
                                 "The client has provided incorrect authentication details too many times in a row.",
-                                GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                                "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details.")
+                                GqlStatusInfoCodes.STATUS_42NFF.getGqlStatus(),
+                                "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.",
+                                BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"))
                         .isEventuallyTerminated();
             }
         });

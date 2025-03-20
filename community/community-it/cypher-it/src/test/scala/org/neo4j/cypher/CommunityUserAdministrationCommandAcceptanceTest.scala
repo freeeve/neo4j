@@ -1854,11 +1854,16 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
     // GIVEN
     prepareUser(changeRequired = false)
 
-    the[QueryExecutionException] thrownBy {
+    val exception = the[QueryExecutionException] thrownBy {
       // WHEN
       executeOnSystem(username, password, s"ALTER CURRENT USER SET PASSWORD FROM '$wrongPassword' TO '$newPassword'")
       // THEN
-    } should have message s"User '$username' failed to alter their own password: Invalid principal or credentials."
+    }
+    exception should have message s"User '$username' failed to alter their own password: Invalid principal or credentials."
+    exception should be(gqlStatus(
+      GqlStatusInfoCodes.STATUS_42NFF,
+      "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details."
+    ))
 
     // THEN
     testUserLogin(username, password, AuthenticationResult.SUCCESS)
@@ -1884,12 +1889,21 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
     // THEN
     testUserLogin(username, password, AuthenticationResult.SUCCESS)
 
-    the[QueryExecutionException] thrownBy {
+    val exception = the[QueryExecutionException] thrownBy {
       // WHEN
       val parameter = Map[String, Object]("password" -> password).asJava
       executeOnSystem(username, password, s"ALTER CURRENT USER SET PASSWORD FROM '$password' TO $$password", parameter)
       // THEN
-    } should have message s"User '$username' failed to alter their own password: Old password and new password cannot be the same."
+    }
+    exception should have message s"User '$username' failed to alter their own password: Old password and new password cannot be the same."
+    exception should be(gqlStatus(
+      GqlStatusInfoCodes.STATUS_22N05,
+      "error: data exception - input failed validation. Invalid input '***' for alexandra password."
+    )
+      .withCause(
+        GqlStatusInfoCodes.STATUS_22N89,
+        "error: data exception - new password cannot be the same as the old password. Expected the new password to be different from the old password."
+      ))
 
     // THEN
     testUserLogin(username, password, AuthenticationResult.SUCCESS)
@@ -1899,12 +1913,20 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
     // GIVEN
     prepareUser(changeRequired = false)
 
-    the[QueryExecutionException] thrownBy {
+    val exception = the[QueryExecutionException] thrownBy {
       // WHEN
       val parameter = Map[String, Object]("password" -> password).asJava
       executeOnSystem(username, password, s"ALTER CURRENT USER SET PASSWORD FROM '$password' TO $$password", parameter)
       // THEN
-    } should have message s"User '$username' failed to alter their own password: Old password and new password cannot be the same."
+    }
+    exception should have message s"User '$username' failed to alter their own password: Old password and new password cannot be the same."
+    exception should be(gqlStatus(
+      GqlStatusInfoCodes.STATUS_22N05,
+      "error: data exception - input failed validation. Invalid input '***' for alexandra password."
+    ).withCause(
+      GqlStatusInfoCodes.STATUS_22N89,
+      "error: data exception - new password cannot be the same as the old password. Expected the new password to be different from the old password."
+    ))
 
     // THEN
     testUserLogin(username, password, AuthenticationResult.SUCCESS)

@@ -101,19 +101,15 @@ case class SetOwnPasswordExecutionPlanner(
         }
         .handleResult((_, value, p) => {
           if (value.isInstanceOf[NoValue]) {
-            ThrowException(new InvalidArgumentException(
-              s"User '${currentUser(p)}' failed to alter their own password: Invalid principal or credentials."
-            ))
+            ThrowException(InvalidArgumentException.invalidCredentialsDuringAlterPassword(currentUser(p)))
           }
           val oldCredentials =
             SystemGraphCredential.deserialize(value.asInstanceOf[TextValue].stringValue(), secureHasher)
           val newValue = p.get(newPw.bytesKey).asInstanceOf[ByteArray].asObject()
           val currentValue = p.get(currentKeyBytes).asInstanceOf[ByteArray].asObject()
-          if (!oldCredentials.matchesPassword(currentValue))
-            ThrowException(new InvalidArgumentException(
-              s"User '${currentUser(p)}' failed to alter their own password: Invalid principal or credentials."
-            ))
-          else if (oldCredentials.matchesPassword(newValue))
+          if (!oldCredentials.matchesPassword(currentValue)) {
+            ThrowException(InvalidArgumentException.invalidCredentialsDuringAlterPassword(currentUser(p)))
+          } else if (oldCredentials.matchesPassword(newValue))
             ThrowException(InvalidArgumentException.oldPasswordEqualsNew(currentUser(p), true))
           else
             Continue

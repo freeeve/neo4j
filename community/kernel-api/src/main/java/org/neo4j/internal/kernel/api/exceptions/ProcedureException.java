@@ -977,6 +977,12 @@ public class ProcedureException extends KernelException {
                 procedure);
     }
 
+    public static ProcedureException failedToCleanSystemGraph(Exception e) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N21)
+                .build();
+        return new ProcedureException(gql, ProcedureCallFailed, e, "Failed to clean the system graph");
+    }
+
     public static ProcedureException unsupportedType(String input, List<String> cypherTypes) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB8)
                 .withParam(GqlParams.StringParam.input, input)

@@ -407,6 +407,13 @@ public class InvalidArgumentException extends Neo4jException {
                 gql, String.format("A password must be at least %s characters.", minLength));
     }
 
+    public static InvalidArgumentException invalidCredentialsDuringAlterPassword(String user) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .build();
+        return new InvalidArgumentException(
+                gql, "User '%s' failed to alter their own password: Invalid principal or credentials.".formatted(user));
+    }
+
     public static InvalidArgumentException parameterizedDbWildcards(String syntax, String messageStart) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N86)
                 .withParam(GqlParams.StringParam.syntax, syntax)
@@ -1068,6 +1075,16 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, "Cannot impersonate with native authorization disabled.");
     }
 
+    public static InvalidArgumentException unsupportedWhenNotNative() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N30)
+                .withParam(GqlParams.StringParam.item, "Changing username")
+                .withParam(GqlParams.StringParam.context, "when using an authentication provider apart from native")
+                .build();
+        return new InvalidArgumentException(
+                gql,
+                "Changing username is not supported when using an authentication or authentication provider apart from native.");
+    }
+
     public static InvalidArgumentException invalidGraphName(String graphName) {
         var msg = String.format(
                 "Failed to parse `%s` as a graph name. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters.\"",
@@ -1155,5 +1172,22 @@ public class InvalidArgumentException extends Neo4jException {
                         .build())
                 .build();
         return new InvalidArgumentException(gql, "Failed to %s: '%s' is a reserved role.".formatted(action, role));
+    }
+
+    public static InvalidArgumentException providerIdCombinationAlreadyInUse(String username) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N95)
+                .build();
+        return new InvalidArgumentException(
+                gql,
+                "Failed to create the specified user '%s': The combination of provider and id is already in use."
+                        .formatted(username));
+    }
+
+    public static InvalidArgumentException atLeastOneAuthProviderRequired() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N96)
+                .build();
+        return new InvalidArgumentException(
+                gql,
+                "User has no auth provider. Add at least one auth provider for the user or consider suspending them.");
     }
 }

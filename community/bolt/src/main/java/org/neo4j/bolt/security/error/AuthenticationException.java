@@ -71,6 +71,12 @@ public class AuthenticationException extends IOException implements Status.HasSt
         return new AuthenticationException(gql, Status.Security.Unauthorized);
     }
 
+    public static AuthenticationException rateLimit() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .build();
+        return new AuthenticationException(gql, Status.Security.AuthenticationRateLimit);
+    }
+
     @Override
     public String legacyMessage() {
         return oldMessage;

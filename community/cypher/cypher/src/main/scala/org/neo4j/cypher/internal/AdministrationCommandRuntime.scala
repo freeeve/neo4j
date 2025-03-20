@@ -356,10 +356,7 @@ object AdministrationCommandRuntime {
           (error, error.getCause) match {
             case (_, e: UniquePropertyValueValidationException) =>
               if (e.constraint().getName.equals(AUTH_CONSTRAINT)) {
-                new InvalidArgumentException(
-                  s"Failed to create the specified user '${runtimeStringValue(userName, params)}': The combination of provider and id is already in use.",
-                  error
-                )
+                InvalidArgumentException.providerIdCombinationAlreadyInUse(runtimeStringValue(userName, params));
               } else {
                 InvalidArgumentException.createEntityAlreadyExists(
                   PrivilegeGqlCodeEntity.USER,
@@ -617,9 +614,7 @@ object AdministrationCommandRuntime {
                 } else validateAuth(externalAuths, nativeAuth)
             }.getOrElse(validateAuth(externalAuths, nativeAuth))
           case (2, value: BooleanValue, _) if !value.booleanValue() =>
-            ThrowException(new InvalidArgumentException(
-              "User has no auth provider. Add at least one auth provider for the user or consider suspending them."
-            ))
+            ThrowException(InvalidArgumentException.atLeastOneAuthProviderRequired())
           case (3, value: BooleanValue, _) if !value.booleanValue() =>
             ThrowException(InvalidArgumentException.missingMandatoryAuthClause(
               "SET PASSWORD",

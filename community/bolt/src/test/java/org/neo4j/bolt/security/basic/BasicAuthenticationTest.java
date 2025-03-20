@@ -39,6 +39,8 @@ import org.neo4j.bolt.security.AuthenticationResult;
 import org.neo4j.bolt.security.error.AuthenticationException;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.impl.security.User;
@@ -107,6 +109,10 @@ class BasicAuthenticationTest {
         assertEquals(Status.Security.AuthenticationRateLimit, e.status());
         assertEquals(
                 "The client has provided incorrect authentication details too many times in a row.", e.getMessage());
+        ErrorGqlStatusObjectAssertions.assertThat(e)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_42NFF)
+                .hasStatusDescription(
+                        "error: syntax error or access rule violation - permission/access denied. Access denied, see the security logs for details.");
     }
 
     @Test
