@@ -184,6 +184,7 @@ object StatefulShortestPathPipe {
       case n: IntegralValue if n.longValue().toInt > 0 => n.longValue().toInt
       case n: IntegralValue =>
         val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+          .withParam(GqlParams.StringParam.value, String.valueOf(n.longValue()))
           .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N02)
             .withParam(GqlParams.StringParam.option, "count").withParam(
               GqlParams.NumberParam.value,

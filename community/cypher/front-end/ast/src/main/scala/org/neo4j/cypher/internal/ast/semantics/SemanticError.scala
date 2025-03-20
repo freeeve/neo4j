@@ -1004,6 +1004,7 @@ object SemanticError {
     position: InputPosition
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+      .withParam(GqlParams.StringParam.value, String.valueOf(count))
       .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N52)
         .atPosition(position.offset, position.line, position.column)
@@ -1026,6 +1027,7 @@ object SemanticError {
     position: InputPosition
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+      .withParam(GqlParams.StringParam.value, String.valueOf(count))
       .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N53)
         .atPosition(position.offset, position.line, position.column)

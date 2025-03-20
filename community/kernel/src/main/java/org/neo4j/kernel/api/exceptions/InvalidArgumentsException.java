@@ -79,6 +79,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
 
     public static InvalidArgumentsException requiresPositiveInteger(String option, int value) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, String.valueOf(value))
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N02)
                         .withParam(GqlParams.StringParam.option, option)
                         .withParam(GqlParams.NumberParam.value, value)

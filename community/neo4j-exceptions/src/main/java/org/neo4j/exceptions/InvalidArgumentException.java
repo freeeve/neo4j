@@ -551,6 +551,7 @@ public class InvalidArgumentException extends Neo4jException {
     public static InvalidArgumentException topologyOutOfRange(
             String serverType, int constrainedServers, String allocationType, int desiredAllocations) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+                .withParam(GqlParams.StringParam.value, String.valueOf(constrainedServers))
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N56)
                         .withParam(GqlParams.StringParam.serverType, serverType)
                         .withParam(GqlParams.NumberParam.count1, constrainedServers)

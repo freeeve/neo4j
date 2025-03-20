@@ -60,6 +60,9 @@ public class QueryExecutionKernelExceptionTest {
         var gqlException = InvalidArgumentsException.requiresPositiveInteger("the_option", -1);
         var translatedGqlException = QueryExecutionKernelException.wrapError(gqlException);
         assertEquals("22003", translatedGqlException.gqlStatus());
+        assertEquals(
+                "error: data exception - numeric value out of range. The numeric value -1 is outside the required range.",
+                translatedGqlException.statusDescription());
         assertEquals(InvalidArguments, translatedGqlException.status());
         assertEquals(
                 "Option `the_option` requires positive integer argument, got `-1`",
@@ -107,7 +110,7 @@ public class QueryExecutionKernelExceptionTest {
 
         var gqlCause = translatedGqlException.gqlStatusObject().cause().get();
         assertEquals("22003", gqlCause.gqlStatus());
-        assertEquals("22003: The numeric value $value is outside the required range.", gqlCause.getMessage());
+        assertEquals("22003: The numeric value -1 is outside the required range.", gqlCause.getMessage());
 
         assertTrue(gqlCause.cause().isPresent());
         var secondGqlCause = gqlCause.cause().get();
@@ -128,7 +131,7 @@ public class QueryExecutionKernelExceptionTest {
 
         var userCause = translatedGqlException.gqlStatusObject().cause().get();
         assertEquals("22003", userCause.gqlStatus());
-        assertEquals("22003: The numeric value $value is outside the required range.", userCause.getMessage());
+        assertEquals("22003: The numeric value -1 is outside the required range.", userCause.getMessage());
 
         assertTrue(userCause.cause().isPresent());
         var secondUserCause = userCause.cause().get();
