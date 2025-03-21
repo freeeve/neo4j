@@ -19,7 +19,7 @@
  */
 package org.neo4j.cypher.internal.runtime
 
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.virtual.ListValue
 import org.neo4j.values.virtual.VirtualRelationshipValue
@@ -74,11 +74,11 @@ object RelationshipContainer {
     }
   }
 
-  def empty(memoryTracker: MemoryTracker, traversalMatchMode: TraversalMatchMode): RelationshipContainer =
-    traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+  def empty(memoryTracker: MemoryTracker, traversalPathMode: TraversalPathMode): RelationshipContainer =
+    traversalPathMode match {
+      case TraversalPathMode.Walk =>
         new WalkModeRelationshipContainer(EMPTY_LIST, 0)
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         new TrailModeRelationshipContainer(EMPTY_LIST, 0, HeapTrackingLongImmutableSet.emptySet(memoryTracker))
     }
 }

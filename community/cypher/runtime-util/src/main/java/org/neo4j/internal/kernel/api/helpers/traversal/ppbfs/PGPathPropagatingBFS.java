@@ -93,7 +93,7 @@ public final class PGPathPropagatingBFS<Row> extends PrefetchingIterator<Row> im
             MemoryTracker mt,
             PPBFSHooks hooks,
             AssertOpen assertOpen,
-            TraversalMatchModeFactory tracker) {
+            TraversalPathModeFactory tracker) {
         Preconditions.checkArgument(
                 intoTarget != NO_SUCH_ENTITY || searchMode == SearchMode.Unidirectional,
                 "Bidirectional search can only be performed with a target node");
@@ -142,7 +142,7 @@ public final class PGPathPropagatingBFS<Row> extends PrefetchingIterator<Row> im
             MemoryTracker mt,
             PPBFSHooks hooks,
             AssertOpen assertOpen,
-            TraversalMatchModeFactory tracker) {
+            TraversalPathModeFactory tracker) {
         return new PGPathPropagatingBFS<>(
                 source,
                 startState,

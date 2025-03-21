@@ -59,8 +59,8 @@ import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
 import org.neo4j.cypher.internal.logical.plans.NestedPlanGetByNameExpression
 import org.neo4j.cypher.internal.logical.plans.NodeHashJoin
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Walk
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
@@ -345,7 +345,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
           Some(5),
           // We have the non-inlinable prefilter "`  next@0` = next", which requires relationship uniqueness along the path
           // as `next` already has relationship uniqueness
-          TraversalMatchMode.Walk
+          TraversalPathMode.Walk
         )
         // Yup, not pretty, we could drop these predicates.
         // But currently they are inserted quite early in ASTRewriter,
@@ -2408,7 +2408,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         1,
         Some(1),
         // because it is only a single fixed-length relationship, we can apply walk semantics here
-        matchMode = TraversalMatchMode.Walk
+        pathMode = TraversalPathMode.Walk
       )
       .nodeByLabelScan("a", "User")
       .build()
@@ -3037,7 +3037,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
           1,
           Some(1),
           // because it is only a single fixed-length relationship, we can apply walk semantics here
-          matchMode = TraversalMatchMode.Walk
+          pathMode = TraversalPathMode.Walk
         )
         .apply()
         .|.nodeByLabelScan("a", "User", "n")

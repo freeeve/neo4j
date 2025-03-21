@@ -22,19 +22,19 @@ package org.neo4j.cypher.internal.logical.plans
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.Unique
 
-sealed trait TraversalMatchMode
+sealed trait TraversalPathMode
 
-object TraversalMatchMode {
-  case object Walk extends TraversalMatchMode
-  case object Trail extends TraversalMatchMode
+object TraversalPathMode {
+  case object Walk extends TraversalPathMode
+  case object Trail extends TraversalPathMode
 
-  def getFromPredicates(predicates: Iterable[Expression], alwaysTrail: Boolean = false): TraversalMatchMode = {
-    val isMatchModeTrail = alwaysTrail || predicates.exists(predicate => {
+  def getFromPredicates(predicates: Iterable[Expression], alwaysTrail: Boolean = false): TraversalPathMode = {
+    val isPathModeTrail = alwaysTrail || predicates.exists(predicate => {
       predicate match {
         case _: Unique => true
         case _         => false
       }
     })
-    if (isMatchModeTrail) TraversalMatchMode.Trail else TraversalMatchMode.Walk
+    if (isPathModeTrail) TraversalPathMode.Trail else TraversalPathMode.Walk
   }
 }

@@ -507,7 +507,7 @@ object CardinalityCostModel {
 
       case e: Expand if e.mode == ExpandInto => EXPAND_INTO_COST
 
-      case e: VarExpand if e.mode == ExpandInto => EXPAND_INTO_COST
+      case e: VarExpand if e.expansionMode == ExpandInto => EXPAND_INTO_COST
 
       case _: Expand |
         _: VarExpand |

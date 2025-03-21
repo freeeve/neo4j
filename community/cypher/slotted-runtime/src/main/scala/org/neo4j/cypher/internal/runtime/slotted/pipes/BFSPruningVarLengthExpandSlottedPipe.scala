@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.physicalplanning.Slot
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
 import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationUtils.NO_ENTITY_FUNCTION
@@ -52,8 +52,8 @@ case class BFSPruningVarLengthExpandSlottedPipe(
   includeStartNode: Boolean,
   max: Int,
   slots: SlotConfiguration,
-  mode: ExpansionMode,
-  traversalMatchMode: TraversalMatchMode,
+  expansionMode: ExpansionMode,
+  traversalPathMode: TraversalPathMode,
   predicates: TraversalPredicates
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) with Pipe {
   self =>
@@ -61,7 +61,7 @@ case class BFSPruningVarLengthExpandSlottedPipe(
   private val getFromNodeFunction = makeGetPrimitiveNodeFromSlotFunctionFor(fromSlot, throwOnTypeError = false)
 
   private val getToNodeFunction =
-    if (mode == ExpandAll) NO_ENTITY_FUNCTION // We only need this getter in the ExpandInto case
+    if (expansionMode == ExpandAll) NO_ENTITY_FUNCTION // We only need this getter in the ExpandInto case
     else makeGetPrimitiveNodeFromSlotFunctionFor(toSlot, throwOnTypeError = false)
 
   private val emitDepth: Boolean = maybeDepthOffset.nonEmpty
@@ -76,7 +76,7 @@ case class BFSPruningVarLengthExpandSlottedPipe(
         {
           val fromNode = getFromNodeFunction.applyAsLong(inputRow)
           val toNode = getToNodeFunction.applyAsLong(inputRow)
-          if (entityIsNull(fromNode) || (mode == ExpandInto && entityIsNull(toNode))) {
+          if (entityIsNull(fromNode) || (expansionMode == ExpandInto && entityIsNull(toNode))) {
             ClosingIterator.empty
           } else {
             if (predicates.filterNode(inputRow, state, state.query.nodeById(fromNode))) {
@@ -90,8 +90,8 @@ case class BFSPruningVarLengthExpandSlottedPipe(
                 dir,
                 includeStartNode,
                 max,
-                mode,
-                traversalMatchMode,
+                expansionMode,
+                traversalPathMode,
                 predicates.asNodeIdPredicate(inputRow, state),
                 predicates.asRelCursorPredicate(inputRow, state),
                 memoryTracker

@@ -19,7 +19,7 @@
  */
 package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs
 
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.function.Predicates
 import org.neo4j.graphdb.Direction
@@ -1259,7 +1259,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
       .withK(5)
       .from(graph.n1)
       .into(graph.n2)
-      .withMatchMode(TraversalMatchMode.Walk)
+      .withPathMode(TraversalPathMode.Walk)
       .withMode(SearchMode.Unidirectional)
       .paths()
 
@@ -1370,7 +1370,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
       .withNfa(nfa)
       .withK(5)
       .from(graph.n1)
-      .withMatchMode(TraversalMatchMode.Walk)
+      .withPathMode(TraversalPathMode.Walk)
       .withMode(SearchMode.Unidirectional)
       .paths()
 
@@ -1593,7 +1593,7 @@ class PGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropagatingBFST
     def createPathTracer(_mt: MemoryTracker, hooks: PPBFSHooks): PathTracer[TracedPath] =
       new PathTracer(
         EmptyMemoryTracker.INSTANCE,
-        TraversalMatchModeFactory.trailMode(EmptyMemoryTracker.INSTANCE, hooks),
+        TraversalPathModeFactory.trailMode(EmptyMemoryTracker.INSTANCE, hooks),
         hooks
       )
 

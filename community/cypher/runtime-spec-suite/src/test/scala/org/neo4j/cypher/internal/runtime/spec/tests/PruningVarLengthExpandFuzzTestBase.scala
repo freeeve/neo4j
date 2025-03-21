@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
 import org.neo4j.cypher.internal.expressions.SemanticDirection.INCOMING
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -44,21 +44,21 @@ abstract class PruningVarLengthExpandFuzzTestBase[CONTEXT <: RuntimeContext](
   private val seed = System.currentTimeMillis()
   private val random = new Random(seed)
 
-  List(TraversalMatchMode.Walk).foreach(matchMode => {
-    test(s"random and compare, matchMode=$matchMode") {
+  List(TraversalPathMode.Walk).foreach(pathMode => {
+    test(s"random and compare, pathMode=$pathMode") {
       val nodes = setUpGraph(15 + random.nextInt(10))
       val millisToRun = 10000
 
       withClue("seed used: " + seed) {
-        runForMillis(millisToRun)(() => testPruningVarExpand(nodes(random.nextInt(population)), random, matchMode))
+        runForMillis(millisToRun)(() => testPruningVarExpand(nodes(random.nextInt(population)), random, pathMode))
         runForMillis(millisToRun)(() =>
-          testBFSPruningVarExpand(nodes(random.nextInt(population)), BOTH, random, matchMode)
+          testBFSPruningVarExpand(nodes(random.nextInt(population)), BOTH, random, pathMode)
         )
         runForMillis(millisToRun)(() =>
-          testBFSPruningVarExpand(nodes(random.nextInt(population)), OUTGOING, random, matchMode)
+          testBFSPruningVarExpand(nodes(random.nextInt(population)), OUTGOING, random, pathMode)
         )
         runForMillis(millisToRun)(() =>
-          testBFSPruningVarExpand(nodes(random.nextInt(population)), INCOMING, random, matchMode)
+          testBFSPruningVarExpand(nodes(random.nextInt(population)), INCOMING, random, pathMode)
         )
       }
     }
@@ -103,20 +103,20 @@ abstract class PruningVarLengthExpandFuzzTestBase[CONTEXT <: RuntimeContext](
     nodes
   }
 
-  private def testPruningVarExpand(startNode: Node, r: Random, matchMode: TraversalMatchMode): Unit = {
+  private def testPruningVarExpand(startNode: Node, r: Random, pathMode: TraversalPathMode): Unit = {
     val min = r.nextInt(3)
     val max = min + 1 + r.nextInt(3)
 
     val pruningQuery = new LogicalQueryBuilder(this)
       .produceResults("from", "to")
-      .pruningVarExpand(s"(from)-[*$min..$max]-(to)", matchMode = matchMode)
+      .pruningVarExpand(s"(from)-[*$min..$max]-(to)", pathMode = pathMode)
       .input(nodes = Seq("from"))
       .build()
 
     val distinctQuery = new LogicalQueryBuilder(this)
       .produceResults("from", "to")
       .distinct("from AS from", "to AS to")
-      .expand(s"(from)-[*$min..$max]-(to)", matchMode = matchMode)
+      .expand(s"(from)-[*$min..$max]-(to)", pathMode = pathMode)
       .input(nodes = Seq("from"))
       .build()
 
@@ -151,7 +151,7 @@ abstract class PruningVarLengthExpandFuzzTestBase[CONTEXT <: RuntimeContext](
     startNode: Node,
     direction: SemanticDirection,
     r: Random,
-    matchMode: TraversalMatchMode
+    pathMode: TraversalPathMode
   ): Unit = {
     val min = r.nextInt(2)
     val max = min + 1 + r.nextInt(3)
@@ -163,14 +163,14 @@ abstract class PruningVarLengthExpandFuzzTestBase[CONTEXT <: RuntimeContext](
     }
     val pruningQuery = new LogicalQueryBuilder(this)
       .produceResults("from", "to")
-      .bfsPruningVarExpand(pattern, matchMode = matchMode)
+      .bfsPruningVarExpand(pattern, pathMode = pathMode)
       .input(nodes = Seq("from"))
       .build()
 
     val distinctQuery = new LogicalQueryBuilder(this)
       .produceResults("from", "to")
       .distinct("from AS from", "to AS to")
-      .expand(pattern, matchMode = matchMode)
+      .expand(pattern, pathMode = pathMode)
       .input(nodes = Seq("from"))
       .build()
 

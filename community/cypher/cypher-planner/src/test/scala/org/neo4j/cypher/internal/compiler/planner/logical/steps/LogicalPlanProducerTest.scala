@@ -78,8 +78,8 @@ import org.neo4j.cypher.internal.logical.plans.NotDistinct
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Selector.Shortest
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Trail
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.logical.plans.ordering.DefaultProvidedOrderFactory
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrder
 import org.neo4j.cypher.internal.logical.plans.ordering.ProvidedOrderFactory
@@ -1632,7 +1632,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
-        TraversalMatchMode.Trail
+        TraversalPathMode.Trail
       ) should have message "The provided inner plan doesn't conform with the quantified path pattern being planned"
     }
   }
@@ -1978,7 +1978,7 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         ListSet.empty,
         ListSet.empty,
         ExpandAll,
-        TraversalMatchMode.Trail,
+        TraversalPathMode.Trail,
         ctx.context
       )
     )

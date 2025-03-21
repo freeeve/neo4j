@@ -22,7 +22,7 @@ package org.neo4j.cypher.internal.runtime.spec.interpreted
 import org.neo4j.cypher.internal.CommunityRuntimeContext
 import org.neo4j.cypher.internal.InterpretedRuntime
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.spec.COMMUNITY
 import org.neo4j.cypher.internal.runtime.spec.interpreted.InterpretedSpecSuite.SIZE_HINT
 import org.neo4j.cypher.internal.runtime.spec.tests.AggregationTestBase
@@ -255,30 +255,25 @@ class InterpretedOptionalExpandIntoTest
     extends OptionalExpandIntoTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 
 class InterpretedVarExpandTrailTest
-    extends VarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalMatchMode.Trail)
+    extends VarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Trail)
 
 class InterpretedVarExpandWalkTest
-    extends VarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalMatchMode.Walk)
+    extends VarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Walk)
 
 class InterpretedPruningVarExpandTrailTest
-    extends PruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalMatchMode.Trail)
+    extends PruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Trail)
 
 class InterpretedPruningVarExpandWalkTest
-    extends PruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalMatchMode.Walk)
+    extends PruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Walk)
 
 class InterpretedPruningVarExpandFuzzTest
     extends PruningVarLengthExpandFuzzTestBase(COMMUNITY.EDITION, InterpretedRuntime)
 
 class InterpretedBFSPruningVarExpandTrailTest
-    extends BFSPruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalMatchMode.Walk)
+    extends BFSPruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Trail)
 
 class InterpretedBFSPruningVarExpandWalkTest
-    extends BFSPruningVarLengthExpandTestBase(
-      COMMUNITY.EDITION,
-      InterpretedRuntime,
-      SIZE_HINT,
-      TraversalMatchMode.Trail
-    )
+    extends BFSPruningVarLengthExpandTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT, TraversalPathMode.Walk)
 class InterpretedProjectEndpointsTest extends ProjectEndpointsTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 class InterpretedLabelScanTest extends LabelScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
 class InterpretedUnionLabelScanTest extends UnionLabelScanTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)
@@ -419,7 +414,7 @@ class InterpretedStatefulShortestPathPropagationTrailModeTest
       COMMUNITY.EDITION,
       InterpretedRuntime,
       SIZE_HINT,
-      TraversalMatchMode.Trail
+      TraversalPathMode.Trail
     )
 
 class InterpretedStatefulShortestPathPropagationWalkModeTest
@@ -427,7 +422,7 @@ class InterpretedStatefulShortestPathPropagationWalkModeTest
       COMMUNITY.EDITION,
       InterpretedRuntime,
       SIZE_HINT,
-      TraversalMatchMode.Walk
+      TraversalPathMode.Walk
     )
 
 class InterpretedUnionTest extends UnionTestBase(COMMUNITY.EDITION, InterpretedRuntime, SIZE_HINT)

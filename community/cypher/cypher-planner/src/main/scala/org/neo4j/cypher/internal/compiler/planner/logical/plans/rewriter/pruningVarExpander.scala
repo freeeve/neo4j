@@ -184,7 +184,7 @@ case class pruningVarExpander(
     private def canReplaceWithPruning(expand: VarExpand): Boolean = {
       horizonPlan != null &&
       validMaxLength(expand, requireMaxLength = true) &&
-      expand.mode == ExpandAll &&
+      expand.expansionMode == ExpandAll &&
       !allDependencies(expand.relName.name)
     }
 
@@ -455,7 +455,7 @@ case class pruningVarExpander(
 sealed trait VarExpandRewritePolicy {
 
   def accept(plan: VarExpand): Boolean =
-    (this, plan.mode) match {
+    (this, plan.expansionMode) match {
       case (PreferDFS, ExpandInto) => false
       case _                       => true
     }

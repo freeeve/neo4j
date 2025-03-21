@@ -23,7 +23,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito
 import org.mockito.invocation.InvocationOnMock
 import org.neo4j.cypher.internal.expressions.SemanticDirection
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
 import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationBuilder
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
@@ -117,7 +117,7 @@ class VarLengthExpandSlottedPipeTest extends CypherFunSuite {
       slots,
       TraversalPredicates.NONE,
       SlotConfiguration.Size(0, 0),
-      TraversalMatchMode.Trail
+      TraversalPathMode.Trail
     )()
     // exhaust
     pipe.createResults(state).toList
@@ -162,7 +162,7 @@ class VarLengthExpandSlottedPipeTest extends CypherFunSuite {
       slots,
       TraversalPredicates.NONE,
       SlotConfiguration.Size(0, 0),
-      TraversalMatchMode.Trail
+      TraversalPathMode.Trail
     )()
     val result = pipe.createResults(state)
     result.hasNext shouldBe true // Need to initialize to get cursor registered

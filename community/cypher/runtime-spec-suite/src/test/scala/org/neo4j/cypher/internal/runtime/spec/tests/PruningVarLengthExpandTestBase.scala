@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -36,7 +36,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int,
-  protected val traversalMatchMode: TraversalMatchMode
+  protected val traversalPathMode: TraversalPathMode
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
 
   test("var-length-expand with no relationships") {
@@ -47,7 +47,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*1..2]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*1..2]->(y)", pathMode = traversalPathMode)
       .allNodeScan("x")
       .build()
 
@@ -65,7 +65,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*..1]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*..1]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -85,7 +85,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*0..1]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*0..1]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -109,7 +109,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*2..4]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*2..4]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -136,7 +136,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*0]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*0]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -155,7 +155,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*0..1]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*0..1]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -177,7 +177,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*0..2]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*0..2]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -207,17 +207,17 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*2..2]-(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*2..2]-(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(Array(n2), Array(n1))
-      case TraversalMatchMode.Trail => Array(Array(n2))
+      case TraversalPathMode.Trail => Array(Array(n2))
     }
     runtimeResult should beColumns("y").withRows(expected)
   }
@@ -253,15 +253,15 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*4..4]-(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*4..4]-(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(n1),
           Array(n1_2),
@@ -269,7 +269,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(n3),
           Array(n4)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(n4)
         )
@@ -310,21 +310,21 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*5..5]-(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*5..5]-(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(n1_2a),
           Array(n2),
           Array(n4)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(n4)
         )
@@ -365,7 +365,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*1..4]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*1..4]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -389,7 +389,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*..2]-(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*..2]-(y)", pathMode = traversalPathMode)
       .input(nodes = Seq("x"))
       .build()
 
@@ -410,7 +410,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*1..2]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*1..2]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -437,7 +437,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)<-[*1..2]-(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)<-[*1..2]-(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -458,15 +458,15 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[*1..2]-(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[*1..2]-(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sb1), // outgoing only
           Array(g.sa1),
@@ -481,7 +481,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc2),
           Array(g.end)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sb1), // outgoing only
           Array(g.sa1),
@@ -509,7 +509,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[:A*1..2]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[:A*1..2]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -533,7 +533,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .pruningVarExpand("(x)-[:B*1..2]->(y)", matchMode = traversalMatchMode)
+      .pruningVarExpand("(x)-[:B*1..2]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -559,7 +559,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .pruningVarExpand(
         "(x)-[*1..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.middle.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -567,8 +567,8 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sa1),
           Array(g.sb1),
@@ -577,7 +577,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc1),
           Array(g.sc2)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sa1),
           Array(g.sb1),
@@ -603,7 +603,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Predicate("n", "id(n) <> " + g.middle.getId),
           Predicate("n2", "id(n2) <> " + g.sc3.getId)
         ),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -611,8 +611,8 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sa1),
           Array(g.sb1),
@@ -621,7 +621,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc1),
           Array(g.sc2)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sa1),
           Array(g.sb1),
@@ -644,7 +644,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .pruningVarExpand(
         "(x)-[*1..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.start.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -666,7 +666,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .pruningVarExpand(
         "(X)-[*1..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.start.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("x AS X")
       .nodeByLabelScan("x", "START", IndexOrderNone)
@@ -689,7 +689,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .pruningVarExpand(
         "(x)-[*1..2]->(y)",
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -719,7 +719,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Predicate("r", "id(r) <> " + g.startMiddle.getId),
           Predicate("r2", "id(r2) <> " + g.endMiddle.getId)
         ),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -727,8 +727,8 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sa1),
           Array(g.sb1),
@@ -742,7 +742,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.ec1),
           Array(g.sc3)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sa1),
           Array(g.sb1),
@@ -771,7 +771,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*2..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.sa1.getId)),
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -779,14 +779,14 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sc2),
           Array(g.start),
           Array(g.sb2)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sc2),
           Array(g.sb2)
@@ -808,7 +808,7 @@ abstract class PruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .pruningVarExpand(
         "(x)-[*..5]->(y)",
         nodePredicates = Seq(Predicate("n", "'START' IN labels(x)")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(nodes = Seq("x"))
       .build()

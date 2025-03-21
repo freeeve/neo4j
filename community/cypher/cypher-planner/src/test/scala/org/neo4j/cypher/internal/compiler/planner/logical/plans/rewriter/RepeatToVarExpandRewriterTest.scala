@@ -38,7 +38,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Walk
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
@@ -1206,7 +1206,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(a)-[r_i*1..]->(b)", matchMode = Walk)
+      .expand("(a)-[r_i*1..]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1224,7 +1224,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .build()
     val expand = new LogicalPlanBuilder()
       .produceResults("r")
-      .expand("(a)-[r*]->(b)", matchMode = Walk)
+      .expand("(a)-[r*]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
     rewrites(walk, expand)
@@ -1281,7 +1281,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .expand(
         "(a)-[r_i*1..]->(b)",
         relationshipPredicates = Seq(Predicate("  UNNAMED1", "startNode(`  UNNAMED1`).prop > 123")),
-        matchMode = Walk
+        pathMode = Walk
       )
       .nodeByLabelScan("a", "N")
       .build()
@@ -1349,7 +1349,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .expand(
         "(a)-[r_i*1..]->(b)",
         relationshipPredicates = Seq(Predicate("  UNNAMED1", "`  UNNAMED1`.p = true")),
-        matchMode = Walk
+        pathMode = Walk
       )
       .allNodeScan("a")
       .build()
@@ -1390,7 +1390,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
         "(a)<-[r_i*1..]-(b)",
         projectedDir = INCOMING,
         relationshipPredicates = Seq(Predicate("  UNNAMED1", "endNode(`  UNNAMED1`).p = true")),
-        matchMode = Walk
+        pathMode = Walk
       )
       .allNodeScan("a")
       .build()
@@ -1411,7 +1411,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .expand(
         "(a)-[r_i*1..]->(b)",
         relationshipPredicates = Seq(Predicate("  UNNAMED1", "startNode(`  UNNAMED1`).p <> endNode(`  UNNAMED1`).p")),
-        matchMode = Walk
+        pathMode = Walk
       )
       .allNodeScan("a")
       .build()
@@ -1439,7 +1439,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
             propExpression(TraversalEndpoint(v"  UNNAMED3", To), "p")
           )
         )),
-        matchMode = Walk
+        pathMode = Walk
       )
       .allNodeScan("a")
       .build()
@@ -1468,7 +1468,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .|.expand(
         "(a)-[r_i*1..]->(b)",
         relationshipPredicates = Seq(Predicate("  UNNAMED1", "`  UNNAMED1`.p = cacheN[z.p]")),
-        matchMode = Walk
+        pathMode = Walk
       )
       .|.allNodeScan("a", "z")
       .cacheProperties("cacheNFromStore[z.p]")
@@ -1489,7 +1489,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .allNodeScan("a")
       .build()
     val expand = subPlanBuilder
-      .expand("(a)-[r_i:T*1..]->(b)", matchMode = Walk)
+      .expand("(a)-[r_i:T*1..]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
     rewrites(walk, expand)
@@ -1508,7 +1508,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .expand(
         "(a)-[r_i*1..]->(b)",
         relationshipPredicates = Seq(Predicate("  UNNAMED1", "`  UNNAMED1`.p = 0")),
-        matchMode = Walk
+        pathMode = Walk
       )
       .allNodeScan("a")
       .build()
@@ -1531,7 +1531,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     val expand = subPlanBuilder
       .projection("1 AS s")
       .filter("all(x IN r WHERE x:T)")
-      .expand("(a)-[r*1..]->(b)", matchMode = Walk)
+      .expand("(a)-[r*1..]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1550,7 +1550,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(a)-[r_i*0..]->(b)", matchMode = Walk)
+      .expand("(a)-[r_i*0..]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1569,7 +1569,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(a)-[r_i*0..2]->(b)", matchMode = Walk)
+      .expand("(a)-[r_i*0..2]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1588,7 +1588,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(a)-[r_i*2..]->(b)", matchMode = Walk)
+      .expand("(a)-[r_i*2..]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1607,7 +1607,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(a)-[r_i*2..2]->(b)", matchMode = Walk)
+      .expand("(a)-[r_i*2..2]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1626,7 +1626,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(a)-[r_i*2..5]->(b)", matchMode = Walk)
+      .expand("(a)-[r_i*2..5]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1659,7 +1659,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(b)<-[r_i*1..]-(a)", matchMode = Walk)
+      .expand("(b)<-[r_i*1..]-(a)", pathMode = Walk)
       .allNodeScan("b")
       .build()
 
@@ -1678,7 +1678,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(a)<-[r_i*1..]-(b)", projectedDir = INCOMING, matchMode = Walk)
+      .expand("(a)<-[r_i*1..]-(b)", projectedDir = INCOMING, pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1699,7 +1699,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(b)-[r_i*1..]->(a)", projectedDir = INCOMING, matchMode = Walk)
+      .expand("(b)-[r_i*1..]->(a)", projectedDir = INCOMING, pathMode = Walk)
       .allNodeScan("b")
       .build()
 
@@ -1718,7 +1718,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(a)-[r_i*1..]-(b)", matchMode = Walk)
+      .expand("(a)-[r_i*1..]-(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1739,7 +1739,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(b)-[r_i*1..]-(a)", projectedDir = INCOMING, matchMode = Walk)
+      .expand("(b)-[r_i*1..]-(a)", projectedDir = INCOMING, pathMode = Walk)
       .allNodeScan("b")
       .build()
 
@@ -1752,7 +1752,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     val walk = subPlanBuilder
       .projection("1 AS s")
       .filter("not rr IN r")
-      .expand("(b)-[rr]-(c)", matchMode = Walk)
+      .expand("(b)-[rr]-(c)", pathMode = Walk)
       .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.nmlessWalk)
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -1762,8 +1762,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     val expand = subPlanBuilder
       .projection("1 AS s")
       .filter("not rr IN r")
-      .expand("(b)-[rr]-(c)", matchMode = Walk)
-      .expand("(a)-[r*1..]->(b)", matchMode = Walk)
+      .expand("(b)-[rr]-(c)", pathMode = Walk)
+      .expand("(a)-[r*1..]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1783,7 +1783,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(b)<-[r_i:R*1..]-(a)", matchMode = Walk)
+      .expand("(b)<-[r_i:R*1..]-(a)", pathMode = Walk)
       .allRelationshipsScan("(b)-[rr:RR]-(c)")
       .build()
 
@@ -1807,8 +1807,8 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(b)<-[r_i:R*1..]-(a)", matchMode = Walk)
-      .expand("(b)-[rr_i:RR*1..]->(c)", matchMode = Walk)
+      .expand("(b)<-[r_i:R*1..]-(a)", pathMode = Walk)
+      .expand("(b)-[rr_i:RR*1..]->(c)", pathMode = Walk)
       .allNodeScan("b")
       .build()
 
@@ -1838,12 +1838,12 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
         "(b)<-[r_i:R*1..]-(a)",
         relationshipPredicates =
           Seq(Predicate("  UNNAMED1", "startNode(`  UNNAMED1`).prop <> endNode(`  UNNAMED1`).prop")),
-        matchMode = Walk
+        pathMode = Walk
       )
       .expand(
         "(b)-[rr_i:RR*1..]->(c)",
         relationshipPredicates = Seq(Predicate("  UNNAMED3", "endNode(`  UNNAMED3`).name = 'foo'")),
-        matchMode = Walk
+        pathMode = Walk
       )
       .allNodeScan("b")
       .build()
@@ -1874,7 +1874,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .|.expand("(x_i)-[rrr_i]->(y_i)")
       .|.argument("x_i")
       .filterExpression(noneOfRels(v"rr", v"r"))
-      .expand("(b)-[rr]->(c)", matchMode = Walk)
+      .expand("(b)-[rr]->(c)", pathMode = Walk)
       .repeatWalk(`(a) ((n)-[r]-(m))+ (b)`.nmlessWalk)
       .|.expand("(n_i)-[r_i]->(m_i)")
       .|.argument("n_i")
@@ -1882,10 +1882,10 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .build()
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(c)-[rrr_i*1..]->(d)", matchMode = Walk)
+      .expand("(c)-[rrr_i*1..]->(d)", pathMode = Walk)
       .filterExpression(noneOfRels(v"rr", v"r"))
-      .expand("(b)-[rr]->(c)", matchMode = Walk)
-      .expand("(a)-[r*1..]->(b)", matchMode = Walk)
+      .expand("(b)-[rr]->(c)", pathMode = Walk)
+      .expand("(a)-[r*1..]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1903,7 +1903,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .build()
     val expand = subPlanBuilder
       .distinct("b AS b")
-      .expand("(a)-[r_i*1..]->(b)", matchMode = Walk)
+      .expand("(a)-[r_i*1..]->(b)", pathMode = Walk)
       .allNodeScan("a")
       .build()
 
@@ -1948,7 +1948,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(a)-[r_i*1..]->(b)", ExpandInto, matchMode = Walk)
+      .expand("(a)-[r_i*1..]->(b)", ExpandInto, pathMode = Walk)
       .allRelationshipsScan("(a)-[r_j]->(b)")
       .build()
 
@@ -1972,7 +1972,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
 
     val expand = subPlanBuilder
       .projection("1 AS s")
-      .expand("(a)-[r_i*1..]->(b)", ExpandInto, matchMode = Walk)
+      .expand("(a)-[r_i*1..]->(b)", ExpandInto, pathMode = Walk)
       .expandInto("(a)-[r_j]->(b)")
       .cartesianProduct()
       .|.allNodeScan("b")
@@ -1999,7 +1999,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     val expand = subPlanBuilder
       .projection("1 AS s")
       .filter("`  UNNAMED3` = b")
-      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, matchMode = Walk)
+      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, pathMode = Walk)
       .allRelationshipsScan("(a)-[r_j]->(b)")
       .build()
 
@@ -2021,7 +2021,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     val expand = subPlanBuilder
       .projection("1 AS s")
       .filter("a = b")
-      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, matchMode = Walk)
+      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, pathMode = Walk)
       .allRelationshipsScan("(a)-[r_j]->(b)")
       .build()
 
@@ -2046,7 +2046,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
       .projection("1 AS s")
       .expandAll("(b)-[r_k]->(c)")
       .filter("`  UNNAMED4` = c")
-      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, matchMode = Walk)
+      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, pathMode = Walk)
       .allRelationshipsScan("(a)-[r_j]->(b)")
       .build()
 
@@ -2068,7 +2068,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     val expand = subPlanBuilder
       .projection("1 AS s")
       .filter("`  UNNAMED4` = `  UNNAMED3`")
-      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, matchMode = Walk)
+      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, pathMode = Walk)
       .allRelationshipsScan("(a)-[r_j]->(b)")
       .build()
 
@@ -2091,7 +2091,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     val expand = subPlanBuilder
       .projection("1 AS s")
       .filter("b = c")
-      .expand("(a)-[r_i*1..]->(b)", ExpandAll, matchMode = Walk)
+      .expand("(a)-[r_i*1..]->(b)", ExpandAll, pathMode = Walk)
       .allRelationshipsScan("(a)-[r_j]->(c)")
       .build()
 
@@ -2111,7 +2111,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     val expand = subPlanBuilder
       .projection("1 AS s")
       .filter("`  UNNAMED4` = b", "not a = b")
-      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, matchMode = Walk)
+      .expand("(a)-[r_i*1..]->(`  UNNAMED4`)", ExpandAll, pathMode = Walk)
       .allRelationshipsScan("(a)-[r_j]->(b)")
       .build()
 
@@ -2138,7 +2138,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
           Predicate("  UNNAMED1", "endNode(`  UNNAMED1`).prop < 321"),
           Predicate("  UNNAMED1", "startNode(`  UNNAMED1`).prop > 123")
         ),
-        matchMode = Walk
+        pathMode = Walk
       )
       .allNodeScan("a")
       .build()
@@ -2171,7 +2171,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
           VariablePredicate(v"  UNNAMED1", lessThan(prop(TO, "prop"), literalInt(321))),
           VariablePredicate(v"  UNNAMED1", greaterThan(prop(FROM, "prop"), literalInt(123)))
         ),
-        matchMode = Walk
+        pathMode = Walk
       )
       .allNodeScan("a")
       .build()

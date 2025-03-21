@@ -19,8 +19,8 @@
  */
 package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs
 
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Trail
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.GeneratedPGPathPropagatingBFSTest.testGraphs
 
@@ -37,19 +37,19 @@ class GeneratedPGPathPropagatingBFSTest extends CypherFunSuite with PGPathPropag
     graph <- testGraphs
     into <- Seq(true, false)
     grouped <- Seq(true, false)
-    matchMode <- Seq(TraversalMatchMode.Trail, TraversalMatchMode.Walk)
-    k <- if (matchMode == Trail) Seq(Int.MaxValue, 1, 2) else Seq(1, 2, 5)
+    pathMode <- Seq(TraversalPathMode.Trail, TraversalPathMode.Walk)
+    k <- if (pathMode == Trail) Seq(Int.MaxValue, 1, 2) else Seq(1, 2, 5)
   } {
     test(
-      s"running the algorithm gives the same results as naive search. into=$into matchMode=$matchMode grouped=$grouped k=$k nfa=$nfa graph=${graph.render}"
+      s"running the algorithm gives the same results as naive search. into=$into pathMode=$pathMode grouped=$grouped k=$k nfa=$nfa graph=${graph.render}"
     ) {
       var f = fixture()
         .withGraph(graph.graph)
         .from(graph.source)
         .withNfa(nfa)
-        .withMatchMode(matchMode)
+        .withPathMode(pathMode)
 
-      if (matchMode == TraversalMatchMode.Walk) {
+      if (pathMode == TraversalPathMode.Walk) {
         f = f.withMaxDepth(3)
       }
 

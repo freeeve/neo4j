@@ -20,7 +20,7 @@
 package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs
 
 import org.neo4j.common.EntityType
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.graphdb.Direction
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.NfaDsl.DslPart
@@ -84,7 +84,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
     mt: MemoryTracker,
     hooks: PPBFSHooks,
     assertOpen: AssertOpen,
-    matchMode: TraversalMatchMode
+    pathMode: TraversalPathMode
   ) {
 
     def withGraph(graph: TestGraph): FixtureBuilder[A] = copy(graph = graph)
@@ -103,7 +103,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
       into(intoTarget, if (intoTarget == -1L) SearchMode.Unidirectional else SearchMode.Bidirectional)
 
     def withMode(searchMode: SearchMode): FixtureBuilder[A] = copy(searchMode = searchMode)
-    def withMatchMode(mode: TraversalMatchMode): FixtureBuilder[A] = copy(matchMode = mode)
+    def withPathMode(mode: TraversalPathMode): FixtureBuilder[A] = copy(pathMode = mode)
     def grouped: FixtureBuilder[A] = copy(isGroup = true)
     def withMaxDepth(maxDepth: Int): FixtureBuilder[A] = copy(maxDepth = maxDepth)
     def withK(k: Int): FixtureBuilder[A] = copy(k = k)
@@ -126,14 +126,14 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
         mt,
         hooks,
         assertOpen,
-        matchMode
+        pathMode
       )
 
     def filter(predicate: A => Boolean): FixtureBuilder[A] = copy(predicate = predicate)
 
-    def tracker(memoryTracker: MemoryTracker, hooks: PPBFSHooks): TraversalMatchModeFactory =
-      if (matchMode == TraversalMatchMode.Walk) TraversalMatchModeFactory.walkMode()
-      else TraversalMatchModeFactory.trailMode(memoryTracker, hooks)
+    def tracker(memoryTracker: MemoryTracker, hooks: PPBFSHooks): TraversalPathModeFactory =
+      if (pathMode == TraversalPathMode.Walk) TraversalPathModeFactory.walkMode()
+      else TraversalPathModeFactory.trailMode(memoryTracker, hooks)
 
     def build(createPathTracer: (MemoryTracker, PPBFSHooks) => PathTracer[A] =
       (memoryTracker, hooks) => new PathTracer(memoryTracker, tracker(memoryTracker, hooks), hooks)) =
@@ -230,7 +230,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
               if dir.matches(r.direction) &&
                 r.predicate.test(TraversedRel(rel, node)) &&
                 n.predicate.test(nextNode) &&
-                (matchMode == TraversalMatchMode.Walk || !stack.exists(e => e.id == rel.id))
+                (pathMode == TraversalPathMode.Walk || !stack.exists(e => e.id == rel.id))
 
               newStack = new PathEntity(n.slotOrName, nextNode, EntityType.NODE) ::
                 new PathEntity(r.slotOrName, rel.id, EntityType.RELATIONSHIP) ::
@@ -251,7 +251,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
               if dir.matches(r.direction) &&
                 r.predicate.test(TraversedRel(rel, node)) &&
                 targetState.test(nextNode) &&
-                (matchMode == TraversalMatchMode.Walk || !stack.exists(e => e.id == rel.id))
+                (pathMode == TraversalPathMode.Walk || !stack.exists(e => e.id == rel.id))
 
               newStack = new PathEntity(targetState.slotOrName, nextNode, EntityType.NODE) ::
                 new PathEntity(r.slotOrName, rel.id, EntityType.RELATIONSHIP) ::
@@ -286,7 +286,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
             if dir.matches(re.direction) &&
               re.testRelationship(TraversedRel(rel, node), TraversalDirection.FORWARD) &&
               re.targetState().test(nextNode) &&
-              (matchMode == TraversalMatchMode.Walk || !stack.exists(e => e.id == rel.id))
+              (pathMode == TraversalPathMode.Walk || !stack.exists(e => e.id == rel.id))
 
             newStack = PathEntity.fromNode(re.targetState(), nextNode) ::
               PathEntity.fromRel(re, rel.id) ::
@@ -334,7 +334,7 @@ trait PGPathPropagatingBFSTestBase { self: CypherFunSuite =>
     mt = EmptyMemoryTracker.INSTANCE,
     hooks = PPBFSHooks.NULL,
     assertOpen = () => (),
-    matchMode = TraversalMatchMode.Trail
+    pathMode = TraversalPathMode.Trail
   )
 
   /** Divides up paths by their target, then chunks them into groups of ascending path length */

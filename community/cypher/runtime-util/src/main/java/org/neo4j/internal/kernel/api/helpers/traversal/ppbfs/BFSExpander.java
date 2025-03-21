@@ -54,7 +54,7 @@ final class BFSExpander implements AutoCloseable {
     private final ProductGraphTraversalCursor pgCursor;
     private final CachingRelCursor relCursor;
     private final long intoTarget;
-    private final TraversalMatchModeFactory tracker;
+    private final TraversalPathModeFactory tracker;
 
     // allocated once and reused per source nodeState
     private final HeapTrackingArrayList<State> statesList;
@@ -78,7 +78,7 @@ final class BFSExpander implements AutoCloseable {
             ProductGraphTraversalCursor.DataGraphRelationshipCursor relCursor,
             long intoTarget,
             int nfaStateCount,
-            TraversalMatchModeFactory tracker) {
+            TraversalPathModeFactory tracker) {
         this.mt = globalState.mt;
         this.hooks = globalState.hooks;
         this.globalState = globalState;

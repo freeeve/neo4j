@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Selection
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -54,13 +54,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("should keep walk mode in PruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*2..3]-(to)", matchMode = TraversalMatchMode.Walk)
+      .expand("(from)-[*2..3]-(to)", pathMode = TraversalPathMode.Walk)
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .pruningVarExpand("(from)-[*2..3]-(to)", matchMode = TraversalMatchMode.Walk)
+      .pruningVarExpand("(from)-[*2..3]-(to)", pathMode = TraversalPathMode.Walk)
       .allNodeScan("from")
       .build()
 
@@ -86,13 +86,13 @@ class PruningVarExpanderTest extends CypherFunSuite with LogicalPlanningTestSupp
   test("should keep walk mode BFSPruningVarExpand") {
     val before = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .expand("(from)-[*1..3]->(to)", matchMode = TraversalMatchMode.Walk)
+      .expand("(from)-[*1..3]->(to)", pathMode = TraversalPathMode.Walk)
       .allNodeScan("from")
       .build()
 
     val after = new LogicalPlanBuilder(wholePlan = false)
       .distinct("to AS to")
-      .bfsPruningVarExpand("(from)-[*1..3]->(to)", matchMode = TraversalMatchMode.Walk)
+      .bfsPruningVarExpand("(from)-[*1..3]->(to)", pathMode = TraversalPathMode.Walk)
       .allNodeScan("from")
       .build()
 

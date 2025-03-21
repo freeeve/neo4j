@@ -256,7 +256,7 @@ import org.neo4j.cypher.internal.logical.plans.Top1WithTies
 import org.neo4j.cypher.internal.logical.plans.TransactionApply
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.logical.plans.TransactionForeach
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.TriadicBuild
 import org.neo4j.cypher.internal.logical.plans.TriadicFilter
 import org.neo4j.cypher.internal.logical.plans.TriadicSelection
@@ -534,7 +534,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     projectedDir: SemanticDirection = OUTGOING,
     nodePredicates: Seq[Predicate] = Seq.empty,
     relationshipPredicates: Seq[Predicate] = Seq.empty,
-    matchMode: TraversalMatchMode = TraversalMatchMode.Trail
+    pathMode: TraversalPathMode = TraversalPathMode.Trail
   ): IMPL = {
     expandExpr(
       pattern,
@@ -542,7 +542,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       projectedDir,
       nodePredicates.map(_.asVariablePredicate),
       relationshipPredicates.map(_.asVariablePredicate),
-      matchMode
+      pathMode
     )
   }
 
@@ -552,7 +552,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     projectedDir: SemanticDirection = OUTGOING,
     nodePredicates: Seq[VariablePredicate] = Seq.empty,
     relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
-    matchMode: TraversalMatchMode = TraversalMatchMode.Trail
+    pathMode: TraversalPathMode = TraversalPathMode.Trail
   ): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
@@ -579,7 +579,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             expandMode,
             nodePredicates,
             relationshipPredicates,
-            matchMode
+            pathMode
           )(_)
         ))
     }
@@ -656,7 +656,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     reverseGroupVariableProjections: Boolean = false,
     minLength: Int = 0,
     maxLength: Option[Int] = None,
-    matchMode: TraversalMatchMode = TraversalMatchMode.Trail
+    pathMode: TraversalPathMode = TraversalPathMode.Trail
   ): IMPL = {
     val nodeVariableGroupings = groupNodes.map { case (x, y) => VariableGrouping(varFor(x), varFor(y))(pos) }
     val relationshipVariableGroupings = groupRelationships.map { case (x, y) =>
@@ -700,7 +700,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         solvedExpressionString,
         reverseGroupVariableProjections,
         LengthBounds(minLength, maxLength),
-        matchMode
+        pathMode
       )(_)
     ))
     self
@@ -721,7 +721,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     reverseGroupVariableProjections: Boolean = false,
     minLength: Int = 0,
     maxLength: Option[Int] = None,
-    matchMode: TraversalMatchMode = TraversalMatchMode.Trail
+    pathMode: TraversalPathMode = TraversalPathMode.Trail
   ): IMPL = {
     val predicates = nonInlinedPreFilters.map(parseExpression)
     statefulShortestPathExpr(
@@ -739,7 +739,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       reverseGroupVariableProjections,
       minLength,
       maxLength,
-      matchMode
+      pathMode
     )
   }
 
@@ -803,7 +803,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     pattern: String,
     nodePredicates: Seq[Predicate] = Seq.empty,
     relationshipPredicates: Seq[Predicate] = Seq.empty,
-    matchMode: TraversalMatchMode = TraversalMatchMode.Trail
+    pathMode: TraversalPathMode = TraversalPathMode.Trail
   ): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
@@ -821,7 +821,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             max,
             nodePredicates.map(_.asVariablePredicate),
             relationshipPredicates.map(_.asVariablePredicate),
-            matchMode
+            pathMode
           )(_)
         ))
       case _ =>
@@ -836,7 +836,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     nodePredicates: Seq[Predicate] = Seq.empty,
     relationshipPredicates: Seq[Predicate] = Seq.empty,
     mode: ExpansionMode = ExpandAll,
-    matchMode: TraversalMatchMode = TraversalMatchMode.Trail
+    pathMode: TraversalPathMode = TraversalPathMode.Trail
   ): IMPL = {
     bfsPruningVarExpandExpr(
       pattern,
@@ -844,7 +844,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       nodePredicates.map(_.asVariablePredicate),
       relationshipPredicates.map(_.asVariablePredicate),
       mode,
-      matchMode
+      pathMode
     )
   }
 
@@ -854,7 +854,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     nodePredicates: Seq[VariablePredicate] = Seq.empty,
     relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
     mode: ExpansionMode = ExpandAll,
-    matchMode: TraversalMatchMode = TraversalMatchMode.Trail
+    pathMode: TraversalPathMode = TraversalPathMode.Trail
   ): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
@@ -876,7 +876,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             mode,
             nodePredicates,
             relationshipPredicates,
-            matchMode
+            pathMode
           )(_)
         ))
       case _ =>

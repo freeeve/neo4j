@@ -63,7 +63,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Trail
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
@@ -2410,7 +2410,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .|.|.expandAll("(n)-[r]-(m)")
       .|.|.argument("n")
       .|.allNodeScan("a")
-      .expand("(a)-[anon_0*0..]-(b)", matchMode = Trail)
+      .expand("(a)-[anon_0*0..]-(b)", pathMode = Trail)
       .allNodeScan("a")
       .build()
   }

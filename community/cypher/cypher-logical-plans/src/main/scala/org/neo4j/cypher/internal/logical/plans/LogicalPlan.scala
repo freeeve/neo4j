@@ -2173,10 +2173,10 @@ case class VarExpand(
   override val to: LogicalVariable,
   relName: LogicalVariable,
   length: VarPatternLength,
-  mode: ExpansionMode = ExpandAll,
+  expansionMode: ExpansionMode = ExpandAll,
   override val nodePredicates: Seq[VariablePredicate] = Seq.empty,
   override val relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
-  matchMode: TraversalMatchMode = TraversalMatchMode.Trail
+  pathMode: TraversalPathMode = TraversalPathMode.Trail
 )(implicit idGen: IdGen) extends AbstractVarExpand(from, types, to, nodePredicates, relationshipPredicates, idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
   override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + relName + to
@@ -2207,7 +2207,7 @@ case class PruningVarExpand(
   maxLength: Int,
   override val nodePredicates: Seq[VariablePredicate] = Seq.empty,
   override val relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
-  traversalMatchMode: TraversalMatchMode = TraversalMatchMode.Trail
+  traversalPathMode: TraversalPathMode = TraversalPathMode.Trail
 )(implicit idGen: IdGen)
     extends AbstractVarExpand(from, types, to, nodePredicates, relationshipPredicates, idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
@@ -2240,7 +2240,7 @@ case class BFSPruningVarExpand(
   expansionMode: ExpansionMode,
   override val nodePredicates: Seq[VariablePredicate] = Seq.empty,
   override val relationshipPredicates: Seq[VariablePredicate] = Seq.empty,
-  traversalMatchMode: TraversalMatchMode = TraversalMatchMode.Trail
+  traversalPathMode: TraversalPathMode = TraversalPathMode.Trail
 )(implicit idGen: IdGen)
     extends AbstractVarExpand(from, types, to, nodePredicates, relationshipPredicates, idGen) {
 
@@ -2416,7 +2416,7 @@ case class StatefulShortestPath(
   solvedExpressionAsString: String,
   reverseGroupVariableProjections: Boolean,
   bounds: LengthBounds,
-  matchMode: TraversalMatchMode
+  pathMode: TraversalPathMode
 )(implicit idGen: IdGen)
     extends LogicalUnaryPlan(idGen) with PlanWithVariableGroupings {
 

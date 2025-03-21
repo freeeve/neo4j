@@ -62,7 +62,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.NFA.PathLength
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
 import org.neo4j.cypher.internal.util.Cardinality
@@ -251,7 +251,7 @@ object expandSolverStep {
   ): LogicalPlanWithIntoVsAllHeuristic = {
     val otherSide = patternRelationship.otherSide(node)
     val overlapping = availableSymbols.contains(otherSide)
-    val mode = if (overlapping) ExpandInto else ExpandAll
+    val expansionMode = if (overlapping) ExpandInto else ExpandAll
 
     patternRelationship match {
       case pr @ PatternRelationship(_, _, _, _, SimplePatternLength) =>
@@ -260,7 +260,7 @@ object expandSolverStep {
           node,
           otherSide,
           pr,
-          mode,
+          expansionMode,
           context
         )
       case PatternRelationship(_, _, _, _, varLength: VarPatternLength) =>
@@ -276,11 +276,11 @@ object expandSolverStep {
             originalRelationship = pattern,
             originalNode = node,
             targetNode = otherSide,
-            targetNodeIsBound = mode.equals(ExpandInto),
+            targetNodeIsBound = expansionMode.equals(ExpandInto),
             varLength = varLength
           )
 
-        val matchMode = TraversalMatchMode.getFromPredicates(solvedPredicates, alwaysTrailSemantics)
+        val pathMode = TraversalPathMode.getFromPredicates(solvedPredicates, alwaysTrailSemantics)
 
         val plan =
           context.staticComponents.logicalPlanProducer.planVarExpand(
@@ -291,15 +291,15 @@ object expandSolverStep {
             nodePredicates = nodePredicates,
             relationshipPredicates = relationshipPredicates,
             solvedPredicates = solvedPredicates,
-            mode = mode,
-            matchMode = matchMode,
+            expansionMode = expansionMode,
+            pathMode = pathMode,
             context = context
           )
 
         heuristicForExpandIntoVsAll(
           plan,
           sourcePlan,
-          mode,
+          expansionMode,
           context
         )
     }
@@ -407,7 +407,7 @@ object expandSolverStep {
     val previouslyBoundRelationships = uniquenessPredicates.flatMap(_.previouslyBoundRelationships).toSet
     val previouslyBoundRelationshipGroups = uniquenessPredicates.flatMap(_.previouslyBoundRelationshipGroups).toSet
 
-    val matchMode = TraversalMatchMode.getFromPredicates(solvedPredicates)
+    val pathMode = TraversalPathMode.getFromPredicates(solvedPredicates)
 
     val plan = updatedContext.staticComponents.logicalPlanProducer.planRepeat(
       source = sourcePlan,
@@ -421,7 +421,7 @@ object expandSolverStep {
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
       reverseGroupVariableProjections = !fromLeft,
-      matchMode
+      pathMode
     )
 
     val bothEndpointsBoundInSourcePlan =
@@ -705,7 +705,7 @@ object expandSolverStep {
         Ands.create(nonInlinedSelectionsWithoutUniqPreds.flatPredicates.to(ListSet))
       )
 
-    val matchMode = TraversalMatchMode.getFromPredicates(originalSpp.selections.predicates.map(_.expr))
+    val pathMode = TraversalPathMode.getFromPredicates(originalSpp.selections.predicates.map(_.expr))
 
     Some(
       heuristicForStatefulShortestInto(
@@ -728,7 +728,7 @@ object expandSolverStep {
           matchingHints,
           context,
           pathLength,
-          matchMode
+          pathMode
         ),
         context
       )

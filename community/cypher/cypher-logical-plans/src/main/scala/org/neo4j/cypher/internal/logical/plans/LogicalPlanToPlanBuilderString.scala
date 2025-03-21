@@ -356,7 +356,7 @@ object LogicalPlanToPlanBuilderString {
           mode,
           nodePredicates,
           relationshipPredicates,
-          matchMode
+          pathMode
         ) =>
         val (dirStrA, dirStrB) = arrows(dir)
         val typeStr = relTypeStr(types)
@@ -368,7 +368,7 @@ object LogicalPlanToPlanBuilderString {
           "projectedDir" -> objectName(pDir),
           "nodePredicates" -> nodePredicates,
           "relationshipPredicates" -> relationshipPredicates,
-          "matchMode" -> matchMode
+          "pathMode" -> pathMode
         )
 
       case PathPropagatingBFS(
@@ -439,7 +439,7 @@ object LogicalPlanToPlanBuilderString {
           solvedExpressionString,
           reverseGroupVariableProjections,
           lengthBounds,
-          matchMode
+          pathMode
         ) =>
         multilineParams(
           2,
@@ -457,7 +457,7 @@ object LogicalPlanToPlanBuilderString {
           reverseGroupVariableProjections,
           lengthBounds.min,
           lengthBounds.max,
-          matchMode
+          pathMode
         )
 
       case PruningVarExpand(
@@ -470,7 +470,7 @@ object LogicalPlanToPlanBuilderString {
           maxLength,
           nodePredicates,
           relationshipPredicates,
-          matchMode
+          pathMode
         ) =>
         val (dirStrA, dirStrB) = arrows(dir)
         val typeStr = relTypeStr(types)
@@ -479,7 +479,7 @@ object LogicalPlanToPlanBuilderString {
           s"(${from.name})$dirStrA[$typeStr*$lenStr]$dirStrB(${to.name})".quoted,
           "nodePredicates" -> nodePredicates,
           "relationshipPredicates" -> relationshipPredicates,
-          "matchMode" -> matchMode
+          "pathMode" -> pathMode
         )
 
       case BFSPruningVarExpand(
@@ -494,7 +494,7 @@ object LogicalPlanToPlanBuilderString {
           mode,
           nodePredicates,
           relationshipPredicates,
-          matchMode
+          pathMode
         ) =>
         val (dirStrA, dirStrB) = arrows(dir)
         val typeStr = relTypeStr(types)
@@ -506,7 +506,7 @@ object LogicalPlanToPlanBuilderString {
           "relationshipPredicates" -> relationshipPredicates,
           "depthName" -> optional(depthName.map(_.some)),
           "mode" -> mode.toString,
-          "matchMode" -> matchMode
+          "pathMode" -> pathMode
         )
 
       case Limit(_, count)           => integerString(count)
@@ -2041,7 +2041,7 @@ object LogicalPlanToPlanBuilderString {
     implicit def fromRelTypeToken: ToParam[RelationshipTypeToken] = _.name.quoted
 
     implicit def fromIndexOrder: ToParam[IndexOrder] = str(objectName)
-    implicit def fromTraversalMatchMode: ToParam[TraversalMatchMode] = str(objectName)
+    implicit def fromTraversalPathMode: ToParam[TraversalPathMode] = str(objectName)
     implicit def fromGetValueFromIndexBehavior: ToParam[GetValueFromIndexBehavior] = str(objectName)
 
     implicit def fromParameter: ToParam[Parameter] = _.asCanonicalStringVal.quoted

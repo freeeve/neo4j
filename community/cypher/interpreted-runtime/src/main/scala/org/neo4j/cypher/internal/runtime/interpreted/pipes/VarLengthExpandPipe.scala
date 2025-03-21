@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.collection.trackable.HeapTrackingCollections
 import org.neo4j.cypher.internal.expressions.SemanticDirection
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
@@ -46,7 +46,7 @@ case class VarLengthExpandPipe(
   min: Int,
   max: Option[Int],
   nodeInScope: Boolean,
-  traversalMatchMode: TraversalMatchMode,
+  traversalPathMode: TraversalPathMode,
   filteringStep: TraversalPredicates = TraversalPredicates.NONE
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
 
@@ -60,7 +60,7 @@ case class VarLengthExpandPipe(
     val stack = HeapTrackingCollections.newArrayDeque[(VirtualNodeValue, RelationshipContainer)](
       EmptyMemoryTracker.INSTANCE
     )
-    stack.push((node, RelationshipContainer.empty(memoryTracker, traversalMatchMode)))
+    stack.push((node, RelationshipContainer.empty(memoryTracker, traversalPathMode)))
 
     new ClosingIterator[(VirtualNodeValue, RelationshipContainer)] {
       def next(): (VirtualNodeValue, RelationshipContainer) = {

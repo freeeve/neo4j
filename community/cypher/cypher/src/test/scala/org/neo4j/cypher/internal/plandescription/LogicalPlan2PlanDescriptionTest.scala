@@ -407,7 +407,7 @@ import org.neo4j.cypher.internal.logical.plans.Top
 import org.neo4j.cypher.internal.logical.plans.TransactionApply
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.logical.plans.TransactionForeach
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.TriadicBuild
 import org.neo4j.cypher.internal.logical.plans.TriadicFilter
 import org.neo4j.cypher.internal.logical.plans.TriadicSelection
@@ -6328,7 +6328,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           solvedExpressionStr,
           reverseGroupVariableProjections = false,
           LengthBounds.none,
-          TraversalMatchMode.Trail
+          TraversalPathMode.Trail
         ),
         2345.0
       ),
@@ -6360,7 +6360,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           solvedExpressionStr,
           reverseGroupVariableProjections = false,
           LengthBounds.none,
-          TraversalMatchMode.Trail
+          TraversalPathMode.Trail
         ),
         2345.0
       ),
@@ -6427,7 +6427,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           solvedExpressionStr,
           reverseGroupVariableProjections = false,
           LengthBounds.none,
-          TraversalMatchMode.Trail
+          TraversalPathMode.Trail
         ),
         2345.0
       ),
@@ -6514,7 +6514,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           solvedExpressionStr,
           reverseGroupVariableProjections = false,
           LengthBounds.none,
-          TraversalMatchMode.Trail
+          TraversalPathMode.Trail
         ),
         2345.0
       ),
@@ -6879,7 +6879,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           ExpandAll,
           Seq(nodePredicate),
           Seq(relationshipPredicate),
-          TraversalMatchMode.Trail
+          TraversalPathMode.Trail
         ),
         1.0
       ),

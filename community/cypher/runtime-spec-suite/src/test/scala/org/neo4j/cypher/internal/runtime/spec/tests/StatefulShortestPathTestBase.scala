@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Selector
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint
 import org.neo4j.cypher.internal.runtime.spec.Edition
@@ -55,7 +55,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
   protected val sizeHint: Int,
-  protected val traversalMatchMode: TraversalMatchMode
+  protected val traversalPathMode: TraversalPathMode
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
 
   private val ENABLE_LOGS = false
@@ -104,7 +104,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -145,7 +145,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -189,7 +189,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -235,7 +235,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -293,7 +293,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -358,7 +358,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -407,7 +407,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -460,7 +460,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -515,7 +515,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -569,7 +569,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -651,7 +651,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -710,7 +710,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -769,7 +769,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -831,7 +831,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -893,7 +893,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -955,7 +955,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1038,7 +1038,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1111,7 +1111,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1158,7 +1158,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1218,7 +1218,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1269,7 +1269,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -1322,7 +1322,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1373,7 +1373,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -1426,7 +1426,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1478,7 +1478,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -1530,7 +1530,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1574,7 +1574,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -1622,7 +1622,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1668,7 +1668,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -1716,7 +1716,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1762,7 +1762,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1808,7 +1808,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -1856,7 +1856,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1902,7 +1902,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -1948,7 +1948,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -1996,7 +1996,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2043,7 +2043,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2092,7 +2092,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -2141,7 +2141,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2189,7 +2189,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2242,7 +2242,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2300,7 +2300,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.filter("t.passes")
@@ -2356,7 +2356,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2408,7 +2408,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2461,7 +2461,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -2515,7 +2515,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -2569,7 +2569,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2620,7 +2620,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2671,7 +2671,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -2722,7 +2722,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -2774,7 +2774,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2823,7 +2823,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -2873,7 +2873,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -2924,7 +2924,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -2976,7 +2976,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -3025,7 +3025,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -3076,7 +3076,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("s", "S")
@@ -3123,7 +3123,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("s", "S")
@@ -3171,7 +3171,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("s", "S")
@@ -3218,7 +3218,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("s", "S")
@@ -3267,7 +3267,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -3319,7 +3319,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -3376,7 +3376,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -3436,7 +3436,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -3493,7 +3493,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -3550,7 +3550,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -3609,7 +3609,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -3641,9 +3641,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // For walk mode we will never finish if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 3
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 3
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -3675,7 +3675,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(k)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -3683,8 +3683,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    traversalPathMode match {
+      case TraversalPathMode.Walk =>
         // results are not well defined in walk mode so we are only asserting on the shape of the result
         runtimeResult should beColumns(retVars: _*).withRows(rowCount(27))
         val groupedResult = consume(runtimeResult).map(row => row(5).asInstanceOf[VirtualPathValue]).groupBy(_.size())
@@ -3695,7 +3695,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         groupedResult(3) should have size 8
         groupedResult(4) should have size 6
 
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         val expected = Seq(
           // size 0
           shortestRow(Seq(x1)),
@@ -3728,9 +3728,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // For walk mode we will never finish if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 3
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 3
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -3762,7 +3762,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(k)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -3770,8 +3770,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    traversalPathMode match {
+      case TraversalPathMode.Walk =>
         // results are not well defined in walk mode so we are only asserting on the shape of the result
         runtimeResult should beColumns(retVars: _*).withRows(rowCount(27))
         val groupedResult = consume(runtimeResult).map(row => row(5).asInstanceOf[VirtualPathValue]).groupBy(_.size())
@@ -3782,7 +3782,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         groupedResult(3) should have size 8
         groupedResult(4) should have size 6
 
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         val expected = Seq(
           // size 0
           shortestRow(Seq(x1)),
@@ -3815,9 +3815,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // For walk mode we will never finish if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 3
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 3
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -3849,7 +3849,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(k)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -3859,8 +3859,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    traversalPathMode match {
+      case TraversalPathMode.Walk =>
         // results are not well defined in walk mode so we are only asserting on the shape of the result
         runtimeResult should beColumns(retVars: _*).withRows(rowCount(27))
         val groupedResult = consume(runtimeResult).map(row => row(5).asInstanceOf[VirtualPathValue]).groupBy(_.size())
@@ -3871,7 +3871,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         groupedResult(3) should have size 8
         groupedResult(4) should have size 6
 
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         val expected = Seq(
           // size 0
           shortestRow(Seq(x1)),
@@ -3903,9 +3903,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
       (x1, y1, x2, y2, x3)
     }
     // For walk mode we will never finish if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 3
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 3
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -3937,7 +3937,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(k)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -3947,8 +3947,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    traversalPathMode match {
+      case TraversalPathMode.Walk =>
         // results are not well defined in walk mode so we are only asserting on the shape of the result
         runtimeResult should beColumns(retVars: _*).withRows(rowCount(27))
         val groupedResult = consume(runtimeResult).map(row => row(5).asInstanceOf[VirtualPathValue]).groupBy(_.size())
@@ -3959,7 +3959,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         groupedResult(3) should have size 8
         groupedResult(4) should have size 6
 
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         val expected = Seq(
           // size 0
           shortestRow(Seq(x1)),
@@ -4021,7 +4021,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -4082,7 +4082,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -4159,7 +4159,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -4238,7 +4238,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -4317,7 +4317,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -4398,7 +4398,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -4469,7 +4469,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           .setFinalState(4)
           .build(),
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("u", "User", IndexOrderNone)
@@ -4531,7 +4531,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           .setFinalState(4)
           .build(),
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("u", "User", IndexOrderNone)
@@ -4596,9 +4596,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // For walk mode we will never finish if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 1
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 1
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -4628,7 +4628,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -4636,8 +4636,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Seq(
             Array[Object](
@@ -4651,7 +4651,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
             )
           )
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Seq(
             Array[Object](
@@ -4722,9 +4722,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
       (x0, y1, x1, y2, x2, y3, x3, y4)
     }
     // For walk mode we will never finish if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 1
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 1
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -4753,7 +4753,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -4761,8 +4761,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Seq(
             Array[Object](
@@ -4776,7 +4776,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
             )
           )
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Seq(
             Array[Object](
@@ -4847,9 +4847,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // For walk mode we will never finish if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 1
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 1
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -4879,7 +4879,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -4889,8 +4889,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Seq(
             Array[Object](
@@ -4904,7 +4904,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
             )
           )
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Seq(
             Array[Object](
@@ -4976,9 +4976,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // For walk mode we will never finish if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 1
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 1
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -5007,7 +5007,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -5019,8 +5019,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     // then
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Seq(
             Array[Object](
@@ -5034,7 +5034,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
             )
           )
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Seq(
             Array[Object](
@@ -5092,7 +5092,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -5148,7 +5148,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -5205,7 +5205,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", bottomRightLabel)
@@ -5263,7 +5263,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(Int.MaxValue)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", bottomRightLabel)
@@ -5296,9 +5296,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // For walk mode we will get too many results if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 1
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 1
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -5366,7 +5366,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", topLeftLabel)
       .build()
@@ -5374,8 +5374,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    traversalPathMode match {
+      case TraversalPathMode.Walk =>
         // It is hard to do a nice assertion for the walk case, but we can assert
         // on the structure of the solution. A shortest solution will end on the
         // last node just above the target node (allNodes(19) and then use a final DOWN
@@ -5454,7 +5454,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           rows.value(15) should equal(allNodes(18))
           rowEnds.value(3) should equal(allNodes(19))
         })
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         val rowEnd = RepeatTrailTestBase.listOf(nodes(4), nodes(5), nodes(14), nodes(15))
         val row = RepeatTrailTestBase.listOf(
           nodes(0),
@@ -5503,9 +5503,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // For walk mode we will get too many results if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 1
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 1
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -5573,7 +5573,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", topLeftLabel)
       .build()
@@ -5581,8 +5581,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    traversalPathMode match {
+      case TraversalPathMode.Walk =>
         // It is hard to do a nice assertion for the walk case, but we can assert
         // on the structure of the solution. A shortest solution will end on the
         // last node just above the target node (allNodes(19) and then use a final DOWN
@@ -5661,7 +5661,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           rows.value(15) should equal(allNodes(18))
           rowEnds.value(3) should equal(allNodes(19))
         })
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         val rowEnd = RepeatTrailTestBase.listOf(nodes(4), nodes(5), nodes(14), nodes(15))
         val row = RepeatTrailTestBase.listOf(
           nodes(0),
@@ -5710,9 +5710,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // For walk mode we will get too many results if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 1
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 1
+      case TraversalPathMode.Trail => Int.MaxValue
     }
 
     // pattern:
@@ -5773,7 +5773,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", bottomRightLabel)
@@ -5783,8 +5783,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    traversalPathMode match {
+      case TraversalPathMode.Walk =>
         // It is hard to do a nice assertion for the walk case, but we can assert
         // on the structure of the solution. A shortest solution will end on the
         // last node just above the target node (allNodes(19) and then use a final DOWN
@@ -5863,7 +5863,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           rows.value(15) should equal(allNodes(18))
           rowEnds.value(3) should equal(allNodes(19))
         })
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         val rowEnd = RepeatTrailTestBase.listOf(nodes(4), nodes(5), nodes(14), nodes(15))
         val row = RepeatTrailTestBase.listOf(
           nodes(0),
@@ -5911,9 +5911,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
       nodes
     }
     // For walk mode we will get too many results if we don't limit k
-    val k = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => 1
-      case TraversalMatchMode.Trail => Int.MaxValue
+    val k = traversalPathMode match {
+      case TraversalPathMode.Walk  => 1
+      case TraversalPathMode.Trail => Int.MaxValue
     }
     // pattern:
     //
@@ -5973,7 +5973,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(k)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", bottomRightLabel)
@@ -5983,8 +5983,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    traversalPathMode match {
+      case TraversalPathMode.Walk =>
         // It is hard to do a nice assertion for the walk case, but we can assert
         // on the structure of the solution. A shortest solution will end on the
         // last node just above the target node (allNodes(19) and then use a final DOWN
@@ -6063,7 +6063,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           rows.value(15) should equal(allNodes(18))
           rowEnds.value(3) should equal(allNodes(19))
         })
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         val rowEnd = RepeatTrailTestBase.listOf(nodes(4), nodes(5), nodes(14), nodes(15))
         val row = RepeatTrailTestBase.listOf(
           nodes(0),
@@ -6105,9 +6105,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // We must restrict lengths in WALK mode
-    val (minLength, maxLength) = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => (8, Some(8))
-      case TraversalMatchMode.Trail => (0, None)
+    val (minLength, maxLength) = traversalPathMode match {
+      case TraversalPathMode.Walk  => (8, Some(8))
+      case TraversalPathMode.Trail => (0, None)
     }
     // pattern:
     // (s) ((n)-[r1]-())* (t)
@@ -6137,7 +6137,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ExpandAll,
         minLength = minLength,
         maxLength = maxLength,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -6196,9 +6196,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // We must restrict lengths in WALK mode
-    val (minLength, maxLength) = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => (8, Some(8))
-      case TraversalMatchMode.Trail => (0, None)
+    val (minLength, maxLength) = traversalPathMode match {
+      case TraversalPathMode.Walk  => (8, Some(8))
+      case TraversalPathMode.Trail => (0, None)
     }
 
     // pattern:
@@ -6229,7 +6229,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ExpandAll,
         minLength = minLength,
         maxLength = maxLength,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("s")
       .build()
@@ -6288,9 +6288,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     }
 
     // We must restrict lengths in WALK mode
-    val (minLength, maxLength) = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => (8, Some(8))
-      case TraversalMatchMode.Trail => (0, None)
+    val (minLength, maxLength) = traversalPathMode match {
+      case TraversalPathMode.Walk  => (8, Some(8))
+      case TraversalPathMode.Trail => (0, None)
     }
 
     // pattern:
@@ -6321,7 +6321,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ExpandInto,
         minLength = minLength,
         maxLength = maxLength,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -6381,9 +6381,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
       gridGraph(dim, dim)
     }
     // We must restrict lengths in WALK mode
-    val (minLength, maxLength) = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => (8, Some(8))
-      case TraversalMatchMode.Trail => (0, None)
+    val (minLength, maxLength) = traversalPathMode match {
+      case TraversalPathMode.Walk  => (8, Some(8))
+      case TraversalPathMode.Trail => (0, None)
     }
 
     // pattern:
@@ -6414,7 +6414,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ExpandInto,
         minLength = minLength,
         maxLength = maxLength,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.allNodeScan("t")
@@ -6508,7 +6508,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -6567,7 +6567,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -6639,7 +6639,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -6713,7 +6713,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -6767,7 +6767,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(2)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "0,0")
       .build()
@@ -6777,8 +6777,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     // 8 choose 4 = 70, https://en.wikipedia.org/wiki/Lattice_path#Combinations_and_NE_lattice_paths
     val nPathsInFirstGroup = 70
 
-    val nPathsInSecondGroup = traversalMatchMode match {
-      case TraversalMatchMode.Trail =>
+    val nPathsInSecondGroup = traversalPathMode match {
+      case TraversalPathMode.Trail =>
         // The paths in the second group have length 10, and will consist of 4 DOWN rels, 4 RIGHT rels and either an UP rel
         // and an extra DOWN rel, or a LEFT rel and an extra RIGHT rel. As these two cases are symmetric, it will suffice to
         // count the amount of paths with 5 DOWN rels, 4 RIGHT rels, and one UP rel, and then multiply by 2.
@@ -6824,7 +6824,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         //
         // sequences there are 2 * 112 = 224 in total.
         224
-      case TraversalMatchMode.Walk =>
+      case TraversalPathMode.Walk =>
         // For WALK mode we will have the same 70 paths of length 8 but for length 10 we will get all paths that have
         // 5 DOWN and 4 RIGHT or 4 DOWN and 5 RIGHT (with the restriction that we cannot leave the grid). The solution
         // will be symmetric in DOWN vs RIGHT so let's just consider 5 DOWN and 4 RIGHT. We can arrange this in
@@ -6894,7 +6894,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(2)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "0,0")
       .build()
@@ -6904,8 +6904,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     // 8 choose 4 = 70, https://en.wikipedia.org/wiki/Lattice_path#Combinations_and_NE_lattice_paths
     val nPathsInFirstGroup = 70
 
-    val nPathsInSecondGroup = traversalMatchMode match {
-      case TraversalMatchMode.Trail =>
+    val nPathsInSecondGroup = traversalPathMode match {
+      case TraversalPathMode.Trail =>
         // The paths in the second group have length 10, and will consist of 4 DOWN rels, 4 RIGHT rels and either an UP rel
         // and an extra DOWN rel, or a LEFT rel and an extra RIGHT rel. As these two cases are symmetric, it will suffice to
         // count the amount of paths with 5 DOWN rels, 4 RIGHT rels, and one UP rel, and then multiply by 2.
@@ -6951,7 +6951,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         //
         // sequences there are 2 * 112 = 224 in total.
         224
-      case TraversalMatchMode.Walk =>
+      case TraversalPathMode.Walk =>
         // For WALK mode we will have the same 70 paths of length 8 but for length 10 we will get all paths that have
         // 5 DOWN and 4 RIGHT or 4 DOWN and 5 RIGHT (with the restriction that we cannot leave the grid). The solution
         // will be symmetric in DOWN vs RIGHT so let's just consider 5 DOWN and 4 RIGHT. We can arrange this in
@@ -7021,7 +7021,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(2)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", bottomRightLabel)
@@ -7033,8 +7033,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     // 8 choose 4 = 70, https://en.wikipedia.org/wiki/Lattice_path#Combinations_and_NE_lattice_paths
     val nPathsInFirstGroup = 70
 
-    val nPathsInSecondGroup = traversalMatchMode match {
-      case TraversalMatchMode.Trail =>
+    val nPathsInSecondGroup = traversalPathMode match {
+      case TraversalPathMode.Trail =>
         // The paths in the second group have length 10, and will consist of 4 DOWN rels, 4 RIGHT rels and either an UP rel
         // and an extra DOWN rel, or a LEFT rel and an extra RIGHT rel. As these two cases are symmetric, it will suffice to
         // count the amount of paths with 5 DOWN rels, 4 RIGHT rels, and one UP rel, and then multiply by 2.
@@ -7080,7 +7080,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         //
         // sequences there are 2 * 112 = 224 in total.
         224
-      case TraversalMatchMode.Walk =>
+      case TraversalPathMode.Walk =>
         // For WALK mode we will have the same 70 paths of length 8 but for length 10 we will get all paths that have
         // 5 DOWN and 4 RIGHT or 4 DOWN and 5 RIGHT (with the restriction that we cannot leave the grid). The solution
         // will be symmetric in DOWN vs RIGHT so let's just consider 5 DOWN and 4 RIGHT. We can arrange this in
@@ -7150,7 +7150,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(2)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", bottomRightLabel)
@@ -7162,8 +7162,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     // 8 choose 4 = 70, https://en.wikipedia.org/wiki/Lattice_path#Combinations_and_NE_lattice_paths
     val nPathsInFirstGroup = 70
 
-    val nPathsInSecondGroup = traversalMatchMode match {
-      case TraversalMatchMode.Trail =>
+    val nPathsInSecondGroup = traversalPathMode match {
+      case TraversalPathMode.Trail =>
         // The paths in the second group have length 10, and will consist of 4 DOWN rels, 4 RIGHT rels and either an UP rel
         // and an extra DOWN rel, or a LEFT rel and an extra RIGHT rel. As these two cases are symmetric, it will suffice to
         // count the amount of paths with 5 DOWN rels, 4 RIGHT rels, and one UP rel, and then multiply by 2.
@@ -7209,7 +7209,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         //
         // sequences there are 2 * 112 = 224 in total.
         224
-      case TraversalMatchMode.Walk =>
+      case TraversalPathMode.Walk =>
         // For WALK mode we will have the same 70 paths of length 8 but for length 10 we will get all paths that have
         // 5 DOWN and 4 RIGHT or 4 DOWN and 5 RIGHT (with the restriction that we cannot leave the grid). The solution
         // will be symmetric in DOWN vs RIGHT so let's just consider 5 DOWN and 4 RIGHT. We can arrange this in
@@ -7309,15 +7309,15 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(3)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expectedRowCount = traversalMatchMode match {
-      case TraversalMatchMode.Trail =>
+    val expectedRowCount = traversalPathMode match {
+      case TraversalPathMode.Trail =>
         /*
          (0, 0->1)-[2]-(5, 2->3)-[10]-(7, 4->5)-[7]-(8, 6->5)-[8]-(9, 6->7)
          (0, 0->1)-[0]-(1, 2->1)-[3]-(2, 2->1)-[4]-(3, 2->3)-[9]-(8, 4->5)-[8]-(9, 6->7)
@@ -7326,7 +7326,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
          (0, 0->1)-[2]-(5, 2->1)-[5]-(6, 2->1)-[6]-(7, 2->1)-[7]-(8, 2->3)-[9]-(3, 4->5)-[4]-(2, 6->5)-[3]-(1, 6->5)-[0]-(0, 6->5)-[1]-(4, 6->7)
          */
         5
-      case TraversalMatchMode.Walk =>
+      case TraversalPathMode.Walk =>
         126
     }
 
@@ -7399,15 +7399,15 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(3)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expectedRowCount = traversalMatchMode match {
-      case TraversalMatchMode.Trail =>
+    val expectedRowCount = traversalPathMode match {
+      case TraversalPathMode.Trail =>
         /*
          (0, 0->1)-[2]-(5, 2->3)-[10]-(7, 4->5)-[7]-(8, 6->5)-[8]-(9, 6->7)
          (0, 0->1)-[0]-(1, 2->1)-[3]-(2, 2->1)-[4]-(3, 2->3)-[9]-(8, 4->5)-[8]-(9, 6->7)
@@ -7416,7 +7416,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
          (0, 0->1)-[2]-(5, 2->1)-[5]-(6, 2->1)-[6]-(7, 2->1)-[7]-(8, 2->3)-[9]-(3, 4->5)-[4]-(2, 6->5)-[3]-(1, 6->5)-[0]-(0, 6->5)-[1]-(4, 6->7)
          */
         5
-      case TraversalMatchMode.Walk =>
+      case TraversalPathMode.Walk =>
         126
     }
     runtimeResult should beColumns(vars: _*).withRows(RowCount(expectedRowCount))
@@ -7518,7 +7518,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(3)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -7527,8 +7527,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expectedRowCount = traversalMatchMode match {
-      case TraversalMatchMode.Trail =>
+    val expectedRowCount = traversalPathMode match {
+      case TraversalPathMode.Trail =>
         /*
          (0, 0->1)-[2]-(5, 2->3)-[10]-(7, 4->5)-[7]-(8, 6->5)-[8]-(9, 6->7)
          (0, 0->1)-[0]-(1, 2->1)-[3]-(2, 2->1)-[4]-(3, 2->3)-[9]-(8, 4->5)-[8]-(9, 6->7)
@@ -7537,7 +7537,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
          (0, 0->1)-[2]-(5, 2->1)-[5]-(6, 2->1)-[6]-(7, 2->1)-[7]-(8, 2->3)-[9]-(3, 4->5)-[4]-(2, 6->5)-[3]-(1, 6->5)-[0]-(0, 6->5)-[1]-(4, 6->7)
          */
         5
-      case TraversalMatchMode.Walk =>
+      case TraversalPathMode.Walk =>
         126
     }
     runtimeResult should beColumns(vars: _*).withRows(RowCount(expectedRowCount))
@@ -7639,7 +7639,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(3)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -7648,8 +7648,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expectedRowCount = traversalMatchMode match {
-      case TraversalMatchMode.Trail =>
+    val expectedRowCount = traversalPathMode match {
+      case TraversalPathMode.Trail =>
         /*
          (0, 0->1)-[2]-(5, 2->3)-[10]-(7, 4->5)-[7]-(8, 6->5)-[8]-(9, 6->7)
          (0, 0->1)-[0]-(1, 2->1)-[3]-(2, 2->1)-[4]-(3, 2->3)-[9]-(8, 4->5)-[8]-(9, 6->7)
@@ -7658,7 +7658,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
          (0, 0->1)-[2]-(5, 2->1)-[5]-(6, 2->1)-[6]-(7, 2->1)-[7]-(8, 2->3)-[9]-(3, 4->5)-[4]-(2, 6->5)-[3]-(1, 6->5)-[0]-(0, 6->5)-[1]-(4, 6->7)
          */
         5
-      case TraversalMatchMode.Walk =>
+      case TraversalPathMode.Walk =>
         126
     }
     runtimeResult should beColumns(vars: _*).withRows(RowCount(expectedRowCount))
@@ -7746,7 +7746,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -7846,7 +7846,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -7945,7 +7945,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -8046,7 +8046,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -8105,9 +8105,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     val retVars = Seq("l")
     // We must restrict lengths in WALK mode
-    val (minLength, maxLength) = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => (0, Some(15))
-      case TraversalMatchMode.Trail => (0, None)
+    val (minLength, maxLength) = traversalPathMode match {
+      case TraversalPathMode.Walk  => (0, Some(15))
+      case TraversalPathMode.Trail => (0, None)
     }
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -8128,7 +8128,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ExpandAll,
         minLength = minLength,
         maxLength = maxLength,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -8136,8 +8136,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Array(4),
           Array(5),
@@ -8145,7 +8145,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           Array(6),
           Array(14)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Array(4),
           Array(5),
@@ -8197,9 +8197,9 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
 
     val retVars = Seq("l")
     // We must restrict lengths in WALK mode
-    val (minLength, maxLength) = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => (15, Some(15))
-      case TraversalMatchMode.Trail => (0, None)
+    val (minLength, maxLength) = traversalPathMode match {
+      case TraversalPathMode.Walk  => (15, Some(15))
+      case TraversalPathMode.Trail => (0, None)
     }
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -8220,7 +8220,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         ExpandAll,
         minLength = minLength,
         maxLength = maxLength,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -8228,8 +8228,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Array(4),
           Array(5),
@@ -8237,7 +8237,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           Array(6),
           Array(14)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Array(4),
           Array(5),
@@ -8334,7 +8334,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(3)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -8344,8 +8344,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Array(4),
           Array(5),
@@ -8353,7 +8353,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           Array(6),
           Array(14)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Array(4),
           Array(5),
@@ -8450,7 +8450,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(3)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -8460,8 +8460,8 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Array(4),
           Array(5),
@@ -8469,7 +8469,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
           Array(6),
           Array(14)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Array(4),
           Array(5),
@@ -8692,7 +8692,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -8700,15 +8700,15 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Array(4),
           Array(5),
           Array(7),
           Array(8)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Array(5),
           Array(6),
@@ -8931,7 +8931,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("s", "S")
       .build()
@@ -8939,15 +8939,15 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Array(4),
           Array(5),
           Array(7),
           Array(8)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Array(5),
           Array(6),
@@ -9169,7 +9169,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -9179,15 +9179,15 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Array(4),
           Array(5),
           Array(7),
           Array(8)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Array(5),
           Array(6),
@@ -9409,7 +9409,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.Shortest(CountInteger(2)),
         nfa,
         ExpandInto,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .cartesianProduct()
       .|.nodeByLabelScan("t", "T")
@@ -9419,15 +9419,15 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Seq(
           Array(4),
           Array(5),
           Array(7),
           Array(8)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Seq(
           Array(5),
           Array(6),
@@ -9477,7 +9477,7 @@ abstract class StatefulShortestPathTestBase[CONTEXT <: RuntimeContext](
         Selector.ShortestGroups(CountInteger(1)),
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByIdSeek("s", Set.empty, a.getId)
       .build()
@@ -9503,7 +9503,7 @@ abstract class StatefulShortestPathTrailModeTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int
-) extends StatefulShortestPathTestBase[CONTEXT](edition, runtime, sizeHint, TraversalMatchMode.Trail) {
+) extends StatefulShortestPathTestBase[CONTEXT](edition, runtime, sizeHint, TraversalPathMode.Trail) {
 
   override protected def filterOutDuplicateRelsIfApplicable(seq: Seq[Array[Object]]): Seq[Array[Object]] = {
     seq.filter((row: Array[Object]) => {
@@ -9519,6 +9519,6 @@ abstract class StatefulShortestPathWalkModeTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int
-) extends StatefulShortestPathTestBase[CONTEXT](edition, runtime, sizeHint, TraversalMatchMode.Walk) {
+) extends StatefulShortestPathTestBase[CONTEXT](edition, runtime, sizeHint, TraversalPathMode.Walk) {
   override protected def filterOutDuplicateRelsIfApplicable(seq: Seq[Array[Object]]): Seq[Array[Object]] = seq
 }

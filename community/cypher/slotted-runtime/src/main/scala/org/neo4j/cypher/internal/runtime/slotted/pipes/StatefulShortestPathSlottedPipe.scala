@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal.runtime.slotted.pipes
 
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.LengthBounds
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.physicalplanning.Slot
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
 import org.neo4j.cypher.internal.physicalplanning.SlotConfigurationUtils.PRIMITIVE_NULL
@@ -37,7 +37,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PipeWithSource
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.StatefulShortestPathPipe.getPathCount
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.StatefulShortestPathPipe.traversalMatchModeFactory
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.StatefulShortestPathPipe.traversalPathModeFactory
 import org.neo4j.cypher.internal.runtime.slotted.SlottedRow
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName
@@ -65,7 +65,7 @@ case class StatefulShortestPathSlottedPipe(
   groupSlots: List[Int],
   slots: SlotConfiguration,
   reverseGroupVariableProjections: Boolean,
-  matchMode: TraversalMatchMode
+  pathMode: TraversalPathMode
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) with Pipe {
   self =>
 
@@ -87,7 +87,7 @@ case class StatefulShortestPathSlottedPipe(
     state.query.resources.trace(traversalCursor)
 
     val hooks = PPBFSHooks.getInstance()
-    val tracker = traversalMatchModeFactory(matchMode, memoryTracker, hooks)
+    val tracker = traversalPathModeFactory(pathMode, memoryTracker, hooks)
     val pathTracer =
       new PathTracer[CypherRow](memoryTracker, tracker, hooks)
     val pathPredicate =

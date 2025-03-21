@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Pred
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint
 import org.neo4j.cypher.internal.runtime.spec.Edition
@@ -40,7 +40,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int,
-  protected val traversalMatchMode: TraversalMatchMode
+  protected val traversalPathMode: TraversalPathMode
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
 
   test("var-length-expand with no relationships") {
@@ -51,7 +51,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .bfsPruningVarExpand("(x)-[*1..2]->(y)", matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*1..2]->(y)", pathMode = traversalPathMode)
       .allNodeScan("x")
       .build()
 
@@ -69,7 +69,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .bfsPruningVarExpand("(x)-[*1..2]-(y)", matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*1..2]-(y)", pathMode = traversalPathMode)
       .allNodeScan("x")
       .build()
 
@@ -87,7 +87,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*..1]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*..1]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -107,7 +107,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*..1]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*..1]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -127,7 +127,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*0..1]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*0..1]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -151,7 +151,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*0..1]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*0..1]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -175,7 +175,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*1..4]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*1..4]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -202,7 +202,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*1..4]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*1..4]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -218,9 +218,9 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         Array[Any](pathPrefix.endNode(), length)
       }
 
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
-      case TraversalMatchMode.Trail => expectedTrails
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk  => expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
+      case TraversalPathMode.Trail => expectedTrails
     }
 
     runtimeResult should beColumns("y", "depth").withRows(expected)
@@ -234,7 +234,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*0]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*0]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -253,7 +253,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*0]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*0]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -272,7 +272,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*0..2]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*0..2]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -295,7 +295,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*0..2]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*0..2]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -325,7 +325,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*..2]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*..2]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -354,7 +354,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*..2]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*..2]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -399,7 +399,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*..4]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*..4]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -446,15 +446,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*..4]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*..4]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(n1_2, 1),
           Array(n2, 1),
@@ -463,7 +463,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(n1, 3),
           Array(n4, 3)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(n1_2, 1),
           Array(n2, 1),
@@ -509,7 +509,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*..5]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*..5]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -559,15 +559,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*..5]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*..5]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(n1_2a, 1),
           Array(n1, 2),
@@ -577,7 +577,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(n1, 4),
           Array(n4, 3)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(n1_2a, 1),
           Array(n1_2b, 2),
@@ -624,7 +624,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*1..4]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*1..4]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -674,15 +674,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*1..4]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*1..4]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(n1, 1),
           Array(x, 2),
@@ -692,7 +692,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(z, 2),
           Array(x, 4)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(n1, 1),
           Array(n2, 2),
@@ -712,7 +712,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .bfsPruningVarExpand("(x)-[*..2]->(y)", matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*..2]->(y)", pathMode = traversalPathMode)
       .input(nodes = Seq("x"))
       .build()
 
@@ -728,7 +728,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
       .distinct("y AS y")
-      .bfsPruningVarExpand("(x)-[*..2]-(y)", matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*..2]-(y)", pathMode = traversalPathMode)
       .input(nodes = Seq("x"))
       .build()
 
@@ -749,7 +749,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*1..2]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*1..2]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -776,7 +776,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)<-[*1..2]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)<-[*1..2]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -797,14 +797,14 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[*1..2]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*1..2]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sb1, 1), // outgoing only
           Array(g.sa1, 1),
@@ -819,7 +819,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc2, 2),
           Array(g.end, 2)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sb1, 1), // outgoing only
           Array(g.sa1, 1),
@@ -849,7 +849,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[:A*1..2]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[:A*1..2]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -873,7 +873,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[:B*1..2]->(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[:B*1..2]->(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -894,15 +894,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[:A*1..2]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[:A*1..2]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sa1, 1),
           Array(g.sc1, 1),
@@ -914,7 +914,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.ea1, 2),
           Array(g.ec1, 2)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sa1, 1),
           Array(g.sc1, 1),
@@ -937,21 +937,21 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "depth")
       .distinct("y AS y", "depth AS depth")
-      .bfsPruningVarExpand("(x)-[:B*1..2]-(y)", depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[:B*1..2]-(y)", depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sb1, 1),
           Array(g.start, 2),
           Array(g.sb2, 2)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sb1, 1),
           Array(g.sb2, 2)
@@ -975,7 +975,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*1..2]->(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.middle.getId)),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -1005,7 +1005,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Predicate("n2", "id(n2) <> " + g.sc3.getId)
         ),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -1013,8 +1013,8 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sa1, 1),
           Array(g.sb1, 1),
@@ -1023,7 +1023,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc1, 1),
           Array(g.sc2, 2)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sa1, 1),
           Array(g.sb1, 1),
@@ -1048,7 +1048,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*1..2]->(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.start.getId)),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -1072,7 +1072,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*1..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.start.getId)),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -1096,7 +1096,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(X)-[*1..2]->(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.start.getId)),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("x AS X")
       .nodeByLabelScan("x", "START", IndexOrderNone)
@@ -1121,7 +1121,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(X)-[*1..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.start.getId)),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("x AS X")
       .nodeByLabelScan("x", "START", IndexOrderNone)
@@ -1145,7 +1145,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*1..2]->(y)",
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -1176,7 +1176,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Predicate("r2", "id(r2) <> " + g.endMiddle.getId)
         ),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -1184,8 +1184,8 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sa1, 1),
           Array(g.sb1, 1),
@@ -1199,7 +1199,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.ec1, 3),
           Array(g.sc3, 3)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sa1, 1),
           Array(g.sb1, 1),
@@ -1228,7 +1228,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*1..2]-(y)",
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -1236,8 +1236,8 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sa1, 1),
           Array(g.start, 2),
@@ -1247,7 +1247,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sb2, 2),
           Array(g.sc2, 2)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sa1, 1),
           Array(g.middle, 2),
@@ -1274,7 +1274,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.sa1.getId)),
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -1302,7 +1302,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.sa1.getId)),
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -1310,8 +1310,8 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sb1, 1),
           Array(g.sc1, 1),
@@ -1319,7 +1319,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sb2, 2),
           Array(g.sc2, 2)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sb1, 1),
           Array(g.sc1, 1),
@@ -1344,7 +1344,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*..5]->(y)",
         nodePredicates = Seq(Predicate("n", "'START' IN labels(x)")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(nodes = Seq("x"))
       .build()
@@ -1375,7 +1375,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*..5]-(y)",
         nodePredicates = Seq(Predicate("n", "'START' IN labels(x)")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(nodes = Seq("x"))
       .build()
@@ -1390,10 +1390,10 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         length <- 1 to 5
       } yield Array[Any](path.take(length).endNode(), length)
 
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
-      case TraversalMatchMode.Trail => expectedTrails
+      case TraversalPathMode.Trail => expectedTrails
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1412,7 +1412,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*0..5]->(y)",
         nodePredicates = Seq(Predicate("n", "'START' IN labels(x)")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(nodes = Seq("x"))
       .build()
@@ -1443,7 +1443,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*0..5]-(y)",
         nodePredicates = Seq(Predicate("n", "'START' IN labels(x)")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(nodes = Seq("x"))
       .build()
@@ -1474,7 +1474,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*..5]->(y)",
         nodePredicates = Seq(Predicate("n", "id(n) >= zero")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("0 AS zero")
       .input(nodes = Seq("x"))
@@ -1506,7 +1506,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*..5]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) >= zero")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("0 AS zero")
       .input(nodes = Seq("x"))
@@ -1522,9 +1522,9 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         length <- 1 to 5
       } yield Array[Any](path.take(length).endNode(), length)
 
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
-      case TraversalMatchMode.Trail => expectedTrails
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk  => expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
+      case TraversalPathMode.Trail => expectedTrails
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1543,7 +1543,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*0..5]->(y)",
         nodePredicates = Seq(Predicate("n", "id(n) >= zero")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("0 AS zero")
       .input(nodes = Seq("x"))
@@ -1575,7 +1575,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*0..5]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) >= zero")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("0 AS zero")
       .input(nodes = Seq("x"))
@@ -1607,7 +1607,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*..5]->(y)",
         nodePredicates = Seq(Predicate("n", "id(other) >= 0")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("0 AS zero")
       .input(nodes = Seq("x", "other"))
@@ -1639,7 +1639,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*..5]-(y)",
         nodePredicates = Seq(Predicate("n", "id(other) >= 0")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("0 AS zero")
       .input(nodes = Seq("x", "other"))
@@ -1655,9 +1655,9 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         length <- 1 to 5
       } yield Array[Any](path.take(length).endNode(), length)
     }
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
-      case TraversalMatchMode.Trail => expectedTrails
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk  => expectedTrails ++ paths.map(p => Array[Any](p.startNode, 2))
+      case TraversalPathMode.Trail => expectedTrails
     }
     runtimeResult should beColumns("y", "depth").withRows(expected)
   }
@@ -1676,7 +1676,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*0..5]->(y)",
         nodePredicates = Seq(Predicate("n", "id(other) >= 0")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("0 AS zero")
       .input(nodes = Seq("x", "other"))
@@ -1708,7 +1708,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*0..5]-(y)",
         nodePredicates = Seq(Predicate("n", "id(other) >= 0")),
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("0 AS zero")
       .input(nodes = Seq("x", "other"))
@@ -1740,7 +1740,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       // currently we would plan a distinct here because different x may lead to the same y
       // so we cannot guarantee global uniqueness of y. However we still want bfsPruningVarExpand
       // to produce unique ys given an x which is what we test here
-      .bfsPruningVarExpand("(x)-[*0..25]->(y)", matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*0..25]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START")
       .build()
 
@@ -1764,7 +1764,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       // currently we would plan a distinct here because different x may lead to the same y
       // so we cannot guarantee global uniqueness of y. However we still want bfsPruningVarExpand
       // to produce unique ys given an x which is what we test here
-      .bfsPruningVarExpand("(x)-[*0..25]-(y)", matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*0..25]-(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START")
       .build()
 
@@ -1792,7 +1792,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .bfsPruningVarExpand(
         "(x)-[*0..25]->(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> -1")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START")
       .build()
@@ -1821,7 +1821,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .bfsPruningVarExpand(
         "(x)-[*0..25]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> -1")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START")
       .build()
@@ -1846,7 +1846,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*..2]->(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.sa1.getId)),
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .|.nodeByLabelScan("x", "START", IndexOrderNone)
       .input(variables = Seq("i"))
@@ -1874,7 +1874,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.sa1.getId)),
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .|.nodeByLabelScan("x", "START", IndexOrderNone)
       .input(variables = Seq("i"))
@@ -1882,8 +1882,8 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime, inputValues((1 to 10).map(i => Array[Any](i)): _*))
 
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         (for (i <- 1 to 10)
           yield Seq(
             Array[Any](i, g.sb1),
@@ -1892,7 +1892,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
             Array[Any](i, g.sb2),
             Array[Any](i, g.sc2)
           )).flatten
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         (for (i <- 1 to 10)
           yield Seq(Array[Any](i, g.sb1), Array[Any](i, g.sc1), Array[Any](i, g.sb2), Array[Any](i, g.sc2))).flatten
     }
@@ -1914,7 +1914,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*0..2]->(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.sa1.getId)),
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .|.nodeByLabelScan("x", "START", IndexOrderNone)
       .input(variables = Seq("i"))
@@ -1943,7 +1943,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*0..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.sa1.getId)),
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .|.nodeByLabelScan("x", "START", IndexOrderNone)
       .input(variables = Seq("i"))
@@ -1973,7 +1973,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y", "depth")
-      .bfsPruningVarExpand("(x)-[*]->(y)", mode = ExpandInto, depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*]->(y)", mode = ExpandInto, depthName = Some("depth"), pathMode = traversalPathMode)
       .cartesianProduct()
       .|.nodeByLabelScan("y", "1,1", IndexOrderNone)
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
@@ -1997,7 +1997,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*0..]->(x)",
         mode = ExpandInto,
         depthName = Some("depth"),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
       .build()
@@ -2016,15 +2016,15 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "depth")
-      .bfsPruningVarExpand("(x)-[*]-(x)", mode = ExpandInto, depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*]-(x)", mode = ExpandInto, depthName = Some("depth"), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => Array(Array(nodes.head, 2))
-      case TraversalMatchMode.Trail => Array(Array(nodes.head, 4))
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk  => Array(Array(nodes.head, 2))
+      case TraversalPathMode.Trail => Array(Array(nodes.head, 4))
     }
     runtimeResult should beColumns("x", "depth").withRows(expected)
   }
@@ -2040,7 +2040,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "depth")
-      .bfsPruningVarExpand("(x)-[*]-(x)", mode = ExpandInto, depthName = Some("depth"), matchMode = traversalMatchMode)
+      .bfsPruningVarExpand("(x)-[*]-(x)", mode = ExpandInto, depthName = Some("depth"), pathMode = traversalPathMode)
       .allNodeScan("x")
       .build()
 
@@ -2068,7 +2068,7 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("t")
-      .bfsPruningVarExpandExpr("(s)-[r*]-(t)", relationshipPredicates = relPredicates, matchMode = traversalMatchMode)
+      .bfsPruningVarExpandExpr("(s)-[r*]-(t)", relationshipPredicates = relPredicates, pathMode = traversalPathMode)
       .nodeByIdSeek("s", Set.empty, a.getId)
       .build()
 
@@ -2093,20 +2093,20 @@ abstract class BFSPruningVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("s", "t")
-      .bfsPruningVarExpandExpr("(s)-[r*]-(t)", relationshipPredicates = relPredicates, matchMode = traversalMatchMode)
+      .bfsPruningVarExpandExpr("(s)-[r*]-(t)", relationshipPredicates = relPredicates, pathMode = traversalPathMode)
       .nodeByIdSeek("s", Set.empty, a.getId)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         inAnyOrder(Seq(
           Array(a, b),
           Array(a, a),
           Array(a, c)
         ))
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         inAnyOrder(Seq(
           Array(a, b),
           Array(a, c)

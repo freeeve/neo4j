@@ -22,7 +22,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap
 import org.neo4j.collection.trackable.HeapTrackingCollections
 import org.neo4j.cypher.internal.expressions.SemanticDirection
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.IsNoValue
@@ -44,7 +44,7 @@ case class PruningVarLengthExpandPipe(
   dir: SemanticDirection,
   min: Int,
   max: Int,
-  traversalMatchMode: TraversalMatchMode,
+  traversalPathMode: TraversalPathMode,
   filteringStep: TraversalPredicates = TraversalPredicates.NONE
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) with Pipe {
   self =>
@@ -98,7 +98,7 @@ case class PruningVarLengthExpandPipe(
     val expandMap: MutableLongObjectMap[NodeState],
     val prevLocalRelIndex: Int,
     val prevNodeState: NodeState,
-    traversalMatchMode: TraversalMatchMode
+    traversalPathMode: TraversalPathMode
   ) {
 
     var nodeState: NodeState = NodeState.UNINITIALIZED
@@ -155,7 +155,7 @@ case class PruningVarLengthExpandPipe(
     }
 
     private def seenRelationshipInPath(r: Long): Boolean = {
-      if (pathLength == 0 || traversalMatchMode == TraversalMatchMode.Walk) return false
+      if (pathLength == 0 || traversalPathMode == TraversalPathMode.Walk) return false
       var idx = 0
       while (idx < pathLength) {
         if (path(idx) == r) return true
@@ -360,7 +360,7 @@ case class PruningVarLengthExpandPipe(
           expandMap,
           prevLocalRelIndex,
           prevNodeState,
-          traversalMatchMode
+          traversalPathMode
         )
 
       nodeState(depth).nextEndNode()

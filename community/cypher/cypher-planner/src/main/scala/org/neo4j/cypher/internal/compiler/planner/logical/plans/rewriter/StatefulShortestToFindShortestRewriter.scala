@@ -50,7 +50,7 @@ import org.neo4j.cypher.internal.label_expressions.LabelExpression.disjoinRelTyp
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.AllowSameNode
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.Solveds
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
@@ -100,7 +100,7 @@ case class StatefulShortestToFindShortestRewriter(
         _,
         _,
         _,
-        TraversalMatchMode.Trail
+        TraversalPathMode.Trail
       )
       // 2.0 start and end nodes are bound and 6.0 selection asks for shortest 1
       if source.availableSymbols.contains(targetNode) &&

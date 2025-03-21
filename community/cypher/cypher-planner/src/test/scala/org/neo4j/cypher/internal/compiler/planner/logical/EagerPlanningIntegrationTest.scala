@@ -54,9 +54,9 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.LogicalPlanAstConstructionTestSupport
 import org.neo4j.cypher.internal.logical.plans.NFA
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Trail
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode.Walk
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Trail
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
@@ -606,7 +606,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
     nfa: NFA,
     minLength: Int,
     maybeMaxLength: Option[Int],
-    matchMode: TraversalMatchMode = Trail
+    pathMode: TraversalPathMode = Trail
   )
 
   implicit class SSPLogicalPlanBuilder(builder: LogicalPlanBuilder) {
@@ -628,7 +628,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
           false,
           parameters.minLength,
           parameters.maybeMaxLength,
-          parameters.matchMode
+          parameters.pathMode
         )
   }
 

@@ -42,7 +42,7 @@ import org.neo4j.cypher.internal.logical.plans.NestedPlanExpression
 import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.PruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.Selection
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.runtime.ast.ExpressionVariable
@@ -503,7 +503,7 @@ class ExpressionVariableAllocationTest extends CypherFunSuite with AstConstructi
       ExpandAll,
       Seq(VariablePredicate(tempNode, nodePred)),
       Seq(VariablePredicate(tempEdge, edgePred)),
-      TraversalMatchMode.Trail
+      TraversalPathMode.Trail
     )
   }
 

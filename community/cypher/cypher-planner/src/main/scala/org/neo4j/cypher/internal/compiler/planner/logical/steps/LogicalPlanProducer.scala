@@ -262,7 +262,7 @@ import org.neo4j.cypher.internal.logical.plans.Top1WithTies
 import org.neo4j.cypher.internal.logical.plans.TransactionApply
 import org.neo4j.cypher.internal.logical.plans.TransactionConcurrency
 import org.neo4j.cypher.internal.logical.plans.TransactionForeach
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.TriadicSelection
 import org.neo4j.cypher.internal.logical.plans.UndirectedAllRelationshipsScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipByElementIdSeek
@@ -1188,8 +1188,8 @@ case class LogicalPlanProducer(
     relationshipPredicates: ListSet[VariablePredicate],
     nodePredicates: ListSet[VariablePredicate],
     solvedPredicates: ListSet[Expression],
-    mode: ExpansionMode,
-    matchMode: TraversalMatchMode,
+    expansionMode: ExpansionMode,
+    pathMode: TraversalPathMode,
     context: LogicalPlanningContext
   ): LogicalPlan = {
 
@@ -1224,10 +1224,10 @@ case class LogicalPlanProducer(
             to = to,
             relName = patternRelationship.variable,
             length = l,
-            mode = mode,
+            expansionMode = expansionMode,
             nodePredicates = rewrittenNodePredicates.toSeq,
             relationshipPredicates = rewrittenRelationshipPredicates.toSeq,
-            matchMode = matchMode
+            pathMode = pathMode
           ),
           solved,
           ProvidedOrder.Left,
@@ -1301,7 +1301,7 @@ case class LogicalPlanProducer(
     previouslyBoundRelationships: Set[LogicalVariable],
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
     reverseGroupVariableProjections: Boolean,
-    matchMode: TraversalMatchMode
+    pathMode: TraversalPathMode
   ): LogicalPlan = {
     // Ensure that innerPlan does conform with the pattern contained inside the quantified path pattern before we mark it as solved
     try {
@@ -1324,8 +1324,8 @@ case class LogicalPlanProducer(
       .addPredicates(predicates: _*))
 
     val providedOrderRule = ProvidedOrder.Left
-    val repeatPlan = matchMode match {
-      case TraversalMatchMode.Trail =>
+    val repeatPlan = pathMode match {
+      case TraversalPathMode.Trail =>
         RepeatTrail(
           left = source,
           right = innerPlan,
@@ -1341,7 +1341,7 @@ case class LogicalPlanProducer(
           previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
           reverseGroupVariableProjections = reverseGroupVariableProjections
         )
-      case TraversalMatchMode.Walk =>
+      case TraversalPathMode.Walk =>
         RepeatWalk(
           left = source,
           right = innerPlan,
@@ -1355,7 +1355,7 @@ case class LogicalPlanProducer(
           reverseGroupVariableProjections = reverseGroupVariableProjections,
           innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet
         )
-      case _ => throw new IllegalStateException(s"Unknown match mode: $matchMode")
+      case _ => throw new IllegalStateException(s"Unknown path mode: $pathMode")
     }
     annotate(
       repeatPlan,
@@ -2916,7 +2916,7 @@ case class LogicalPlanProducer(
     hints: Set[UsingStatefulShortestPathHint],
     context: LogicalPlanningContext,
     pathLength: PathLength,
-    matchMode: TraversalMatchMode
+    pathMode: TraversalPathMode
   ): StatefulShortestPath = {
     val solved = solveds.get(inner.id).asSinglePlannerQuery.amendQueryGraph(
       _.addSelectivePathPattern(solvedSpp)
@@ -2947,7 +2947,7 @@ case class LogicalPlanProducer(
       solvedExpressionAsString,
       reverseGroupVariableProjections,
       LengthBounds(pathLength.min, pathLength.maybeMax),
-      matchMode
+      pathMode
     )
     annotate(plan, solved, ProvidedOrder.Left, cachedPropertiesPerPlan.get(inner.id), context)
   }

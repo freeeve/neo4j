@@ -21,7 +21,7 @@ package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.LengthBounds
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.CastSupport
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingIterator.JavaAutoCloseableIteratorAsClosingIterator
@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.commands.CommandNFA
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
 import org.neo4j.cypher.internal.runtime.interpreted.commands.predicates.Predicate
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.StatefulShortestPathPipe.getPathCount
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.StatefulShortestPathPipe.traversalMatchModeFactory
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.StatefulShortestPathPipe.traversalPathModeFactory
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.operations.CypherTypeValueMapper
 import org.neo4j.exceptions.CypherTypeException
@@ -43,7 +43,7 @@ import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.PGPathPropagatingBF
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.PathTracer
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.PathWriter
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.SignpostStack
-import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.TraversalMatchModeFactory
+import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.TraversalPathModeFactory
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.PPBFSHooks
 import org.neo4j.kernel.api.StatementConstants.NO_SUCH_ENTITY
 import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
@@ -68,7 +68,7 @@ case class StatefulShortestPathPipe(
   kExpression: Expression,
   grouped: Set[String],
   reverseGroupVariableProjections: Boolean,
-  matchMode: TraversalMatchMode
+  pathMode: TraversalPathMode
 )(val id: Id = Id.INVALID_ID)
     extends PipeWithSource(source) {
   self =>
@@ -86,7 +86,7 @@ case class StatefulShortestPathPipe(
 
     val hooks = PPBFSHooks.getInstance()
 
-    val tracker = traversalMatchModeFactory(matchMode, memoryTracker, hooks)
+    val tracker = traversalPathModeFactory(pathMode, memoryTracker, hooks)
     val pathTracer =
       new PathTracer[CypherRow](memoryTracker, tracker, hooks)
     val pathPredicate =
@@ -169,14 +169,14 @@ case class StatefulShortestPathPipe(
 
 object StatefulShortestPathPipe {
 
-  def traversalMatchModeFactory(
-    matchMode: TraversalMatchMode,
+  def traversalPathModeFactory(
+    pathMode: TraversalPathMode,
     memoryTracker: MemoryTracker,
     hooks: PPBFSHooks
-  ): TraversalMatchModeFactory = matchMode match {
-    case TraversalMatchMode.Trail =>
-      TraversalMatchModeFactory.trailMode(memoryTracker, hooks)
-    case TraversalMatchMode.Walk => TraversalMatchModeFactory.walkMode()
+  ): TraversalPathModeFactory = pathMode match {
+    case TraversalPathMode.Trail =>
+      TraversalPathModeFactory.trailMode(memoryTracker, hooks)
+    case TraversalPathMode.Walk => TraversalPathModeFactory.walkMode()
   }
 
   def getPathCount(kExpression: Expression, inputRow: CypherRow, state: QueryState): Int = {

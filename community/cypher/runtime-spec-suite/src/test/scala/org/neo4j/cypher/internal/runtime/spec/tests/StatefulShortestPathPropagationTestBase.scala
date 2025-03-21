@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
@@ -55,7 +55,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
   protected val sizeHint: Int,
-  protected val traversalMatchMode: TraversalMatchMode
+  protected val traversalPathMode: TraversalPathMode
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
 
   private val ENABLE_LOGS = false
@@ -74,9 +74,9 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     ENABLE_LOGS shouldBe false
   }
 
-  private val upperLimit = traversalMatchMode match {
-    case TraversalMatchMode.Walk  => Some(8)
-    case TraversalMatchMode.Trail => None
+  private val upperLimit = traversalPathMode match {
+    case TraversalPathMode.Walk  => Some(8)
+    case TraversalPathMode.Trail => None
   }
 
   private def pattern(
@@ -167,7 +167,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y: Target")
-      .expand(outgoingPattern(actualUpperLimit = actualUpperLimit), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(actualUpperLimit = actualUpperLimit), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "Source", IndexOrderNone)
       .build()
 
@@ -210,7 +210,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y: Target")
-      .expand(undirectedPattern(), matchMode = traversalMatchMode)
+      .expand(undirectedPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "Source", IndexOrderNone)
       .build()
 
@@ -269,7 +269,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y: Target")
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "Source", IndexOrderNone)
       .build()
 
@@ -312,7 +312,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y: Target")
-      .expand(undirectedPattern(), matchMode = traversalMatchMode)
+      .expand(undirectedPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "Source", IndexOrderNone)
       .build()
 
@@ -363,7 +363,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y: Target")
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "Source", IndexOrderNone)
       .build()
 
@@ -404,7 +404,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y: Target")
-      .expand(undirectedPattern(), matchMode = traversalMatchMode)
+      .expand(undirectedPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "Source", IndexOrderNone)
       .build()
 
@@ -456,7 +456,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y: Target")
-      .expand(outgoingPattern(actualUpperLimit = actualUpperLimit), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(actualUpperLimit = actualUpperLimit), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "Source", IndexOrderNone)
       .build()
 
@@ -497,7 +497,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y: Target")
-      .expand(undirectedPattern(endLength = actualUpperLimit), matchMode = traversalMatchMode)
+      .expand(undirectedPattern(endLength = actualUpperLimit), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "Source", IndexOrderNone)
       .build()
 
@@ -563,7 +563,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     // when
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .allNodeScan("x")
       .build()
 
@@ -610,7 +610,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     // when
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand(undirectedPattern(endLength = actualUpperLimit), matchMode = traversalMatchMode)
+      .expand(undirectedPattern(endLength = actualUpperLimit), pathMode = traversalPathMode)
       .allNodeScan("x")
       .build()
 
@@ -640,7 +640,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("'4,4' IN labels(y)")
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
       .build()
 
@@ -671,7 +671,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
       .filter(
         "'4,0' IN labels(y) OR '4,1' IN labels(y) OR '4,2' IN labels(y) OR '4,3' IN labels(y) OR '4,4' IN labels(y)"
       )
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
       .build()
 
@@ -712,7 +712,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("'4,4' IN labels(y)")
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
       .build()
 
@@ -752,7 +752,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("'2,0' IN labels(y) OR '2,1' IN labels(y) OR '2,2' IN labels(y)")
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
       .build()
 
@@ -794,7 +794,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
       .filter(
         "'4,0' IN labels(y) OR '4,1' IN labels(y) OR '4,2' IN labels(y) OR '4,3' IN labels(y) OR '4,4' IN labels(y)"
       )
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
       .build()
 
@@ -840,7 +840,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
       .filter(
         "'4,4' IN labels(y)"
       )
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
       .build()
 
@@ -886,7 +886,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
       .filter(
         "'4,0' IN labels(y) OR '4,1' IN labels(y) OR '4,2' IN labels(y) OR '4,3' IN labels(y) OR '4,4' IN labels(y)"
       )
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
       .build()
 
@@ -958,7 +958,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
       .filter(
         "'4,0' IN labels(y) OR '4,1' IN labels(y) OR '4,2' IN labels(y) OR '4,3' IN labels(y) OR '4,4' IN labels(y)"
       )
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "0,0", IndexOrderNone)
       .build()
 
@@ -993,7 +993,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
       .expand(
         incomingPattern(startNode = "y", relationship = "rs2", endNode = "z"),
         projectedDir = SemanticDirection.INCOMING,
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .filter("'3,3' IN labels(y)")
       .expand(outgoingPattern(startNode = "x", relationship = "rs", endNode = "y"))
@@ -1028,7 +1028,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     // when
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "rs", "y")
-      .expand("(x)<-[rs*]-(y)", projectedDir = SemanticDirection.INCOMING, matchMode = traversalMatchMode)
+      .expand("(x)<-[rs*]-(y)", projectedDir = SemanticDirection.INCOMING, pathMode = traversalPathMode)
       .nodeByLabelScan("x", "1,1", IndexOrderNone)
       .build()
 
@@ -1056,7 +1056,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y = x")
-      .expand(outgoingPattern(startLength = Some(0)), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(startLength = Some(0)), pathMode = traversalPathMode)
       .allNodeScan("x")
       .build()
 
@@ -1088,7 +1088,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
       .filter("y = x")
       .expand(
         outgoingPattern(startLength = Some(6), actualUpperLimit = actualUpperLimit),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .allNodeScan("x")
       .build()
@@ -1151,7 +1151,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y:T")
-      .expand(outgoingPattern(), matchMode = traversalMatchMode)
+      .expand(outgoingPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "S")
       .build()
 
@@ -1226,7 +1226,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
     val expandQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
       .filter("y: " + targetLabel)
-      .expand(undirectedPattern(), matchMode = traversalMatchMode)
+      .expand(undirectedPattern(), pathMode = traversalPathMode)
       .nodeByLabelScan("x", "0,0")
       .build()
 
@@ -1424,7 +1424,7 @@ abstract class StatefulShortestPathPropagationTestBase[CONTEXT <: RuntimeContext
         selector,
         nfa,
         ExpandAll,
-        matchMode = traversalMatchMode,
+        pathMode = traversalPathMode,
         maxLength = actualUpperLimit
       )
     }

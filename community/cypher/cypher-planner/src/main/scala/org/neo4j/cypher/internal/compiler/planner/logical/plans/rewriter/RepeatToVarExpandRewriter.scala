@@ -44,7 +44,7 @@ import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
 import org.neo4j.cypher.internal.logical.plans.Selection
 import org.neo4j.cypher.internal.logical.plans.Selection.LabelAndRelTypeInfo
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.logical.plans.VarExpand
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LabelAndRelTypeInfos
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -216,9 +216,9 @@ case class RepeatToVarExpandRewriter(
       case (direction, false)              => direction
       case (direction, true)               => direction.reversed
     }
-    val matchMode = repeat match {
-      case _: RepeatTrail => TraversalMatchMode.Trail
-      case _: RepeatWalk  => TraversalMatchMode.Walk
+    val pathMode = repeat match {
+      case _: RepeatTrail => TraversalPathMode.Trail
+      case _: RepeatWalk  => TraversalPathMode.Walk
     }
 
     VarExpand(
@@ -230,10 +230,10 @@ case class RepeatToVarExpandRewriter(
       projectedDir = getProjectedDir,
       types = repeatExpand.types,
       length = repeatQuantifier,
-      mode = expansionMode,
+      expansionMode = expansionMode,
       nodePredicates = inlinedPredicates.nodePredicates,
       relationshipPredicates = inlinedPredicates.relationshipPredicates,
-      matchMode = matchMode
+      pathMode = pathMode
     )(SameId(repeat.id))
   }
 

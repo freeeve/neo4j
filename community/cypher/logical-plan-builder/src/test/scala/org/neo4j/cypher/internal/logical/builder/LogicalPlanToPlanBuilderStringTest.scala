@@ -76,7 +76,7 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlanToPlanBuilderString
 import org.neo4j.cypher.internal.logical.plans.Prober
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Selector
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.attribution.Id
@@ -271,7 +271,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
           .build(),
         ExpandAll,
         false,
-        matchMode = TraversalMatchMode.Walk
+        pathMode = TraversalPathMode.Walk
       )
       .allNodeScan("a")
       .build()
@@ -499,7 +499,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     "expand",
     new TestPlanBuilder()
       .produceResults("x")
-      .expand("(x)-[r*0..0]->(y)", expandMode = ExpandAll, projectedDir = OUTGOING, matchMode = TraversalMatchMode.Walk)
+      .expand("(x)-[r*0..0]->(y)", expandMode = ExpandAll, projectedDir = OUTGOING, pathMode = TraversalPathMode.Walk)
       .expand("(x)<-[r*0..1]-(y)", expandMode = ExpandAll, projectedDir = OUTGOING)
       .expand("(x)-[r*2..5]-(y)", expandMode = ExpandAll, projectedDir = OUTGOING)
       .expand("(x)-[r:REL*1..2]-(y)", expandMode = ExpandAll, projectedDir = OUTGOING)
@@ -545,7 +545,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         projectedDir = OUTGOING,
         nodePredicates = Seq(),
         relationshipPredicates = Seq(VariablePredicate(varFor("r"), isNotNull(prop(endNode("r"), "foo")))),
-        matchMode = TraversalMatchMode.Walk
+        pathMode = TraversalPathMode.Walk
       )
       .nodeByLabelScan("start", "A", IndexOrderNone)
       .build()
@@ -634,37 +634,37 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     "bfsPruningVarExpand - walk mode",
     new TestPlanBuilder()
       .produceResults("x")
-      .bfsPruningVarExpand("(x)-[*0..0]->(y)", matchMode = TraversalMatchMode.Walk)
-      .bfsPruningVarExpand("(x)<-[*0..1]-(y)", matchMode = TraversalMatchMode.Walk)
-      .bfsPruningVarExpand("(x)-[*1..5]->(y)", matchMode = TraversalMatchMode.Walk)
-      .bfsPruningVarExpand("(x)-[:REL*1..2]->(y)", matchMode = TraversalMatchMode.Walk)
-      .bfsPruningVarExpand("(x)<-[:REL|LER*1..2]-(y)", matchMode = TraversalMatchMode.Walk)
-      .bfsPruningVarExpand("(x)-[*1..2]->(y)", matchMode = TraversalMatchMode.Walk)
-      .bfsPruningVarExpand("(x)-[*1..2]->(y)", matchMode = TraversalMatchMode.Walk)
+      .bfsPruningVarExpand("(x)-[*0..0]->(y)", pathMode = TraversalPathMode.Walk)
+      .bfsPruningVarExpand("(x)<-[*0..1]-(y)", pathMode = TraversalPathMode.Walk)
+      .bfsPruningVarExpand("(x)-[*1..5]->(y)", pathMode = TraversalPathMode.Walk)
+      .bfsPruningVarExpand("(x)-[:REL*1..2]->(y)", pathMode = TraversalPathMode.Walk)
+      .bfsPruningVarExpand("(x)<-[:REL|LER*1..2]-(y)", pathMode = TraversalPathMode.Walk)
+      .bfsPruningVarExpand("(x)-[*1..2]->(y)", pathMode = TraversalPathMode.Walk)
+      .bfsPruningVarExpand("(x)-[*1..2]->(y)", pathMode = TraversalPathMode.Walk)
       .bfsPruningVarExpand(
         "(x)-[*1..2]->(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> 5")),
-        matchMode = TraversalMatchMode.Walk
+        pathMode = TraversalPathMode.Walk
       )
       .bfsPruningVarExpand(
         "(x)-[*1..3]->(y)",
         relationshipPredicates = Seq(Predicate("r", "id(r) <> 5")),
-        matchMode = TraversalMatchMode.Walk
+        pathMode = TraversalPathMode.Walk
       )
       .bfsPruningVarExpand(
         "(x)-[*1..2]->(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> 5"), Predicate("n2", "id(n2) > 5")),
-        matchMode = TraversalMatchMode.Walk
+        pathMode = TraversalPathMode.Walk
       )
       .bfsPruningVarExpand(
         "(x)-[*1..3]->(y)",
         relationshipPredicates = Seq(Predicate("r", "id(r) <> 5"), Predicate("r2", "id(r2) > 5")),
-        matchMode = TraversalMatchMode.Walk
+        pathMode = TraversalPathMode.Walk
       )
       .bfsPruningVarExpand(
         "(x)-[*1..3]->(y)",
         depthName = Some("depth"),
-        matchMode = TraversalMatchMode.Walk
+        pathMode = TraversalPathMode.Walk
       )
       .argument()
       .build()
@@ -3134,7 +3134,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
             |import org.neo4j.cypher.internal.util.UpperBound.Unlimited
             |import org.neo4j.graphdb.schema.IndexType
             |import org.neo4j.cypher.internal.logical.plans.FindShortestPaths._
-            |import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode._
+            |import org.neo4j.cypher.internal.logical.plans.TraversalPathMode._
             |""".stripMargin
         )
         interpreter.bind("result", "Array[AnyRef]", res)

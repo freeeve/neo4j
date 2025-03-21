@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Pred
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
-import org.neo4j.cypher.internal.logical.plans.TraversalMatchMode
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode
 import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint
@@ -52,7 +52,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
   sizeHint: Int,
-  protected val traversalMatchMode: TraversalMatchMode
+  protected val traversalPathMode: TraversalPathMode
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
 
   test("simple var-length-expand") {
@@ -63,7 +63,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[*]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[*]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -87,7 +87,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[*0..]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[*0..]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -110,7 +110,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r*]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -136,7 +136,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*0..]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r*0..]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -162,7 +162,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r*]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -187,7 +187,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*0..]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r*0..]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -213,7 +213,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*..1]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r*..1]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -236,7 +236,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*0..1]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r*0..1]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -260,7 +260,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*2..4]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r*2..4]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -286,7 +286,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[r*0]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r*0]->(y)", pathMode = traversalPathMode)
       .allNodeScan("x")
       .build()
 
@@ -308,7 +308,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[*]->(y)", expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand("(x)-[*]->(y)", expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -331,7 +331,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[*]->(y)", expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand("(x)-[*]->(y)", expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -349,7 +349,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[*]->(y)", expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand("(x)-[*]->(y)", expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(variables = Seq("x", "y"))
       .build()
 
@@ -369,7 +369,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[*]->(y)", expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand("(x)-[*]->(y)", expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -403,7 +403,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*]->(y)", expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand("(x)-[r*]->(y)", expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -453,7 +453,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*2..2]->(y)", expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand("(x)-[r*2..2]->(y)", expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -478,7 +478,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*]->(y)", projectedDir = OUTGOING, expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand("(x)-[r*]->(y)", projectedDir = OUTGOING, expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -497,7 +497,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(y)<-[r*]-(x)", projectedDir = OUTGOING, expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand("(y)<-[r*]-(x)", projectedDir = OUTGOING, expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -516,7 +516,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*]->(y)", projectedDir = INCOMING, expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand("(x)-[r*]->(y)", projectedDir = INCOMING, expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -532,15 +532,15 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val paths = givenGraph { chainGraphs(3, "TO", "TO", "TO", "TOO", "TO") }
     val input = inputValues(paths.map(p => Array[Any](p.startNode, p.endNode())): _*)
 
-    val pattern = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => "(y)<-[r*..10]-(x)"
-      case TraversalMatchMode.Trail => "(y)<-[r*]-(x)"
+    val pattern = traversalPathMode match {
+      case TraversalPathMode.Walk  => "(y)<-[r*..10]-(x)"
+      case TraversalPathMode.Trail => "(y)<-[r*]-(x)"
     }
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand(pattern, projectedDir = INCOMING, expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand(pattern, projectedDir = INCOMING, expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -555,14 +555,14 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // given
     val paths = givenGraph { chainGraphs(3, "TO", "TO", "TO", "TOO", "TO") }
     val input = inputValues(paths.map(p => Array[Any](p.startNode, p.endNode())): _*)
-    val pattern = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => "(x)-[r*..5]-(y)"
-      case TraversalMatchMode.Trail => "(x)-[r*]-(y)"
+    val pattern = traversalPathMode match {
+      case TraversalPathMode.Walk  => "(x)-[r*..5]-(y)"
+      case TraversalPathMode.Trail => "(x)-[r*]-(y)"
     }
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand(pattern, projectedDir = OUTGOING, expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand(pattern, projectedDir = OUTGOING, expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -577,24 +577,24 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // given
     val paths = givenGraph { chainGraphs(3, "TO", "TO", "TO", "TOO", "TO") }
     val input = inputValues(paths.map(p => Array[Any](p.startNode, p.endNode())): _*)
-    val pattern = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => "(y)-[r*..5]-(x)"
-      case TraversalMatchMode.Trail => "(y)-[r*]-(x)"
+    val pattern = traversalPathMode match {
+      case TraversalPathMode.Walk  => "(y)-[r*..5]-(x)"
+      case TraversalPathMode.Trail => "(y)-[r*]-(x)"
     }
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand(pattern, projectedDir = INCOMING, expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand(pattern, projectedDir = INCOMING, expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime, input)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         paths.map(p => Array[Object](p.startNode, p.relationships(), p.endNode()))
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         paths.map(p => Array[Object](p.startNode, p.relationships(), p.endNode()))
     }
     runtimeResult should beColumns("x", "r", "y").withRows(expected)
@@ -606,7 +606,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*]-(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r*]-(y)", pathMode = traversalPathMode)
       .input(nodes = Seq("x"))
       .build()
 
@@ -624,7 +624,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand("(x)-[r*]-(y)", expandMode = ExpandInto, matchMode = traversalMatchMode)
+      .expand("(x)-[r*]-(y)", expandMode = ExpandInto, pathMode = traversalPathMode)
       .input(nodes = Seq("x", "y"))
       .build()
 
@@ -671,7 +671,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
-      .expand("(x)<-[r*1..2]-(y)", matchMode = traversalMatchMode)
+      .expand("(x)<-[r*1..2]-(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -691,15 +691,15 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
-      .expand("(x)-[r*1..2]-(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r*1..2]-(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           // First step to (sa1)
           Array(g.sa1),
@@ -724,7 +724,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.eb1),
           Array(g.ec1)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sb1), // outgoing only
           Array(g.sa1),
@@ -754,7 +754,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
-      .expand("(x)-[r:A*1..2]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r:A*1..2]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -778,7 +778,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
-      .expand("(x)-[r:B*1..2]->(y)", matchMode = traversalMatchMode)
+      .expand("(x)-[r:B*1..2]->(y)", pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -803,15 +803,15 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .expand(
         "(x)-[r:*1..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.middle.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sa1),
           Array(g.start),
@@ -822,7 +822,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sc2),
           Array(g.start)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sa1),
           Array(g.sb1),
@@ -848,7 +848,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Predicate("n", "id(n) <> " + g.middle.getId),
           Predicate("n2", "id(n2) <> " + g.sc3.getId)
         ),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -856,8 +856,8 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           // first step to (sa1)
           Array(g.sa1), // (start)-->(sa1)
@@ -882,7 +882,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sb1), // (start)-->(sc1)-->(start)-->(sb1)
           Array(g.sc1) // (start)-->(sc1)-->(start)-->(sc1)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sa1),
           Array(g.sb1),
@@ -904,7 +904,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .expand(
         "(x)-[r:*1..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.start.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -925,7 +925,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .expand(
         "(X)-[r:*1..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.start.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .projection("x AS X")
       .nodeByLabelScan("x", "START", IndexOrderNone)
@@ -947,7 +947,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .expand(
         "(x)-[r:*1..2]->(y)",
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -976,14 +976,14 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Predicate("r", "id(r) <> " + g.startMiddle.getId),
           Predicate("r2", "id(r2) <> " + g.endMiddle.getId)
         ),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           // first step to (sa1)
           Array(g.sa1), // (start)-->(sa1)
@@ -1017,7 +1017,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
           Array(g.sb1), // (start)-->(sc1)-->(start)-->(sb1)
           Array(g.sc1) // (start)-->(sc1)-->(start)-->(sc1)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sa1),
           Array(g.sb1),
@@ -1050,7 +1050,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[r:*2..2]-(y)",
         nodePredicates = Seq(Predicate("n", "id(n) <> " + g.sa1.getId)),
         relationshipPredicates = Seq(Predicate("r", "id(r) <> " + g.startMiddle.getId)),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
@@ -1059,15 +1059,15 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     // then
 
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         Array(
           Array(g.sc2),
           Array(g.start),
           Array(g.sb2),
           Array(g.start)
         )
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         Array(
           Array(g.sc2),
           Array(g.sb2)
@@ -1087,7 +1087,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .expand(
         "(x)-[*]->(y)",
         nodePredicates = Seq(Predicate("n", "'START' IN labels(x)")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(nodes = Seq("x"))
       .build()
@@ -1115,7 +1115,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .expand(
         "(x)-[*0..]->(y)",
         nodePredicates = Seq(Predicate("n", "'START' IN labels(x)")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(nodes = Seq("x"))
       .build()
@@ -1144,7 +1144,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*]->(y)",
         expandMode = ExpandInto,
         nodePredicates = Seq(Predicate("n", "'END' IN labels(y)")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(nodes = Seq("x", "y"))
       .build()
@@ -1168,7 +1168,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .expand(
         "(x)-[*]->(y)",
         nodePredicates = Seq(Predicate("n", "'START' IN labels(x)")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(variables = Seq("x"))
       .build()
@@ -1196,7 +1196,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .expand(
         "(x)-[*0..]->(y)",
         nodePredicates = Seq(Predicate("n", "'START' IN labels(x)")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(variables = Seq("x"))
       .build()
@@ -1225,7 +1225,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         "(x)-[*]->(y)",
         expandMode = ExpandInto,
         nodePredicates = Seq(Predicate("n", "'END' IN labels(y)")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .input(variables = Seq("x", "y"))
       .build()
@@ -1246,7 +1246,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[*]->(y)", nodePredicates = Seq(Predicate("n", "id(n) >= zero")), matchMode = traversalMatchMode)
+      .expand("(x)-[*]->(y)", nodePredicates = Seq(Predicate("n", "id(n) >= zero")), pathMode = traversalPathMode)
       .projection("0 AS zero")
       .input(nodes = Seq("x"))
       .build()
@@ -1271,7 +1271,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[*0..]->(y)", nodePredicates = Seq(Predicate("n", "id(n) >= zero")), matchMode = traversalMatchMode)
+      .expand("(x)-[*0..]->(y)", nodePredicates = Seq(Predicate("n", "id(n) >= zero")), pathMode = traversalPathMode)
       .projection("0 AS zero")
       .input(nodes = Seq("x"))
       .build()
@@ -1296,7 +1296,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[*]->(y)", nodePredicates = Seq(Predicate("n", "id(other) >= 0")), matchMode = traversalMatchMode)
+      .expand("(x)-[*]->(y)", nodePredicates = Seq(Predicate("n", "id(other) >= 0")), pathMode = traversalPathMode)
       .projection("0 AS zero")
       .input(nodes = Seq("x", "other"))
       .build()
@@ -1321,7 +1321,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .expand("(x)-[*0..]->(y)", nodePredicates = Seq(Predicate("n", "id(other) >= 0")), matchMode = traversalMatchMode)
+      .expand("(x)-[*0..]->(y)", nodePredicates = Seq(Predicate("n", "id(other) >= 0")), pathMode = traversalPathMode)
       .projection("0 AS zero")
       .input(nodes = Seq("x", "other"))
       .build()
@@ -1363,7 +1363,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .expand(
         "(b)-[*]->(c)",
         nodePredicates = Seq(Predicate("n", "n.prop > cache[a.prop]")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .expandAll("(a)-[:TO]->(b)")
       .nodeByLabelScan("a", "START", IndexOrderNone)
@@ -1407,7 +1407,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .expand(
         "(b)-[*0..]->(c)",
         nodePredicates = Seq(Predicate("n", "n.prop > cache[a.prop]")),
-        matchMode = traversalMatchMode
+        pathMode = traversalPathMode
       )
       .expandAll("(a)-[:TO]->(b)")
       .nodeByLabelScan("a", "START", IndexOrderNone)
@@ -1456,14 +1456,14 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .and(Array(paths.head._1, paths.head._3))
       .and(Array(paths.head._1, paths.last._3))
 
-    val pattern = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => s"(x)-[r*..${pathLength + 1}]->(y)"
-      case TraversalMatchMode.Trail => "(x)-[r*]->(y)"
+    val pattern = traversalPathMode match {
+      case TraversalPathMode.Walk  => s"(x)-[r*..${pathLength + 1}]->(y)"
+      case TraversalPathMode.Trail => "(x)-[r*]->(y)"
     }
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand(pattern, ExpandInto, matchMode = traversalMatchMode)
+      .expand(pattern, ExpandInto, pathMode = traversalPathMode)
       .input(Seq("x", "y"))
       .build()
 
@@ -1503,15 +1503,15 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
         .toIndexedSeq
       (forwardChain.relationships().asScala.toIndexedSeq, backRels)
     }
-    val pattern = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => "(x)-[r*1..128]->(y)"
-      case TraversalMatchMode.Trail => "(x)-[r*1..]->(y)"
+    val pattern = traversalPathMode match {
+      case TraversalPathMode.Walk  => "(x)-[r*1..128]->(y)"
+      case TraversalPathMode.Trail => "(x)-[r*1..]->(y)"
     }
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "r", "y")
-      .expand(pattern, matchMode = traversalMatchMode)
+      .expand(pattern, pathMode = traversalPathMode)
       .nodeByLabelScan("x", "START", IndexOrderNone)
       .build()
 
@@ -1520,10 +1520,10 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val fromNode = forwardRelationships.head.getStartNode
     val nodes = fromNode +: forwardRelationships.map(_.getEndNode)
     val firstNodeIndexWithBack = nodeSize - backwardRelCount
-    traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    traversalPathMode match {
+      case TraversalPathMode.Walk =>
         runtimeResult should beColumns("x", "r", "y").withRows(rowCount(1103))
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         val expected = for {
           turnPointNodeIndex <- 1 until nodeSize
           toNodeIndex <- turnPointNodeIndex to math.min(firstNodeIndexWithBack - 1, turnPointNodeIndex) by -1
@@ -1550,7 +1550,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       .produceResults("a", "b", "c")
       .expand("(b)-[:R]->(c)")
       .filter("id(b) >= 0") // this is only here to make the var-length expand fuse-able
-      .expand(s"(a)-[:R*$depth..$depth]->(b)", matchMode = traversalMatchMode)
+      .expand(s"(a)-[:R*$depth..$depth]->(b)", pathMode = traversalPathMode)
       .allNodeScan("a")
       .build()
 
@@ -1580,7 +1580,7 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("t")
-      .expandExpr("(s)-[r*]-(t)", relationshipPredicates = relPredicates, matchMode = traversalMatchMode)
+      .expandExpr("(s)-[r*]-(t)", relationshipPredicates = relPredicates, pathMode = traversalPathMode)
       .nodeByIdSeek("s", Set.empty, a.getId)
       .build()
 
@@ -1602,28 +1602,28 @@ abstract class VarLengthExpandTestBase[CONTEXT <: RuntimeContext](
     val relPredicates = Seq(
       VariablePredicate(varFor("r"), hasLabels(TraversalEndpoint(varFor("temp"), Endpoint.From), "FROM"))
     )
-    val pattern = traversalMatchMode match {
-      case TraversalMatchMode.Walk  => "(s)-[r*..3]-(t)"
-      case TraversalMatchMode.Trail => "(s)-[r*]-(t)"
+    val pattern = traversalPathMode match {
+      case TraversalPathMode.Walk  => "(s)-[r*..3]-(t)"
+      case TraversalPathMode.Trail => "(s)-[r*]-(t)"
     }
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("s", "t")
-      .expandExpr(pattern, relationshipPredicates = relPredicates, matchMode = traversalMatchMode)
+      .expandExpr(pattern, relationshipPredicates = relPredicates, pathMode = traversalPathMode)
       .nodeByIdSeek("s", Set.empty, a.getId)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    val expected = traversalMatchMode match {
-      case TraversalMatchMode.Walk =>
+    val expected = traversalPathMode match {
+      case TraversalPathMode.Walk =>
         inAnyOrder(Seq(
           Array(a, b),
           Array(a, a),
           Array(a, b),
           Array(a, c)
         ))
-      case TraversalMatchMode.Trail =>
+      case TraversalPathMode.Trail =>
         inAnyOrder(Seq(
           Array(a, b),
           Array(a, c)
@@ -1642,7 +1642,7 @@ abstract class PipelinedVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
   edition: Edition[CONTEXT],
   runtime: CypherRuntime[CONTEXT],
   val sizeHint: Int,
-  traversalMatchMode: TraversalMatchMode,
+  traversalPathMode: TraversalPathMode,
   varExpandRelationshipIdSetThreshold: Int = Random.nextInt(128) - 1
 ) extends VarLengthExpandTestBase[CONTEXT](
       edition.copyWith(GraphDatabaseInternalSettings.var_expand_relationship_id_set_threshold -> Int.box(
@@ -1650,7 +1650,7 @@ abstract class PipelinedVarLengthExpandTestBase[CONTEXT <: RuntimeContext](
       )),
       runtime,
       sizeHint,
-      traversalMatchMode
+      traversalPathMode
     ) {
 
   override def withFixture(test: NoArgTest): Outcome = {

@@ -56,7 +56,7 @@ public final class PathTracer<Row> extends PrefetchingIterator<Row> {
      */
     private boolean ready = false;
 
-    public PathTracer(MemoryTracker memoryTracker, TraversalMatchModeFactory tracker, PPBFSHooks hooks) {
+    public PathTracer(MemoryTracker memoryTracker, TraversalPathModeFactory tracker, PPBFSHooks hooks) {
         this.hooks = hooks;
         this.stack = new SignpostStack(memoryTracker, tracker.twoWaySignpostTracking(), hooks);
     }

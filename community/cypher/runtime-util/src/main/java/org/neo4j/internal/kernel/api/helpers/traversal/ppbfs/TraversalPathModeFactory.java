@@ -22,7 +22,7 @@ package org.neo4j.internal.kernel.api.helpers.traversal.ppbfs;
 import org.neo4j.internal.kernel.api.helpers.traversal.ppbfs.hooks.PPBFSHooks;
 import org.neo4j.memory.MemoryTracker;
 
-public interface TraversalMatchModeFactory {
+public interface TraversalPathModeFactory {
 
     SignpostTracking twoWaySignpostTracking();
 
@@ -30,8 +30,8 @@ public interface TraversalMatchModeFactory {
 
     MREValidator mreValidator();
 
-    static TraversalMatchModeFactory trailMode(MemoryTracker memoryTracker, PPBFSHooks hooks) {
-        return new TraversalMatchModeFactory() {
+    static TraversalPathModeFactory trailMode(MemoryTracker memoryTracker, PPBFSHooks hooks) {
+        return new TraversalPathModeFactory() {
             @Override
             public SignpostTracking twoWaySignpostTracking() {
                 return SignpostTracking.trailMode(memoryTracker, hooks);
@@ -49,8 +49,8 @@ public interface TraversalMatchModeFactory {
         };
     }
 
-    static TraversalMatchModeFactory walkMode() {
-        return new TraversalMatchModeFactory() {
+    static TraversalPathModeFactory walkMode() {
+        return new TraversalPathModeFactory() {
             @Override
             public SignpostTracking twoWaySignpostTracking() {
                 return SignpostTracking.walkMode();
