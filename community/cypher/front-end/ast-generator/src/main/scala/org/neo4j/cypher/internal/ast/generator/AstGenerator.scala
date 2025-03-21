@@ -3012,7 +3012,6 @@ class AstGenerator(
     variable <- _variable
     expression <- _propertyRuleExpression(variable)
     qualifier <- {
-      val c25 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher25)
       val nodePatternQualifiers = Seq(
         PatternQualifier(multiQualifiers.map(LabelQualifier(_)(pos)), Some(variable), expression, Node),
         PatternQualifier(List(LabelAllQualifier()(pos)), Some(variable), expression, Node)
@@ -3022,7 +3021,7 @@ class AstGenerator(
         PatternQualifier(List(RelationshipAllQualifier()(pos)), Some(variable), expression, Relationship)
       )
       oneOf(
-        nodePatternQualifiers ++ relPatternQualifiers.filter(_ => c25)
+        nodePatternQualifiers ++ relPatternQualifiers
       )
     }
   } yield List(qualifier)

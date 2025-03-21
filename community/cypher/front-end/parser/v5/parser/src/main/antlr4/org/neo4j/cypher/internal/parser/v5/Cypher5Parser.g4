@@ -1542,6 +1542,11 @@ graphQualifier
    : (
       graphQualifierToken (TIMES | nonEmptyStringList)
       | FOR LPAREN variable? (COLON symbolicNameString (BAR symbolicNameString)*)? (RPAREN WHERE expression | (WHERE expression | map) RPAREN)
+      | FOR (
+        LPAREN variable? (COLON symbolicNameString (BAR symbolicNameString)*)? (RPAREN WHERE expression | (WHERE expression | map) RPAREN)
+        | LPAREN RPAREN leftArrow? arrowLine LBRACKET variable? (COLON symbolicNameString (BAR symbolicNameString)*)?
+            (RBRACKET arrowLine rightArrow? LPAREN RPAREN WHERE expression | (WHERE expression | map) RBRACKET arrowLine rightArrow? LPAREN RPAREN)
+      )
    )?
    ;
 

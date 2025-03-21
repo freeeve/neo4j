@@ -113,6 +113,7 @@ import org.neo4j.cypher.internal.ast.PrivilegeType
 import org.neo4j.cypher.internal.ast.ProcedureQualifier
 import org.neo4j.cypher.internal.ast.PropertiesResource
 import org.neo4j.cypher.internal.ast.ReadAction
+import org.neo4j.cypher.internal.ast.Relationship
 import org.neo4j.cypher.internal.ast.RelationshipAllQualifier
 import org.neo4j.cypher.internal.ast.RelationshipQualifier
 import org.neo4j.cypher.internal.ast.RemoveLabelAction
@@ -662,14 +663,22 @@ trait DdlPrivilegeBuilder extends Cypher5ParserListener {
       }
     } else if (ctx.FOR() != null) {
       val variable = astOpt[Variable](ctx.variable())
+      val isRel = ctx.LBRACKET() != null
       val qualifiers = if (!ctx.symbolicNameString().isEmpty) {
-        astSeq[String](ctx.symbolicNameString()).map(a => LabelQualifier(a)(pos(ctx))).toList
-      } else List(LabelAllQualifier()(pos(ctx)))
+        astSeq[String](ctx.symbolicNameString())
+          .map(a =>
+            if (isRel) RelationshipQualifier(a)(pos(ctx))
+            else LabelQualifier(a)(pos(ctx))
+          ).toList
+      } else List(
+        if (isRel) RelationshipAllQualifier()(pos(ctx))
+        else LabelAllQualifier()(pos(ctx))
+      )
       List(PatternQualifier(
         qualifiers,
         variable,
         astOpt[Expression](ctx.expression(), ctx.map.ast[Expression]()),
-        Node
+        if (isRel) Relationship else Node
       ))
     } else List(ElementsAllQualifier()(pos(ctx)))
   }

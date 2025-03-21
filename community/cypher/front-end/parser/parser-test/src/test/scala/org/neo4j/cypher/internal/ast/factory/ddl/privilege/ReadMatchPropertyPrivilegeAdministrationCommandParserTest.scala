@@ -100,8 +100,8 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
       val immutableString = maybeImmutable(immutable)
 
       s"$verb$immutableString ${action.name} { prop } ON HOME GRAPH FOR (a:A) WHERE a.prop2=1 $preposition role" should
-        parseIn[Statements](_ =>
-          _.toAst(statementToStatements(func(
+        parseTo[Statements](
+          func(
             GraphPrivilege(action, HomeGraphScope()(pos))(pos),
             PropertiesResource(propSeq)(pos),
             List(PatternQualifier(
@@ -115,7 +115,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
             )),
             Seq(literalRole),
             immutable
-          )(defaultPos)))
+          )(defaultPos)
         )
     }
   }
@@ -300,21 +300,20 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
           val immutableString = maybeImmutable(immutable)
           s"""${action.verb}$immutableString ${action.action.name} {${resource.properties}}
              |ON $graphKeyword ${scope.graphName} $patternKeyword ${qualifiers.propertyRule}
-             |${action.preposition} $roleString""".stripMargin should parseIn[Statements] {
-            case Cypher5 if qualifiers.element == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ => _.toAstPositioned(action.func(
-                GraphPrivilege(action.action, scope.graphScope)(pos),
-                resource.resource,
-                List(PatternQualifier(
-                  qualifiers.expectedQualifiers,
-                  qualifiers.varible,
-                  qualifiers.literal.expectedAst,
-                  qualifiers.element
-                )),
-                expectedRoles,
-                immutable
-              )(pos))
-          }
+             |${action.preposition} $roleString""".stripMargin should parseTo[Statements](
+            action.func(
+              GraphPrivilege(action.action, scope.graphScope)(pos),
+              resource.resource,
+              List(PatternQualifier(
+                qualifiers.expectedQualifiers,
+                qualifiers.varible,
+                qualifiers.literal.expectedAst,
+                qualifiers.element
+              )),
+              expectedRoles,
+              immutable
+            )(pos)
+          )
       }
     }
   }
@@ -363,65 +362,55 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
           elementType
         ))
         s"$verb$immutableString ${action.name} {*} ON $graphKeyword `f:oo` $patternKeyword $propertyRule $preposition role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ =>
-              _.toAst(statementToStatements(func(
-                GraphPrivilege(action, NamedGraphsScope(Seq(namespacedName("f:oo"))) _)(pos),
-                AllPropertyResource() _,
-                patternQualifier,
-                Seq(literalRole),
-                immutable
-              )(defaultPos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(action, NamedGraphsScope(Seq(namespacedName("f:oo"))) _)(pos),
+              AllPropertyResource() _,
+              patternQualifier,
+              Seq(literalRole),
+              immutable
+            )(defaultPos)
+          )
         s"$verb$immutableString ${action.name} {bar} ON $graphKeyword `f:oo` $patternKeyword $propertyRule $preposition role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ =>
-              _.toAst(statementToStatements(func(
-                GraphPrivilege(action, NamedGraphsScope(Seq(namespacedName("f:oo"))) _)(pos),
-                PropertiesResource(Seq("bar")) _,
-                patternQualifier,
-                Seq(literalRole),
-                immutable
-              )(defaultPos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(action, NamedGraphsScope(Seq(namespacedName("f:oo"))) _)(pos),
+              PropertiesResource(Seq("bar")) _,
+              patternQualifier,
+              Seq(literalRole),
+              immutable
+            )(defaultPos)
+          )
         s"$verb$immutableString ${action.name} {`b:ar`} ON $graphKeyword foo $patternKeyword $propertyRule $preposition role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ =>
-              _.toAst(statementToStatements(func(
-                GraphPrivilege(action, graphScopeFoo)(pos),
-                PropertiesResource(Seq("b:ar")) _,
-                patternQualifier,
-                Seq(literalRole),
-                immutable
-              )(defaultPos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(action, graphScopeFoo)(pos),
+              PropertiesResource(Seq("b:ar")) _,
+              patternQualifier,
+              Seq(literalRole),
+              immutable
+            )(defaultPos)
+          )
         s"$verb$immutableString ${action.name} {*} ON $graphKeyword foo, baz $patternKeyword $propertyRule $preposition role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ =>
-              _.toAst(statementToStatements(func(
-                GraphPrivilege(action, graphScopeFooBaz)(pos),
-                AllPropertyResource() _,
-                patternQualifier,
-                Seq(literalRole),
-                immutable
-              )(defaultPos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(action, graphScopeFooBaz)(pos),
+              AllPropertyResource() _,
+              patternQualifier,
+              Seq(literalRole),
+              immutable
+            )(defaultPos)
+          )
         s"$verb$immutableString ${action.name} {bar} ON $graphKeyword foo, baz $patternKeyword $propertyRule $preposition role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ =>
-              _.toAst(statementToStatements(func(
-                GraphPrivilege(action, graphScopeFooBaz)(pos),
-                PropertiesResource(Seq("bar")) _,
-                patternQualifier,
-                Seq(literalRole),
-                immutable
-              )(defaultPos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(action, graphScopeFooBaz)(pos),
+              PropertiesResource(Seq("bar")) _,
+              patternQualifier,
+              Seq(literalRole),
+              immutable
+            )(defaultPos)
+          )
       }
     }
   }
@@ -468,8 +457,8 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
     "Different variable should parse correctly to allow them to be rejected in the semantic check with a user-friendly explanation"
   ) {
     s"GRANT READ {*} ON GRAPH * FOR (a) WHERE b.prop1 = 1 TO role" should
-      parseIn[Statements](_ =>
-        _.toAst(statementToStatements(grantGraphPrivilege(
+      parseTo[Statements](
+        grantGraphPrivilege(
           GraphPrivilege(ReadAction, AllGraphsScope()(pos))(pos),
           AllPropertyResource() _,
           List(PatternQualifier(
@@ -480,12 +469,12 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
           )),
           Seq(literalRole),
           i = false
-        )(defaultPos)))
+        )(defaultPos)
       )
 
     s"GRANT MATCH {*} ON GRAPH * FOR (a) WHERE b.prop1 = 1 TO role" should
-      parseIn[Statements](_ =>
-        _.toAst(statementToStatements(grantGraphPrivilege(
+      parseTo[Statements](
+        grantGraphPrivilege(
           GraphPrivilege(MatchAction, AllGraphsScope()(pos))(pos),
           AllPropertyResource() _,
           List(PatternQualifier(
@@ -496,52 +485,48 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
           )),
           Seq(literalRole),
           i = false
-        )(defaultPos)))
+        )(defaultPos)
       )
 
     s"GRANT READ {*} ON GRAPH * FOR ()-[a]-() WHERE b.prop1 = 1 TO role" should
-      parseIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
-        case _ =>
-          _.toAst(statementToStatements(grantGraphPrivilege(
-            GraphPrivilege(ReadAction, AllGraphsScope()(pos))(pos),
-            AllPropertyResource() _,
-            List(PatternQualifier(
-              Seq(RelationshipAllQualifier() _),
-              Some(varFor("a")),
-              equals(prop(varFor("b"), "prop1"), literalInt(1)),
-              Relationship
-            )),
-            Seq(literalRole),
-            i = false
-          )(defaultPos)))
-      }
+      parseTo[Statements](
+        grantGraphPrivilege(
+          GraphPrivilege(ReadAction, AllGraphsScope()(pos))(pos),
+          AllPropertyResource() _,
+          List(PatternQualifier(
+            Seq(RelationshipAllQualifier() _),
+            Some(varFor("a")),
+            equals(prop(varFor("b"), "prop1"), literalInt(1)),
+            Relationship
+          )),
+          Seq(literalRole),
+          i = false
+        )(defaultPos)
+      )
 
     s"GRANT MATCH {*} ON GRAPH * FOR ()-[a]-() WHERE b.prop1 = 1 TO role" should
-      parseIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
-        case _ =>
-          _.toAst(statementToStatements(grantGraphPrivilege(
-            GraphPrivilege(MatchAction, AllGraphsScope()(pos))(pos),
-            AllPropertyResource() _,
-            List(PatternQualifier(
-              Seq(RelationshipAllQualifier() _),
-              Some(varFor("a")),
-              equals(prop(varFor("b"), "prop1"), literalInt(1)),
-              Relationship
-            )),
-            Seq(literalRole),
-            i = false
-          )(defaultPos)))
-      }
+      parseTo[Statements](
+        grantGraphPrivilege(
+          GraphPrivilege(MatchAction, AllGraphsScope()(pos))(pos),
+          AllPropertyResource() _,
+          List(PatternQualifier(
+            Seq(RelationshipAllQualifier() _),
+            Some(varFor("a")),
+            equals(prop(varFor("b"), "prop1"), literalInt(1)),
+            Relationship
+          )),
+          Seq(literalRole),
+          i = false
+        )(defaultPos)
+      )
   }
 
   test(
     "'FOR (n) WHERE 1 = n.prop1 (foo) TO role' parse as a function to then be rejected in semantic check"
   ) {
     s"GRANT READ {*} ON GRAPH * FOR (n) WHERE 1 = n.prop1 (foo) TO role" should
-      parseIn[Statements](_ =>
-        _.toAst(statementToStatements(grantGraphPrivilege(
+      parseTo[Statements](
+        grantGraphPrivilege(
           GraphPrivilege(ReadAction, AllGraphsScope()(pos))(pos),
           AllPropertyResource() _,
           List(PatternQualifier(
@@ -558,12 +543,12 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
           )),
           Seq(literalRole),
           i = false
-        )(defaultPos)))
+        )(defaultPos)
       )
 
     s"GRANT MATCH {*} ON GRAPH * FOR (n WHERE 1 = n.prop1 (foo)) TO role" should
-      parseIn[Statements](_ =>
-        _.toAst(statementToStatements(grantGraphPrivilege(
+      parseTo[Statements](
+        grantGraphPrivilege(
           GraphPrivilege(MatchAction, AllGraphsScope()(pos))(pos),
           AllPropertyResource() _,
           List(PatternQualifier(
@@ -580,64 +565,60 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
           )),
           Seq(literalRole),
           i = false
-        )(defaultPos)))
+        )(defaultPos)
       )
 
     s"GRANT READ {*} ON GRAPH * FOR ()-[r]-() WHERE 1 = r.prop1 (foo) TO role" should
-      parseIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
-        case _ =>
-          _.toAst(statementToStatements(grantGraphPrivilege(
-            GraphPrivilege(ReadAction, AllGraphsScope()(pos))(pos),
-            AllPropertyResource() _,
-            List(PatternQualifier(
-              Seq(RelationshipAllQualifier() _),
-              Some(varFor("r")),
-              equals(
-                literalInt(1),
-                FunctionInvocation.apply(
-                  FunctionName(Namespace(List("r"))(pos), "prop1")(pos),
-                  varFor("foo")
-                )(pos)
-              ),
-              Relationship
-            )),
-            Seq(literalRole),
-            i = false
-          )(defaultPos)))
-      }
+      parseTo[Statements](
+        grantGraphPrivilege(
+          GraphPrivilege(ReadAction, AllGraphsScope()(pos))(pos),
+          AllPropertyResource() _,
+          List(PatternQualifier(
+            Seq(RelationshipAllQualifier() _),
+            Some(varFor("r")),
+            equals(
+              literalInt(1),
+              FunctionInvocation.apply(
+                FunctionName(Namespace(List("r"))(pos), "prop1")(pos),
+                varFor("foo")
+              )(pos)
+            ),
+            Relationship
+          )),
+          Seq(literalRole),
+          i = false
+        )(defaultPos)
+      )
 
     s"GRANT MATCH {*} ON GRAPH * FOR ()-[r WHERE 1 = r.prop1 (foo)]-() TO role" should
-      parseIn[Statements] {
-        case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
-        case _ =>
-          _.toAst(statementToStatements(grantGraphPrivilege(
-            GraphPrivilege(MatchAction, AllGraphsScope()(pos))(pos),
-            AllPropertyResource() _,
-            List(PatternQualifier(
-              Seq(RelationshipAllQualifier() _),
-              Some(varFor("r")),
-              equals(
-                literalInt(1),
-                FunctionInvocation.apply(
-                  FunctionName(Namespace(List("r"))(pos), "prop1")(pos),
-                  varFor("foo")
-                )(pos)
-              ),
-              Relationship
-            )),
-            Seq(literalRole),
-            i = false
-          )(defaultPos)))
-      }
+      parseTo[Statements](
+        grantGraphPrivilege(
+          GraphPrivilege(MatchAction, AllGraphsScope()(pos))(pos),
+          AllPropertyResource() _,
+          List(PatternQualifier(
+            Seq(RelationshipAllQualifier() _),
+            Some(varFor("r")),
+            equals(
+              literalInt(1),
+              FunctionInvocation.apply(
+                FunctionName(Namespace(List("r"))(pos), "prop1")(pos),
+                varFor("foo")
+              )(pos)
+            ),
+            Relationship
+          )),
+          Seq(literalRole),
+          i = false
+        )(defaultPos)
+      )
   }
 
   test(
     "'(n:A WHERE EXISTS { MATCH (n) })' parse to then be rejected in semantic check"
   ) {
     s"GRANT READ {*} ON GRAPH * FOR (n:A WHERE EXISTS { MATCH (n) }) TO role" should
-      parseIn[Statements](_ =>
-        _.toAst(statementToStatements(grantGraphPrivilege(
+      parseTo[Statements](
+        grantGraphPrivilege(
           GraphPrivilege(ReadAction, AllGraphsScope()(pos))(pos),
           AllPropertyResource() _,
           List(PatternQualifier(
@@ -663,12 +644,12 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
           )),
           Seq(literalRole),
           i = false
-        )(defaultPos)))
+        )(defaultPos)
       )
 
     s"GRANT MATCH {*} ON GRAPH * FOR (n:A) WHERE EXISTS { MATCH (n) } TO role" should
-      parseIn[Statements](_ =>
-        _.toAst(statementToStatements(grantGraphPrivilege(
+      parseTo[Statements](
+        grantGraphPrivilege(
           GraphPrivilege(MatchAction, AllGraphsScope()(pos))(pos),
           AllPropertyResource() _,
           List(PatternQualifier(
@@ -694,7 +675,7 @@ class ReadMatchPropertyPrivilegeAdministrationCommandParserTest
           )),
           Seq(literalRole),
           i = false
-        )(defaultPos)))
+        )(defaultPos)
       )
   }
 

@@ -145,43 +145,41 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
         // All labels, parameterised role
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition $$role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ => _.toAst(statementToStatements(func(
-                GraphPrivilege(TraverseAction, graphScope)(pos),
-                List(PatternQualifier(
-                  Seq(
-                    if (elementType == Node) LabelAllQualifier()(pos)
-                    else RelationshipAllQualifier()(pos)
-                  ),
-                  variable,
-                  propertyRuleAst,
-                  elementType
-                )),
-                Seq(paramRole),
-                immutable
-              )(pos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(TraverseAction, graphScope)(pos),
+              List(PatternQualifier(
+                Seq(
+                  if (elementType == Node) LabelAllQualifier()(pos)
+                  else RelationshipAllQualifier()(pos)
+                ),
+                variable,
+                propertyRuleAst,
+                elementType
+              )),
+              Seq(paramRole),
+              immutable
+            )(pos)
+          )
 
         // All labels, role containing colon
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition `r:ole`" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ => _.toAst(statementToStatements(func(
-                GraphPrivilege(TraverseAction, graphScope)(pos),
-                List(PatternQualifier(
-                  Seq(
-                    if (elementType == Node) LabelAllQualifier()(pos)
-                    else RelationshipAllQualifier()(pos)
-                  ),
-                  variable,
-                  propertyRuleAst,
-                  elementType
-                )),
-                Seq(literalRColonOle),
-                immutable
-              )(pos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(TraverseAction, graphScope)(pos),
+              List(PatternQualifier(
+                Seq(
+                  if (elementType == Node) LabelAllQualifier()(pos)
+                  else RelationshipAllQualifier()(pos)
+                ),
+                variable,
+                propertyRuleAst,
+                elementType
+              )),
+              Seq(literalRColonOle),
+              immutable
+            )(pos)
+          )
       }
 
       // Single label name
@@ -219,23 +217,22 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
         case _ => fail("Unexpected expression")
       }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ => _.toAst(statementToStatements(func(
-                GraphPrivilege(TraverseAction, graphScope)(pos),
-                List(PatternQualifier(
-                  Seq(
-                    if (elementType == Node) labelQualifierA
-                    else relQualifierA
-                  ),
-                  variable,
-                  propertyRuleAst,
-                  elementType
-                )),
-                Seq(literalRole),
-                immutable
-              )(pos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(TraverseAction, graphScope)(pos),
+              List(PatternQualifier(
+                Seq(
+                  if (elementType == Node) labelQualifierA
+                  else relQualifierA
+                ),
+                variable,
+                propertyRuleAst,
+                elementType
+              )),
+              Seq(literalRole),
+              immutable
+            )(pos)
+          )
       }
 
       // Escaped multi-token label name
@@ -267,23 +264,20 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
         case _ => fail("Unexpected expression")
       }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ => _.toAst(statementToStatements(func(
-                GraphPrivilege(TraverseAction, graphScope)(pos),
-                List(PatternQualifier(
-                  Seq(
-                    if (elementType == Node) LabelQualifier("A B")(_)
-                    else RelationshipQualifier("A B")(_)
-                  ),
-                  variable,
-                  propertyRuleAst,
-                  elementType
-                )),
-                Seq(literalRole),
-                immutable
-              )(pos)))
-          }
+          parseTo[Statements](func(
+            GraphPrivilege(TraverseAction, graphScope)(pos),
+            List(PatternQualifier(
+              Seq(
+                if (elementType == Node) LabelQualifier("A B")(_)
+                else RelationshipQualifier("A B")(_)
+              ),
+              variable,
+              propertyRuleAst,
+              elementType
+            )),
+            Seq(literalRole),
+            immutable
+          )(pos))
       }
 
       // Label containing colon
@@ -315,23 +309,22 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
         case _ => fail("Unexpected expression")
       }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ => _.toAst(statementToStatements(func(
-                GraphPrivilege(TraverseAction, graphScope)(pos),
-                List(PatternQualifier(
-                  Seq(
-                    if (elementType == Node) LabelQualifier(":A")(_)
-                    else RelationshipQualifier(":A")(_)
-                  ),
-                  variable,
-                  propertyRuleAst,
-                  elementType
-                )),
-                Seq(literalRole),
-                immutable
-              )(pos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(TraverseAction, graphScope)(pos),
+              List(PatternQualifier(
+                Seq(
+                  if (elementType == Node) LabelQualifier(":A")(_)
+                  else RelationshipQualifier(":A")(_)
+                ),
+                variable,
+                propertyRuleAst,
+                elementType
+              )),
+              Seq(literalRole),
+              immutable
+            )(pos)
+          )
       }
 
       // Multiple labels
@@ -363,21 +356,20 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
         case _ => fail("Unexpected expression")
       }).foreach { case (variable: Option[Variable], propertyRule: String, elementType: Element) =>
         s"$verb$immutableString TRAVERSE ON $graphKeyword $graphName $patternKeyword $propertyRule $preposition role1, $$role2" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ => _.toAst(statementToStatements(func(
-                GraphPrivilege(TraverseAction, graphScope)(pos),
-                List(PatternQualifier(
-                  if (elementType == Node) Seq(labelQualifierA, labelQualifierB)
-                  else Seq(relQualifierA, relQualifierB),
-                  variable,
-                  propertyRuleAst,
-                  elementType
-                )),
-                Seq(literalRole1, paramRole2),
-                immutable
-              )(pos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(TraverseAction, graphScope)(pos),
+              List(PatternQualifier(
+                if (elementType == Node) Seq(labelQualifierA, labelQualifierB)
+                else Seq(relQualifierA, relQualifierB),
+                variable,
+                propertyRuleAst,
+                elementType
+              )),
+              Seq(literalRole1, paramRole2),
+              immutable
+            )(pos)
+          )
       }
     }
   }
@@ -429,26 +421,24 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
           elementType
         ))
         s"$verb$immutableString TRAVERSE ON $graphKeyword `f:oo` $patternKeyword $propertyRule $preposition role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ => _.toAst(statementToStatements(func(
-                GraphPrivilege(TraverseAction, NamedGraphsScope(Seq(namespacedName("f:oo"))) _)(pos),
-                patternQualifier,
-                Seq(literalRole),
-                immutable
-              )(pos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(TraverseAction, NamedGraphsScope(Seq(namespacedName("f:oo"))) _)(pos),
+              patternQualifier,
+              Seq(literalRole),
+              immutable
+            )(pos)
+          )
 
         s"$verb$immutableString TRAVERSE ON $graphKeyword foo, baz $patternKeyword $propertyRule $preposition role" should
-          parseIn[Statements] {
-            case Cypher5 if elementType == Relationship => _.withSyntaxErrorContaining("Invalid input")
-            case _ => _.toAst(statementToStatements(func(
-                GraphPrivilege(TraverseAction, graphScopeFooBaz)(pos),
-                patternQualifier,
-                Seq(literalRole),
-                immutable
-              )(pos)))
-          }
+          parseTo[Statements](
+            func(
+              GraphPrivilege(TraverseAction, graphScopeFooBaz)(pos),
+              patternQualifier,
+              Seq(literalRole),
+              immutable
+            )(pos)
+          )
       }
     }
   }
@@ -489,22 +479,19 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       )(pos)
     )
 
-    s"GRANT TRAVERSE ON GRAPH * FOR ()-[a]-() WHERE b.prop1 = 1 TO role" should parseIn[Statements] {
-      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
-      case _ => _.toAst(statementToStatements(
-          grantGraphPrivilege(
-            GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
-            List(PatternQualifier(
-              Seq(RelationshipAllQualifier() _),
-              Some(varFor("a")),
-              equals(prop(varFor("b"), "prop1"), literalInt(1)),
-              Relationship
-            )),
-            Seq(literalRole),
-            i = false
-          )(pos)
-        ))
-    }
+    s"GRANT TRAVERSE ON GRAPH * FOR ()-[a]-() WHERE b.prop1 = 1 TO role" should parseTo[Statements](
+      grantGraphPrivilege(
+        GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
+        List(PatternQualifier(
+          Seq(RelationshipAllQualifier() _),
+          Some(varFor("a")),
+          equals(prop(varFor("b"), "prop1"), literalInt(1)),
+          Relationship
+        )),
+        Seq(literalRole),
+        i = false
+      )(pos)
+    )
   }
 
   test(
@@ -550,51 +537,45 @@ class TraversePropertyPrivilegeAdministrationCommandParserTest
       )(pos)
     )
 
-    s"GRANT TRAVERSE ON GRAPH * FOR ()-[n]-() WHERE 1 = n.prop1 (foo) TO role" should parseIn[Statements] {
-      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
-      case _ => _.toAst(statementToStatements(
-          grantGraphPrivilege(
-            GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
-            List(PatternQualifier(
-              Seq(RelationshipAllQualifier() _),
-              Some(varFor("n")),
-              equals(
-                literalInt(1),
-                FunctionInvocation.apply(
-                  FunctionName(Namespace(List("n"))(pos), "prop1")(pos),
-                  varFor("foo")
-                )(pos)
-              ),
-              Relationship
-            )),
-            Seq(literalRole),
-            i = false
-          )(pos)
-        ))
-    }
+    s"GRANT TRAVERSE ON GRAPH * FOR ()-[n]-() WHERE 1 = n.prop1 (foo) TO role" should parseTo[Statements](
+      grantGraphPrivilege(
+        GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
+        List(PatternQualifier(
+          Seq(RelationshipAllQualifier() _),
+          Some(varFor("n")),
+          equals(
+            literalInt(1),
+            FunctionInvocation.apply(
+              FunctionName(Namespace(List("n"))(pos), "prop1")(pos),
+              varFor("foo")
+            )(pos)
+          ),
+          Relationship
+        )),
+        Seq(literalRole),
+        i = false
+      )(pos)
+    )
 
-    s"GRANT TRAVERSE ON GRAPH * FOR ()-[n WHERE 1 = n.prop1 (foo)]-() TO role" should parseIn[Statements] {
-      case Cypher5 => _.withSyntaxErrorContaining("Invalid input")
-      case _ => _.toAst(statementToStatements(
-          grantGraphPrivilege(
-            GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
-            List(PatternQualifier(
-              Seq(RelationshipAllQualifier() _),
-              Some(varFor("n")),
-              equals(
-                literalInt(1),
-                FunctionInvocation.apply(
-                  FunctionName(Namespace(List("n"))(pos), "prop1")(pos),
-                  varFor("foo")
-                )(pos)
-              ),
-              Relationship
-            )),
-            Seq(literalRole),
-            i = false
-          )(pos)
-        ))
-    }
+    s"GRANT TRAVERSE ON GRAPH * FOR ()-[n WHERE 1 = n.prop1 (foo)]-() TO role" should parseTo[Statements](
+      grantGraphPrivilege(
+        GraphPrivilege(TraverseAction, AllGraphsScope()(pos))(pos),
+        List(PatternQualifier(
+          Seq(RelationshipAllQualifier() _),
+          Some(varFor("n")),
+          equals(
+            literalInt(1),
+            FunctionInvocation.apply(
+              FunctionName(Namespace(List("n"))(pos), "prop1")(pos),
+              varFor("foo")
+            )(pos)
+          ),
+          Relationship
+        )),
+        Seq(literalRole),
+        i = false
+      )(pos)
+    )
   }
 
   test(
