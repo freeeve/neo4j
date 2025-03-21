@@ -303,6 +303,10 @@ class EnvelopeFuzzerTest {
             @Override
             public LogVersionedStoreChannel next(LogVersionedStoreChannel previousChannel, boolean raw)
                     throws IOException {
+                if (!fileSystem.fileExists(logPath(lsn))) {
+                    return previousChannel;
+                }
+
                 PhysicalLogVersionedStoreChannel next = storeChannel(lsn++, false, 0);
                 previousChannel.close();
                 return next;
