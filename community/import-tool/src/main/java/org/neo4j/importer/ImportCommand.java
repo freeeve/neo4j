@@ -464,7 +464,7 @@ public class ImportCommand {
                 names = "--temp-path",
                 paramLabel = "<path>",
                 description =
-                        "Path where to store temporary files during import. Any temporary files will be deleted before completing the import. "
+                        "Provide a path where to store temporary files that are created and deleted during import. "
                                 + "If not specifically provided, the default temp path will be created inside the database directory of the imported database.")
         private Path tempPath;
 
