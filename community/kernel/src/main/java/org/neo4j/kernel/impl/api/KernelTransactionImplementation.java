@@ -415,9 +415,11 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.kernelRead = createKernelRead(
                 storageReader,
                 kernelToken,
+                cursorFactory,
                 transactionalCursors,
                 entityLocks,
                 queryContext,
+                schemaRead,
                 indexingService,
                 memoryTracker,
                 multiVersioned,
@@ -506,9 +508,11 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     protected KernelRead createKernelRead(
             StorageReader storageReader,
             KernelToken kernelToken,
+            CursorFactory cursorFactory,
             StoreCursors storeCursors,
             EntityLocks entityLocks,
             QueryContext queryContext,
+            SchemaRead schemaRead,
             IndexingService indexingService,
             MemoryTracker memoryTracker,
             boolean multiVersioned,
