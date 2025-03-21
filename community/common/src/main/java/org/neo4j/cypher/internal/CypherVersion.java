@@ -22,8 +22,8 @@ package org.neo4j.cypher.internal;
 import java.util.Optional;
 
 public enum CypherVersion {
-    Cypher5("5", "CYPHER 5", false, "cypher-5"),
-    Cypher25("25", "CYPHER 25", true, "cypher-25");
+    Cypher5("5", "CYPHER 5", false, "cypher-5", 5),
+    Cypher25("25", "CYPHER 25", true, "cypher-25", 25);
 
     public static final CypherVersion Default = Cypher5; // TODO Remove
 
@@ -31,17 +31,23 @@ public enum CypherVersion {
     public final String description;
     public final boolean experimental;
     public final String persistedValue; // stored on the :Database node in the system graph
+    private final int order;
 
-    CypherVersion(String versionName, String description, boolean experimental, String persistedValue) {
+    CypherVersion(String versionName, String description, boolean experimental, String persistedValue, int order) {
         this.versionName = versionName;
         this.description = description;
         this.experimental = experimental;
         this.persistedValue = persistedValue;
+        this.order = order;
     }
 
     @Override
     public String toString() {
         return versionName;
+    }
+
+    public boolean isAfter(CypherVersion other) {
+        return order > other.order;
     }
 
     public static CypherVersion fromStoredValue(String storedValue) {
