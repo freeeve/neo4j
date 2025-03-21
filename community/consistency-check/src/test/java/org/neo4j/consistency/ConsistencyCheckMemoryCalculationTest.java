@@ -20,6 +20,8 @@
 package org.neo4j.consistency;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.io.ByteUnit.kibiBytes;
+import static org.neo4j.io.ByteUnit.mebiBytes;
 
 import org.assertj.core.data.Offset;
 import org.junit.jupiter.api.Test;
@@ -28,12 +30,12 @@ class ConsistencyCheckMemoryCalculationTest {
     @Test
     void shouldKeepPageCacheMemoryIfEnoughMaxMemory() {
         // given
-        var desiredPageCacheMemory = 1_000;
-        var desiredOffHeapCachingMemory = 100;
+        var desiredPageCacheMemory = mebiBytes(16);
+        var desiredOffHeapCachingMemory = mebiBytes(1);
 
         // when
         var distribution = ConsistencyCheckMemoryCalculation.calculate(
-                10_000, desiredPageCacheMemory, desiredOffHeapCachingMemory);
+                mebiBytes(100), desiredPageCacheMemory, desiredOffHeapCachingMemory);
 
         // then
         assertThat(distribution.pageCacheMemory()).isEqualTo(desiredPageCacheMemory);
@@ -43,9 +45,9 @@ class ConsistencyCheckMemoryCalculationTest {
     @Test
     void shouldConstrainPageCacheBarelyAboveLimit() {
         // given
-        var desiredPageCacheMemory = 1_000;
-        var desiredOffHeapCachingMemory = 100;
-        var maxOffHeapMemory = 900;
+        var desiredPageCacheMemory = mebiBytes(100);
+        var desiredOffHeapCachingMemory = mebiBytes(10);
+        var maxOffHeapMemory = mebiBytes(90);
 
         // when
         var distribution = ConsistencyCheckMemoryCalculation.calculate(
@@ -59,9 +61,9 @@ class ConsistencyCheckMemoryCalculationTest {
     @Test
     void shouldConstrainPageCacheMoreOnWayAboveLimit() {
         // given
-        var desiredPageCacheMemory = 1_000;
-        var desiredOffHeapCachingMemory = 100;
-        var maxOffHeapMemory = 150;
+        var desiredPageCacheMemory = mebiBytes(100);
+        var desiredOffHeapCachingMemory = mebiBytes(10);
+        var maxOffHeapMemory = mebiBytes(15);
 
         // when
         var distribution = ConsistencyCheckMemoryCalculation.calculate(
@@ -75,9 +77,9 @@ class ConsistencyCheckMemoryCalculationTest {
     @Test
     void shouldAllocateAllAvailableMemoryWhenLimited() {
         // given
-        var desiredPageCacheMemory = 100;
-        var desiredOffHeapCachingMemory = 100;
-        var maxOffHeapMemory = 150;
+        var desiredPageCacheMemory = mebiBytes(100);
+        var desiredOffHeapCachingMemory = mebiBytes(100);
+        var maxOffHeapMemory = mebiBytes(150);
 
         // when
         var distribution = ConsistencyCheckMemoryCalculation.calculate(
@@ -91,9 +93,9 @@ class ConsistencyCheckMemoryCalculationTest {
     @Test
     void shouldNotAllocateMoreThanNecessary() {
         // given
-        var desiredPageCacheMemory = 100;
-        var desiredOffHeapCachingMemory = 100;
-        var maxOffHeapMemory = 1000;
+        var desiredPageCacheMemory = mebiBytes(10);
+        var desiredOffHeapCachingMemory = mebiBytes(10);
+        var maxOffHeapMemory = mebiBytes(100);
 
         // when
         var distribution = ConsistencyCheckMemoryCalculation.calculate(
@@ -107,9 +109,9 @@ class ConsistencyCheckMemoryCalculationTest {
     @Test
     void shouldConstrainOffHeapWhenLimitedOnMemory() {
         // given
-        var desiredPageCacheMemory = 1_000;
-        var desiredOffHeapCachingMemory = 1000;
-        var maxOffHeapMemory = 150;
+        var desiredPageCacheMemory = mebiBytes(80);
+        var desiredOffHeapCachingMemory = mebiBytes(80);
+        var maxOffHeapMemory = mebiBytes(32);
 
         // when
         var distribution = ConsistencyCheckMemoryCalculation.calculate(
@@ -122,5 +124,21 @@ class ConsistencyCheckMemoryCalculationTest {
                 .isEqualTo(maxOffHeapMemory);
         assertThat((double) distribution.offHeapCachingMemory())
                 .isCloseTo(0.25D * maxOffHeapMemory, Offset.offset(0.5));
+    }
+
+    @Test
+    void shouldAllocateAtLeastDecentMinimumSizes() {
+        // given
+        var desiredPageCacheMemory = kibiBytes(10);
+        var desiredOffHeapCachingMemory = kibiBytes(10);
+        var maxOffHeapMemory = kibiBytes(100);
+
+        // when
+        var distribution = ConsistencyCheckMemoryCalculation.calculate(
+                maxOffHeapMemory, desiredPageCacheMemory, desiredOffHeapCachingMemory);
+
+        // then
+        assertThat(distribution.pageCacheMemory()).isEqualTo(ConsistencyCheckMemoryCalculation.MIN_SIZE);
+        assertThat(distribution.offHeapCachingMemory()).isEqualTo(ConsistencyCheckMemoryCalculation.MIN_SIZE);
     }
 }

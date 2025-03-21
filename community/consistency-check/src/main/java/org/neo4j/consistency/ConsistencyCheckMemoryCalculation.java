@@ -19,7 +19,11 @@
  */
 package org.neo4j.consistency;
 
+import static org.neo4j.io.ByteUnit.mebiBytes;
+
 class ConsistencyCheckMemoryCalculation {
+    static final long MIN_SIZE = mebiBytes(8);
+
     static MemoryDistribution calculate(
             long maxOffHeapMemory, long desiredPageCacheMemory, long desiredOffHeapCachingMemory) {
         var pageCacheMemory = desiredPageCacheMemory;
@@ -38,7 +42,7 @@ class ConsistencyCheckMemoryCalculation {
         assert pageCacheMemory + offHeapCachingMemory <= maxOffHeapMemory
                 : "Too much memory being used " + "pageCacheMemory:" + pageCacheMemory + " offHeapCachingMemory:"
                         + offHeapCachingMemory;
-        return new MemoryDistribution(pageCacheMemory, offHeapCachingMemory);
+        return new MemoryDistribution(Math.max(pageCacheMemory, MIN_SIZE), Math.max(offHeapCachingMemory, MIN_SIZE));
     }
 
     record MemoryDistribution(long pageCacheMemory, long offHeapCachingMemory) {}
