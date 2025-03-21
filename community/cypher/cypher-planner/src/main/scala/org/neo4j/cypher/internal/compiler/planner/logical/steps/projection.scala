@@ -61,7 +61,9 @@ object projection {
           projectionsDiff.values
         )
 
-      val rewrittenProjections = projectionsDiff.map{ case (variable, expression) => (variable, rewrittenExpressionsWithCachedProperties.rewrittenExpressionOrSelf(expression))}
+      val rewrittenProjections = projectionsDiff.map { case (variable, expression) =>
+        (variable, rewrittenExpressionsWithCachedProperties.rewrittenExpressionOrSelf(expression))
+      }
       context.staticComponents.logicalPlanProducer.planRegularProjection(
         planWithProperties,
         rewrittenProjections,

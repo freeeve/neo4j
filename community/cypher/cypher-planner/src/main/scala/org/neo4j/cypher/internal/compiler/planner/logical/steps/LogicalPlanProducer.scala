@@ -2022,12 +2022,14 @@ case class LogicalPlanProducer(
         val (solvedPredicates, existsPlan) =
           SubqueryExpressionSolver.ForExistentialSubquery.solve(
             source,
-            previouslyRewrittenPredicates.allRewrittenExpressions.toSeq,
+            previouslyRewrittenPredicates.originalExpressions.toSeq, // lets use the original expressions here since the solver will also rewrite them.
             interestingOrderConfig,
             context
           )
         val unsolvedPredicates =
-          previouslyRewrittenPredicates.allRewrittenExpressions.toSeq.filterNot(solvedPredicates.contains(_))
+          previouslyRewrittenPredicates.originalExpressions.toSeq.filterNot(
+            solvedPredicates.contains(_)
+          ).map(previouslyRewrittenPredicates.rewrittenExpressionOrSelf)
 
         // solve remaining predicates
         SubqueryExpressionSolver.ForMulti.solve(existsPlan, unsolvedPredicates, context)

@@ -37,7 +37,6 @@ import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.ir.PlannerQuery
 import org.neo4j.cypher.internal.ir.QueryGraph
-import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.CanGetValue
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
@@ -482,10 +481,6 @@ object RemoteBatchingStrategy {
               propertyKeyName,
               property.position
             ).getOrElse(property)
-        },
-        stopper = {
-          case _: IRExpression => true // This gets planned in the SubQueryExpressionSolvers instead.
-          case _               => false
         },
         cancellation = context.staticComponents.cancellationChecker
       )

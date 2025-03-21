@@ -168,12 +168,12 @@ class RemoteBatchPropertiesPlanningIntegrationTest
     val query =
       """
         |MATCH (person:Person)
-        |      WITH DISTINCT person
-        |      WHERE EXISTS {
-        |        MATCH (person)-[:HAS_DOG]->(dog:Dog)
-        |        WHERE person.firstName = dog.name
-        |      }
-        |      RETURN person.firstName as name
+        |WITH DISTINCT person
+        |WHERE EXISTS {
+        |  MATCH (person)-[:HAS_DOG]->(dog:Dog)
+        |  WHERE person.firstName = dog.name
+        |}
+        |RETURN person.firstName as name
         |""".stripMargin
 
     planner.plan(query) should
@@ -183,10 +183,11 @@ class RemoteBatchPropertiesPlanningIntegrationTest
         .projection("cacheN[person.firstName] AS name")
         .semiApply()
         .|.filter("cacheN[person.firstName] = cacheN[dog.name]")
-        .|.remoteBatchProperties("cacheNFromStore[person.firstName]", "cacheNFromStore[dog.name]")
+        .|.remoteBatchProperties("cacheNFromStore[dog.name]")
         .|.filter("dog:Dog")
         .|.expandAll("(person)-[anon_0:HAS_DOG]->(dog)")
         .|.argument("person")
+        .remoteBatchProperties("cacheNFromStore[person.firstName]")
         .nodeByLabelScan("person", "Person", IndexOrderAscending)
         .build())
   }

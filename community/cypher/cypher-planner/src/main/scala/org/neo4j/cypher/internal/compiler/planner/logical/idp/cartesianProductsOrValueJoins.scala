@@ -583,7 +583,12 @@ case object cartesianProductsOrValueJoins extends JoinDisconnectedQueryGraphComp
   ): Iterator[LogicalPlan] = {
     // pre-fetch remote batch properties on the LHS if they can be used with the plan
     val RemoteBatchingResult(_, lhsPlanWithPrefetchedProperties) =
-      context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForExpressionsWithLookahead(lhsQG, lhsPlan, context, predicates)
+      context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForExpressionsWithLookahead(
+        lhsQG,
+        lhsPlan,
+        context,
+        predicates
+      )
 
     // Replan the RHS with the LHS arguments available. If good indexes exist, they can now be used
     // Also keep any hints we might have gotten in the rhsQG so they get considered during planning
