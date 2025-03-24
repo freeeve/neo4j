@@ -557,7 +557,13 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     val newFrom = "anon_0"
     val expectedPlan = new LogicalPlanBuilder(wholePlan = false)
       .filter(s"from = `$newFrom`")
-      .directedRelationshipByIdSeek("r", newFrom, end.name, Set(from.name), 42, 43, 43)
+      .relationshipByIdSeek(
+        s"($newFrom)-[r]->(${end.name})",
+        Set(from.name),
+        42,
+        43,
+        43
+      )
       .build()
 
     resultPlans shouldEqual Set(expectedPlan)
@@ -611,7 +617,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     val newTo = "anon_1"
     val expectedPlan = new LogicalPlanBuilder(wholePlan = false)
       .filter(s"${from.name} = `$newFrom`", s"${end.name} = `$newTo`")
-      .directedRelationshipByIdSeek("r", newFrom, newTo, Set(from, end).map(_.name), 42, 43, 43)
+      .relationshipByIdSeek(s"($newFrom)-[r]->($newTo)", Set(from, end).map(_.name), 42, 43, 43)
       .build()
 
     resultPlans shouldEqual Set(expectedPlan)
@@ -659,7 +665,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     // then
     val expectedPlan = new LogicalPlanBuilder(wholePlan = false)
       .filter(s"${to.name} = `$newTo`")
-      .directedRelationshipByIdSeek("r", from.name, newTo, Set.empty, 42)
+      .relationshipByIdSeek(s"(${from.name})-[r]->($newTo)", Set.empty, 42)
       .build()
 
     resultPlans shouldEqual Set(expectedPlan)
@@ -710,7 +716,7 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     // then
     val expectedPlan = new LogicalPlanBuilder(wholePlan = false)
       .filter(s"${to.name} = `$newTo`")
-      .directedRelationshipByIdSeek("r", from.name, newTo, Set.empty, 42, 43, 43)
+      .relationshipByIdSeek(s"(${from.name})-[r]->($newTo)", Set.empty, 42, 43, 43)
       .build()
 
     resultPlans shouldEqual Set(expectedPlan)

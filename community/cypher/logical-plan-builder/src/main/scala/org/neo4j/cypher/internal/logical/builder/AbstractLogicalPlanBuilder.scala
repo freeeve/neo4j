@@ -52,13 +52,11 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.PathLengthQuantifier
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
-import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.Range
 import org.neo4j.cypher.internal.expressions.RelTypeExpression
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
-import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
@@ -130,7 +128,6 @@ import org.neo4j.cypher.internal.logical.plans.DetachDeletePath
 import org.neo4j.cypher.internal.logical.plans.DirectedAllRelationshipsScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipByElementIdSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipByIdSeek
-import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
@@ -263,7 +260,6 @@ import org.neo4j.cypher.internal.logical.plans.TriadicSelection
 import org.neo4j.cypher.internal.logical.plans.UndirectedAllRelationshipsScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipByElementIdSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipByIdSeek
-import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipIndexSeek
 import org.neo4j.cypher.internal.logical.plans.UndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.UndirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Union
@@ -279,7 +275,6 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InputPosition.NONE
 import org.neo4j.cypher.internal.util.LabelId
 import org.neo4j.cypher.internal.util.PropertyKeyId
-import org.neo4j.cypher.internal.util.RelTypeId
 import org.neo4j.cypher.internal.util.Repetition
 import org.neo4j.cypher.internal.util.Rewritable.RewritableAny
 import org.neo4j.cypher.internal.util.Rewriter
@@ -1459,35 +1454,35 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def unionRelationshipTypesScan(pattern: String, indexOrder: IndexOrder, args: String*): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
-    newNode(varFor(p.from))
-    newNode(varFor(p.to))
+    newNode(varFor(p.maybeFrom))
+    newNode(varFor(p.maybeTo))
     if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot do a scan from a variable pattern")
 
     p.dir match {
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(DirectedUnionRelationshipTypesScan(
           varFor(p.relName),
-          varFor(p.from),
+          varFor(p.maybeFrom),
           p.relTypes,
-          varFor(p.to),
+          varFor(p.maybeTo),
           args.map(varFor).toSet,
           indexOrder
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(DirectedUnionRelationshipTypesScan(
           varFor(p.relName),
-          varFor(p.to),
+          varFor(p.maybeTo),
           p.relTypes,
-          varFor(p.from),
+          varFor(p.maybeFrom),
           args.map(varFor).toSet,
           indexOrder
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(UndirectedUnionRelationshipTypesScan(
           varFor(p.relName),
-          varFor(p.from),
+          varFor(p.maybeFrom),
           p.relTypes,
-          varFor(p.to),
+          varFor(p.maybeTo),
           args.map(varFor).toSet,
           indexOrder
         )(_)))
@@ -1497,33 +1492,33 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def partitionedUnionRelationshipTypesScan(pattern: String, args: String*): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
-    newNode(varFor(p.from))
-    newNode(varFor(p.to))
+    newNode(varFor(p.maybeFrom))
+    newNode(varFor(p.maybeTo))
     if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot do a scan from a variable pattern")
 
     p.dir match {
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedUnionRelationshipTypesScan(
           varFor(p.relName),
-          Some(varFor(p.from)),
+          varFor(p.maybeFrom),
           p.relTypes,
-          Some(varFor(p.to)),
+          varFor(p.maybeTo),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedUnionRelationshipTypesScan(
           varFor(p.relName),
-          Some(varFor(p.to)),
+          varFor(p.maybeTo),
           p.relTypes,
-          Some(varFor(p.from)),
+          varFor(p.maybeFrom),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(PartitionedUndirectedUnionRelationshipTypesScan(
           varFor(p.relName),
-          Some(varFor(p.from)),
+          varFor(p.maybeFrom),
           p.relTypes,
-          Some(varFor(p.to)),
+          varFor(p.maybeTo),
           args.map(varFor).toSet
         )(_)))
     }
@@ -1539,8 +1534,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
   private def directedRelationshipByIdSeekSolver(
     relationship: String,
-    from: String,
-    to: String,
+    from: Option[String],
+    to: Option[String],
     args: Set[String],
     expr: Seq[Expression]
   ): IMPL = {
@@ -1558,10 +1553,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     )(_)))
   }
 
-  def directedRelationshipByIdSeek(
-    relationship: String,
-    from: String,
-    to: String,
+  def relationshipByIdSeek(
+    pattern: String,
     args: Set[String],
     ids: AnyVal*
   ): IMPL = {
@@ -1570,8 +1563,17 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       case x @ (_: Float | _: Double) => DecimalDoubleLiteral(x.toString)(pos)
       case x                          => throw new IllegalArgumentException(s"$x is not a supported value for ID")
     }
+    val p = patternParser.parse(pattern)
+    if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot do a scan from a variable pattern")
 
-    directedRelationshipByIdSeekSolver(relationship, from, to, args, idExpressions)
+    p.dir match {
+      case SemanticDirection.OUTGOING =>
+        directedRelationshipByIdSeekSolver(p.relName, p.maybeFrom, p.maybeTo, args, idExpressions)
+      case SemanticDirection.INCOMING =>
+        directedRelationshipByIdSeekSolver(p.relName, p.maybeTo, p.maybeFrom, args, idExpressions)
+      case SemanticDirection.BOTH =>
+        undirectedRelationshipByIdSeekSolver(p.relName, p.maybeFrom, p.maybeTo, args, idExpressions)
+    }
   }
 
   def directedRelationshipByIdSeekExpr(
@@ -1581,13 +1583,13 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     args: Set[String],
     expr: Expression*
   ): IMPL = {
-    directedRelationshipByIdSeekSolver(relationship, from, to, args, expr)
+    directedRelationshipByIdSeekSolver(relationship, Some(from), Some(to), args, expr)
   }
 
   private def undirectedRelationshipByIdSeekSolver(
     relationship: String,
-    from: String,
-    to: String,
+    from: Option[String],
+    to: Option[String],
     args: Set[String],
     expr: Seq[Expression]
   ): IMPL = {
@@ -1605,25 +1607,6 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     )(_)))
   }
 
-  def undirectedRelationshipByIdSeek(
-    relationship: String,
-    from: String,
-    to: String,
-    args: Set[String],
-    ids: AnyVal*
-  ): IMPL = {
-    newRelationship(varFor(relationship))
-    newNode(varFor(from))
-    newNode(varFor(to))
-    val idExpressions = ids.map {
-      case x @ (_: Long | _: Int)     => SignedDecimalIntegerLiteral(x.toString)(pos)
-      case x @ (_: Float | _: Double) => DecimalDoubleLiteral(x.toString)(pos)
-      case x                          => throw new IllegalArgumentException(s"$x is not a supported value for ID")
-    }
-
-    undirectedRelationshipByIdSeekSolver(relationship, from, to, args, idExpressions)
-  }
-
   def undirectedRelationshipByIdSeekExpr(
     relationship: String,
     from: String,
@@ -1631,7 +1614,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     args: Set[String],
     expr: Expression*
   ): IMPL = {
-    undirectedRelationshipByIdSeekSolver(relationship, from, to, args, expr)
+    undirectedRelationshipByIdSeekSolver(relationship, Some(from), Some(to), args, expr)
   }
 
   def nodeByElementIdSeek(node: String, args: Set[String], ids: Any*): IMPL = {
@@ -1642,46 +1625,45 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(NodeByElementIdSeek(varFor(n), input, args.map(varFor))(_)))
   }
 
-  def directedRelationshipByElementIdSeek(
-    relationship: String,
-    from: String,
-    to: String,
+  def relationshipByElementIdSeek(
+    pattern: String,
     args: Set[String],
     ids: Any*
   ): IMPL = {
+    val p = patternParser.parse(pattern)
+    if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot do a scan from a variable pattern")
+    val (relationship, from, to) = (p.relName, p.maybeFrom, p.maybeTo)
     newRelationship(varFor(relationship))
     newNode(varFor(from))
     newNode(varFor(to))
 
     val input = idSeekInput(ids)
-    appendAtCurrentIndent(LeafOperator(DirectedRelationshipByElementIdSeek(
-      varFor(relationship),
-      input,
-      varFor(from),
-      varFor(to),
-      args.map(varFor)
-    )(_)))
-  }
-
-  def undirectedRelationshipByElementIdSeek(
-    relationship: String,
-    from: String,
-    to: String,
-    args: Set[String],
-    ids: Any*
-  ): IMPL = {
-    newRelationship(varFor(relationship))
-    newNode(varFor(from))
-    newNode(varFor(to))
-
-    val input = idSeekInput(ids)
-    appendAtCurrentIndent(LeafOperator(UndirectedRelationshipByElementIdSeek(
-      varFor(relationship),
-      input,
-      varFor(from),
-      varFor(to),
-      args.map(varFor)
-    )(_)))
+    p.dir match {
+      case SemanticDirection.OUTGOING =>
+        appendAtCurrentIndent(LeafOperator(DirectedRelationshipByElementIdSeek(
+          varFor(relationship),
+          input,
+          varFor(from),
+          varFor(to),
+          args.map(varFor)
+        )(_)))
+      case SemanticDirection.INCOMING =>
+        appendAtCurrentIndent(LeafOperator(DirectedRelationshipByElementIdSeek(
+          varFor(relationship),
+          input,
+          varFor(to),
+          varFor(from),
+          args.map(varFor)
+        )(_)))
+      case SemanticDirection.BOTH =>
+        appendAtCurrentIndent(LeafOperator(UndirectedRelationshipByElementIdSeek(
+          varFor(relationship),
+          input,
+          varFor(from),
+          varFor(to),
+          args.map(varFor)
+        )(_)))
+    }
   }
 
   private def idSeekInput(ids: Seq[Any]): ManySeekableArgs = {
@@ -1711,30 +1693,30 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def allRelationshipsScan(pattern: String, args: String*): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
-    newNode(varFor(p.from))
-    newNode(varFor(p.to))
+    newNode(varFor(p.maybeFrom))
+    newNode(varFor(p.maybeTo))
     if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot do a scan from a variable pattern")
 
     p.dir match {
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(DirectedAllRelationshipsScan(
           varFor(p.relName),
-          varFor(p.from),
-          varFor(p.to),
+          varFor(p.maybeFrom),
+          varFor(p.maybeTo),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(DirectedAllRelationshipsScan(
           varFor(p.relName),
-          varFor(p.to),
-          varFor(p.from),
+          varFor(p.maybeTo),
+          varFor(p.maybeFrom),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(UndirectedAllRelationshipsScan(
           varFor(p.relName),
-          varFor(p.from),
-          varFor(p.to),
+          varFor(p.maybeFrom),
+          varFor(p.maybeTo),
           args.map(varFor).toSet
         )(_)))
     }
@@ -1743,30 +1725,30 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def partitionedAllRelationshipsScan(pattern: String, args: String*): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
-    newNode(varFor(p.from))
-    newNode(varFor(p.to))
+    newNode(varFor(p.maybeFrom))
+    newNode(varFor(p.maybeTo))
     if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot do a scan from a variable pattern")
 
     p.dir match {
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedAllRelationshipsScan(
           varFor(p.relName),
-          Some(varFor(p.from)),
-          Some(varFor(p.to)),
+          varFor(p.maybeFrom),
+          varFor(p.maybeTo),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedAllRelationshipsScan(
           varFor(p.relName),
-          Some(varFor(p.to)),
-          Some(varFor(p.from)),
+          varFor(p.maybeTo),
+          varFor(p.maybeFrom),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(PartitionedUndirectedAllRelationshipsScan(
           varFor(p.relName),
-          Some(varFor(p.from)),
-          Some(varFor(p.to)),
+          varFor(p.maybeFrom),
+          varFor(p.maybeTo),
           args.map(varFor).toSet
         )(_)))
     }
@@ -1779,8 +1761,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def relationshipTypeScan(pattern: String, indexOrder: IndexOrder, args: String*): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
-    newNode(varFor(p.from))
-    newNode(varFor(p.to))
+    newNode(varFor(p.maybeFrom))
+    newNode(varFor(p.maybeTo))
     if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot do a scan from a variable pattern")
     val typ =
       if (p.relTypes.size == 1) p.relTypes.head
@@ -1790,27 +1772,27 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(DirectedRelationshipTypeScan(
           varFor(p.relName),
-          varFor(p.from),
+          varFor(p.maybeFrom),
           typ,
-          varFor(p.to),
+          varFor(p.maybeTo),
           args.map(varFor).toSet,
           indexOrder
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(DirectedRelationshipTypeScan(
           varFor(p.relName),
-          varFor(p.to),
+          varFor(p.maybeTo),
           typ,
-          varFor(p.from),
+          varFor(p.maybeFrom),
           args.map(varFor).toSet,
           indexOrder
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(UndirectedRelationshipTypeScan(
           varFor(p.relName),
-          varFor(p.from),
+          varFor(p.maybeFrom),
           typ,
-          varFor(p.to),
+          varFor(p.maybeTo),
           args.map(varFor).toSet,
           indexOrder
         )(_)))
@@ -1820,8 +1802,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   def partitionedRelationshipTypeScan(pattern: String, args: String*): IMPL = {
     val p = patternParser.parse(pattern)
     newRelationship(varFor(p.relName))
-    newNode(varFor(p.from))
-    newNode(varFor(p.to))
+    newNode(varFor(p.maybeFrom))
+    newNode(varFor(p.maybeTo))
     if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot do a scan from a variable pattern")
     val typ =
       if (p.relTypes.size == 1) p.relTypes.head
@@ -1831,25 +1813,25 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedRelationshipTypeScan(
           varFor(p.relName),
-          Some(varFor(p.from)),
+          varFor(p.maybeFrom),
           typ,
-          Some(varFor(p.to)),
+          varFor(p.maybeTo),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedRelationshipTypeScan(
           varFor(p.relName),
-          Some(varFor(p.to)),
+          varFor(p.maybeTo),
           typ,
-          Some(varFor(p.from)),
+          varFor(p.maybeFrom),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(PartitionedUndirectedRelationshipTypeScan(
           varFor(p.relName),
-          Some(varFor(p.from)),
+          varFor(p.maybeFrom),
           typ,
-          Some(varFor(p.to)),
+          varFor(p.maybeTo),
           args.map(varFor).toSet
         )(_)))
     }
@@ -2297,14 +2279,9 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   def pointDistanceRelationshipIndexSeek(
-    rel: String,
-    start: String,
-    end: String,
-    typeName: String,
-    property: String,
+    pattern: String,
     point: String,
     distance: Double,
-    directed: Boolean = true,
     inclusive: Boolean = false,
     getValue: GetValueFromIndexBehavior = DoNotGetValue,
     indexOrder: IndexOrder = IndexOrderNone,
@@ -2312,14 +2289,9 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     indexType: IndexType = IndexType.POINT
   ): IMPL = {
     pointDistanceRelationshipIndexSeekExpr(
-      rel,
-      start,
-      end,
-      typeName,
-      property,
+      pattern,
       point,
       literalFloat(distance),
-      directed,
       inclusive,
       getValue,
       indexOrder,
@@ -2329,88 +2301,58 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   def pointDistanceRelationshipIndexSeekExpr(
-    relationship: String,
-    startNode: String,
-    endNode: String,
-    typeName: String,
-    property: String,
+    pattern: String,
     point: String,
     distanceExpr: Expression,
-    directed: Boolean = true,
     inclusive: Boolean = false,
     getValue: GetValueFromIndexBehavior = DoNotGetValue,
     indexOrder: IndexOrder = IndexOrderNone,
     argumentIds: Set[String] = Set.empty,
     indexType: IndexType = IndexType.POINT
   ): IMPL = {
-    val typ = resolver.getRelTypeId(typeName)
-
-    val propId = resolver.getPropertyKeyId(property)
+    val relType = resolver.getRelTypeId(IndexSeek.relTypeFromIndexSeekString(pattern))
+    val propIds: PartialFunction[String, Int] = {
+      case x => resolver.getPropertyKeyId(x)
+    }
     val planBuilder = (idGen: IdGen) => {
-      val typeToken = RelationshipTypeToken(typeName, RelTypeId(typ))
-      val propToken = PropertyKeyToken(PropertyKeyName(property)(NONE), PropertyKeyId(propId))
-      val indexedProperty = IndexedProperty(propToken, getValue, RELATIONSHIP_TYPE)
-      val e =
+      val customQueryExpression =
         RangeQueryExpression(PointDistanceSeekRangeWrapper(
           PointDistanceRange(function("point", parseExpression(point)), distanceExpr, inclusive)
         )(NONE))
 
-      val plan =
-        if (directed) {
-          DirectedRelationshipIndexSeek(
-            varFor(relationship),
-            varFor(startNode),
-            varFor(endNode),
-            typeToken,
-            Seq(indexedProperty),
-            e,
-            argumentIds.map(varFor),
-            indexOrder,
-            indexType,
-            supportPartitionedScan = false
-          )(idGen)
-        } else {
-          UndirectedRelationshipIndexSeek(
-            varFor(relationship),
-            varFor(startNode),
-            varFor(endNode),
-            typeToken,
-            Seq(indexedProperty),
-            e,
-            argumentIds.map(varFor),
-            indexOrder,
-            indexType,
-            supportPartitionedScan = false
-          )(idGen)
-        }
+      val plan = IndexSeek.relationshipIndexSeek(
+        pattern,
+        getValue = _ => getValue,
+        indexOrder = indexOrder,
+        paramExpr = Seq.empty,
+        argumentIds = argumentIds,
+        propIds = Some(propIds),
+        typeId = relType,
+        customQueryExpression = Some(customQueryExpression),
+        indexType = indexType,
+        supportPartitionedScan = false
+      )(idGen)
+      newRelationship(varFor(plan.idName.name))
+      plan.leftNode.foreach(l => newNode(varFor(l.name)))
+      plan.rightNode.foreach(r => newNode(varFor(r.name)))
       plan
     }
     appendAtCurrentIndent(LeafOperator(planBuilder))
   }
 
   def pointBoundingBoxRelationshipIndexSeek(
-    rel: String,
-    start: String,
-    end: String,
-    typeName: String,
-    property: String,
+    pattern: String,
     lowerLeft: String,
     upperRight: String,
-    directed: Boolean = true,
     getValue: GetValueFromIndexBehavior = DoNotGetValue,
     indexOrder: IndexOrder = IndexOrderNone,
     argumentIds: Set[String] = Set.empty,
     indexType: IndexType = IndexType.POINT
   ): IMPL = {
     pointBoundingBoxRelationshipIndexSeekExpr(
-      rel,
-      start,
-      end,
-      typeName,
-      property,
+      pattern,
       lowerLeft,
       upperRight,
-      directed,
       getValue,
       indexOrder,
       argumentIds,
@@ -2419,27 +2361,20 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   def pointBoundingBoxRelationshipIndexSeekExpr(
-    relationship: String,
-    startNode: String,
-    endNode: String,
-    typeName: String,
-    property: String,
+    pattern: String,
     lowerLeft: String,
     upperRight: String,
-    directed: Boolean = true,
     getValue: GetValueFromIndexBehavior = DoNotGetValue,
     indexOrder: IndexOrder = IndexOrderNone,
     argumentIds: Set[String] = Set.empty,
     indexType: IndexType = IndexType.POINT
   ): IMPL = {
-    val typ = resolver.getRelTypeId(typeName)
-
-    val propId = resolver.getPropertyKeyId(property)
+    val relType = resolver.getRelTypeId(IndexSeek.relTypeFromIndexSeekString(pattern))
+    val propIds: PartialFunction[String, Int] = {
+      case x => resolver.getPropertyKeyId(x)
+    }
     val planBuilder = (idGen: IdGen) => {
-      val typeToken = RelationshipTypeToken(typeName, RelTypeId(typ))
-      val propToken = PropertyKeyToken(PropertyKeyName(property)(NONE), PropertyKeyId(propId))
-      val indexedProperty = IndexedProperty(propToken, getValue, RELATIONSHIP_TYPE)
-      val e =
+      val customQueryExpression =
         RangeQueryExpression(PointBoundingBoxSeekRangeWrapper(
           PointBoundingBoxRange(
             function("point", parseExpression(lowerLeft)),
@@ -2447,34 +2382,21 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           )
         )(NONE))
 
-      val plan =
-        if (directed) {
-          DirectedRelationshipIndexSeek(
-            varFor(relationship),
-            varFor(startNode),
-            varFor(endNode),
-            typeToken,
-            Seq(indexedProperty),
-            e,
-            argumentIds.map(varFor),
-            indexOrder,
-            indexType,
-            supportPartitionedScan = false
-          )(idGen)
-        } else {
-          UndirectedRelationshipIndexSeek(
-            varFor(relationship),
-            varFor(startNode),
-            varFor(endNode),
-            typeToken,
-            Seq(indexedProperty),
-            e,
-            argumentIds.map(varFor),
-            indexOrder,
-            indexType,
-            supportPartitionedScan = false
-          )(idGen)
-        }
+      val plan = IndexSeek.relationshipIndexSeek(
+        pattern,
+        getValue = _ => getValue,
+        indexOrder = indexOrder,
+        paramExpr = Seq.empty,
+        argumentIds = argumentIds,
+        propIds = Some(propIds),
+        typeId = relType,
+        customQueryExpression = Some(customQueryExpression),
+        indexType = indexType,
+        supportPartitionedScan = false
+      )(idGen)
+      newRelationship(varFor(plan.idName.name))
+      plan.leftNode.foreach(l => newNode(varFor(l.name)))
+      plan.rightNode.foreach(r => newNode(varFor(r.name)))
       plan
     }
     appendAtCurrentIndent(LeafOperator(planBuilder))
@@ -3206,6 +3128,12 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     semanticTable = semanticTable.addNode(node.asInstanceOf[Variable])
   }
 
+  def newNode(maybeNode: Option[LogicalVariable]): Unit = {
+    maybeNode.foreach(node => {
+      semanticTable = semanticTable.addNode(node.asInstanceOf[Variable])
+    })
+  }
+
   /**
    * Called every time a new relationship is introduced by some logical operator.
    */
@@ -3353,6 +3281,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
   // AST construction
   protected def varFor(name: String): Variable = Variable(name)(pos, Variable.isIsolatedDefault)
+  protected def varFor(maybeName: Option[String]): Option[Variable] = maybeName.map(varFor)
   private def labelName(s: String): LabelName = LabelName(s)(pos)
   private def relTypeName(s: String): RelTypeName = RelTypeName(s)(pos)
 

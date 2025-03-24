@@ -929,7 +929,7 @@ abstract class CreateTestBase[CONTEXT <: RuntimeContext](
       .nonFuseable()
       .unwind(s"range(1, 10) AS r2")
       .create(createNode("o", "A", "B", "C"))
-      .directedRelationshipByIdSeek("r", "from", "to", Set.empty, rels.head.getId)
+      .relationshipByIdSeek("(from)-[r]->(to)", Set.empty, rels.head.getId)
       .build(readOnly = false)
 
     // then
@@ -952,7 +952,7 @@ abstract class CreateTestBase[CONTEXT <: RuntimeContext](
       .nonFuseable()
       .unwind(s"range(1, 10) AS r2")
       .create(createNode("o", "A", "B", "C"))
-      .directedRelationshipByIdSeek("r", "from", "to", Set.empty, rels.map(_.getId): _*)
+      .relationshipByIdSeek("(from)-[r]->(to)", Set.empty, rels.map(_.getId): _*)
       .build(readOnly = false)
 
     // then
@@ -975,7 +975,7 @@ abstract class CreateTestBase[CONTEXT <: RuntimeContext](
       .nonFuseable()
       .unwind(s"range(1, 10) AS r2")
       .create(createNode("o", "A", "B", "C"))
-      .undirectedRelationshipByIdSeek("r", "from", "to", Set.empty, rels.head.getId)
+      .relationshipByIdSeek("(from)-[r]-(to)", Set.empty, rels.head.getId)
       .build(readOnly = false)
 
     // then
@@ -998,7 +998,7 @@ abstract class CreateTestBase[CONTEXT <: RuntimeContext](
       .nonFuseable()
       .unwind(s"range(1, 10) AS r2")
       .create(createNode("o", "A", "B", "C"))
-      .undirectedRelationshipByIdSeek("r", "from", "to", Set.empty, rels.map(_.getId): _*)
+      .relationshipByIdSeek("(from)-[r]-(to)", Set.empty, rels.map(_.getId): _*)
       .build(readOnly = false)
 
     // then

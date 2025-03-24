@@ -62,13 +62,16 @@ class PatternParser {
                 s"$star, $min, $max is not a supported variable length identifier"
               )
           }
-        val relNameOrUnnamed =
+        val relNameOrUnnamed = {
           if (relName.isEmpty) {
             nextUnnamed()
           } else {
             VariableParser.unescaped(relName)
           }
-        Pattern(VariableParser.unescaped(from), dir, relTypes, relNameOrUnnamed, VariableParser.unescaped(to), length)
+        }
+        val maybeFrom = if (from.nonEmpty) Some(VariableParser.unescaped(from)) else None
+        val maybeTo = if (to.nonEmpty) Some(VariableParser.unescaped(to)) else None
+        Pattern(maybeFrom, dir, relTypes, relNameOrUnnamed, maybeTo, length)
       case _ => throw new IllegalArgumentException(s"'$pattern' cannot be parsed as a pattern")
     }
   }
@@ -77,11 +80,28 @@ class PatternParser {
 object PatternParser {
 
   case class Pattern(
-    from: String,
+    maybeFrom: Option[String],
     dir: SemanticDirection,
     relTypes: Seq[RelTypeName],
     relName: String,
-    to: String,
+    maybeTo: Option[String],
     length: PatternLength
-  )
+  ) {
+    def from: String = maybeFrom.getOrElse("")
+    def to: String = maybeTo.getOrElse("")
+  }
+
+  object Pattern {
+
+    def apply(
+      from: String,
+      direction: SemanticDirection,
+      relTypes: Seq[RelTypeName],
+      relName: String,
+      to: String,
+      length: PatternLength
+    ): Pattern = {
+      Pattern(Some(from), direction, relTypes, relName, Some(to), length)
+    }
+  }
 }

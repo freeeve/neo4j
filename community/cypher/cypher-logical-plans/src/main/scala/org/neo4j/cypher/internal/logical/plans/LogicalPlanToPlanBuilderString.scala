@@ -293,6 +293,10 @@ object LogicalPlanToPlanBuilderString {
       case _: UndirectedUnionRelationshipTypesScan            => "unionRelationshipTypesScan"
       case _: PartitionedDirectedUnionRelationshipTypesScan   => "partitionedUnionRelationshipTypesScan"
       case _: PartitionedUndirectedUnionRelationshipTypesScan => "partitionedUnionRelationshipTypesScan"
+      case _: DirectedRelationshipByIdSeek                    => "relationshipByIdSeek"
+      case _: UndirectedRelationshipByIdSeek                  => "relationshipByIdSeek"
+      case _: DirectedRelationshipByElementIdSeek             => "relationshipByElementIdSeek"
+      case _: UndirectedRelationshipByElementIdSeek           => "relationshipByElementIdSeek"
     }
     specialCases.applyOrElse(logicalPlan, classNameFormat)
   }
@@ -776,13 +780,29 @@ object LogicalPlanToPlanBuilderString {
       case NodeByElementIdSeek(idName, ids, argumentIds) =>
         params(idName, argumentIds, ids)
       case UndirectedRelationshipByIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
-        params(idName, leftNode, rightNode, argumentIds, ids)
+        params(
+          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.name}]-(${rightNode.map(_.name).getOrElse("")})".quoted,
+          argumentIds,
+          ids
+        )
       case UndirectedRelationshipByElementIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
-        params(idName, leftNode, rightNode, argumentIds, ids)
+        params(
+          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.name}]-(${rightNode.map(_.name).getOrElse("")})".quoted,
+          argumentIds,
+          ids
+        )
       case DirectedRelationshipByIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
-        params(idName, leftNode, rightNode, argumentIds, ids)
+        params(
+          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.name}]->(${rightNode.map(_.name).getOrElse("")})".quoted,
+          argumentIds,
+          ids
+        )
       case DirectedRelationshipByElementIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
-        params(idName, leftNode, rightNode, argumentIds, ids)
+        params(
+          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.name}]->(${rightNode.map(_.name).getOrElse("")})".quoted,
+          argumentIds,
+          ids
+        )
       case DirectedAllRelationshipsScan(idName, start, end, argumentIds) =>
         params(
           s"(${start.map(_.name).getOrElse("")})-[${idName.name}]->(${end.map(_.name).getOrElse("")})".quoted,
@@ -1935,21 +1955,19 @@ object LogicalPlanToPlanBuilderString {
     indexOrder: IndexOrder,
     indexType: IndexType,
     directed: Boolean
-  ) =
+  ) = {
+    val propName = properties.map(_.propertyKeyToken.name).head
+    val rarrow = if (directed) "->" else "-"
     params(
-      idName,
-      start,
-      end,
-      typeToken,
-      properties.head.propertyKeyToken,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       lowerLeft.quoted,
       upperRight.quoted,
-      "directed" -> directed,
       "indexOrder" -> indexOrder,
       "argumentIds" -> argumentIds,
       "getValue" -> getSingleIndexBehavior(properties),
       "indexType" -> indexType
     )
+  }
 
   private def pointDistanceRelationshipIndexSeek(
     idName: LogicalVariable,
@@ -1964,22 +1982,20 @@ object LogicalPlanToPlanBuilderString {
     indexType: IndexType,
     directed: Boolean,
     inclusive: Boolean
-  ) =
+  ) = {
+    val propName = properties.map(_.propertyKeyToken.name).head
+    val rarrow = if (directed) "->" else "-"
     params(
-      idName,
-      start,
-      end,
-      typeToken,
-      properties.head.propertyKeyToken,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       point.quoted,
       distance,
-      "directed" -> directed,
       "inclusive" -> inclusive,
       "getValue" -> getSingleIndexBehavior(properties),
       "indexOrder" -> indexOrder,
       "argumentIds" -> argumentIds,
       "indexType" -> indexType
     )
+  }
 
   private def getSingleIndexBehavior(properties: Seq[IndexedProperty]): Param =
     properties.map(_.getValueFromIndex).reduce[GetValueFromIndexBehavior] {

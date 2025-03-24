@@ -1697,8 +1697,8 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     new TestPlanBuilder()
       .produceResults("x", "y")
       .apply()
-      .|.undirectedRelationshipByIdSeek("r2", "x", "y", Set("x"), 25)
-      .undirectedRelationshipByIdSeek("r1", "x", "y", Set(), 23, 22.0, -1)
+      .|.relationshipByIdSeek("(x)-[r2]-(y)", Set("x"), 25)
+      .relationshipByIdSeek("(x)-[r1]-(y)", Set(), 23, 22.0, -1)
       .build()
   )
 
@@ -1707,8 +1707,8 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     new TestPlanBuilder()
       .produceResults("x", "y")
       .apply()
-      .|.undirectedRelationshipByElementIdSeek("r2", "x", "y", Set("x"), 25)
-      .undirectedRelationshipByElementIdSeek("r1", "x", "y", Set(), 23, 22.0, -1)
+      .|.relationshipByElementIdSeek("(x)-[r2]-(y)", Set("x"), 25)
+      .relationshipByElementIdSeek("(x)-[r1]-(y)", Set(), 23, 22.0, -1)
       .build()
   )
 
@@ -1768,11 +1768,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       .produceResults("x", "y")
       .apply()
       .|.pointDistanceRelationshipIndexSeek(
-        "r2",
-        "x",
-        "y",
-        "OTHER_REL",
-        "prop2",
+        "(x)-[r:OTHER_REL(prop2)]->(y)",
         "{x: 1.0, y: 2.0, crs: 'cartesian'}",
         10,
         argumentIds = Set("r1"),
@@ -1780,15 +1776,10 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         indexType = IndexType.POINT
       )
       .pointDistanceRelationshipIndexSeek(
-        "r1",
-        "a",
-        "b",
-        "REL",
-        "prop1",
+        "(a)-[r1:REL(prop1)]-(b)",
         "{x: 0.0, y: 1.0, crs: 'cartesian'}",
         100,
         indexOrder = IndexOrderDescending,
-        directed = false,
         inclusive = true
       )
       .build()
@@ -1800,47 +1791,38 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       .produceResults("x", "y")
       .apply()
       .|.pointBoundingBoxRelationshipIndexSeek(
-        "y",
-        "y1",
-        "y2",
-        "L",
-        "prop",
+        "(y1)-[y:L(prop)]->(y2)",
         "{x: 1.0, y: 2.0, crs: 'cartesian'}",
         "{x: 10.0, y: 20.0, crs: 'cartesian'}",
         argumentIds = Set("x"),
         getValue = GetValue
       )
       .pointBoundingBoxRelationshipIndexSeek(
-        "x",
-        "x1",
-        "y1",
-        "L",
-        "prop",
+        "(x1)-[x:L(prop)]-(y1)",
         "{x: 0.0, y: 1.0, crs: 'cartesian'}",
         "{x: 100.0, y: 100.0, crs: 'cartesian'}",
-        directed = false,
         indexOrder = IndexOrderDescending
       )
       .build()
   )
 
   testPlan(
-    "directedRelationshipByIdSeek",
+    "relationshipByIdSeek",
     new TestPlanBuilder()
       .produceResults("x", "y")
       .apply()
-      .|.directedRelationshipByIdSeek("r2", "x", "y", Set("x"), 25)
-      .directedRelationshipByIdSeek("r1", "x", "y", Set(), 23, 22.0, -1)
+      .|.relationshipByIdSeek("(x2)-[r2]->(y)", Set("x"), 25)
+      .relationshipByIdSeek("(x)-[r1]->(y)", Set(), 23, 22.0, -1)
       .build()
   )
 
   testPlan(
-    "directedRelationshipByElementIdSeek",
+    "relationshipByElementIdSeek",
     new TestPlanBuilder()
       .produceResults("x", "y")
       .apply()
-      .|.directedRelationshipByElementIdSeek("r2", "x", "y", Set("x"), 25)
-      .directedRelationshipByElementIdSeek("r1", "x", "y", Set(), 23, 22.0, -1)
+      .|.relationshipByElementIdSeek("(x)-[r2]->(y)", Set("x"), 25)
+      .relationshipByElementIdSeek("(x)-[r1]->(y)", Set(), 23, 22.0, -1)
       .build()
   )
 
@@ -1851,6 +1833,16 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       .apply()
       .|.allRelationshipsScan("(x2)-[r2]-(y2)", "x1", "r1", "y1")
       .allRelationshipsScan("(x1)-[r1]->(y1)")
+      .build()
+  )
+
+  testPlan(
+    "allRelationshipsScan without end-nodes",
+    new TestPlanBuilder()
+      .produceResults("r1", "r21")
+      .apply()
+      .|.allRelationshipsScan("()-[r2]-()", "x1", "r1", "y1")
+      .allRelationshipsScan("(x1)-[r1]->()")
       .build()
   )
 

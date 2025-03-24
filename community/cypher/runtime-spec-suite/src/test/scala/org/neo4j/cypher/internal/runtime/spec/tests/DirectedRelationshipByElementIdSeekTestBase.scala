@@ -47,7 +47,7 @@ abstract class DirectedRelationshipByElementIdSeekTestBase[CONTEXT <: RuntimeCon
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r", "x", "y")
-      .directedRelationshipByElementIdSeek("r", "x", "y", Set.empty, quote(relToFind.getElementId))
+      .relationshipByElementIdSeek("(x)-[r]->(y)", Set.empty, quote(relToFind.getElementId))
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -68,7 +68,7 @@ abstract class DirectedRelationshipByElementIdSeekTestBase[CONTEXT <: RuntimeCon
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r", "x", "y")
-      .directedRelationshipByElementIdSeek("r", "x", "y", Set.empty, quote(toNotFind))
+      .relationshipByElementIdSeek("(x)-[r]->(y)", Set.empty, quote(toNotFind))
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -85,7 +85,7 @@ abstract class DirectedRelationshipByElementIdSeekTestBase[CONTEXT <: RuntimeCon
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r", "x", "y")
-      .directedRelationshipByElementIdSeek("r", "x", "y", Set.empty, toFind.map(_.getElementId).map(quote): _*)
+      .relationshipByElementIdSeek("(x)-[r]->(y)", Set.empty, toFind.map(_.getElementId).map(quote): _*)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -106,7 +106,7 @@ abstract class DirectedRelationshipByElementIdSeekTestBase[CONTEXT <: RuntimeCon
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r", "x", "y")
-      .directedRelationshipByElementIdSeek("r", "x", "y", Set.empty, relationshipsToLookFor.map(quote): _*)
+      .relationshipByElementIdSeek("(x)-[r]->(y)", Set.empty, relationshipsToLookFor.map(quote): _*)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -125,7 +125,7 @@ abstract class DirectedRelationshipByElementIdSeekTestBase[CONTEXT <: RuntimeCon
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r", "x", "y")
       .filter(s"elementId(r) = '${toFind.getElementId}'")
-      .directedRelationshipByElementIdSeek("r", "x", "y", Set.empty, toSeekFor.map(_.getElementId).map(quote): _*)
+      .relationshipByElementIdSeek("(x)-[r]->(y)", Set.empty, toSeekFor.map(_.getElementId).map(quote): _*)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)

@@ -721,7 +721,7 @@ abstract class ProfileRowsTestBase[CONTEXT <: RuntimeContext](
       .produceResults("x")
       .nonFuseable()
       .expand("(x)-[r2]->(y2)")
-      .directedRelationshipByIdSeek("r", "x", "y", Set.empty, id)
+      .relationshipByIdSeek("(x)-[r]->(y)", Set.empty, id)
       .build()
 
     val runtimeResult = profile(logicalQuery, runtime)
@@ -747,7 +747,7 @@ abstract class ProfileRowsTestBase[CONTEXT <: RuntimeContext](
       .produceResults("x")
       .nonFuseable()
       .expand("(x)-[r2]->(y2)")
-      .directedRelationshipByIdSeek("r", "x", "y", Set.empty, ids.toSeq: _*)
+      .relationshipByIdSeek("(x)-[r]->(y)", Set.empty, ids.toSeq: _*)
       .build()
 
     val runtimeResult = profile(logicalQuery, runtime)
@@ -773,7 +773,7 @@ abstract class ProfileRowsTestBase[CONTEXT <: RuntimeContext](
       .produceResults("x")
       .nonFuseable()
       .expand("(x)-[r2]->(y2)")
-      .undirectedRelationshipByIdSeek("r", "x", "y", Set.empty, id)
+      .relationshipByIdSeek("(x)-[r]-(y)", Set.empty, id)
       .build()
 
     val runtimeResult = profile(logicalQuery, runtime)
@@ -799,7 +799,7 @@ abstract class ProfileRowsTestBase[CONTEXT <: RuntimeContext](
       .produceResults("x")
       .nonFuseable()
       .expand("(x)-[r2]->(y2)")
-      .undirectedRelationshipByIdSeek("r", "x", "y", Set.empty, ids.toSeq: _*)
+      .relationshipByIdSeek("(x)-[r]-(y)", Set.empty, ids.toSeq: _*)
       .build()
 
     val runtimeResult = profile(logicalQuery, runtime)

@@ -686,7 +686,7 @@ abstract class ProfileDbHitsTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r", "x", "y")
-      .directedRelationshipByIdSeek("r", "x", "y", Set.empty, rels(13).getId)
+      .relationshipByIdSeek("(x)-[r]->(y)", Set.empty, rels(13).getId)
       .build()
 
     val result = profile(logicalQuery, runtime)

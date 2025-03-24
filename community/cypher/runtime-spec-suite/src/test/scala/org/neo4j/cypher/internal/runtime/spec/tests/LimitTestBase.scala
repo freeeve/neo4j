@@ -769,7 +769,7 @@ abstract class LimitTestBase[CONTEXT <: RuntimeContext](
       .produceResults("a1")
       .apply()
       .|.limit(limit)
-      .|.directedRelationshipByIdSeek("r", "x", "y", Set("a1"), relationships.head.getId)
+      .|.relationshipByIdSeek("(x)-[r]->(y)", Set("a1"), relationships.head.getId)
       .allNodeScan("a1")
       .build()
 
@@ -790,7 +790,7 @@ abstract class LimitTestBase[CONTEXT <: RuntimeContext](
       .produceResults("a1")
       .apply()
       .|.limit(limit)
-      .|.directedRelationshipByIdSeek("r", "x", "y", Set("a1"), relationships.map(_.getId): _*)
+      .|.relationshipByIdSeek("(x)-[r]->(y)", Set("a1"), relationships.map(_.getId): _*)
       .allNodeScan("a1")
       .build()
 
@@ -812,7 +812,7 @@ abstract class LimitTestBase[CONTEXT <: RuntimeContext](
       .produceResults("a1")
       .apply()
       .|.limit(limit)
-      .|.undirectedRelationshipByIdSeek("r", "x", "y", Set("a1"), relationships.head.getId)
+      .|.relationshipByIdSeek("(x)-[r]-(y)", Set("a1"), relationships.head.getId)
       .allNodeScan("a1")
       .build()
 
@@ -833,7 +833,7 @@ abstract class LimitTestBase[CONTEXT <: RuntimeContext](
       .produceResults("a1")
       .apply()
       .|.limit(limit)
-      .|.undirectedRelationshipByIdSeek("r", "x", "y", Set("a1"), relationships.map(_.getId): _*)
+      .|.relationshipByIdSeek("(x)-[r]-(y)", Set("a1"), relationships.map(_.getId): _*)
       .allNodeScan("a1")
       .build()
 

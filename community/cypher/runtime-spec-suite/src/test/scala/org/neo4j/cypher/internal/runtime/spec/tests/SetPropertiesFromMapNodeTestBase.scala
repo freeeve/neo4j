@@ -557,7 +557,7 @@ abstract class SetPropertiesFromMapNodeTestBase[CONTEXT <: RuntimeContext](
       .produceResults("p1", "p2", "p3")
       .projection("x1.prop1 as p1", "x1.prop2 as p2", "x1.prop3 as p3")
       .setPropertiesFromMap("x1", "r", removeOtherProps = true)
-      .directedRelationshipByIdSeek("r", "x1", "y1", Set.empty, relationships.head.getId)
+      .relationshipByIdSeek("(x1)-[r]->(y1)", Set.empty, relationships.head.getId)
       .build(readOnly = false)
 
     // then

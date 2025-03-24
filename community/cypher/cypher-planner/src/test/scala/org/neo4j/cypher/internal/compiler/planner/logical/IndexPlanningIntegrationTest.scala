@@ -1994,11 +1994,7 @@ class IndexPlanningIntegrationTest
       .projection("cacheR[r.prop] AS `r.prop`")
       .filter("point.distance(cacheR[r.prop], point({x:1, y:2})) < 1.0")
       .pointDistanceRelationshipIndexSeek(
-        "r",
-        "a",
-        "b",
-        "REL",
-        "prop",
+        "(a)-[r:REL(prop)]->(b)",
         "{x:1, y:2}",
         1.0,
         getValue = GetValue,
@@ -2016,11 +2012,7 @@ class IndexPlanningIntegrationTest
       .projection("cacheR[r.prop] AS `r.prop`")
       .filter("pOinT.dIsTaNcE(cacheR[r.prop], point({x:1, y:2})) < 1.0")
       .pointDistanceRelationshipIndexSeek(
-        "r",
-        "a",
-        "b",
-        "REL",
-        "prop",
+        "(a)-[r:REL(prop)]->(b)",
         "{x:1, y:2}",
         1.0,
         getValue = GetValue,
@@ -2037,11 +2029,7 @@ class IndexPlanningIntegrationTest
     plan shouldEqual cfg.subPlanBuilder()
       .projection("cacheR[r.prop] AS `r.prop`")
       .pointBoundingBoxRelationshipIndexSeek(
-        "r",
-        "a",
-        "b",
-        "REL",
-        "prop",
+        "(a)-[r:REL(prop)]->(b)",
         "{x:1, y:2}",
         "{x:3, y:4}",
         getValue = GetValue,

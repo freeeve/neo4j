@@ -51,7 +51,7 @@ object IndexSeek {
 
   // primitives
   private val ID_EXPRESSION = "[a-zA-Z][a-zA-Z0-9_]*"
-  private val ID = s"($ID_EXPRESSION)"
+  private val ID = s"($ID_EXPRESSION)*"
   private val ID_PATTERN = ID.r
   // could be a literal or a variable
   private val VALUE = s"([0-9]+|'.*'|\\?\\?\\?|$ID_EXPRESSION)"
@@ -290,10 +290,13 @@ object IndexSeek {
           (leftNode, incoming, rel, typeStr, predicateStr, outgoing, rightNode)
         case _ => throw new IllegalStateException("Expected index seek string, got " + indexSeekString)
       }
+
+    def toOption(in: String) = if (in == null || in.isEmpty) None else Some(in)
+
     val (startNode, endNode, directed) = (incoming, outgoing) match {
-      case ("<", "") => (rightNode, leftNode, true)
-      case ("", ">") => (leftNode, rightNode, true)
-      case ("", "")  => (leftNode, rightNode, false)
+      case ("<", "") => (toOption(rightNode), toOption(leftNode), true)
+      case ("", ">") => (toOption(leftNode), toOption(rightNode), true)
+      case ("", "")  => (toOption(leftNode), toOption(rightNode), false)
       case _         => throw new UnsupportedOperationException(s"Direction $incoming-$outgoing not supported")
     }
     val typeToken = RelationshipTypeToken(typeStr, RelTypeId(typeId))

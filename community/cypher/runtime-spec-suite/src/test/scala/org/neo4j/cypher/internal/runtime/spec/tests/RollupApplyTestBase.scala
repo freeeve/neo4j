@@ -217,7 +217,7 @@ abstract class RollupApplyTestBase[CONTEXT <: RuntimeContext](
       .produceResults("x", "list", "extra")
       .projection("1 AS extra")
       .rollUpApply("list", "r")
-      .|.directedRelationshipByIdSeek("r", "from", "too", Set("x"), relId)
+      .|.relationshipByIdSeek("(from)-[r]->(too)", Set("x"), relId)
       .allNodeScan("x")
       .build()
 

@@ -59,4 +59,6 @@ object Variable {
 
 object UnPositionedVariable {
   def varFor(name: String): LogicalVariable = Variable(name)(InputPosition.NONE, Variable.isIsolatedDefault)
+
+  def varFor(maybeName: Option[String]): Option[LogicalVariable] = maybeName.map(varFor)
 }
