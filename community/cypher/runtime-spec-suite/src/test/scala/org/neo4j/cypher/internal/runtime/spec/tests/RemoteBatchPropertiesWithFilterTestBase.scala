@@ -1270,18 +1270,20 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
 
   test("should join on a remote batched property") {
     // given
-    val nodes = givenGraph {
-      nodePropertyGraph(
+    val nodeProperties = givenGraph {
+      val nodes = nodePropertyGraph(
         sizeHint,
         {
           case i => Map("prop" -> i)
         }
       )
+      nodes.map(_.getProperty("prop"))
     }
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("a", "b")
+      .produceResults("aProp", "bProp")
+      .projection("cache[a.prop] AS aProp", "cache[b.prop] AS bProp")
       .valueHashJoin("cache[a.prop]=cache[b.prop]")
       .|.remoteBatchPropertiesWithFilter("cache[b.prop]")("cache[b.prop] >= 10")
       .|.allNodeScan("b")
@@ -1291,8 +1293,8 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = nodes.map(n => Array(n, n)).slice(10, 20)
-    runtimeResult should beColumns("a", "b").withRows(expected)
+    val expected = nodeProperties.map(n => Array(n, n)).slice(10, 20)
+    runtimeResult should beColumns("aProp", "bProp").withRows(expected)
   }
 
   test("should work with trail(repeat) single hop") {

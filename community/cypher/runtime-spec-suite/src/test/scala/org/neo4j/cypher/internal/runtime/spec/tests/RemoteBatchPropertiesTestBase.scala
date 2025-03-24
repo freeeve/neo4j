@@ -342,10 +342,12 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       .|.cartesianProduct()
       .|.|.cartesianProduct()
       .|.|.|.filter("cache[n1.p2] = 11")
-      .|.|.|.nodeByLabelScan("n3", "C")
+      .|.|.|.remoteBatchProperties("cache[n1.p2]")
+      .|.|.|.nodeByLabelScan("n3", "C", "n1")
       .|.|.remoteBatchProperties("cache[n1.p2]")
       .|.|.argument("n1")
-      .|.filter("n2.p = 20")
+      .|.filter("cache[n2.p] = 20")
+      .|.remoteBatchProperties("cache[n2.p]")
       .|.allNodeScan("n2")
       .allNodeScan("n1")
       .build()
@@ -376,10 +378,12 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       .|.|.cartesianProduct()
       .|.|.|.projection("1 as p4")
       .|.|.|.filter("cache[n1.p2] = 11")
-      .|.|.|.nodeByLabelScan("n3", "C")
+      .|.|.|.remoteBatchProperties("cache[n1.p2]")
+      .|.|.|.nodeByLabelScan("n3", "C", "n1")
       .|.|.remoteBatchProperties("cache[n1.p2]")
       .|.|.argument("n1")
-      .|.filter("n2.p = 20")
+      .|.filter("cache[n2.p] = 20")
+      .|.remoteBatchProperties("cache[n2.p]")
       .|.allNodeScan("n2")
       .allNodeScan("n1")
       .build()
@@ -405,8 +409,9 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
     val query = new LogicalQueryBuilder(this)
       .produceResults("prop")
       .union()
-      .|.projection("n4.p4 as prop")
-      .|.filter("n4.p4 = 40")
+      .|.projection("cache[n4.p4] as prop")
+      .|.filter("cache[n4.p4] = 40")
+      .|.remoteBatchProperties("cache[n4.p4]")
       .|.allNodeScan("n4")
       .projection("cache[n3.p3] as prop")
       .remoteBatchProperties("cache[n3.p3]")
@@ -414,10 +419,12 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       .|.cartesianProduct()
       .|.|.cartesianProduct()
       .|.|.|.filter("cache[n1.p2] = 11")
+      .|.|.|.remoteBatchProperties("cache[n1.p2]")
       .|.|.|.nodeByLabelScan("n3", "C")
       .|.|.remoteBatchProperties("cache[n1.p2]")
       .|.|.argument("n1")
-      .|.filter("n2.p = 20")
+      .|.filter("cache[n2.p] = 20")
+      .|.remoteBatchProperties("cache[n2.p]")
       .|.allNodeScan("n2")
       .allNodeScan("n1")
       .build()
@@ -817,18 +824,20 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
 
   test(s"should join on a remote batched property") {
     // given
-    val nodes = givenGraph {
-      nodePropertyGraph(
+    val nodeProperties = givenGraph {
+      val nodes = nodePropertyGraph(
         sizeHint,
         {
           case i => Map("prop" -> i)
         }
       )
+      nodes.map(_.getProperty("prop"))
     }
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("a", "b")
+      .produceResults("aProp", "bProp")
+      .projection("cache[a.prop] AS aProp", "cache[b.prop] AS bProp")
       .valueHashJoin("cache[a.prop]=cache[b.prop]")
       .|.filter("cache[b.prop] < 10")
       .|.remoteBatchProperties("cache[b.prop]")
@@ -840,8 +849,8 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
     val runtimeResult = execute(logicalQuery, runtime)
 
     // then
-    val expected = nodes.map(n => Array(n, n)).take(10)
-    runtimeResult should beColumns("a", "b").withRows(expected)
+    val expected = nodeProperties.map(prop => Array(prop, prop)).take(10)
+    runtimeResult should beColumns("aProp", "bProp").withRows(expected)
   }
 
   test(s"should work with nested trails on rhs") {
@@ -889,7 +898,15 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
       )
 
     val logicalQuery = new LogicalQueryBuilder(this)
-      .produceResults("me", "you", "b", "c", "r")
+      .produceResults("meId", "youId", "bIds", "cIds", "rIds")
+      // NOTE: only return entity IDs to avoid single row property retrieval in SPD
+      .projection(
+        "id(me) AS meId",
+        "id(you) AS youId",
+        "[x IN b | id(x)] AS bIds",
+        "[x IN c | id(x)] AS cIds",
+        "[x IN r | id(x)] AS rIds"
+      )
       .remoteBatchProperties("cache[you.prop]")
       .repeatTrail(`(me)( (b)-[r]->(c) WHERE EXISTS { (b)( (bb)-[rr]->(aa:A) ){0,}(a) } ){0,}(you)`)
       .|.apply()
@@ -912,17 +929,17 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
 
     val runtimeResult = execute(logicalQuery, runtime)
 
-    def listOf(values: AnyRef*) = RepeatTrailTestBase.listOf(values: _*)
+    def listOf(values: java.lang.Long*) = RepeatTrailTestBase.listOf(values: _*)
 
     // then
-    runtimeResult should beColumns("me", "you", "b", "c", "r").withRows(
+    runtimeResult should beColumns("meId", "youId", "bIds", "cIds", "rIds").withRows(
       inAnyOrder(
         Seq(
-          Array(n1, n1, emptyList(), emptyList(), emptyList()),
-          Array(n2, n2, emptyList(), emptyList(), emptyList()),
-          Array(n3, n3, emptyList(), emptyList(), emptyList()),
-          Array(n2, n1, listOf(n2), listOf(n1), listOf(r21)),
-          Array(n2, n3, listOf(n2), listOf(n3), listOf(r23))
+          Array(n1.getId, n1.getId, emptyList(), emptyList(), emptyList()),
+          Array(n2.getId, n2.getId, emptyList(), emptyList(), emptyList()),
+          Array(n3.getId, n3.getId, emptyList(), emptyList(), emptyList()),
+          Array(n2.getId, n1.getId, listOf(n2.getId), listOf(n1.getId), listOf(r21.getId)),
+          Array(n2.getId, n3.getId, listOf(n2.getId), listOf(n3.getId), listOf(r23.getId))
         )
       )
     )
