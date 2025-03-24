@@ -75,9 +75,17 @@ final case class ElementsAllQualifier()(val position: InputPosition) extends Gra
     Seq(LabelAllQualifier()(position), RelationshipAllQualifier()(position))
 }
 
-sealed trait Element
-case object Node extends Element
-case object Relationship extends Element
+sealed trait Element {
+  def name: String
+}
+
+case object Node extends Element {
+  override def name: String = "node"
+}
+
+case object Relationship extends Element {
+  override def name: String = "relationship"
+}
 
 final case class PatternQualifier(
   elementTypeQualifiers: Seq[PrivilegeQualifier],
