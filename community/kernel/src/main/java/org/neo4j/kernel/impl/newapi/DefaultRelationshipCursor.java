@@ -56,7 +56,7 @@ abstract class DefaultRelationshipCursor<SELF extends DefaultRelationshipCursor<
     private AccessMode accessMode;
     private boolean allowAllRelationships;
     protected boolean allowAllNodes;
-    private AccessControlPropertiesProvider accessControlPropertiesProvider;
+    private AccessControlDataProvider accessControlDataProvider;
     private DefaultNodeCursor securityNodeCursor;
 
     DefaultRelationshipCursor(
@@ -159,12 +159,16 @@ abstract class DefaultRelationshipCursor<SELF extends DefaultRelationshipCursor<
 
     protected abstract boolean allowedToTraverseEndNodes();
 
-    private AccessControlPropertiesProvider getSelectedPropertiesProvider() {
-        if (accessControlPropertiesProvider == null) {
-            accessControlPropertiesProvider = new AccessControlPropertiesProvider(
-                    () -> storeCursor::properties, internalCursors, applyAccessModeToTxState, this::txStateProperties);
+    private AccessControlDataProvider getSelectedPropertiesProvider() {
+        if (accessControlDataProvider == null) {
+            accessControlDataProvider = new AccessControlDataProvider(
+                    () -> storeCursor::properties,
+                    internalCursors,
+                    applyAccessModeToTxState,
+                    this::txStateProperties,
+                    () -> read);
         }
-        return accessControlPropertiesProvider;
+        return accessControlDataProvider;
     }
 
     private Iterable<StorageProperty> txStateProperties() {
@@ -267,9 +271,9 @@ abstract class DefaultRelationshipCursor<SELF extends DefaultRelationshipCursor<
             securityNodeCursor.release();
             securityNodeCursor = null;
         }
-        if (accessControlPropertiesProvider != null) {
-            accessControlPropertiesProvider.close();
-            accessControlPropertiesProvider = null;
+        if (accessControlDataProvider != null) {
+            accessControlDataProvider.close();
+            accessControlDataProvider = null;
         }
     }
 
@@ -285,12 +289,11 @@ abstract class DefaultRelationshipCursor<SELF extends DefaultRelationshipCursor<
             txStateHolder = null;
             accessModeProvider = null;
             storeCursor.reset();
-
             if (securityNodeCursor != null) {
                 securityNodeCursor.close();
             }
-            if (accessControlPropertiesProvider != null) {
-                accessControlPropertiesProvider.close();
+            if (accessControlDataProvider != null) {
+                accessControlDataProvider.close();
             }
         }
         super.closeInternal();

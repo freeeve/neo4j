@@ -24,6 +24,8 @@ import java.util.function.Supplier;
 import org.eclipse.collections.api.factory.primitive.IntObjectMaps;
 import org.eclipse.collections.api.map.primitive.IntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
+import org.neo4j.internal.kernel.api.Read;
+import org.neo4j.internal.kernel.api.TokenSet;
 import org.neo4j.internal.kernel.api.security.SelectedPropertiesProvider;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.StorageProperty;
@@ -31,28 +33,36 @@ import org.neo4j.storageengine.api.StoragePropertyCursor;
 import org.neo4j.values.storable.Value;
 
 /**
- * Implementation of SelectedPropertiesProvider that returns properties of the entity pointed by StorageEntityCursor
+ * Utility component to provide information for access control needs.
+ *
+ * It is implementation of SelectedPropertiesProvider that returns properties of the entity pointed by StorageEntityCursor
  * at the moment when {@link  #get(PropertySelection)} method called, plus whaterver {@link #txStateProperties} returns.
  *
- * Desgined for lazy loading those properties.
+ * Also, provides methods to get labels and relationship types for the entities.
  */
-class AccessControlPropertiesProvider implements SelectedPropertiesProvider, AutoCloseable {
+class AccessControlDataProvider implements SelectedPropertiesProvider, AutoCloseable {
 
     private final Supplier<BiConsumer<StoragePropertyCursor, PropertySelection>> propertyInitializer;
     private final InternalCursorFactory internalCursors;
     private final boolean applyAccessModeToTxState;
     private final Supplier<Iterable<StorageProperty>> txStateProperties;
-    private StoragePropertyCursor propertyCursor;
+    private final Supplier<Read> readSupplier;
 
-    public AccessControlPropertiesProvider(
+    private StoragePropertyCursor propertyCursor;
+    private DefaultNodeCursor nodeCursor;
+    private DefaultRelationshipScanCursor relationshipCursor;
+
+    public AccessControlDataProvider(
             Supplier<BiConsumer<StoragePropertyCursor, PropertySelection>> propertyInitializer,
             InternalCursorFactory internalCursors,
             boolean applyAccessModeToTxState,
-            Supplier<Iterable<StorageProperty>> txStateProperties) {
+            Supplier<Iterable<StorageProperty>> txStateProperties,
+            Supplier<Read> readSupplier) {
         this.propertyInitializer = propertyInitializer;
         this.internalCursors = internalCursors;
         this.applyAccessModeToTxState = applyAccessModeToTxState;
         this.txStateProperties = txStateProperties;
+        this.readSupplier = readSupplier;
     }
 
     @Override
@@ -92,11 +102,69 @@ class AccessControlPropertiesProvider implements SelectedPropertiesProvider, Aut
         return propertyCursor;
     }
 
+    /**
+     * Gets the label while ignoring removes in the tx state. Implemented as a Supplier so that we don't need additional
+     * allocations.
+     */
+    public TokenSet getLabels(long reference) {
+        if (nodeCursor == null) {
+            nodeCursor = internalCursors.allocateFullAccessNodeCursor();
+        }
+        readSupplier.get().singleNode(reference, nodeCursor);
+        if (!nodeCursor.next()) {
+            throw new IllegalStateException("Node " + reference + " not found for security check");
+        }
+        return nodeLabels(nodeCursor, applyAccessModeToTxState);
+    }
+
+    public static TokenSet nodeLabels(DefaultNodeCursor cursor, boolean applyAccessModeToTxState) {
+        if (applyAccessModeToTxState) {
+            return cursor.labels();
+        }
+        return cursor.labelsIgnoringTxStateSetRemove();
+    }
+
+    public int getRelType(long reference) {
+        if (relationshipCursor == null) {
+            relationshipCursor = internalCursors.allocateFullAccessRelationshipScanCursor();
+        }
+        readSupplier.get().singleRelationship(reference, relationshipCursor);
+        if (!relationshipCursor.next()) {
+            throw new IllegalStateException("Relationship " + reference + " not found for security check");
+        }
+        return relationshipCursor.type();
+    }
+
     @Override
     public void close() {
         if (propertyCursor != null) {
             propertyCursor.close();
             propertyCursor = null;
+        }
+        if (nodeCursor != null) {
+            nodeCursor.close();
+            nodeCursor = null;
+        }
+        if (relationshipCursor != null) {
+            relationshipCursor.close();
+            relationshipCursor = null;
+        }
+    }
+
+    public void release() {
+        if (propertyCursor != null) {
+            propertyCursor.close();
+            propertyCursor = null;
+        }
+        if (nodeCursor != null) {
+            nodeCursor.close();
+            nodeCursor.release();
+            nodeCursor = null;
+        }
+        if (relationshipCursor != null) {
+            relationshipCursor.close();
+            relationshipCursor.release();
+            relationshipCursor = null;
         }
     }
 }

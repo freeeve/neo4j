@@ -163,13 +163,8 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean allowsReadNodePropertiesWithPropertyRules(
-            LabelsSupplier labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
-        return allowRead;
-    }
-
-    @Override
-    public boolean allowsReadNodeProperties(LabelsSupplier labels, int[] propertyKeys) {
+    public boolean allowsReadNodeProperties(
+            LabelsSupplier labels, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
         return allowRead;
     }
 

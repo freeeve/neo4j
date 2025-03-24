@@ -168,16 +168,10 @@ public class RestrictedAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean allowsReadNodePropertiesWithPropertyRules(
-            LabelsSupplier labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
-        return original.allowsReadNodePropertiesWithPropertyRules(labels, propertyKeys, propertyProvider)
-                && wrapping.allowsReadNodePropertiesWithPropertyRules(labels, propertyKeys, propertyProvider);
-    }
-
-    @Override
-    public boolean allowsReadNodeProperties(LabelsSupplier labels, int[] propertyKeys) {
-        return original.allowsReadNodeProperties(labels, propertyKeys)
-                && wrapping.allowsReadNodeProperties(labels, propertyKeys);
+    public boolean allowsReadNodeProperties(
+            LabelsSupplier labels, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
+        return original.allowsReadNodeProperties(labels, propertyKeys, propertyProvider)
+                && wrapping.allowsReadNodeProperties(labels, propertyKeys, propertyProvider);
     }
 
     @Override

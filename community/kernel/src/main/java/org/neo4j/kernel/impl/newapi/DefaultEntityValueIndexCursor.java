@@ -48,6 +48,7 @@ import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.ValueIndexCursor;
+import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
@@ -67,6 +68,7 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
     protected Read read;
     protected TxStateHolder txStateHolder;
     protected AccessModeProvider accessModeProvider;
+    protected AccessMode accessMode;
     protected long entity;
     private float score;
     private PropertyIndexQuery[] query;
@@ -282,7 +284,7 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
         if (sortedMergeJoin.needsA() && addedWithValues.hasNext()) {
             while (addedWithValues.hasNext()) {
                 EntityWithPropertyValues entityWithPropertyValues = addedWithValues.next();
-                if (!applyAccessModeToTxState || canAccessEntityAndProperties(entityWithPropertyValues.getEntityId())) {
+                if (!applyAccessModeToTxState || allowed(entityWithPropertyValues.getEntityId())) {
                     sortedMergeJoin.setA(entityWithPropertyValues.getEntityId(), entityWithPropertyValues.getValues());
                     break;
                 }
@@ -291,7 +293,7 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
 
         if (sortedMergeJoin.needsB()) {
             while (indexNext()) {
-                if (!applyAccessModeToTxState || canAccessEntityAndProperties(entity)) {
+                if (!applyAccessModeToTxState || allowed(entity)) {
                     sortedMergeJoin.setB(entity, values);
                     break;
                 }
@@ -316,6 +318,7 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
         this.read = read;
         this.txStateHolder = txStateHolder;
         this.accessModeProvider = accessModeProvider;
+        this.accessMode = accessModeProvider.getAccessMode();
     }
 
     @Override
@@ -471,10 +474,6 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
 
     final long entityReference() {
         return entity;
-    }
-
-    final void readEntity(EntityReader entityReader) {
-        entityReader.read(read);
     }
 
     private static int[] indexQueryKeys(PropertyIndexQuery[] query) {

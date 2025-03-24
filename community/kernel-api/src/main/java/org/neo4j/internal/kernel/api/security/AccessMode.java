@@ -203,13 +203,8 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean allowsReadNodePropertiesWithPropertyRules(
-                LabelsSupplier labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
-            return read;
-        }
-
-        @Override
-        public boolean allowsReadNodeProperties(LabelsSupplier labels, int[] propertyKeys) {
+        public boolean allowsReadNodeProperties(
+                LabelsSupplier labels, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
             return read;
         }
 
@@ -534,18 +529,8 @@ public interface AccessMode {
      * @param propertyProvider the provider of the node's property values. Used as operands for the property rules.
      * @return {@code true} if the principal is allowed to read ALL of the requested {@code propertyKeys}
      */
-    boolean allowsReadNodePropertiesWithPropertyRules(
-            LabelsSupplier labels, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider);
-
-    /**
-     * determines whether the authenticated principal is allowed to read the specified {@code propertyKeys} according
-     * to label-based RBAC rules. For use in contexts where there are no property-based RBAC rules in place.
-     * Optimised for a multi-property reads.
-     * @param labels the labels of the node in question. Used to determine which RBAC rules are applicable.
-     * @param propertyKeys the properties which the principal is requesting to read
-     * @return {@code true} if the principal is allowed to read ALL of the requested {@code propertyKeys}
-     */
-    boolean allowsReadNodeProperties(LabelsSupplier labels, int[] propertyKeys);
+    boolean allowsReadNodeProperties(
+            LabelsSupplier labels, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider);
 
     /**
      * Returns predicate that determines whether the authenticated principal is allowed to read the specified {@code propertyKey}

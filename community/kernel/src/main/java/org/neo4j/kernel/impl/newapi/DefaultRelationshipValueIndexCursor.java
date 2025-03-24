@@ -169,7 +169,7 @@ class DefaultRelationshipValueIndexCursor extends DefaultEntityValueIndexCursor<
 
     @Override
     protected final boolean canAccessEntityAndProperties(long reference) {
-        readEntity(read -> read.singleRelationship(reference, relationshipScanCursor));
+        read.singleRelationship(reference, relationshipScanCursor);
         if (!relationshipScanCursor.next()) {
             // This relationship is not visible to this security context
             return false;
