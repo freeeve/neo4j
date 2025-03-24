@@ -1824,6 +1824,34 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Set("r", "x", "y")
       )
     )
+
+    assertGood(
+      attach(
+        DirectedAllRelationshipsScan(varFor("r"), None, Some(varFor("y")), Set.empty),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DirectedAllRelationshipsScan",
+        Seq.empty,
+        Seq(details("()-[r]->(y)")),
+        Set("r", "y")
+      )
+    )
+
+    assertGood(
+      attach(
+        UndirectedAllRelationshipsScan(varFor("r"), None, None, Set.empty),
+        23.0
+      ),
+      planDescription(
+        id,
+        "UndirectedAllRelationshipsScan",
+        Seq.empty,
+        Seq(details("()-[r]-()")),
+        Set("r")
+      )
+    )
   }
 
   test("RelationshipTypeScan") {
@@ -1868,6 +1896,48 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Set("r", "x", "y")
       )
     )
+
+    assertGood(
+      attach(
+        DirectedRelationshipTypeScan(
+          varFor("r"),
+          None,
+          RelTypeName("R")(pos),
+          None,
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("()-[r:R]->()")),
+        Set("r")
+      )
+    )
+
+    assertGood(
+      attach(
+        UndirectedRelationshipTypeScan(
+          varFor("r"),
+          Some(varFor("x")),
+          RelTypeName("R")(pos),
+          None,
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "UndirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("(x)-[r:R]-()")),
+        Set("r", "x")
+      )
+    )
   }
 
   test("PartitionedRelationshipTypeScan") {
@@ -1908,6 +1978,46 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq.empty,
         Seq(details("(x)-[r:R]-(y)")),
         Set("r", "x", "y")
+      )
+    )
+
+    assertGood(
+      attach(
+        PartitionedDirectedRelationshipTypeScan(
+          varFor("r"),
+          None,
+          RelTypeName("R")(pos),
+          None,
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "PartitionedDirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("()-[r:R]->()")),
+        Set("r")
+      )
+    )
+
+    assertGood(
+      attach(
+        PartitionedUndirectedRelationshipTypeScan(
+          varFor("r"),
+          None,
+          RelTypeName("R")(pos),
+          None,
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "PartitionedUndirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("()-[r:R]-()")),
+        Set("r")
       )
     )
   }
@@ -2025,6 +2135,20 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq.empty,
         Seq(details("(a)-[r]->(b) WHERE id(r) IN [1, 2]")),
         Set("r", "a", "b", "x")
+      )
+    )
+
+    assertGood(
+      attach(
+        DirectedRelationshipByIdSeek(varFor("r"), SingleSeekableArg(number("1")), None, None, Set.empty),
+        70.0
+      ),
+      planDescription(
+        id,
+        "DirectedRelationshipByIdSeek",
+        Seq.empty,
+        Seq(details("()-[r]->() WHERE id(r) = 1")),
+        Set("r")
       )
     )
 
@@ -2187,6 +2311,25 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq.empty,
         Seq(details(s"(a)-[${anonVar("2")}]-(${anonVar("32")}) WHERE elementId(${anonVar("2")}) = \"some-id\"")),
         Set(anonVar("2"), "a", anonVar("32"), "x")
+      )
+    )
+    assertGood(
+      attach(
+        UndirectedRelationshipByIdSeek(
+          varFor("r"),
+          SingleSeekableArg(number("1")),
+          None,
+          None,
+          Set(varFor("x"))
+        ),
+        70.0
+      ),
+      planDescription(
+        id,
+        "UndirectedRelationshipByIdSeek",
+        Seq.empty,
+        Seq(details("()-[r]-() WHERE id(r) = 1")),
+        Set("r", "x")
       )
     )
   }
