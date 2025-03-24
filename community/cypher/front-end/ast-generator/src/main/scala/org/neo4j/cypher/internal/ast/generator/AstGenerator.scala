@@ -93,8 +93,10 @@ import org.neo4j.cypher.internal.ast.CreateUserAction
 import org.neo4j.cypher.internal.ast.CurrentUser
 import org.neo4j.cypher.internal.ast.DatabaseAction
 import org.neo4j.cypher.internal.ast.DatabaseName
+import org.neo4j.cypher.internal.ast.DatabasePrivilege
 import org.neo4j.cypher.internal.ast.DatabasePrivilegeQualifier
 import org.neo4j.cypher.internal.ast.DbmsAction
+import org.neo4j.cypher.internal.ast.DbmsPrivilege
 import org.neo4j.cypher.internal.ast.DeallocateServers
 import org.neo4j.cypher.internal.ast.DefaultDatabaseScope
 import org.neo4j.cypher.internal.ast.Delete
@@ -136,6 +138,7 @@ import org.neo4j.cypher.internal.ast.GrantRolesToUsers
 import org.neo4j.cypher.internal.ast.GraphAction
 import org.neo4j.cypher.internal.ast.GraphDirectReference
 import org.neo4j.cypher.internal.ast.GraphFunctionReference
+import org.neo4j.cypher.internal.ast.GraphPrivilege
 import org.neo4j.cypher.internal.ast.GraphPrivilegeQualifier
 import org.neo4j.cypher.internal.ast.Hint
 import org.neo4j.cypher.internal.ast.HomeDatabaseScope
@@ -3169,9 +3172,16 @@ class AstGenerator(
     roleNames <- _listOfStringLiteralOrParam
     revokeType <- _revokeType
     immutable <- boolean
-    dbmsGrant = GrantPrivilege.dbmsAction(dbmsAction, immutable, roleNames, qualifier)(pos)
-    dbmsDeny = DenyPrivilege.dbmsAction(dbmsAction, immutable, roleNames, qualifier)(pos)
-    dbmsRevoke = RevokePrivilege.dbmsAction(dbmsAction, immutable, roleNames, revokeType, qualifier)(pos)
+    dbmsGrant = GrantPrivilege(DbmsPrivilege(dbmsAction)(pos), immutable, None, qualifier, roleNames)(pos)
+    dbmsDeny = DenyPrivilege(DbmsPrivilege(dbmsAction)(pos), immutable, None, qualifier, roleNames)(pos)
+    dbmsRevoke = RevokePrivilege(
+      DbmsPrivilege(dbmsAction)(pos),
+      immutable,
+      None,
+      qualifier,
+      roleNames,
+      revokeType
+    )(pos)
     dbms <- oneOf(dbmsGrant, dbmsDeny, dbmsRevoke)
   } yield dbms
 
@@ -3188,17 +3198,29 @@ class AstGenerator(
     revokeType <- _revokeType
     immutable <- boolean
     databaseGrant =
-      GrantPrivilege.databaseAction(databaseAction, immutable, databaseScope, roleNames, databaseQualifier)(pos)
-    databaseDeny =
-      DenyPrivilege.databaseAction(databaseAction, immutable, databaseScope, roleNames, databaseQualifier)(pos)
-    databaseRevoke =
-      RevokePrivilege.databaseAction(
-        databaseAction,
+      GrantPrivilege(
+        DatabasePrivilege(databaseAction, databaseScope)(pos),
         immutable,
-        databaseScope,
+        None,
+        databaseQualifier,
+        roleNames
+      )(pos)
+    databaseDeny =
+      DenyPrivilege(
+        DatabasePrivilege(databaseAction, databaseScope)(pos),
+        immutable,
+        None,
+        databaseQualifier,
+        roleNames
+      )(pos)
+    databaseRevoke =
+      RevokePrivilege(
+        DatabasePrivilege(databaseAction, databaseScope)(pos),
+        immutable,
+        None,
+        databaseQualifier,
         roleNames,
-        revokeType,
-        databaseQualifier
+        revokeType
       )(pos)
     database <- oneOf(databaseGrant, databaseDeny, databaseRevoke)
   } yield database
@@ -3213,12 +3235,18 @@ class AstGenerator(
     revokeType <- _revokeType
     immutable <- boolean
     graphGrant =
-      GrantPrivilege.graphAction(graphAction, immutable, maybeResource, graphScope, qualifier, roleNames)(pos)
-    graphDeny = DenyPrivilege.graphAction(graphAction, immutable, maybeResource, graphScope, qualifier, roleNames)(pos)
+      GrantPrivilege(GraphPrivilege(graphAction, graphScope)(pos), immutable, maybeResource, qualifier, roleNames)(pos)
+    graphDeny =
+      DenyPrivilege(GraphPrivilege(graphAction, graphScope)(pos), immutable, maybeResource, qualifier, roleNames)(pos)
     graphRevoke =
-      RevokePrivilege.graphAction(graphAction, immutable, maybeResource, graphScope, qualifier, roleNames, revokeType)(
-        pos
-      )
+      RevokePrivilege(
+        GraphPrivilege(graphAction, graphScope)(pos),
+        immutable,
+        maybeResource,
+        qualifier,
+        roleNames,
+        revokeType
+      )(pos)
     graph <- oneOf(graphGrant, graphDeny, graphRevoke)
   } yield graph
 

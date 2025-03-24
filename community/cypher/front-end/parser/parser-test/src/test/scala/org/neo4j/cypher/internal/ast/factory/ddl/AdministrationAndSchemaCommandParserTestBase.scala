@@ -222,7 +222,13 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.GrantPrivilege.databaseAction(d, i, s, r)
+    ast.GrantPrivilege(
+      ast.DatabasePrivilege(d, s)(pos),
+      i,
+      None,
+      List(ast.AllDatabasesQualifier()(pos)),
+      r
+    )
 
   def grantTransactionPrivilege(
     d: ast.DatabaseAction,
@@ -231,14 +237,20 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.GrantPrivilege.databaseAction(d, i, s, r, q)
+    ast.GrantPrivilege(ast.DatabasePrivilege(d, s)(pos), i, None, q, r)
 
   def grantDbmsPrivilege(
     a: ast.DbmsAction,
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.GrantPrivilege.dbmsAction(a, i, r)
+    ast.GrantPrivilege(
+      ast.DbmsPrivilege(a)(pos),
+      i,
+      None,
+      List(ast.AllQualifier()(pos)),
+      r
+    )
 
   def grantExecuteProcedurePrivilege(
     a: ast.DbmsAction,
@@ -246,7 +258,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.GrantPrivilege.dbmsAction(a, i, r, q)
+    grantQualifiedDbmsPrivilege(a, q, r, i)
 
   def grantExecuteFunctionPrivilege(
     a: ast.DbmsAction,
@@ -254,7 +266,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.GrantPrivilege.dbmsAction(a, i, r, q)
+    grantQualifiedDbmsPrivilege(a, q, r, i)
 
   def grantShowSettingPrivilege(
     a: ast.DbmsAction,
@@ -262,7 +274,15 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.GrantPrivilege.dbmsAction(a, i, r, q)
+    grantQualifiedDbmsPrivilege(a, q, r, i)
+
+  def grantQualifiedDbmsPrivilege(
+    a: ast.DbmsAction,
+    q: List[ast.PrivilegeQualifier],
+    r: Seq[Expression],
+    i: Immutable
+  ): InputPosition => ast.Statement =
+    ast.GrantPrivilege(ast.DbmsPrivilege(a)(pos), i, None, q, r)
 
   def denyGraphPrivilege(
     p: ast.PrivilegeType,
@@ -287,7 +307,13 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.DenyPrivilege.databaseAction(d, i, s, r)
+    ast.DenyPrivilege(
+      ast.DatabasePrivilege(d, s)(pos),
+      i,
+      None,
+      List(ast.AllDatabasesQualifier()(pos)),
+      r
+    )
 
   def denyTransactionPrivilege(
     d: ast.DatabaseAction,
@@ -296,14 +322,20 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.DenyPrivilege.databaseAction(d, i, s, r, q)
+    ast.DenyPrivilege(ast.DatabasePrivilege(d, s)(pos), i, None, q, r)
 
   def denyDbmsPrivilege(
     a: ast.DbmsAction,
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.DenyPrivilege.dbmsAction(a, i, r)
+    ast.DenyPrivilege(
+      ast.DbmsPrivilege(a)(pos),
+      i,
+      None,
+      List(ast.AllQualifier()(pos)),
+      r
+    )
 
   def denyExecuteProcedurePrivilege(
     a: ast.DbmsAction,
@@ -311,7 +343,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.DenyPrivilege.dbmsAction(a, i, r, q)
+    denyQualifiedDbmsPrivilege(a, q, r, i)
 
   def denyExecuteFunctionPrivilege(
     a: ast.DbmsAction,
@@ -319,7 +351,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.DenyPrivilege.dbmsAction(a, i, r, q)
+    denyQualifiedDbmsPrivilege(a, q, r, i)
 
   def denyShowSettingPrivilege(
     a: ast.DbmsAction,
@@ -327,7 +359,15 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.DenyPrivilege.dbmsAction(a, i, r, q)
+    denyQualifiedDbmsPrivilege(a, q, r, i)
+
+  def denyQualifiedDbmsPrivilege(
+    a: ast.DbmsAction,
+    q: List[ast.PrivilegeQualifier],
+    r: Seq[Expression],
+    i: Immutable
+  ): InputPosition => ast.Statement =
+    ast.DenyPrivilege(ast.DbmsPrivilege(a)(pos), i, None, q, r)
 
   def revokeGrantGraphPrivilege(
     p: ast.PrivilegeType,
@@ -352,7 +392,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.databaseAction(d, i, s, r, ast.RevokeGrantType()(pos))
+    revokeDatabasePrivilege(ast.RevokeGrantType()(pos), d, s, r, i)
 
   def revokeGrantTransactionPrivilege(
     d: ast.DatabaseAction,
@@ -361,14 +401,14 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.databaseAction(d, i, s, r, ast.RevokeGrantType()(pos), q)
+    revokeQualifiedDatabasePrivilege(ast.RevokeGrantType()(pos), d, s, q, r, i)
 
   def revokeGrantDbmsPrivilege(
     a: ast.DbmsAction,
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeGrantType()(pos))
+    revokeDbmsPrivilege(ast.RevokeGrantType()(pos), a, r, i)
 
   def revokeGrantExecuteProcedurePrivilege(
     a: ast.DbmsAction,
@@ -376,7 +416,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeGrantType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeGrantType()(pos), a, q, r, i)
 
   def revokeGrantExecuteFunctionPrivilege(
     a: ast.DbmsAction,
@@ -384,7 +424,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeGrantType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeGrantType()(pos), a, q, r, i)
 
   def revokeGrantShowSettingPrivilege(
     a: ast.DbmsAction,
@@ -392,7 +432,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeGrantType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeGrantType()(pos), a, q, r, i)
 
   def revokeDenyGraphPrivilege(
     p: ast.PrivilegeType,
@@ -417,7 +457,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.databaseAction(d, i, s, r, ast.RevokeDenyType()(pos))
+    revokeDatabasePrivilege(ast.RevokeDenyType()(pos), d, s, r, i)
 
   def revokeDenyTransactionPrivilege(
     d: ast.DatabaseAction,
@@ -426,14 +466,14 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.databaseAction(d, i, s, r, ast.RevokeDenyType()(pos), q)
+    revokeQualifiedDatabasePrivilege(ast.RevokeDenyType()(pos), d, s, q, r, i)
 
   def revokeDenyDbmsPrivilege(
     a: ast.DbmsAction,
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeDenyType()(pos))
+    revokeDbmsPrivilege(ast.RevokeDenyType()(pos), a, r, i)
 
   def revokeDenyExecuteProcedurePrivilege(
     a: ast.DbmsAction,
@@ -441,7 +481,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeDenyType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeDenyType()(pos), a, q, r, i)
 
   def revokeDenyExecuteFunctionPrivilege(
     a: ast.DbmsAction,
@@ -449,7 +489,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeDenyType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeDenyType()(pos), a, q, r, i)
 
   def revokeDenyShowSettingPrivilege(
     a: ast.DbmsAction,
@@ -457,7 +497,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeDenyType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeDenyType()(pos), a, q, r, i)
 
   def revokeGraphPrivilege(
     p: ast.PrivilegeType,
@@ -482,7 +522,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.databaseAction(d, i, s, r, ast.RevokeBothType()(pos))
+    revokeDatabasePrivilege(ast.RevokeBothType()(pos), d, s, r, i)
 
   def revokeTransactionPrivilege(
     d: ast.DatabaseAction,
@@ -491,14 +531,14 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.databaseAction(d, i, s, r, ast.RevokeBothType()(pos), q)
+    revokeQualifiedDatabasePrivilege(ast.RevokeBothType()(pos), d, s, q, r, i)
 
   def revokeDbmsPrivilege(
     a: ast.DbmsAction,
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeBothType()(pos))
+    revokeDbmsPrivilege(ast.RevokeBothType()(pos), a, r, i)
 
   def revokeExecuteProcedurePrivilege(
     a: ast.DbmsAction,
@@ -506,7 +546,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeBothType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeBothType()(pos), a, q, r, i)
 
   def revokeExecuteFunctionPrivilege(
     a: ast.DbmsAction,
@@ -514,7 +554,7 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeBothType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeBothType()(pos), a, q, r, i)
 
   def revokeShowSettingPrivilege(
     a: ast.DbmsAction,
@@ -522,7 +562,57 @@ class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(a, i, r, ast.RevokeBothType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeBothType()(pos), a, q, r, i)
+
+  def revokeDatabasePrivilege(
+    rt: ast.RevokeType,
+    d: ast.DatabaseAction,
+    s: ast.DatabaseScope,
+    r: Seq[Expression],
+    i: Immutable
+  ): InputPosition => ast.Statement =
+    ast.RevokePrivilege(
+      ast.DatabasePrivilege(d, s)(pos),
+      i,
+      None,
+      List(ast.AllDatabasesQualifier()(pos)),
+      r,
+      rt
+    )
+
+  def revokeQualifiedDatabasePrivilege(
+    rt: ast.RevokeType,
+    d: ast.DatabaseAction,
+    s: ast.DatabaseScope,
+    q: List[ast.PrivilegeQualifier],
+    r: Seq[Expression],
+    i: Immutable
+  ): InputPosition => ast.Statement =
+    ast.RevokePrivilege(ast.DatabasePrivilege(d, s)(pos), i, None, q, r, rt)
+
+  def revokeDbmsPrivilege(
+    rt: ast.RevokeType,
+    a: ast.DbmsAction,
+    r: Seq[Expression],
+    i: Immutable
+  ): InputPosition => ast.Statement =
+    ast.RevokePrivilege(
+      ast.DbmsPrivilege(a)(pos),
+      i,
+      None,
+      List(ast.AllQualifier()(pos)),
+      r,
+      rt
+    )
+
+  def revokeQualifiedDbmsPrivilege(
+    rt: ast.RevokeType,
+    a: ast.DbmsAction,
+    q: List[ast.PrivilegeQualifier],
+    r: Seq[Expression],
+    i: Immutable
+  ): InputPosition => ast.Statement =
+    ast.RevokePrivilege(ast.DbmsPrivilege(a)(pos), i, None, q, r, rt)
 
   def returnClause(
     returnItems: ast.ReturnItems,

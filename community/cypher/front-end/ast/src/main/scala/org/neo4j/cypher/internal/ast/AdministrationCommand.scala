@@ -1150,36 +1150,6 @@ final case class GrantPrivilege(
   )
 }
 
-object GrantPrivilege {
-
-  def dbmsAction(
-    action: DbmsAction,
-    immutable: Boolean,
-    roleNames: Seq[Expression],
-    qualifier: List[PrivilegeQualifier] = List(AllQualifier()(InputPosition.NONE))
-  ): InputPosition => GrantPrivilege =
-    GrantPrivilege(DbmsPrivilege(action)(InputPosition.NONE), immutable, None, qualifier, roleNames)
-
-  def databaseAction(
-    action: DatabaseAction,
-    immutable: Boolean,
-    scope: DatabaseScope,
-    roleNames: Seq[Expression],
-    qualifier: List[DatabasePrivilegeQualifier] = List(AllDatabasesQualifier()(InputPosition.NONE))
-  ): InputPosition => GrantPrivilege =
-    GrantPrivilege(DatabasePrivilege(action, scope)(InputPosition.NONE), immutable, None, qualifier, roleNames)
-
-  def graphAction[T <: GraphPrivilegeQualifier](
-    action: GraphAction,
-    immutable: Boolean,
-    resource: Option[ActionResourceBase],
-    scope: GraphScope,
-    qualifier: List[T],
-    roleNames: Seq[Expression]
-  ): InputPosition => GrantPrivilege =
-    GrantPrivilege(GraphPrivilege(action, scope)(InputPosition.NONE), immutable, resource, qualifier, roleNames)
-}
-
 final case class DenyPrivilege(
   privilege: PrivilegeType,
   immutable: Boolean,
@@ -1197,36 +1167,6 @@ final case class DenyPrivilege(
       case _ => super.semanticCheck
     }
   }
-}
-
-object DenyPrivilege {
-
-  def dbmsAction(
-    action: DbmsAction,
-    immutable: Boolean,
-    roleNames: Seq[Expression],
-    qualifier: List[PrivilegeQualifier] = List(AllQualifier()(InputPosition.NONE))
-  ): InputPosition => DenyPrivilege =
-    DenyPrivilege(DbmsPrivilege(action)(InputPosition.NONE), immutable, None, qualifier, roleNames)
-
-  def databaseAction(
-    action: DatabaseAction,
-    immutable: Boolean,
-    scope: DatabaseScope,
-    roleNames: Seq[Expression],
-    qualifier: List[DatabasePrivilegeQualifier] = List(AllDatabasesQualifier()(InputPosition.NONE))
-  ): InputPosition => DenyPrivilege =
-    DenyPrivilege(DatabasePrivilege(action, scope)(InputPosition.NONE), immutable, None, qualifier, roleNames)
-
-  def graphAction[T <: GraphPrivilegeQualifier](
-    action: GraphAction,
-    immutable: Boolean,
-    resource: Option[ActionResourceBase],
-    scope: GraphScope,
-    qualifier: List[T],
-    roleNames: Seq[Expression]
-  ): InputPosition => DenyPrivilege =
-    DenyPrivilege(GraphPrivilege(action, scope)(InputPosition.NONE), immutable, resource, qualifier, roleNames)
 }
 
 final case class RevokePrivilege(
@@ -1253,53 +1193,6 @@ final case class RevokePrivilege(
     }
   }
 
-}
-
-object RevokePrivilege {
-
-  def dbmsAction(
-    action: DbmsAction,
-    immutable: Boolean,
-    roleNames: Seq[Expression],
-    revokeType: RevokeType,
-    qualifier: List[PrivilegeQualifier] = List(AllQualifier()(InputPosition.NONE))
-  ): InputPosition => RevokePrivilege =
-    RevokePrivilege(DbmsPrivilege(action)(InputPosition.NONE), immutable, None, qualifier, roleNames, revokeType)
-
-  def databaseAction(
-    action: DatabaseAction,
-    immutable: Boolean,
-    scope: DatabaseScope,
-    roleNames: Seq[Expression],
-    revokeType: RevokeType,
-    qualifier: List[DatabasePrivilegeQualifier] = List(AllDatabasesQualifier()(InputPosition.NONE))
-  ): InputPosition => RevokePrivilege =
-    RevokePrivilege(
-      DatabasePrivilege(action, scope)(InputPosition.NONE),
-      immutable,
-      None,
-      qualifier,
-      roleNames,
-      revokeType
-    )
-
-  def graphAction[T <: GraphPrivilegeQualifier](
-    action: GraphAction,
-    immutable: Boolean,
-    resource: Option[ActionResourceBase],
-    scope: GraphScope,
-    qualifier: List[T],
-    roleNames: Seq[Expression],
-    revokeType: RevokeType
-  ): InputPosition => RevokePrivilege =
-    RevokePrivilege(
-      GraphPrivilege(action, scope)(InputPosition.NONE),
-      immutable,
-      resource,
-      qualifier,
-      roleNames,
-      revokeType
-    )
 }
 
 // Server commands

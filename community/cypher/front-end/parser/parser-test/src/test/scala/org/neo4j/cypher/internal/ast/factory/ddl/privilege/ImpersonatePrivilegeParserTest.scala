@@ -34,35 +34,35 @@ class ImpersonatePrivilegeParserTest extends AdministrationAndSchemaCommandParse
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.GrantPrivilege.dbmsAction(ast.ImpersonateUserAction, i, r, q)
+    grantQualifiedDbmsPrivilege(ast.ImpersonateUserAction, q, r, i)
 
   def denyImpersonatePrivilege(
     q: List[ast.PrivilegeQualifier],
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.DenyPrivilege.dbmsAction(ast.ImpersonateUserAction, i, r, q)
+    denyQualifiedDbmsPrivilege(ast.ImpersonateUserAction, q, r, i)
 
   def revokeGrantImpersonatePrivilege(
     q: List[ast.PrivilegeQualifier],
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(ast.ImpersonateUserAction, i, r, ast.RevokeGrantType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeGrantType()(pos), ast.ImpersonateUserAction, q, r, i)
 
   def revokeDenyImpersonatePrivilege(
     q: List[ast.PrivilegeQualifier],
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(ast.ImpersonateUserAction, i, r, ast.RevokeDenyType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeDenyType()(pos), ast.ImpersonateUserAction, q, r, i)
 
   def revokeImpersonatePrivilege(
     q: List[ast.PrivilegeQualifier],
     r: Seq[Expression],
     i: Immutable
   ): InputPosition => ast.Statement =
-    ast.RevokePrivilege.dbmsAction(ast.ImpersonateUserAction, i, r, ast.RevokeBothType()(pos), q)
+    revokeQualifiedDbmsPrivilege(ast.RevokeBothType()(pos), ast.ImpersonateUserAction, q, r, i)
 
   Seq(
     ("GRANT", "TO", grantImpersonatePrivilege: impersonatePrivilegeFunc),
