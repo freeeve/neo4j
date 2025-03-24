@@ -32,6 +32,7 @@ import static org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata.EMPTY_A
 import static org.neo4j.kernel.impl.transaction.log.files.checkpoint.DetachedLogTailScanner.NO_TRANSACTION_ID;
 import static org.neo4j.logging.AssertableLogProvider.Level.INFO;
 import static org.neo4j.logging.LogAssertions.assertThat;
+import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_COMMIT_TIMESTAMP;
@@ -122,7 +123,7 @@ class DetachedLogTailScannerTest {
                 .withConfig(Config.defaults(fail_on_corrupted_log_files, true))
                 .build();
 
-        long txId = 6;
+        long txId = BASE_APPEND_INDEX + 2;
         PositionEntry position = position();
         setupLogFiles(
                 10,
@@ -163,7 +164,7 @@ class DetachedLogTailScannerTest {
 
     @Test
     void lastBatchOfFilesWithoutCheckpoint() throws Exception {
-        long appendIndex = 17;
+        long appendIndex = BASE_APPEND_INDEX + 1;
         setupLogFiles(10, logFile(start(appendIndex), commit(appendIndex - 5)));
 
         LogTailMetadata logTailInformation = logFiles.getTailMetadata();
@@ -175,7 +176,7 @@ class DetachedLogTailScannerTest {
 
     @Test
     void lastBatchOfFilesWithCheckpoint() throws Exception {
-        long appendIndex = 17;
+        long appendIndex = BASE_APPEND_INDEX + 1;
         setupLogFiles(
                 10,
                 logFile(start(appendIndex), commit(appendIndex - 5)),
@@ -191,7 +192,7 @@ class DetachedLogTailScannerTest {
 
     @Test
     void lastBatchOfFilesWithIncompleteChunkAtTheEnd() throws Exception {
-        long appendIndex = 17;
+        long appendIndex = BASE_APPEND_INDEX + 1;
         setupLogFiles(
                 10,
                 logFile(start(appendIndex), commit(appendIndex - 5)),
@@ -243,7 +244,7 @@ class DetachedLogTailScannerTest {
     @MethodSource("params")
     void oneLogFileNoCheckPointsOneStart(int startLogVersion, int endLogVersion) throws Exception {
         // given
-        long appendIndexAndCommit = 10;
+        long appendIndexAndCommit = BASE_APPEND_INDEX + 1;
         setupLogFiles(endLogVersion, logFile(start(appendIndexAndCommit), commit(appendIndexAndCommit)));
 
         // when
@@ -270,7 +271,7 @@ class DetachedLogTailScannerTest {
     @MethodSource("params")
     void twoLogFilesNoCheckPointsOneStart(int startLogVersion, int endLogVersion) throws Exception {
         // given
-        long txId = 21;
+        long txId = BASE_APPEND_INDEX + 1;
         setupLogFiles(endLogVersion, logFile(), logFile(start(txId), commit(txId)));
 
         // when
@@ -284,20 +285,20 @@ class DetachedLogTailScannerTest {
     @MethodSource("params")
     void twoLogFilesNoCheckPointsOneStartWithoutCommit(int startLogVersion, int endLogVersion) throws Exception {
         // given
-        setupLogFiles(endLogVersion, logFile(), logFile(start(15), pseudoEndSegment()));
+        setupLogFiles(endLogVersion, logFile(), logFile(start(BASE_APPEND_INDEX + 1), pseudoEndSegment()));
 
         // when
         var logTailInformation = logFiles.getTailMetadata();
 
         // then
-        assertLatestCheckPoint(false, true, 15, false, logTailInformation);
+        assertLatestCheckPoint(false, true, BASE_APPEND_INDEX + 1, false, logTailInformation);
     }
 
     @ParameterizedTest
     @MethodSource("params")
     void twoLogFilesNoCheckPointsTwoCommits(int startLogVersion, int endLogVersion) throws Exception {
         // given
-        long txId = 21;
+        long txId = BASE_APPEND_INDEX + 1;
         setupLogFiles(endLogVersion, logFile(), logFile(start(txId), commit(txId), start(txId + 1), commit(txId + 1)));
 
         // when
@@ -311,7 +312,7 @@ class DetachedLogTailScannerTest {
     @MethodSource("params")
     void twoLogFilesCheckPointTargetsPrevious(int startLogVersion, int endLogVersion) throws Exception {
         // given
-        long txId = 6;
+        long txId = BASE_APPEND_INDEX + 2;
         PositionEntry position = position();
         setupLogFiles(
                 endLogVersion,
@@ -333,14 +334,14 @@ class DetachedLogTailScannerTest {
         // to have a split in the middle of an entry though)
         assumeTrue(LATEST_KERNEL_VERSION.isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED));
         // given
-        long txId = 6;
+        long txId = BASE_APPEND_INDEX + 1;
         setupLogFiles(endLogVersion, logFile(start(txId)), logFile(commit(txId)));
 
         // when
         var logTailInformation = logFiles.getTailMetadata();
 
         // then
-        assertLatestCheckPoint(false, true, 6, false, logTailInformation);
+        assertLatestCheckPoint(false, true, txId, false, logTailInformation);
     }
 
     @ParameterizedTest
@@ -360,7 +361,7 @@ class DetachedLogTailScannerTest {
     @MethodSource("params")
     void latestLogFileContainingACheckPointAndAStartBefore(int startLogVersion, int endLogVersion) throws Exception {
         // given
-        setupLogFiles(endLogVersion, logFile(start(1), commit(1), checkPoint()));
+        setupLogFiles(endLogVersion, logFile(start(2), commit(2), checkPoint()));
 
         // when
         var logTailInformation = logFiles.getTailMetadata();
@@ -410,7 +411,7 @@ class DetachedLogTailScannerTest {
     @MethodSource("params")
     void latestLogFileContainingACheckPointAndAStartAfter(int startLogVersion, int endLogVersion) throws Exception {
         // given
-        long txId = 35;
+        long txId = BASE_APPEND_INDEX + 1;
         StartEntry start = start(txId);
         setupLogFiles(endLogVersion, logFile(start, commit(txId), checkPoint(start)));
 
@@ -426,7 +427,7 @@ class DetachedLogTailScannerTest {
     void latestLogFileContainingMultipleCheckPointsOneStartInBetween(int startLogVersion, int endLogVersion)
             throws Exception {
         // given
-        setupLogFiles(endLogVersion, logFile(checkPoint(), start(1), commit(1), checkPoint()));
+        setupLogFiles(endLogVersion, logFile(checkPoint(), start(2), commit(2), checkPoint()));
 
         // when
         var logTailInformation = logFiles.getTailMetadata();
@@ -440,7 +441,7 @@ class DetachedLogTailScannerTest {
     void latestLogFileContainingMultipleCheckPointsOneStartAfterBoth(int startLogVersion, int endLogVersion)
             throws Exception {
         // given
-        long txId = 11;
+        long txId = BASE_APPEND_INDEX + 1;
         setupLogFiles(endLogVersion, logFile(checkPoint(), checkPoint(), start(txId), commit(txId)));
 
         // when
@@ -455,7 +456,7 @@ class DetachedLogTailScannerTest {
     void olderLogFileContainingACheckPointAndNewerFileContainingAStart(int startLogVersion, int endLogVersion)
             throws Exception {
         // given
-        long txId = 11;
+        long txId = BASE_APPEND_INDEX + 1;
         StartEntry start = start(txId);
         setupLogFiles(endLogVersion, logFile(checkPoint()), logFile(start, commit(txId)));
 
@@ -470,8 +471,8 @@ class DetachedLogTailScannerTest {
     @MethodSource("params")
     void olderLogFileContainingACheckPointAndNewerFileIsEmpty(int startLogVersion, int endLogVersion) throws Exception {
         // given
-        StartEntry start = start(1);
-        setupLogFiles(endLogVersion, logFile(start, commit(1), checkPoint()), logFile());
+        StartEntry start = start(2);
+        setupLogFiles(endLogVersion, logFile(start, commit(2), checkPoint()), logFile());
 
         // when
         var logTailInformation = logFiles.getTailMetadata();
@@ -485,7 +486,7 @@ class DetachedLogTailScannerTest {
     void olderLogFileContainingAStartAndNewerFileContainingACheckPointPointingToAPreviousPositionThanStart(
             int startLogVersion, int endLogVersion) throws Exception {
         // given
-        long txId = 123;
+        long txId = BASE_APPEND_INDEX + 1;
         StartEntry start = start(txId);
         setupLogFiles(endLogVersion, logFile(start, commit(txId)), logFile(checkPoint(start)));
 
@@ -502,7 +503,7 @@ class DetachedLogTailScannerTest {
             int startLogVersion, int endLogVersion) throws Exception {
         // given
         PositionEntry position = position();
-        setupLogFiles(endLogVersion, logFile(start(3), commit(3), position), logFile(checkPoint(position)));
+        setupLogFiles(endLogVersion, logFile(start(2), commit(2), position), logFile(checkPoint(position)));
 
         // when
         var logTailInformation = logFiles.getTailMetadata();
@@ -516,8 +517,8 @@ class DetachedLogTailScannerTest {
     void latestLogEmptyStartEntryBeforeAndAfterCheckPointInTheLastButOneLog(int startLogVersion, int endLogVersion)
             throws Exception {
         // given
-        long txId = 432;
-        setupLogFiles(endLogVersion, logFile(start(1), commit(1), checkPoint(), start(txId), commit(txId)), logFile());
+        long txId = BASE_APPEND_INDEX + 2;
+        setupLogFiles(endLogVersion, logFile(start(2), commit(2), checkPoint(), start(txId), commit(txId)), logFile());
 
         // when
         var logTailInformation = logFiles.getTailMetadata();
@@ -530,7 +531,7 @@ class DetachedLogTailScannerTest {
     @MethodSource("params")
     void printProgress(long startLogVersion, long endLogVersion) throws Exception {
         // given
-        long txId = 6;
+        long txId = BASE_APPEND_INDEX + 2;
         PositionEntry position = position();
         setupLogFiles(
                 endLogVersion,
@@ -549,7 +550,7 @@ class DetachedLogTailScannerTest {
 
     @Test
     void extractTxIdFromFirstChunkEndOnEmptyLogs() throws Exception {
-        long chunkTxId = 42;
+        long chunkTxId = BASE_APPEND_INDEX + 1;
         setupLogFiles(10, logFile(start(chunkTxId), chunkEnd(chunkTxId)), logFile());
 
         LogTailMetadata tailMetadata = logFiles.getTailMetadata();
@@ -558,7 +559,7 @@ class DetachedLogTailScannerTest {
 
     @Test
     void extractTxIdFromFirstChunkEndOnNotEmptyLogs() throws Exception {
-        long chunkTxId = 42;
+        long chunkTxId = BASE_APPEND_INDEX + 2;
         PositionEntry position = position();
         setupLogFiles(
                 11,
@@ -777,7 +778,7 @@ class DetachedLogTailScannerTest {
                     for (Entry entry : entries) {
                         positions.put(entry, lastCommitEntryPosition);
                         switch (entry) {
-                            case StartEntry startEntry ->
+                            case StartEntry startEntry -> {
                                 writer.writeStartEntry(
                                         kernelVersion,
                                         0,
@@ -785,6 +786,8 @@ class DetachedLogTailScannerTest {
                                         startEntry.appendIndex(),
                                         previousChecksum,
                                         startEntry.additionalHeader());
+                                appendIndexProvider.setAppendIndex(startEntry.appendIndex());
+                            }
                             case CommitEntry commitEntry -> {
                                 previousChecksum = writer.writeCommitEntry(kernelVersion, commitEntry.txId, 0);
                                 lastCommitEntryPosition = logWriter.getCurrentPosition();

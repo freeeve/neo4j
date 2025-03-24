@@ -80,7 +80,7 @@ class LogEntrySerializerDispatcherTest {
         LogFormat logFormat = LogFormat.fromKernelVersion(version);
         LogHeader logHeader = logFormat.newHeader(
                 1,
-                1,
+                2,
                 LogHeader.UNKNOWN_TERM,
                 StoreId.UNKNOWN,
                 logFormat.getDefaultSegmentBlockSize(),

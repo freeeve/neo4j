@@ -30,11 +30,9 @@ import static org.neo4j.kernel.impl.transaction.log.GivenCommandBatchCursor.exha
 import static org.neo4j.kernel.impl.transaction.log.TestLogEntryReader.logEntryReader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
-import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
-import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_TX_ID;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -451,11 +449,12 @@ class ReversedEnvelopedCommandBatchCursorTest {
         TransactionLogWriter writer = logFile.getTransactionLogWriter();
         int previousChecksum = BASE_TX_CHECKSUM;
         for (int i = 0; i < transactionCount; i++) {
+            long transactionId = ++txId;
             previousChecksum = writer.append(
                     tx(random.intBetween(minTransactionSize, maxTransactionSize)),
-                    ++txId,
+                    transactionId,
                     UNKNOWN_CHUNK_ID,
-                    UNKNOWN_TX_ID,
+                    transactionId,
                     previousChecksum,
                     LogVersionRepository.UNKNOWN_LOG_OFFSET,
                     LogAppendEvent.NULL);
@@ -468,11 +467,12 @@ class ReversedEnvelopedCommandBatchCursorTest {
         var channel = logFile.getTransactionLogWriter().getChannel();
         TransactionLogWriter writer = new TransactionLogWriter(
                 channel, new CorruptedLogEntryWriter<>(channel), () -> kernelVersion, LogRotation.NO_ROTATION);
+        long transactionId = ++txId;
         writer.append(
                 tx(random.intBetween(100, 1000)),
-                ++txId,
+                transactionId,
                 UNKNOWN_CHUNK_ID,
-                UNKNOWN_APPEND_INDEX,
+                transactionId,
                 BASE_TX_CHECKSUM,
                 LogVersionRepository.UNKNOWN_LOG_OFFSET,
                 LogAppendEvent.NULL);

@@ -390,7 +390,7 @@ class TransactionLogsRecoveryTest {
 
             // incomplete tx
             channel.getCurrentLogPosition(marker); // <-- marker has the last good position
-            writer.writeStartEntry(LATEST_KERNEL_VERSION, 5L, 4L, 78, 9, EMPTY_BYTE_ARRAY);
+            writer.writeStartEntry(LATEST_KERNEL_VERSION, 5L, 4L, 4L, 9, EMPTY_BYTE_ARRAY);
             channel.putChecksum();
 
             return true;
@@ -411,7 +411,7 @@ class TransactionLogsRecoveryTest {
         writeSomeData(file, dataWriters -> {
             LogEntryWriter<?> writer = dataWriters.writer();
             LogPositionAwareChannel channel = dataWriters.channel();
-            writer.writeStartEntry(LATEST_KERNEL_VERSION, 1L, 1L, 2L, BASE_TX_CHECKSUM, EMPTY_BYTE_ARRAY);
+            writer.writeStartEntry(LATEST_KERNEL_VERSION, 1L, 1L, 4L, BASE_TX_CHECKSUM, EMPTY_BYTE_ARRAY);
             TransactionId transactionId = new TransactionId(1L, 5L, LATEST_KERNEL_VERSION, BASE_TX_CHECKSUM, 2L, 4L);
 
             writer.writeCommitEntry(LATEST_KERNEL_VERSION, 1L, 2L);
@@ -429,7 +429,7 @@ class TransactionLogsRecoveryTest {
                     "test");
 
             // write incomplete tx to trigger recovery
-            writer.writeStartEntry(LATEST_KERNEL_VERSION, 5L, 4L, 28, 2, EMPTY_BYTE_ARRAY);
+            writer.writeStartEntry(LATEST_KERNEL_VERSION, 5L, 4L, 5L, 2, EMPTY_BYTE_ARRAY);
             writer.getChannel().putChecksum();
             return true;
         });
@@ -459,7 +459,7 @@ class TransactionLogsRecoveryTest {
         writeSomeData(file, dataWriters -> {
             LogEntryWriter<?> writer = dataWriters.writer();
             LogPositionAwareChannel channel = dataWriters.channel();
-            writer.writeStartEntry(LATEST_KERNEL_VERSION, 1L, 1L, 2L, BASE_TX_CHECKSUM, EMPTY_BYTE_ARRAY);
+            writer.writeStartEntry(LATEST_KERNEL_VERSION, 1L, 1L, 4L, BASE_TX_CHECKSUM, EMPTY_BYTE_ARRAY);
             writer.writeCommitEntry(LATEST_KERNEL_VERSION, 1L, 2L);
             TransactionId transactionId = new TransactionId(1L, 4L, LATEST_KERNEL_VERSION, BASE_TX_CHECKSUM, 2L, 3L);
 
@@ -486,7 +486,7 @@ class TransactionLogsRecoveryTest {
                     "invalid checkpoint");
 
             // incomplete tx
-            writer.writeStartEntry(LATEST_KERNEL_VERSION, 5L, 4L, 27, 1, EMPTY_BYTE_ARRAY);
+            writer.writeStartEntry(LATEST_KERNEL_VERSION, 5L, 4L, 5L, 1, EMPTY_BYTE_ARRAY);
             writer.getChannel().putChecksum();
             return true;
         });
@@ -515,7 +515,7 @@ class TransactionLogsRecoveryTest {
 
             // incomplete tx
             channel.getCurrentLogPosition(marker); // <-- marker has the last good position
-            writer.writeStartEntry(LATEST_KERNEL_VERSION, 5L, 4L, 4L, previousChecksum, EMPTY_BYTE_ARRAY);
+            writer.writeStartEntry(LATEST_KERNEL_VERSION, 5L, 4L, 5L, previousChecksum, EMPTY_BYTE_ARRAY);
             writer.getChannel().putChecksum();
 
             return true;

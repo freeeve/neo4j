@@ -242,8 +242,8 @@ class ReversedMultiFileCommandBatchCursorTest {
             previousChecksum = writer.append(
                     tx(random.intBetween(1, 5)),
                     transactionId,
-                    transactionId,
                     UNKNOWN_CHUNK_ID,
+                    transactionId,
                     previousChecksum,
                     UNKNOWN_APPEND_INDEX,
                     LogAppendEvent.NULL);

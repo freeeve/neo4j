@@ -234,12 +234,7 @@ class DumpCommandIT {
             LogFile logFile = logFiles.getLogFile();
             LogEntryWriter<?> writer = logFile.getTransactionLogWriter().getWriter();
             writer.writeStartEntry(
-                    LatestVersions.LATEST_KERNEL_VERSION,
-                    0x123456789ABCDEFL,
-                    4,
-                    logFile.getLogFileInformation().getLastEntryAppendIndex() + 1,
-                    BASE_TX_CHECKSUM,
-                    new byte[] {0});
+                    LatestVersions.LATEST_KERNEL_VERSION, 0x123456789ABCDEFL, 4, 4, BASE_TX_CHECKSUM, new byte[] {0});
             // Required to push envelopes to stream
             writer.getChannel().putChecksum();
         }
