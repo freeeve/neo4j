@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 import org.neo4j.cypher.internal.compiler.planner.logical.ConvertToNFA
 import org.neo4j.cypher.internal.compiler.planner.logical.LimitRangesOnSelectivePathPattern
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
-import org.neo4j.cypher.internal.compiler.planner.logical.equalsPredicate
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.expandSolverStep.LogicalPlanWithIntoVsAllHeuristic
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.expandSolverStep.planSinglePatternSide
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.expandSolverStep.planSingleProjectEndpoints
@@ -352,20 +351,8 @@ object expandSolverStep {
     val innerPlan = qppInnerPlanner.planQPP(quantifiedPathPattern, fromLeft, extractedPredicates, filteredLabelInfo)
     val innerPlanPredicates = extractedPredicates.predicates.map(_.original)
 
-    // Update the QPP for Trail planning
-    val updatedQpp = qppInnerPlanner.updateQpp(quantifiedPathPattern, fromLeft, availableVars)
-
-    val startBinding = if (fromLeft) updatedQpp.leftBinding else updatedQpp.rightBinding
-    val endBinding = if (fromLeft) updatedQpp.rightBinding else updatedQpp.leftBinding
-    val originalEndBinding = if (fromLeft) quantifiedPathPattern.rightBinding else quantifiedPathPattern.leftBinding
-
-    // If both the start and the end are already bound, we need to plan an extra filter to verify that we expanded to the right end nodes.
-    val maybeHiddenFilter =
-      if (originalEndBinding.outer != endBinding.outer) {
-        Some(equalsPredicate(endBinding.outer, originalEndBinding.outer))
-      } else {
-        None
-      }
+    val startBinding = if (fromLeft) quantifiedPathPattern.leftBinding else quantifiedPathPattern.rightBinding
+    val endBinding = if (fromLeft) quantifiedPathPattern.rightBinding else quantifiedPathPattern.leftBinding
 
     val groupingRelationships = quantifiedPathPattern.relationshipVariableGroupings.map(_.group)
 
@@ -407,6 +394,9 @@ object expandSolverStep {
     val previouslyBoundRelationships = uniquenessPredicates.flatMap(_.previouslyBoundRelationships).toSet
     val previouslyBoundRelationshipGroups = uniquenessPredicates.flatMap(_.previouslyBoundRelationshipGroups).toSet
 
+    val endNode = if (fromLeft) quantifiedPathPattern.right else quantifiedPathPattern.left
+    val expansionMode = if (availableVars.contains(endNode)) ExpandInto else ExpandAll
+
     val pathMode = TraversalPathMode.getFromPredicates(solvedPredicates)
 
     val plan = updatedContext.staticComponents.logicalPlanProducer.planRepeat(
@@ -414,13 +404,13 @@ object expandSolverStep {
       pattern = quantifiedPathPattern,
       startBinding = startBinding,
       endBinding = endBinding,
-      maybeHiddenFilter = maybeHiddenFilter,
       context = updatedContext,
       innerPlan = innerPlan,
       predicates = solvedPredicates,
       previouslyBoundRelationships,
       previouslyBoundRelationshipGroups,
       reverseGroupVariableProjections = !fromLeft,
+      expansionMode,
       pathMode
     )
 

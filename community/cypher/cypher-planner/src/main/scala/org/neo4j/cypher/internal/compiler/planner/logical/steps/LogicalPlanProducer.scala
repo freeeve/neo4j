@@ -1295,13 +1295,13 @@ case class LogicalPlanProducer(
     pattern: QuantifiedPathPattern,
     startBinding: NodeBinding,
     endBinding: NodeBinding,
-    maybeHiddenFilter: Option[Expression],
     context: LogicalPlanningContext,
     innerPlan: LogicalPlan,
     predicates: Seq[Expression],
     previouslyBoundRelationships: Set[LogicalVariable],
     previouslyBoundRelationshipGroups: Set[LogicalVariable],
     reverseGroupVariableProjections: Boolean,
+    expansionMode: ExpansionMode,
     pathMode: TraversalPathMode
   ): LogicalPlan = {
     // Ensure that innerPlan does conform with the pattern contained inside the quantified path pattern before we mark it as solved
@@ -1342,7 +1342,8 @@ case class LogicalPlanProducer(
           innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet,
           previouslyBoundRelationships = previouslyBoundRelationships,
           previouslyBoundRelationshipGroups = previouslyBoundRelationshipGroups,
-          reverseGroupVariableProjections = reverseGroupVariableProjections
+          reverseGroupVariableProjections = reverseGroupVariableProjections,
+          expansionMode = expansionMode
         )
       case TraversalPathMode.Walk =>
         RepeatWalk(
@@ -1356,6 +1357,7 @@ case class LogicalPlanProducer(
           nodeVariableGroupings = pattern.nodeVariableGroupings,
           relationshipVariableGroupings = pattern.relationshipVariableGroupings,
           reverseGroupVariableProjections = reverseGroupVariableProjections,
+          expansionMode = expansionMode,
           innerRelationships = pattern.patternRelationships.map(p => p.variable).toSet
         )
       case _ => throw new IllegalStateException(s"Unknown path mode: $pathMode")
@@ -1367,33 +1369,6 @@ case class LogicalPlanProducer(
       cachedPropertiesPerPlan.get(innerPlan.id),
       context
     )
-
-    maybeHiddenFilter match {
-      case Some(hiddenFilter) =>
-        val RemoteBatchingResult(
-          rewrittenExpressionsWithCachedProperties,
-          planWithProperties
-        ) =
-          context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForSelections(
-            solved.asSinglePlannerQuery.queryGraph,
-            repeatPlan,
-            context,
-            Set(hiddenFilter)
-          )
-        rewrittenExpressionsWithCachedProperties.selections match {
-          case rewrittenSelections: Set[Expression] if rewrittenSelections.nonEmpty =>
-            annotateSelection(
-              Selection(rewrittenExpressionsWithCachedProperties.selections.toSeq, planWithProperties),
-              solved,
-              providedOrderRule,
-              cachedPropertiesPerPlan.get(planWithProperties.id),
-              context
-            )
-          case _ => planWithProperties
-        }
-
-      case None => repeatPlan
-    }
   }
 
   def planNodeByIdSeek(

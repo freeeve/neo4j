@@ -30,7 +30,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.extractQppPredicat
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.ir.QuantifiedPathPattern
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
@@ -58,29 +57,6 @@ trait QPPInnerPlanner {
     extractedPredicates: ExtractedPredicates,
     labelInfoOuter: LabelInfo
   ): LogicalPlan
-
-  /**
-   * Updates the outer portion of a QPP that was previously planned by inserting arguments, and enabling TrailInto
-   * semantics.
-   *
-   * We need to the insert the same arguments in the QPP as we did when originally planning the inner QPP so that
-   * VerifyBestPlan can validate the plan.
-   *
-   * We currently don't have a TrailInto operator that would allow us to create a LogicalPlan when both juxtaposed
-   * nodes of the QPP are bound. Such situations may however occur, and when they occur we need to be careful
-   * that Trail doesn't overwrite the variable that was the previously bound juxtaposed end node. To this end, we update
-   * the QPP to produce an anonymous variable that we can then do a join on (following the Trail operator).
-   *
-   * @param qpp               The QPP pattern to update
-   * @param fromLeft          The QPP node we can use as argument
-   * @param availableSymbols  The previously bound symbols
-   * @return
-   */
-  def updateQpp(
-    qpp: QuantifiedPathPattern,
-    fromLeft: Boolean,
-    availableSymbols: Set[LogicalVariable]
-  ): QuantifiedPathPattern
 }
 
 /**
@@ -130,14 +106,6 @@ class CacheBackedQPPInnerPlanner(planner: => QPPInnerPlanner) extends QPPInnerPl
         qppInnerPlan
     }
   }
-
-  override def updateQpp(
-    qpp: QuantifiedPathPattern,
-    fromLeft: Boolean,
-    availableSymbols: Set[LogicalVariable]
-  ): QuantifiedPathPattern =
-    planner.updateQpp(qpp, fromLeft, availableSymbols)
-
 }
 
 object CacheBackedQPPInnerPlanner {
@@ -232,34 +200,5 @@ case class IDPQPPInnerPlanner(context: LogicalPlanningContext) extends QPPInnerP
   private def getQPPStartNode(qpp: QuantifiedPathPattern, fromLeft: Boolean): LogicalVariable = {
     if (fromLeft) qpp.leftBinding.inner
     else qpp.rightBinding.inner
-  }
-
-  override def updateQpp(
-    qpp: QuantifiedPathPattern,
-    fromLeft: Boolean,
-    availableSymbols: Set[LogicalVariable]
-  ): QuantifiedPathPattern = {
-    val endNode = if (fromLeft) qpp.right else qpp.left
-    val overlapping = availableSymbols.contains(endNode)
-    if (overlapping) {
-      updateQppForTrailInto(qpp, fromLeft, context)
-    } else {
-      qpp
-    }
-  }
-
-  private def updateQppForTrailInto(
-    qpp: QuantifiedPathPattern,
-    fromLeft: Boolean,
-    context: LogicalPlanningContext
-  ): QuantifiedPathPattern = {
-    val newVar = varFor(context.staticComponents.anonymousVariableNameGenerator.nextName)
-    val qppWithNewEndBindingOuterName =
-      if (fromLeft) {
-        qpp.copy(rightBinding = qpp.rightBinding.copy(outer = newVar))
-      } else {
-        qpp.copy(leftBinding = qpp.leftBinding.copy(outer = newVar))
-      }
-    qppWithNewEndBindingOuterName
   }
 }

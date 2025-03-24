@@ -1625,13 +1625,13 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         pattern = quantifiedPathPattern,
         startBinding = quantifiedPathPattern.leftBinding,
         endBinding = quantifiedPathPattern.rightBinding,
-        maybeHiddenFilter = None,
         context = context,
         innerPlan = innerPlan,
         predicates = Nil,
         previouslyBoundRelationships = Set.empty,
         previouslyBoundRelationshipGroups = Set.empty,
         reverseGroupVariableProjections = false,
+        ExpandAll,
         TraversalPathMode.Trail
       ) should have message "The provided inner plan doesn't conform with the quantified path pattern being planned"
     }
