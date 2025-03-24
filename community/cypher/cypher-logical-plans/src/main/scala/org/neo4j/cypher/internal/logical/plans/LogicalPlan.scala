@@ -4184,7 +4184,7 @@ sealed abstract class Repeat(idGen: IdGen)
   def innerEnd: LogicalVariable
   def reverseGroupVariableProjections: Boolean
   def innerRelationships: Set[LogicalVariable]
-  def mode: ExpansionMode
+  def expansionMode: ExpansionMode
 
   def withEnd(newEnd: LogicalVariable)(idGen: IdGen): Repeat
 
@@ -4232,7 +4232,7 @@ case class RepeatTrail(
   previouslyBoundRelationships: Set[LogicalVariable],
   previouslyBoundRelationshipGroups: Set[LogicalVariable],
   reverseGroupVariableProjections: Boolean,
-  mode: ExpansionMode = ExpandAll
+  expansionMode: ExpansionMode = ExpandAll
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)
@@ -4279,7 +4279,7 @@ case class RepeatWalk(
   override val relationshipVariableGroupings: Set[VariableGrouping],
   reverseGroupVariableProjections: Boolean,
   innerRelationships: Set[LogicalVariable],
-  mode: ExpansionMode = ExpandAll
+  expansionMode: ExpansionMode = ExpandAll
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)

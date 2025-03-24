@@ -1354,7 +1354,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         // so we allocate it on the LHS (even though its value will not be needed after the Repeat is done).
         // Additionally, to avoid copying rows emitted by Repeat, all Repeat slots are allocated on the LHS.
         lhs.newLong(repeat.innerStart, nullable, CTNode)
-        if (repeat.mode == ExpandAll) {
+        if (repeat.expansionMode == ExpandAll) {
           lhs.newLong(repeat.end, nullable, CTNode)
         }
         repeat.nodeVariableGroupings.foreach(n => lhs.newReference(n.group, nullable, CTList(CTNode)))

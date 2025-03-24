@@ -69,11 +69,11 @@ case class repeatTrailAndWalkEndNodePredicateRewriter(attributes: Attributes[Log
     Rewriter.lift {
       case IsRepeatTrailIntoRewritable(selection, repeat, intoVariable) =>
         val id = attributes.copy(selection.id).id()
-        repeat.copy(end = intoVariable, mode = ExpandInto)(SameId(id))
+        repeat.copy(end = intoVariable, expansionMode = ExpandInto)(SameId(id))
 
       case IsRepeatWalkIntoRewritable(selection, repeat, intoVariable) =>
         val id = attributes.copy(selection.id).id()
-        repeat.copy(end = intoVariable, mode = ExpandInto)(SameId(id))
+        repeat.copy(end = intoVariable, expansionMode = ExpandInto)(SameId(id))
     }
   }
 
