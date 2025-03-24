@@ -92,6 +92,18 @@ public class CypherExecutionException extends Neo4jException {
         return new CypherExecutionException(gql, msg, cause);
     }
 
+    public static CypherExecutionException queryExecutionFailed(Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
+                .build();
+        return new CypherExecutionException(gql, "Query execution failed", cause);
+    }
+
+    public static CypherExecutionException unknownError(Throwable cause) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
+                .build();
+        return new CypherExecutionException(gql, cause.getMessage(), cause);
+    }
+
     public static CypherExecutionException unexpectedError(Throwable cause) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N00)
                 .withParam(GqlParams.StringParam.msgTitle, "Unexpected error")

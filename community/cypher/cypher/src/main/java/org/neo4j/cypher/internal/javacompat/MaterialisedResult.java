@@ -51,7 +51,7 @@ class MaterialisedResult implements QuerySubscriber {
             if (e instanceof Status.HasStatus) {
                 throw QueryExecutionKernelException.wrapError((Exception & Status.HasStatus) e);
             }
-            throw QueryExecutionKernelException.wrapError(new CypherExecutionException("Query execution failed", e));
+            throw QueryExecutionKernelException.wrapError(CypherExecutionException.queryExecutionFailed(e));
         }
     }
 
