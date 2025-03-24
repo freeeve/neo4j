@@ -508,7 +508,18 @@ public abstract class Bootloader implements AutoCloseable {
 
             Stopwatch stopwatch = Stopwatch.start();
             long pid = runningProcess.get();
-            os.stop(pid);
+            try {
+                os.stop(pid);
+            } catch (CommandFailedException e) {
+                environment.out().println(" failed to stop.");
+                environment
+                        .out()
+                        .printf(
+                                "Neo4j%s process could not be stopped. Do you have the right permissions?%n",
+                                pidIfKnown(pid));
+                throw new CommandFailedException("Failed to stop", e, EXIT_CODE_RUNNING);
+            }
+
             int printCount = 0;
             do {
                 if (!os.isRunning(pid)) {

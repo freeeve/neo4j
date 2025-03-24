@@ -76,7 +76,14 @@ abstract class AbstractUnixBootloaderOs extends BootloaderOsAbstraction {
 
     @Override
     void stop(long pid) throws CommandFailedException {
-        getProcessIfAlive(pid).ifPresent(ProcessHandle::destroy);
+        getProcessIfAlive(pid).ifPresent(this::destroyOrFail);
+    }
+
+    private void destroyOrFail(ProcessHandle process) throws CommandFailedException {
+        var couldIssueDestroy = process.destroy();
+        if (!couldIssueDestroy) {
+            throw new CommandFailedException("Failed to stop process.");
+        }
     }
 
     @Override
