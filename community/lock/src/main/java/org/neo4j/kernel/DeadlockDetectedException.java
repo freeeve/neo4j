@@ -38,6 +38,7 @@ public class DeadlockDetectedException extends TransientTransactionFailureExcept
         super(gqlStatusObject, Status.Transaction.DeadlockDetected, message);
     }
 
+    @Deprecated
     public DeadlockDetectedException(String message, Throwable cause) {
         super(Status.Transaction.DeadlockDetected, message, cause);
     }

@@ -28,6 +28,7 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class CantCompileQueryException extends Neo4jException {
+    @Deprecated
     public CantCompileQueryException(String message, Throwable cause) {
         super(message, cause);
     }
@@ -36,6 +37,7 @@ public class CantCompileQueryException extends Neo4jException {
         super(gqlStatusObject, message, cause);
     }
 
+    @Deprecated
     public CantCompileQueryException(String message) {
         super(message);
     }

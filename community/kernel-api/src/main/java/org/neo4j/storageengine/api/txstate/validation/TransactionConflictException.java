@@ -39,24 +39,42 @@ public class TransactionConflictException extends TransientFailureException {
     private long observedVersion;
     private long highestClosed;
 
-    public TransactionConflictException(DatabaseFile databaseFile, VersionContext versionContext, long pageId) {
-        super(GQL_STATUS, createMessage(databaseFile.getName(), pageId, versionContext));
+    private TransactionConflictException(
+            ErrorGqlStatusObject gqlStatusObject,
+            DatabaseFile databaseFile,
+            VersionContext versionContext,
+            long pageId) {
+        super(gqlStatusObject, createMessage(databaseFile.getName(), pageId, versionContext));
         this.databaseFile = databaseFile;
         this.observedVersion = versionContext.chainHeadVersion();
         this.highestClosed = versionContext.highestClosed();
     }
 
-    public TransactionConflictException(String message, Exception cause) {
-        super(GQL_STATUS, message, cause);
+    private TransactionConflictException(ErrorGqlStatusObject gqlStatusObject, String message, Exception cause) {
+        super(gqlStatusObject, message, cause);
     }
 
-    public TransactionConflictException(Exception cause) {
-        this(GENERIC_MESSAGE, cause);
-    }
-
-    public TransactionConflictException(RecordDatabaseFile databaseFile, long pageId) {
-        super(GQL_STATUS, createPageIdPagedMessage(databaseFile.getName(), pageId));
+    private TransactionConflictException(
+            ErrorGqlStatusObject gqlStatusObject, RecordDatabaseFile databaseFile, long pageId) {
+        super(gqlStatusObject, createPageIdPagedMessage(databaseFile.getName(), pageId));
         this.databaseFile = databaseFile;
+    }
+
+    public static TransactionConflictException transactionConflict(
+            DatabaseFile databaseFile, VersionContext versionContext, long pageId) {
+        return new TransactionConflictException(GQL_STATUS, databaseFile, versionContext, pageId);
+    }
+
+    public static TransactionConflictException transactionConflict(String message, Exception cause) {
+        return new TransactionConflictException(GQL_STATUS, message, cause);
+    }
+
+    public static TransactionConflictException transactionConflict(Exception cause) {
+        return new TransactionConflictException(GQL_STATUS, GENERIC_MESSAGE, cause);
+    }
+
+    public static TransactionConflictException transactionConflict(RecordDatabaseFile databaseFile, long pageId) {
+        return new TransactionConflictException(GQL_STATUS, databaseFile, pageId);
     }
 
     @Override

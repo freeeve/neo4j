@@ -30,19 +30,7 @@ public abstract class RepeatedSchemaComponentException extends SchemaKernelExcep
     private final OperationContext context;
     private final SchemaComponent component;
 
-    RepeatedSchemaComponentException(
-            Status status,
-            SchemaDescriptor schema,
-            OperationContext context,
-            SchemaComponent component,
-            TokenNameLookup tokenNameLookup) {
-        super(status, format(schema, context, tokenNameLookup, component));
-        this.schema = schema;
-        this.context = context;
-        this.component = component;
-    }
-
-    RepeatedSchemaComponentException(
+    protected RepeatedSchemaComponentException(
             ErrorGqlStatusObject gqlStatusObject,
             Status status,
             SchemaDescriptor schema,

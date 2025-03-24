@@ -25,6 +25,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class CypherExecutionInterruptedException extends Neo4jException {
     private final Status status;
 
+    @Deprecated
     public CypherExecutionInterruptedException(String message, Status status) {
         super(message);
         this.status = status;

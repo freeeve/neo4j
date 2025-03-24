@@ -41,11 +41,6 @@ public class TransactionTerminatedHelper {
         return new TransactionTerminatedException(gql, status, "");
     }
 
-    public static TransactionTerminatedException transactionTerminated(Status status, String additionalInfo) {
-        var gql = getGqlStatusObject(status, status.code().description() + " " + additionalInfo);
-        return new TransactionTerminatedException(gql, status, additionalInfo);
-    }
-
     private static ErrorGqlStatusObject getGqlStatusObject(Status status, String reason) {
         GqlStatusInfoCodes gqlStatus;
 

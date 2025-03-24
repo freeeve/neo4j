@@ -23,6 +23,7 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class QueryExecutionTimeoutException extends Neo4jException {
+    @Deprecated
     public QueryExecutionTimeoutException(String message, Throwable cause) {
         super(message, cause);
     }
@@ -31,6 +32,7 @@ public class QueryExecutionTimeoutException extends Neo4jException {
         super(gqlStatusObject, message, cause);
     }
 
+    @Deprecated
     public QueryExecutionTimeoutException(String message) {
         super(message);
     }

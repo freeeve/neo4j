@@ -45,23 +45,7 @@ public class IndexEntryConflictException extends KernelException {
     private final long addedEntityId;
     private final long existingEntityId;
 
-    public IndexEntryConflictException(
-            ErrorGqlStatusObject gqlStatusObject,
-            SchemaDescriptor schemaDescriptor,
-            long existingEntityId,
-            long addedEntityId,
-            String legacyMessage,
-            Value... propertyValue) {
-        this(
-                gqlStatusObject,
-                schemaDescriptor,
-                existingEntityId,
-                addedEntityId,
-                ValueTuple.of(propertyValue),
-                legacyMessage);
-    }
-
-    public IndexEntryConflictException(
+    private IndexEntryConflictException(
             ErrorGqlStatusObject gqlStatusObject,
             SchemaDescriptor schemaDescriptor,
             long existingEntityId,

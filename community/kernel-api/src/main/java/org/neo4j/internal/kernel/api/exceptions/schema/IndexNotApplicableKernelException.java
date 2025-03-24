@@ -28,6 +28,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.logging.Log;
 
 public class IndexNotApplicableKernelException extends KernelException {
+    @Deprecated
     public IndexNotApplicableKernelException(String msg) {
         super(Status.Schema.IndexNotApplicable, msg);
     }

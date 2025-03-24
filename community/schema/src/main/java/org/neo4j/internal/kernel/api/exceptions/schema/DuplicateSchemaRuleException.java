@@ -27,6 +27,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class DuplicateSchemaRuleException extends SchemaRuleException {
     private static final String MULTIPLE_FOUND_MESSAGE_TEMPLATE = "Multiple %ss found for %s.";
 
+    @Deprecated
     public DuplicateSchemaRuleException(SchemaDescriptorSupplier schemaThing, TokenNameLookup tokenNameLookup) {
         super(Status.Schema.SchemaRuleDuplicateFound, MULTIPLE_FOUND_MESSAGE_TEMPLATE, schemaThing, tokenNameLookup);
     }

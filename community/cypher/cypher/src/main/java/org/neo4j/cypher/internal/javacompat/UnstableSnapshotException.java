@@ -24,6 +24,7 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.exceptions.Status;
 
 class UnstableSnapshotException extends KernelException {
+    @Deprecated
     UnstableSnapshotException(String message, Object... parameters) {
         super(Status.Transaction.Outdated, message, parameters);
     }

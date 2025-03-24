@@ -25,6 +25,7 @@ import org.neo4j.graphdb.QueryExecutionException;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class QueryExecutionKernelException extends KernelException {
+    @Deprecated
     private <EX extends Throwable & Status.HasStatus> QueryExecutionKernelException(EX cause) {
         super(cause.status(), cause, cause.getMessage());
     }

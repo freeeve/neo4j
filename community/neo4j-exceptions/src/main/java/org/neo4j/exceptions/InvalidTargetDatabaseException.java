@@ -26,9 +26,6 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class InvalidTargetDatabaseException extends DatabaseAdministrationException {
-    public InvalidTargetDatabaseException(String message) {
-        super(message);
-    }
 
     protected InvalidTargetDatabaseException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);

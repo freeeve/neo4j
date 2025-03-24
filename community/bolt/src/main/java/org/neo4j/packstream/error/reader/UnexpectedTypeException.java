@@ -32,14 +32,7 @@ public class UnexpectedTypeException extends PackstreamReaderException
     private final Type expected;
     private final Type actual;
 
-    @Deprecated
-    protected UnexpectedTypeException(Type expected, Type actual) {
-        super("Unexpected type: Expected " + expected + " but got " + actual);
-        this.expected = expected;
-        this.actual = actual;
-    }
-
-    protected UnexpectedTypeException(ErrorGqlStatusObject gqlStatusObject, Type expected, Type actual) {
+    private UnexpectedTypeException(ErrorGqlStatusObject gqlStatusObject, Type expected, Type actual) {
         super(
                 gqlStatusObject,
                 ErrorMessageHolder.getMessage(
@@ -49,17 +42,22 @@ public class UnexpectedTypeException extends PackstreamReaderException
         this.actual = actual;
     }
 
-    @Deprecated
-    protected UnexpectedTypeException(Type actual) {
-        super("Unexpected type: " + actual);
+    private UnexpectedTypeException(ErrorGqlStatusObject gqlStatusObject, Type actual) {
+        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, "Unexpected type: " + actual));
+
         this.expected = null;
         this.actual = actual;
     }
 
-    protected UnexpectedTypeException(ErrorGqlStatusObject gqlStatusObject, Type actual) {
-        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, "Unexpected type: " + actual));
+    private UnexpectedTypeException(ErrorGqlStatusObject gqlStatusObject, Type expected, TypeMarker actual) {
+        this(gqlStatusObject, expected, actual.getType());
+    }
 
-        this.expected = null;
+    protected UnexpectedTypeException(
+            ErrorGqlStatusObject gqlStatusObject, String message, Type expected, Type actual) {
+        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, message));
+
+        this.expected = expected;
         this.actual = actual;
     }
 
@@ -68,15 +66,6 @@ public class UnexpectedTypeException extends PackstreamReaderException
         return new UnexpectedTypeException(
                 // Code 22N01. It might get wrapped in IllegalStructArgumentException with code 08N06
                 GqlHelper.getGql22G03_22N01(value, expectedValueTypeList, String.valueOf(actual)), actual);
-    }
-
-    @Deprecated
-    protected UnexpectedTypeException(Type expected, TypeMarker actual) {
-        this(expected, actual.getType());
-    }
-
-    protected UnexpectedTypeException(ErrorGqlStatusObject gqlStatusObject, Type expected, TypeMarker actual) {
-        this(gqlStatusObject, expected, actual.getType());
     }
 
     public static UnexpectedTypeException invalidType(Type expected, TypeMarker actual) {
@@ -89,21 +78,6 @@ public class UnexpectedTypeException extends PackstreamReaderException
                         actual.getType().toString()),
                 expected,
                 actual);
-    }
-
-    @Deprecated
-    protected UnexpectedTypeException(String message, Type expected, Type actual) {
-        super(message);
-        this.expected = expected;
-        this.actual = actual;
-    }
-
-    protected UnexpectedTypeException(
-            ErrorGqlStatusObject gqlStatusObject, String message, Type expected, Type actual) {
-        super(gqlStatusObject, ErrorMessageHolder.getMessage(gqlStatusObject, message));
-
-        this.expected = expected;
-        this.actual = actual;
     }
 
     public Type getExpected() {

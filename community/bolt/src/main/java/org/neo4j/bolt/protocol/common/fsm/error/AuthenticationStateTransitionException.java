@@ -34,6 +34,7 @@ public final class AuthenticationStateTransitionException extends StateTransitio
     private final String oldMessage;
     private final ErrorGqlStatusObject gqlStatusObject;
 
+    @Deprecated
     public AuthenticationStateTransitionException(AuthenticationException cause) {
         super(cause.getMessage(), cause);
         this.status = cause.status();

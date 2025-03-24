@@ -30,6 +30,7 @@ public class EntityNotFoundException extends KernelException {
     private final EntityType entityType;
     private final String entityId;
 
+    @Deprecated
     public EntityNotFoundException(EntityType entityType, String entityId) {
         super(Status.Statement.EntityNotFound, "Unable to load %s %s.", entityType.name(), entityId);
         this.entityType = requireNonNull(entityType);

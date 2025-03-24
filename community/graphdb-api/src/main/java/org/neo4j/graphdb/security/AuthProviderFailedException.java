@@ -35,6 +35,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class AuthProviderFailedException extends GqlRuntimeException implements Status.HasStatus {
     private static final Status statusCode = Status.Security.AuthProviderFailed;
 
+    @Deprecated
     public AuthProviderFailedException(String message) {
         super(message);
     }
@@ -43,6 +44,7 @@ public class AuthProviderFailedException extends GqlRuntimeException implements 
         super(gqlStatusObject, message);
     }
 
+    @Deprecated
     public AuthProviderFailedException(String message, Throwable cause) {
         super(message, cause);
     }

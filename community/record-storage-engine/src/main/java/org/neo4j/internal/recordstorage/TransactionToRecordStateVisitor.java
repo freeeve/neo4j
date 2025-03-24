@@ -224,7 +224,7 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
             }
         } catch (SchemaRuleNotFoundException e) {
             if (transientMissingSchema) {
-                throw new TransactionConflictException(
+                throw TransactionConflictException.transactionConflict(
                         "Concurrent modification exception. Constraint to be removed already removed by another transaction.",
                         e);
             }

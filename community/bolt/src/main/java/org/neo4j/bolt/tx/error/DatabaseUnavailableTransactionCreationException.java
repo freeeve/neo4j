@@ -31,6 +31,7 @@ public class DatabaseUnavailableTransactionCreationException extends Transaction
     private final ErrorGqlStatusObject gqlStatusObject;
     private final String oldMessage;
 
+    @Deprecated
     public DatabaseUnavailableTransactionCreationException(String databaseName, Throwable cause) {
         super(String.format("Database '%s' is unavailable.", databaseName), cause);
 

@@ -25,12 +25,8 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class PatternException extends Neo4jException {
-    @Deprecated
-    public PatternException(String message) {
-        super(message);
-    }
 
-    public PatternException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private PatternException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 

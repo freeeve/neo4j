@@ -27,11 +27,11 @@ import org.neo4j.kernel.api.exceptions.Status;
 
 public class ArithmeticException extends Neo4jException {
 
-    public ArithmeticException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    private ArithmeticException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
     }
 
-    public ArithmeticException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private ArithmeticException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 

@@ -26,11 +26,8 @@ import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class ParameterNotFoundException extends Neo4jException {
-    public ParameterNotFoundException(String message) {
-        super(message);
-    }
 
-    public ParameterNotFoundException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private ParameterNotFoundException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 

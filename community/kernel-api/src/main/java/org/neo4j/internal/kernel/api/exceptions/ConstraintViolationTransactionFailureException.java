@@ -31,6 +31,7 @@ import org.neo4j.kernel.api.exceptions.Status;
  */
 public class ConstraintViolationTransactionFailureException extends TransactionFailureException {
 
+    @Deprecated
     private ConstraintViolationTransactionFailureException(String msg, KernelException cause) {
         super(Status.Schema.ConstraintValidationFailed, cause, msg);
     }

@@ -29,23 +29,13 @@ public class UnexpectedStructException extends PackstreamReaderException {
     private final short tag;
     private final long length;
 
-    public UnexpectedStructException(short tag, long length) {
-        super(String.format("Unexpected struct tag: 0x%02X", tag));
-        this.tag = tag;
-        this.length = length;
-    }
-
-    public UnexpectedStructException(ErrorGqlStatusObject gqlStatusObject, short tag, long length) {
+    private UnexpectedStructException(ErrorGqlStatusObject gqlStatusObject, short tag, long length) {
         super(gqlStatusObject, String.format("Unexpected struct tag: 0x%02X", tag));
         this.tag = tag;
         this.length = length;
     }
 
-    public UnexpectedStructException(StructHeader header) {
-        this(header.tag(), header.length());
-    }
-
-    public UnexpectedStructException(ErrorGqlStatusObject gqlStatusObject, StructHeader header) {
+    private UnexpectedStructException(ErrorGqlStatusObject gqlStatusObject, StructHeader header) {
         this(gqlStatusObject, header.tag(), header.length());
     }
 

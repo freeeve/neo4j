@@ -31,6 +31,7 @@ import org.neo4j.kernel.api.exceptions.Status;
  */
 public abstract class TransientFailureException extends GqlRuntimeException implements Status.HasStatus {
 
+    @Deprecated
     protected TransientFailureException(String message, Throwable cause) {
         super(message, cause);
     }
@@ -39,6 +40,7 @@ public abstract class TransientFailureException extends GqlRuntimeException impl
         super(gqlStatusObject, message, cause);
     }
 
+    @Deprecated
     protected TransientFailureException(String message) {
         super(message);
     }

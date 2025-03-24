@@ -37,6 +37,10 @@ public class QueryExecutionException extends GqlRuntimeException {
         this.statusCode = statusCode;
     }
 
+    /**
+     * @deprecated replaced by {@link #QueryExecutionException(ErrorGqlStatusObject, String, Throwable, String)}
+     */
+    @Deprecated(forRemoval = true, since = "2025.04")
     public QueryExecutionException(String message, Throwable cause, String statusCode) {
         super(message, cause);
         this.statusCode = statusCode;

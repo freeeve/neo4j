@@ -34,10 +34,6 @@ public class IndexPopulationFailedKernelException extends KernelException {
         super(gqlStatusObject, Status.Schema.IndexCreationFailed, cause, FORMAT_MESSAGE, indexUserDescription);
     }
 
-    public IndexPopulationFailedKernelException(String indexUserDescription, String message) {
-        super(Status.Schema.IndexCreationFailed, FORMAT_MESSAGE + ", due to " + message, indexUserDescription);
-    }
-
     private IndexPopulationFailedKernelException(
             ErrorGqlStatusObject gqlStatusObject, String indexUserDescription, String message) {
         super(

@@ -31,10 +31,6 @@ public class TransactionRetryAbortedException extends Neo4jException {
         super(gqlStatusObject, message, cause);
     }
 
-    private TransactionRetryAbortedException(ErrorGqlStatusObject gqlStatusObject, String message) {
-        super(gqlStatusObject, message);
-    }
-
     @Override
     public Status status() {
         return Status.Statement.ExecutionTimeout;

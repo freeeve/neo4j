@@ -31,6 +31,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class AuthProviderTimeoutException extends GqlRuntimeException implements Status.HasStatus {
     private static final Status statusCode = Status.Security.AuthProviderTimeout;
 
+    @Deprecated
     public AuthProviderTimeoutException(String message, Throwable cause) {
         super(message, cause);
     }

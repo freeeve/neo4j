@@ -42,6 +42,7 @@ public class SchemaRuleException extends SchemaKernelException {
      * @param schemaThing schema element relevant to this exception.
      * @param tokenNameLookup how to look up tokens for describing the given {@code schemaThing}.
      */
+    @Deprecated
     SchemaRuleException(
             Status status,
             String messageTemplate,

@@ -28,18 +28,17 @@ import org.neo4j.packstream.error.PackstreamException;
 
 public class PackstreamReaderException extends PackstreamException {
 
-    public PackstreamReaderException() {}
-
-    public PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject) {
-        super(gqlStatusObject);
-    }
-
+    @Deprecated
     public PackstreamReaderException(String message) {
         super(message);
     }
 
-    public PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    protected PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    protected PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+        super(gqlStatusObject, message, cause);
     }
 
     public static PackstreamReaderException duplicateMapKey(String key) {
@@ -62,21 +61,5 @@ public class PackstreamReaderException extends PackstreamException {
                         .build())
                 .build();
         return new PackstreamReaderException(gql, "Unknown driver interface type " + type);
-    }
-
-    public PackstreamReaderException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
-        super(gqlStatusObject, message, cause);
-    }
-
-    public PackstreamReaderException(Throwable cause) {
-        super(cause);
-    }
-
-    public PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
-        super(gqlStatusObject, cause);
     }
 }

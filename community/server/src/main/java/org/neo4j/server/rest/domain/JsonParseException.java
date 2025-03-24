@@ -30,11 +30,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 @SuppressWarnings("serial")
 public class JsonParseException extends GqlException implements Status.HasStatus {
 
-    public JsonParseException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    public JsonParseException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    private JsonParseException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
     }
 
@@ -52,6 +48,7 @@ public class JsonParseException extends GqlException implements Status.HasStatus
         return new JsonParseException(gql, message, cause);
     }
 
+    @Deprecated
     public JsonParseException(Throwable cause) {
         super(ErrorMessageHolder.getOldCauseMessage(cause), cause);
     }

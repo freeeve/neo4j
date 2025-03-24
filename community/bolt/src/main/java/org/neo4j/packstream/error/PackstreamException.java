@@ -27,50 +27,23 @@ public abstract class PackstreamException extends IOException implements ErrorGq
     private final ErrorGqlStatusObject innerGqlStatusObject;
     private final String oldMessage;
 
-    public PackstreamException() {
-        this.innerGqlStatusObject = null;
-        this.oldMessage = null;
-    }
-
-    public PackstreamException(ErrorGqlStatusObject gqlStatusObject) {
-        this.innerGqlStatusObject = gqlStatusObject;
-        this.oldMessage = null;
-    }
-
-    public PackstreamException(String message) {
+    @Deprecated
+    protected PackstreamException(String message) {
         super(message);
         this.innerGqlStatusObject = null;
         this.oldMessage = message;
     }
 
-    public PackstreamException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    protected PackstreamException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(message);
         this.innerGqlStatusObject = gqlStatusObject;
         this.oldMessage = message;
     }
 
-    public PackstreamException(String message, Throwable cause) {
-        super(message, cause);
-        this.innerGqlStatusObject = null;
-        this.oldMessage = message;
-    }
-
-    public PackstreamException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    protected PackstreamException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(message, cause);
         this.innerGqlStatusObject = GqlHelper.getInnerGqlStatusObject(gqlStatusObject, cause);
         this.oldMessage = message;
-    }
-
-    public PackstreamException(Throwable cause) {
-        super(cause);
-        this.innerGqlStatusObject = null;
-        this.oldMessage = null;
-    }
-
-    public PackstreamException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
-        super(cause);
-        this.innerGqlStatusObject = gqlStatusObject;
-        this.oldMessage = null;
     }
 
     @Override

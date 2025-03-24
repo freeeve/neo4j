@@ -22,14 +22,9 @@ package org.neo4j.bolt.protocol.common.fsm.error;
 import org.neo4j.bolt.fsm.error.state.StateTransitionException;
 import org.neo4j.bolt.tx.error.TransactionException;
 
-public sealed class TransactionStateTransitionException extends StateTransitionException
-        permits StatusTransactionStateTransitionException {
+public class TransactionStateTransitionException extends StateTransitionException {
 
     public TransactionStateTransitionException(TransactionException cause) {
         super(cause.getMessage(), cause);
-    }
-
-    public TransactionStateTransitionException(String message, TransactionException cause) {
-        super(message, cause);
     }
 }

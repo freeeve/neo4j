@@ -48,7 +48,7 @@ public class NoSuchStateException extends StateMachineException
         this.oldMessage = "No such state: " + target.name();
     }
 
-    public NoSuchStateException(ErrorGqlStatusObject gqlStatusObject, StateReference target, Throwable cause) {
+    private NoSuchStateException(ErrorGqlStatusObject gqlStatusObject, StateReference target, Throwable cause) {
         super(ErrorMessageHolder.getMessage(gqlStatusObject, "No such state: " + target.name()), cause);
         this.gqlStatusObject = GqlHelper.getInnerGqlStatusObject(gqlStatusObject, cause);
         this.oldMessage = "No such state: " + target.name();

@@ -34,6 +34,7 @@ public class InputFormatException extends RuntimeException implements ErrorGqlSt
     private final ErrorGqlStatusObject gqlStatusObject;
     private final String oldMessage;
 
+    @Deprecated
     public InputFormatException(String message, Throwable cause) {
         super(message, cause);
 
@@ -41,8 +42,15 @@ public class InputFormatException extends RuntimeException implements ErrorGqlSt
         this.oldMessage = message;
     }
 
-    public InputFormatException(ErrorGqlStatusObject errorGqlStatusObject, String message, Throwable cause) {
+    private InputFormatException(ErrorGqlStatusObject errorGqlStatusObject, String message, Throwable cause) {
         super(message, cause);
+
+        this.gqlStatusObject = errorGqlStatusObject;
+        this.oldMessage = message;
+    }
+
+    private InputFormatException(ErrorGqlStatusObject errorGqlStatusObject, String message) {
+        super(message);
 
         this.gqlStatusObject = errorGqlStatusObject;
         this.oldMessage = message;
@@ -66,21 +74,6 @@ public class InputFormatException extends RuntimeException implements ErrorGqlSt
                         .build(),
                 message,
                 cause);
-    }
-
-    @Deprecated
-    private InputFormatException(String message) {
-        super(message);
-
-        this.gqlStatusObject = null;
-        this.oldMessage = message;
-    }
-
-    public InputFormatException(ErrorGqlStatusObject errorGqlStatusObject, String message) {
-        super(message);
-
-        this.gqlStatusObject = errorGqlStatusObject;
-        this.oldMessage = message;
     }
 
     public static InputFormatException missingRequiredInput(String requiredOption, String message) {

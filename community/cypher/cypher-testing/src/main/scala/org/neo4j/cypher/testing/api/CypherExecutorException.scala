@@ -40,8 +40,6 @@ case class CypherExecutorException(
 
   def this(errorGqlStatusObject: ErrorGqlStatusObject, status: Status, original: Throwable) =
     this(errorGqlStatusObject, status, original, None)
-  def this(status: Status, original: Throwable, message: Option[String]) = this(null, status, original, message)
-  def this(status: Status, original: Throwable) = this(null, status, original, None)
 
   override def legacyMessage: String = if (message.isDefined) message.get
   else {
@@ -62,10 +60,12 @@ object CypherExecutorException {
     new CypherExecutorException(gqlStatusObject, status, original, None)
   }
 
+  @deprecated("Use apply with gqlStatusObject", since = "2025-04")
   def apply(status: Status, original: Throwable, message: Option[String]): CypherExecutorException = {
     new CypherExecutorException(null, status, original, message)
   }
 
+  @deprecated("Use apply with gqlStatusObject", since = "2025-04")
   def apply(status: Status, original: Throwable): CypherExecutorException = {
     new CypherExecutorException(null, status, original, None)
   }

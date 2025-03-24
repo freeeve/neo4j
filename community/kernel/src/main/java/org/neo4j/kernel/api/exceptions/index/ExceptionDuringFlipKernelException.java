@@ -24,6 +24,7 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public final class ExceptionDuringFlipKernelException extends KernelException {
+    @Deprecated
     public ExceptionDuringFlipKernelException(Throwable cause) {
         super(
                 Status.Schema.IndexCreationFailed,

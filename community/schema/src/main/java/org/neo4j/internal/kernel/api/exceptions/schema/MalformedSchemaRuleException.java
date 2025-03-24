@@ -32,6 +32,7 @@ import org.neo4j.values.storable.Value;
  * be parsed.
  */
 public class MalformedSchemaRuleException extends SchemaKernelException {
+    @Deprecated
     public MalformedSchemaRuleException(String message, Throwable cause) {
         super(Status.General.SchemaCorruptionDetected, message, cause);
     }
@@ -40,6 +41,7 @@ public class MalformedSchemaRuleException extends SchemaKernelException {
         super(gqlStatusObject, Status.General.SchemaCorruptionDetected, message, cause);
     }
 
+    @Deprecated
     public MalformedSchemaRuleException(String message) {
         super(Status.General.SchemaCorruptionDetected, message);
     }

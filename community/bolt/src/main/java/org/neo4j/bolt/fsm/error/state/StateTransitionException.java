@@ -26,11 +26,11 @@ import org.neo4j.bolt.fsm.error.StateMachineException;
  */
 public abstract class StateTransitionException extends StateMachineException {
 
-    public StateTransitionException(String message) {
+    protected StateTransitionException(String message) {
         super(message);
     }
 
-    public StateTransitionException(String message, Throwable cause) {
+    protected StateTransitionException(String message, Throwable cause) {
         super(message, cause);
     }
 }

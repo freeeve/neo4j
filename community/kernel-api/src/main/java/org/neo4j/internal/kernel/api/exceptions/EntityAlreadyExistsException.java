@@ -30,6 +30,7 @@ public class EntityAlreadyExistsException extends KernelException {
     private final EntityType entityType;
     private final String entityId;
 
+    @Deprecated
     public EntityAlreadyExistsException(EntityType entityType, String entityId) {
         super(Status.Statement.EntityNotFound, "%s %s already exists.", entityType.name(), entityId);
         this.entityType = requireNonNull(entityType);

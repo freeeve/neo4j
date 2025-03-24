@@ -24,6 +24,7 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public final class IndexProxyAlreadyClosedKernelException extends KernelException {
+    @Deprecated
     public IndexProxyAlreadyClosedKernelException(Class<?> proxyClazz) {
         super(
                 Status.Schema.IndexCreationFailed,

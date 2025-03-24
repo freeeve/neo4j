@@ -28,14 +28,6 @@ public class UnexpectedTypeMarkerException extends UnexpectedTypeException {
     private final TypeMarker expectedMarker;
     private final TypeMarker actualMarker;
 
-    @Deprecated
-    private UnexpectedTypeMarkerException(TypeMarker expected, TypeMarker actual) {
-        super("Expected " + expected + " but got " + actual, expected.getType(), actual.getType());
-
-        this.expectedMarker = expected;
-        this.actualMarker = actual;
-    }
-
     private UnexpectedTypeMarkerException(
             ErrorGqlStatusObject gqlStatusObject, TypeMarker expected, TypeMarker actual) {
         super(gqlStatusObject, "Expected " + expected + " but got " + actual, expected.getType(), actual.getType());

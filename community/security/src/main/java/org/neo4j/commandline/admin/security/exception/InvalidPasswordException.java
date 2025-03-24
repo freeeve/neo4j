@@ -30,12 +30,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class InvalidPasswordException extends GqlRuntimeException implements Status.HasStatus {
     private final Status status;
 
-    public InvalidPasswordException(String message) {
-        super(message, false, false);
-        this.status = Status.Statement.ArgumentError;
-    }
-
-    public InvalidPasswordException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private InvalidPasswordException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message, false, false);
         this.status = Status.Statement.ArgumentError;
     }

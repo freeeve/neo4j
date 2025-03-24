@@ -29,6 +29,7 @@ public class AuthTokenExpiredException extends GqlRuntimeException implements St
     private static final Status statusCode = Status.Security.TokenExpired;
     public static final String AUTHENTICATION_INFO_EXPIRED = "Authentication info expired.";
 
+    @Deprecated
     public AuthTokenExpiredException(String message) {
         super(message);
     }

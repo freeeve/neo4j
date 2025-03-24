@@ -1443,6 +1443,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
 class SlotAllocationFailed(gqlStatusObject: ErrorGqlStatusObject, str: String)
     extends InternalException(Status.Statement.ExecutionFailed, gqlStatusObject, str) {
 
+  @deprecated("Use the class constructor with gqlStatusObject", since = "2025-04")
   def this(str: String) = {
     this(null, str)
   }

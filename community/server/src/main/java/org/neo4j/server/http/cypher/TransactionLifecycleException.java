@@ -30,20 +30,13 @@ import org.neo4j.server.rest.Neo4jError;
  * {@link Status.Code}.
  */
 abstract class TransactionLifecycleException extends GqlException {
+    @Deprecated
     protected TransactionLifecycleException(String message) {
         super(message);
     }
 
     protected TransactionLifecycleException(ErrorGqlStatusObject gql, String message) {
         super(gql, message);
-    }
-
-    protected TransactionLifecycleException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
-    protected TransactionLifecycleException(ErrorGqlStatusObject gql, String message, Throwable cause) {
-        super(gql, message, cause);
     }
 
     Neo4jError toNeo4jError() {
