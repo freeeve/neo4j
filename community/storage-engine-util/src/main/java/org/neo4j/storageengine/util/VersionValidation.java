@@ -48,7 +48,7 @@ public class VersionValidation {
         long nodeId = pageId | (position << PAGE_ID_BITS);
         if (failFast) {
             if (!validationLockClient.tryExclusiveLock(PAGE, nodeId)) {
-                throw new TransactionConflictException(databaseFile, pageId);
+                throw TransactionConflictException.transactionConflict(databaseFile, pageId);
             }
         } else {
             validationLockClient.acquireExclusive(lockTracer, PAGE, nodeId);
@@ -57,7 +57,7 @@ public class VersionValidation {
         if (pageCursor.next(pageId)) {
             if (versionContext.invisibleHeadObserved()) {
                 transactionMonitor.transactionValidationFailure(databaseFile);
-                throw new TransactionConflictException(databaseFile, versionContext, pageId);
+                throw TransactionConflictException.transactionConflict(databaseFile, versionContext, pageId);
             }
         }
     }

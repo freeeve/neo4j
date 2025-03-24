@@ -26,7 +26,6 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.graphdb.TransientFailureException;
 import org.neo4j.io.layout.DatabaseFile;
-import org.neo4j.io.layout.recordstorage.RecordDatabaseFile;
 import org.neo4j.io.pagecache.context.VersionContext;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -54,8 +53,7 @@ public class TransactionConflictException extends TransientFailureException {
         super(gqlStatusObject, message, cause);
     }
 
-    private TransactionConflictException(
-            ErrorGqlStatusObject gqlStatusObject, DatabaseFile databaseFile, long pageId) {
+    private TransactionConflictException(ErrorGqlStatusObject gqlStatusObject, DatabaseFile databaseFile, long pageId) {
         super(gqlStatusObject, createPageIdPagedMessage(databaseFile.getName(), pageId));
         this.databaseFile = databaseFile;
     }
@@ -73,7 +71,7 @@ public class TransactionConflictException extends TransientFailureException {
         return new TransactionConflictException(GQL_STATUS, GENERIC_MESSAGE, cause);
     }
 
-    public static TransactionConflictException transactionConflict(RecordDatabaseFile databaseFile, long pageId) {
+    public static TransactionConflictException transactionConflict(DatabaseFile databaseFile, long pageId) {
         return new TransactionConflictException(GQL_STATUS, databaseFile, pageId);
     }
 
