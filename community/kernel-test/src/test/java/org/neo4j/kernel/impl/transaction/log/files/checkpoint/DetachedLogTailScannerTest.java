@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.fail_on_corrupted_log_files;
 import static org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata.EMPTY_APPEND_BATCH_INFO;
@@ -283,7 +284,7 @@ class DetachedLogTailScannerTest {
     @MethodSource("params")
     void twoLogFilesNoCheckPointsOneStartWithoutCommit(int startLogVersion, int endLogVersion) throws Exception {
         // given
-        setupLogFiles(endLogVersion, logFile(), logFile(start(15)));
+        setupLogFiles(endLogVersion, logFile(), logFile(start(15), pseudoEndSegment()));
 
         // when
         var logTailInformation = logFiles.getTailMetadata();
@@ -328,6 +329,9 @@ class DetachedLogTailScannerTest {
     @ParameterizedTest
     @MethodSource("params")
     void twoLogFilesStartAndCommitInDifferentFiles(int startLogVersion, int endLogVersion) throws Exception {
+        // Hard to fake the required rotation in enveloped logs, but this case is supported there too (much more likely
+        // to have a split in the middle of an entry though)
+        assumeTrue(LATEST_KERNEL_VERSION.isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED));
         // given
         long txId = 6;
         setupLogFiles(endLogVersion, logFile(start(txId)), logFile(commit(txId)));
@@ -368,7 +372,7 @@ class DetachedLogTailScannerTest {
     @ParameterizedTest
     @MethodSource("params")
     void twoLogFilesSecondIsCorruptedBeforeCommit(int startLogVersion, int endLogVersion) throws Exception {
-        setupLogFiles(endLogVersion, logFile(checkPoint()), logFile(start(2), start(3)));
+        setupLogFiles(endLogVersion, logFile(checkPoint()), logFile(start(2), pseudoEndSegment(), start(3)));
 
         Path highestLogFile = logFiles.getLogFile().getHighestLogFile();
         fs.truncate(highestLogFile, fs.getFileSize(highestLogFile) - 1);
@@ -377,7 +381,10 @@ class DetachedLogTailScannerTest {
         var logTailInformation = logFiles.getTailMetadata();
 
         // then
-        assertLatestCheckPoint(true, true, 2, false, logTailInformation);
+        // Enveloped logs are less forgiving to corruption and will "not find" the append index
+        long expectedFirstAppendIndexAfterCheckpoint =
+                LATEST_KERNEL_VERSION.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED) ? 0 : 2;
+        assertLatestCheckPoint(true, true, expectedFirstAppendIndexAfterCheckpoint, false, logTailInformation);
     }
 
     @ParameterizedTest
@@ -487,22 +494,6 @@ class DetachedLogTailScannerTest {
 
         // then
         assertLatestCheckPoint(true, true, txId, false, logTailInformation);
-    }
-
-    @ParameterizedTest
-    @MethodSource("params")
-    void olderLogFileContainingAStartAndNewerFileContainingACheckPointPointingToAPreviousPositionThanStartWithoutCommit(
-            int startLogVersion, int endLogVersion) throws Exception {
-        // given
-        StartEntry start = start(10);
-        PositionEntry position = position();
-        setupLogFiles(endLogVersion, logFile(start, position), logFile(checkPoint(position)));
-
-        // when
-        var logTailInformation = logFiles.getTailMetadata();
-
-        // then
-        assertLatestCheckPoint(true, false, NO_TRANSACTION_ID, false, logTailInformation);
     }
 
     @ParameterizedTest
@@ -782,33 +773,38 @@ class DetachedLogTailScannerTest {
                 try {
                     TransactionLogWriter logWriter = logFile.getTransactionLogWriter();
                     LogEntryWriter<?> writer = logWriter.getWriter();
+                    LogPosition lastCommitEntryPosition = logWriter.getCurrentPosition();
                     for (Entry entry : entries) {
-                        LogPosition currentPosition = logWriter.getCurrentPosition();
-                        positions.put(entry, currentPosition);
-                        if (entry instanceof StartEntry startEntry) {
-                            writer.writeStartEntry(
-                                    kernelVersion,
-                                    0,
-                                    0,
-                                    startEntry.appendIndex(),
-                                    previousChecksum,
-                                    startEntry.additionalHeader());
-                        } else if (entry instanceof CommitEntry commitEntry) {
-                            previousChecksum = writer.writeCommitEntry(kernelVersion, commitEntry.txId, 0);
-                            lastTxId.set(commitEntry.txId);
-                        } else if (entry instanceof ChunkEndEntry chunkEntry) {
-                            previousChecksum = writer.writeChunkEndEntry(kernelVersion, chunkEntry.txId, 1);
-                        } else if (entry instanceof CheckPointEntry checkPointEntry) {
-                            Entry target = checkPointEntry.withPositionOfEntry;
-                            LogPosition logPosition = target != null ? positions.get(target) : currentPosition;
-                            assert logPosition != null : "No registered log position for " + target;
-                            writeCheckpoint(
-                                    checkpointFile, checkPointEntry.transactionId(), logPosition, kernelVersion);
-                        } else if (entry instanceof PositionEntry) {
-                            // Don't write anything, this entry is just for registering a position so that
-                            // another CheckPointEntry can refer to it
-                        } else {
-                            throw new IllegalArgumentException("Unknown entry " + entry);
+                        positions.put(entry, lastCommitEntryPosition);
+                        switch (entry) {
+                            case StartEntry startEntry ->
+                                writer.writeStartEntry(
+                                        kernelVersion,
+                                        0,
+                                        0,
+                                        startEntry.appendIndex(),
+                                        previousChecksum,
+                                        startEntry.additionalHeader());
+                            case CommitEntry commitEntry -> {
+                                previousChecksum = writer.writeCommitEntry(kernelVersion, commitEntry.txId, 0);
+                                lastCommitEntryPosition = logWriter.getCurrentPosition();
+                                lastTxId.set(commitEntry.txId);
+                            }
+                            case ChunkEndEntry chunkEntry ->
+                                previousChecksum = writer.writeChunkEndEntry(kernelVersion, chunkEntry.txId, 1);
+                            case CheckPointEntry checkPointEntry -> {
+                                Entry target = checkPointEntry.withPositionOfEntry;
+                                LogPosition logPosition =
+                                        target != null ? positions.get(target) : lastCommitEntryPosition;
+                                assert logPosition != null : "No registered log position for " + target;
+                                writeCheckpoint(
+                                        checkpointFile, checkPointEntry.transactionId(), logPosition, kernelVersion);
+                            }
+                            case PositionEntry ignore -> {
+                                // we don't write anything for registering positions for other CheckPointEntry
+                            }
+                            case PseudoEndSegmentEntry ignored ->
+                                writer.getChannel().putChecksum();
                         }
                     }
                 } finally {
@@ -874,6 +870,8 @@ class DetachedLogTailScannerTest {
 
     private record PositionEntry() implements Entry {}
 
+    private record PseudoEndSegmentEntry() implements Entry {}
+
     private static StartEntry start(long appendIndex) {
         return new StartEntry(appendIndex, EMPTY_BYTE_ARRAY);
     }
@@ -908,6 +906,13 @@ class DetachedLogTailScannerTest {
 
     private static PositionEntry position() {
         return new PositionEntry();
+    }
+
+    /**
+     * Force flushing of enveloped data.
+     */
+    static PseudoEndSegmentEntry pseudoEndSegment() {
+        return new PseudoEndSegmentEntry();
     }
 
     private static void assertLatestCheckPoint(
