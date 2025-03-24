@@ -23,20 +23,17 @@ import org.neo4j.cypher.internal.compiler.planner.logical.InlinedPredicates
 import org.neo4j.cypher.internal.compiler.planner.logical.convertToInlinedPredicates
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.Disjoint
-import org.neo4j.cypher.internal.expressions.Equals
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.IsRepeatTrailUnique
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NoneOfRelationships
 import org.neo4j.cypher.internal.expressions.SemanticDirection
-import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.Expand
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
-import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.logical.plans.Repeat
@@ -55,14 +52,13 @@ import org.neo4j.cypher.internal.util.Rewriter.TopDownMergeableRewriter
 import org.neo4j.cypher.internal.util.attribution.Attributes
 import org.neo4j.cypher.internal.util.attribution.SameId
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
-import org.neo4j.cypher.internal.util.collection.immutable.ListSet.Singleton
 import org.neo4j.cypher.internal.util.topDown
 
 /**
  * This rewriter will sometimes transform a Repeat-Trail or -Walk into a VarExpand, like in the example below.
  *
  * Before
- * .trail((a) ((n)-[r]->(m))+ (b))
+ * .repeat((a) ((n)-[r]->(m))+ (b))
  * .|.filter(isRepeatTrailUnique(r))
  * .|.expandAll((n)-[r]->(m))
  * .|.argument(n)
@@ -74,20 +70,12 @@ import org.neo4j.cypher.internal.util.topDown
  *
  * Repeat is more powerful than VarExpand, in the sense that Repeat can do more things than VarExpand. We consider Repeat
  * and VarExpand to be equivalent when the following conditions are met:
- *  - the Repeat relationship pattern contains a single relationship
- *  - the Repeat node group variables are not used by downstream logical plans and thus empty
- *  - the Repeat inner node variables are only used during path expansion in predicates within the QPP, and the QPP is a single directional relationship, i.e., in case where it can be substituted with startNode/endNode of the relationship.
- *  - the Repeat quantifier can be converted losslessly from Long to Int
+ *  - the Repeat's relationship pattern contains a single relationship
+ *  - the Repeat's node group variables are not used by downstream logical plans and thus empty
+ *  - the Repeat's inner node variables are only used during path expansion in predicates within the QPP, and the QPP is a single directional relationship, i.e., in case where it can be substituted with startNode/endNode of the relationship.
+ *  - the Repeat's quantifier can be converted lossless from Long to Int
  *
- * Repeat can be rewritten into a VarLengthExpand(Into) when all the following conditions are met:
- *  - all conditions are met to translate the trail into VarExpand
- *  - the Repeat goes to an unnamed variable
- *    (This variable will be overridden when turning it into a VarLengthExpand(Into). Other parts of the query might
- *    be referring to it, so it is not safe to rewrite.)
- *  - the trail has a filter directly on top
- *  - the filter has exactly one predicate, which is an Equals between the endpoint of the trail and an already bounded node.
- *
- * This rewriter should run after [[RemoveUnusedNamedGroupVariablesPhase]], so that unused group variables are pruned.
+ * This rewriter should run after [[RemoveUnusedGroupVariablesRewriter]], so that unused group variables are pruned.
  * This rewriter should run before [[pruningVarExpander]] so that the [[PruningVarExpand]] optimisation may take place.
  * This rewriter should run before [[VarLengthRewriter]] so that the quantifier may be rewritten.
  * This rewriter should run before [[UniquenessRewriter]] so that relationship uniqueness predicates may be rewritten.
@@ -144,49 +132,6 @@ case class RepeatToVarExpandRewriter(
         relationship,
         repeatExpansionMode
       ).getOrElse(repeat)
-    // Rewrite special cases of Filter+Repeat into VarLengthExpand(Into)
-    case selection @ Selection(
-        Ands(Singleton(predicate)),
-        rewritableRepeatExtractor(repeat, expand, relationshipPredicates, quantifier, relationship, repeatExpansionMode)
-      )
-      if AnonymousVariableNameGenerator.notNamed(repeat.end.name) && !requiresPropertyAccessFromShards(
-        Seq(predicate)
-      ) =>
-      // The repeat is going to an unnamed variable, let's call it variableX
-      val maybeRewrittenPlan = predicate match {
-        case Equals(lhs: Variable, rhs: Variable) if lhs == repeat.end && repeat.availableSymbols.contains(rhs) =>
-          assertRepeatIsExpandAll(predicate, repeatExpansionMode)
-          // Now we know that the predicate is: `variableX = variableY`
-          // where variableY is a variable that is already bound before the repeat operator.
-          createVarLengthExpand(
-            repeat.withEnd(rhs)(SameId(repeat.id)),
-            expand,
-            relationshipPredicates,
-            quantifier,
-            relationship,
-            ExpandInto
-          )
-        case Equals(lhs: Variable, rhs: Variable) if rhs == repeat.end && repeat.availableSymbols.contains(lhs) =>
-          assertRepeatIsExpandAll(predicate, repeatExpansionMode)
-          // Now we know that the predicate is: `variableY = variableX`
-          // where variableY is a variable that is already bound before the repeat operator.
-          createVarLengthExpand(
-            repeat.withEnd(lhs)(SameId(repeat.id)),
-            expand,
-            relationshipPredicates,
-            quantifier,
-            relationship,
-            ExpandInto
-          )
-        case _ => None
-      }
-      maybeRewrittenPlan.getOrElse(selection)
-  }
-
-  private def assertRepeatIsExpandAll(predicate: Expression, repeatExpansionMode: ExpansionMode): Unit = {
-    if (repeatExpansionMode != ExpandAll) {
-      throw new IllegalStateException(s"'ExpandInto' filter should not be planned on top of a Repeat(Into): $predicate")
-    }
   }
 
   private def requiresPropertyAccessFromShards(predicates: Iterable[Expression]): Boolean = {
@@ -240,9 +185,9 @@ case class RepeatToVarExpandRewriter(
   /**
    * If there are other relationship variables in the query, then we may need to add relationship uniqueness
    * predicates. Whether we need to do this or not will depend on whether the relationships are provably disjoint, and
-   * also on whether there are any relationship variables bound before the Trail.
+   * also on whether there are any relationship variables bound before the Repeat.
    *
-   * Trail.previouslyBoundRelationships does the heavy lifting for us. During the planning of Trail, the planner
+   * Repeat.previouslyBoundRelationships does the heavy lifting for us. During the planning of Repeat, the planner
    * determines whether it needs to populate this field. It will only populate this field if the repeat comes after
    * previously bound relationship variables that are not provably disjoint.
    */
@@ -255,8 +200,8 @@ case class RepeatToVarExpandRewriter(
       NoneOfRelationships(previouslyBoundedRel, groupRelationship)(InputPosition.NONE)
 
     repeat match {
-      case trail: RepeatTrail if trail.previouslyBoundRelationships.nonEmpty =>
-        val predicates: Set[Expression] = trail.previouslyBoundRelationships
+      case repeat: RepeatTrail if repeat.previouslyBoundRelationships.nonEmpty =>
+        val predicates: Set[Expression] = repeat.previouslyBoundRelationships
           .map(boundRel => excluded(varExpandRel, boundRel))
         appendSelection(source, predicates)
       case _ => source
@@ -272,8 +217,8 @@ case class RepeatToVarExpandRewriter(
     source: LogicalPlan
   ): LogicalPlan =
     repeat match {
-      case trail: RepeatTrail if trail.previouslyBoundRelationshipGroups.nonEmpty =>
-        val predicates: Set[Expression] = trail.previouslyBoundRelationshipGroups
+      case repeat: RepeatTrail if repeat.previouslyBoundRelationshipGroups.nonEmpty =>
+        val predicates: Set[Expression] = repeat.previouslyBoundRelationshipGroups
           .map(boundRel => Disjoint(varExpandRel, boundRel)(InputPosition.NONE))
         appendSelection(source, predicates)
       case _ => source
@@ -336,7 +281,7 @@ object RepeatToVarExpandRewriter {
   object RewritableRepeatExtractor {
 
     /**
-     * .trail(...)
+     * .repeat(...)
      * .|.filter(..., isRepeatTrailUnique(r))
      * .|.expandAll(...)
      * .|.argument(...)
@@ -350,7 +295,7 @@ object RepeatToVarExpandRewriter {
     }
 
     /**
-     * .trail(...)
+     * .repeat(...)
      * .|.filter(..., isRepeatTrailUnique(r))
      * .|.expandAll(...)
      * .|.filter(...)
@@ -379,7 +324,7 @@ object RepeatToVarExpandRewriter {
       ExpansionMode
     )] = {
       plan match {
-        case trail @ RepeatTrail(
+        case repeat @ RepeatTrail(
             _,
             RewritableTrailRhs(
               expand,
@@ -397,7 +342,7 @@ object RepeatToVarExpandRewriter {
             _,
             _,
             expansionMode
-          ) => Option((trail, expand, inlinablePredicates, quantifier, relationship, expansionMode))
+          ) => Option((repeat, expand, inlinablePredicates, quantifier, relationship, expansionMode))
         case walk @ RepeatWalk(
             _,
             RewritableWalkRhs(
@@ -430,11 +375,11 @@ object RepeatToVarExpandRewriter {
        *
        * This extractor relies on several properties of our compilation pipeline, which are not obvious at first.
        *
-       * The first property we rely on has to do with the shape of the RHS of Trail. We assume that very few rewritable
+       * The first property we rely on has to do with the shape of the RHS of Repeat. We assume that very few rewritable
        * cases that survive planning will deviate from the following shape. As a reminder, we require all rewritable
        * QPPs to have a single relationship chain with a single relationship.
        *
-       * .trail(...)
+       * .repeat(...)
        * .|.filter(..., isRepeatTrailUnique(r))
        * .|.expandAll(...)
        * .|.argument(...)
@@ -442,14 +387,14 @@ object RepeatToVarExpandRewriter {
        *
        * The second property we rely on has to do with the binding order of variables. QPP pre-filter predicates can
        * contain references to variables of the same MATCH clause, as can VarExpand. During LogicalPlanning we are careful
-       * to order plans based on their dependencies on unbound variables. The variables that the Trail receives are
-       * therefor guaranteed to be solved. Because this rewriter just swaps a Trail for a VarExpand without changing its
+       * to order plans based on their dependencies on unbound variables. The variables that the Repeat receives are
+       * therefor guaranteed to be solved. Because this rewriter just swaps a Repeat for a VarExpand without changing its
        * position in the overarching LogicalPlan, we do not need to worry about binding orders in our rewriter.
        */
-      def unapply(trailRhs: LogicalPlan): Option[(Expand, Seq[Expression])] = {
+      def unapply(repeatRhs: LogicalPlan): Option[(Expand, Seq[Expression])] = {
         val rhsBeforeExpandExtractor: PartialFunction[LogicalPlan, ListSet[Expression]] = self.rhsBeforeExpandExtractor
 
-        trailRhs match {
+        repeatRhs match {
           case Selection(
               Ands(predicatesAfterExpand),
               expand @ Expand(rhsBeforeExpandExtractor(predicatesBeforeExpand), _, _, _, _, _, ExpandAll)

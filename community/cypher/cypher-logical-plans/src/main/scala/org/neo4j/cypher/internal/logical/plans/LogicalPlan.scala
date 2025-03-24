@@ -4186,8 +4186,6 @@ sealed abstract class Repeat(idGen: IdGen)
   def innerRelationships: Set[LogicalVariable]
   def expansionMode: ExpansionMode
 
-  def withEnd(newEnd: LogicalVariable)(idGen: IdGen): Repeat
-
   override val localAvailableSymbols: Set[LogicalVariable] =
     left.localAvailableSymbols + end + start ++ nodeVariableGroupings.map(_.group) ++ relationshipVariableGroupings.map(
       _.group
@@ -4237,8 +4235,6 @@ case class RepeatTrail(
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)
 
-  override def withEnd(newEnd: LogicalVariable)(idGen: IdGen): RepeatTrail = copy(end = newEnd)(idGen)
-
   override def withVariableGroupings(
     nodeVariableGroupings: Set[VariableGrouping],
     relationshipVariableGroupings: Set[VariableGrouping]
@@ -4283,8 +4279,6 @@ case class RepeatWalk(
 )(implicit idGen: IdGen) extends Repeat(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(left = newLHS)(idGen)
   override def withRhs(newRHS: LogicalPlan)(idGen: IdGen): LogicalBinaryPlan = copy(right = newRHS)(idGen)
-
-  override def withEnd(newEnd: LogicalVariable)(idGen: IdGen): RepeatWalk = copy(end = newEnd)(idGen)
 
   override def withVariableGroupings(
     nodeVariableGroupings: Set[VariableGrouping],

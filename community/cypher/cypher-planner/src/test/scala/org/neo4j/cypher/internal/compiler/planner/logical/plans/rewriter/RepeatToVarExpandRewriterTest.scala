@@ -944,11 +944,26 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     expansionMode = ExpandAll
   )
 
+  val `(a) ((x_i)-[r_i]-(y_i))+ (b)`: TrailParameters = TrailParameters(
+    min = 1,
+    max = Unlimited,
+    start = "a",
+    end = "b",
+    innerStart = "x_i",
+    innerEnd = "y_i",
+    groupNodes = Set.empty,
+    groupRelationships = Set.empty,
+    innerRelationships = Set("r_i"),
+    previouslyBoundRelationships = Set.empty,
+    previouslyBoundRelationshipGroups = Set.empty,
+    reverseGroupVariableProjections = false,
+    expansionMode = ExpandInto
+  )
+
   test("Rewrite selection and trail to VarLengthExpand(Into)") {
     val selectionAndTrail = subPlanBuilder
       .projection("1 AS s")
-      .filter("`  UNNAMED4` = b")
-      .repeatTrail(`(a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .repeatTrail(`(a) ((x_i)-[r_i]-(y_i))+ (b)`)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
       .|.argument("  UNNAMED1")
@@ -969,8 +984,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
   ) {
     val selectionAndTrail = subPlanBuilder
       .projection("1 AS s")
-      .filter("`  UNNAMED4` = b")
-      .repeatTrail(`(a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .repeatTrail(`(a) ((x_i)-[r_i]-(y_i))+ (b)`)
       .|.filterExpression(isRepeatTrailUnique("r_i"))
       .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
       .|.argument("  UNNAMED1")
@@ -1936,11 +1950,24 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
     expansionMode = ExpandAll
   )
 
+  val `Walk (a) ((x_i)-[r_i]-(y_i))+ (b)`: WalkParameters = WalkParameters(
+    min = 1,
+    max = Unlimited,
+    start = "a",
+    end = "b",
+    innerStart = "x_i",
+    innerEnd = "y_i",
+    groupNodes = Set.empty,
+    groupRelationships = Set.empty,
+    innerRelationships = Set("r_i"),
+    reverseGroupVariableProjections = false,
+    expansionMode = ExpandInto
+  )
+
   test("Rewrite selection and walk to VarLengthExpand(Into)") {
     val selectionAndWalk = subPlanBuilder
       .projection("1 AS s")
-      .filter("`  UNNAMED4` = b")
-      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (b)`)
       .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
       .|.argument("  UNNAMED1")
       .allRelationshipsScan("(a)-[r_j]->(b)")
@@ -1960,8 +1987,7 @@ class RepeatToVarExpandRewriterTest extends CypherFunSuite with LogicalPlanningT
   ) {
     val selectionAndWalk = subPlanBuilder
       .projection("1 AS s")
-      .filter("`  UNNAMED4` = b")
-      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (  UNNAMED4)`)
+      .repeatWalk(`Walk (a) ((x_i)-[r_i]-(y_i))+ (b)`)
       .|.expandAll("(`  UNNAMED2`)-[`r_i`]->(`  UNNAMED3`)")
       .|.argument("  UNNAMED1")
       .expandInto("(a)-[r_j]->(b)")
