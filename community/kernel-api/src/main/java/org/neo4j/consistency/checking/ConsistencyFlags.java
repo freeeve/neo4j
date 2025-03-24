@@ -24,13 +24,15 @@ import java.util.Objects;
 public record ConsistencyFlags(
         boolean checkStructure,
         boolean checkIndexes,
-        boolean checkConstraints,
+        ConstraintFlags checkConstraints,
         boolean checkGraph,
         boolean checkCounts,
         boolean checkPropertyOwners,
         boolean checkPropertyValues) {
-    public static final ConsistencyFlags NONE = new ConsistencyFlags(false, false, false, false, false, false, false);
-    public static final ConsistencyFlags ALL = new ConsistencyFlags(true, true, true, true, true, true, true);
+    public static final ConsistencyFlags NONE =
+            new ConsistencyFlags(false, false, ConstraintFlags.NO_CONSTRAINTS, false, false, false, false);
+    public static final ConsistencyFlags ALL =
+            new ConsistencyFlags(true, true, ConstraintFlags.ALL_CONSTRAINTS, true, true, true, true);
     public static final ConsistencyFlags DEFAULT =
             ALL.withoutCheckPropertyOwners().withoutCheckPropertyValues();
 
@@ -114,12 +116,46 @@ public record ConsistencyFlags(
 
     public ConsistencyFlags withCheckConstraints() {
         return new ConsistencyFlags(
-                checkStructure, checkIndexes, true, checkGraph, checkCounts, checkPropertyOwners, checkPropertyValues);
+                checkStructure,
+                checkIndexes,
+                ConstraintFlags.ALL_CONSTRAINTS,
+                checkGraph,
+                checkCounts,
+                checkPropertyOwners,
+                checkPropertyValues);
     }
 
     public ConsistencyFlags withoutCheckConstraints() {
         return new ConsistencyFlags(
-                checkStructure, checkIndexes, false, checkGraph, checkCounts, checkPropertyOwners, checkPropertyValues);
+                checkStructure,
+                checkIndexes,
+                ConstraintFlags.NO_CONSTRAINTS,
+                checkGraph,
+                checkCounts,
+                checkPropertyOwners,
+                checkPropertyValues);
+    }
+
+    public ConsistencyFlags withoutCheckPropertyConstraints() {
+        return new ConsistencyFlags(
+                checkStructure,
+                checkIndexes,
+                ConstraintFlags.NO_PROPERTY_CONSTRAINTS,
+                checkGraph,
+                checkCounts,
+                checkPropertyOwners,
+                checkPropertyValues);
+    }
+
+    public ConsistencyFlags withoutCheckRelEndpointConstraints() {
+        return new ConsistencyFlags(
+                checkStructure,
+                checkIndexes,
+                ConstraintFlags.NO_REL_ENDPOINT_CONSTRAINTS,
+                checkGraph,
+                checkCounts,
+                checkPropertyOwners,
+                checkPropertyValues);
     }
 
     public ConsistencyFlags withCheckGraph() {
@@ -183,5 +219,13 @@ public record ConsistencyFlags(
     private static IllegalArgumentException checkGraphInvariant(String check) {
         return new IllegalArgumentException(
                 "'%s' cannot be set to '%s' with 'checkGraph' set to '%s'.".formatted(check, true, false));
+    }
+
+    public record ConstraintFlags(
+            boolean propertyConstraints, boolean relEndpointConstraints, boolean labelExistenceConstraints) {
+        public static final ConstraintFlags ALL_CONSTRAINTS = new ConstraintFlags(true, true, true);
+        public static final ConstraintFlags NO_CONSTRAINTS = new ConstraintFlags(false, false, false);
+        public static final ConstraintFlags NO_PROPERTY_CONSTRAINTS = new ConstraintFlags(false, true, true);
+        public static final ConstraintFlags NO_REL_ENDPOINT_CONSTRAINTS = new ConstraintFlags(true, false, true);
     }
 }
