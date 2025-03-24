@@ -161,7 +161,11 @@ public class TransactionIdTracker {
     private AbstractDatabase database(NamedDatabaseId namedDatabaseId) {
         try {
             var dbApi = (GraphDatabaseAPI) managementService.database(namedDatabaseId.name());
-            var db = dbApi.getDependencyResolver().resolveDependency(AbstractDatabase.class);
+            var dependencyResolver = dbApi.getDependencyResolver();
+            if (dependencyResolver == null) {
+                throw TransactionIdTrackerException.databaseUnavailable(namedDatabaseId.name(), null);
+            }
+            var db = dependencyResolver.resolveDependency(AbstractDatabase.class);
             if (isNotAvailable(db)) {
                 throw databaseUnavailable(db);
             }
