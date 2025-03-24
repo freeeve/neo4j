@@ -224,6 +224,7 @@ public class TestDirectory {
                         Files.copy(inputStream, path, REPLACE_EXISTING);
                     }
                 }
+                fileSystem.deleteRecursively(directory); // Don't forget to clean up the memory to avoid OOM
             }
         }
     }
