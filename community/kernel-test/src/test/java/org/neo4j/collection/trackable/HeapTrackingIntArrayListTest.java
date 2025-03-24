@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.eclipse.collections.api.iterator.IntIterator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -213,5 +214,16 @@ class HeapTrackingIntArrayListTest {
         }
 
         bList.close();
+    }
+
+    @Test
+    void iterator() {
+        IntIterator iterator = aList.iterator();
+        int i = 0;
+        while (iterator.hasNext()) {
+            assertTrue(i < intArray.length);
+            assertEquals(intArray[i++], iterator.next());
+        }
+        assertEquals(i, intArray.length);
     }
 }

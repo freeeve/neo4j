@@ -27,7 +27,9 @@ import static org.neo4j.util.Preconditions.requireNonNegative;
 
 import java.util.Arrays;
 import java.util.Objects;
+import org.eclipse.collections.api.iterator.IntIterator;
 import org.neo4j.collection.PrimitiveArrays;
+import org.neo4j.collection.PrimitiveIntCollections;
 import org.neo4j.graphdb.Resource;
 import org.neo4j.memory.MemoryTracker;
 
@@ -175,6 +177,18 @@ public class HeapTrackingIntArrayList implements Resource {
 
     public int[] toArray() {
         return Arrays.copyOf(elementData, size);
+    }
+
+    public IntIterator iterator() {
+        return new PrimitiveIntCollections.AbstractPrimitiveIntBaseIterator() {
+            private int index = -1;
+
+            @Override
+            protected boolean fetchNext() {
+                index++;
+                return index < size && next(elementData[index]);
+            }
+        };
     }
 
     @Override
