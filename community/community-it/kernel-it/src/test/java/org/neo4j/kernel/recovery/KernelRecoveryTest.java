@@ -50,10 +50,12 @@ import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @EphemeralTestDirectoryExtension
+@SkipOnSpd
 class KernelRecoveryTest {
     @Inject
     private EphemeralFileSystemAbstraction fileSystem;

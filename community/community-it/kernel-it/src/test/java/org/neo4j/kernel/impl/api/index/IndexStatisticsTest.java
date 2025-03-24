@@ -74,6 +74,7 @@ import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.util.concurrent.Futures;
 import org.neo4j.values.storable.Values;
 
@@ -90,6 +91,7 @@ import org.neo4j.values.storable.Values;
  */
 @ExtendWith(RandomExtension.class)
 @DbmsExtension(configurationCallback = "configure")
+@SkipOnSpd
 class IndexStatisticsTest {
     private static final String[] NAMES = new String[] {
         "Andres", "Davide", "Jakub", "Chris", "Tobias", "Stefan", "Petra", "Rickard", "Mattias", "Emil", "Chris",
