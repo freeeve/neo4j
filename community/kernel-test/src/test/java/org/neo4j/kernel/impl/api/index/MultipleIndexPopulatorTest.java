@@ -92,7 +92,7 @@ class MultipleIndexPopulatorTest {
     @Inject
     private JobScheduler jobScheduler;
 
-    private final IndexDescriptor index1 = TestIndexDescriptorFactory.forSchema(SchemaDescriptors.forLabel(1, 1));
+    private final IndexDescriptor index1 = TestIndexDescriptorFactory.forSchema(1, SchemaDescriptors.forLabel(1, 1));
     private IndexStoreView indexStoreView;
     private SchemaState schemaState;
     private MultipleIndexPopulator multipleIndexPopulator;
