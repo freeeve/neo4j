@@ -20,6 +20,7 @@
 package org.neo4j.test;
 
 import static java.lang.Boolean.FALSE;
+import static org.neo4j.test.TestDatabaseManagementServiceFactorySupplier.FACTORY_SUPPLIER_KEY;
 import static org.neo4j.util.Preconditions.checkState;
 
 import java.nio.file.Path;
@@ -63,7 +64,6 @@ import org.neo4j.time.SystemNanoClock;
  */
 public class TestDatabaseManagementServiceBuilder extends DatabaseManagementServiceBuilderImplementation
         implements TestNeo4jDatabaseManagementServiceBuilder {
-    private static final String FACTORY_SUPPLIER_KEY = "NEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER";
     private static final Path EPHEMERAL_PATH =
             Path.of("/target/test data/" + GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
 
