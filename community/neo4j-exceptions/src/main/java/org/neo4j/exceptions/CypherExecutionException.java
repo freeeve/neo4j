@@ -236,6 +236,23 @@ public class CypherExecutionException extends Neo4jException {
         return new CypherExecutionException(gql, msg, cause);
     }
 
+    public static CypherExecutionException entityFromOtherDb(String elementId, String currentDb, String expectedDb) {
+        var legacyMsg = "Can not use an entity from another database. Entity element id: "
+                + elementId + ", entity database: "
+                + currentDb + ", expected database: "
+                + expectedDb + ".";
+
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N04)
+                        .withParam(GqlParams.StringParam.db1, expectedDb)
+                        .withParam(GqlParams.StringParam.db2, currentDb)
+                        .withParam(GqlParams.StringParam.db3, expectedDb)
+                        .build())
+                .build();
+
+        return new CypherExecutionException(gql, legacyMsg);
+    }
+
     @Override
     public Status status() {
         Throwable cause = getCause();

@@ -38,6 +38,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.exceptions.InvalidArgumentException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.values.Comparison;
 
 class PointValueTest {
@@ -394,6 +396,17 @@ class PointValueTest {
         assertCannotParse("x:1,y:2");
         assertCannotParse("{x:1,y:2,srid:-9}");
         assertCannotParse("{crs:WGS-84 , lat:1, y:2}");
+    }
+
+    @Test
+    final void shouldNotBeAbleToParsePointsWithWrongType() {
+        ErrorGqlStatusObjectAssertions.assertThatThrownBy(() -> PointValue.parse("{crs:WGS-84 , lat:1, y:two}"))
+                .isInstanceOf(InvalidArgumentException.class)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22000)
+                .gqlCause()
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N11)
+                .hasStatusDescription(
+                        "error: data exception - invalid argument. Invalid argument: cannot process 'two'.");
     }
 
     final double randomFiniteDouble() {

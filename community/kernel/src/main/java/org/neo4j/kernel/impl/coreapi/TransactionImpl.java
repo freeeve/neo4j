@@ -564,10 +564,8 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
         }
 
         if (internalTransaction.getDatabaseId() != tx.getDatabaseId()) {
-            throw new CypherExecutionException("Can not use an entity from another database. Entity element id: "
-                    + entity.getElementId() + ", entity database: "
-                    + internalTransaction.getDatabaseName() + ", expected database: "
-                    + tx.getDatabaseName() + ".");
+            throw CypherExecutionException.entityFromOtherDb(
+                    entity.getElementId(), internalTransaction.getDatabaseName(), tx.getDatabaseName());
         }
         return entity;
     }

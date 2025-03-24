@@ -503,8 +503,8 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
         }
 
         private static void assignFloatingPoint(String key, Object value, Consumer<Double> assigner) {
-            if (value instanceof String) {
-                assigner.accept(assertConvertible(() -> Double.parseDouble((String) value)));
+            if (value instanceof String s) {
+                assigner.accept(assertConvertible(() -> Double.parseDouble(s), s));
             } else if (value instanceof IntegralValue) {
                 assigner.accept(((IntegralValue) value).doubleValue());
             } else if (value instanceof FloatingPointValue) {
@@ -518,8 +518,8 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
         }
 
         private static void assignIntegral(String key, Object value, Consumer<Integer> assigner) {
-            if (value instanceof String) {
-                assigner.accept(assertConvertible(() -> Integer.parseInt((String) value)));
+            if (value instanceof String s) {
+                assigner.accept(assertConvertible(() -> Integer.parseInt(s), s));
             } else if (value instanceof IntegralValue) {
                 assigner.accept((int) ((IntegralValue) value).longValue());
             } else {
@@ -529,11 +529,11 @@ public class PointValue extends HashMemoizingScalarValue implements Point, Compa
             }
         }
 
-        private static <T extends Number> T assertConvertible(Supplier<T> func) {
+        private static <T extends Number> T assertConvertible(Supplier<T> func, String input) {
             try {
                 return func.get();
             } catch (NumberFormatException e) {
-                throw new InvalidArgumentException(e.getMessage(), e);
+                throw InvalidArgumentException.failedConvertFunction(input, e);
             }
         }
 
