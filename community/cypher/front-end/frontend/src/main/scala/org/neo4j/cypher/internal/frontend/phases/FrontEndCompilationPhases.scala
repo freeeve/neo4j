@@ -17,14 +17,20 @@
 package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.configuration.GraphDatabaseInternalSettings.ExtractLiteral
+import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
+import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.AstRewriting
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.CollectSyntaxUsageMetrics
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExpandWhen
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ExtractSensitiveLiterals
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.IsolateSubqueriesInMutatingPatterns
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.LiteralExtraction
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.Parse
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryRewriting
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.RemoveDuplicateUseClauses
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ReplacePatternComprehensionWithCollectSubqueryRewriter
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ResolveSimpleDynamicExpressions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
@@ -35,14 +41,14 @@ import org.neo4j.cypher.internal.rewriting.rewriters.Forced
 import org.neo4j.cypher.internal.rewriting.rewriters.IfNoParameter
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.Never
+import org.neo4j.cypher.internal.util.StepSequencer
+import org.neo4j.cypher.internal.util.StepSequencer.AccumulatedSteps
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 import org.neo4j.values.virtual.MapValue
 
 trait FrontEndCompilationPhases {
 
-  val defaultSemanticFeatures: Seq[SemanticFeature.MultipleDatabases.type] = Seq(
-    MultipleDatabases
-  )
+  val defaultSemanticFeatures: Seq[SemanticFeature.MultipleDatabases.type] = Seq(MultipleDatabases)
 
   def enabledSemanticFeatures(extra: Set[String]): Seq[SemanticFeature] =
     defaultSemanticFeatures ++ extra.map(SemanticFeature.fromString)
@@ -64,27 +70,40 @@ trait FrontEndCompilationPhases {
     }
   }
 
+  val AccumulatedSteps(orderedSteps, _postConditions) =
+    StepSequencer[StepSequencer.Step with ParsePipelineTransformerFactory]().orderSteps(
+      Set(
+        CollectSyntaxUsageMetrics,
+        ExpandWhen,
+        ExtractSensitiveLiterals,
+        IsolateSubqueriesInMutatingPatterns,
+        PreparatoryRewriting,
+        RemoveDuplicateUseClauses,
+        ReplacePatternComprehensionWithCollectSubqueryRewriter,
+        SemanticAnalysis,
+        SemanticTypeCheck,
+        SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures),
+        SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures),
+        UnwrapTopLevelBraces
+      ),
+      initialConditions = Set(BaseContains[Statement]())
+    )
+
   def postParsingBase(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
-    CollectSyntaxUsageMetrics andThen
-      SyntaxDeprecationWarningsAndReplacements(Deprecations.SyntacticallyDeprecatedFeatures) andThen
-      PreparatoryRewriting andThen
-      If((_: BaseState) => config.obfuscateLiterals)(
-        ExtractSensitiveLiterals
-      ) andThen
-      SemanticAnalysis(warn = true, config.semanticFeatures: _*) andThen
-      ExpandWhen andThen
-      UnwrapTopLevelBraces andThen
-      SemanticAnalysis(warn = false, config.semanticFeatures: _*) andThen
-      RemoveDuplicateUseClauses andThen
-      SemanticTypeCheck andThen
-      SyntaxDeprecationWarningsAndReplacements(Deprecations.SemanticallyDeprecatedFeatures) andThen
-      IsolateSubqueriesInMutatingPatterns
+    Chainer.chainTransformers(orderedSteps.map(_.getCheckedTransformer(
+      literalExtractionStrategy = config.literalExtractionStrategy,
+      parameterTypeMapping = config.parameterTypeMapping,
+      semanticFeatures = config.semanticFeatures,
+      obfuscateLiterals = config.obfuscateLiterals
+    ))).asInstanceOf[Transformer[BaseContext, BaseState, BaseState]]
   }
 
   def parsingBase(config: ParsingConfig, parameters: MapValue): Transformer[BaseContext, BaseState, BaseState] = {
     Parse andThen postParsingBase(config) andThen
-      If((_: BaseState) => config.resolveSimpleDynamicExpressions)(ResolveSimpleDynamicExpressions(parameters)) andThen
-      SemanticAnalysis(warn = false, config.semanticFeatures: _*)
+      If((_: BaseState) => config.resolveSimpleDynamicExpressions)(
+        IfChangedSetSemantics.using(ResolveSimpleDynamicExpressions(parameters))
+      ) andThen
+      SemanticAnalysis.ifSemanticsNotUpToDate(warn = Some(false), config.semanticFeatures)
   }
 
   // Phase 1
@@ -94,8 +113,6 @@ trait FrontEndCompilationPhases {
     parameters: MapValue = MapValue.EMPTY
   ): Transformer[BaseContext, BaseState, BaseState] = {
     parsingBase(config, parameters) andThen
-      ReplacePatternComprehensionWithCollectSubqueryRewriter andThen
-      SemanticAnalysis(warn = false, features = config.semanticFeatures: _*) andThen
       AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
       LiteralExtraction(config.literalExtractionStrategy) andThen
       /*
@@ -117,17 +134,15 @@ trait FrontEndCompilationPhases {
       ExpandStarRewriter andThen
       TryRewriteProcedureCalls(resolver) andThen
       ObfuscationMetadataCollection andThen
-      SemanticAnalysis(warn = true, config.semanticFeatures: _*)
+      SemanticAnalysis(warn = Some(true), config.semanticFeatures: _*)
   }
 
   // Phase 1.1 (Fabric)
   def fabricFinalize(config: ParsingConfig): Transformer[BaseContext, BaseState, BaseState] = {
-    SemanticAnalysis(warn = true, config.semanticFeatures: _*) andThen
-      ReplacePatternComprehensionWithCollectSubqueryRewriter andThen
-      SemanticAnalysis(warn = false, config.semanticFeatures: _*) andThen
+    SemanticAnalysis(warn = Some(true), config.semanticFeatures: _*) andThen
       AstRewriting(parameterTypeMapping = config.parameterTypeMapping) andThen
       LiteralExtraction(config.literalExtractionStrategy) andThen
-      SemanticAnalysis(warn = false, config.semanticFeatures: _*)
+      SemanticAnalysis(warn = Some(false), config.semanticFeatures: _*)
   }
 }
 

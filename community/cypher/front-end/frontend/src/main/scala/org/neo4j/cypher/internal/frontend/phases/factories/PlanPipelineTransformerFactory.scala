@@ -19,7 +19,9 @@ package org.neo4j.cypher.internal.frontend.phases.factories
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.IfChangedSetSemantics
 import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 
 trait PlanPipelineTransformerFactory {
 
@@ -27,4 +29,17 @@ trait PlanPipelineTransformerFactory {
     pushdownPropertyReads: Boolean,
     semanticFeatures: Seq[SemanticFeature]
   ): Transformer[_ <: BaseContext, _ <: BaseState, BaseState]
+
+  def getCheckedTransformer(
+    pushdownPropertyReads: Boolean,
+    semanticFeatures: Seq[SemanticFeature]
+  ): Transformer[_ <: BaseContext, _ <: BaseState, BaseState] = {
+    val transformer = getTransformer(
+      pushdownPropertyReads,
+      semanticFeatures
+    ).asInstanceOf[Transformer[BaseContext, BaseState, BaseState]]
+    if (transformer.invalidatedConditions.intersect(SemanticAnalysis.postConditions).nonEmpty)
+      IfChangedSetSemantics.using(transformer)
+    else transformer
+  }
 }

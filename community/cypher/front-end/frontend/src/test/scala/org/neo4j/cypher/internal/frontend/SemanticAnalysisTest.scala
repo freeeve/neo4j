@@ -221,7 +221,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
 
   test("Should register uses in PathExpressions") {
     analyse("MATCH p = (a)-[r]-(b) RETURN p AS p")
-      .withPipeline(ProjectNamedPathsPhase andThen SemanticAnalysis(warn = true))
+      .withPipeline(ProjectNamedPathsPhase andThen SemanticAnalysis(warn = Some(true)))
       .run
       .assert { result =>
         Set("a", "r", "b").foreach { name =>

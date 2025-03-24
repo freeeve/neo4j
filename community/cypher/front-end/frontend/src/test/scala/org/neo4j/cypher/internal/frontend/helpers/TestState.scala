@@ -53,6 +53,8 @@ case class TestState(override val maybeStatement: Option[ast.Statement]) extends
 
   override def accumulatedConditions = Set.empty
 
+  override def semanticsUpToDate: Boolean = true
+
   override def withProcedureSignatureVersion(signatureVersion: Option[Long]): BaseState = fail("not implemented")
   override def withStatement(s: ast.Statement) = copy(Some(s))
 
@@ -69,4 +71,6 @@ case class TestState(override val maybeStatement: Option[ast.Statement]) extends
   override def withObfuscationMetadata(o: ObfuscationMetadata) = fail("not implemented")
 
   override val anonymousVariableNameGenerator: AnonymousVariableNameGenerator = new AnonymousVariableNameGenerator()
+
+  override def withSemanticsUpToDate(b: Boolean): BaseState = fail("not implemented")
 }

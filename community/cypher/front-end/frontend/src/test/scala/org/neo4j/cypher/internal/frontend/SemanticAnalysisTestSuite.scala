@@ -113,8 +113,8 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
   def pipelineWithSemanticFeatures(semanticFeatures: SemanticFeature*): Pipeline =
     PreparatoryRewriting andThen
-      SemanticAnalysis(warn = true, semanticFeatures: _*) andThen
-      SemanticAnalysis(warn = false, semanticFeatures: _*)
+      SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
+      SemanticAnalysis(warn = Some(false), semanticFeatures: _*)
 
   case class Analyse(
     query: String,

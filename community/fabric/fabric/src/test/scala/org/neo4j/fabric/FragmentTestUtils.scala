@@ -114,6 +114,7 @@ trait FragmentTestUtils {
     override val maybeObfuscationMetadata: Option[ObfuscationMetadata] = Option.empty
     override val accumulatedConditions: Set[StepSequencer.Condition] = Set.empty
     override val anonymousVariableNameGenerator: AnonymousVariableNameGenerator = new AnonymousVariableNameGenerator()
+    override val semanticsUpToDate: Boolean = false
     override def withStatement(s: Statement): BaseState = this
     override def withReturnColumns(cols: Seq[String]): BaseState = this
     override def withSemanticTable(s: SemanticTable): BaseState = this
@@ -122,6 +123,7 @@ trait FragmentTestUtils {
     override def withResolvedParams(p: Set[String]): BaseState = this
     override def withObfuscationMetadata(o: ObfuscationMetadata): BaseState = this
     override def withProcedureSignatureVersion(signatureVersion: Option[Long]): BaseState = this
+    override def withSemanticsUpToDate(b: Boolean): BaseState = this
   }
 
   implicit class FragBuilderInit(input: Fragment.Init) {

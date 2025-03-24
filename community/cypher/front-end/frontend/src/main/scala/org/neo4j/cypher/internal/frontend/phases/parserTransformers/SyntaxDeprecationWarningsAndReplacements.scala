@@ -92,7 +92,7 @@ case class SyntaxDeprecationWarningsAndReplacements(deprecations: Deprecations)
     case _: SemanticDeprecations => Set(
         BaseContains[Statement](),
         BaseContains[SemanticTable]()
-      )
+      ) ++ SemanticInfoAvailable
   }
 
   override def invalidatedConditions: Set[Condition] = SemanticInfoAvailable

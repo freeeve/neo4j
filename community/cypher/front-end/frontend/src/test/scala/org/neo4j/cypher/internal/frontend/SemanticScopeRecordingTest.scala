@@ -32,8 +32,8 @@ class SemanticScopeRecordingTest extends CypherFunSuite {
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
   private val pipeline = Parse andThen
     PreparatoryRewriting andThen
-    SemanticAnalysis(warn = true) andThen
-    SemanticAnalysis(warn = false)
+    SemanticAnalysis(warn = Some(true)) andThen
+    SemanticAnalysis(warn = Some(false))
 
   // Fabric needs to know a scope of a clause immediately preceding a remote subquery,
   // because such subqueries act as delimiters between 'local' and 'remote' parts of a query

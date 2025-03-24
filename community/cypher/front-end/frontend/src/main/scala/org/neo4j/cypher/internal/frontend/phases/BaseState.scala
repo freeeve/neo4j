@@ -40,6 +40,7 @@ trait BaseState {
   def anonymousVariableNameGenerator: AnonymousVariableNameGenerator
 
   def accumulatedConditions: Set[StepSequencer.Condition]
+  def semanticsUpToDate: Boolean
 
   def statement(): Statement = maybeStatement getOrElse fail("Statement")
   def returnColumns(): Seq[String] = maybeReturnColumns getOrElse fail("Return columns")
@@ -59,6 +60,7 @@ trait BaseState {
   def withParams(p: Map[AutoExtractedParameter, Expression]): BaseState
   def withResolvedParams(p: Set[String]): BaseState
   def withObfuscationMetadata(o: ObfuscationMetadata): BaseState
+  def withSemanticsUpToDate(b: Boolean): BaseState
 }
 
 case class InitialState(
@@ -73,7 +75,8 @@ case class InitialState(
   maybeSemanticTable: Option[SemanticTable] = None,
   accumulatedConditions: Set[StepSequencer.Condition] = Set.empty,
   maybeReturnColumns: Option[Seq[String]] = None,
-  maybeObfuscationMetadata: Option[ObfuscationMetadata] = None
+  maybeObfuscationMetadata: Option[ObfuscationMetadata] = None,
+  semanticsUpToDate: Boolean = false
 ) extends BaseState {
 
   override def withStatement(s: Statement): InitialState = copy(maybeStatement = Some(s))
@@ -93,4 +96,6 @@ case class InitialState(
 
   override def withProcedureSignatureVersion(signatureVersion: Option[Long]): BaseState =
     copy(maybeProcedureSignatureVersion = signatureVersion)
+
+  override def withSemanticsUpToDate(b: Boolean): BaseState = copy(semanticsUpToDate = b)
 }

@@ -138,3 +138,27 @@ case class If[-C <: BaseContext, FROM, STATE <: FROM](f: STATE => Boolean)(thenT
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = thenT.invalidatedConditions
 }
+
+case class IfChanged[-C <: BaseContext, FROM, STATE <: FROM](f: (
+  STATE,
+  STATE
+) => Boolean)(t: => Transformer[C, FROM, STATE])(u: => Transformer[C, STATE, STATE])
+    extends Transformer[C, STATE, STATE] {
+
+  override def transform(from: STATE, context: C): STATE = {
+    val to = t.transform(from, context)
+
+    if (f(from, to))
+      u.transform(to, context)
+    else
+      to
+  }
+
+  override def name: String = s"ifChange(<f>, <u>) ${t.name}"
+
+  override def toString: String = name
+
+  override def postConditions: Set[StepSequencer.Condition] = t.postConditions
+
+  override def invalidatedConditions: Set[StepSequencer.Condition] = t.invalidatedConditions
+}

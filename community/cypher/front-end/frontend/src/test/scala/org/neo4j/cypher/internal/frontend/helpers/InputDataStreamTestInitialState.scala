@@ -41,7 +41,8 @@ case class InputDataStreamTestInitialState(
   maybeSemanticTable: Option[SemanticTable] = None,
   accumulatedConditions: Set[StepSequencer.Condition] = Set.empty,
   maybeReturnColumns: Option[Seq[String]] = None,
-  maybeObfuscationMetadata: Option[ObfuscationMetadata] = None
+  maybeObfuscationMetadata: Option[ObfuscationMetadata] = None,
+  semanticsUpToDate: Boolean = false
 ) extends BaseState {
 
   override def withStatement(s: ast.Statement): InputDataStreamTestInitialState = {
@@ -71,4 +72,6 @@ case class InputDataStreamTestInitialState(
 
   override def withProcedureSignatureVersion(signatureVersion: Option[Long]): InputDataStreamTestInitialState =
     copy(maybeProcedureSignatureVersion = signatureVersion)
+
+  override def withSemanticsUpToDate(b: Boolean): BaseState = copy(semanticsUpToDate = b)
 }

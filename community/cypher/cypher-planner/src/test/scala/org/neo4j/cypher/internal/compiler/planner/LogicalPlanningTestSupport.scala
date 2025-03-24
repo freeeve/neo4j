@@ -531,10 +531,10 @@ trait LogicalPlanningTestSupport extends AstConstructionTestSupport
   private lazy val pipeLine: Transformer[PlannerContext, BaseState, LogicalPlanState] =
     Parse andThen
       PreparatoryRewriting andThen
-      SemanticAnalysis(warn = true, semanticFeatures: _*) andThen
+      SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
       AstRewriting() andThen
       RewriteProcedureCalls andThen
-      SemanticAnalysis(warn = true, semanticFeatures: _*) andThen
+      SemanticAnalysis(warn = Some(true), semanticFeatures: _*) andThen
       Namespacer andThen
       ProjectNamedPathsRewriter andThen
       rewriteEqualityToInPredicate andThen

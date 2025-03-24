@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.neo4j.cypher.internal.frontend.phases
+package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 
 import org.neo4j.cypher.internal.ast.AddedInRewriteGeneral
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.BooleanLiteral
 import org.neo4j.cypher.internal.expressions.CaseExpression
@@ -39,15 +40,22 @@ import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.True
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.frontend.phases.BaseContext
+import org.neo4j.cypher.internal.frontend.phases.BaseState
+import org.neo4j.cypher.internal.frontend.phases.StatementCondition
+import org.neo4j.cypher.internal.frontend.phases.StatementRewriter
+import org.neo4j.cypher.internal.frontend.phases.Transformer
+import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoConditionalQueries
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
-import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
+import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.Condition
+import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 import org.neo4j.cypher.internal.util.topDown
 
 /**
@@ -80,7 +88,7 @@ import org.neo4j.cypher.internal.util.topDown
  *    RETURN res
  *
  */
-case object ExpandWhen extends StatementRewriter with StepSequencer.Step {
+case object ExpandWhen extends StatementRewriter with StepSequencer.Step with ParsePipelineTransformerFactory {
 
   override def instance(from: BaseState, context: BaseContext): Rewriter =
     getRewriter(from.semantics(), from.anonymousVariableNameGenerator)
@@ -89,7 +97,7 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step {
 
   override def postConditions: Set[Condition] = Set(StatementCondition(ContainsNoConditionalQueries))
 
-  override def invalidatedConditions: Set[Condition] = SemanticInfoAvailable + ContainsNoReturnAll
+  override def invalidatedConditions: Set[Condition] = Set(ProjectionClausesHaveSemanticInfo, ContainsNoReturnAll)
 
   def getRewriter(state: SemanticState, anonymousVariableNameGenerator: AnonymousVariableNameGenerator): Rewriter = {
 
@@ -202,4 +210,10 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step {
     })
   }
 
+  override def getTransformer(
+    literalExtractionStrategy: LiteralExtractionStrategy,
+    parameterTypeMapping: Map[String, ParameterTypeInfo],
+    semanticFeatures: Seq[SemanticFeature],
+    obfuscateLiterals: Boolean
+  ): Transformer[BaseContext, BaseState, BaseState] = ExpandWhen
 }

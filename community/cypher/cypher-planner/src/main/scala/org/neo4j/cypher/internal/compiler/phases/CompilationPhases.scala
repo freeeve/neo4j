@@ -54,6 +54,7 @@ import org.neo4j.cypher.internal.frontend.phases.ObfuscationMetadataCollection
 import org.neo4j.cypher.internal.frontend.phases.ProcedureAndFunctionDeprecationWarnings
 import org.neo4j.cypher.internal.frontend.phases.ProcedureWarnings
 import org.neo4j.cypher.internal.frontend.phases.ProjectNamedPathsRewriter
+import org.neo4j.cypher.internal.frontend.phases.SetSemanticsNotUpToDate
 import org.neo4j.cypher.internal.frontend.phases.ShortestPathVariableDeduplicator
 import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.collapseMultipleInPredicates
@@ -151,16 +152,18 @@ object CompilationPhases extends FrontEndCompilationPhases {
     pushdownPropertyReads: Boolean = true,
     semanticFeatures: Seq[SemanticFeature] = defaultSemanticFeatures
   ): Transformer[PlannerContext, BaseState, LogicalPlanState] =
-    SchemaCommandPlanBuilder andThen
+    SetSemanticsNotUpToDate andThen
+      SchemaCommandPlanBuilder andThen
       If((s: LogicalPlanState) => s.maybeLogicalPlan.isEmpty)(
         Chainer.chainTransformers(
-          orderedPlanPipelineSteps.map(_.getTransformer(pushdownPropertyReads, semanticFeatures))
+          orderedPlanPipelineSteps.map(_.getCheckedTransformer(pushdownPropertyReads, semanticFeatures))
         ).asInstanceOf[Transformer[PlannerContext, BaseState, LogicalPlanState]]
       )
 
   // Alternative Phase 3
   def systemPipeLine: Transformer[PlannerContext, BaseState, LogicalPlanState] =
-    RewriteProcedureCalls andThen
+    SetSemanticsNotUpToDate andThen
+      RewriteProcedureCalls andThen
       simplifyPredicates andThen
       AdministrationCommandPlanBuilder andThen
       If((s: LogicalPlanState) => s.maybeLogicalPlan.isEmpty)(

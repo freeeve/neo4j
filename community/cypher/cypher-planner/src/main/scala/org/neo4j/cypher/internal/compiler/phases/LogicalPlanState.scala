@@ -67,7 +67,8 @@ case class LogicalPlanState(
   hasLoadCSV: Boolean = false,
   maybeReturnColumns: Option[Seq[String]] = None,
   maybeObfuscationMetadata: Option[ObfuscationMetadata] = None,
-  maybeRemoteBatchPropertiesImplementation: Option[RemoteBatchPropertiesImplementation] = None
+  maybeRemoteBatchPropertiesImplementation: Option[RemoteBatchPropertiesImplementation] = None,
+  semanticsUpToDate: Boolean = false
 ) extends BaseState {
 
   def query: PlannerQuery = maybeQuery getOrElse fail("The planner query")
@@ -119,6 +120,8 @@ case class LogicalPlanState(
 
   def withRemoteBatchPropertiesImplementation(remoteBatchPropertiesImplementation: RemoteBatchPropertiesImplementation)
     : LogicalPlanState = copy(maybeRemoteBatchPropertiesImplementation = Some(remoteBatchPropertiesImplementation))
+
+  override def withSemanticsUpToDate(b: Boolean): BaseState = copy(semanticsUpToDate = b)
 }
 
 object LogicalPlanState {
@@ -136,7 +139,8 @@ object LogicalPlanState {
       accumulatedConditions = state.accumulatedConditions,
       maybeReturnColumns = state.maybeReturnColumns,
       maybeObfuscationMetadata = state.maybeObfuscationMetadata,
-      anonymousVariableNameGenerator = state.anonymousVariableNameGenerator
+      anonymousVariableNameGenerator = state.anonymousVariableNameGenerator,
+      semanticsUpToDate = state.semanticsUpToDate
     )
 }
 

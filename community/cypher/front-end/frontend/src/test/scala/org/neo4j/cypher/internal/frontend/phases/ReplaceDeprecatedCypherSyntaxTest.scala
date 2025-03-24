@@ -30,7 +30,7 @@ class ReplaceDeprecatedCypherSyntaxTest extends CypherFunSuite with AstConstruct
   override val rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
     SyntaxDeprecationWarningsAndReplacements(SyntacticallyDeprecatedFeatures) andThen
       PreparatoryRewriting andThen
-      SemanticAnalysis(warn = true) andThen
+      SemanticAnalysis(warn = Some(true)) andThen
       SyntaxDeprecationWarningsAndReplacements(SemanticallyDeprecatedFeatures)
 
   override def astRewriteAndAnalyze: Boolean = false

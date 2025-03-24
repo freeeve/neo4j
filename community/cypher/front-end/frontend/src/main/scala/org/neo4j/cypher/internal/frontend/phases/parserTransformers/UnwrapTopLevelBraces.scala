@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.ast.UnionAll
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.UseGraph
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticTable
+import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.StatementCondition
@@ -34,8 +36,8 @@ import org.neo4j.cypher.internal.frontend.phases.Transformer
 import org.neo4j.cypher.internal.frontend.phases.factories.ParsePipelineTransformerFactory
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoReturnAll
 import org.neo4j.cypher.internal.rewriting.conditions.ContainsNoTopLevelBraces
-import org.neo4j.cypher.internal.rewriting.conditions.SemanticInfoAvailable
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
+import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.ProjectionClausesHaveSemanticInfo
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.Step
@@ -87,11 +89,12 @@ import org.neo4j.cypher.internal.util.topDown
  */
 case object UnwrapTopLevelBraces extends StatementRewriter with ParsePipelineTransformerFactory with Step {
 
-  override def preConditions: Set[StepSequencer.Condition] = Set()
+  override def preConditions: Set[StepSequencer.Condition] = Set(BaseContains[SemanticTable]())
 
   override def postConditions: Set[StepSequencer.Condition] = Set(StatementCondition(ContainsNoTopLevelBraces))
 
-  override def invalidatedConditions: Set[StepSequencer.Condition] = SemanticInfoAvailable + ContainsNoReturnAll
+  override def invalidatedConditions: Set[StepSequencer.Condition] =
+    Set(ContainsNoReturnAll, ProjectionClausesHaveSemanticInfo)
 
   private def pushDownUse(query: Query, use: Option[UseGraph]): Query = {
     query match {

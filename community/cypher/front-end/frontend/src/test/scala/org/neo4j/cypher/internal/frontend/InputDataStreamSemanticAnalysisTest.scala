@@ -33,7 +33,7 @@ class InputDataStreamSemanticAnalysisTest extends CypherFunSuite
     with CypherVersionTestSupport {
 
   // This test invokes SemanticAnalysis twice because that's what the production pipeline does
-  private val pipeline = SemanticAnalysis(warn = true) andThen SemanticAnalysis(warn = false)
+  private val pipeline = SemanticAnalysis(warn = Some(true)) andThen SemanticAnalysis(warn = Some(false))
 
   private def transform(version: CypherVersion, statement: Statement)(f: ErrorCollectingContext => Unit): Unit = {
     val context = new ErrorCollectingContext(version)

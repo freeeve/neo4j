@@ -34,7 +34,7 @@ class ShortestPathVariableDeduplicatorTest extends CypherFunSuite
     super.preProcessPhase(features: _*) andThen
       flattenBooleanOperators andThen
       // flattenBooleanOperators invalidates SemanticInformation
-      SemanticAnalysis(false, semanticFeatures.head)
+      SemanticAnalysis(Some(false), semanticFeatures.head)
 
   test("should rewrite repeated interior nodes and leave exterior nodes") {
     assertRewritten(

@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.frontend.phases.BaseContext
 import org.neo4j.cypher.internal.frontend.phases.BaseState
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.SEMANTIC_CHECK
+import org.neo4j.cypher.internal.frontend.phases.If
 import org.neo4j.cypher.internal.frontend.phases.Phase
 import org.neo4j.cypher.internal.frontend.phases.StatementCondition
 import org.neo4j.cypher.internal.frontend.phases.Transformer
@@ -49,7 +50,7 @@ import org.neo4j.kernel.database.DatabaseReference
 /**
  * Do variable binding, typing, type checking and other semantic checks.
  */
-case class SemanticAnalysis(warn: Boolean, features: SemanticFeature*)
+case class SemanticAnalysis(warn: Option[Boolean], features: SemanticFeature*)
     extends Phase[BaseContext, BaseState, BaseState] {
 
   override def process(from: BaseState, context: BaseContext): BaseState = {
@@ -67,7 +68,8 @@ case class SemanticAnalysis(warn: Boolean, features: SemanticFeature*)
     }
 
     val SemanticCheckResult(state, errors) = SemanticChecker.check(from.statement(), startState, checkContext)
-    if (warn) state.notifications.foreach(context.notificationLogger.log)
+    if (warn.getOrElse(!from.maybeSemantics.exists(_.semanticCheckHasRunOnce)))
+      state.notifications.foreach(context.notificationLogger.log)
 
     context.errorHandler(errors)
 
@@ -94,6 +96,7 @@ case class SemanticAnalysis(warn: Boolean, features: SemanticFeature*)
       .withStatement(rewrittenStatement)
       .withSemanticState(state)
       .withSemanticTable(table)
+      .withSemanticsUpToDate(true)
   }
 
   override def phase: CompilationPhaseTracer.CompilationPhase = SEMANTIC_CHECK
@@ -126,7 +129,7 @@ case object SemanticAnalysis extends StepSequencer.Step with ParsePipelineTransf
     parameterTypeMapping: Map[String, ParameterTypeInfo],
     semanticFeatures: Seq[SemanticFeature],
     obfuscateLiterals: Boolean
-  ): Transformer[BaseContext, BaseState, BaseState] = SemanticAnalysis(warn = true, semanticFeatures: _*)
+  ): Transformer[BaseContext, BaseState, BaseState] = ifSemanticsNotUpToDate(warn = None, semanticFeatures)
 
   /**
    * Transformer for the plan pipeline
@@ -134,5 +137,11 @@ case object SemanticAnalysis extends StepSequencer.Step with ParsePipelineTransf
   override def getTransformer(
     pushdownPropertyReads: Boolean,
     semanticFeatures: Seq[SemanticFeature]
-  ): Transformer[BaseContext, BaseState, BaseState] = SemanticAnalysis(warn = false, semanticFeatures: _*)
+  ): Transformer[BaseContext, BaseState, BaseState] = ifSemanticsNotUpToDate(warn = Some(false), semanticFeatures)
+
+  def ifSemanticsNotUpToDate(
+    warn: Option[Boolean],
+    semanticFeatures: Seq[SemanticFeature]
+  ): Transformer[BaseContext, BaseState, BaseState] =
+    If((s: BaseState) => !s.semanticsUpToDate)(SemanticAnalysis(warn, semanticFeatures: _*))
 }

@@ -48,7 +48,7 @@ class IsolateSubqueriesInMutatingPatternsTest extends CypherFunSuite with Rewrit
   // Rewrite away WITH * in tests directly
   override def rewriterPhaseUnderTest: Transformer[BaseContext, BaseState, BaseState] =
     IsolateSubqueriesInMutatingPatterns andThen
-      SemanticAnalysis(false, semanticFeatures: _*) andThen
+      SemanticAnalysis(Some(false), semanticFeatures: _*) andThen
       ExpandStarRewriter
 
   test("Rewrites subquery expression in CREATE") {

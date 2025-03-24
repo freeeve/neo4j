@@ -128,7 +128,7 @@ trait QueryGraphProducer {
     )
     val output = (
       RewriteProcedureCalls andThen
-        SemanticAnalysis(warn = false, semanticFeatures: _*) andThen
+        SemanticAnalysis(warn = Some(false), semanticFeatures: _*) andThen
         Namespacer andThen
         rewriteEqualityToInPredicate andThen
         cnfNormalizerTransformer andThen

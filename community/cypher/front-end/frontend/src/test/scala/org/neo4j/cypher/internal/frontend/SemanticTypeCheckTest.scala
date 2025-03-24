@@ -42,7 +42,7 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherV
 
   private def pipeline = Parse andThen
     PreparatoryRewriting andThen
-    SemanticAnalysis(warn = false) andThen
+    SemanticAnalysis(warn = Some(false)) andThen
     SemanticTypeCheck
 
   // PatternExpressionInNonExistenceCheck
