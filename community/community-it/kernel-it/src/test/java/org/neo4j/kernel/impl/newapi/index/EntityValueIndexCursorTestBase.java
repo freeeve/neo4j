@@ -371,6 +371,21 @@ public abstract class EntityValueIndexCursorTestBase<ENTITY_VALUE_INDEX_CURSOR e
     }
 
     @Test
+    void shouldReturnCorrectNumberOfPropertiesForCompositeIndexForSingleAllEntriesQuery() throws KernelException {
+        // given
+        var index = read.indexReadSession(schemaRead.indexGetForName(COMPOSITE_INDEX_NAME));
+
+        // when
+        try (var cursor = entityParams.allocateEntityValueIndexCursor(tx, cursors)) {
+            entityParams.entityIndexScan(tx, index, cursor, unconstrained());
+            while (cursor.next()) {
+                // then
+                assertThat(cursor.numberOfProperties()).isEqualTo(2);
+            }
+        }
+    }
+
+    @Test
     void shouldPerformStringPrefixSearch() throws Exception {
         // given
         boolean needsValues = indexParams.indexProvidesStringValues();

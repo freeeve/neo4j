@@ -84,6 +84,7 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
     private boolean needStoreFilter;
     private PropertySelection propertySelection;
     private final boolean applyAccessModeToTxState;
+    private int numberOfProperties;
 
     DefaultEntityValueIndexCursor(CursorPool<CURSOR> pool, boolean applyAccessModeToTxState) {
         super(pool);
@@ -108,6 +109,9 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
         this.needStoreFilter = needStoreFilter;
         this.propertySelection = PropertySelection.selection(indexQueryKeys(query));
         sortedMergeJoin.initialize(indexOrder);
+        // The query[] length doesn't always match the number of properties in the index since we allow a single
+        // "*" query even for composite indexes.
+        numberOfProperties = descriptor.schema().getPropertyIds().length;
 
         this.query = query;
 
@@ -323,7 +327,7 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
 
     @Override
     public final int numberOfProperties() {
-        return query == null ? 0 : query.length;
+        return numberOfProperties;
     }
 
     @Override
@@ -355,6 +359,7 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
             this.added = ImmutableEmptyLongIterator.INSTANCE;
             this.addedWithValues = Collections.emptyIterator();
             this.removed = LongSets.immutable.empty();
+            this.numberOfProperties = 0;
         }
         super.closeInternal();
     }
@@ -514,9 +519,4 @@ abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexPr
      * Name of the concrete implementation used in {@link #toString()}.
      */
     abstract String implementationName();
-
-    @FunctionalInterface
-    interface EntityReader {
-        void read(Read read);
-    }
 }
