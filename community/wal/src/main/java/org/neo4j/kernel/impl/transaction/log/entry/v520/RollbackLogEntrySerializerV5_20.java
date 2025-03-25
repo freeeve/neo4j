@@ -47,7 +47,7 @@ public class RollbackLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntry
             throws IOException {
         long transactionId = channel.getLong();
         long timeWritten = channel.getLong();
-        long appendIndex = channel.getLong();
+        long appendIndex = channel.getAppendIndex();
         int checksum = channel.endChecksumAndValidate();
         return new LogEntryRollbackV5_20(version, transactionId, appendIndex, timeWritten, checksum);
     }
@@ -58,7 +58,7 @@ public class RollbackLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntry
         writeLogEntryHeader(logEntry.kernelVersion(), TX_ROLLBACK, channel);
         channel.putLong(logEntry.getTransactionId())
                 .putLong(logEntry.getTimeWritten())
-                .putLong(logEntry.getAppendIndex());
+                .putAppendIndex(logEntry.getAppendIndex());
         return channel.putChecksum();
     }
 }

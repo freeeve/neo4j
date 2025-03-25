@@ -47,7 +47,7 @@ public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEnt
         long timeWritten = channel.getLong();
         long chunkId = channel.getLong();
         long previousBatchAppendIndex = channel.getLong();
-        long appendIndex = channel.getLong();
+        long appendIndex = channel.getAppendIndex();
         return new LogEntryChunkStartV5_20(version, timeWritten, chunkId, appendIndex, previousBatchAppendIndex);
     }
 
@@ -58,7 +58,7 @@ public class ChunkStartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEnt
         channel.putLong(logEntry.getTimeWritten())
                 .putLong(logEntry.getChunkId())
                 .putLong(logEntry.getPreviousBatchAppendIndex())
-                .putLong(logEntry.getAppendIndex());
+                .putAppendIndex(logEntry.getAppendIndex());
         return NO_RETURN_VALUE;
     }
 }
