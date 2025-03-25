@@ -246,7 +246,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     // whereas others, such as timestamp or txId when transaction starts, even locks, needs to be set in #initialize().
     private TxState txState;
     private volatile TransactionWriteState writeState;
-    private AccessCapability accessCapability;
+    protected AccessCapability accessCapability;
     private final KernelStatement currentStatement;
     private OverridableSecurityContext overridableSecurityContext;
     private final LockManager.Client lockClient;
@@ -270,7 +270,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private volatile Map<String, Object> userMetaData;
     private volatile String statusDetails;
     private final QueryContext queryContext;
-    private final Operations operations;
+    protected final Operations operations;
     private InternalTransaction internalTransaction;
     private volatile TraceProvider traceProvider;
     private volatile TransactionInitializationTrace initializationTrace;
@@ -938,7 +938,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         writeState = writeState.upgradeToDataWrites();
     }
 
-    private void upgradeToSchemaWrites() throws InvalidTransactionTypeKernelException {
+    protected void upgradeToSchemaWrites() throws InvalidTransactionTypeKernelException {
         writeState = writeState.upgradeToSchemaWrites();
     }
 

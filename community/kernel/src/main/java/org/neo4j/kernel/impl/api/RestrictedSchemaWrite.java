@@ -44,7 +44,7 @@ public class RestrictedSchemaWrite implements SchemaWrite {
     private final SecurityContext securityContext;
     private final SecurityAuthorizationHandler securityAuthorizationHandler;
 
-    RestrictedSchemaWrite(
+    protected RestrictedSchemaWrite(
             SchemaWrite inner,
             SecurityContext securityContext,
             SecurityAuthorizationHandler securityAuthorizationHandler) {
