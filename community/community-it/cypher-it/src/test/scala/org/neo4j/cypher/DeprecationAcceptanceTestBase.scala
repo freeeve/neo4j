@@ -1038,17 +1038,17 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
       "RETURN id(null)",
       "MATCH ()-[r]->() RETURN id(r)"
     )
-    val detail = NotificationDetail.deprecatedName("id")
+    val detail = NotificationDetail.deprecatedName("id", "elementId or an application-generated id")
 
     assertNotification(
       queries,
       shouldContainNotification = true,
       detail,
-      (pos, detail) => deprecatedFunctionWithoutReplacement(pos, detail, "id"),
+      (pos, detail) => deprecatedFunctionWithReplacement(pos, detail, "id", "elementId or an application-generated id"),
       List(
         TestGqlStatusObject(
-          STATUS_01N02.getStatusString,
-          "warn: feature deprecated without replacement. id is deprecated and will be removed without a replacement.",
+          STATUS_01N01.getStatusString,
+          "warn: feature deprecated with replacement. id is deprecated. It is replaced by elementId or an application-generated id.",
           SeverityLevel.WARNING,
           NotificationClassification.DEPRECATION
         ),
