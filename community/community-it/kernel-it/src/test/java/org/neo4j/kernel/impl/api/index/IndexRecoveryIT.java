@@ -94,11 +94,13 @@ import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Values;
 
 @EphemeralNeo4jLayoutExtension
+@SkipOnSpd
 class IndexRecoveryIT {
     @Inject
     private TestDirectory testDirectory;

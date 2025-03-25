@@ -57,11 +57,13 @@ import org.neo4j.monitoring.Panic;
 import org.neo4j.test.Barrier;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.Values;
 
 @TestDirectoryExtension
+@SkipOnSpd
 class RecoveryCleanupIT {
     @Inject
     private TestDirectory testDirectory;

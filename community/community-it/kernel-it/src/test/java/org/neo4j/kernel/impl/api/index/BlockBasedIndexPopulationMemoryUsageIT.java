@@ -41,8 +41,10 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension(configurationCallback = "configure")
+@SkipOnSpd
 class BlockBasedIndexPopulationMemoryUsageIT {
     private static final long TEST_BLOCK_SIZE = kibiBytes(64);
     private static final String[] KEYS = {"key1", "key2", "key3", "key4"};

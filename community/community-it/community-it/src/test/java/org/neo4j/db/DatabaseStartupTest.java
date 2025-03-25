@@ -64,6 +64,7 @@ import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @Neo4jLayoutExtension
 class DatabaseStartupTest {
@@ -74,6 +75,7 @@ class DatabaseStartupTest {
     private Neo4jLayout neoLayout;
 
     @Test
+    @SkipOnSpd
     void startDatabaseWithWrongVersionShouldFail() throws Throwable {
         // given
         // create a store
@@ -117,6 +119,7 @@ class DatabaseStartupTest {
     }
 
     @Test
+    @SkipOnSpd
     void startDatabaseWithWrongTransactionFilesShouldFail() throws Exception {
         // Create a store
         DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(neoLayout).build();
@@ -159,6 +162,7 @@ class DatabaseStartupTest {
     }
 
     @Test
+    @SkipOnSpd
     void startDatabaseWithoutStoreFilesAndWithTransactionLogFilesFailure() throws IOException {
         // Create a store
         DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(neoLayout).build();

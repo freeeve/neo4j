@@ -72,9 +72,11 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.values.ElementIdMapper;
 
 @ImpermanentDbmsExtension(configurationCallback = "configure")
+@SkipOnSpd
 public class IndexPopulationMissConcurrentUpdateIT {
     private static final String NAME_PROPERTY = "name";
     private static final long INITIAL_CREATION_NODE_ID_THRESHOLD = 30;

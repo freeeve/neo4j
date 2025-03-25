@@ -55,6 +55,7 @@ import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.Race;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.time.Clocks;
@@ -62,6 +63,7 @@ import org.neo4j.time.FakeClock;
 import org.neo4j.time.SystemNanoClock;
 
 @TestDirectoryExtension
+@SkipOnSpd
 class DatabaseTransactionShutdownIT {
     private static final String UNCLEAN_SHUTDOWN_MSG = "Failed to close all transactions. Shutdown may be unclean.";
 

@@ -175,6 +175,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.time.Clocks;
@@ -185,6 +186,7 @@ import org.neo4j.values.storable.Values;
 @PageCacheExtension
 @Neo4jLayoutExtension
 @ExtendWith(RandomExtension.class)
+@SkipOnSpd
 class RecoveryIT {
     private static final int TEN_KB = (int) ByteUnit.kibiBytes(10);
     private static final CursorContextFactory CONTEXT_FACTORY = NULL_CONTEXT_FACTORY;

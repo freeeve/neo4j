@@ -37,8 +37,10 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @ImpermanentDbmsExtension(configurationCallback = "configure")
+@SkipOnSpd
 public class SchemaIndexWaitingAcceptanceTest {
     @Inject
     private GraphDatabaseService database;

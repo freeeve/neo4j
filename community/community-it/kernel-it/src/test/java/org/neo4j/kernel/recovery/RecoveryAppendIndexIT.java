@@ -48,10 +48,12 @@ import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
 
 @PageCacheExtension
 @Neo4jLayoutExtension
+@SkipOnSpd
 public class RecoveryAppendIndexIT {
 
     @Inject

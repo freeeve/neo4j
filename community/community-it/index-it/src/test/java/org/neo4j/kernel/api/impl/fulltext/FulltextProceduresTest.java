@@ -80,6 +80,7 @@ import org.neo4j.io.IOUtils;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.procedure.builtin.FulltextProcedures;
 import org.neo4j.test.ThreadTestUtils;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.util.concurrent.BinaryLatch;
 import org.neo4j.values.storable.Value;
 
@@ -1072,6 +1073,7 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
         assertQueryFindsIdsInOrder(db, true, DEFAULT_NODE_IDX_NAME, "value", nodeId);
     }
 
+    @SkipOnSpd
     @MethodSource("entityTypeProvider")
     @ParameterizedTest
     void queryingIndexInPopulatingStateMustBlockUntilIndexIsOnline(EntityUtil entityUtil) throws InterruptedException {

@@ -58,6 +58,7 @@ import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension(configurationCallback = "configure")
 @ExtendWith(RandomExtension.class)
@@ -175,6 +176,7 @@ public abstract class StringLengthIndexValidationIT {
     }
 
     @Test
+    @SkipOnSpd
     public void externalUpdatesMustNotFailIndexPopulationIfWithinIndexKeySizeLimit()
             throws InterruptedException, KernelException {
         trapPopulation.set(true);
@@ -206,6 +208,7 @@ public abstract class StringLengthIndexValidationIT {
     }
 
     @Test
+    @SkipOnSpd
     public void externalUpdatesMustFailIndexPopulationIfExceedingIndexKeySizeLimit()
             throws InterruptedException, KernelException {
         trapPopulation.set(true);

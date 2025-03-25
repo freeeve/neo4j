@@ -41,10 +41,12 @@ import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.pagecache.PageCacheSupportExtension;
 import org.neo4j.test.limited.LimitedFilesystemAbstraction;
 
 @Neo4jLayoutExtension
+@SkipOnSpd
 class RunOutOfDiskSpaceIT {
     @RegisterExtension
     static PageCacheSupportExtension pageCacheExtension = new PageCacheSupportExtension();

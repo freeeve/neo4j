@@ -105,6 +105,7 @@ import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @ImpermanentDbmsExtension(configurationCallback = "configure")
 @ExtendWith(RandomExtension.class)
@@ -563,6 +564,7 @@ class DenseNodeConcurrencyIT {
     }
 
     @Test
+    @SkipOnSpd
     void shouldNotBlockOnCreateOnLongChain() throws ExecutionException, InterruptedException {
         // given
         Set<Relationship> relationships = newKeySet();
@@ -614,6 +616,7 @@ class DenseNodeConcurrencyIT {
     }
 
     @Test
+    @SkipOnSpd
     void shouldNotBlockOnDeleteOnSameLongChain() throws Throwable {
         // given
         Set<Relationship> relationships = new HashSet<>();
