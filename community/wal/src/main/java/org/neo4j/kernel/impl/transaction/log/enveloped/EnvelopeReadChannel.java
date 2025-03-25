@@ -276,6 +276,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             if (newBufferOffset != 0 || newSegment == 1) {
                 readAllEnvelopesUpToIncluding(newBufferOffset, false);
             } else {
+                payloadType = null;
                 enforceChecksumChain = false;
             }
         }

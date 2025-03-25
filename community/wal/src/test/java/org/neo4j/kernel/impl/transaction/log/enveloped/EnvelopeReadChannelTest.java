@@ -1143,6 +1143,54 @@ class EnvelopeReadChannelTest {
         }
     }
 
+    @Test
+    void setPositionAtExactlySegmentBoundaryAndMoveToNextFile() throws Exception {
+        // GIVEN
+        final var segmentSize = 128;
+        final var path1 = file(0);
+        final var path2 = file(1);
+
+        final var payloadSize = segmentSize - HEADER_SIZE;
+        final var envelope1Size = payloadSize + HEADER_SIZE;
+
+        final var bytes1 = bytes(random, payloadSize);
+        final var bytes2 = bytes(random, payloadSize);
+        final var bytes3 = bytes(random, payloadSize);
+
+        final var positions = IntStream.range(0, 3)
+                .map(i -> segmentSize + (i * envelope1Size))
+                .toArray();
+
+        final var endChecksum = new MutableInt();
+        writeSomeData(path1, buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+
+            var checksum = writeHeaderAndPayload(buffer, EnvelopeType.FULL, BASE_TX_CHECKSUM, bytes1, START_INDEX);
+            checksum = writeHeaderAndPayload(buffer, EnvelopeType.FULL, checksum, bytes2, START_INDEX + 1);
+            endChecksum.setValue(checksum);
+        });
+        writeSomeData(path2, buffer -> {
+            writeZeroSegment(buffer, segmentSize, endChecksum.intValue());
+            writeHeaderAndPayload(buffer, EnvelopeType.FULL, endChecksum.intValue(), bytes3, START_INDEX + 2);
+        });
+
+        final var logChannel = logChannel(path1);
+        try (var channel = new EnvelopeReadChannel(
+                logChannel, segmentSize, new TwoFileLogVersionBridge(path2), EmptyMemoryTracker.INSTANCE, false)) {
+            // THEN
+            final var bytesRead = new byte[payloadSize];
+            channel.position(positions[1]);
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytes2).isEqualTo(bytesRead);
+            assertThat(channel.entryIndex()).isEqualTo(START_INDEX + 1);
+
+            channel.position(positions[2]);
+            channel.get(bytesRead, bytesRead.length);
+            assertThat(bytes3).isEqualTo(bytesRead);
+            assertThat(channel.entryIndex()).isEqualTo(START_INDEX + 2);
+        }
+    }
+
     @ParameterizedTest
     @EnumSource(names = {"FULL", "END"})
     void shouldFailForReadsOutsideOfTerminatingEnvelope(EnvelopeType envelopeType) throws Exception {
