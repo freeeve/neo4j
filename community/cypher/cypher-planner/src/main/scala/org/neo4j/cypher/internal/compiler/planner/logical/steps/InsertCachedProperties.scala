@@ -358,6 +358,7 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
     val rewriter = bottomUp(Rewriter.lift {
 
       case produceResult: ProduceResult if cachePropertiesForEntities =>
+        cachedPropertiesTracker.clearUnavailableSymbols(produceResult.availableSymbols)
         val newColumns =
           produceResult
             .returnColumns
