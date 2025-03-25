@@ -289,13 +289,13 @@ class DbmsPrivilegeAdministrationCommandParserTest extends AdministrationAndSche
 
         test(s"$command$immutableString SET AUTHS ON DBMS $preposition role") {
           testName should notParse[Statements].withSyntaxErrorContaining(
-            s"""Invalid input 'AUTHS': expected 'DATABASE', 'AUTH ON DBMS', 'LABEL', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER' (line 1, column ${offset + 5} (offset: ${offset + 4}))"""
+            s"""Invalid input 'AUTHS': expected 'AUTH', 'DATABASE', 'LABEL', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER' (line 1, column ${offset + 5} (offset: ${offset + 4}))"""
           )
         }
 
         test(s"$command$immutableString SET DEFAULT LANGUAGE ON DBMS $preposition role") {
           testName should notParse[Statements].withSyntaxErrorContaining(
-            s"""Invalid input 'DEFAULT': expected 'DATABASE', 'AUTH ON DBMS', 'LABEL', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER' (line 1, column ${offset + 5} (offset: ${offset + 4}))"""
+            s"""Invalid input 'DEFAULT': expected 'AUTH', 'DATABASE', 'LABEL', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER' (line 1, column ${offset + 5} (offset: ${offset + 4}))"""
           )
         }
     }

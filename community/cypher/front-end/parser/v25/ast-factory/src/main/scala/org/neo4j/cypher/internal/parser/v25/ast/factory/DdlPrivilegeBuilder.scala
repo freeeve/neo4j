@@ -457,25 +457,10 @@ trait DdlPrivilegeBuilder extends Cypher25ParserListener {
     val (action, resource) = {
       if (ctx.DELETE() != null) {
         (DeleteElementAction, None)
-      } else (MergeAdminAction, ctx.propertiesResource().ast[Option[PropertiesResource]]())
-    }
-    val scope = ctx.graphScope().ast[GraphScope]()
-    val qualifier = ctx.graphQualifier().ast[List[GraphPrivilegeQualifier]]()
-    ctx.ast = (
-      GraphPrivilege(action, scope)(pos(ctx)),
-      resource,
-      qualifier
-    )
-  }
-
-  final override def exitQualifiedGraphPrivilegesWithProperty(
-    ctx: Cypher25Parser.QualifiedGraphPrivilegesWithPropertyContext
-  ): Unit = {
-    val (action, resource) = {
-      if (ctx.TRAVERSE() != null) {
+      } else if (ctx.TRAVERSE() != null) {
         (TraverseAction, None)
       } else {
-        val action = if (ctx.READ != null) ReadAction else MatchAction
+        val action = if (ctx.MERGE != null) MergeAdminAction else if (ctx.READ != null) ReadAction else MatchAction
         (action, ctx.propertiesResource().ast[Option[PropertiesResource]]())
       }
     }

@@ -219,13 +219,13 @@ class PropertyPrivilegeAdministrationCommandParserTest extends AdministrationAnd
 
           test(s"$verb$immutableString SET PROPERTYS { prop } ON GRAPH * $preposition role") {
             failsParsing[Statements].withSyntaxErrorContaining(
-              """Invalid input 'PROPERTYS': expected 'DATABASE', 'AUTH ON DBMS', 'LABEL', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER'"""
+              """Invalid input 'PROPERTYS': expected 'AUTH', 'DATABASE', 'LABEL', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER'"""
             )
           }
 
           test(s"$verb$immutableString SET PROPERTIES { prop } ON GRAPH * $preposition role") {
             failsParsing[Statements].withSyntaxErrorContaining(
-              """Invalid input 'PROPERTIES': expected 'DATABASE', 'AUTH ON DBMS', 'LABEL', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER'"""
+              """Invalid input 'PROPERTIES': expected 'AUTH', 'DATABASE', 'LABEL', 'PASSWORD', 'PASSWORDS', 'PROPERTY' or 'USER'"""
             )
           }
 

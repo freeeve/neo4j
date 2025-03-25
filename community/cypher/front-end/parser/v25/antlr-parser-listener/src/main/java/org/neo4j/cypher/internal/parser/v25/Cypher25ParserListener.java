@@ -573,8 +573,6 @@ public interface Cypher25ParserListener extends ParseTreeListener {
 
     void exitGlobPart(Cypher25Parser.GlobPartContext ctx);
 
-    void exitQualifiedGraphPrivilegesWithProperty(Cypher25Parser.QualifiedGraphPrivilegesWithPropertyContext ctx);
-
     void exitQualifiedGraphPrivileges(Cypher25Parser.QualifiedGraphPrivilegesContext ctx);
 
     void exitLabelsResource(Cypher25Parser.LabelsResourceContext ctx);

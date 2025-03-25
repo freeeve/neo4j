@@ -1323,7 +1323,6 @@ privilege
    | dropPrivilege
    | loadPrivilege
    | qualifiedGraphPrivileges
-   | qualifiedGraphPrivilegesWithProperty
    | removePrivilege
    | setPrivilege
    | showPrivilege
@@ -1403,10 +1402,9 @@ showPrivilege
 
 setPrivilege
    : SET (
-      (passwordToken | USER (STATUS | HOME DATABASE) | DATABASE (ACCESS | DEFAULT LANGUAGE)) ON DBMS
+      (passwordToken | USER (STATUS | HOME DATABASE) | DATABASE (ACCESS | DEFAULT LANGUAGE) | AUTH) ON DBMS
       | LABEL labelsResource ON graphScope
       | PROPERTY propertiesResource ON graphScope graphQualifier
-      | AUTH ON DBMS
    )
    ;
 
@@ -1520,12 +1518,8 @@ globPart
    | unescapedSymbolicNameString
    ;
 
-qualifiedGraphPrivilegesWithProperty
-   : (TRAVERSE | (READ | MATCH) propertiesResource) ON graphScope graphQualifier
-   ;
-
 qualifiedGraphPrivileges
-   : (DELETE | MERGE propertiesResource) ON graphScope graphQualifier
+   : (TRAVERSE | DELETE | (READ | MATCH | MERGE) propertiesResource) ON graphScope graphQualifier
    ;
 
 labelsResource

@@ -418,9 +418,6 @@ public abstract class AbstractCypher25AstBuilder implements Cypher25ParserListen
             case Cypher25Parser.RULE_glob -> exitGlob((Cypher25Parser.GlobContext) ctx);
             case Cypher25Parser.RULE_globRecursive -> exitGlobRecursive((Cypher25Parser.GlobRecursiveContext) ctx);
             case Cypher25Parser.RULE_globPart -> exitGlobPart((Cypher25Parser.GlobPartContext) ctx);
-            case Cypher25Parser.RULE_qualifiedGraphPrivilegesWithProperty ->
-                exitQualifiedGraphPrivilegesWithProperty(
-                        (Cypher25Parser.QualifiedGraphPrivilegesWithPropertyContext) ctx);
             case Cypher25Parser.RULE_qualifiedGraphPrivileges ->
                 exitQualifiedGraphPrivileges((Cypher25Parser.QualifiedGraphPrivilegesContext) ctx);
             case Cypher25Parser.RULE_labelsResource -> exitLabelsResource((Cypher25Parser.LabelsResourceContext) ctx);
