@@ -239,16 +239,14 @@ class CommunityMultiDatabaseAdministrationCommandAcceptanceTest extends Communit
 
     // GIVEN
     config.set(initial_default_database, "foo")
-    initSystemGraph(config)
+    managementService.shutdown();
+    setup(config)
 
     // WHEN
     val result2 = execute("SHOW DEFAULT DATABASE")
 
     // THEN
-
-    // Required because current acceptance test machinery doesn't actually start foo
-    //   but the defaultDb row constructor assumes currentStatus -> started
-    val expectedRow = homeOrDefaultDb("foo") ++ Map("currentStatus" -> "unknown")
+    val expectedRow = homeOrDefaultDb("foo")
     result2.toSet should be(Set(expectedRow))
   }
 

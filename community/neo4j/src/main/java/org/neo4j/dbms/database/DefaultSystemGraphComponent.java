@@ -112,8 +112,8 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
         CypherVersion languageVersion = cypherVersionFromConfig(config.get(GraphDatabaseSettings.default_language));
         try (var tx = system.beginTx()) {
             var now = ZonedDateTime.ofInstant(clock.instant(), clock.getZone());
-            createDatabaseNode(tx, defaultDbName.name(), true, UUID.randomUUID(), now, languageVersion);
-            createDatabaseNode(tx, SYSTEM_DATABASE_NAME, false, SYSTEM_DATABASE_ID.uuid(), now, languageVersion);
+            createDatabaseNode(tx, defaultDbName.name(), UUID.randomUUID(), now, languageVersion);
+            createDatabaseNode(tx, SYSTEM_DATABASE_NAME, SYSTEM_DATABASE_ID.uuid(), now, languageVersion);
             tx.commit();
         } catch (ConstraintViolationException e) {
             throw new InvalidArgumentsException("The specified database '" + defaultDbName.name() + "' or '"
@@ -164,16 +164,18 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
                     Node oldDb = nodes.next();
                     if (oldDb.getProperty(DATABASE_NAME_PROPERTY).equals(defaultDbName.name())) {
                         correctDefaultFound = true;
-                    } else {
-                        oldDb.setProperty(DATABASE_DEFAULT_PROPERTY, false);
+                    } else if (!oldDb.getProperty(DATABASE_NAME_PROPERTY).equals(SYSTEM_DATABASE_NAME)) {
                         oldDb.setProperty(
                                 DATABASE_STATUS_PROPERTY, TopologyGraphDbmsModel.DatabaseStatus.OFFLINE.statusName());
+                    }
+                    if (oldDb.hasProperty(DATABASE_DEFAULT_PROPERTY)) {
+                        oldDb.removeProperty(DATABASE_DEFAULT_PROPERTY);
                     }
                 }
                 return correctDefaultFound;
             };
             // First find current default, and if it does not have the name defined as default, unset it
-            try (ResourceIterator<Node> nodes = tx.findNodes(DATABASE_LABEL, DATABASE_DEFAULT_PROPERTY, true)) {
+            try (ResourceIterator<Node> nodes = tx.findNodes(DATABASE_LABEL)) {
                 defaultFound = unsetOldNode.apply(nodes);
             }
 
@@ -183,14 +185,13 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
             if (!defaultFound) {
                 Node defaultDb = tx.findNode(DATABASE_LABEL, DATABASE_NAME_PROPERTY, defaultDbName.name());
                 if (defaultDb != null) {
-                    defaultDb.setProperty(DATABASE_DEFAULT_PROPERTY, true);
                     defaultDb.setProperty(
                             DATABASE_STATUS_PROPERTY, TopologyGraphDbmsModel.DatabaseStatus.ONLINE.statusName());
                 } else {
                     var now = ZonedDateTime.ofInstant(clock.instant(), clock.getZone());
                     CypherVersion languageVersion =
                             cypherVersionFromConfig(config.get(GraphDatabaseSettings.default_language));
-                    createDatabaseNode(tx, defaultDbName.name(), true, UUID.randomUUID(), now, languageVersion);
+                    createDatabaseNode(tx, defaultDbName.name(), UUID.randomUUID(), now, languageVersion);
                 }
             }
             tx.commit();
@@ -201,26 +202,20 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
      * If the current default is deleted, unset it, but do not record that we found a valid default
      */
     private void unsetAnyDeleted(Transaction tx, Function<ResourceIterator<Node>, Boolean> unsetOldNode) {
-        try (ResourceIterator<Node> nodes = tx.findNodes(DELETED_DATABASE_LABEL, DATABASE_DEFAULT_PROPERTY, true)) {
+        try (ResourceIterator<Node> nodes = tx.findNodes(DELETED_DATABASE_LABEL)) {
             unsetOldNode.apply(nodes);
         }
     }
 
     public static Node createDatabaseNode(
-            Transaction tx,
-            String databaseName,
-            boolean defaultDb,
-            UUID uuid,
-            ZonedDateTime now,
-            CypherVersion defualtLanguage) {
+            Transaction tx, String databaseName, UUID uuid, ZonedDateTime now, CypherVersion defaultLanguage) {
         var databaseNode = tx.createNode(DATABASE_LABEL);
         databaseNode.setProperty(DATABASE_NAME_PROPERTY, databaseName);
         databaseNode.setProperty(DATABASE_UUID_PROPERTY, uuid.toString());
         databaseNode.setProperty(DATABASE_STATUS_PROPERTY, TopologyGraphDbmsModel.DatabaseStatus.ONLINE.statusName());
-        databaseNode.setProperty(DATABASE_DEFAULT_PROPERTY, defaultDb);
         databaseNode.setProperty(DATABASE_CREATED_AT_PROPERTY, now);
         databaseNode.setProperty(DATABASE_STARTED_AT_PROPERTY, now);
-        databaseNode.setProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, defualtLanguage.persistedValue);
+        databaseNode.setProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, defaultLanguage.persistedValue);
         var randomId = ThreadLocalRandom.current().nextLong();
         databaseNode.setProperty(DATABASE_STORE_RANDOM_ID_PROPERTY, randomId);
 

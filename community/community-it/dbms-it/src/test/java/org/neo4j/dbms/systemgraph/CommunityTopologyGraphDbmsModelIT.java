@@ -39,7 +39,6 @@ import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
-import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.database.NormalizedCatalogEntry;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 
@@ -59,10 +58,6 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         return new NormalizedDatabaseName(name);
     }
 
-    private static NormalizedDatabaseName name(NamedDatabaseId id) {
-        return new NormalizedDatabaseName(id.name());
-    }
-
     @Test
     void canReturnAllCompositeDatabaseReferences() {
         // given
@@ -77,13 +72,13 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         createInternalReferenceForDatabase(tx, "locAlias", false, locDb);
         createExternalReferenceForDatabase(tx, "remAlias", "rem1", remoteNeo4j, remAliasId1);
         var compDb1 = newDatabase(b -> b.withDatabase("compDb1").asVirtual());
-        var compDb1Name = name(compDb1);
+        var compDb1Name = compDb1.normalizedName();
         createInternalReferenceForDatabase(tx, compDb1.name(), true, compDb1);
         createInternalReferenceForDatabase(tx, compDb1.name(), "locAlias", false, locDb);
         createExternalReferenceForDatabase(tx, compDb1.name(), "remAlias", "rem2", remoteNeo4j, remAliasId2);
         createExternalReferenceForDatabase(tx, compDb1.name(), "remAlias2", "rem3", remoteNeo4j, remAliasId3);
         var compDb2 = newDatabase(b -> b.withDatabase("compDb2").asVirtual());
-        var compDb2Name = name(compDb2);
+        var compDb2Name = compDb2.normalizedName();
         createInternalReferenceForDatabase(tx, compDb2.name(), true, compDb2);
         createInternalReferenceForDatabase(tx, compDb2.name(), "locAlias", false, locDb);
         createExternalReferenceForDatabase(tx, compDb2.name(), "remAlias", "rem4", remoteNeo4j, remAliasId4);
@@ -146,22 +141,22 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         createInternalReferenceForDatabase(tx, bar.name(), true, bar);
 
         // then
-        var foo0Ref = new DatabaseReferenceImpl.SPDShard(name(foo0), foo0, true, foo.name());
-        var foo1Ref = new DatabaseReferenceImpl.SPDShard(name(foo1), foo1, true, foo.name());
+        var foo0Ref = new DatabaseReferenceImpl.SPDShard(foo0.normalizedName(), foo0, true, foo.name());
+        var foo1Ref = new DatabaseReferenceImpl.SPDShard(foo1.normalizedName(), foo1, true, foo.name());
         var fooShards = Map.<Integer, DatabaseReference>of(
                 0, foo0Ref,
                 1, foo1Ref);
-        var fooRef = new DatabaseReferenceImpl.SPD(name(foo), foo, fooShards);
-        var bar0Ref = new DatabaseReferenceImpl.SPDShard(name(bar0), bar0, true, bar.name());
-        var bar1Ref = new DatabaseReferenceImpl.SPDShard(name(bar1), bar1, true, bar.name());
-        var bar2Ref = new DatabaseReferenceImpl.SPDShard(name(bar2), bar2, true, bar.name());
-        var bar3Ref = new DatabaseReferenceImpl.SPDShard(name(bar3), bar3, true, bar.name());
+        var fooRef = new DatabaseReferenceImpl.SPD(foo.normalizedName(), foo, fooShards);
+        var bar0Ref = new DatabaseReferenceImpl.SPDShard(bar0.normalizedName(), bar0, true, bar.name());
+        var bar1Ref = new DatabaseReferenceImpl.SPDShard(bar1.normalizedName(), bar1, true, bar.name());
+        var bar2Ref = new DatabaseReferenceImpl.SPDShard(bar2.normalizedName(), bar2, true, bar.name());
+        var bar3Ref = new DatabaseReferenceImpl.SPDShard(bar3.normalizedName(), bar3, true, bar.name());
         var barShards = Map.<Integer, DatabaseReference>of(
                 0, bar0Ref,
                 1, bar1Ref,
                 2, bar2Ref,
                 3, bar3Ref);
-        var barRef = new DatabaseReferenceImpl.SPD(name(bar), bar, barShards);
+        var barRef = new DatabaseReferenceImpl.SPD(bar.normalizedName(), bar, barShards);
 
         assertThat(dbmsModel().getAllDatabaseReferences())
                 .containsExactlyInAnyOrder(fooRef, foo0Ref, foo1Ref, barRef, bar0Ref, bar1Ref, bar2Ref, bar3Ref);
@@ -188,23 +183,60 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         // given
         var upstream = newDatabase(b -> b.withDatabase("upstream"));
         var mirror0 = newDatabase(b -> b.withDatabase("mirror0").withUpstream(upstream));
-        //        var mirror1 = newDatabase(b -> b.withDatabase("mirror1").withUpstream(upstream));
+        var mirror1 = newDatabase(b -> b.withDatabase("mirror1").withUpstream(upstream));
         createInternalReferenceForDatabase(tx, mirror0.name(), true, mirror0);
-        //        createInternalReferenceForDatabase(tx, mirror1.name(), true, mirror1);
+        createInternalReferenceForDatabase(tx, mirror1.name(), true, mirror1);
         createInternalReferenceForDatabase(tx, upstream.name(), true, upstream);
 
         // then
-        var mirror0Ref = new DatabaseReferenceImpl.Mirror(name(mirror0), mirror0, upstream.name());
-        //        var mirror1Ref = new DatabaseReferenceImpl.Mirror(name(mirror1), mirror1, upstream.name());
-        var upstreamRef = new DatabaseReferenceImpl.Internal(name(upstream), upstream, true);
+        var mirror0Ref = new DatabaseReferenceImpl.Mirror(mirror0.normalizedName(), mirror0, upstream.name());
+        var mirror1Ref = new DatabaseReferenceImpl.Mirror(mirror1.normalizedName(), mirror1, upstream.name());
+        var upstreamRef = new DatabaseReferenceImpl.Internal(upstream.normalizedName(), upstream, true);
 
-        assertThat(dbmsModel().getAllDatabaseReferences()).containsExactlyInAnyOrder(mirror0Ref, upstreamRef);
-        //                .containsExactlyInAnyOrder(mirror0Ref, mirror1Ref, upstreamRef);
-        //                .containsExactlyInAnyOrder(upstreamRef);
+        assertThat(dbmsModel().getAllDatabaseReferences())
+                .containsExactlyInAnyOrder(mirror0Ref, mirror1Ref, upstreamRef);
         assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(mirror0.name())))
                 .hasValue(mirror0Ref);
-        //        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(mirror1.name())))
-        //                .hasValue(mirror1Ref);
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(mirror1.name())))
+                .hasValue(mirror1Ref);
+    }
+
+    @Test
+    void returnsBestReference() {
+        var real0Db = newDatabase(b -> b.withDatabase("real0"));
+        var real1Db = newDatabase(b -> b.withDatabase("real1"));
+        var real2Db = newDatabase(b -> b.withDatabase("real2"));
+        var real3Db = newDatabase(b -> b.withDatabase("real3"));
+
+        var comp00Db = newDatabase(b -> b.withDatabase("golf.hotel.india").asVirtual());
+        createInternalReferenceForDatabase(tx, comp00Db.name(), true, comp00Db);
+        createInternalReferenceForDatabase(tx, comp00Db.name(), "juliet", false, real0Db);
+
+        assertThat(dbmsModel().getDatabaseRefByAlias("golf.hotel.india.juliet"))
+                .map(DatabaseReference::namedDatabaseId)
+                .hasValue(real0Db);
+
+        var comp01Db = newDatabase(b -> b.withDatabase("golf.hotel").asVirtual());
+        createInternalReferenceForDatabase(tx, comp01Db.name(), true, comp01Db);
+        createInternalReferenceForDatabase(tx, comp01Db.name(), "india.juliet", false, real1Db);
+
+        assertThat(dbmsModel().getDatabaseRefByAlias("golf.hotel.india.juliet"))
+                .map(DatabaseReference::namedDatabaseId)
+                .hasValue(real1Db);
+
+        var comp02Db = newDatabase(b -> b.withDatabase("golf").asVirtual());
+        createInternalReferenceForDatabase(tx, comp02Db.name(), true, comp02Db);
+        createInternalReferenceForDatabase(tx, comp02Db.name(), "hotel.india.juliet", false, real2Db);
+
+        assertThat(dbmsModel().getDatabaseRefByAlias("golf.hotel.india.juliet"))
+                .map(DatabaseReference::namedDatabaseId)
+                .hasValue(real2Db);
+
+        createInternalReferenceForDatabase(tx, "golf.hotel.india.juliet", false, real3Db);
+
+        assertThat(dbmsModel().getDatabaseRefByAlias("golf.hotel.india.juliet"))
+                .map(DatabaseReference::namedDatabaseId)
+                .hasValue(real3Db);
     }
 
     @Test
@@ -218,7 +250,7 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         var barId2 = UUID.randomUUID();
         createExternalReferenceForDatabase(tx, "bar", "foo", remoteNeo4j, barId);
         var compDb1 = newDatabase(b -> b.withDatabase("compDb1").asVirtual());
-        var compDb1Name = name(compDb1);
+        var compDb1Name = compDb1.normalizedName();
         createInternalReferenceForDatabase(tx, compDb1.name(), true, compDb1);
         createInternalReferenceForDatabase(tx, compDb1.name(), "locAlias", false, fooDb);
         createExternalReferenceForDatabase(tx, compDb1.name(), "remAlias", "rem", remoteNeo4j, barId2);
@@ -228,7 +260,7 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
                 new DatabaseReferenceImpl.Internal(name("foo"), fooDb, true),
                 new DatabaseReferenceImpl.Internal(name("fooAlias"), fooDb, false),
                 new DatabaseReferenceImpl.Composite(
-                        name(compDb1),
+                        compDb1.normalizedName(),
                         compDb1,
                         Set.of(
                                 new DatabaseReferenceImpl.Internal(name("locAlias"), compDb1Name, fooDb, false),

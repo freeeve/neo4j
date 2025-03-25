@@ -80,6 +80,7 @@ import org.neo4j.kernel.api.security.provider.NoAuthSecurityProvider;
 import org.neo4j.kernel.api.security.provider.SecurityProvider;
 import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.database.DatabaseReferenceRepository;
+import org.neo4j.kernel.database.DefaultDatabaseResolver;
 import org.neo4j.kernel.database.MapCachingDatabaseIdRepository;
 import org.neo4j.kernel.database.MapCachingDatabaseReferenceRepository;
 import org.neo4j.kernel.database.ModelBasedDatabaseIdRepository;
@@ -99,7 +100,6 @@ import org.neo4j.server.CommunityNeoWebServer;
 import org.neo4j.server.config.AuthConfigProvider;
 import org.neo4j.server.rest.repr.CommunityAuthConfigProvider;
 import org.neo4j.server.security.auth.CommunitySecurityModule;
-import org.neo4j.server.security.systemgraph.CommunityDefaultDatabaseResolver;
 import org.neo4j.ssl.config.DefaultSslPolicyProvider;
 
 /**
@@ -365,12 +365,8 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
 
     @Override
     public void createDefaultDatabaseResolver(SystemDatabaseProvider systemDatabaseProvider) {
-        var defaultDatabaseResolver =
-                new CommunityDefaultDatabaseResolver(globalModule.getGlobalConfig(), systemDatabaseProvider);
-        globalModule
-                .getTransactionEventListeners()
-                .registerTransactionEventListener(SYSTEM_DATABASE_NAME, defaultDatabaseResolver);
-        this.defaultDatabaseResolver = defaultDatabaseResolver;
+        this.defaultDatabaseResolver =
+                DefaultDatabaseResolver.constant(globalModule.getGlobalConfig().get(initial_default_database));
     }
 
     @Override

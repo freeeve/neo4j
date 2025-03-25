@@ -43,12 +43,7 @@ import org.neo4j.cypher.internal.util.DeprecatedDatabaseNameNotification
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.dbms.database.DatabaseDetails
 import org.neo4j.dbms.database.TopologyInfoService
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
-import org.neo4j.graphdb.Node
-import org.neo4j.graphdb.NotFoundException
 import org.neo4j.graphdb.Transaction
 import org.neo4j.internal.kernel.api.security.SecurityContext
 import org.neo4j.kernel.database.DatabaseIdFactory
@@ -84,26 +79,14 @@ class DatabaseListParameterTransformerFunction(
     systemParams: MapValue,
     userParams: MapValue
   ): ParameterTransformerOutput = {
+    val defaultDatabase = defaultDatabaseResolver.defaultDatabase(null)
+    val homeDatabase = defaultDatabaseResolver.defaultDatabase(securityContext.subject().executingUser())
+
     val allReferences = referenceResolver.getAllDatabaseReferences.asScala.toSet
     val (filteredReferences, notifications): (Set[DatabaseReference], Set[InternalNotification]) = scope match {
       case _: DefaultDatabaseScope =>
-        try {
-          val defaultDatabaseNode: Node = transaction.findNode(DATABASE_LABEL, DATABASE_DEFAULT_PROPERTY, true)
-          if (defaultDatabaseNode != null) {
-            (
-              allReferences.filter(ref =>
-                ref.isPrimary && ref.alias().name().equals(defaultDatabaseNode.getProperty(DATABASE_NAME_PROPERTY))
-              ),
-              Set.empty
-            )
-          } else {
-            (Set.empty, Set.empty)
-          }
-        } catch {
-          case _: NotFoundException => (Set.empty, Set.empty)
-        }
+        (allReferences.filter(ref => ref.isPrimary && ref.alias().name().equals(defaultDatabase)), Set.empty)
       case _: HomeDatabaseScope =>
-        val homeDatabase = defaultDatabaseResolver.defaultDatabase(securityContext.subject().executingUser())
         (allReferences.filter(ref => ref.isPrimary && ref.alias().name().equals(homeDatabase)), Set.empty)
       case namedDatabaseScope: SingleNamedDatabaseScope =>
         filterReferencesByName(allReferences, namedDatabaseScope, userParams)
@@ -120,7 +103,7 @@ class DatabaseListParameterTransformerFunction(
     val dbMetadata: util.List[AnyValue] = {
       val dbInfos: util.Set[DatabaseDetails] =
         infoService.databases(transaction, accessibleDatabases.asJava, detailLevels(verbose, maybeYield))
-      dbInfos.asScala.map(info => DatabaseDetailsMapper.toMapValue(info)).toList.asJava
+      dbInfos.asScala.map(info => DatabaseDetailsMapper.toMapValue(info, defaultDatabase, homeDatabase)).toList.asJava
     }
 
     (

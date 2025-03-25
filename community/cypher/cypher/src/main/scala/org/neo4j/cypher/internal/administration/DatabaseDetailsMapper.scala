@@ -25,6 +25,8 @@ import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_PRIMARIES_COUNT_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_SECONDARIES_COUNT_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.CURRENT_STATUS_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.DATABASE_ID_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.DEFAULT_COL
+import org.neo4j.cypher.internal.ast.ShowDatabase.HOME_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.LAST_COMMITTED_TX_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.NAME_COL
 import org.neo4j.cypher.internal.ast.ShowDatabase.OPTIONS_COL
@@ -46,7 +48,9 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 object DatabaseDetailsMapper {
 
   def toMapValue(
-    databaseDetails: DatabaseDetails
+    databaseDetails: DatabaseDetails,
+    defaultDatabase: String,
+    homeDatabase: String
   ): AnyValue = {
     VirtualValues.map(
       Array(
@@ -56,6 +60,8 @@ object DatabaseDetailsMapper {
         ADDRESS_COL,
         ROLE_COL,
         WRITER_COL,
+        DEFAULT_COL,
+        HOME_COL,
         CURRENT_STATUS_COL,
         STATUS_MSG_COL,
         DATABASE_ID_COL,
@@ -74,6 +80,8 @@ object DatabaseDetailsMapper {
         databaseDetails.boltAddress().map[AnyValue](s => Values.stringValue(s.toString)).orElse(Values.NO_VALUE),
         databaseDetails.role().map[AnyValue](s => Values.stringValue(s)).orElse(Values.NO_VALUE),
         Values.booleanValue(databaseDetails.writer()),
+        Values.booleanValue(databaseDetails.namedDatabaseId().name().equals(defaultDatabase)),
+        Values.booleanValue(databaseDetails.namedDatabaseId().name().equals(homeDatabase)),
         Values.stringValue(databaseDetails.status()),
         Values.stringValue(databaseDetails.statusMessage()),
         databaseDetails.readableExternalStoreId().map[AnyValue](s => Values.stringValue(s)).orElse(Values.NO_VALUE),

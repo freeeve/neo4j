@@ -35,7 +35,6 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABA
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.CONNECTS_WITH_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_CREATED_AT_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DESIGNATED_SEEDER_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL;
@@ -59,6 +58,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPAC
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DELETED_DATABASE_DUMP_DATA_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DELETED_DATABASE_KEEP_DATA_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DELETED_DATABASE_LABEL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DRIVER_SETTINGS_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DatabaseStatus.OFFLINE;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_SHARD;
@@ -79,6 +79,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.IV_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.InstanceStatus.ENABLED;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.LATEST_SUPPORTED_COMPONENT_VERSIONS_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PASSWORD_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTIES_RELATIONSHIP;
@@ -163,6 +164,19 @@ public abstract class BaseTopologyGraphDbmsModelIT {
 
     protected ServerId newRemovedInstance(Consumer<InstanceNodeBuilder> setup) {
         return newInstance(setup, true);
+    }
+
+    protected void newDatabaseAlias(String database, String alias) {
+        try (var tx = db.beginTx()) {
+            var databaseNode = tx.findNode(DATABASE_LABEL, DATABASE_NAME_PROPERTY, database);
+            var nameNode = tx.createNode(DATABASE_NAME_LABEL);
+            nameNode.setProperty(NAME_PROPERTY, alias);
+            nameNode.setProperty(NAMESPACE_PROPERTY, DEFAULT_NAMESPACE);
+            nameNode.setProperty(DISPLAY_NAME_PROPERTY, alias);
+            nameNode.setProperty(PRIMARY_PROPERTY, database.equals(alias));
+            nameNode.createRelationshipTo(databaseNode, TARGETS_RELATIONSHIP);
+            tx.commit();
+        }
     }
 
     protected NamedDatabaseId newDatabase(Consumer<DatabaseNodeBuilder> setup) {
@@ -342,11 +356,6 @@ public abstract class BaseTopologyGraphDbmsModelIT {
 
         public DatabaseNodeBuilder asStopped() {
             node.setProperty(DATABASE_STATUS_PROPERTY, OFFLINE.statusName());
-            return this;
-        }
-
-        public DatabaseNodeBuilder asDefault() {
-            node.setProperty(DATABASE_DEFAULT_PROPERTY, true);
             return this;
         }
 

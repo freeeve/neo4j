@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.Label;
@@ -157,7 +158,10 @@ public interface TopologyGraphDbmsModel {
     String DATABASE_NAME_PROPERTY = "name";
     String DATABASE_STATUS_PROPERTY = "status";
     String DATABASE_ACCESS_PROPERTY = "access";
+
+    @Deprecated
     String DATABASE_DEFAULT_PROPERTY = "default";
+
     String DATABASE_VIRTUAL_PROPERTY = "virtual";
     String DATABASE_UPDATE_ID_PROPERTY = "update_id";
     String DATABASE_STORE_RANDOM_ID_PROPERTY = "store_random_id";
@@ -311,6 +315,29 @@ public interface TopologyGraphDbmsModel {
      * @return the corresponding {@link DatabaseReference}
      */
     Optional<DatabaseReference> getDatabaseRefByAlias(NormalizedCatalogEntry catalogEntry);
+
+    /**
+     * Fetches the {@link DatabaseReference} corresponding to the provided alias.
+     * The alias can be a database name, a local alias, a remote alias, or any alias within a composite namespace.
+     *
+     * @param alias the catalog entry to resolve a {@link DatabaseReference} for.
+     * @return the corresponding {@link DatabaseReference}
+     */
+    default Optional<DatabaseReference> getDatabaseRefByAlias(String alias) {
+        return getDatabaseRefByAlias(new NormalizedCatalogEntry(alias)).or(() -> {
+            var parts = alias.split("\\.");
+            // database is maybe in a different namespace so try that
+            for (int i = 1; i < parts.length; i++) {
+                var namespace = Stream.of(parts).limit(i).collect(Collectors.joining("."));
+                var name = Stream.of(parts).skip(i).collect(Collectors.joining("."));
+                var result = getDatabaseRefByAlias(new NormalizedCatalogEntry(namespace, name));
+                if (result.isPresent()) {
+                    return result;
+                }
+            }
+            return Optional.empty();
+        });
+    }
 
     /**
      * Fetches the {@link DriverSettings} corresponding to the provided database name

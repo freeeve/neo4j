@@ -126,15 +126,17 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Stream<Node> getAllAliasNodesInNamespace(String namespace) {
-        return tx.findNodes(DATABASE_NAME_LABEL, NAMESPACE_PROPERTY, namespace).stream();
+        return tx.findNodes(DATABASE_NAME_LABEL, NAMESPACE_PROPERTY, namespace).stream().toList().stream();
     }
 
     private Stream<Node> getRemoteAliasNodesInNamespace(String namespace) {
-        return tx.findNodes(REMOTE_DATABASE_LABEL, NAMESPACE_PROPERTY, namespace).stream();
+        return tx.findNodes(REMOTE_DATABASE_LABEL, NAMESPACE_PROPERTY, namespace).stream().toList().stream();
     }
 
     private Stream<Node> getAliasNodeInNamespace(String namespace, String databaseName) {
-        return tx.findNodes(DATABASE_NAME_LABEL, NAMESPACE_PROPERTY, namespace, NAME_PROPERTY, databaseName).stream();
+        return tx.findNodes(DATABASE_NAME_LABEL, NAMESPACE_PROPERTY, namespace, NAME_PROPERTY, databaseName).stream()
+                .toList()
+                .stream();
     }
 
     private Stream<Node> getAliasNodeInRoot(String databaseName) {
@@ -146,6 +148,8 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         databaseName = NormalizedDatabaseName.normalize(databaseName);
         namespace = NormalizedDatabaseName.normalize(namespace);
         return tx.findNodes(REMOTE_DATABASE_LABEL, NAME_PROPERTY, databaseName, NAMESPACE_PROPERTY, namespace).stream()
+                .toList()
+                .stream()
                 .findFirst()
                 .flatMap(CommunityTopologyGraphDbmsModelUtil::getDriverSettings);
     }
@@ -184,6 +188,8 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         String namespace =
                 databaseReference.namespace().map(NormalizedDatabaseName::name).orElse(DEFAULT_NAMESPACE);
         return tx.findNodes(REMOTE_DATABASE_LABEL, NAME_PROPERTY, databaseName, NAMESPACE_PROPERTY, namespace).stream()
+                .toList()
+                .stream()
                 .findFirst()
                 .flatMap(CommunityTopologyGraphDbmsModelUtil::getDatabaseCredentials);
     }

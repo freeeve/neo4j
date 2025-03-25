@@ -915,7 +915,7 @@ public class InvalidArgumentException extends Neo4jException {
                         .build())
                 .build();
         return new InvalidArgumentException(
-                gql, String.format("The old default database %s is still running.", oldDatabaseName));
+                gql, String.format("The old default database '%s' is still running.", oldDatabaseName));
     }
 
     public static InvalidArgumentException newDefaultDbDoesNotExist(String databaseName) {
@@ -925,7 +925,7 @@ public class InvalidArgumentException extends Neo4jException {
                         .build())
                 .build();
         return new InvalidArgumentException(
-                gql, String.format("New default database %s does not exist.", databaseName));
+                gql, String.format("New default database '%s' does not exist.", databaseName));
     }
 
     public static InvalidArgumentException systemCannotBeDefaultDb() {
@@ -933,7 +933,7 @@ public class InvalidArgumentException extends Neo4jException {
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N14)
                         .build())
                 .build();
-        return new InvalidArgumentException(gql, "System database cannot be set as default");
+        return new InvalidArgumentException(gql, "System database cannot be set as default.");
     }
 
     public static InvalidArgumentException cannotDeallocateServers(

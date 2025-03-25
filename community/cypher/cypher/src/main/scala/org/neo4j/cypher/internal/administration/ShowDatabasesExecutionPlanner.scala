@@ -22,9 +22,6 @@ package org.neo4j.cypher.internal.administration
 import org.neo4j.common.DependencyResolver
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.translateDefaultLanguagePropertyToShowOutput
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userHomeDbPropKey
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
 import org.neo4j.cypher.internal.CypherVersion.Cypher5
@@ -66,10 +63,7 @@ import org.neo4j.dbms.database.TopologyInfoService
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_CREATED_AT_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_PRIMARIES_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_SECONDARIES_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STARTED_AT_PROPERTY
@@ -104,7 +98,6 @@ case class ShowDatabasesExecutionPlanner(
     returns: Option[Return],
     context: AdministrationCommandRuntimeContext
   ): ExecutionPlan = {
-    val usernameKey = internalKey("username")
     val isCompositeKey = internalKey("isComposite")
 
     val verboseColumns =
@@ -145,16 +138,11 @@ case class ShowDatabasesExecutionPlanner(
     }
 
     val query = Predef.augmentString(
-      s"""// First resolve which database is the home database
-           |OPTIONAL MATCH (default:$DATABASE_LABEL {$DATABASE_DEFAULT_PROPERTY: true})
-           |OPTIONAL MATCH (user:$userLabel {$userNamePropKey: $$`$usernameKey`})
-           |WITH coalesce(user.$userHomeDbPropKey, default.$DATABASE_NAME_PROPERTY) as homeDbName
-           |
-           |UNWIND $$`$accessibleDbsKey` AS props
+      s"""UNWIND $$`$accessibleDbsKey` AS props
            |MATCH (d:$DATABASE)<-[:$TARGETS]-(dn:$DATABASE_NAME {$NAME_PROPERTY: props.name, $NAMESPACE_PROPERTY: '$DEFAULT_NAMESPACE'})
-           |WITH d, dn, props, homeDbName
+           |WITH d, dn, props
            |OPTIONAL MATCH (d)<-[:$TARGETS]-(a:$DATABASE_NAME)
-           |WITH a, d, dn, props, homeDbName ORDER BY a.$displayNameProperty
+           |WITH a, d, dn, props ORDER BY a.$displayNameProperty
            |OPTIONAL MATCH (constituent:$DATABASE_NAME {$NAMESPACE_PROPERTY: dn.$NAME_PROPERTY})
            |WHERE d:$COMPOSITE_DATABASE AND constituent <> dn
            |WITH dn.$displayNameProperty as name,
@@ -169,12 +157,10 @@ case class ShowDatabasesExecutionPlanner(
            |d.$DATABASE_STATUS_PROPERTY as requestedStatus,
            |props.$CURRENT_STATUS_COL as $CURRENT_STATUS_COL,
            |props.$STATUS_MSG_COL as $STATUS_MSG_COL,
+           |props.$DEFAULT_COL as $DEFAULT_COL,
+           |props.$HOME_COL as $HOME_COL,
            |props.type as type,
-           |d.name as dbNameProperty,
-           |d.$DATABASE_DEFAULT_PROPERTY as default,
-           |homeDbName,
-           |// Keep old display name for home database check until home database have been updated for graph references
-           |coalesce( homeDbName in collect(a.$DISPLAY_NAME_PROPERTY) + [d.name], false ) as home
+           |d.name as dbNameProperty
            |$verboseColumns
            |
            |WITH name AS $NAME_COL,
@@ -187,8 +173,8 @@ case class ShowDatabasesExecutionPlanner(
            |requestedStatus AS $REQUESTED_STATUS_COL,
            |$CURRENT_STATUS_COL,
            |$STATUS_MSG_COL,
-           |default AS $DEFAULT_COL,
-           |home AS $HOME_COL,
+           |$DEFAULT_COL,
+           |$HOME_COL,
            |constituents as $CONSTITUENTS_COL
            |$verboseNames
            |$returnClause
