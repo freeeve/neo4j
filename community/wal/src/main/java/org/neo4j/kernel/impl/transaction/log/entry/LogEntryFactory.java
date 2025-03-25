@@ -71,9 +71,6 @@ public final class LogEntryFactory {
     }
 
     public static LogEntryCommit newCommitEntry(KernelVersion version, long txId, long timeWritten, int checksum) {
-        if (version.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
-            return new LogEntryCommit(version, txId, timeWritten);
-        }
         return new LogEntryCommitV4_2(version, txId, timeWritten, checksum);
     }
 

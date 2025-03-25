@@ -244,7 +244,7 @@ class ParallelRecoveryVisitorTest {
         LogEntryStart startEntry = newStartEntry(LATEST_KERNEL_VERSION, 0, 0, 0, 0, EMPTY_BYTE_ARRAY, UNSPECIFIED);
         CommandBatch txRepresentation = new CompleteCommandBatch(
                 commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LATEST_KERNEL_VERSION, AUTH_DISABLED);
-        LogEntryCommit commitEntry = newCommitEntry(LATEST_KERNEL_VERSION, txId, 0, 0);
+        LogEntryCommit commitEntry = newCommitEntry(LATEST_KERNEL_VERSION, txId, 0, BASE_TX_CHECKSUM + 1);
         return new CompleteBatchRepresentation(startEntry, txRepresentation, commitEntry, BASE_TX_CHECKSUM);
     }
 

@@ -66,7 +66,7 @@ class RecoveryProgressIndicatorTest {
                 newStartEntry(
                         LATEST_KERNEL_VERSION, 1, 2, appendIndexAndTxId, 4, EMPTY_BYTE_ARRAY, LogPosition.UNSPECIFIED),
                 emptyList(),
-                newCommitEntry(LATEST_KERNEL_VERSION, appendIndexAndTxId, 1L, BASE_TX_CHECKSUM),
+                newCommitEntry(LATEST_KERNEL_VERSION, appendIndexAndTxId, 1L, BASE_TX_CHECKSUM + 1),
                 BASE_TX_CHECKSUM);
         LogPosition transactionLogPosition = new LogPosition(0, LATEST_LOG_FORMAT.getHeaderSize());
         int firstTxIdAfterLastCheckPoint = 10;

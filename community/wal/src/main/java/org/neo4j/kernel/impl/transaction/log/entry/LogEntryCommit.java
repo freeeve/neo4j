@@ -21,11 +21,9 @@ package org.neo4j.kernel.impl.transaction.log.entry;
 
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_COMMIT;
 
-import java.util.Objects;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.string.Mask;
 
-public class LogEntryCommit extends AbstractVersionAwareLogEntry {
+public abstract class LogEntryCommit extends AbstractVersionAwareLogEntry {
     protected final long txId;
     protected final long timeWritten;
 
@@ -43,29 +41,5 @@ public class LogEntryCommit extends AbstractVersionAwareLogEntry {
         return timeWritten;
     }
 
-    public int getChecksum() {
-        return 0;
-    }
-
-    @Override
-    public String toString(Mask mask) {
-        return "Commit[txId=" + getTxId() + ", " + timestamp(getTimeWritten()) + "]";
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        LogEntryCommit that = (LogEntryCommit) o;
-        return txId == that.txId && timeWritten == that.timeWritten;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(txId, timeWritten);
-    }
+    public abstract int getChecksum();
 }

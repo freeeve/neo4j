@@ -41,7 +41,6 @@ import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
-import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryCommitV4_2;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.LogEntryDetachedCheckpointV5_22;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -173,17 +172,7 @@ public class TxLogValidationUtils {
                     if (entry instanceof LogEntryCommit commit) {
                         inTx = false;
                         transactions++;
-                        if (commit instanceof LogEntryCommitV4_2) {
-                            extraCommitCheck.accept(commit);
-                        } else {
-                            // for enveloped logs the checksum isn't on the LogEntryCommit
-                            // so populate checksum from the stream
-                            extraCommitCheck.accept(new LogEntryCommitV4_2(
-                                    commit.kernelVersion(),
-                                    commit.getTxId(),
-                                    commit.getTimeWritten(),
-                                    reader.getChecksum()));
-                        }
+                        extraCommitCheck.accept(commit);
                     }
                 }
             }
