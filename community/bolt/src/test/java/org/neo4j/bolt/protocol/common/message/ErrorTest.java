@@ -244,8 +244,7 @@ class ErrorTest {
         }
 
         static InvalidArgumentException invalidArgumentException(Throwable exceptionCause) {
-            var builder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N85)
-                    .withClassification(ErrorClassification.CLIENT_ERROR);
+            var builder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N85);
 
             if (exceptionCause instanceof ErrorGqlStatusObject cause) {
                 builder = builder.withCause(cause);

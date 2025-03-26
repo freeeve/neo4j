@@ -203,11 +203,6 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
             return this;
         }
 
-        public Builder withClassification(GqlClassification classification) {
-            // TODO: This is a no-op method which will be cleaned up after error migration is ready
-            return this;
-        }
-
         public Builder atPosition(int offset, int line, int col) {
             // Assert that the position is valid (only run in tests)
             // An invalid position might indicate that offset, line and column is provided in incorrect order

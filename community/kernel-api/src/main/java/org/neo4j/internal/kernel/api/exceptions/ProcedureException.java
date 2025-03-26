@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import javax.management.ObjectName;
 import org.neo4j.configuration.connectors.ConnectorType;
 import org.neo4j.exceptions.KernelException;
-import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -690,9 +689,7 @@ public class ProcedureException extends KernelException {
 
     public static ProcedureException invalidReturnTypeExtended(String methodName, Class<?> userClass) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N00)
-                .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N18)
-                        .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.StringParam.procMethod, methodName)
                         .build())
                 .build();

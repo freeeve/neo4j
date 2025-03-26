@@ -19,7 +19,6 @@
  */
 package org.neo4j.commandline.admin.security.exception;
 
-import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlParams;
@@ -37,11 +36,9 @@ public class InvalidPasswordException extends GqlRuntimeException implements Sta
 
     public static InvalidPasswordException shortPassword(int minLength) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
-                .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withParam(GqlParams.StringParam.input, "***")
                 .withParam(GqlParams.StringParam.context, "password")
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N85)
-                        .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.NumberParam.lower, minLength)
                         .build())
                 .build();

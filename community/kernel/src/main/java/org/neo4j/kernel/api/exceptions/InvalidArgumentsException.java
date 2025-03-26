@@ -23,7 +23,6 @@ import static org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlException;
@@ -516,9 +515,7 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 .formatted(operation, key);
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
                 .withParam(GqlParams.StringParam.value, duration.prettyPrint())
-                .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N03)
-                        .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.StringParam.component, key)
                         .withParam(GqlParams.StringParam.valueType, "DURATION")
                         .withParam(GqlParams.StringParam.lower, DurationValue.ZERO.prettyPrint())

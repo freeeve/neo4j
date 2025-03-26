@@ -20,7 +20,6 @@
 package org.neo4j.exceptions;
 
 import java.time.format.DateTimeParseException;
-import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -55,9 +54,7 @@ public class TemporalParseException extends SyntaxException {
 
     public static TemporalParseException cannotProcessDateTime(String input, Throwable e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
-                .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N11)
-                        .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.StringParam.input, input)
                         .build())
                 .build();
@@ -71,9 +68,7 @@ public class TemporalParseException extends SyntaxException {
 
     public static TemporalParseException cannotParseToDateHint(String input) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22007)
-                .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N35)
-                        .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.StringParam.input, input)
                         .build())
                 .build();

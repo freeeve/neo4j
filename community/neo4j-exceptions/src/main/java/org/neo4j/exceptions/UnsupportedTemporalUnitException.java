@@ -19,7 +19,6 @@
  */
 package org.neo4j.exceptions;
 
-import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -48,9 +47,7 @@ public class UnsupportedTemporalUnitException extends CypherTypeException {
 
     public static UnsupportedTemporalUnitException cannotProcess(String value, Throwable e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
-                .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N11)
-                        .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.StringParam.input, value)
                         .build())
                 .build();

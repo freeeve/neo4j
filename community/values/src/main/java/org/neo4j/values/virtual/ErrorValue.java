@@ -24,7 +24,6 @@ import static org.neo4j.memory.HeapEstimator.sizeOf;
 
 import java.util.Comparator;
 import org.neo4j.exceptions.InvalidArgumentException;
-import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlParams;
@@ -58,9 +57,7 @@ public final class ErrorValue extends VirtualValue {
 
     public static ErrorValue cannotProcess(String unprocessable, Exception e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
-                .withClassification(ErrorClassification.CLIENT_ERROR)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N11)
-                        .withClassification(ErrorClassification.CLIENT_ERROR)
                         .withParam(GqlParams.StringParam.input, unprocessable)
                         .build())
                 .build();
