@@ -32,8 +32,9 @@ public class SystemGraphTestHelper {
             DatabaseContextProvider<?> databaseContextProvider) {
         return () -> databaseContextProvider
                 .getDatabaseContext(NAMED_SYSTEM_DATABASE_ID)
-                .orElseThrow(() ->
-                        new AuthProviderFailedException("No database called `" + SYSTEM_DATABASE_NAME + "` was found."))
+                .orElseThrow(() -> AuthProviderFailedException.internalError(
+                        SystemGraphTestHelper.class.getSimpleName(),
+                        "No database called `" + SYSTEM_DATABASE_NAME + "` was found."))
                 .databaseFacade();
     }
 }

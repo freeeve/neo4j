@@ -21,6 +21,7 @@ package org.neo4j.graphdb.security;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlRuntimeException;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -35,12 +36,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class AuthProviderFailedException extends GqlRuntimeException implements Status.HasStatus {
     private static final Status statusCode = Status.Security.AuthProviderFailed;
 
-    @Deprecated
-    public AuthProviderFailedException(String message) {
-        super(message);
-    }
-
-    public AuthProviderFailedException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private AuthProviderFailedException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 
@@ -49,8 +45,13 @@ public class AuthProviderFailedException extends GqlRuntimeException implements 
         super(message, cause);
     }
 
-    public AuthProviderFailedException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    private AuthProviderFailedException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
+    }
+
+    public static AuthProviderFailedException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new AuthProviderFailedException(gql, message);
     }
 
     public static final String LDAP_CONNECTION_REFUSED_CLIENT_MESSAGE = "LDAP connection refused.";
