@@ -1115,6 +1115,7 @@
           -DNEO4J_OVERRIDE_DBMS_TEST_FACTORY_SUPPLIER=spd
           -Dorg.neo4j.ByteBuffers.TRACK_BUFFERS=false
         </test.runner.jvm.settings.dbms.factory>
+        <test.vm.netty.leakDetection.level>DISABLED</test.vm.netty.leakDetection.level>
       </properties>
     </profile>
     <profile>
