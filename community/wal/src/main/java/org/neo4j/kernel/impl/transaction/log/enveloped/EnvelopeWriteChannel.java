@@ -579,6 +579,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     private void beginNewEnvelope() {
         currentEnvelopeStart = buffer.position();
         buffer.position(currentEnvelopeStart + LogEnvelopeHeader.HEADER_SIZE);
+        appendedBytes += LogEnvelopeHeader.HEADER_SIZE;
     }
 
     private void padSegmentAndGoToNext() throws IOException {
@@ -589,6 +590,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         int position = buffer.position();
         if (position < nextSegmentOffset) {
             buffer.put(PADDING_ZEROES, 0, nextSegmentOffset - position);
+            appendedBytes += nextSegmentOffset - position;
         }
         assert buffer.position() == nextSegmentOffset;
 
@@ -667,6 +669,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
 
         final int payloadLength = size - HEADER_SIZE;
         buffer.position(currentEnvelopeStart + HEADER_SIZE);
+        // put will update appendedBytes counter
         put(new byte[payloadLength], payloadLength);
         writeHeader(EnvelopeType.START_OFFSET, payloadLength);
     }

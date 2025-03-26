@@ -120,7 +120,7 @@ class EnvelopeWriteChannelTest {
 
             final var payloadLength =
                     Byte.BYTES + Integer.BYTES + Long.BYTES + SMALL_BYTES.length + smallByteBuffer.capacity();
-            assertThat(channel.getAppendedBytes()).isEqualTo(payloadLength);
+            assertThat(channel.getAppendedBytes()).isEqualTo(LogEnvelopeHeader.HEADER_SIZE + payloadLength);
 
             // data should still be buffer and the header in an undetermined state
             assertThat(fileChannel.position())
@@ -1489,7 +1489,8 @@ class EnvelopeWriteChannelTest {
 
             // And we can keep adding envelopes as expected:
             channel.putInt(mainPayloadValue);
-            assertThat(channel.getAppendedBytes()).isEqualTo(mainPayloadLength + startOffsetPayloadLength);
+            assertThat(channel.getAppendedBytes())
+                    .isEqualTo(LogEnvelopeHeader.HEADER_SIZE + mainPayloadLength + startOffsetPayloadLength);
             final int mainPayloadEnvelopeChecksum = channel.putChecksum();
             channel.prepareForFlush();
             assertThat(channel.position())

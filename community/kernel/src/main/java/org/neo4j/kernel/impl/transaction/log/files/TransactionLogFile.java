@@ -718,7 +718,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
 
                             // Find the last start entry in this file - then we are
                             // guaranteed a full transaction just before that point.
-                            long nextStart = readChannel.goToNextEntry();
+                            long nextStart = readChannel.alignWithStartEntry();
                             while (nextStart > seenStart) {
                                 knownAppendIndexAtSafePoint = readChannel.entryIndex() - 1;
                                 seenStart = nextStart;
