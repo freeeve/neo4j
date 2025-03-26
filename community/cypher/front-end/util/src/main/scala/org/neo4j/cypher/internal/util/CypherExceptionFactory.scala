@@ -187,6 +187,62 @@ trait CypherExceptionFactory {
       position
     )
   }
+
+  def invalidNameTooManyComponents(
+    errorTemplate: String,
+    context: String,
+    maxComponents: Int,
+    prettyName: String,
+    position: InputPosition
+  ): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+          .atPosition(position.offset, position.line, position.column)
+          .withParam(GqlParams.StringParam.input, prettyName)
+          .withParam(GqlParams.StringParam.context, context)
+          .withCause(
+            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N83)
+              .atPosition(position.offset, position.line, position.column)
+              .withParam(GqlParams.NumberParam.upper, maxComponents)
+              .build()
+          )
+          .build()
+      )
+      .build()
+
+    syntaxException(
+      gql,
+      errorTemplate.formatted(prettyName),
+      position
+    )
+  }
+
+  def invalidCharacterForRemoteAlias(aliasName: String, position: InputPosition): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N05)
+          .atPosition(position.offset, position.line, position.column)
+          .withParam(GqlParams.StringParam.input, aliasName)
+          .withParam(GqlParams.StringParam.context, "remote alias name")
+          .withCause(
+            ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N82)
+              .atPosition(position.offset, position.line, position.column)
+              .withParam(GqlParams.StringParam.input, aliasName)
+              .withParam(GqlParams.StringParam.context, "remote alias name")
+              .build()
+          )
+          .build(
+          )
+      ).build()
+    syntaxException(
+      gql,
+      s"'.' is not a valid character in the remote alias name '$aliasName'. Remote alias names using '.' must be quoted with backticks e.g. `remote.alias`.",
+      position
+    )
+  }
 }
 
 case class Neo4jCypherExceptionFactory(queryText: String, preParserOffset: Option[InputPosition])

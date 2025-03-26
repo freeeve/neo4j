@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.ast.NoWait
 import org.neo4j.cypher.internal.ast.Restrict
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TimeoutAfter
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -337,6 +339,16 @@ class DropDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
     failsParsing[Statements].withMessageStart(
       "Invalid input ``foo`.`bar`.`baz`` for name. Expected name to contain at most two components separated by `.`."
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`foo`.`bar`.`baz`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("DROP DATABASE KEEP DATA") {

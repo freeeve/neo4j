@@ -28,8 +28,10 @@ import org.neo4j.cypher.internal.ast.IfExistsReplace
 import org.neo4j.cypher.internal.ast.IfExistsThrowError
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.Statements
-import org.neo4j.cypher.internal.parser.common.ast.factory.ASTExceptionFactory
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.util.symbols.CTMap
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class AliasAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -300,42 +302,112 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("CREATE ALIAS `a`.b.`c` FOR DATABASE db") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("CREATE ALIAS `a`.b.c.`d` FOR DATABASE db") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.b.c.`d`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.b.c.`d`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("CREATE ALIAS a.`b`.`c` FOR DATABASE db") {
     failsParsing[Statements].withMessageStart(
       "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("CREATE ALIAS `a`.`b`.c FOR DATABASE db") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("CREATE ALIAS a.`b`.c FOR DATABASE db") {
     failsParsing[Statements].withMessageStart(
       "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("CREATE ALIAS `a`.`b` FOR DATABASE `db.cd`.`ef.gh`.d") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``db.cd`.`ef.gh`.d` for name. Expected name to contain at most two components separated by `.`. (line 1, column 35 (offset: 34))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`db.cd`.`ef.gh`.d' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("CREATE ALIAS name FOR DATABASE target DEFAULT LANGUAGE CYPHER 5") {
@@ -742,9 +814,35 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   test(
     """CREATE ALIAS namespace.name.illegal FOR DATABASE target AT "neo4j://serverA:7687" USER user PASSWORD 'password'"""
   ) {
-    failsParsing[Statements].withMessageStart(
-      "'.' is not a valid character in the remote alias name 'namespace.name.illegal'. Remote alias names using '.' must be quoted with backticks e.g. `remote.alias`. (line 1, column 14 (offset: 13))"
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "'.' is not a valid character in the remote alias name 'namespace.name.illegal'. Remote alias names using '.' must be quoted with backticks e.g. `remote.alias`. (line 1, column 14 (offset: 13))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'namespace.name.illegal' for remote alias name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N82,
+                "error: data exception - input contains invalid characters. Input 'namespace.name.illegal' contains invalid characters for remote alias name. Special characters may require that the input is quoted using backticks."
+              )
+          )
+      case _ => _.withMessageStart(
+          "Invalid input `namespace.name.illegal` for name. Expected name to contain at most two components separated by `.`. (line 1, column 14 (offset: 13))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'namespace.name.illegal' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
+          )
+    }
+
   }
 
   test("""CREATE ALIAS name FOR DATABASE target AT neo4j://serverA:7687" USER user PASSWORD 'password'""") {
@@ -954,30 +1052,80 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("DROP ALIAS `a`.b.`c` FOR DATABASE") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("DROP ALIAS a.`b`.`c` FOR DATABASE") {
     failsParsing[Statements].withMessageStart(
       "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("DROP ALIAS `a`.`b`.c FOR DATABASE") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("DROP ALIAS a.`b`.c FOR DATABASE") {
     failsParsing[Statements].withMessageStart(
       "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   // ALTER ALIAS
@@ -1079,36 +1227,96 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("ALTER ALIAS `a`.b.`c` SET DATABASE TARGET db") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("ALTER ALIAS a.`b`.`c` SET DATABASE TARGET db") {
     failsParsing[Statements].withMessageStart(
       "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("ALTER ALIAS `a`.`b`.c SET DATABASE TARGET db") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("ALTER ALIAS a.`b`.c SET DATABASE TARGET db") {
     failsParsing[Statements].withMessageStart(
       "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("ALTER ALIAS `a`.`b` SET DATABASE TARGET `db.cd`.`ef.gh`.d") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``db.cd`.`ef.gh`.d` for name. Expected name to contain at most two components separated by `.`. (line 1, column 41 (offset: 40))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`db.cd`.`ef.gh`.d' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   private val localAliasClauses = Seq(
@@ -1276,9 +1484,34 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   test(
     """ALTER ALIAS namespace.name.illegal SET DATABASE TARGET target AT "neo4j://serverA:7687" USER user PASSWORD "password" DRIVER { ssl_enforced: true }"""
   ) {
-    failsParsing[Statements].withMessageStart(
-      ASTExceptionFactory.invalidDotsInRemoteAliasName("namespace.name.illegal") + " (line 1, column 13 (offset: 12))"
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "'.' is not a valid character in the remote alias name 'namespace.name.illegal'. Remote alias names using '.' must be quoted with backticks e.g. `remote.alias`."
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'namespace.name.illegal' for remote alias name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N82,
+                "error: data exception - input contains invalid characters. Input 'namespace.name.illegal' contains invalid characters for remote alias name. Special characters may require that the input is quoted using backticks."
+              )
+          )
+      case _ => _.withMessageStart(
+          "Invalid input `namespace.name.illegal` for name. Expected name to contain at most two components separated by `.`. (line 1, column 13 (offset: 12))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'namespace.name.illegal' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
+          )
+    }
   }
 
   // this will instead fail in semantic checking
@@ -1319,11 +1552,36 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("ALTER ALIAS name.hej.a SET DATABASE TARGET db AT 'heja'") {
-    failsParsing[Statements].withMessageStart(
-      "'.' is not a valid character in the remote alias name 'name.hej.a'. " +
-        "Remote alias names using '.' must be quoted with backticks " +
-        "e.g. `remote.alias`. (line 1, column 13 (offset: 12))"
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withMessageStart(
+          "'.' is not a valid character in the remote alias name 'name.hej.a'. " +
+            "Remote alias names using '.' must be quoted with backticks " +
+            "e.g. `remote.alias`. (line 1, column 13 (offset: 12))"
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'name.hej.a' for remote alias name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N82,
+                "error: data exception - input contains invalid characters. Input 'name.hej.a' contains invalid characters for remote alias name. Special characters may require that the input is quoted using backticks."
+              )
+          )
+      case _ => _.withMessageStart(
+          "Invalid input `name.hej.a` for name. Expected name to contain at most two components separated by `.`."
+        )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input 'name.hej.a' for name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+              )
+          )
+    }
   }
 
   // set target
@@ -1684,29 +1942,79 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("SHOW ALIAS `a`.b.`c` FOR DATABASE") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.b.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.b.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("SHOW ALIAS a.`b`.`c` FOR DATABASE") {
     failsParsing[Statements].withMessageStart(
       "Invalid input `a.`b`.`c`` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input 'a.`b`.`c`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("SHOW ALIAS `a`.`b`.c FOR DATABASE") {
     failsParsing[Statements].withMessageStart(
       "Invalid input ``a`.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`a`.`b`.c' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("SHOW ALIAS a.`b`.c FOR DATABASE") {
     failsParsing[Statements].withMessageStart(
       "Invalid input `a.`b`.c` for name. Expected name to contain at most two components separated by `.`. (line 1, column 12 (offset: 11))"
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input 'a.`b`.c' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 }

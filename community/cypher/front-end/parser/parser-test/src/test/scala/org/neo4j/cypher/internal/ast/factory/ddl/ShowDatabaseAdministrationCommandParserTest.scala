@@ -25,6 +25,8 @@ import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.YieldOrWhere
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -175,6 +177,16 @@ class ShowDatabaseAdministrationCommandParserTest extends AdministrationAndSchem
     failsParsing[Statements].withMessageStart(
       "Invalid input ``foo`.`bar`.`baz`` for name. Expected name to contain at most two components separated by `.`."
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`foo`.`bar`.`baz`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   test("SHOW DATABASE blah YIELD *,blah RETURN user") {

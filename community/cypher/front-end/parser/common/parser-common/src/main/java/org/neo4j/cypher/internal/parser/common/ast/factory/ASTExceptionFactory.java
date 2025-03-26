@@ -73,13 +73,6 @@ public interface ASTExceptionFactory {
         return message;
     }
 
-    static String invalidDotsInRemoteAliasName(String name) {
-        return String.format(
-                "'.' is not a valid character in the remote alias name '%s'. "
-                        + "Remote alias names using '.' must be quoted with backticks e.g. `remote.alias`.",
-                name);
-    }
-
     static String invalidHintIndexType() {
         final String HINT_TYPES = Arrays.stream(HintIndexType.values())
                 .filter(hintIndexType -> !(hintIndexType == HintIndexType.BTREE || hintIndexType == HintIndexType.ANY))

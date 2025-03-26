@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /** Entries/fields in this "map" must be serializable* (Bolt must be able to parse them).
  * They must either be primitive types like int, or String
@@ -114,6 +115,17 @@ public class DiagnosticRecord implements Serializable {
 
     Map<String, Integer> getPositionMap() {
         return (Map<String, Integer>) innerDiagnosticRecord.get("_position");
+    }
+
+    public Optional<String> getPosition() {
+        var positionMap = innerDiagnosticRecord.getOrDefault("_position", Map.of());
+        if (positionMap instanceof Map<?, ?> position) {
+            var entries = position.entrySet().stream()
+                    .map(k -> "%s: %s".formatted(k.getKey(), k.getValue()))
+                    .collect(Collectors.joining(" "));
+            return Optional.of(entries);
+        }
+        return Optional.empty();
     }
 
     public void updatePosition(int offset, int line, int column) {

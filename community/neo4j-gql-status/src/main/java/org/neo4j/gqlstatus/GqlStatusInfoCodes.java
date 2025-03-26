@@ -3868,6 +3868,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "cannot alter immutable composite database",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N91(
+            // Never used, this error scenario is unreachable
             new GqlStatus("42N91"),
             """
                     Cannot index nested properties (property: { %s }).""",
@@ -3886,6 +3887,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "cannot combine old and new auth provider syntax",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N93(
+            // Never used, 22N06 was used instead
             new GqlStatus("42N93"),
             """
                     No auth given for user.""",

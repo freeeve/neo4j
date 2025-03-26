@@ -29,6 +29,8 @@ import org.neo4j.cypher.internal.ast.Topology
 import org.neo4j.cypher.internal.expressions.Null
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -180,6 +182,16 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
     failsParsing[Statements].withMessageStart(
       "Invalid input ``foo`.`bar`.`baz`` for name. Expected name to contain at most two components separated by `.`."
     )
+      .withSyntaxErrorGqlStatus(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N05,
+          "error: data exception - input failed validation. Invalid input '`foo`.`bar`.`baz`' for name."
+        )
+          .withCause(
+            GqlStatusInfoCodes.STATUS_22N83,
+            "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+          )
+      )
   }
 
   // Set ACCESS multiple times in the same command

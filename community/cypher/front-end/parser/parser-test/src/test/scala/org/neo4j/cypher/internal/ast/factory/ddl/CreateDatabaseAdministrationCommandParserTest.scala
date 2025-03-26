@@ -35,6 +35,8 @@ import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.expressions.ExplicitParameter
 import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.util.symbols.CTMap
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -552,11 +554,28 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       case Cypher5 => _.withMessageStart(
           "Invalid input ``graph.db`.`db.db`` for database name. Expected name to contain at most one component"
         )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`graph.db`.`db.db`' for database name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 1 components separated by '.'."
+              )
+          )
+
       case _ => _.withSyntaxError(
           """Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 27 (offset: 26))
             |"CREATE DATABASE `graph.db`.`db.db`"
             |                           ^""".stripMargin
         )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_42I06,
+              "error: syntax error or access rule violation - invalid input. Invalid input '.', expected: 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT'."
+            )
+          )
     }
   }
 
@@ -680,10 +699,25 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       case Cypher5 => _.withMessageStart(
           "Invalid input ``foo`.`bar`.`baz`` for database name. Expected name to contain at most one component"
         )
+          .withSyntaxErrorGqlStatus(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22N05,
+              "error: data exception - input failed validation. Invalid input '`foo`.`bar`.`baz`' for database name."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22N83,
+                "error: data exception - input consists of too many components. Expected name to contain at most 1 components separated by '.'."
+              )
+          )
       case _ => _.withSyntaxError(
           """Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 22 (offset: 21))
             |"CREATE DATABASE `foo`.`bar`.`baz`"
             |                      ^""".stripMargin
+        ).withSyntaxErrorGqlStatus(
+          gqlStatus(
+            GqlStatusInfoCodes.STATUS_42I06,
+            "error: syntax error or access rule violation - invalid input. Invalid input '.', expected: 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT'."
+          )
         )
     }
   }

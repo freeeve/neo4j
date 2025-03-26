@@ -19,6 +19,7 @@
  */
 package org.neo4j.exceptions;
 
+import java.util.List;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -171,6 +172,15 @@ public class InvalidSemanticsException extends Neo4jException {
                         "When connected to a composite database, access is allowed only to its constituents. "
                                 + "Attempted to access '%s' while connected to '%s'",
                         graph, composite));
+    }
+
+    public static InvalidSemanticsException missingTransactionId() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+                .withParam(GqlParams.ListParam.inputList, List.of("transaction id"))
+                .build();
+
+        return new InvalidSemanticsException(
+                gql, "Missing transaction id to terminate, the transaction id can be found using `SHOW TRANSACTIONS`.");
     }
 
     @Override

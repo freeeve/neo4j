@@ -29,15 +29,18 @@ import org.neo4j.cypher.internal.ast.test.util.VerifyStatementUseGraph.findUseGr
 import org.neo4j.cypher.internal.parser.ast.AstBuildingAntlrParser
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.GqlExceptionMatcher
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.InvalidSyntaxStatus
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
-import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
 import org.scalatest.matchers.must.Matchers.be
 import org.scalatest.matchers.must.Matchers.include
 import org.scalatest.matchers.must.Matchers.startWith
+import org.scalatest.matchers.should.Matchers.a
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 
 import scala.reflect.ClassTag
@@ -101,8 +104,16 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   def withSyntaxError(message: String): Self = throws[SyntaxException].withMessage(message)
   def withSyntaxErrorContaining(message: String): Self = throws[SyntaxException].withMessageContaining(message)
 
-  private val invalidSyntaxStatus =
-    gqlStatus(GqlStatusInfoCodes.STATUS_42001, "error: syntax error or access rule violation - invalid syntax")
+  private def withGqlStatus(gqlStatusMatcher: GqlExceptionMatcher): Self = {
+    withError(throwable => {
+      throwable should be(a[ErrorGqlStatusObject])
+      throwable.asInstanceOf[ErrorGqlStatusObject] should be(gqlStatusMatcher)
+    })
+  }
+
+  def withSyntaxErrorGqlStatus(gqlStatusMatcher: GqlExceptionMatcher): Self = {
+    withGqlStatus(InvalidSyntaxStatus.withCause(gqlStatusMatcher))
+  }
 
   def withSyntaxErrorContaining(
     message: String,
@@ -112,7 +123,7 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   ): Self = {
     throws[SyntaxException]
       .withError(throwable => {
-        val gqlMatcher = invalidSyntaxStatus.withCause(causeGql, causeStatusDescription)
+        val gqlMatcher = InvalidSyntaxStatus.withCause(causeGql, causeStatusDescription)
         val gqlMatcherWithMaybePos =
           position.map(pos => gqlMatcher.withPosition(pos.offset, pos.line, pos.column)).getOrElse(gqlMatcher)
         throwable.asInstanceOf[Exception] should be(
@@ -129,7 +140,7 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
     throws[SyntaxException]
       .withMessage(message)
       .withError(throwable => {
-        val gqlMatcher = invalidSyntaxStatus.withCause(causeGql, causeStatusDescription)
+        val gqlMatcher = InvalidSyntaxStatus.withCause(causeGql, causeStatusDescription)
         throwable.asInstanceOf[SyntaxException] should be(gqlMatcher)
       })
   }

@@ -953,8 +953,10 @@ object AdministrationCommandRuntime {
       }
     case _ =>
       // this fails in parsing or semantic checking, but is needed for scala warnings
-      throw new InvalidArgumentException(
-        s"Expected non-empty String or non-empty List of non-empty Strings but was `${field.asCanonicalStringVal}`."
+      throw CypherExecutionException.internalError(
+        s"Expected non-empty String or non-empty List of non-empty Strings but was `${field.asCanonicalStringVal}`.",
+        "",
+        null
       )
   }
 

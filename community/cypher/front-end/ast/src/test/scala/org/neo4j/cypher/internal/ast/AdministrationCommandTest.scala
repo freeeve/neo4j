@@ -63,6 +63,7 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
@@ -71,6 +72,7 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 import java.nio.charset.StandardCharsets
 
+import scala.jdk.CollectionConverters.SeqHasAsJava
 import scala.reflect.runtime.currentMirror
 import scala.reflect.runtime.universe.ClassSymbol
 import scala.reflect.runtime.universe.Type
@@ -78,14 +80,43 @@ import scala.reflect.runtime.universe.termNames
 import scala.reflect.runtime.universe.typeOf
 
 class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestSupport {
-  private val p = InputPosition.withLength(0, 0, 0, 0)
+  private val p = InputPosition.withLength(13, 12, 11, 10)
   private val pos1 = InputPosition(2, 1, 3)
   private val pos2 = InputPosition(16, 5, 4)
   private val pos3 = InputPosition(23, 7, 6)
   private val pos4 = InputPosition(37, 8, 9)
 
-  private val gqlAuthProviderNotAllowedEmpty = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
-    .withParam(GqlParams.StringParam.item, "Auth provider").build()
+  private def gqlAuthProviderNotAllowedEmpty(pos: InputPosition) =
+    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withParam(GqlParams.StringParam.item, "Auth provider").build()
+
+  private def gqlCannotCombineOldAndNewSyntax(pos: InputPosition) = ErrorGqlStatusObjectImplementation
+    .from(GqlStatusInfoCodes.STATUS_42N92)
+    .atPosition(pos.offset, pos.line, pos.column)
+    .build()
+
+  private def gqlMissingAuth(pos: InputPosition) =
+    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+      .withParam(GqlParams.ListParam.inputList, List("Auth provider").asJava)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .build()
+
+  private def gqlIncompleteAuthCommand(pos: InputPosition) =
+    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N94)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .build()
+
+  private def gqlRemoveAuthWrongType(expr: String, pos: InputPosition) =
+    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N04)
+      .withParam(GqlParams.StringParam.input, expr)
+      .withParam(GqlParams.StringParam.context, "REMOVE AUTH")
+      .withParam(
+        GqlParams.ListParam.inputList,
+        List("non-empty String", "non-empty List of non-empty Strings", "Parameter").asJava
+      )
+      .atPosition(pos.offset, pos.line, pos.column)
+      .build()
 
   private val initialState =
     SemanticState.clean
@@ -132,10 +163,16 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     }
   }
 
-  def getGql42N97_missingMandatoryAuthClause(clause: String, authProvider: String): ErrorGqlStatusObject = {
-    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N97)
+  def getGql42N97_missingMandatoryAuthClause(
+    clause: String,
+    authProvider: String,
+    position: Option[InputPosition]
+  ): ErrorGqlStatusObject = {
+    val builder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N97)
       .withParam(GqlParams.StringParam.clause, clause)
       .withParam(GqlParams.StringParam.auth, authProvider)
+
+    position.map(p => builder.atPosition(p.offset, p.line, p.column)).getOrElse(builder)
       .build()
   }
 
@@ -380,6 +417,16 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
           result.errors.size shouldBe 1
           result.errors.head.msg shouldBe "Failed to administer property rule. `NaN` is not supported for property-based access control."
+          result.errors.head.gqlStatusObject should be(
+            gqlStatus(
+              GqlStatusInfoCodes.STATUS_22NA0,
+              "error: data exception - invalid property based access control rule. Failed to administer property rule."
+            )
+              .withCause(
+                GqlStatusInfoCodes.STATUS_22NA3,
+                "error: data exception - invalid property based access control rule involving NaN. 'NaN' is not supported for property-based access control."
+              )
+          )
         }
 
         // e.g. FOR (n) WHERE NaN = n.prop1
@@ -400,6 +447,14 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
           val result = privilege.semanticCheck.run(initialState, SemanticCheckContext.default)
           result.errors.size shouldBe 1
           result.errors.head.msg shouldBe "Failed to administer property rule. `NaN` is not supported for property-based access control."
+          result.errors.head.gqlStatusObject should be(gqlStatus(
+            GqlStatusInfoCodes.STATUS_22NA0,
+            "error: data exception - invalid property based access control rule. Failed to administer property rule."
+          )
+            .withCause(
+              GqlStatusInfoCodes.STATUS_22NA3,
+              "error: data exception - invalid property based access control rule involving NaN. 'NaN' is not supported for property-based access control."
+            ))
         }
 
         // e.g. FOR (n) WHERE n.prop1 = 1+2
@@ -1540,7 +1595,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
         "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
         pos1
@@ -1557,7 +1612,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "No auth given for user.", p).errors
+      .error(gqlMissingAuth(p), initialState, "No auth given for user.", p).errors
   }
 
   test("CREATE USER foo SET PASSWORD CHANGE REQUIRED SET STATUS ACTIVE") {
@@ -1571,7 +1626,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
         "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
         pos1
@@ -1589,7 +1644,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
         "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
         pos1
@@ -1606,7 +1661,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "No auth given for user.", p).errors
+      .error(gqlMissingAuth(p), initialState, "No auth given for user.", p).errors
   }
 
   test("CREATE USER foo IF NOT EXISTS SET PASSWORD CHANGE NOT REQUIRED SET STATUS SUSPENDED") {
@@ -1620,7 +1675,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
         "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
         pos1
@@ -1638,7 +1693,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
         "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
         pos1
@@ -1655,7 +1710,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "No auth given for user.", p).errors
+      .error(gqlMissingAuth(p), initialState, "No auth given for user.", p).errors
   }
 
   test("CREATE OR REPLACE USER foo SET PASSWORD CHANGE REQUIRED SET STATUS ACTIVE") {
@@ -1669,7 +1724,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
         "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
         pos1
@@ -1712,7 +1767,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
         "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
         pos1
@@ -1729,7 +1784,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     val error1 = SemanticCheckResult.error(
-      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
       initialState,
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos1
@@ -1764,7 +1819,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     val error1 =
       SemanticCheckResult.error(
-        getGql42N97_missingMandatoryAuthClause("SET ID", "foo"),
+        getGql42N97_missingMandatoryAuthClause("SET ID", "foo", None),
         initialState,
         "Clause `SET ID` is mandatory for auth provider `foo`.",
         pos1
@@ -1809,7 +1864,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos3
     ).errors
     val error2 = SemanticCheckResult.error(
-      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
       initialState,
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos3
@@ -1839,13 +1894,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       pos3
     ).errors
     val error2 = SemanticCheckResult.error(
-      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
       initialState,
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos1
     ).errors
     val error3 = SemanticCheckResult.error(
-      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
       initialState,
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos3
@@ -1863,6 +1918,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     val error = SemanticCheckResult.error(
+      gqlCannotCombineOldAndNewSyntax(pos1),
       initialState,
       "Cannot combine old and new auth syntax for the same auth provider.",
       pos1
@@ -1880,12 +1936,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     val error1 = SemanticCheckResult.error(
+      gqlCannotCombineOldAndNewSyntax(pos3),
       initialState,
       "Cannot combine old and new auth syntax for the same auth provider.",
       pos3
     ).errors
     val error2 = SemanticCheckResult.error(
-      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
       initialState,
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos3
@@ -1903,12 +1960,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     val error1 = SemanticCheckResult.error(
+      gqlCannotCombineOldAndNewSyntax(pos1),
       initialState,
       "Cannot combine old and new auth syntax for the same auth provider.",
       pos1
     ).errors
     val error2 = SemanticCheckResult.error(
-      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
       initialState,
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos2
@@ -1926,18 +1984,19 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     val error1 = SemanticCheckResult.error(
+      gqlCannotCombineOldAndNewSyntax(pos3),
       initialState,
       "Cannot combine old and new auth syntax for the same auth provider.",
       pos3
     ).errors
     val error2 = SemanticCheckResult.error(
-      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
       initialState,
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos1
     ).errors
     val error3 = SemanticCheckResult.error(
-      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+      getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
       initialState,
       "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
       pos3
@@ -2111,7 +2170,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
         "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
         pos2
@@ -2129,7 +2188,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     val error1 =
       SemanticCheckResult.error(
-        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native"),
+        getGql42N97_missingMandatoryAuthClause("SET PASSWORD", "native", None),
         initialState,
         "Clause `SET PASSWORD` is mandatory for auth provider `native`.",
         pos3
@@ -2214,7 +2273,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     val error1 =
       SemanticCheckResult.error(
-        getGql42N97_missingMandatoryAuthClause("SET ID", ""),
+        getGql42N97_missingMandatoryAuthClause("SET ID", "", None),
         initialState,
         "Clause `SET ID` is mandatory for auth provider ``.",
         pos1
@@ -2235,7 +2294,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         pos2
       ).errors
     val error3 = SemanticCheckResult.error(
-      gqlAuthProviderNotAllowedEmpty,
+      gqlAuthProviderNotAllowedEmpty(pos1),
       initialState,
       "Invalid input. Auth provider is not allowed to be an empty string.",
       pos1
@@ -2254,7 +2313,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        gqlAuthProviderNotAllowedEmpty,
+        gqlAuthProviderNotAllowedEmpty(pos1),
         initialState,
         "Invalid input. Auth provider is not allowed to be an empty string.",
         pos1
@@ -2272,7 +2331,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     val error1 =
       SemanticCheckResult.error(
-        getGql42N97_missingMandatoryAuthClause("SET ID", ""),
+        getGql42N97_missingMandatoryAuthClause("SET ID", "", None),
         initialState,
         "Clause `SET ID` is mandatory for auth provider ``.",
         pos1
@@ -2293,7 +2352,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         pos2
       ).errors
     val error3 = SemanticCheckResult.error(
-      gqlAuthProviderNotAllowedEmpty,
+      gqlAuthProviderNotAllowedEmpty(pos1),
       initialState,
       "Invalid input. Auth provider is not allowed to be an empty string.",
       pos1
@@ -2312,7 +2371,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        gqlAuthProviderNotAllowedEmpty,
+        gqlAuthProviderNotAllowedEmpty(pos1),
         initialState,
         "Invalid input. Auth provider is not allowed to be an empty string.",
         pos1
@@ -2343,7 +2402,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "`ALTER USER` requires at least one clause.", p).errors
+      .error(gqlIncompleteAuthCommand(p), initialState, "`ALTER USER` requires at least one clause.", p).errors
   }
 
   test("ALTER USER foo SET PASSWORD 'password' SET ENCRYPTED PASSWORD $password") {
@@ -2475,7 +2534,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       ).errors
     val error2 =
       SemanticCheckResult.error(
-        getGql42N97_missingMandatoryAuthClause("SET ID", "foo"),
+        getGql42N97_missingMandatoryAuthClause("SET ID", "foo", None),
         initialState,
         "Clause `SET ID` is mandatory for auth provider `foo`.",
         pos1
@@ -2544,7 +2603,12 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "Cannot combine old and new auth syntax for the same auth provider.", pos3).errors
+      .error(
+        gqlCannotCombineOldAndNewSyntax(pos3),
+        initialState,
+        "Cannot combine old and new auth syntax for the same auth provider.",
+        pos3
+      ).errors
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 'native' { SET PASSWORD 'password' } SET PASSWORD CHANGE REQUIRED") {
@@ -2558,7 +2622,12 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "Cannot combine old and new auth syntax for the same auth provider.", pos3).errors
+      .error(
+        gqlCannotCombineOldAndNewSyntax(pos3),
+        initialState,
+        "Cannot combine old and new auth syntax for the same auth provider.",
+        pos3
+      ).errors
   }
 
   test("ALTER USER foo SET PASSWORD 'password' SET AUTH PROVIDER 'native' { SET PASSWORD CHANGE REQUIRED }") {
@@ -2572,7 +2641,12 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "Cannot combine old and new auth syntax for the same auth provider.", pos1).errors
+      .error(
+        gqlCannotCombineOldAndNewSyntax(pos1),
+        initialState,
+        "Cannot combine old and new auth syntax for the same auth provider.",
+        pos1
+      ).errors
   }
 
   test("ALTER USER foo SET AUTH PROVIDER 'native' { SET PASSWORD CHANGE NOT REQUIRED } SET PASSWORD CHANGE REQUIRED") {
@@ -2586,7 +2660,12 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(initialState, "Cannot combine old and new auth syntax for the same auth provider.", pos3).errors
+      .error(
+        gqlCannotCombineOldAndNewSyntax(pos3),
+        initialState,
+        "Cannot combine old and new auth syntax for the same auth provider.",
+        pos3
+      ).errors
   }
 
   test("ALTER USER foo SET AUTH 'foo' { SET ID 'bar' } SET AUTH PROVIDER 'foo' { SET ID 'bar' }") {
@@ -2877,14 +2956,14 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         pos2
       ).errors
     val error2 = SemanticCheckResult.error(
-      gqlAuthProviderNotAllowedEmpty,
+      gqlAuthProviderNotAllowedEmpty(pos1),
       initialState,
       "Invalid input. Auth provider is not allowed to be an empty string.",
       pos1
     ).errors
     val error3 =
       SemanticCheckResult.error(
-        getGql42N97_missingMandatoryAuthClause("SET ID", ""),
+        getGql42N97_missingMandatoryAuthClause("SET ID", "", None),
         initialState,
         "Clause `SET ID` is mandatory for auth provider ``.",
         pos1
@@ -2907,7 +2986,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        gqlAuthProviderNotAllowedEmpty,
+        gqlAuthProviderNotAllowedEmpty(pos1),
         initialState,
         "Invalid input. Auth provider is not allowed to be an empty string.",
         pos1
@@ -2940,14 +3019,14 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
         pos2
       ).errors
     val error2 = SemanticCheckResult.error(
-      gqlAuthProviderNotAllowedEmpty,
+      gqlAuthProviderNotAllowedEmpty(pos1),
       initialState,
       "Invalid input. Auth provider is not allowed to be an empty string.",
       pos1
     ).errors
     val error3 =
       SemanticCheckResult.error(
-        getGql42N97_missingMandatoryAuthClause("SET ID", ""),
+        getGql42N97_missingMandatoryAuthClause("SET ID", "", None),
         initialState,
         "Clause `SET ID` is mandatory for auth provider ``.",
         pos1
@@ -2967,7 +3046,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        gqlAuthProviderNotAllowedEmpty,
+        gqlAuthProviderNotAllowedEmpty(pos1),
         initialState,
         "Invalid input. Auth provider is not allowed to be an empty string.",
         pos1
@@ -3000,6 +3079,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
+        gqlRemoveAuthWrongType("42", pos1),
         initialState,
         "Expected a non-empty String, non-empty List of non-empty Strings, or Parameter.",
         pos1
@@ -3018,6 +3098,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
+        gqlRemoveAuthWrongType("[42, 69]", pos1),
         initialState,
         "Expected a non-empty String, non-empty List of non-empty Strings, or Parameter.",
         pos1
@@ -3036,6 +3117,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
+        gqlRemoveAuthWrongType("""["bar", 69]""", pos1),
         initialState,
         "Expected a non-empty String, non-empty List of non-empty Strings, or Parameter.",
         pos1
@@ -3054,6 +3136,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
+        gqlRemoveAuthWrongType("""[69, "bar"]""", pos1),
         initialState,
         "Expected a non-empty String, non-empty List of non-empty Strings, or Parameter.",
         pos1
@@ -3072,6 +3155,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
+        gqlRemoveAuthWrongType("[]", pos1),
         initialState,
         "Expected a non-empty String, non-empty List of non-empty Strings, or Parameter.",
         pos1
@@ -3113,7 +3197,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     ).errors
     val error3 =
       SemanticCheckResult.error(
-        getGql42N97_missingMandatoryAuthClause("SET ID", "foo"),
+        getGql42N97_missingMandatoryAuthClause("SET ID", "foo", None),
         initialState,
         "Clause `SET ID` is mandatory for auth provider `foo`.",
         pos2

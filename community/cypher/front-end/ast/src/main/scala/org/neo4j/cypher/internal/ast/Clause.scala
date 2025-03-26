@@ -135,7 +135,9 @@ import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.NormalizedDatabaseName
 
@@ -2940,7 +2942,11 @@ case class TerminateTransactionsClause(
     DefaultOrAllShowColumns(useAllColumns = yieldItems.nonEmpty || yieldAll, columns, columns)
 
   override def clauseSpecificSemanticCheck: SemanticCheck = when(wherePos.isDefined) {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N84)
+      .atPosition(wherePos.get.offset, wherePos.get.line, wherePos.get.column)
+      .build()
     error(
+      gql,
       "`WHERE` is not allowed by itself, please use `TERMINATE TRANSACTION ... YIELD ... WHERE ...` instead",
       wherePos.get
     )

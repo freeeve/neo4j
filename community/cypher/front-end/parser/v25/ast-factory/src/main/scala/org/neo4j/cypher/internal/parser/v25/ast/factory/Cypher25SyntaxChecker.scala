@@ -139,8 +139,18 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
         aliasName.symbolicAliasName() != null && aliasName.symbolicAliasName().symbolicNameString().size() > MAX_ALIAS_NAME_COMPONENTS
       ) {
         val start = aliasName.symbolicAliasName().symbolicNameString().get(0).getStart
-        _errors :+= exceptionFactory.syntaxException(
-          s"'.' is not a valid character in the remote alias name '${aliasName.getText}'. Remote alias names using '.' must be quoted with backticks e.g. `remote.alias`.",
+        val prettyName = aliasName.symbolicAliasName().symbolicNameString().asScala.map {
+          case name if name.unescapedSymbolicNameString() != null =>
+            name.unescapedSymbolicNameString().ast
+          case name if name.escapedSymbolicNameString() != null =>
+            NameUtil.forceEscapeName(name.escapedSymbolicNameString().ast())
+          case _ => ""
+        }.mkString(".")
+        _errors :+= exceptionFactory.invalidNameTooManyComponents(
+          "Invalid input `%s` for name. Expected name to contain at most two components separated by `.`.",
+          "name",
+          MAX_ALIAS_NAME_COMPONENTS,
+          prettyName,
           inputPosition(start)
         )
       }
@@ -150,7 +160,8 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
   private def errorOnAliasNameContainingTooManyComponents(
     aliasesNames: Seq[SymbolicAliasNameOrParameterContext],
     maxComponents: Int,
-    errorTemplate: String
+    errorTemplate: String,
+    context: String
   ): Unit = {
     if (aliasesNames.nonEmpty) {
       val literalAliasNames = aliasesNames.filter(_.symbolicAliasName() != null)
@@ -163,16 +174,18 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
         }
         if (componentCount > maxComponents) {
           val start = aliasName.symbolicAliasName().symbolicNameString().get(0).getStart
-          _errors :+= exceptionFactory.syntaxException(
-            errorTemplate.formatted(
-              aliasName.symbolicAliasName().symbolicNameString().asScala.map {
-                case context if context.unescapedSymbolicNameString() != null =>
-                  context.unescapedSymbolicNameString().ast
-                case context if context.escapedSymbolicNameString() != null =>
-                  NameUtil.forceEscapeName(context.escapedSymbolicNameString().ast())
-                case _ => ""
-              }.mkString(".")
-            ),
+          val prettyName = aliasName.symbolicAliasName().symbolicNameString().asScala.map {
+            case name if name.unescapedSymbolicNameString() != null =>
+              name.unescapedSymbolicNameString().ast
+            case name if name.escapedSymbolicNameString() != null =>
+              NameUtil.forceEscapeName(name.escapedSymbolicNameString().ast())
+            case _ => ""
+          }.mkString(".")
+          _errors :+= exceptionFactory.invalidNameTooManyComponents(
+            errorTemplate,
+            context,
+            maxComponents,
+            prettyName,
             inputPosition(start)
           )
         }
@@ -229,7 +242,8 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
         errorOnAliasNameContainingTooManyComponents(
           Seq(ctx),
           MAX_DATABASE_NAME_COMPONENTS,
-          "Invalid input `%s` for database name. Expected name to contain at most one component."
+          "Invalid input `%s` for database name. Expected name to contain at most one component.",
+          "database name"
         )
       case Cypher25Parser.RULE_createCompositeDatabase =>
       // Handled in semantic checks
@@ -238,7 +252,8 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
         errorOnAliasNameContainingTooManyComponents(
           Seq(ctx),
           MAX_ALIAS_NAME_COMPONENTS,
-          "Invalid input `%s` for name. Expected name to contain at most two components separated by `.`."
+          "Invalid input `%s` for name. Expected name to contain at most two components separated by `.`.",
+          "name"
         )
     }
   }

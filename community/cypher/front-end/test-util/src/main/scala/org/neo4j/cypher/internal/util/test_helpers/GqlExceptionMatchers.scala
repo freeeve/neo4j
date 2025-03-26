@@ -273,6 +273,11 @@ object GqlExceptionMatchers extends GqlExceptionMatchers {
     "error: syntax error or access rule violation - invalid syntax"
   )
 
+  val InvalidSyntaxStatus: GqlExceptionMatcher = GqlExceptionMatcher(
+    GqlStatusInfoCodes.STATUS_42001,
+    "error: syntax error or access rule violation - invalid syntax"
+  )
+
   def functionArgumentGqlException(legacyMsg: String, func: String, msgPart: String): BeMatcher[Exception] = {
     gqlException(
       legacyMsg,

@@ -132,6 +132,11 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
         sb.append("\n");
         sb.append("Subcondition: ");
         sb.append(gqlStatusInfoCode.getSubCondition().trim());
+        diagnosticRecord.getPosition().ifPresent(s -> {
+            sb.append("\n");
+            sb.append("Position: ");
+            sb.append(s);
+        });
         if (cause != null) {
             sb.append("\n");
             sb.append("Caused by:");

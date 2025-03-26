@@ -27,8 +27,10 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
 import org.neo4j.exceptions.ParameterWrongTypeException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues;
 
@@ -196,13 +198,20 @@ class AdministrationCommandRuntimeTest extends CypherFunSuite {
     )
 
     e should have message "Expected parameter $param to have type String but was Int(42)"
-    e.gqlStatus() shouldBe "22G03"
-    e.statusDescription() shouldBe "error: data exception - invalid value type"
-
-    e.cause() should not be empty
-    e.cause().get().gqlStatus() shouldBe "22N27"
-    e.cause().get().statusDescription() shouldBe
-      "error: data exception - invalid entity type. Invalid input '42' for $`param`. Expected to be STRING."
+    e should be(
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_42N51,
+        "error: syntax error or access rule violation - invalid parameter. Invalid parameter $`param`."
+      ).withCause(
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_22G03,
+          "error: data exception - invalid value type"
+        ).withCause(
+          GqlStatusInfoCodes.STATUS_22N27,
+          "error: data exception - invalid entity type. Invalid input '42' for $`param`. Expected to be STRING."
+        )
+      )
+    )
   }
 
 }

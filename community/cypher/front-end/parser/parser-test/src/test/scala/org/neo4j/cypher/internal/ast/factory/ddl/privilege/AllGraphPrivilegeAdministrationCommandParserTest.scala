@@ -25,6 +25,8 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.factory.ddl.AdministrationAndSchemaCommandParserTestBase
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier.maybeImmutable
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class AllGraphPrivilegeAdministrationCommandParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -249,6 +251,16 @@ class AllGraphPrivilegeAdministrationCommandParserTest extends AdministrationAnd
             failsParsing[Statements]
               .withMessageContaining(
                 "Invalid input ``a`.`b`.`c`` for name. Expected name to contain at most two components separated by `.`."
+              )
+              .withSyntaxErrorGqlStatus(
+                gqlStatus(
+                  GqlStatusInfoCodes.STATUS_22N05,
+                  "error: data exception - input failed validation. Invalid input '`a`.`b`.`c`' for name."
+                )
+                  .withCause(
+                    GqlStatusInfoCodes.STATUS_22N83,
+                    "error: data exception - input consists of too many components. Expected name to contain at most 2 components separated by '.'."
+                  )
               )
           }
       }

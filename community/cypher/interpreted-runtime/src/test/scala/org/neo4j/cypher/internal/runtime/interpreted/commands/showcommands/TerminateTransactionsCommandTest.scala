@@ -27,9 +27,11 @@ import org.neo4j.cypher.internal.ast.CommandResultItem
 import org.neo4j.cypher.internal.ast.TerminateTransactionsClause
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.ListLiteral
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.dbms.database.DatabaseContext
 import org.neo4j.dbms.database.DatabaseContextProvider
 import org.neo4j.exceptions.InvalidSemanticsException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.internal.kernel.api.security.AdminActionOnResource
 import org.neo4j.internal.kernel.api.security.AuthSubject
 import org.neo4j.internal.kernel.api.security.PermissionState
@@ -208,14 +210,24 @@ class TerminateTransactionsCommandTest extends ShowCommandTestBase {
     // Then
     the[InvalidSemanticsException] thrownBy {
       TerminateTransactionsCommand(emptyList, columns, List.empty).originalNameRows(queryState, initialCypherRow)
-    } should have message
-      "Missing transaction id to terminate, the transaction id can be found using `SHOW TRANSACTIONS`."
+    } should (
+      have message
+        "Missing transaction id to terminate, the transaction id can be found using `SHOW TRANSACTIONS`."
+        and be(gqlStatus(
+          GqlStatusInfoCodes.STATUS_22N06,
+          "error: data exception - required input missing. Invalid input. 'transaction id' needs to be specified."
+        ))
+    )
 
     // Then
     the[InvalidSemanticsException] thrownBy {
       TerminateTransactionsCommand(emptyExpression, columns, List.empty).originalNameRows(queryState, initialCypherRow)
-    } should have message
+    } should (have message
       "Missing transaction id to terminate, the transaction id can be found using `SHOW TRANSACTIONS`."
+      and be(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N06,
+        "error: data exception - required input missing. Invalid input. 'transaction id' needs to be specified."
+      )))
   }
 
   test("terminate transaction should give back correct result for non-existing transaction") {

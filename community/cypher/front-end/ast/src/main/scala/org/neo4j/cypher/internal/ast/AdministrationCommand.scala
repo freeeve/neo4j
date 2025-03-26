@@ -371,7 +371,15 @@ sealed trait UserAuth extends SemanticAnalysisTooling {
 
   protected def checkOldAndNewStyleCombination: SemanticCheck = newStyleAuth.filter(_.provider == NATIVE_AUTH) match {
     case Seq(_, _*) if oldStyleAuth.nonEmpty =>
+      val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N92)
+        .atPosition(
+          oldStyleAuth.head.position.offset,
+          oldStyleAuth.head.position.line,
+          oldStyleAuth.head.position.column
+        )
+        .build()
       error(
+        gql,
         "Cannot combine old and new auth syntax for the same auth provider.",
         oldStyleAuth.head.authAttributes.head.position
       )
@@ -395,7 +403,11 @@ final case class CreateUser(
   }
 
   private def checkAtLeastOneAuth: SemanticCheck = if (allAuths.isEmpty) {
-    error("No auth given for user.", position)
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N06)
+      .atPosition(position.offset, position.line, position.column)
+      .withParam(GqlParams.ListParam.inputList, List("Auth provider").asJava)
+      .build()
+    error(gql, "No auth given for user.", position)
   } else success
 
   override def semanticCheck: SemanticCheck = ifExistsDo match {
@@ -464,7 +476,10 @@ final case class AlterUser(
 
   private def checkAtLeastOneClause: SemanticCheck =
     if (userOptions.isEmpty && allAuths.isEmpty && removeAuth.isEmpty) {
-      error("`ALTER USER` requires at least one clause.", position)
+      val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N94)
+        .atPosition(position.offset, position.line, position.column)
+        .build()
+      error(gql, "`ALTER USER` requires at least one clause.", position)
     } else {
       success
     }
@@ -478,8 +493,22 @@ final case class AlterUser(
           e.isInstanceOf[StringLiteral] && e.asInstanceOf[StringLiteral].value.nonEmpty
         ) && list.expressions.nonEmpty =>
         success
-      case expr =>
-        error("Expected a non-empty String, non-empty List of non-empty Strings, or Parameter.", expr.position)
+      case expr: Expression =>
+        val stringifier = ExpressionStringifier()
+        val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N04)
+          .atPosition(expr.position.offset, expr.position.line, expr.position.column)
+          .withParam(GqlParams.StringParam.input, stringifier(expr))
+          .withParam(GqlParams.StringParam.context, "REMOVE AUTH")
+          .withParam(
+            GqlParams.ListParam.inputList,
+            List(
+              "non-empty String",
+              "non-empty List of non-empty Strings",
+              "Parameter"
+            ).asJava
+          )
+          .build()
+        error(gql, "Expected a non-empty String, non-empty List of non-empty Strings, or Parameter.", expr.position)
     }
 
   override def semanticCheck: SemanticCheck =
@@ -548,6 +577,7 @@ sealed trait AuthImpl extends ASTNode with SemanticAnalysisTooling {
   def checkProviderName: SemanticCheck = {
     if (provider.isEmpty) {
       val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
+        .atPosition(position.offset, position.line, position.column)
         .withParam(GqlParams.StringParam.item, "Auth provider")
         .build()
       error(gql, "Invalid input. Auth provider is not allowed to be an empty string.", position)
@@ -894,8 +924,15 @@ sealed abstract class PrivilegeCommand(
 
   private val FAILED_PROPERTY_RULE = "Failed to administer property rule."
 
-  private def nanError(l: NaN) =
-    error(s"$FAILED_PROPERTY_RULE `NaN` is not supported for property-based access control.", l.position)
+  private def nanError(l: NaN) = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA0)
+      .atPosition(l.position.offset, l.position.line, l.position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NA3)
+        .atPosition(l.position.offset, l.position.line, l.position.column)
+        .build())
+      .build()
+    error(gql, s"$FAILED_PROPERTY_RULE `NaN` is not supported for property-based access control.", l.position)
+  }
 
   private def propertyAlwaysNullError(
     gqlBuilder: String => ErrorGqlStatusObject,
@@ -1127,7 +1164,12 @@ sealed abstract class PrivilegeCommand(
       case _: LoadPrivilege =>
         qualifier match {
           case LoadUrlQualifier(_) :: _ =>
-            error("LOAD privileges with a URL pattern are not currently supported", position)
+            val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N31)
+              .atPosition(position.offset, position.line, position.column)
+              .withParam(GqlParams.StringParam.item, "URL pattern")
+              .withParam(GqlParams.StringParam.context, "LOAD privileges")
+              .build()
+            error(gql, "LOAD privileges with a URL pattern are not currently supported", position)
           case _ => super.semanticCheck chain SemanticState.recordCurrentScope(this)
         }
       case _ => showSettingFeatureCheck chain super.semanticCheck chain

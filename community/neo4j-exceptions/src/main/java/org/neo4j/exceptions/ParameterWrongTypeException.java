@@ -26,8 +26,10 @@ import static org.neo4j.gqlstatus.GqlHelper.getGql42N51;
 import java.util.List;
 import java.util.Locale;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class ParameterWrongTypeException extends Neo4jException {
@@ -115,7 +117,12 @@ public class ParameterWrongTypeException extends Neo4jException {
 
     public static ParameterWrongTypeException expectedParameterToBeString(
             String paramName, String input, String prettifiedInput) {
-        var gql = getGql22G03_22N27(prettifiedInput, GqlParams.StringParam.param.process(paramName), List.of("STRING"));
+        var cause =
+                getGql22G03_22N27(prettifiedInput, GqlParams.StringParam.param.process(paramName), List.of("STRING"));
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
+                .withParam(GqlParams.StringParam.param, paramName)
+                .withCause(cause)
+                .build();
         return new ParameterWrongTypeException(
                 gql, String.format("Expected parameter $%s to have type String but was %s", paramName, input));
     }
@@ -151,11 +158,28 @@ public class ParameterWrongTypeException extends Neo4jException {
         return new ParameterWrongTypeException(gql, String.format("Expected String, but got: %s", inputType));
     }
 
-    public static ParameterWrongTypeException wrongTypeExpectedString(
-            String key, String inputType, String prettifiedInput) {
+    public static ParameterWrongTypeException expectedString(String key, String inputType, String prettifiedInput) {
         var gql = getGql22G03_22N27(prettifiedInput, key, List.of("STRING"));
         return new ParameterWrongTypeException(
                 gql, String.format("Parameter '%s' has the wrong type, expected String, got %s.", key, inputType));
+    }
+
+    public static ParameterWrongTypeException expectedNonEmptyString(String key, String prettifiedInput) {
+        var gql = getGql22G03_22N27(prettifiedInput, key, List.of("non-empty String"));
+        return new ParameterWrongTypeException(
+                gql,
+                String.format(
+                        "Expected parameter `$%s` to only contain non-empty Strings but contained `%s`.",
+                        key, prettifiedInput));
+    }
+
+    public static ParameterWrongTypeException expectedNonEmptyStringOrStringList(String key, String prettifiedInput) {
+        var gql = getGql22G03_22N27(
+                prettifiedInput, key, List.of("non-empty String", "non-empty List of non-empty Strings"));
+        return new ParameterWrongTypeException(
+                gql,
+                "Expected parameter `$%s` to be a non-empty String or a non-empty List of non-empty Strings but was `%s`."
+                        .formatted(key, prettifiedInput));
     }
 
     public static ParameterWrongTypeException expectedPasswordToBeString(String passwordParameter, String type) {

@@ -140,7 +140,13 @@ sealed trait CreateIndex extends SchemaCommand {
         semanticCheckFold(properties) {
           property =>
             when(!property.map.isInstanceOf[Variable]) {
-              error("Cannot index nested properties", property.position)
+              // This is unreachable, the parser only produces variables for Property for CreateIndex/Constraint
+              val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N00)
+                .atPosition(property.position.offset, property.position.line, property.position.column)
+                .withParam(GqlParams.StringParam.msgTitle, "Syntax Exception")
+                .withParam(GqlParams.StringParam.msg, "Cannot index nested properties.")
+                .build()
+              error(gql, "Cannot index nested properties", property.position)
             }
         }
   }
@@ -549,7 +555,13 @@ sealed trait CreateConstraint extends SchemaCommand {
       semanticCheckFold(properties) {
         property =>
           when(!property.map.isInstanceOf[Variable]) {
-            error("Cannot index nested properties", property.position)
+            // This is unreachable, the parser only produces variables for Property for CreateIndex/Constraint
+            val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N00)
+              .atPosition(property.position.offset, property.position.line, property.position.column)
+              .withParam(GqlParams.StringParam.msgTitle, "Syntax Exception")
+              .withParam(GqlParams.StringParam.msg, "Cannot index nested properties.")
+              .build()
+            error(gql, "Cannot index nested properties", property.position)
           }
       }
 

@@ -22,8 +22,10 @@ package org.neo4j.cypher
 import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.kernel.impl.api.KernelTransactions
 import org.neo4j.test.DoubleLatch
 
@@ -860,6 +862,10 @@ class CommunityTransactionCommandAcceptanceTest extends TransactionCommandAccept
     exception.getMessage should startWith(
       "Missing transaction id to terminate, the transaction id can be found using `SHOW TRANSACTIONS`."
     )
+    exception should be(gqlStatus(
+      GqlStatusInfoCodes.STATUS_22N06,
+      "error: data exception - required input missing. Invalid input. 'transaction id' needs to be specified."
+    ))
   }
 
   test("Should terminate transaction when executing on system database") {
@@ -1244,6 +1250,10 @@ class CommunityTransactionCommandAcceptanceTest extends TransactionCommandAccept
       exception.getMessage should startWith(
         "`WHERE` is not allowed by itself, please use `TERMINATE TRANSACTION ... YIELD ... WHERE ...` instead"
       )
+      exception should be(gqlStatus(
+        GqlStatusInfoCodes.STATUS_42N84,
+        "error: syntax error or access rule violation - TERMINATE TRANSACTION misses YIELD clause. WHERE clause without YIELD clause. Use 'TERMINATE TRANSACTION ... YIELD ... WHERE ...'."
+      ))
 
       val res = execute(s"SHOW TRANSACTION '$txId'").toList
       res should have size 1
