@@ -89,7 +89,15 @@ abstract class PipeWithSource(source: Pipe) extends Pipe {
 
   protected def computeDecoratedResult(state: QueryState, decoratedState: QueryState): ClosingIterator[CypherRow] = {
     val sourceResult = source.createResults(state)
-    decorateResult(sourceResult, decoratedState, internalCreateResults(sourceResult, decoratedState))
+    val internalResult =
+      try {
+        internalCreateResults(sourceResult, decoratedState)
+      } catch {
+        case e: Throwable =>
+          decoratedState.decorator.afterCreateResults(this.id, decoratedState)
+          throw e
+      }
+    decorateResult(sourceResult, decoratedState, internalResult)
   }
 
   final def decorateResult(
