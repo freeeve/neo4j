@@ -37,10 +37,10 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.QUOTED_DISPLAY_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_USERNAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGET_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.URL_PROPERTY;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.USERNAME_PROPERTY;
 
 import java.time.Clock;
 import java.util.Map;
@@ -405,7 +405,7 @@ class CommunityTopologyGraphComponentTest {
             remoteAlias.setProperty(QUOTED_DISPLAY_NAME_PROPERTY, "remote");
             remoteAlias.setProperty(TARGET_NAME_PROPERTY, "target");
             remoteAlias.setProperty(URL_PROPERTY, "neo4j+s://remote-location");
-            remoteAlias.setProperty(USERNAME_PROPERTY, "remoteUser");
+            remoteAlias.setProperty(REMOTE_USERNAME_PROPERTY, "remoteUser");
 
             Node remoteConstituentAlias = tx.createNode(DATABASE_NAME_LABEL);
             remoteConstituentAlias.setProperty(NAME_PROPERTY, "composite.remote");
@@ -415,7 +415,7 @@ class CommunityTopologyGraphComponentTest {
             remoteConstituentAlias.setProperty(QUOTED_DISPLAY_NAME_PROPERTY, "composite.remote");
             remoteAlias.setProperty(TARGET_NAME_PROPERTY, "target");
             remoteAlias.setProperty(URL_PROPERTY, "neo4j+s://remote-location");
-            remoteAlias.setProperty(USERNAME_PROPERTY, "remoteUser");
+            remoteAlias.setProperty(REMOTE_USERNAME_PROPERTY, "remoteUser");
 
             // Remove any defaultLanguage to get old behaviour
             try (ResourceIterator<Node> nodes =

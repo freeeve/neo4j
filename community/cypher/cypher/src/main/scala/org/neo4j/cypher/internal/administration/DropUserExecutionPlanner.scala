@@ -19,17 +19,17 @@
  */
 package org.neo4j.cypher.internal.administration
 
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.authRelType
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.runtimeStringValue
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.procs.ParameterTransformer
 import org.neo4j.cypher.internal.procs.QueryHandler
 import org.neo4j.cypher.internal.procs.UpdatingSystemCommandExecutionPlan
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.HAS_AUTH
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
@@ -48,10 +48,10 @@ case class DropUserExecutionPlanner(
       "DropUser",
       normalExecutionEngine,
       securityAuthorizationHandler,
-      s"""MATCH (user:$userLabel {$userNamePropKey: $$`${userNameFields.nameKey}`})
+      s"""MATCH (user:$USER {$USER_NAME_PROPERTY: $$`${userNameFields.nameKey}`})
          |CALL {
          |  WITH user
-         |  OPTIONAL MATCH (user)-[:$authRelType]->(auth)
+         |  OPTIONAL MATCH (user)-[:$HAS_AUTH]->(auth)
          |  DETACH DELETE auth
          |}
          |DETACH DELETE user

@@ -34,6 +34,14 @@ import static org.neo4j.dbms.database.ComponentVersion.MULTI_DATABASE_COMPONENT;
 import static org.neo4j.dbms.database.ComponentVersion.SECURITY_USER_COMPONENT;
 import static org.neo4j.dbms.database.SystemGraphComponent.Status.CURRENT;
 import static org.neo4j.dbms.database.SystemGraphComponent.Status.REQUIRES_UPGRADE;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_CONSTRAINT;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_PROVIDER_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.HAS_AUTH_TYPE;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY;
 import static org.neo4j.graphdb.Direction.OUTGOING;
 import static org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo.EMBEDDED_CONNECTION;
 import static org.neo4j.server.security.auth.SecurityTestUtils.credentialFor;
@@ -42,13 +50,6 @@ import static org.neo4j.server.security.systemgraph.UserSecurityGraphComponentVe
 import static org.neo4j.server.security.systemgraph.UserSecurityGraphComponentVersion.COMMUNITY_SECURITY_50;
 import static org.neo4j.server.security.systemgraph.UserSecurityGraphComponentVersion.COMMUNITY_SECURITY_521;
 import static org.neo4j.server.security.systemgraph.UserSecurityGraphComponentVersion.FIRST_VALID_COMMUNITY_SECURITY_COMPONENT_VERSION;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_CONSTRAINT;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_ID;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_LABEL;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_PROVIDER;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.HAS_AUTH;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_ID;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_LABEL;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -237,7 +238,7 @@ class UserSecurityGraphComponentIT {
             Iterable<ConstraintDefinition> constraints = tx.schema().getConstraints(USER_LABEL);
             for (ConstraintDefinition constraint : constraints) {
                 for (String property : constraint.getPropertyKeys()) {
-                    assertThat(property).isIn("name");
+                    assertThat(property).isIn(USER_NAME_PROPERTY);
                 }
             }
             tx.commit();
@@ -251,7 +252,7 @@ class UserSecurityGraphComponentIT {
             Iterable<ConstraintDefinition> constraints = tx.schema().getConstraints(USER_LABEL);
             for (ConstraintDefinition constraint : constraints) {
                 for (String property : constraint.getPropertyKeys()) {
-                    assertThat(property).isIn("name", USER_ID);
+                    assertThat(property).isIn(USER_NAME_PROPERTY, USER_ID_PROPERTY);
                 }
             }
             tx.commit();
@@ -330,7 +331,8 @@ class UserSecurityGraphComponentIT {
                     tx.schema().getConstraints(AUTH_LABEL).iterator();
             assertThat(constraints).hasNext();
             ConstraintDefinition constraint = constraints.next();
-            assertThatIterable(constraint.getPropertyKeys()).containsExactlyInAnyOrder(AUTH_ID, AUTH_PROVIDER);
+            assertThatIterable(constraint.getPropertyKeys())
+                    .containsExactlyInAnyOrder(AUTH_ID_PROPERTY, AUTH_PROVIDER_PROPERTY);
             assertThat(constraints).isExhausted();
             tx.commit();
         }
@@ -348,15 +350,15 @@ class UserSecurityGraphComponentIT {
         // Then
         try (Transaction tx = system.beginTransaction(KernelTransaction.Type.EXPLICIT, LoginContext.AUTH_DISABLED)) {
             // Has user with id and linked native auth node with the same id
-            Node user = tx.findNode(USER_LABEL, "name", "neo4j");
-            var userId = user.getProperty(USER_ID, null);
+            Node user = tx.findNode(USER_LABEL, USER_NAME_PROPERTY, "neo4j");
+            var userId = user.getProperty(USER_ID_PROPERTY, null);
             assertThat(userId).isNotNull();
 
-            Relationship authRel = user.getSingleRelationship(HAS_AUTH, OUTGOING);
+            Relationship authRel = user.getSingleRelationship(HAS_AUTH_TYPE, OUTGOING);
             assertThat(authRel).isNotNull();
             Node authNode = authRel.getEndNode();
-            var provider = authNode.getProperty(AUTH_PROVIDER);
-            var authId = authNode.getProperty(AUTH_ID, 0);
+            var provider = authNode.getProperty(AUTH_PROVIDER_PROPERTY);
+            var authId = authNode.getProperty(AUTH_ID_PROPERTY, 0);
 
             assertThat(provider).isEqualTo(NATIVE_AUTH);
             assertThat(authId).isEqualTo(userId);
@@ -366,7 +368,7 @@ class UserSecurityGraphComponentIT {
             Iterable<ConstraintDefinition> constraints = tx.schema().getConstraints(USER_LABEL);
             for (ConstraintDefinition constraint : constraints) {
                 for (String property : constraint.getPropertyKeys()) {
-                    assertThat(property).isIn("name", USER_ID);
+                    assertThat(property).isIn(USER_NAME_PROPERTY, USER_ID_PROPERTY);
                 }
             }
 
@@ -376,7 +378,8 @@ class UserSecurityGraphComponentIT {
             assertThat(authConstraint).hasNext();
             ConstraintDefinition constraint = authConstraint.next();
             assertThat(constraint.getName()).isEqualTo(AUTH_CONSTRAINT);
-            assertThatIterable(constraint.getPropertyKeys()).containsExactlyInAnyOrder(AUTH_ID, AUTH_PROVIDER);
+            assertThatIterable(constraint.getPropertyKeys())
+                    .containsExactlyInAnyOrder(AUTH_ID_PROPERTY, AUTH_PROVIDER_PROPERTY);
             assertThat(authConstraint).isExhausted();
             tx.commit();
         }
@@ -465,13 +468,13 @@ class UserSecurityGraphComponentIT {
 
     private boolean hasSingleNativeAuthWithUserId(String username) {
         try (Transaction tx = system.beginTransaction(KernelTransaction.Type.EXPLICIT, LoginContext.AUTH_DISABLED)) {
-            Node user = tx.findNode(USER_LABEL, "name", username);
-            Relationship authRel = user.getSingleRelationship(HAS_AUTH, OUTGOING);
+            Node user = tx.findNode(USER_LABEL, USER_NAME_PROPERTY, username);
+            Relationship authRel = user.getSingleRelationship(HAS_AUTH_TYPE, OUTGOING);
             if (authRel != null) {
                 Node authNode = authRel.getEndNode();
-                if (NATIVE_AUTH.equals(authNode.getProperty(AUTH_PROVIDER))) {
-                    var userId = user.getProperty(USER_ID, -1);
-                    return userId.equals(authNode.getProperty(AUTH_ID, 0));
+                if (NATIVE_AUTH.equals(authNode.getProperty(AUTH_PROVIDER_PROPERTY))) {
+                    var userId = user.getProperty(USER_ID_PROPERTY, -1);
+                    return userId.equals(authNode.getProperty(AUTH_ID_PROPERTY, 0));
                 }
             }
         }
@@ -489,7 +492,7 @@ class UserSecurityGraphComponentIT {
         // initialize schema and then upgrade to version
         inTx(tx -> tx.schema()
                 .constraintFor(USER_LABEL)
-                .assertPropertyIsUnique("name")
+                .assertPropertyIsUnique(USER_NAME_PROPERTY)
                 .create());
         inTx(tx -> builder.upgradeSecurityGraphSchema(tx, FIRST_VALID_COMMUNITY_SECURITY_COMPONENT_VERSION));
 

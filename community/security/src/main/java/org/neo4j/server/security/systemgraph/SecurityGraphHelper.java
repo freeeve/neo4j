@@ -19,11 +19,11 @@
  */
 package org.neo4j.server.security.systemgraph;
 
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_CREDENTIALS;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_EXPIRED;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_ID;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_LABEL;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_NAME;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_EXPIRED_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY;
 
 import java.util.Collections;
 import java.util.Set;
@@ -66,7 +66,7 @@ public class SecurityGraphHelper {
     public User getUserByName(String username) {
         securityLog.debug(String.format("Looking up user '%s'", username));
         try (var tx = systemSupplier.get().beginTx()) {
-            Node userNode = tx.findNode(USER_LABEL, USER_NAME, username);
+            Node userNode = tx.findNode(USER_LABEL, USER_NAME_PROPERTY, username);
             if (userNode == null) {
                 securityLog.debug(String.format("User '%s' not found", username));
                 return null;
@@ -92,7 +92,7 @@ public class SecurityGraphHelper {
             return null;
         }
         try (var tx = systemSupplier.get().beginTx()) {
-            Node userNode = tx.findNode(USER_LABEL, USER_ID, uuid);
+            Node userNode = tx.findNode(USER_LABEL, USER_ID_PROPERTY, uuid);
             if (userNode == null) {
                 securityLog.debug(String.format("User with id '%s' not found", uuid));
                 return null;
@@ -106,11 +106,11 @@ public class SecurityGraphHelper {
     }
 
     protected User getUser(Node userNode) {
-        var userId = (String) userNode.getProperty(USER_ID);
-        String username = (String) userNode.getProperty(USER_NAME);
-        boolean requirePasswordChange = (boolean) userNode.getProperty(USER_EXPIRED, false);
+        var userId = (String) userNode.getProperty(USER_ID_PROPERTY);
+        String username = (String) userNode.getProperty(USER_NAME_PROPERTY);
+        boolean requirePasswordChange = (boolean) userNode.getProperty(USER_CREDENTIALS_EXPIRED_PROPERTY, false);
         Credential credential = null;
-        var maybeCredentials = userNode.getProperty(USER_CREDENTIALS, null);
+        var maybeCredentials = userNode.getProperty(USER_CREDENTIALS_PROPERTY, null);
         if (maybeCredentials instanceof String rawCredentials) {
             try {
                 credential = SystemGraphCredential.deserialize(rawCredentials, secureHasher);

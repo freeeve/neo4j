@@ -19,6 +19,10 @@
  */
 package org.neo4j.server.security.systemgraph.versions;
 
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_CONSTRAINT;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_PROVIDER_PROPERTY;
 import static org.neo4j.server.security.systemgraph.UserSecurityGraphComponentVersion.COMMUNITY_SECURITY_521;
 
 import org.neo4j.graphdb.ConstraintViolationException;
@@ -58,8 +62,8 @@ public class CommunitySecurityComponentVersion_5_521 extends SupportedCommunityS
             try {
                 tx.schema()
                         .constraintFor(AUTH_LABEL)
-                        .assertPropertyIsUnique(AUTH_ID)
-                        .assertPropertyIsUnique(AUTH_PROVIDER)
+                        .assertPropertyIsUnique(AUTH_ID_PROPERTY)
+                        .assertPropertyIsUnique(AUTH_PROVIDER_PROPERTY)
                         .withName(AUTH_CONSTRAINT)
                         .create();
             } catch (ConstraintViolationException e) {

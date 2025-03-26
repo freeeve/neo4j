@@ -80,10 +80,11 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.InstanceStatus.E
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.LATEST_SUPPORTED_COMPONENT_VERSIONS_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PASSWORD_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTIES_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_PASSWORD_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_USERNAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOVED_INSTANCE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.SUPPORTED_COMPONENT_VERSIONS_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS_RELATIONSHIP;
@@ -94,7 +95,6 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TOPOLOGY_GRAPH_C
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TOPOLOGY_GRAPH_CONFIG_DEFAULT_NUMBER_OF_SECONDARIES_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TOPOLOGY_GRAPH_CONFIG_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.URL_PROPERTY;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.USERNAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.VERSION_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.WAS_HOSTED_ON_RELATIONSHIP;
 import static org.neo4j.values.storable.DurationValue.duration;
@@ -550,8 +550,8 @@ public abstract class BaseTopologyGraphDbmsModelIT {
                 String.format("%s://%s", uri.getScheme(), uri.getAddresses().get(0));
         referenceNode.setProperty(URL_PROPERTY, uriString);
         referenceNode.setProperty(VERSION_PROPERTY, uuid.toString());
-        referenceNode.setProperty(USERNAME_PROPERTY, "username");
-        referenceNode.setProperty(PASSWORD_PROPERTY, "password".getBytes());
+        referenceNode.setProperty(REMOTE_USERNAME_PROPERTY, "username");
+        referenceNode.setProperty(REMOTE_PASSWORD_PROPERTY, "password".getBytes());
         referenceNode.setProperty(IV_PROPERTY, "i_vector".getBytes());
         referenceNode.setProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, version.persistedValue);
         return referenceNode;

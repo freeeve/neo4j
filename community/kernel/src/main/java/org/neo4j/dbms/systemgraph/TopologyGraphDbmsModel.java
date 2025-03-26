@@ -212,8 +212,8 @@ public interface TopologyGraphDbmsModel {
     String REMOTE_DATABASE = REMOTE_DATABASE_LABEL.name();
     String REMOTE_DATABASE_LABEL_DESCRIPTION = "Remote Database alias";
     String URL_PROPERTY = "url";
-    String USERNAME_PROPERTY = "username";
-    String PASSWORD_PROPERTY = "password";
+    String REMOTE_USERNAME_PROPERTY = "username";
+    String REMOTE_PASSWORD_PROPERTY = "password";
     String IV_PROPERTY = "iv"; // Initialization Vector for AES encryption
     Label DRIVER_SETTINGS_LABEL = Label.label("DriverSettings");
     String DRIVER_SETTINGS = DRIVER_SETTINGS_LABEL.name();

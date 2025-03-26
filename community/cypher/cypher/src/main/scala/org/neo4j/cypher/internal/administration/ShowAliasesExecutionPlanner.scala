@@ -53,8 +53,8 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTIES
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.QUOTED_DISPLAY_NAME_PROPERTY
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_USERNAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.URL_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.USERNAME_PROPERTY
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.internal.kernel.api.security.SecurityContext
 import org.neo4j.kernel.database.DatabaseReference
@@ -109,7 +109,7 @@ case class ShowAliasesExecutionPlanner(
          |alias.database as database,
          |alias.location as location,
          |aliasNode.$URL_PROPERTY as url,
-         |aliasNode.$USERNAME_PROPERTY as user
+         |aliasNode.$REMOTE_USERNAME_PROPERTY as user
          |$verboseColumns
          |$returnStatement
          |""".stripMargin

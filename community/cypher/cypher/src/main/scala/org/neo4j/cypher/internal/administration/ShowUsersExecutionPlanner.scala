@@ -19,13 +19,7 @@
  */
 package org.neo4j.cypher.internal.administration
 
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.authIdPropKey
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.authProviderPropKey
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.authRelType
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userPwChangeReqPropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
 import org.neo4j.cypher.internal.ExecutionEngine
@@ -36,6 +30,12 @@ import org.neo4j.cypher.internal.ast.Yield
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.procs.ParameterTransformer
 import org.neo4j.cypher.internal.procs.SystemCommandExecutionPlan
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_PROVIDER_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.HAS_AUTH
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_EXPIRED_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.server.security.systemgraph.SecurityGraphHelper.NATIVE_AUTH
 import org.neo4j.values.storable.Values
@@ -63,9 +63,9 @@ case class ShowUsersExecutionPlanner(
       "ShowUsers",
       normalExecutionEngine,
       securityAuthorizationHandler,
-      s"""MATCH (u:$userLabel)
+      s"""MATCH (u:$USER)
          |$authMatch
-         |WITH u.$userNamePropKey as user, null as roles, u.$userPwChangeReqPropKey AS passwordChangeRequired, null as suspended, null as home
+         |WITH u.$USER_NAME_PROPERTY as user, null as roles, u.$USER_CREDENTIALS_EXPIRED_PROPERTY AS passwordChangeRequired, null as suspended, null as home
          |$authColumns
          |${AdministrationShowCommandUtils.generateReturnClause(symbols, yields, returns, Seq("user"))}
          |""".stripMargin,
@@ -86,8 +86,8 @@ case class ShowUsersExecutionPlanner(
       "ShowCurrentUser",
       normalExecutionEngine,
       securityAuthorizationHandler,
-      s"""MATCH (u:$userLabel)
-         |WITH u.$userNamePropKey as user, null as roles, u.$userPwChangeReqPropKey AS passwordChangeRequired, null as suspended, null as home
+      s"""MATCH (u:$USER)
+         |WITH u.$USER_NAME_PROPERTY as user, null as roles, u.$USER_CREDENTIALS_EXPIRED_PROPERTY AS passwordChangeRequired, null as suspended, null as home
          |WHERE user = $$`$currentUserKey`
          |${AdministrationShowCommandUtils.generateReturnClause(symbols, yields, returns, Seq("user"))}
          |""".stripMargin,
@@ -113,26 +113,26 @@ object ShowUsersExecutionPlanner {
   def getAuthCypher(userVariable: String): (String, String) = {
     val authProviderExpression =
       s"""CASE
-         | WHEN auth.$authProviderPropKey IS NULL THEN
+         | WHEN auth.$AUTH_PROVIDER_PROPERTY IS NULL THEN
          |  CASE
-         |   WHEN $userVariable.$userPwChangeReqPropKey IS NULL THEN null
+         |   WHEN $userVariable.$USER_CREDENTIALS_EXPIRED_PROPERTY IS NULL THEN null
          |   ELSE '$NATIVE_AUTH'
          |  END
-         | ELSE auth.$authProviderPropKey
+         | ELSE auth.$AUTH_PROVIDER_PROPERTY
          |END""".stripMargin
     val authExpression =
       s"""CASE
-         | WHEN auth.$authProviderPropKey IS NULL THEN
+         | WHEN auth.$AUTH_PROVIDER_PROPERTY IS NULL THEN
          |  CASE
-         |   WHEN $userVariable.$userPwChangeReqPropKey IS NULL THEN null
-         |   ELSE {password: '***', changeRequired: $userVariable.$userPwChangeReqPropKey}
+         |   WHEN $userVariable.$USER_CREDENTIALS_EXPIRED_PROPERTY IS NULL THEN null
+         |   ELSE {password: '***', changeRequired: $userVariable.$USER_CREDENTIALS_EXPIRED_PROPERTY}
          |  END
-         | WHEN auth.$authProviderPropKey = '$NATIVE_AUTH' THEN {password: '***', changeRequired: $userVariable.$userPwChangeReqPropKey}
-         | ELSE {id: auth.$authIdPropKey}
+         | WHEN auth.$AUTH_PROVIDER_PROPERTY = '$NATIVE_AUTH' THEN {password: '***', changeRequired: $userVariable.$USER_CREDENTIALS_EXPIRED_PROPERTY}
+         | ELSE {id: auth.$AUTH_ID_PROPERTY}
          |END""".stripMargin
 
     (
-      s"""OPTIONAL MATCH ($userVariable)-[:$authRelType]->(auth)
+      s"""OPTIONAL MATCH ($userVariable)-[:$HAS_AUTH]->(auth)
          |WITH *, $authProviderExpression AS provider, $authExpression AS auth""".stripMargin,
       ", provider, auth"
     )

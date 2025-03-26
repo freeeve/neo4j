@@ -20,15 +20,17 @@
 package org.neo4j.storemigration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_PROVIDER_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 import static org.neo4j.graphdb.schema.IndexType.LOOKUP;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_ID;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_LABEL;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_PROVIDER;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_LABEL;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -132,17 +134,17 @@ public class DatabaseMigrationCommunityIT extends DatabaseMigrationITBase {
                     Iterables.asList(tx.schema().getConstraints());
             verifyHasUniqueConstraint(constraints, DATABASE_NAME_LABEL, NAME_PROPERTY, NAMESPACE_PROPERTY);
             verifyHasUniqueConstraint(constraints, DATABASE_LABEL, NAME_PROPERTY);
-            verifyHasUniqueConstraint(constraints, USER_LABEL, "id");
-            verifyHasUniqueConstraint(constraints, USER_LABEL, "name");
-            verifyHasUniqueConstraint(constraints, AUTH_LABEL, AUTH_ID, AUTH_PROVIDER);
+            verifyHasUniqueConstraint(constraints, USER_LABEL, USER_ID_PROPERTY);
+            verifyHasUniqueConstraint(constraints, USER_LABEL, USER_NAME_PROPERTY);
+            verifyHasUniqueConstraint(constraints, AUTH_LABEL, AUTH_ID_PROPERTY, AUTH_PROVIDER_PROPERTY);
             assertThat(constraints).hasSize(5);
 
             List<IndexDefinition> indexes = Iterables.asList(tx.schema().getIndexes());
             verifyHasIndex(indexes, DATABASE_NAME_LABEL, NAME_PROPERTY, NAMESPACE_PROPERTY);
             verifyHasIndex(indexes, DATABASE_LABEL, NAME_PROPERTY);
-            verifyHasIndex(indexes, USER_LABEL, "id");
-            verifyHasIndex(indexes, USER_LABEL, "name");
-            verifyHasIndex(indexes, AUTH_LABEL, AUTH_ID, AUTH_PROVIDER);
+            verifyHasIndex(indexes, USER_LABEL, USER_ID_PROPERTY);
+            verifyHasIndex(indexes, USER_LABEL, USER_NAME_PROPERTY);
+            verifyHasIndex(indexes, AUTH_LABEL, AUTH_ID_PROPERTY, AUTH_PROVIDER_PROPERTY);
 
             assertThat(indexes).anySatisfy(indexDefinition -> {
                 assertThat(indexDefinition.getIndexType()).isEqualTo(LOOKUP);

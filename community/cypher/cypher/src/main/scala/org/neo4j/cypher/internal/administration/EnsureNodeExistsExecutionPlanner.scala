@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.Show.showString
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.checkNamespaceExists
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getNameFields
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
@@ -38,6 +37,10 @@ import org.neo4j.cypher.internal.procs.ParameterTransformer
 import org.neo4j.cypher.internal.procs.QueryHandler
 import org.neo4j.cypher.internal.procs.ThrowException
 import org.neo4j.cypher.internal.procs.UpdatingSystemCommandExecutionPlan
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.ROLE
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.ROLE_NAME_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL_DESCRIPTION
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
@@ -46,8 +49,6 @@ import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.ROLE_LABEL
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_LABEL
 import org.neo4j.values.virtual.VirtualValues
 
 case class EnsureNodeExistsExecutionPlanner(
@@ -66,8 +67,8 @@ case class EnsureNodeExistsExecutionPlanner(
     sourcePlan: Option[ExecutionPlan]
   ): ExecutionPlan = {
     val (label, namePropKey, gqlEntity) = entity match {
-      case UserEntity => (USER_LABEL.name(), userNamePropKey, PrivilegeGqlCodeEntity.USER)
-      case RoleEntity => (ROLE_LABEL.name(), "name", PrivilegeGqlCodeEntity.ROLE)
+      case UserEntity => (USER, USER_NAME_PROPERTY, PrivilegeGqlCodeEntity.USER)
+      case RoleEntity => (ROLE, ROLE_NAME_PROPERTY, PrivilegeGqlCodeEntity.ROLE)
     }
     val nameFields = getNameFields("name", name, valueMapper = valueMapper)
     UpdatingSystemCommandExecutionPlan(

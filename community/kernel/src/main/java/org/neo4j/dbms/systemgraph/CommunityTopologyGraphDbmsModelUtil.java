@@ -190,12 +190,12 @@ public final class CommunityTopologyGraphDbmsModelUtil {
             var username = getPropertyOnNode(
                     TopologyGraphDbmsModel.REMOTE_DATABASE,
                     aliasNode,
-                    TopologyGraphDbmsModel.USERNAME_PROPERTY,
+                    TopologyGraphDbmsModel.REMOTE_USERNAME_PROPERTY,
                     String.class);
             var password = getPropertyOnNode(
                     TopologyGraphDbmsModel.REMOTE_DATABASE,
                     aliasNode,
-                    TopologyGraphDbmsModel.PASSWORD_PROPERTY,
+                    TopologyGraphDbmsModel.REMOTE_PASSWORD_PROPERTY,
                     byte[].class);
             var iv = getPropertyOnNode(
                     TopologyGraphDbmsModel.REMOTE_DATABASE,

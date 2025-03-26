@@ -21,12 +21,13 @@ package org.neo4j.server.security.systemgraph;
 
 import static org.neo4j.dbms.database.ComponentVersion.SECURITY_USER_COMPONENT;
 import static org.neo4j.dbms.database.KnownSystemComponentVersion.UNKNOWN_VERSION;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_CONSTRAINT;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_ID;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_LABEL;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_PROVIDER;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_ID;
-import static org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_CONSTRAINT;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_PROVIDER_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY;
 
 import java.util.Optional;
 import org.neo4j.configuration.Config;
@@ -117,9 +118,10 @@ public class UserSecurityGraphComponent extends AbstractSystemGraphComponent
 
     @Override
     public void initializeSystemGraphSchema(GraphDatabaseService system) throws Exception {
-        initializeSystemGraphConstraint(system, USER_LABEL, "name");
-        initializeSystemGraphConstraint(system, USER_LABEL, USER_ID);
-        initializeSystemGraphConstraint(system, Optional.of(AUTH_CONSTRAINT), AUTH_LABEL, AUTH_PROVIDER, AUTH_ID);
+        initializeSystemGraphConstraint(system, USER_LABEL, USER_NAME_PROPERTY);
+        initializeSystemGraphConstraint(system, USER_LABEL, USER_ID_PROPERTY);
+        initializeSystemGraphConstraint(
+                system, Optional.of(AUTH_CONSTRAINT), AUTH_LABEL, AUTH_PROVIDER_PROPERTY, AUTH_ID_PROPERTY);
     }
 
     private void initializeLatestSystemGraph(Transaction tx) throws Exception {

@@ -19,6 +19,8 @@
  */
 package org.neo4j.server.security.systemgraph.versions;
 
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_LABEL;
 import static org.neo4j.server.security.systemgraph.UserSecurityGraphComponentVersion.COMMUNITY_SECURITY_50;
 
 import org.neo4j.graphdb.ConstraintViolationException;
@@ -57,7 +59,7 @@ public class CommunitySecurityComponentVersion_4_50 extends SupportedCommunitySe
             try {
                 tx.schema()
                         .constraintFor(USER_LABEL)
-                        .assertPropertyIsUnique(USER_ID)
+                        .assertPropertyIsUnique(USER_ID_PROPERTY)
                         .create();
             } catch (ConstraintViolationException e) {
                 // Makes the creation of constraints for security idempotent

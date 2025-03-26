@@ -24,7 +24,6 @@ import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.makeRenameExecutionPlan
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.runtimeStringValue
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.administration.AlterUserExecutionPlanner
 import org.neo4j.cypher.internal.administration.CommunityAlterDatabaseExecutionPlanner
 import org.neo4j.cypher.internal.administration.CreateUserExecutionPlanner
@@ -78,6 +77,7 @@ import org.neo4j.cypher.internal.procs.SystemCommandExecutionPlan
 import org.neo4j.cypher.internal.procs.ThrowException
 import org.neo4j.cypher.internal.procs.UpdatingSystemCommandExecutionPlan
 import org.neo4j.cypher.rendering.QueryRenderer
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
 import org.neo4j.exceptions.CantCompileQueryException
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
@@ -302,7 +302,7 @@ case class CommunityAdministrationCommandRuntime(
           Some(fullLogicalToExecutable.applyOrElse(source, throwCantCompile).apply(context))
         makeRenameExecutionPlan(
           PrivilegeGqlCodeEntity.USER,
-          userNamePropKey,
+          USER_NAME_PROPERTY,
           fromUserName,
           toUserName,
           params => {

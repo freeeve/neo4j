@@ -25,8 +25,6 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.Show.showString
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.checkNamespaceExists
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getNameFields
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userNamePropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
@@ -39,6 +37,10 @@ import org.neo4j.cypher.internal.logical.plans.UserEntity
 import org.neo4j.cypher.internal.procs.ParameterTransformer
 import org.neo4j.cypher.internal.procs.QueryHandler
 import org.neo4j.cypher.internal.procs.UpdatingSystemCommandExecutionPlan
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.ROLE
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.ROLE_NAME_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
@@ -225,7 +227,7 @@ case class DoNothingExecutionPlanner(
   }
 
   private def getLabelAndNamePropKey(entity: RBACEntity): (String, String) = entity match {
-    case UserEntity => (userLabel, userNamePropKey)
-    case RoleEntity => ("Role", NAME_PROPERTY)
+    case UserEntity => (USER, USER_NAME_PROPERTY)
+    case RoleEntity => (ROLE, ROLE_NAME_PROPERTY)
   }
 }

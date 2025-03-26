@@ -19,6 +19,16 @@
  */
 package org.neo4j.server.security.systemgraph.versions;
 
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_PROVIDER_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.HAS_AUTH_TYPE;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_EXPIRED_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_ID_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_LABEL;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY;
+import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_SUSPENDED_PROPERTY;
 import static org.neo4j.kernel.api.security.AuthManager.INITIAL_PASSWORD;
 import static org.neo4j.kernel.api.security.AuthManager.INITIAL_USER_NAME;
 import static org.neo4j.server.security.systemgraph.SecurityGraphHelper.NATIVE_AUTH;
@@ -28,9 +38,7 @@ import java.util.UUID;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.ComponentVersion;
 import org.neo4j.dbms.database.KnownSystemComponentVersion;
-import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.helpers.collection.Iterators;
@@ -45,22 +53,6 @@ import org.neo4j.server.security.systemgraph.UserSecurityGraphComponentVersion;
 import org.neo4j.string.UTF8;
 
 public abstract class KnownCommunitySecurityComponentVersion extends KnownSystemComponentVersion {
-    public static final Label USER_LABEL = Label.label("User");
-    public static final String USER_ID = "id";
-    public static final String USER_NAME = "name";
-    public static final String USER_CREDENTIALS = "credentials";
-    public static final String USER_EXPIRED = "passwordChangeRequired";
-    public static final String USER_SUSPENDED = "suspended";
-    public static final String USER_HOME_DB = "homeDatabase";
-
-    public static final String AUTH_CONSTRAINT = "auth-constraint";
-    public static final Label AUTH_LABEL = Label.label("Auth");
-    public static final Label ROLE_LABEL = Label.label("Role");
-    public static final String AUTH_PROVIDER = "provider";
-    public static final String AUTH_ID = "id";
-
-    public static final RelationshipType HAS_AUTH = RelationshipType.withName("HAS_AUTH");
-
     private final SecureHasher secureHasher = new SecureHasher();
     private final AbstractSecurityLog securityLog;
 
@@ -85,11 +77,11 @@ public abstract class KnownCommunitySecurityComponentVersion extends KnownSystem
                 passwordChangeRequired ? "REQUIRED" : "NOT REQUIRED",
                 suspended ? " SET STATUS SUSPENDED" : ""));
         Node node = tx.createNode(USER_LABEL);
-        node.setProperty(USER_NAME, username);
-        node.setProperty(USER_CREDENTIALS, credentials.serialize());
-        node.setProperty(USER_EXPIRED, passwordChangeRequired);
-        node.setProperty(USER_SUSPENDED, suspended);
-        node.setProperty(USER_ID, UUID.randomUUID().toString());
+        node.setProperty(USER_NAME_PROPERTY, username);
+        node.setProperty(USER_CREDENTIALS_PROPERTY, credentials.serialize());
+        node.setProperty(USER_CREDENTIALS_EXPIRED_PROPERTY, passwordChangeRequired);
+        node.setProperty(USER_SUSPENDED_PROPERTY, suspended);
+        node.setProperty(USER_ID_PROPERTY, UUID.randomUUID().toString());
         if (version >= UserSecurityGraphComponentVersion.COMMUNITY_SECURITY_521.getVersion()) {
             addAuthObject(tx, node);
         }
@@ -106,15 +98,16 @@ public abstract class KnownCommunitySecurityComponentVersion extends KnownSystem
                     "Unable to update missing initial user password from `auth.ini` file: %s", initialUser.name()));
         } else if (users.size() == 1) {
             Node user = users.get(0);
-            if (user.getProperty(USER_NAME).equals(INITIAL_USER_NAME)) {
+            if (user.getProperty(USER_NAME_PROPERTY).equals(INITIAL_USER_NAME)) {
                 SystemGraphCredential currentCredentials = SystemGraphCredential.deserialize(
-                        user.getProperty(USER_CREDENTIALS).toString(), secureHasher);
+                        user.getProperty(USER_CREDENTIALS_PROPERTY).toString(), secureHasher);
                 if (currentCredentials.matchesPassword(UTF8.encode(INITIAL_PASSWORD))) {
                     debugLog.info(String.format(
                             "Updating initial user password from `auth.ini` file: %s", initialUser.name()));
                     user.setProperty(
-                            USER_CREDENTIALS, initialUser.credential().value().serialize());
-                    user.setProperty(USER_EXPIRED, initialUser.passwordChangeRequired());
+                            USER_CREDENTIALS_PROPERTY,
+                            initialUser.credential().value().serialize());
+                    user.setProperty(USER_CREDENTIALS_EXPIRED_PROPERTY, initialUser.passwordChangeRequired());
                 }
             }
         } else {
@@ -126,7 +119,7 @@ public abstract class KnownCommunitySecurityComponentVersion extends KnownSystem
         try (ResourceIterator<Node> nodes = tx.findNodes(USER_LABEL)) {
             while (nodes.hasNext()) {
                 Node user = nodes.next();
-                if (user.hasProperty(USER_CREDENTIALS) && !user.hasRelationship(HAS_AUTH)) {
+                if (user.hasProperty(USER_CREDENTIALS_PROPERTY) && !user.hasRelationship(HAS_AUTH_TYPE)) {
                     addAuthObject(tx, user);
                 }
             }
@@ -134,11 +127,11 @@ public abstract class KnownCommunitySecurityComponentVersion extends KnownSystem
     }
 
     private void addAuthObject(Transaction tx, Node user) {
-        String userId = (String) user.getProperty(USER_ID);
+        String userId = (String) user.getProperty(USER_ID_PROPERTY);
         Node authNode = tx.createNode(AUTH_LABEL);
-        authNode.setProperty(AUTH_PROVIDER, NATIVE_AUTH);
-        authNode.setProperty(AUTH_ID, userId);
-        user.createRelationshipTo(authNode, HAS_AUTH);
+        authNode.setProperty(AUTH_PROVIDER_PROPERTY, NATIVE_AUTH);
+        authNode.setProperty(AUTH_ID_PROPERTY, userId);
+        user.createRelationshipTo(authNode, HAS_AUTH_TYPE);
     }
 
     /**

@@ -23,6 +23,13 @@ import org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 import org.neo4j.configuration.GraphDatabaseSettings.auth_enabled
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_PROVIDER_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.HAS_AUTH_TYPE
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_EXPIRED_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_LABEL
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
 import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.exceptions.ParameterWrongTypeException
@@ -40,13 +47,6 @@ import org.neo4j.server.security.SecureHasher
 import org.neo4j.server.security.SystemGraphCredential
 import org.neo4j.server.security.auth.SecurityTestUtils
 import org.neo4j.server.security.systemgraph.SecurityGraphHelper.NATIVE_AUTH
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_ID
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_PROVIDER
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.HAS_AUTH
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_CREDENTIALS
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_EXPIRED
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_LABEL
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_NAME
 import org.scalatest.enablers.Messaging.messagingNatureOfThrowable
 
 import java.util
@@ -383,16 +383,16 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
       keepNativeAuth: Boolean = true
     ): Unit = {
       Using.resource(graphOps.beginTx()) { tx =>
-        val userNode = tx.findNode(USER_LABEL, USER_NAME, user)
+        val userNode = tx.findNode(USER_LABEL, USER_NAME_PROPERTY, user)
 
         if (!keepNativeAuth) {
           // remove native auth
-          userNode.removeProperty(USER_CREDENTIALS)
-          userNode.removeProperty(USER_EXPIRED)
+          userNode.removeProperty(USER_CREDENTIALS_PROPERTY)
+          userNode.removeProperty(USER_CREDENTIALS_EXPIRED_PROPERTY)
 
-          userNode.getRelationships(HAS_AUTH)
+          userNode.getRelationships(HAS_AUTH_TYPE)
             .stream()
-            .filter(rel => rel.getOtherNode(userNode).getProperty(AUTH_PROVIDER).equals(NATIVE_AUTH))
+            .filter(rel => rel.getOtherNode(userNode).getProperty(AUTH_PROVIDER_PROPERTY).equals(NATIVE_AUTH))
             .forEach(rel => {
               val node = rel.getOtherNode(userNode)
               rel.delete()
@@ -402,9 +402,9 @@ class CommunityUserAdministrationCommandAcceptanceTest extends CommunityAdminist
 
         externalAuths.foreach(auth => {
           val authNode = tx.createNode()
-          authNode.setProperty(AUTH_PROVIDER, auth("provider"))
-          authNode.setProperty(AUTH_ID, auth("id"))
-          userNode.createRelationshipTo(authNode, HAS_AUTH)
+          authNode.setProperty(AUTH_PROVIDER_PROPERTY, auth("provider"))
+          authNode.setProperty(AUTH_ID_PROPERTY, auth("id"))
+          userNode.createRelationshipTo(authNode, HAS_AUTH_TYPE)
         })
 
         tx.commit()

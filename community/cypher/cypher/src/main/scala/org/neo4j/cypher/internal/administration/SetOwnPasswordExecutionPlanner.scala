@@ -23,9 +23,6 @@ import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getPasswordExpression
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getValidPasswordParameter
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userCredPropKey
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userLabel
-import org.neo4j.cypher.internal.AdministrationCommandRuntime.userPwChangeReqPropKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.validateStringParameterType
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
@@ -38,6 +35,9 @@ import org.neo4j.cypher.internal.procs.NonTransactionalUpdatingSystemCommandExec
 import org.neo4j.cypher.internal.procs.ParameterTransformer
 import org.neo4j.cypher.internal.procs.QueryHandler
 import org.neo4j.cypher.internal.procs.ThrowException
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_EXPIRED_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_PROPERTY
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.DatabaseAdministrationOnFollowerException
 import org.neo4j.exceptions.InvalidArgumentException
@@ -72,10 +72,10 @@ case class SetOwnPasswordExecutionPlanner(
     val (currentKeyBytes, currentValueBytes, currentConverterBytes) = getPasswordFieldsCurrent(currentPassword)
     def currentUser(p: MapValue): String = p.get(usernameKey).asInstanceOf[TextValue].stringValue()
     val query =
-      s"""MATCH (user:$userLabel {name: $$`$usernameKey`})
-         |WITH user, user.$userCredPropKey AS oldCredentials
-         |SET user.$userCredPropKey = $$`${newPw.key}`
-         |SET user.$userPwChangeReqPropKey = false
+      s"""MATCH (user:$USER {name: $$`$usernameKey`})
+         |WITH user, user.$USER_CREDENTIALS_PROPERTY AS oldCredentials
+         |SET user.$USER_CREDENTIALS_PROPERTY = $$`${newPw.key}`
+         |SET user.$USER_CREDENTIALS_EXPIRED_PROPERTY = false
          |RETURN oldCredentials""".stripMargin
 
     NonTransactionalUpdatingSystemCommandExecutionPlan(

@@ -54,8 +54,22 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.dbms.api.DatabaseNotFoundHelper.compositeDatabaseNotFound
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_CONSTRAINT
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_ID_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.AUTH_PROVIDER_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.HAS_AUTH
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.ROLE
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_EXPIRED_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_HOME_DB_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_ID_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_NAME_PROPERTY
+import org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_SUSPENDED_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE_LABEL
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_DEFAULT_LANGUAGE_PROPERTY
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_LABEL
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
@@ -84,19 +98,6 @@ import org.neo4j.server.security.SecureHasher
 import org.neo4j.server.security.SystemGraphCredential
 import org.neo4j.server.security.systemgraph.SecurityGraphHelper.NATIVE_AUTH
 import org.neo4j.server.security.systemgraph.UserSecurityGraphComponent
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_CONSTRAINT
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_ID
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_LABEL
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.AUTH_PROVIDER
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.HAS_AUTH
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.ROLE_LABEL
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_CREDENTIALS
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_EXPIRED
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_HOME_DB
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_ID
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_LABEL
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_NAME
-import org.neo4j.server.security.systemgraph.versions.KnownCommunitySecurityComponentVersion.USER_SUSPENDED
 import org.neo4j.string.UTF8
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.BooleanValue
@@ -126,19 +127,6 @@ trait AdministrationCommandRuntime extends CypherRuntime[RuntimeContext] {
 }
 
 object AdministrationCommandRuntime {
-  private[internal] val userLabel: String = USER_LABEL.name()
-  private[internal] val userIdPropKey: String = USER_ID
-  private[internal] val userNamePropKey: String = USER_NAME
-  private[internal] val userCredPropKey: String = USER_CREDENTIALS
-  private[internal] val userPwChangeReqPropKey: String = USER_EXPIRED
-  private[internal] val userSuspendedPropKey: String = USER_SUSPENDED
-  private[internal] val userHomeDbPropKey: String = USER_HOME_DB
-  private[internal] val authRelType: String = HAS_AUTH.name()
-  private[internal] val authLabel: String = AUTH_LABEL.name()
-  private[internal] val authProviderPropKey: String = AUTH_PROVIDER
-  private[internal] val authIdPropKey: String = AUTH_ID
-
-  private[internal] val followerError = "Administration commands must be executed on the LEADER server."
   private val secureHasher = new SecureHasher
   private val internalPrefix: String = "__internal_"
 
@@ -295,10 +283,10 @@ object AdministrationCommandRuntime {
         getPasswordExpression(password, isEncrypted, nonPasswordParameterNames)(config)
     }
     val homeDatabaseCypher = homeDatabaseFields.map(ddf =>
-      s", $userHomeDbPropKey: $$`${ddf.displayNameKey}`"
+      s", $USER_HOME_DB_PROPERTY: $$`${ddf.displayNameKey}`"
     ).getOrElse("")
     val nativeAuthCypher = credentialsOption.map(credentials =>
-      s", $userCredPropKey: $$`${credentials.key}`, $userPwChangeReqPropKey: $$`$passwordChangeRequiredKey`"
+      s", $USER_CREDENTIALS_PROPERTY: $$`${credentials.key}`, $USER_CREDENTIALS_EXPIRED_PROPERTY: $$`$passwordChangeRequiredKey`"
     ).getOrElse("")
 
     def authMapGenerator: ParameterGenerationFunction = (_, _, params) => {
@@ -322,16 +310,16 @@ object AdministrationCommandRuntime {
       normalExecutionEngine,
       securityAuthorizationHandler,
       // NOTE: If username already exists we will violate a constraint
-      s"""CREATE (u:$userLabel {$userNamePropKey: $$`${userNameFields.nameKey}`, $userIdPropKey: $$`$uuidKey`, $userSuspendedPropKey: $$`$suspendedKey`
+      s"""CREATE (u:$USER {$USER_NAME_PROPERTY: $$`${userNameFields.nameKey}`, $USER_ID_PROPERTY: $$`$uuidKey`, $USER_SUSPENDED_PROPERTY: $$`$suspendedKey`
          |$nativeAuthCypher
          |$homeDatabaseCypher })
          |WITH u
          |CALL {
          |  WITH u
          |  UNWIND $$`$authKey` AS auth
-         |  CREATE (u)-[:$authRelType]->(:$authLabel {$authProviderPropKey: auth.provider, $authIdPropKey: auth.id})
+         |  CREATE (u)-[:$HAS_AUTH]->(:$AUTH {$AUTH_PROVIDER_PROPERTY: auth.provider, $AUTH_ID_PROPERTY: auth.id})
          |}
-         |RETURN u.$userNamePropKey""".stripMargin,
+         |RETURN u.$USER_NAME_PROPERTY""".stripMargin,
       VirtualValues.map(
         credentialsOption.map(credentials => Array(credentials.key, credentials.bytesKey)).getOrElse(
           Array.empty
@@ -426,10 +414,10 @@ object AdministrationCommandRuntime {
         getPasswordExpression(password, isEncrypted, nonPasswordParameterNames)(config)
     }
     val params = Seq(
-      maybePw -> userCredPropKey,
-      nativeAuth.flatMap(_.changeRequired) -> userPwChangeReqPropKey,
-      suspended -> userSuspendedPropKey,
-      homeDatabaseFields -> userHomeDbPropKey
+      maybePw -> USER_CREDENTIALS_PROPERTY,
+      nativeAuth.flatMap(_.changeRequired) -> USER_CREDENTIALS_EXPIRED_PROPERTY,
+      suspended -> USER_SUSPENDED_PROPERTY,
+      homeDatabaseFields -> USER_HOME_DB_PROPERTY
     ).flatMap { param =>
       param._1 match {
         case None                    => Seq.empty
@@ -502,10 +490,10 @@ object AdministrationCommandRuntime {
     val removeAuthString = {
       val authMatch =
         if (removeAuths.all)
-          s"OPTIONAL MATCH (user)-[:$authRelType]->(a:$authLabel)"
+          s"OPTIONAL MATCH (user)-[:$HAS_AUTH]->(a:$AUTH)"
         else
           s"""UNWIND $$`$removeAuthKey` AS auth
-             |  OPTIONAL MATCH (user)-[:$authRelType]->(a:$authLabel {$authProviderPropKey: auth})""".stripMargin
+             |  OPTIONAL MATCH (user)-[:$HAS_AUTH]->(a:$AUTH {$AUTH_PROVIDER_PROPERTY: auth})""".stripMargin
 
       s"""WITH user, oldCredentials
          |CALL {
@@ -513,9 +501,9 @@ object AdministrationCommandRuntime {
          |  WITH user,
          |  CASE
          |    WHEN $$`$removeNativeKey` THEN {credentials: null, change: null}
-         |    ELSE {credentials: user.$userCredPropKey, change: user.$userPwChangeReqPropKey}
+         |    ELSE {credentials: user.$USER_CREDENTIALS_PROPERTY, change: user.$USER_CREDENTIALS_EXPIRED_PROPERTY}
          |  END AS cMap
-         |  SET user.$userCredPropKey = cMap.credentials, user.$userPwChangeReqPropKey = cMap.change
+         |  SET user.$USER_CREDENTIALS_PROPERTY = cMap.credentials, user.$USER_CREDENTIALS_EXPIRED_PROPERTY = cMap.change
          |}
          |WITH user, oldCredentials
          |CALL {
@@ -527,17 +515,17 @@ object AdministrationCommandRuntime {
 
     val addNativeAuthString =
       if (nativeAuth.nonEmpty)
-        s"""MERGE (user)-[:$authRelType]->(:$authLabel {$authProviderPropKey: '$NATIVE_AUTH', $authIdPropKey: user.$userIdPropKey})
-           |SET user.$userPwChangeReqPropKey = coalesce(user.$userPwChangeReqPropKey, true)""".stripMargin
+        s"""MERGE (user)-[:$HAS_AUTH]->(:$AUTH {$AUTH_PROVIDER_PROPERTY: '$NATIVE_AUTH', $AUTH_ID_PROPERTY: user.$USER_ID_PROPERTY})
+           |SET user.$USER_CREDENTIALS_EXPIRED_PROPERTY = coalesce(user.$USER_CREDENTIALS_EXPIRED_PROPERTY, true)""".stripMargin
       else ""
 
     val nativeAuthValid =
       s"""
          |WITH user, oldCredentials
-         |OPTIONAL MATCH (user)-[:$authRelType]->(nativeAuth:$authLabel {$authProviderPropKey: '$NATIVE_AUTH'})
+         |OPTIONAL MATCH (user)-[:$HAS_AUTH]->(nativeAuth:$AUTH {$AUTH_PROVIDER_PROPERTY: '$NATIVE_AUTH'})
          |WITH user, oldCredentials,
          | CASE EXISTS { (nativeAuth) }
-         |  WHEN true THEN EXISTS { (user) WHERE user.$userCredPropKey IS NOT NULL AND user.$userPwChangeReqPropKey IS NOT NULL }
+         |  WHEN true THEN EXISTS { (user) WHERE user.$USER_CREDENTIALS_PROPERTY IS NOT NULL AND user.$USER_CREDENTIALS_EXPIRED_PROPERTY IS NOT NULL }
          |  ELSE true
          | END AS validNativeAuth
          |""".stripMargin
@@ -547,12 +535,12 @@ object AdministrationCommandRuntime {
          |CALL {
          |  WITH user
          |  UNWIND $$`$setAuthKey` AS auth
-         |  MERGE (user)-[:$authRelType]->(a:$authLabel {$authProviderPropKey: auth.provider}) SET a.$authIdPropKey = auth.id
+         |  MERGE (user)-[:$HAS_AUTH]->(a:$AUTH {$AUTH_PROVIDER_PROPERTY: auth.provider}) SET a.$AUTH_ID_PROPERTY = auth.id
          |}""".stripMargin
 
     val enforceAuthString =
       s"""CASE $$`$enforceAuthKey`
-         | WHEN true THEN EXISTS { (user)-[:$authRelType]->(:$authLabel) }
+         | WHEN true THEN EXISTS { (user)-[:$HAS_AUTH]->(:$AUTH) }
          | ELSE true
          |END AS authOk
          |""".stripMargin
@@ -568,14 +556,14 @@ object AdministrationCommandRuntime {
       "AlterUser",
       normalExecutionEngine,
       securityAuthorizationHandler,
-      s"""MATCH (user:$userLabel {$userNamePropKey: $$`${userNameFields.nameKey}`})
-         |WITH user, user.$userCredPropKey AS oldCredentials
+      s"""MATCH (user:$USER {$USER_NAME_PROPERTY: $$`${userNameFields.nameKey}`})
+         |WITH user, user.$USER_CREDENTIALS_PROPERTY AS oldCredentials
          |$removeAuthString
          |$setParts
          |$addNativeAuthString
          |$addAuthString
          |$nativeAuthValid
-         |RETURN EXISTS { (user:$userLabel {$userNamePropKey: $$`${userNameFields.nameKey}`}) } AS exists,
+         |RETURN EXISTS { (user:$USER {$USER_NAME_PROPERTY: $$`${userNameFields.nameKey}`}) } AS exists,
          |oldCredentials, $enforceAuthString, validNativeAuth """.stripMargin,
       VirtualValues.map(parameterKeys, parameterValues),
       QueryHandler
@@ -662,10 +650,10 @@ object AdministrationCommandRuntime {
     securityAuthorizationHandler: SecurityAuthorizationHandler
   ): ExecutionPlan = {
     val entity = entityType match {
-      case PrivilegeGqlCodeEntity.USER           => USER_LABEL.name()
-      case PrivilegeGqlCodeEntity.ROLE           => ROLE_LABEL.name()
-      case PrivilegeGqlCodeEntity.DATABASE       => DATABASE_NAME_LABEL.name()
-      case PrivilegeGqlCodeEntity.DATABASE_ALIAS => DATABASE_NAME_LABEL.name()
+      case PrivilegeGqlCodeEntity.USER           => USER
+      case PrivilegeGqlCodeEntity.ROLE           => ROLE
+      case PrivilegeGqlCodeEntity.DATABASE       => DATABASE_NAME
+      case PrivilegeGqlCodeEntity.DATABASE_ALIAS => DATABASE_NAME
     }
     val fromNameFields = getNameFields("fromName", fromName)
     val toNameFields = getNameFields("toName", toName)
@@ -704,12 +692,12 @@ object AdministrationCommandRuntime {
               )
             case (e: HasStatus, _) if e.status() == Status.Cluster.NotALeader =>
               DatabaseAdministrationOnFollowerException.notALeader(
-                s"RENAME ${entity.toString.toUpperCase(Locale.ROOT)}",
-                s"Failed to rename the specified ${entity.toString.toLowerCase(Locale.ROOT)} '${runtimeStringValue(fromName, p)}'",
+                s"RENAME ${entity.toUpperCase(Locale.ROOT)}",
+                s"Failed to rename the specified ${entity.toLowerCase(Locale.ROOT)} '${runtimeStringValue(fromName, p)}'",
                 error
               )
             case _ => CypherExecutionException.renameEntityCause(
-                entity.toString.toLowerCase(Locale.ROOT),
+                entity.toLowerCase(Locale.ROOT),
                 runtimeStringValue(fromName, p),
                 runtimeStringValue(toName, p),
                 error
