@@ -220,7 +220,10 @@ object StatementConverters {
 
         UnionQuery(lhs, rhs, distinct, unionQuery.unionMappings)
       case _ =>
-        throw new InternalException(s"Received an AST-clause that has no representation the QG: $query")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Received an AST-clause that has no representation the QG: $query"
+        )
     }
   }
 

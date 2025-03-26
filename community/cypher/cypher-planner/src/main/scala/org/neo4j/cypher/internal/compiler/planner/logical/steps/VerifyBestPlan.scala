@@ -82,7 +82,8 @@ object VerifyBestPlan {
             case _ => ""
           }
 
-        throw new InternalException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
           s"""$expectedTitle:
              |$expectedSolved
              |
@@ -111,7 +112,7 @@ object VerifyBestPlan {
                |
                |Plan $plan""".stripMargin
 
-          throw new HintException(message)
+          throw HintException.internalError(this.getClass.getSimpleName, message)
         }
 
         analyseHints(expected, constructed, context) match {

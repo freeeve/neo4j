@@ -189,7 +189,10 @@ object ClauseConverters extends LabelExpressionConversion {
     case _: UseGraph => acc
 
     case x: UnresolvedCall => throw new IllegalArgumentException(s"$x is not expected here")
-    case x => throw new InternalException(s"Received an AST-clause that has no representation the QG: $x")
+    case x => throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        s"Received an AST-clause that has no representation the QG: $x"
+      )
   }
 
   private def addLoadCSVToLogicalPlanInput(acc: PlannerQueryBuilder, clause: LoadCSV): PlannerQueryBuilder =
@@ -227,7 +230,10 @@ object ClauseConverters extends LabelExpressionConversion {
     val aggregationsMap = turnIntoMap(aggregatingItems)
 
     if (projectionMap.values.exists(containsAggregateOutsideOfAggregatingHorizon))
-      throw new InternalException("Grouping keys contains aggregation. AST has not been rewritten?")
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Grouping keys contains aggregation. AST has not been rewritten?"
+      )
 
     if (aggregationsMap.nonEmpty)
       AggregatingQueryProjection(
@@ -274,7 +280,10 @@ object ClauseConverters extends LabelExpressionConversion {
           .withInterestingOrder(requiredOrder)
           .withPropagatedTailInterestingOrder()
       case _ =>
-        throw new InternalException("AST needs to be rewritten before it can be used for planning. Got: " + clause)
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "AST needs to be rewritten before it can be used for planning. Got: " + clause
+        )
     }
 
   private def findRequiredOrder(horizon: QueryHorizon, optOrderBy: Option[OrderBy]): InterestingOrder = {
@@ -427,7 +436,10 @@ object ClauseConverters extends LabelExpressionConversion {
             commands += create
         }
         ()
-      case _ => throw new InternalException(s"Received an AST-clause that has no representation the QG: $clause")
+      case _ => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Received an AST-clause that has no representation the QG: $clause"
+        )
     }
 
     builder.amendQueryGraph(_.addMutatingPatterns(CreatePattern(commands.toSeq)))
@@ -444,7 +456,8 @@ object ClauseConverters extends LabelExpressionConversion {
       val allLabelNames = extractNodeLabelsToCreate(labelExpression)
       val createNode = CreateNode(variable, allLabelNames.staticLabelNames, allLabelNames.dynamicLabelNames, props)
       CreateNodeCommand(createNode, variable)
-    case _ => throw new InternalException("All nodes must be named at this instance")
+    case _ =>
+      throw InternalException.internalError(this.getClass.getSimpleName, "All nodes must be named at this instance")
   }
 
   private def allCreatePatternsInOrderAndDeduped(
@@ -690,7 +703,7 @@ object ClauseConverters extends LabelExpressionConversion {
   private def toPropertyMap(expr: Option[Expression]): Map[PropertyKeyName, Expression] = expr match {
     case None                       => Map.empty
     case Some(MapExpression(items)) => items.toMap
-    case e                          => throw new InternalException(s"Expected MapExpression, got $e")
+    case e => throw InternalException.internalError(this.getClass.getSimpleName, s"Expected MapExpression, got $e")
   }
 
   private def toPropertySelection(identifier: LogicalVariable, map: Map[PropertyKeyName, Expression]): Seq[Expression] =
@@ -879,7 +892,10 @@ object ClauseConverters extends LabelExpressionConversion {
           .withHorizon(PassthroughAllHorizon())
           .withTail(builder.emptySinglePlannerQuery)
 
-      case x => throw new InternalException(s"Received an AST-clause that has no representation the QG: $x")
+      case x => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Received an AST-clause that has no representation the QG: $x"
+        )
     }
   }
 
@@ -914,7 +930,10 @@ object ClauseConverters extends LabelExpressionConversion {
       ri.items.forall {
         case item: AliasedReturnItem =>
           !containsAggregateOutsideOfAggregatingHorizon(item.expression) && item.expression == item.variable
-        case _ => throw new InternalException("This should have been rewritten to an AliasedReturnItem.")
+        case _ => throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            "This should have been rewritten to an AliasedReturnItem."
+          )
       }
     }
 
@@ -967,7 +986,10 @@ object ClauseConverters extends LabelExpressionConversion {
           .withTail(builder.emptySinglePlannerQuery)
 
       case _ =>
-        throw new InternalException("AST needs to be rewritten before it can be used for planning. Got: " + clause)
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "AST needs to be rewritten before it can be used for planning. Got: " + clause
+        )
     }
   }
 
@@ -1067,7 +1089,10 @@ object ClauseConverters extends LabelExpressionConversion {
         ))
 
       case (_, other) =>
-        throw new InternalException(s"REMOVE $other not supported in cost planner yet")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"REMOVE $other not supported in cost planner yet"
+        )
     }
   }
 

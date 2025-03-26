@@ -237,7 +237,8 @@ sealed abstract class LogicalPlan(idGen: IdGen)
       copyConstructor.invoke(this, arguments: _*).asInstanceOf[this.type]
     } catch {
       case e: IllegalArgumentException if e.getMessage.startsWith("wrong number of arguments") =>
-        throw new InternalException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
           "Logical plans need to be case classes, and have the IdGen in a separate constructor",
           e
         )

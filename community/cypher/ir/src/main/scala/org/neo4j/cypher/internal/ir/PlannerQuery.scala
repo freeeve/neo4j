@@ -155,8 +155,11 @@ sealed trait SinglePlannerQuery extends PlannerQuery {
   def lastQueryHorizon: QueryHorizon = last.horizon
 
   def withTail(newTail: SinglePlannerQuery): SinglePlannerQuery = tail match {
-    case None    => copy(tail = Some(newTail))
-    case Some(_) => throw new InternalException("Attempt to set a second tail on a query graph")
+    case None => copy(tail = Some(newTail))
+    case Some(_) => throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Attempt to set a second tail on a query graph"
+      )
   }
 
   def withoutTail: SinglePlannerQuery = tail match {
@@ -247,7 +250,10 @@ sealed trait SinglePlannerQuery extends PlannerQuery {
 
   def updateQueryProjection(f: QueryProjection => QueryProjection): SinglePlannerQuery = horizon match {
     case projection: QueryProjection => withHorizon(f(projection))
-    case _ => throw new InternalException("Tried updating projection when there was no projection there")
+    case _ => throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Tried updating projection when there was no projection there"
+      )
   }
 
   def updateTail(f: SinglePlannerQuery => SinglePlannerQuery): SinglePlannerQuery = tail match {
@@ -280,14 +286,21 @@ sealed trait SinglePlannerQuery extends PlannerQuery {
         )
 
       case _ =>
-        throw new InternalException("Tried to concatenate non-regular query projections")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "Tried to concatenate non-regular query projections"
+        )
     }
   }
 
   private def either[T](a: Option[T], b: Option[T]): Option[T] = (a, b) match {
-    case (Some(aa), Some(bb)) => throw new InternalException(s"Can't join two query graphs. First: $aa, Second: $bb")
-    case (s @ Some(_), None)  => s
-    case (None, s)            => s
+    case (Some(aa), Some(bb)) =>
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        s"Can't join two query graphs. First: $aa, Second: $bb"
+      )
+    case (s @ Some(_), None) => s
+    case (None, s)           => s
   }
 
   // This is here to stop usage of copy from the outside

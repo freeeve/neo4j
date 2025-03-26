@@ -77,7 +77,7 @@ case class CreatePlannerQuery(semanticFeatures: Set[SemanticFeature])
 
     case command: AdministrationCommand => throw NotSystemDatabaseException.notSystemDatabaseException(command.name)
 
-    case x => throw new InternalException(s"Expected a Query and not `$x`")
+    case x => throw InternalException.internalError(this.getClass.getSimpleName, s"Expected a Query and not `$x`")
   }
 
   override def postConditions: Set[StepSequencer.Condition] = CreatePlannerQuery.postConditions

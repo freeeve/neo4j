@@ -141,21 +141,30 @@ sealed trait InternalPlanDescription extends org.neo4j.graphdb.ExecutionPlanDesc
     override def hasTime: Boolean = arguments.exists(_.isInstanceOf[Time])
 
     override def getDbHits: Long =
-      extract { case DbHits(count) => count }.getOrElse(throw new InternalException("Db hits were not recorded."))
+      extract { case DbHits(count) => count }.getOrElse(throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Db hits were not recorded."
+      ))
 
     override def getRows: Long =
-      extract { case Rows(count) => count }.getOrElse(throw new InternalException("Rows were not recorded."))
+      extract { case Rows(count) => count }.getOrElse(throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Rows were not recorded."
+      ))
 
     override def getPageCacheHits: Long = extract { case PageCacheHits(count) => count }.getOrElse(
-      throw new InternalException("Page cache stats were not recorded.")
+      throw InternalException.internalError(this.getClass.getSimpleName, "Page cache stats were not recorded.")
     )
 
     override def getPageCacheMisses: Long = extract { case PageCacheMisses(count) => count }.getOrElse(
-      throw new InternalException("Page cache stats were not recorded.")
+      throw InternalException.internalError(this.getClass.getSimpleName, "Page cache stats were not recorded.")
     )
 
     override def getTime: Long =
-      extract { case Time(value) => value }.getOrElse(throw new InternalException("Time was not recorded."))
+      extract { case Time(value) => value }.getOrElse(throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Time was not recorded."
+      ))
 
     private def extract(f: PartialFunction[Argument, Long]): Option[Long] = arguments.collectFirst(f)
   }

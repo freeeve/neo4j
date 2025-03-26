@@ -270,7 +270,10 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
 
   private def singleResult(vector: Vector[(IDPCache.SatisfiedExtraRequirements, Result)]): Result = vector match {
     case Vector(t) => t._2
-    case _         => throw new InternalException("Expected a single plan to be left in the plan table")
+    case _ => throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Expected a single plan to be left in the plan table"
+      )
   }
 
   private def singleOrEmptyResult(vector: Vector[(IDPCache.SatisfiedExtraRequirements, Result)]): Option[Result] =
@@ -278,7 +281,10 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
       case Vector()  => None
       case Vector(t) => Some(t._2)
       case _ =>
-        throw new InternalException("Expected a single plan that fulfils the requirements to be left in the plan table")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "Expected a single plan that fulfils the requirements to be left in the plan table"
+        )
     }
 
   /**

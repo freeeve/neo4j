@@ -70,7 +70,10 @@ object IndexDescriptor {
       case labelId: LabelId     => Node(labelId)
       case relTypeId: RelTypeId => Relationship(relTypeId)
       case _: PropertyKeyId =>
-        throw new InternalException("Expected LabelId or RelTypeId but go PropertyKeyId")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "Expected LabelId or RelTypeId but go PropertyKeyId"
+        )
     }
   }
 

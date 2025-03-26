@@ -113,7 +113,10 @@ case object ProcedureAndFunctionDeprecationWarnings extends VisitorPhase[BaseCon
         )
         seq => TraverseChildren(seq ++ deprecationWarnings.toSet)
       case _: UnresolvedCall =>
-        throw new InternalException("Expected procedures to have been resolved already")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "Expected procedures to have been resolved already"
+        )
     }
 
   override def phase = DEPRECATION_WARNINGS
@@ -139,7 +142,10 @@ case object ProcedureWarnings extends VisitorPhase[BaseContext, BaseState] {
         if output.exists(_.deprecated) =>
         set => TraverseChildren(set ++ usedDeprecatedFields(name.toString, results, output))
       case _: UnresolvedCall =>
-        throw new InternalException("Expected procedures to have been resolved already")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "Expected procedures to have been resolved already"
+        )
     }
 
   private def findWarningsForOptionals(statement: Statement): Set[InternalNotification] =
@@ -148,7 +154,10 @@ case object ProcedureWarnings extends VisitorPhase[BaseContext, BaseState] {
         seq =>
           TraverseChildren(seq + RedundantOptionalProcedure(f.position, signature.name.toString))
       case _: UnresolvedCall =>
-        throw new InternalException("Expected procedures to have been resolved already")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "Expected procedures to have been resolved already"
+        )
     }
 
   private def usedDeprecatedFields(procedure: String, used: Seq[ProcedureResultItem], available: Seq[FieldSignature]) =

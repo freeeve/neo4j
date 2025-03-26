@@ -140,7 +140,8 @@ object ResultOrdering {
             val nextCol = indexOrder match {
               case IndexOrderAscending  => Asc(prop)
               case IndexOrderDescending => Desc(prop)
-              case IndexOrderNone => throw new InternalException(
+              case IndexOrderNone => throw InternalException.internalError(
+                  this.getClass.getSimpleName,
                   s"Expected IndexOrderAscending or IndexOrderDescending but was IndexOrderNone"
                 )
             }

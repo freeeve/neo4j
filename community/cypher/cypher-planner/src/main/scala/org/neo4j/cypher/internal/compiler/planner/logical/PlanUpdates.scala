@@ -291,7 +291,8 @@ case object PlanUpdates extends UpdatesPlanner {
       val solvedGraph =
         context.staticComponents.planningAttributes.solveds.get(mergeReadPart.id).asSinglePlannerQuery.queryGraph
       if (solvedGraph != matchGraph)
-        throw new InternalException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
           s"The planner was unable to successfully plan the MERGE read:\n$solvedGraph\n not equal to \n$matchGraph"
         )
       mergeReadPart

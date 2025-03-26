@@ -552,7 +552,10 @@ object ConvertToNFA {
             def addAndCheckInnerTransitions(): Unit = {
               val nonInlinedQppSelections = addQppInnerTransitions()
               if (nonInlinedQppSelections.nonEmpty) {
-                throw new InternalException(s"$nonInlinedQppSelections could not be inlined into NFA")
+                throw InternalException.internalError(
+                  this.getClass.getSimpleName,
+                  s"$nonInlinedQppSelections could not be inlined into NFA"
+                )
               }
             }
 
@@ -563,7 +566,10 @@ object ConvertToNFA {
                 val nonInlinedQppSelections =
                   qppSelections -- predicatesOnSourceInner -- expansions.solvedExprs -- predicatesOnTargetInner -- extractedCompoundPredicatesOriginal
                 if (nonInlinedQppSelections.nonEmpty) {
-                  throw new InternalException(s"$nonInlinedQppSelections could not be inlined into NFA")
+                  throw InternalException.internalError(
+                    this.getClass.getSimpleName,
+                    s"$nonInlinedQppSelections could not be inlined into NFA"
+                  )
                 }
                 if (compoundPredicate.nonEmpty) {
                   targetInnerState = builder.addAndGetState(targetInner, variablePredicateOnTargetInner)

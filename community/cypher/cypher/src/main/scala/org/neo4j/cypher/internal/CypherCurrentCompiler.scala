@@ -280,7 +280,7 @@ case class CypherCurrentCompiler[CONTEXT <: RuntimeContext](
       case e: Exception =>
         // The logical plan is valuable information if we fail to create an executionPlan
         val lpStr = LogicalPlanToPlanBuilderString(logicalPlan)
-        val planInfo = new InternalException("Failed with plan:\n" + lpStr)
+        val planInfo = InternalException.internalError(this.getClass.getSimpleName, "Failed with plan:\n" + lpStr)
         e.addSuppressed(planInfo)
         throw e
     }

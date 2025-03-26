@@ -20,6 +20,7 @@
 package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
 /**
@@ -31,8 +32,13 @@ public class HintException extends Neo4jException {
         super(message);
     }
 
-    public HintException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private HintException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static HintException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new HintException(gql, message);
     }
 
     @Override

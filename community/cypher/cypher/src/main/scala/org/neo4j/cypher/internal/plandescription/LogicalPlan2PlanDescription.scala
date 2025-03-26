@@ -1625,7 +1625,10 @@ case class LogicalPlan2PlanDescription(
       case SystemProcedureCall(procedureName, _, _, _, _) =>
         PlanDescriptionImpl(id, procedureName, Seq.empty, Seq.empty, variables, withRawCardinalities, withDistinctness)
 
-      case x => throw new InternalException(s"Unknown plan type: ${x.getClass.getSimpleName}. Missing a case?")
+      case x => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Unknown plan type: ${x.getClass.getSimpleName}. Missing a case?"
+        )
     }
 
     addRuntimeAttributes(addPlanningAttributes(result, plan), plan)
@@ -2759,7 +2762,10 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case x => throw new InternalException(s"Unknown plan type: ${x.getClass.getSimpleName}. Missing a case?")
+      case x => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Unknown plan type: ${x.getClass.getSimpleName}. Missing a case?"
+        )
     }
 
     addRuntimeAttributes(addPlanningAttributes(result, plan), plan)
@@ -3178,7 +3184,10 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
-      case x => throw new InternalException(s"Unknown plan type: ${x.getClass.getSimpleName}. Missing a case?")
+      case x => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Unknown plan type: ${x.getClass.getSimpleName}. Missing a case?"
+        )
     }
 
     addRuntimeAttributes(addPlanningAttributes(result, plan), plan)

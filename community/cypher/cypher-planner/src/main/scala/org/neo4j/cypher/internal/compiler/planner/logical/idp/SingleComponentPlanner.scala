@@ -153,7 +153,10 @@ case class SingleComponentPlanner(
               .filter(bestPlans => planFullyCoversQG(qg, bestPlans.bestResult))
           }
         if (solutionPlans.size != 1) {
-          throw new InternalException("Found no leaf plan for connected component. This must not happen. QG: " + qg)
+          throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            "Found no leaf plan for connected component. This must not happen. QG: " + qg
+          )
         }
 
         val result = solutionPlans.head
@@ -242,7 +245,8 @@ case class SingleComponentPlanner(
           }
 
         if (result.isEmpty)
-          throw new InternalException(
+          throw InternalException.internalError(
+            this.getClass.getSimpleName,
             "Found no access plan for a pattern relationship in a connected component. This must not happen."
           )
 

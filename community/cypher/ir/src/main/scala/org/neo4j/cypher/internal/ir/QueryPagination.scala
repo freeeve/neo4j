@@ -40,7 +40,11 @@ final case class QueryPagination(skip: Option[Expression] = None, limit: Option[
     )
 
   private def either[T](what: String, a: Option[T], b: Option[T]): Option[T] = (a, b) match {
-    case (Some(_), Some(_))  => throw new InternalException(s"Can't join two query pagination with different $what")
+    case (Some(_), Some(_)) =>
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        s"Can't join two query pagination with different $what"
+      )
     case (s @ Some(_), None) => s
     case (None, s)           => s
   }

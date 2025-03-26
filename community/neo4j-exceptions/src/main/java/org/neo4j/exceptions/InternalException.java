@@ -36,6 +36,11 @@ public class InternalException extends Neo4jException {
         this.status = Status.Statement.ExecutionFailed;
     }
 
+    private InternalException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+        super(gqlStatusObject, message, cause);
+        this.status = Status.Statement.ExecutionFailed;
+    }
+
     @Deprecated
     public InternalException(String message) {
         super(message);
@@ -50,6 +55,11 @@ public class InternalException extends Neo4jException {
     public static InternalException internalError(String msgTitle, String message) {
         var gql = GqlHelper.get50N00(msgTitle, message);
         return new InternalException(Status.Statement.ExecutionFailed, gql, message);
+    }
+
+    public static InternalException internalError(String msgTitle, String message, Throwable cause) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new InternalException(gql, message, cause);
     }
 
     public static InternalException createRelationshipMissingNode(String relName, String nodeName) {
