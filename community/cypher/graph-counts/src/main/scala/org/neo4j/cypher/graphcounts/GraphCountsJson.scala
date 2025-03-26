@@ -78,6 +78,19 @@ object GraphCountsJson {
     JsonMethods.parse(StringInput(str)).extract[GraphCountData]
   }
 
+  def parseAsGraphCountRowsFromFile(file: File): GraphCountData = {
+    parseAsGraphCountRowsFromString(readFile(file))
+  }
+
+  def parseAsGraphCountRowsFromString(str: String): GraphCountData = {
+    // this format is used when downloading the graph counts from the browser after calling
+    // `db.stats.retrieve("GRAPH COUNTS")
+    implicit val formats: Formats = allFormatsExceptRowSerializer
+    val value = JsonMethods.parse(StringInput(str))
+    val rows = value.extract[Seq[Row]]
+    rows.head.data
+  }
+
   def parseAsGraphCountsJsonFromString(str: String): DbStatsRetrieveGraphCountsJSON = {
     implicit val formats: Formats = allFormats
     JsonMethods.parse(StringInput(str)).extract[DbStatsRetrieveGraphCountsJSON]
@@ -164,6 +177,8 @@ object GraphCountsJson {
        */
       val graphCounts = parseAsGraphCountsJsonFromString(content)
       graphCounts.results.head.data.head.row.data
+    } orElse {
+      Try(parseAsGraphCountRowsFromString(content))
     } orElse {
       // If your json is missing the boiler plate
       Try(parseAsGraphCountDataFromString(content))
