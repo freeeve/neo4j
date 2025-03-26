@@ -44,7 +44,7 @@ class AllRelationshipsScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)-[r]-(b) RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .allRelationshipsScan("(a)-[r]-(b)")
+        .allRelationshipsScan("()-[r]-()")
         .build()
     )
   }
@@ -54,7 +54,7 @@ class AllRelationshipsScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)-[r]->(b) RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .allRelationshipsScan("(a)-[r]->(b)")
+        .allRelationshipsScan("()-[r]->()")
         .build()
     )
   }
@@ -64,7 +64,7 @@ class AllRelationshipsScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)<-[r]-(b) RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .allRelationshipsScan("(a)<-[r]-(b)")
+        .allRelationshipsScan("()<-[r]-()")
         .build()
     )
   }
@@ -85,7 +85,7 @@ class AllRelationshipsScanPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("n", "r")
         .apply()
-        .|.allRelationshipsScan("(a)-[r]-(b)", "n")
+        .|.allRelationshipsScan("()-[r]-()", "n")
         .allNodeScan("n")
         .build()
     )
@@ -107,7 +107,7 @@ class AllRelationshipsScanPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("n", "r")
         .apply()
-        .|.allRelationshipsScan("(a)-[r]->(b)", "n")
+        .|.allRelationshipsScan("()-[r]->()", "n")
         .allNodeScan("n")
         .build()
     )
@@ -129,7 +129,7 @@ class AllRelationshipsScanPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("n", "r")
         .apply()
-        .|.allRelationshipsScan("(a)<-[r]-(b)", "n")
+        .|.allRelationshipsScan("()<-[r]-()", "n")
         .allNodeScan("n")
         .build()
     )

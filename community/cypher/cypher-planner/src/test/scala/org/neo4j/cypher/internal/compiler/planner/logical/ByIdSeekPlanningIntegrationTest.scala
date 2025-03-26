@@ -154,7 +154,7 @@ class ByIdSeekPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .relationshipByElementIdSeek("(a)-[r]->(b)", Set.empty, "'some-id'")
+      .relationshipByElementIdSeek("()-[r]->()", Set.empty, "'some-id'")
       .build()
   }
 
@@ -170,7 +170,7 @@ class ByIdSeekPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .relationshipByElementIdSeek("(a)-[r]->(b)", Set.empty, "'some-id'", "'other-id'")
+      .relationshipByElementIdSeek("()-[r]->()", Set.empty, "'some-id'", "'other-id'")
       .build()
   }
 
@@ -186,7 +186,7 @@ class ByIdSeekPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .relationshipByElementIdSeek("(a)-[r]->(b)", Set.empty, parameter("ids", CTAny))
+      .relationshipByElementIdSeek("()-[r]->()", Set.empty, parameter("ids", CTAny))
       .build()
   }
 
@@ -202,7 +202,7 @@ class ByIdSeekPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .relationshipByElementIdSeek("(a)-[r]-(b)", Set.empty, "'some-id'")
+      .relationshipByElementIdSeek("()-[r]-()", Set.empty, "'some-id'")
       .build()
   }
 
@@ -218,7 +218,7 @@ class ByIdSeekPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .relationshipByElementIdSeek("(a)-[r]-(b)", Set.empty, "'some-id'", "'other-id'")
+      .relationshipByElementIdSeek("()-[r]-()", Set.empty, "'some-id'", "'other-id'")
       .build()
   }
 
@@ -234,7 +234,7 @@ class ByIdSeekPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .relationshipByElementIdSeek("(a)-[r]-(b)", Set.empty, parameter("ids", CTAny))
+      .relationshipByElementIdSeek("()-[r]-()", Set.empty, parameter("ids", CTAny))
       .build()
   }
 
@@ -264,7 +264,7 @@ class ByIdSeekPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .relationshipByElementIdSeek("(a)-[r]-(b)", Set.empty, "$param.prop")
+      .relationshipByElementIdSeek("()-[r]-()", Set.empty, "$param.prop")
       .build()
   }
 
@@ -280,7 +280,7 @@ class ByIdSeekPlanningIntegrationTest extends CypherFunSuite
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .relationshipByElementIdSeek("(a)-[r]->(b)", Set.empty, "$param.prop")
+      .relationshipByElementIdSeek("()-[r]->()", Set.empty, "$param.prop")
       .build()
   }
 }

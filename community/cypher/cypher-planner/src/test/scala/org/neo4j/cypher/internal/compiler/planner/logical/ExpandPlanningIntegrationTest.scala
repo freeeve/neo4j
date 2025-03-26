@@ -55,7 +55,7 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
 
     val plan = cfg.plan("MATCH (a)-[r]->(b) RETURN r").stripProduceResults
     plan shouldEqual cfg.subPlanBuilder()
-      .allRelationshipsScan("(a)-[r]->(b)")
+      .allRelationshipsScan("()-[r]->()")
       .build()
   }
 

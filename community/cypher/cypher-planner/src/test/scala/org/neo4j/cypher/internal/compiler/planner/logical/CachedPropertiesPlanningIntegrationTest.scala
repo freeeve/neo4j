@@ -78,7 +78,7 @@ class CachedPropertiesPlanningIntegrationTest extends CypherFunSuite with Logica
     plan shouldEqual cfg.subPlanBuilder()
       .projection("cacheR[r.prop1] AS `r.prop1`")
       .filter("cacheRFromStore[r.prop1] > 42")
-      .allRelationshipsScan("(a)-[r]-(b)")
+      .allRelationshipsScan("()-[r]-()")
       .build()
   }
 
@@ -91,7 +91,7 @@ class CachedPropertiesPlanningIntegrationTest extends CypherFunSuite with Logica
     val plan = cfg.plan("MATCH (a)-[r]-(b) RETURN r.prop1").stripProduceResults
     plan shouldEqual cfg.subPlanBuilder()
       .projection("r.prop1 AS `r.prop1`")
-      .allRelationshipsScan("(a)-[r]-(b)")
+      .allRelationshipsScan("()-[r]-()")
       .build()
   }
 
@@ -228,7 +228,7 @@ class CachedPropertiesPlanningIntegrationTest extends CypherFunSuite with Logica
     plan shouldEqual cfg.subPlanBuilder()
       .projection("cacheRHasProperty[r.prop1] IS NOT NULL AS foo")
       .filter("cacheRHasPropertyFromStore[r.prop1] IS NOT NULL")
-      .allRelationshipsScan("(a)-[r]-(b)")
+      .allRelationshipsScan("()-[r]-()")
       .build()
   }
 
@@ -242,7 +242,7 @@ class CachedPropertiesPlanningIntegrationTest extends CypherFunSuite with Logica
     plan shouldEqual cfg.subPlanBuilder()
       .projection("cacheR[r.prop1] AS foo")
       .filter("cacheRFromStore[r.prop1] IS NOT NULL")
-      .allRelationshipsScan("(a)-[r]-(b)")
+      .allRelationshipsScan("()-[r]-()")
       .build()
   }
 

@@ -290,7 +290,7 @@ class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunS
 
     plan should equal(planner.subPlanBuilder()
       .projection("cacheR[r.since] AS since")
-      .relationshipIndexOperator("(anon_0)-[r:KNOWS(since)]->(anon_1)", getValue = _ => GetValue)
+      .relationshipIndexOperator("()-[r:KNOWS(since)]->()", getValue = _ => GetValue)
       .build())
   }
 

@@ -74,7 +74,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
         planner.planBuilder()
           .produceResults(column("r", "cacheR[r.prop]"))
           .relationshipIndexOperator(
-            s"(a)-[r:REL($indexStr)]-(b)",
+            s"()-[r:REL($indexStr)]-()",
             _ => GetValue,
             indexType = IndexType.RANGE,
             unique = isUnique,
@@ -91,7 +91,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
         planner.planBuilder()
           .produceResults(column("r", "cacheR[r.prop]"))
           .relationshipIndexOperator(
-            s"(a)-[r:REL($indexStr)]->(b)",
+            s"()-[r:REL($indexStr)]->()",
             _ => GetValue,
             indexType = IndexType.RANGE,
             unique = isUnique,
@@ -108,7 +108,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
         planner.planBuilder()
           .produceResults(column("r", "cacheR[r.prop]"))
           .relationshipIndexOperator(
-            s"(a)<-[r:REL($indexStr)]-(b)",
+            s"()<-[r:REL($indexStr)]-()",
             _ => GetValue,
             indexType = IndexType.RANGE,
             unique = isUnique,
@@ -140,7 +140,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
           .filter("b.prop = n.prop")
           .apply()
           .|.relationshipIndexOperator(
-            s"(a)-[r:REL($indexStr)]-(b)",
+            s"()-[r:REL($indexStr)]-(b)",
             _ => GetValue,
             argumentIds = Set("n"),
             indexType = IndexType.RANGE,
@@ -166,7 +166,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
           .produceResults(column("r", "cacheR[r.prop]"))
           .filterExpression(hasLabels("a", "A"))
           .relationshipIndexOperator(
-            s"(a)-[r:REL($indexStr)]-(b)",
+            s"(a)-[r:REL($indexStr)]-()",
             _ => GetValue,
             indexType = IndexType.RANGE,
             unique = isUnique,
@@ -190,7 +190,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
           .filter("a = anon_0")
           .apply()
           .|.relationshipIndexOperator(
-            s"(anon_0)-[r:REL($indexStr)]-(b)",
+            s"(anon_0)-[r:REL($indexStr)]-()",
             _ => GetValue,
             argumentIds = Set("a"),
             indexType = IndexType.RANGE,
@@ -217,7 +217,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
           .filter("b = anon_0")
           .apply()
           .|.relationshipIndexOperator(
-            s"(a)-[r:REL($indexStr)]-(anon_0)",
+            s"()-[r:REL($indexStr)]-(anon_0)",
             _ => GetValue,
             argumentIds = Set("b"),
             indexType = IndexType.RANGE,
@@ -285,7 +285,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
     ).leaves.head should equal(
       planner.subPlanBuilder()
         .relationshipIndexOperator(
-          s"(a)-[r:REL(prop STARTS WITH 'www')]->(b)",
+          s"()-[r:REL(prop STARTS WITH 'www')]->()",
           _ => GetValue,
           indexType = IndexType.RANGE
         )
@@ -322,7 +322,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
     ).leaves(1) should equal(
       planner.subPlanBuilder()
         .relationshipIndexOperator(
-          s"(a)-[r:REL(prop > ???)]-(b)",
+          s"()-[r:REL(prop > ???)]-()",
           argumentIds = Set("x"),
           paramExpr = Some(v"x"),
           indexType = IndexType.RANGE
@@ -346,7 +346,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
         |RETURN r""".stripMargin
     ).leaves.head should equal(
       planner.subPlanBuilder()
-        .relationshipIndexOperator(s"(a)-[r:REL(prop > 1)]->(b)", _ => GetValue, indexType = IndexType.RANGE)
+        .relationshipIndexOperator(s"()-[r:REL(prop > 1)]->()", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     )
   }
@@ -364,7 +364,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldBe planner.subPlanBuilder()
       .relationshipIndexOperator(
-        "(a)-[r:REL(prop1 = 42, prop2 = 'foo')]->(b)",
+        "()-[r:REL(prop1 = 42, prop2 = 'foo')]->()",
         _ => GetValue,
         indexType = IndexType.RANGE,
         supportPartitionedScan = false
@@ -381,7 +381,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
 
     plan shouldBe planner.subPlanBuilder()
       .relationshipIndexOperator(
-        "(a)-[r:REL(prop1 = 42, prop2 = 'foo')]->(b)",
+        "()-[r:REL(prop1 = 42, prop2 = 'foo')]->()",
         _ => GetValue,
         indexType = IndexType.RANGE,
         supportPartitionedScan = false
@@ -399,7 +399,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
     plan shouldBe planner.subPlanBuilder()
       .filter("r.name IS NOT NULL")
       .relationshipIndexOperator(
-        "(a)-[r:REL(prop1 = 42, prop2 = 'foo')]->(b)",
+        "()-[r:REL(prop1 = 42, prop2 = 'foo')]->()",
         _ => GetValue,
         indexType = IndexType.RANGE,
         supportPartitionedScan = false
@@ -424,7 +424,7 @@ class RelationshipIndexSeekPlanningIntegrationTest extends CypherFunSuite
     val plan = planner.plan(query).stripProduceResults
 
     plan shouldBe planner.subPlanBuilder()
-      .relationshipIndexOperator("(a)-[r:REL(prop1 = 42, prop2 = 'foo')]->(b)", _ => GetValue, unique = true)
+      .relationshipIndexOperator("()-[r:REL(prop1 = 42, prop2 = 'foo')]->()", _ => GetValue, unique = true)
       .build()
   }
 

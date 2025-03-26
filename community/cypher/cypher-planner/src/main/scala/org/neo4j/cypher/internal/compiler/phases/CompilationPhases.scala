@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.PlanRew
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.EagerRewriter
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CompressPlanIDs
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.InsertCachedProperties
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.RemoveUnusedVariables
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.SortPredicatesBySelectivity
 import org.neo4j.cypher.internal.frontend.phases.BaseContains
 import org.neo4j.cypher.internal.frontend.phases.BaseState
@@ -131,6 +132,7 @@ object CompilationPhases extends FrontEndCompilationPhases {
           CardinalityRewriter,
           CompressPlanIDs,
           EagerRewriter,
+          RemoveUnusedVariables,
           SortPredicatesBySelectivity,
           ParameterToDefaultRewriter
         ),

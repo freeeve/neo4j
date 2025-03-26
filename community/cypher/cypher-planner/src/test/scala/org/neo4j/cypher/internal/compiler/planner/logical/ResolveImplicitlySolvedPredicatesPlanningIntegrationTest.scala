@@ -92,7 +92,7 @@ class ResolveImplicitlySolvedPredicatesPlanningIntegrationTest
     val plan = cfg.plan("MATCH (a)-[r]->(b) WHERE r:REL AND r.prop IS NOT NULL RETURN r")
     plan shouldEqual cfg.planBuilder()
       .produceResults("r")
-      .relationshipTypeScan("(a)-[r:REL]->(b)")
+      .relationshipTypeScan("()-[r:REL]->()")
       .build()
   }
 
@@ -121,7 +121,7 @@ class ResolveImplicitlySolvedPredicatesPlanningIntegrationTest
     val plan = cfg.plan("MATCH (a)-[r:REL]->(b) WHERE r.prop :: Date RETURN r")
     plan shouldEqual cfg.planBuilder()
       .produceResults("r")
-      .relationshipTypeScan("(a)-[r:REL]->(b)")
+      .relationshipTypeScan("()-[r:REL]->()")
       .build()
   }
 
@@ -152,7 +152,7 @@ class ResolveImplicitlySolvedPredicatesPlanningIntegrationTest
     plan shouldEqual cfg.planBuilder()
       .produceResults("r")
       .filter("r.prop IS :: DATE NOT NULL")
-      .relationshipTypeScan("(a)-[r:REL]->(b)")
+      .relationshipTypeScan("()-[r:REL]->()")
       .build()
   }
 }

@@ -53,7 +53,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)-[r:REL]-(b) WHERE r.prop IS NOT NULL RETURN r") should equal(
       planner.planBuilder()
         .produceResults(column("r", "cacheR[r.prop]"))
-        .relationshipIndexOperator("(a)-[r:REL(prop)]-(b)", _ => GetValue, indexType = IndexType.RANGE)
+        .relationshipIndexOperator("()-[r:REL(prop)]-()", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     )
   }
@@ -63,7 +63,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)-[r:REL]->(b) WHERE r.prop IS NOT NULL RETURN r") should equal(
       planner.planBuilder()
         .produceResults(column("r", "cacheR[r.prop]"))
-        .relationshipIndexOperator("(a)-[r:REL(prop)]->(b)", _ => GetValue, indexType = IndexType.RANGE)
+        .relationshipIndexOperator("()-[r:REL(prop)]->()", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     )
   }
@@ -73,7 +73,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)<-[r:REL]-(b) WHERE r.prop IS NOT NULL RETURN r") should equal(
       planner.planBuilder()
         .produceResults(column("r", "cacheR[r.prop]"))
-        .relationshipIndexOperator("(a)<-[r:REL(prop)]-(b)", _ => GetValue, indexType = IndexType.RANGE)
+        .relationshipIndexOperator("()<-[r:REL(prop)]-()", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     )
   }
@@ -89,7 +89,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)-[r:REL]-(b) WHERE r.prop CONTAINS 'test' RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .relationshipIndexOperator("(a)-[r:REL(prop CONTAINS 'test')]-(b)", indexType = IndexType.TEXT)
+        .relationshipIndexOperator("()-[r:REL(prop CONTAINS 'test')]-()", indexType = IndexType.TEXT)
         .build()
     )
   }
@@ -105,7 +105,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)-[r:REL]->(b) WHERE r.prop CONTAINS 'test' RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .relationshipIndexOperator("(a)-[r:REL(prop CONTAINS 'test')]->(b)", indexType = IndexType.TEXT)
+        .relationshipIndexOperator("()-[r:REL(prop CONTAINS 'test')]->()", indexType = IndexType.TEXT)
         .build()
     )
   }
@@ -121,7 +121,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)<-[r:REL]-(b) WHERE r.prop CONTAINS 'test' RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .relationshipIndexOperator("(a)<-[r:REL(prop CONTAINS 'test')]-(b)", indexType = IndexType.TEXT)
+        .relationshipIndexOperator("()<-[r:REL(prop CONTAINS 'test')]-()", indexType = IndexType.TEXT)
         .build()
     )
   }
@@ -137,7 +137,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)-[r:REL]-(b) WHERE r.prop ENDS WITH 'test' RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .relationshipIndexOperator("(a)-[r:REL(prop ENDS WITH 'test')]-(b)", indexType = IndexType.TEXT)
+        .relationshipIndexOperator("()-[r:REL(prop ENDS WITH 'test')]-()", indexType = IndexType.TEXT)
         .build()
     )
   }
@@ -153,7 +153,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)-[r:REL]->(b) WHERE r.prop ENDS WITH 'test' RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .relationshipIndexOperator("(a)-[r:REL(prop ENDS WITH 'test')]->(b)", indexType = IndexType.TEXT)
+        .relationshipIndexOperator("()-[r:REL(prop ENDS WITH 'test')]->()", indexType = IndexType.TEXT)
         .build()
     )
   }
@@ -169,7 +169,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
     planner.plan("MATCH (a)<-[r:REL]-(b) WHERE r.prop ENDS WITH 'test' RETURN r") should equal(
       planner.planBuilder()
         .produceResults("r")
-        .relationshipIndexOperator("(a)<-[r:REL(prop ENDS WITH 'test')]-(b)", indexType = IndexType.TEXT)
+        .relationshipIndexOperator("()<-[r:REL(prop ENDS WITH 'test')]-()", indexType = IndexType.TEXT)
         .build()
     )
   }
@@ -197,7 +197,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
         .filter("b.prop = cacheN[n.prop]")
         .apply()
         .|.relationshipIndexOperator(
-          "(a)-[r:REL(prop)]-(b)",
+          "()-[r:REL(prop)]-(b)",
           _ => GetValue,
           argumentIds = Set("n"),
           indexType = IndexType.RANGE
@@ -227,7 +227,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
         .filter("b.prop = n.prop")
         .apply()
         .|.relationshipIndexOperator(
-          "(a)-[r:REL(prop CONTAINS 'test')]-(b)",
+          "()-[r:REL(prop CONTAINS 'test')]-(b)",
           argumentIds = Set("n"),
           indexType = IndexType.TEXT
         )
@@ -257,7 +257,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
         .filter("b.prop = n.prop")
         .apply()
         .|.relationshipIndexOperator(
-          "(a)-[r:REL(prop ENDS WITH 'test')]-(b)",
+          "()-[r:REL(prop ENDS WITH 'test')]-(b)",
           argumentIds = Set("n"),
           indexType = IndexType.TEXT
         )
@@ -278,7 +278,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults(column("r", "cacheR[r.prop]"))
         .filter("a:A")
-        .relationshipIndexOperator("(a)-[r:REL(prop)]-(b)", _ => GetValue, indexType = IndexType.RANGE)
+        .relationshipIndexOperator("(a)-[r:REL(prop)]-()", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     )
   }
@@ -297,7 +297,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
         .filter("a = anon_0")
         .apply()
         .|.relationshipIndexOperator(
-          "(anon_0)-[r:REL(prop)]-(b)",
+          "(anon_0)-[r:REL(prop)]-()",
           _ => GetValue,
           argumentIds = Set("a"),
           indexType = IndexType.RANGE
@@ -320,7 +320,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
         .filter("b = anon_0")
         .apply()
         .|.relationshipIndexOperator(
-          "(a)-[r:REL(prop)]-(anon_0)",
+          "()-[r:REL(prop)]-(anon_0)",
           _ => GetValue,
           argumentIds = Set("b"),
           indexType = IndexType.RANGE
@@ -382,7 +382,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
           .filter("a = anon_0")
           .apply()
           .|.relationshipIndexOperator(
-            s"(anon_0)-[r:REL(prop $op 'foo')]-(b)",
+            s"(anon_0)-[r:REL(prop $op 'foo')]-()",
             argumentIds = Set("a"),
             indexType = IndexType.TEXT
           )
@@ -407,7 +407,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
           .filter("b = anon_0")
           .apply()
           .|.relationshipIndexOperator(
-            s"(a)-[r:REL(prop $op 'foo')]-(anon_0)",
+            s"()-[r:REL(prop $op 'foo')]-(anon_0)",
             argumentIds = Set("b"),
             indexType = IndexType.TEXT
           )
@@ -468,7 +468,7 @@ class RelationshipIndexScanPlanningIntegrationTest extends CypherFunSuite
         .produceResults(column("r", "cacheR[r.prop]"))
         .filter("cacheR[r.prop] = b.prop")
         .relationshipIndexOperator(
-          "(a)-[r:REL(prop)]-(b)",
+          "()-[r:REL(prop)]-(b)",
           indexOrder = IndexOrderNone,
           argumentIds = Set(),
           getValue = _ => GetValue,

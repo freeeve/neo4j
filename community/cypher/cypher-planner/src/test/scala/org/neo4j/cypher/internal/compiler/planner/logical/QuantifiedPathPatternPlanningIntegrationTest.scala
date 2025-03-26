@@ -458,7 +458,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         .|.filterExpression(isRepeatTrailUnique("anon_2"))
         .|.expandAll("(m)<-[anon_2]-(n)")
         .|.argument("m")
-        .allRelationshipsScan("(a)-[anon_1]-(b)")
+        .allRelationshipsScan("(a)-[anon_1]-()")
         .build()
     )
   }
@@ -1923,9 +1923,9 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     val plan = planner.plan(query).stripProduceResults
 
     plan shouldEqual planner.subPlanBuilder()
-      .filter("not anon_1 IN r")
-      .expandAll("(a)-[r*2..3]->(anon_2)")
-      .allRelationshipsScan("(anon_0)-[anon_1]-(a)")
+      .filter("not anon_0 IN r")
+      .expandAll("(a)-[r*2..3]->(anon_1)")
+      .allRelationshipsScan("()-[anon_0]-(a)")
       .build()
   }
 
@@ -2146,7 +2146,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan shouldEqual planner.subPlanBuilder()
       .filter("not r2 IN r1")
       .expandAll("(d)<-[r1*1..]-(a)")
-      .allRelationshipsScan("(d)-[r2]->(e)")
+      .allRelationshipsScan("(d)-[r2]->()")
       .build()
   }
 
@@ -2171,7 +2171,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .expandAll("(d)<-[r1*1..]-(a)")
       .filter("not r3 IN r2")
       .expandAll("(g)<-[r2*1..]-(d)")
-      .allRelationshipsScan("(g)-[r3]-(h)")
+      .allRelationshipsScan("(g)-[r3]-()")
       .build()
   }
 
@@ -2184,7 +2184,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan shouldEqual planner.subPlanBuilder()
       .expandAll("(d)<-[r1:R*1..]-(a)")
       .expandAll("(g)<-[r2:T*1..]-(d)")
-      .relationshipTypeScan("(g)-[r3:S]-(h)")
+      .relationshipTypeScan("(g)-[r3:S]-()")
       .build()
   }
 
@@ -2475,7 +2475,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         .expand("(d)-[s*1..]-(i)", projectedDir = OUTGOING)
         .filter("NOT t = u")
         .expandAll("(d)-[t]-(e)")
-        .relationshipTypeScan("(f)-[u:R]-(d)")
+        .relationshipTypeScan("()-[u:R]-(d)")
         .build()
     )
   }

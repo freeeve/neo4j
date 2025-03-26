@@ -1583,7 +1583,17 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     args: Set[String],
     expr: Expression*
   ): IMPL = {
-    directedRelationshipByIdSeekSolver(relationship, Some(from), Some(to), args, expr)
+    directedRelationshipByIdSeekExpr(relationship, Some(from), Some(to), args, expr: _*)
+  }
+
+  def directedRelationshipByIdSeekExpr(
+    relationship: String,
+    from: Option[String],
+    to: Option[String],
+    args: Set[String],
+    expr: Expression*
+  ): IMPL = {
+    directedRelationshipByIdSeekSolver(relationship, from, to, args, expr)
   }
 
   private def undirectedRelationshipByIdSeekSolver(
@@ -1614,7 +1624,17 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     args: Set[String],
     expr: Expression*
   ): IMPL = {
-    undirectedRelationshipByIdSeekSolver(relationship, Some(from), Some(to), args, expr)
+    undirectedRelationshipByIdSeekExpr(relationship, Some(from), Some(to), args, expr: _*)
+  }
+
+  def undirectedRelationshipByIdSeekExpr(
+    relationship: String,
+    from: Option[String],
+    to: Option[String],
+    args: Set[String],
+    expr: Expression*
+  ): IMPL = {
+    undirectedRelationshipByIdSeekSolver(relationship, from, to, args, expr)
   }
 
   def nodeByElementIdSeek(node: String, args: Set[String], ids: Any*): IMPL = {

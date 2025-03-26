@@ -410,10 +410,10 @@ class VarLengthPlanningIntegrationTest
     ).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .apply()
-      .|.projectEndpoints("(anon_2)-[e:Type]->(anon_3)", startInScope = false, endInScope = false)
+      .|.projectEndpoints("(anon_0)-[e:Type]->(anon_1)", startInScope = false, endInScope = false)
       .|.argument("e", "dummy")
       .projection("1 AS dummy")
-      .allRelationshipsScan("(anon_0)-[e]->(anon_1)")
+      .allRelationshipsScan("()-[e]->()")
       .build()
   }
 
@@ -431,7 +431,7 @@ class VarLengthPlanningIntegrationTest
     ).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .projectEndpoints("(anon_0)-[e:Type1]->(anon_1)", startInScope = false, endInScope = false)
-      .relationshipTypeScan("(anon_2)-[e:Type2]->(anon_3)", IndexOrderNone)
+      .relationshipTypeScan("()-[e:Type2]->()", IndexOrderNone)
       .build()
   }
 

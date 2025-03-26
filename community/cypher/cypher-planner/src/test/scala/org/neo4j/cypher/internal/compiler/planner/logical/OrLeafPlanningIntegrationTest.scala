@@ -574,12 +574,12 @@ class OrLeafPlanningIntegrationTest
     plan should (equal(
       cfg.planBuilder()
         .produceResults("r")
-        .unionRelationshipTypesScan("(a)-[r:REL1|REL2]-(b)")
+        .unionRelationshipTypesScan("()-[r:REL1|REL2]-()")
         .build()
     ) or equal(
       cfg.planBuilder()
         .produceResults("r")
-        .unionRelationshipTypesScan("(a)-[r:REL2|REL1]-(b)")
+        .unionRelationshipTypesScan("()-[r:REL2|REL1]-()")
         .build()
     ))
   }
@@ -598,12 +598,12 @@ class OrLeafPlanningIntegrationTest
     thePlan should (equal(
       cfg.planBuilder()
         .produceResults("r")
-        .unionRelationshipTypesScan("(a)-[r:REL1|REL2]-(b)")
+        .unionRelationshipTypesScan("()-[r:REL1|REL2]-()")
         .build()
     ) or equal(
       cfg.planBuilder()
         .produceResults("r")
-        .unionRelationshipTypesScan("(a)-[r:REL2|REL1]-(b)")
+        .unionRelationshipTypesScan("()-[r:REL2|REL1]-()")
         .build()
     ))
     thePlan should not equal plan(withHint = false)
@@ -624,12 +624,12 @@ class OrLeafPlanningIntegrationTest
     thePlan should (equal(
       cfg.planBuilder()
         .produceResults("r")
-        .unionRelationshipTypesScan("(a)-[r:REL1|REL2]-(b)")
+        .unionRelationshipTypesScan("()-[r:REL1|REL2]-()")
         .build()
     ) or equal(
       cfg.planBuilder()
         .produceResults("r")
-        .unionRelationshipTypesScan("(a)-[r:REL2|REL1]-(b)")
+        .unionRelationshipTypesScan("()-[r:REL2|REL1]-()")
         .build()
     ))
     thePlan should not equal plan(withHint = false)
@@ -646,12 +646,12 @@ class OrLeafPlanningIntegrationTest
     plan should (equal(
       cfg.planBuilder()
         .produceResults("r")
-        .unionRelationshipTypesScan("(a)-[r:REL1|REL2]-(b)")
+        .unionRelationshipTypesScan("()-[r:REL1|REL2]-()")
         .build()
     ) or equal(
       cfg.planBuilder()
         .produceResults("r")
-        .unionRelationshipTypesScan("(a)-[r:REL2|REL1]-(b)")
+        .unionRelationshipTypesScan("()-[r:REL2|REL1]-()")
         .build()
     ))
   }
@@ -896,7 +896,7 @@ class OrLeafPlanningIntegrationTest
       cfg.planBuilder()
         .produceResults("r")
         .filterExpression(ors(hasTypes("r", "REL1"), propEquality("r", "p1", 1)))
-        .unionRelationshipTypesScan("(a)-[r:REL1|REL2]-(b)")
+        .unionRelationshipTypesScan("()-[r:REL1|REL2]-()")
         .build()
     ) or equal(
       cfg.planBuilder()
@@ -938,12 +938,12 @@ class OrLeafPlanningIntegrationTest
     plan should (equal(
       cfg.planBuilder()
         .produceResults("r")
-        .unionRelationshipTypesScan("(a)-[r:REL1|REL2]->(b)")
+        .unionRelationshipTypesScan("()-[r:REL1|REL2]->()")
         .build()
     ) or equal(
       cfg.planBuilder()
         .produceResults("r")
-        .unionRelationshipTypesScan("(a)-[r:REL2|REL1]->(b)")
+        .unionRelationshipTypesScan("()-[r:REL2|REL1]->()")
         .build()
     ))
   }
@@ -986,13 +986,13 @@ class OrLeafPlanningIntegrationTest
       cfg.planBuilder()
         .produceResults("p")
         .projection("r.p1 AS p")
-        .unionRelationshipTypesScan("(a)-[r:REL1|REL2]->(b)")
+        .unionRelationshipTypesScan("()-[r:REL1|REL2]->()")
         .build()
     ) or equal(
       cfg.planBuilder()
         .produceResults("p")
         .projection("r.p1 AS p")
-        .unionRelationshipTypesScan("(a)-[r:REL2|REL1]->(b)")
+        .unionRelationshipTypesScan("()-[r:REL2|REL1]->()")
         .build()
     ))
   }
@@ -1042,13 +1042,13 @@ class OrLeafPlanningIntegrationTest
       cfg.planBuilder()
         .produceResults("c")
         .aggregation(Seq(), Seq("count(r.p2) AS c"))
-        .unionRelationshipTypesScan("(a)-[r:REL1|REL2]->(b)")
+        .unionRelationshipTypesScan("()-[r:REL1|REL2]->()")
         .build()
     ) or equal(
       cfg.planBuilder()
         .produceResults("c")
         .aggregation(Seq(), Seq("count(r.p2) AS c"))
-        .unionRelationshipTypesScan("(a)-[r:REL2|REL1]->(b)")
+        .unionRelationshipTypesScan("()-[r:REL2|REL1]->()")
         .build()
     ))
   }
@@ -1092,14 +1092,14 @@ class OrLeafPlanningIntegrationTest
         .produceResults("c")
         .aggregation(Seq(), Seq("count(r.p2) AS c"))
         .filter("not r.p1 = 1")
-        .unionRelationshipTypesScan("(a)-[r:REL1|REL2]->(b)")
+        .unionRelationshipTypesScan("()-[r:REL1|REL2]->()")
         .build()
     ) or equal(
       cfg.planBuilder()
         .produceResults("c")
         .aggregation(Seq(), Seq("count(r.p2) AS c"))
         .filter("not r.p1 = 1")
-        .unionRelationshipTypesScan("(a)-[r:REL2|REL1]->(b)")
+        .unionRelationshipTypesScan("()-[r:REL2|REL1]->()")
         .build()
     ))
   }

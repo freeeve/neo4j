@@ -1322,7 +1322,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
         planner.planBuilder()
           .produceResults("a")
           .relationshipIndexOperator(
-            "(a)-[r:R(prop)]->(b)",
+            "(a)-[r:R(prop)]->()",
             indexType = IndexType.POINT,
             customQueryExpression = nodePointIndexHints.pointQueryExpression,
             supportPartitionedScan = false
@@ -1676,7 +1676,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       .projection("id(m) AS `id(m)`")
       .top(20, "r ASC")
       .projection("rand() AS r")
-      .relationshipTypeScan("(n)-[anon_0:REL]->(m)", IndexOrderNone)
+      .relationshipTypeScan("()-[anon_0:REL]->(m)", IndexOrderNone)
       .build()
 
     plan shouldEqual expectedPlan
@@ -1704,7 +1704,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       .expandAll("(i)<-[anon_1:REL]-(k)")
       .sort("r ASC")
       .projection("rand() AS r")
-      .relationshipTypeScan("(i)-[anon_0:REL]->(j)", IndexOrderNone)
+      .relationshipTypeScan("(i)-[anon_0:REL]->()", IndexOrderNone)
       .build()
 
     plan shouldEqual expectedPlan
@@ -1727,7 +1727,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       relationshipTypeScanConfig.subPlanBuilder()
         .filter("a = anon_0")
         .apply()
-        .|.relationshipTypeScan("(anon_0)-[r:REL]-(b)", "a")
+        .|.relationshipTypeScan("(anon_0)-[r:REL]-()", "a")
         .skip(0)
         .allNodeScan("a")
         .build()
@@ -1751,7 +1751,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       relationshipTypeScanConfig.subPlanBuilder()
         .filter("b = anon_0")
         .apply()
-        .|.relationshipTypeScan("(a)-[r:REL]-(anon_0)", "b")
+        .|.relationshipTypeScan("()-[r:REL]-(anon_0)", "b")
         .skip(0)
         .allNodeScan("b")
         .build()
@@ -1856,7 +1856,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldBe planner.subPlanBuilder()
-      .relationshipTypeScan("(a)-[r:REL]->(b)")
+      .relationshipTypeScan("(a)-[r:REL]->()")
       .build()
   }
 
@@ -2238,7 +2238,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       planner.planBuilder()
         .produceResults("r")
         .filter("b:B", "NOT b:A")
-        .relationshipTypeScan("(a)-[r:R1]->(b)")
+        .relationshipTypeScan("()-[r:R1]->(b)")
         .build()
     )
   }

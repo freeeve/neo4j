@@ -223,7 +223,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .projection("cacheR[r.prop1] AS `r.prop1`")
-      .relationshipIndexOperator("(a)-[r:REL(prop1 = 123)]-(b)", getValue = _ => GetValue)
+      .relationshipIndexOperator("()-[r:REL(prop1 = 123)]-()", getValue = _ => GetValue)
       .build())
   }
 
@@ -340,10 +340,10 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
     plan should equal(planner.subPlanBuilder()
       .projection("r.prop1 AS `r.prop1`")
       .apply()
-      .|.allRelationshipsScan("(a)-[r]-(b)", "count")
+      .|.allRelationshipsScan("()-[r]-()", "count")
       .aggregation(Seq(), Seq("count(*) AS count"))
       .relationshipIndexOperator(
-        "(a)-[r:REL(prop1 = 123)]-(b)",
+        "()-[r:REL(prop1 = 123)]-()",
         getValue = _ => DoNotGetValue,
         indexType = RANGE
       )
@@ -409,7 +409,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .aggregation(Seq(), Seq("avg(cacheR[r.prop1]) AS `avg(r.prop1)`"))
-      .relationshipIndexOperator("(a)-[r:REL(prop1 = 123)]-(b)", getValue = _ => GetValue)
+      .relationshipIndexOperator("()-[r:REL(prop1 = 123)]-()", getValue = _ => GetValue)
       .build())
   }
 
@@ -422,7 +422,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .aggregation(Seq(), Seq("sum(cacheR[r.prop1]) AS `sum(r.prop1)`"))
-      .relationshipIndexOperator("(a)-[r:REL(prop1 = 123)]-(b)", getValue = _ => GetValue)
+      .relationshipIndexOperator("()-[r:REL(prop1 = 123)]-()", getValue = _ => GetValue)
       .build())
   }
 
@@ -702,7 +702,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
     plan should equal(planner.subPlanBuilder()
       .projection("r.prop1 AS `r.prop1`")
       .relationshipIndexOperator(
-        "(a)-[r:REL(prop1 STARTS WITH '123')]-(b)",
+        "()-[r:REL(prop1 STARTS WITH '123')]-()",
         getValue = _ => DoNotGetValue,
         indexType = TEXT,
         supportPartitionedScan = false
@@ -759,14 +759,14 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
       .build()
 
     val plan = planner
-      .plan("MATCH (a)-[r:REL]-(b) WHERE r.prop CONTAINS 'foo' RETURN r.prop")
+      .plan("MATCH ()-[r:REL]-() WHERE r.prop CONTAINS 'foo' RETURN r.prop")
       .stripProduceResults
 
     plan should equal(
       planner.subPlanBuilder()
         .projection("r.prop AS `r.prop`")
         .relationshipIndexOperator(
-          "(a)-[r:REL(prop CONTAINS 'foo')]-(b)",
+          "()-[r:REL(prop CONTAINS 'foo')]-()",
           indexOrder = IndexOrderNone,
           argumentIds = Set(),
           getValue = _ => DoNotGetValue,
@@ -794,7 +794,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
       planner.subPlanBuilder()
         .projection("r.foo AS `r.foo`")
         .relationshipIndexOperator(
-          "(a)-[r:REL(prop CONTAINS 'foo')]-(b)",
+          "()-[r:REL(prop CONTAINS 'foo')]-()",
           indexOrder = IndexOrderNone,
           argumentIds = Set(),
           getValue = _ => DoNotGetValue,
@@ -842,7 +842,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
       planner.subPlanBuilder()
         .projection("r.prop1 AS `r.prop1`")
         .relationshipIndexOperator(
-          "(a)-[r:REL(prop1 ENDS WITH 'foo')]-(b)",
+          "()-[r:REL(prop1 ENDS WITH 'foo')]-()",
           indexOrder = IndexOrderNone,
           argumentIds = Set(),
           getValue = _ => DoNotGetValue,
@@ -864,7 +864,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
       planner.subPlanBuilder()
         .projection("r.foo AS `r.foo`")
         .relationshipIndexOperator(
-          "(a)-[r:REL(prop1 ENDS WITH 'foo')]-(b)",
+          "()-[r:REL(prop1 ENDS WITH 'foo')]-()",
           indexOrder = IndexOrderNone,
           argumentIds = Set(),
           getValue = _ => DoNotGetValue,
@@ -896,7 +896,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .projection("cacheR[r.prop1] AS `r.prop1`")
-      .relationshipIndexOperator("(a)-[r:REL(prop1)]-(b)", getValue = _ => GetValue)
+      .relationshipIndexOperator("()-[r:REL(prop1)]-()", getValue = _ => GetValue)
       .build())
   }
 
@@ -911,9 +911,9 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
     plan should equal(planner.subPlanBuilder()
       .projection("r.prop1 AS `r.prop1`")
       .apply()
-      .|.allRelationshipsScan("(a)-[r]-(b)", "count")
+      .|.allRelationshipsScan("()-[r]-()", "count")
       .aggregation(Seq(), Seq("count(*) AS count"))
-      .relationshipIndexOperator("(a)-[r:REL(prop1)]-(b)", getValue = _ => DoNotGetValue)
+      .relationshipIndexOperator("()-[r:REL(prop1)]-()", getValue = _ => DoNotGetValue)
       .build())
   }
 
@@ -970,7 +970,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
     plan shouldBe planner.subPlanBuilder()
       .projection("cacheR[r.prop1] AS `r.prop1`", "cacheR[r.prop2] AS `r.prop2`")
       .relationshipIndexOperator(
-        "(a)-[r:REL(prop1 = 42, prop2 = 21)]->(b)",
+        "()-[r:REL(prop1 = 42, prop2 = 21)]->()",
         getValue = _ => GetValue,
         indexType = RANGE,
         supportPartitionedScan = false
@@ -989,7 +989,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
     plan shouldBe planner.subPlanBuilder()
       .projection("r.otherProp AS `r.otherProp`")
       .relationshipIndexOperator(
-        "(a)-[r:REL(prop1 = 42, prop2 = 21)]->(b)",
+        "()-[r:REL(prop1 = 42, prop2 = 21)]->()",
         getValue = _ => DoNotGetValue,
         indexType = RANGE,
         supportPartitionedScan = false
@@ -1034,7 +1034,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .projection("cacheR[r.prop1] AS `r.prop1`")
-      .relationshipIndexOperator("(a)-[r:REL(prop1)]-(b)", getValue = _ => GetValue)
+      .relationshipIndexOperator("()-[r:REL(prop1)]-()", getValue = _ => GetValue)
       .build())
   }
 
@@ -1060,7 +1060,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
       plan should equal(planner.subPlanBuilder()
         .projection("cacheR[r.prop2] AS `r.prop2`")
         .relationshipIndexOperator(
-          "(a)-[r:REL(prop1, prop2)]-(b)",
+          "()-[r:REL(prop1, prop2)]-()",
           getValue = Map("prop1" -> DoNotGetValue, "prop2" -> GetValue),
           indexType = RANGE
         )
@@ -1095,7 +1095,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
       plan shouldBe planner.subPlanBuilder()
         .projection("cacheR[r.prop2] AS `r.prop2`")
         .relationshipIndexOperator(
-          "(a)-[r:REL(prop1 > 123, prop2)]-(b)",
+          "()-[r:REL(prop1 > 123, prop2)]-()",
           getValue = Map("prop1" -> DoNotGetValue, "prop2" -> GetValue),
           supportPartitionedScan = false
         )
@@ -1114,7 +1114,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
     plan should equal(planner.subPlanBuilder()
       .projection("cacheR[r.prop2] AS `r.prop2`")
       .relationshipIndexOperator(
-        "(a)-[r:REL(prop1 = 123, prop2)]-(b)",
+        "()-[r:REL(prop1 = 123, prop2)]-()",
         getValue = Map("prop1" -> DoNotGetValue, "prop2" -> GetValue),
         supportPartitionedScan = false
       )
@@ -1143,7 +1143,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .aggregation(Seq(), Seq("avg(cacheR[r.prop1]) AS `avg(r.prop1)`"))
-      .relationshipIndexOperator("(a)-[r:REL(prop1)]-(b)", getValue = _ => GetValue)
+      .relationshipIndexOperator("()-[r:REL(prop1)]-()", getValue = _ => GetValue)
       .build())
   }
 
@@ -1167,7 +1167,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .aggregation(Seq(), Seq("sum(cacheR[r.prop1]) AS `sum(r.prop1)`"))
-      .relationshipIndexOperator("(a)-[r:REL(prop1)]-(b)", getValue = _ => GetValue)
+      .relationshipIndexOperator("()-[r:REL(prop1)]-()", getValue = _ => GetValue)
       .build())
   }
 
