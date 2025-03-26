@@ -25,7 +25,7 @@ import static org.neo4j.kernel.database.NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID
 import static org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME;
 
 import java.util.Optional;
-import org.neo4j.dbms.api.DatabaseManagementException;
+import org.neo4j.dbms.api.DatabaseManagementHelper;
 import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.kernel.database.Database;
 import org.neo4j.kernel.database.NamedDatabaseId;
@@ -82,7 +82,8 @@ public final class DatabaseLifecycles {
                 .getByName(defaultDatabaseName)
                 .orElseThrow(() -> DatabaseNotFoundHelper.defaultDatabaseNotFound(defaultDatabaseName));
         if (databaseRepository.getDatabaseContext(defaultDatabaseId).isPresent()) {
-            throw new DatabaseManagementException(
+            throw DatabaseManagementHelper.internalError(
+                    this.getClass().getSimpleName(),
                     "Cannot initialize " + defaultDatabaseId + " because it already exists");
         }
         var context = createDatabase(defaultDatabaseId);
@@ -110,8 +111,10 @@ public final class DatabaseLifecycles {
             log.info("Stopped '%s' successfully.", namedDatabaseId);
         } catch (Throwable t) {
             log.error("Failed to stop " + namedDatabaseId, t);
-            context.fail(new DatabaseManagementException(
-                    format("An error occurred! Unable to stop `%s`.", namedDatabaseId), t));
+            context.fail(DatabaseManagementHelper.internalError(
+                    this.getClass().getSimpleName(),
+                    format("An error occurred! Unable to stop `%s`.", namedDatabaseId),
+                    t));
         }
     }
 
@@ -129,7 +132,8 @@ public final class DatabaseLifecycles {
 
     private void checkDatabaseLimit(NamedDatabaseId namedDatabaseId) {
         if (databaseRepository.registeredDatabases().size() >= 2) {
-            throw new DatabaseManagementException(
+            throw DatabaseManagementHelper.internalError(
+                    this.getClass().getSimpleName(),
                     "Default database already exists. Fail to create another: " + namedDatabaseId);
         }
     }
@@ -173,8 +177,10 @@ public final class DatabaseLifecycles {
                 return;
             }
 
-            throw new DatabaseManagementException(
-                    "Failed to stop " + ctx.database().getNamedDatabaseId().name() + " database.", ctx.failureCause());
+            throw DatabaseManagementHelper.internalError(
+                    this.getClass().getSimpleName(),
+                    "Failed to stop " + ctx.database().getNamedDatabaseId().name() + " database.",
+                    ctx.failureCause());
         }
     }
 

@@ -23,6 +23,7 @@ import static java.lang.String.format;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -89,6 +90,11 @@ public class TransientTransactionFailureException extends TransientFailureExcept
                 gql,
                 Status.Procedure.ProcedureCallFailed,
                 "The procedure registry was modified by another transaction. You may retry this operation.");
+    }
+
+    public static TransientTransactionFailureException internalError(String msgTitle, String message, Status status) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new TransientTransactionFailureException(gql, status, message);
     }
 
     @Override

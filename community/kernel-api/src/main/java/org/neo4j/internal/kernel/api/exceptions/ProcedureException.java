@@ -1024,4 +1024,9 @@ public class ProcedureException extends KernelException {
                 userClass,
                 cause.getMessage());
     }
+
+    public static ProcedureException internalError(String msgTitle, String message, Status status, Throwable cause) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new ProcedureException(gql, status, cause, message);
+    }
 }

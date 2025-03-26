@@ -313,12 +313,16 @@ public class DatabaseManagementServiceFactory {
         Optional<? extends DatabaseContext> databaseContext =
                 databaseContextProvider.getDatabaseContext(NAMED_SYSTEM_DATABASE_ID);
         if (databaseContext.isEmpty()) {
-            throw new UnableToStartDatabaseException(SYSTEM_DATABASE_NAME + " not found.");
+            throw UnableToStartDatabaseException.internalError(
+                    DatabaseManagementService.class.getSimpleName(), SYSTEM_DATABASE_NAME + " not found.");
         }
 
         Optional<Throwable> failure = dbStateService.causeOfFailure(NAMED_SYSTEM_DATABASE_ID);
         if (failure.isPresent()) {
-            throw new UnableToStartDatabaseException(SYSTEM_DATABASE_NAME + " failed to start.", failure.get());
+            throw UnableToStartDatabaseException.internalError(
+                    DatabaseManagementService.class.getSimpleName(),
+                    SYSTEM_DATABASE_NAME + " failed to start.",
+                    failure.get());
         }
     }
 
