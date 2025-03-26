@@ -33,7 +33,6 @@ import java.util.Collections;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -54,13 +53,17 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
-import org.neo4j.test.extension.EphemeralFileSystemExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
+import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.token.api.TokenHolder;
 
-@ExtendWith(EphemeralFileSystemExtension.class)
+@EphemeralTestDirectoryExtension
 class TestRecoveryScenarios {
+    @Inject
+    private TestDirectory directory;
+
     @Inject
     private EphemeralFileSystemAbstraction fs;
 
@@ -96,9 +99,7 @@ class TestRecoveryScenarios {
         // THEN
         // -- really the problem was that recovery threw exception, so mostly assert that.
         try (Transaction tx = db.beginTx()) {
-            assertThatThrownBy(() -> tx.getNodeById(node.getId()))
-                    .isInstanceOf(NotFoundException.class)
-                    .hasMessage("Node " + node.getId() + " not found");
+            assertThatThrownBy(() -> tx.getNodeByElementId(node.getElementId())).isInstanceOf(NotFoundException.class);
         }
     }
 
@@ -184,7 +185,7 @@ class TestRecoveryScenarios {
 
     private void removeLabels(Node node, Label... labels) {
         try (Transaction tx = db.beginTx()) {
-            var targetNode = tx.getNodeById(node.getId());
+            var targetNode = tx.getNodeByElementId(node.getElementId());
             for (Label label : labels) {
                 targetNode.removeLabel(label);
             }
@@ -194,14 +195,14 @@ class TestRecoveryScenarios {
 
     private void removeProperty(Node node, String key) {
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).removeProperty(key);
+            tx.getNodeByElementId(node.getElementId()).removeProperty(key);
             tx.commit();
         }
     }
 
     private void addLabel(Node node, Label label) {
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).addLabel(label);
+            tx.getNodeByElementId(node.getElementId()).addLabel(label);
             tx.commit();
         }
     }
@@ -259,20 +260,20 @@ class TestRecoveryScenarios {
 
     private void deleteNode(Node node) {
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).delete();
+            tx.getNodeByElementId(node.getElementId()).delete();
             tx.commit();
         }
     }
 
     private void setProperty(Node node, String key, Object value) {
         try (Transaction tx = db.beginTx()) {
-            tx.getNodeById(node.getId()).setProperty(key, value);
+            tx.getNodeByElementId(node.getElementId()).setProperty(key, value);
             tx.commit();
         }
     }
 
-    private static TestDatabaseManagementServiceBuilder databaseFactory(FileSystemAbstraction fs) {
-        return new TestDatabaseManagementServiceBuilder().setFileSystem(fs);
+    private TestDatabaseManagementServiceBuilder databaseFactory(FileSystemAbstraction fs) {
+        return new TestDatabaseManagementServiceBuilder(directory.homePath()).setFileSystem(fs);
     }
 
     private void crashAndRestart() throws Exception {

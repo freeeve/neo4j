@@ -28,6 +28,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.common.DependencyResolver;
@@ -66,6 +67,7 @@ public class TestDatabaseManagementServiceBuilder extends DatabaseManagementServ
         implements TestNeo4jDatabaseManagementServiceBuilder {
     private static final Path EPHEMERAL_PATH =
             Path.of("/target/test data/" + GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
+    private static final AtomicInteger EPHEMERAL_PATH_UID = new AtomicInteger();
 
     protected FileSystemAbstraction fileSystem;
     protected InternalLogProvider internalLogProvider;
@@ -105,7 +107,8 @@ public class TestDatabaseManagementServiceBuilder extends DatabaseManagementServ
             if (fileSystem.isPersistent()) {
                 throw new RuntimeException("You have to specify a home directory or use an impermanent filesystem.");
             } else {
-                homeDirectory = EPHEMERAL_PATH;
+                homeDirectory = EPHEMERAL_PATH.resolveSibling(
+                        EPHEMERAL_PATH.getFileName().toString() + "-" + EPHEMERAL_PATH_UID.getAndIncrement());
             }
         }
 

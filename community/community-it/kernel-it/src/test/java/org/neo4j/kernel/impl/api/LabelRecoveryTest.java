@@ -25,7 +25,6 @@ import static org.neo4j.graphdb.Label.label;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -33,11 +32,15 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
-import org.neo4j.test.extension.EphemeralFileSystemExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
+import org.neo4j.test.utils.TestDirectory;
 
-@ExtendWith(EphemeralFileSystemExtension.class)
+@EphemeralTestDirectoryExtension
 class LabelRecoveryTest {
+    @Inject
+    private TestDirectory directory;
+
     @Inject
     private EphemeralFileSystemAbstraction filesystem;
 
@@ -64,7 +67,7 @@ class LabelRecoveryTest {
     @Test
     void shouldRecoverNodeWithDynamicLabelRecords() {
         // GIVEN
-        managementService = new TestDatabaseManagementServiceBuilder()
+        managementService = new TestDatabaseManagementServiceBuilder(directory.homePath())
                 .setFileSystem(filesystem)
                 .build();
         database = managementService.database(DEFAULT_DATABASE_NAME);
@@ -89,20 +92,20 @@ class LabelRecoveryTest {
 
         // WHEN
         try (Transaction tx = database.beginTx()) {
-            node = tx.getNodeById(node.getId());
+            node = tx.getNodeByElementId(node.getElementId());
             node.setProperty("prop", "value");
             tx.commit();
         }
         EphemeralFileSystemAbstraction snapshot = filesystem.snapshot();
         managementService.shutdown();
-        managementService = new TestDatabaseManagementServiceBuilder()
+        managementService = new TestDatabaseManagementServiceBuilder(directory.homePath())
                 .setFileSystem(snapshot)
                 .build();
         database = managementService.database(DEFAULT_DATABASE_NAME);
 
         // THEN
         try (Transaction tx = database.beginTx()) {
-            node = tx.getNodeById(node.getId());
+            node = tx.getNodeByElementId(node.getElementId());
             for (Label label : labels) {
                 assertTrue(node.hasLabel(label));
             }
