@@ -99,7 +99,7 @@ class SemanticAnalysisToolingTest extends CypherFunSuite with AstConstructionTes
     val initialState = SemanticState.clean
     val stateForCheck = initialState.declareVariable(varFor("x"), CTNode.invariant).getOrElse(fail())
 
-    val error = SemanticError("some error", pos)
+    val error = SemanticError.internalError(this.getClass.getSimpleName, "some error", pos)
 
     val check = toTest.withState(stateForCheck) {
       SemanticCheck.fromFunction { state =>

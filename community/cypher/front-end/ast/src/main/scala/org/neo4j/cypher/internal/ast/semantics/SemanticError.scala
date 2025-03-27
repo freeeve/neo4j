@@ -51,6 +51,11 @@ object SemanticError {
   def unapply(errorDef: SemanticErrorDef): Option[(ErrorGqlStatusObject, String, InputPosition)] =
     Some((errorDef.gqlStatusObject, errorDef.msg, errorDef.position))
 
+  def internalError(msgTitle: String, msg: String, position: InputPosition): SemanticError = {
+    val gql = GqlHelper.get50N00(msgTitle, msg, position.offset, position.line, position.column)
+    SemanticError(gql, msg, position)
+  }
+
   def invalidOption(
     invalidOptionsString: String,
     validOptions: Seq[String],

@@ -63,7 +63,7 @@ class ListComprehensionTest extends SemanticFunSuite {
   }
 
   test("shouldSemanticCheckPredicateInStateContainingTypedVariable") {
-    val error = SemanticError("dummy error", DummyPosition(8))
+    val error = SemanticError.internalError(this.getClass.getSimpleName, "dummy error", DummyPosition(8))
     val predicate = ErrorExpression(error, CTAny, DummyPosition(7))
 
     val filter =

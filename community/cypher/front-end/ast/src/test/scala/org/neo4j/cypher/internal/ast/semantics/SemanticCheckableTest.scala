@@ -31,11 +31,11 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
   test("shouldChainSemanticCheckableFunctions") {
     val state1 = SemanticState.clean
-    val error1 = SemanticError("an error", pos)
+    val error1 = SemanticError.internalError(this.getClass.getSimpleName, "an error", pos)
     val func1: SemanticCheck = SemanticCheck.fromFunction(_ => SemanticCheckResult(state1, Seq(error1)))
 
     val state2 = SemanticState.clean
-    val error2 = SemanticError("another error", pos)
+    val error2 = SemanticError.internalError(this.getClass.getSimpleName, "another error", pos)
     val func2: SemanticCheck = SemanticCheck.fromFunction { s =>
       s should equal(state1)
       SemanticCheckResult(state2, Seq(error2))
@@ -49,7 +49,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
   test("shouldChainSemanticFunctionReturningRightOfEither") {
     val state1 = SemanticState.clean
-    val error1 = SemanticError("an error", pos)
+    val error1 = SemanticError.internalError(this.getClass.getSimpleName, "an error", pos)
     val func1: SemanticCheck = SemanticCheck.fromFunction(_ => SemanticCheckResult(state1, Seq(error1)))
 
     val state2 = SemanticState.clean
@@ -73,10 +73,10 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
   test("shouldChainSemanticFunctionReturningLeftOfEither") {
     val state1 = SemanticState.clean
-    val error1 = SemanticError("an error", pos)
+    val error1 = SemanticError.internalError(this.getClass.getSimpleName, "an error", pos)
     val func1: SemanticCheck = SemanticCheck.fromFunction(_ => SemanticCheckResult(state1, Seq(error1)))
 
-    val error2 = SemanticError("another error", pos)
+    val error2 = SemanticError.internalError(this.getClass.getSimpleName, "another error", pos)
     val func2: SemanticState => Either[SemanticError, SemanticState] = _ => Left(error2)
 
     val chain1: SemanticCheck = func1 chain func2
@@ -98,7 +98,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
   test("shouldChainSemanticFunctionReturningNone") {
     val state1 = SemanticState.clean
-    val error1 = SemanticError("an error", pos)
+    val error1 = SemanticError.internalError(this.getClass.getSimpleName, "an error", pos)
     val func1: SemanticCheck = SemanticCheck.fromFunction(_ => SemanticCheckResult(state1, Seq(error1)))
 
     val func2: SemanticState => Option[SemanticError] = _ => None
@@ -122,10 +122,10 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
   test("shouldChainSemanticFunctionReturningSomeError") {
     val state1 = SemanticState.clean
-    val error1 = SemanticError("an error", pos)
+    val error1 = SemanticError.internalError(this.getClass.getSimpleName, "an error", pos)
     val func1: SemanticCheck = SemanticCheck.fromFunction(_ => SemanticCheckResult(state1, Seq(error1)))
 
-    val error2 = SemanticError("another error", pos)
+    val error2 = SemanticError.internalError(this.getClass.getSimpleName, "another error", pos)
     val func2: SemanticState => Option[SemanticError] = _ => Some(error2)
 
     val chain1: SemanticCheck = func1 chain func2
@@ -149,7 +149,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
     val state1 = SemanticState.clean
     val func1: SemanticCheck = SemanticCheck.fromFunction(_ => SemanticCheckResult(state1, Seq()))
 
-    val error2 = SemanticError("an error", pos)
+    val error2 = SemanticError.internalError(this.getClass.getSimpleName, "an error", pos)
     val func2: SemanticState => Option[SemanticError] = _ => Some(error2)
 
     val chain: SemanticCheck = func1 chain func2
@@ -160,7 +160,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
   test("shouldNotChainSemanticFunctionAfterAnErrorWithIfOkThen") {
     val state1 = SemanticState.clean
-    val error1 = SemanticError("an error", pos)
+    val error1 = SemanticError.internalError(this.getClass.getSimpleName, "an error", pos)
     val func1 = (_: SemanticState) => SemanticCheckResult(state1, Seq(error1))
     val func2: SemanticCheck = SemanticCheck.fromFunction(_ => fail("Second check was incorrectly run"))
 
@@ -172,10 +172,10 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
   test("shouldEvaluateInnerCheckForTrueWhen") {
     val state1 = SemanticState.clean
-    val error1 = SemanticError("an error", pos)
+    val error1 = SemanticError.internalError(this.getClass.getSimpleName, "an error", pos)
     val func1: SemanticCheck = SemanticCheck.fromFunction(_ => SemanticCheckResult(state1, Seq(error1)))
 
-    val error2 = SemanticError("another error", pos)
+    val error2 = SemanticError.internalError(this.getClass.getSimpleName, "another error", pos)
     val func2: SemanticState => Option[SemanticError] = _ => Some(error2)
 
     val chain: SemanticCheck = func1 chain when(condition = true) { func2 }
@@ -186,7 +186,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
   test("shouldNotEvaluateInnerCheckForFalseWhen") {
     val state1 = SemanticState.clean
-    val error = SemanticError("an error", pos)
+    val error = SemanticError.internalError(this.getClass.getSimpleName, "an error", pos)
     val func1: SemanticCheck = SemanticCheck.fromFunction(_ => SemanticCheckResult(state1, Seq(error)))
     val func2: SemanticCheck = SemanticCheck.fromFunction(_ => fail("Second check was incorrectly run"))
 
@@ -203,7 +203,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
         s.declareVariable(variable, CTNode)
       }
 
-    val error = SemanticError("an error", pos)
+    val error = SemanticError.internalError(this.getClass.getSimpleName, "an error", pos)
     val func2: SemanticCheck = SemanticCheck.fromFunction { s =>
       s.currentScope.localSymbol("name") shouldBe defined
       s.currentScope.parent shouldBe defined
@@ -227,7 +227,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
 
   test("SemanticCheck.error should produce error") {
     val state = SemanticState.clean
-    val error = SemanticError("first error", pos)
+    val error = SemanticError.internalError(this.getClass.getSimpleName, "first error", pos)
 
     SemanticCheck.error(error).run(state) shouldBe SemanticCheckResult(state, Vector(error))
   }
@@ -255,8 +255,8 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
     val state2 = state1.declareVariable(varFor("y"), CTInteger.invariant).getOrElse(fail())
     val state3 = state2.declareVariable(varFor("z"), CTInteger.invariant).getOrElse(fail())
 
-    val error1 = SemanticError("first error", pos)
-    val error3 = SemanticError("second error", pos)
+    val error1 = SemanticError.internalError(this.getClass.getSimpleName, "first error", pos)
+    val error3 = SemanticError.internalError(this.getClass.getSimpleName, "second error", pos)
 
     val check1 = SemanticCheck.fromFunction { s =>
       s shouldBe state0
@@ -287,7 +287,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
   }
 
   test("SemanticCheck.nestedCheck should work") {
-    val error = SemanticError("some error", pos)
+    val error = SemanticError.internalError(this.getClass.getSimpleName, "some error", pos)
     val check = SemanticCheck.nestedCheck {
       SemanticCheck.error(error)
     }
@@ -297,7 +297,7 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
   }
 
   test("SemanticCheck.nestedCheck should not evaluate nested check during construction") {
-    val error = SemanticError("some error", pos)
+    val error = SemanticError.internalError(this.getClass.getSimpleName, "some error", pos)
     val failingCheck = SemanticCheck.error(error)
 
     val nested = SemanticCheck.nestedCheck {
@@ -312,8 +312,8 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
   }
 
   test("SemanticCheck.fromState should work") {
-    val error1 = SemanticError("first error", pos)
-    val error2 = SemanticError("second error", pos)
+    val error1 = SemanticError.internalError(this.getClass.getSimpleName, "first error", pos)
+    val error2 = SemanticError.internalError(this.getClass.getSimpleName, "second error", pos)
 
     val checkFromState = SemanticCheck.fromState { state =>
       if (!state.isNode("x"))
@@ -345,12 +345,12 @@ class SemanticCheckableTest extends CypherFunSuite with SemanticAnalysisTooling 
     val check1 = SemanticCheck.fromContext { context =>
       val msg =
         context.errorMessageProvider.createMissingPropertyLabelHintError(null, null, null, null, null, null, null)
-      SemanticCheck.error(SemanticError(msg, pos))
+      SemanticCheck.error(SemanticError.internalError(this.getClass.getSimpleName, msg, pos))
     }
 
     val check2 = SemanticCheck.fromContext { context =>
       val msg = context.errorMessageProvider.createSelfReferenceError(null, null)
-      SemanticCheck.error(SemanticError(msg, pos))
+      SemanticCheck.error(SemanticError.internalError(this.getClass.getSimpleName, msg, pos))
     }
 
     val check = check1 chain check2

@@ -33,7 +33,7 @@ import org.neo4j.cypher.internal.util.symbols.CTString
 class ReduceExpressionTest extends SemanticFunSuite {
 
   test("shouldEvaluateReduceExpressionWithTypedVariables") {
-    val error = SemanticError("dummy error", DummyPosition(10))
+    val error = SemanticError.internalError(this.getClass.getSimpleName, "dummy error", DummyPosition(10))
 
     val reduceExpression = CustomExpression((ctx, self) =>
       (s: SemanticState) => {
