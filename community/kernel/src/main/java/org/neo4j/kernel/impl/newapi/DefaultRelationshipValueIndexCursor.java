@@ -33,7 +33,8 @@ import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.Reference;
 
-class DefaultRelationshipValueIndexCursor extends DefaultEntityValueIndexCursor<DefaultRelationshipValueIndexCursor>
+public class DefaultRelationshipValueIndexCursor
+        extends DefaultEntityValueIndexCursor<DefaultRelationshipValueIndexCursor>
         implements RelationshipValueIndexCursor {
     private final InternalCursorFactory internalCursors;
     private final DefaultRelationshipScanCursor relationshipScanCursor;

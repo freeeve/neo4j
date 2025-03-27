@@ -63,7 +63,7 @@ import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
 
-abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexProgressor, CURSOR>
+public abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<IndexProgressor, CURSOR>
         implements ValueIndexCursor, IndexResultScore, EntityIndexSeekClient, SortedMergeJoin.Sink {
     protected Read read;
     protected TxStateHolder txStateHolder;

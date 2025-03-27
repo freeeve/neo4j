@@ -33,7 +33,7 @@ import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.StorageProperty;
 
-class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<DefaultNodeValueIndexCursor>
+public class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<DefaultNodeValueIndexCursor>
         implements NodeValueIndexCursor {
     private final InternalCursorFactory internalCursors;
     private final boolean applyAccessModeToTxState;
