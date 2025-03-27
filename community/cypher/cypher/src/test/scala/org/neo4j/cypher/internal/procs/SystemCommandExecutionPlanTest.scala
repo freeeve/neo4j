@@ -34,7 +34,11 @@ class SystemCommandExecutionPlanTest extends CypherFunSuite {
   test("will call QueryHandler to translate exceptions") {
     // Given
     val queryHandler = QueryHandler.handleError((e, p) => {
-      new CypherExecutionException("Message " + p.get("k1").asInstanceOf[StringValue].stringValue())
+      CypherExecutionException.internalError(
+        this.getClass.getSimpleName,
+        "Message " + p.get("k1").asInstanceOf[StringValue].stringValue(),
+        e
+      )
     })
     val subscriber =
       new SystemCommandQuerySubscriber(

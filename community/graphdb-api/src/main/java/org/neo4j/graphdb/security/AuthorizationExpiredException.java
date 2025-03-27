@@ -31,7 +31,7 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class AuthorizationExpiredException extends GqlRuntimeException implements Status.HasStatus {
     private static final Status statusCode = Status.Security.AuthorizationExpired;
 
-    private static final String LDAP_AUTH_INFO_EXPIRED = "LDAP authorization info expired.";
+    public static final String LDAP_AUTH_INFO_EXPIRED = "LDAP authorization info expired.";
     private static final String OIDC_AUTH_INFO_EXPIRED = "OIDC authorization info expired.";
 
     @Deprecated

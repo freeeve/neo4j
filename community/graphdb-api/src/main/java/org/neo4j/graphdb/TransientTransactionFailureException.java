@@ -97,6 +97,12 @@ public class TransientTransactionFailureException extends TransientFailureExcept
         return new TransientTransactionFailureException(gql, status, message);
     }
 
+    public static TransientTransactionFailureException internalError(
+            String msgTitle, String message, Status status, Throwable cause) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new TransientTransactionFailureException(gql, status, message, cause);
+    }
+
     @Override
     public Status status() {
         return status;

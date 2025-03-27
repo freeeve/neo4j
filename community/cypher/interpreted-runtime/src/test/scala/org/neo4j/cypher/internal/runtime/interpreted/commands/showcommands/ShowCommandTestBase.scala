@@ -145,7 +145,7 @@ class ShowCommandTestBase extends CypherFunSuite {
     when(txContext.securityAuthorizationHandler).thenReturn(securityHandler)
 
     when(securityHandler.logAndGetAuthorizationException(any(), any()))
-      .thenAnswer(invocation => new AuthorizationViolationException(invocation.getArgument(1)))
+      .thenAnswer(invocation => AuthorizationViolationException.authorizationViolation(invocation.getArgument(1)))
   }
 
   protected def handleSystemQueries(query: String, segment: String): Result = query match {

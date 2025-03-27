@@ -622,7 +622,7 @@ class InvocationTest {
                         nullable(Duration.class),
                         anyMap(),
                         nullable(NotificationConfiguration.class)))
-                .thenThrow(new AuthorizationViolationException("Forbidden"));
+                .thenThrow(AuthorizationViolationException.authorizationViolation("Forbidden"));
 
         when(registry.begin(any(TransactionHandle.class))).thenReturn(1337L);
         TransactionHandle handle = getTransactionHandle(registry);
