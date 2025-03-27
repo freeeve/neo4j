@@ -66,7 +66,7 @@ public sealed interface BufferLeakTracker
                                                           ***WARNING***
                     Native buffer leak(s) has been detected by the buffer leak tracker. The test session will be marked as failed.
                     Please review the details of unreleased allocations from the tests executed in the current session below.
-                    Executed tests:
+                    Last executed tests:
                     """);
             exceptionBuilder
                     .append(testPlanDescriptionProvider.get())
@@ -82,7 +82,6 @@ public sealed interface BufferLeakTracker
             }
             exceptionBuilder.append("All active threads dump:").append(System.lineSeparator());
             exceptionBuilder.append(DumpUtils.threadDump());
-            System.out.println(exceptionBuilder);
             throw new RuntimeException(exceptionBuilder.toString());
         }
     }

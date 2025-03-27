@@ -83,6 +83,7 @@ public class DumpFormatSelector {
                 if (input.available() > 0) {
                     return input;
                 }
+                input.close();
             } catch (IOException e) {
                 // ignore
             }
