@@ -150,7 +150,7 @@ object RemoteBatchingStrategy {
               plan,
               propertiesToFetch,
               context,
-              predicatesToExecute.toSeq
+              predicatesToExecute
             )
           case None => plan
         }
@@ -212,7 +212,7 @@ object RemoteBatchingStrategy {
                 plan,
                 propertiesToFetch,
                 context,
-                predicatesToExecute.toSeq
+                predicatesToExecute
               )
             case None => plan
           }
@@ -259,7 +259,7 @@ object RemoteBatchingStrategy {
         RewrittenExpressions.forMap(expressions.map(expr => expr -> expr.endoRewrite(rewriter)).toMap)
       RemoteBatchingResult(
         rewrittenExpressions,
-        planBatchProperties(inputPlan, context, accessedProperties, rewrittenExpressions.allRewrittenExpressions.toSeq)
+        planBatchProperties(inputPlan, context, accessedProperties, rewrittenExpressions.allRewrittenExpressions)
       )
     }
 
@@ -276,7 +276,7 @@ object RemoteBatchingStrategy {
         RewrittenExpressions.forMap(expressions.map(expr => expr -> expr.endoRewrite(rewriter)).toMap)
       RemoteBatchingResult(
         rewrittenExpressions,
-        planBatchProperties(input, context, accessedProperties, rewrittenExpressions.allRewrittenExpressions.toSeq)
+        planBatchProperties(input, context, accessedProperties, rewrittenExpressions.allRewrittenExpressions)
       )
     }
 
@@ -461,7 +461,7 @@ object RemoteBatchingStrategy {
         queryGraph.selections.flatPredicatesSet
           .diff(previouslySolvedPredicates ++ predicatesToIgnore)
           .filter(expr => expr.dependencies.intersect(input.availableSymbols).nonEmpty)
-      PropertyAccessHelper.findPropertyAccesses(predicatesToBeSolvedLater.toSeq)
+      PropertyAccessHelper.findPropertyAccesses(predicatesToBeSolvedLater)
     }
 
     private def cachedPropertiesRewriter(
@@ -579,7 +579,7 @@ object RemoteBatchingStrategy {
           input,
           context,
           accessedProperties,
-          rewrittenExprsAfterRemoteBatchProperties.allRewrittenExpressions.toSeq,
+          rewrittenExprsAfterRemoteBatchProperties.allRewrittenExpressions,
           shardPredicatePushdownPartition.filterOnShards.map(_.logicalVariable)
         )
 

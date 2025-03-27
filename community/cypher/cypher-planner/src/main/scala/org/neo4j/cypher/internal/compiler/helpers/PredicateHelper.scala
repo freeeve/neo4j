@@ -43,7 +43,7 @@ object PredicateHelper {
    * @param predicates The predicates to coerce
    * @return coerced predicates anded together
    */
-  def coercePredicatesWithAnds(predicates: Seq[Expression]): Option[Ands] = {
+  def coercePredicatesWithAnds(predicates: Iterable[Expression]): Option[Ands] = {
     Option.when(predicates.nonEmpty) {
       Ands(predicates.map(coerceToPredicate))(predicates.map(coerceToPredicate).head.position)
     }

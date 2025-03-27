@@ -253,6 +253,11 @@ final case class QueryGraph private (
     copy(selections = selections ++ newSelections)
   }
 
+  def addPredicates(predicates: Iterable[Expression]): QueryGraph = {
+    val newSelections = Selections(predicates.flatMap(_.asPredicates).toSet)
+    copy(selections = selections ++ newSelections)
+  }
+
   def addPredicates(predicates: Set[Predicate]): QueryGraph = {
     val newSelections = Selections(selections.predicates ++ predicates)
     copy(selections = newSelections)

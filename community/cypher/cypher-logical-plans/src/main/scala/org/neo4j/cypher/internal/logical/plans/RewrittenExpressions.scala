@@ -43,9 +43,9 @@ object RewrittenExpressions {
   }
 
   private case class NoRewrittenExpressions(originalExpressions: Iterable[Expression]) extends RewrittenExpressions {
-    def rewrittenExpressionOrSelf(expr: Expression): Expression = expr
-    def allRewrittenExpressions: Iterable[Expression] = originalExpressions
-    def isEmpty: Boolean = originalExpressions.isEmpty
+    override def rewrittenExpressionOrSelf(expr: Expression): Expression = expr
+    override def allRewrittenExpressions: Iterable[Expression] = originalExpressions
+    override def isEmpty: Boolean = originalExpressions.isEmpty
     override def nonEmpty: Boolean = originalExpressions.nonEmpty
   }
 

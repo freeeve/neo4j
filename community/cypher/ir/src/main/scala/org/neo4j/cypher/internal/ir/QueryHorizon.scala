@@ -197,6 +197,11 @@ sealed abstract class QueryProjection extends QueryHorizon {
     withSelection(selections = selections ++ newSelections)
   }
 
+  def addPredicates(predicates: Iterable[Expression]): QueryProjection = {
+    val newSelections = Selections(predicates.flatMap(_.asPredicates).toSet)
+    withSelection(selections = selections ++ newSelections)
+  }
+
   override def allHints: ListSet[Hint] = ListSet.empty
 
   override def withoutHints(hintsToIgnore: ListSet[Hint]): QueryHorizon = this

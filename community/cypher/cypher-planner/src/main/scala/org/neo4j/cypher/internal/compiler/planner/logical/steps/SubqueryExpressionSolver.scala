@@ -515,7 +515,7 @@ object SubqueryExpressionSolver {
 
     def solve(
       lhs: LogicalPlan,
-      unsolvedPredicates: Seq[Expression],
+      unsolvedPredicates: Iterable[Expression],
       interestingOrderConfig: InterestingOrderConfig,
       context: LogicalPlanningContext
     ): (Seq[Expression], LogicalPlan) = {
