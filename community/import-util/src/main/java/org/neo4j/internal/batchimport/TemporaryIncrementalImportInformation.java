@@ -267,6 +267,22 @@ public class TemporaryIncrementalImportInformation implements Closeable {
                 return 0L;
             }
         },
+        STRING {
+            @Override
+            void write(DataOutputStream output, Object value) throws IOException {
+                output.writeUTF((String) value);
+            }
+
+            @Override
+            Object read(DataInputStream input) throws IOException {
+                return input.readUTF();
+            }
+
+            @Override
+            Object defaultValue() {
+                return null;
+            }
+        },
         LONG_SET {
             @Override
             void write(DataOutputStream output, Object value) throws IOException {
