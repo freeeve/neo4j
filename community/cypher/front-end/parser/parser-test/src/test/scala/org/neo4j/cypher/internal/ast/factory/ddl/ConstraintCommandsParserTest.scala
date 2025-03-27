@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.util.symbols.NothingType
 import org.neo4j.cypher.internal.util.symbols.NullType
 import org.neo4j.cypher.internal.util.symbols.PathType
 import org.neo4j.cypher.internal.util.symbols.PointType
+import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
@@ -2555,16 +2556,35 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     }
   }
 
+  // In Cypher 5 the property set is different (doesn't contain vector type), so this updates
+  // the types accordingly
+  def getCorrectCypherVersionOfType(fromCypher5: Boolean, typeExpr: CypherType): CypherType = {
+    if (fromCypher5) {
+      typeExpr match {
+        case _: PropertyValueType =>
+          PropertyValueCypher5Type(isNullable = typeExpr.isNullable)(typeExpr.position)
+        case listType: ListType => ListType(
+            getCorrectCypherVersionOfType(fromCypher5, listType.innerType),
+            listType.isNullable
+          )(listType.position)
+        case unionType: ClosedDynamicUnionType => ClosedDynamicUnionType(unionType.innerTypes.map(innerType =>
+            getCorrectCypherVersionOfType(fromCypher5, innerType)
+          ))(unionType.position)
+        case _ => typeExpr
+      }
+    } else typeExpr
+  }
+
   disallowedNonListSingleTypes.foreach { case (typeString, typeExpr: CypherType) =>
     test(
       s"CREATE CONSTRAINT my_constraint FOR (n:Label) REQUIRE r.prop IS TYPED ${typeString.toLowerCase}"
     ) {
-      assertAst(
+      assertAstVersionBased(fromCypher5 =>
         ast.CreateConstraint.createNodePropertyTypeConstraint(
           varFor("n"),
           labelName("Label"),
           prop("r", "prop"),
-          typeExpr,
+          getCorrectCypherVersionOfType(fromCypher5, typeExpr),
           Some("my_constraint"),
           ast.IfExistsThrowError,
           ast.NoOptions
@@ -2575,12 +2595,12 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() REQUIRE n.prop IS TYPED $typeString"
     ) {
-      assertAst(
+      assertAstVersionBased(fromCypher5 =>
         ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
           varFor("r"),
           relTypeName("R"),
           prop("n", "prop"),
-          typeExpr,
+          getCorrectCypherVersionOfType(fromCypher5, typeExpr),
           Some("my_constraint"),
           ast.IfExistsThrowError,
           ast.NoOptions
@@ -2595,12 +2615,12 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     ) {
       // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
-        _ =>
+        fromCypher5 =>
           ast.Statements(Seq(ast.CreateConstraint.createNodePropertyTypeConstraint(
             varFor("n"),
             labelName("Label"),
             prop("r", "prop"),
-            listTypeExpr,
+            getCorrectCypherVersionOfType(fromCypher5, listTypeExpr),
             Some("my_constraint"),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -2614,12 +2634,12 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     ) {
       // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
-        _ =>
+        fromCypher5 =>
           ast.Statements(Seq(ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
             varFor("r"),
             relTypeName("R"),
             prop("n", "prop"),
-            listTypeExpr,
+            getCorrectCypherVersionOfType(fromCypher5, listTypeExpr),
             Some("my_constraint"),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -2635,12 +2655,12 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     ) {
       // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
-        _ =>
+        fromCypher5 =>
           ast.Statements(Seq(ast.CreateConstraint.createNodePropertyTypeConstraint(
             varFor("n"),
             labelName("Label"),
             prop("r", "prop"),
-            unionTypeExpr,
+            getCorrectCypherVersionOfType(fromCypher5, unionTypeExpr),
             Some("my_constraint"),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -2654,12 +2674,12 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     ) {
       // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
-        _ =>
+        fromCypher5 =>
           ast.Statements(Seq(ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
             varFor("r"),
             relTypeName("R"),
             prop("n", "prop"),
-            unionTypeExpr,
+            getCorrectCypherVersionOfType(fromCypher5, unionTypeExpr),
             Some("my_constraint"),
             ast.IfExistsThrowError,
             ast.NoOptions
@@ -3032,44 +3052,79 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   }
 
   test("CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS TYPED") {
-    failsParsing[ast.Statements].withSyntaxError(
-      """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 49 (offset: 48))
-        |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS TYPED"
-        |                                                 ^""".stripMargin
-    )
-
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 49 (offset: 48))
+            |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS TYPED"
+            |                                                 ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 49 (offset: 48))
+            |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS TYPED"
+            |                                                 ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS ::") {
-    failsParsing[ast.Statements].withSyntaxError(
-      """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 46 (offset: 45))
-        |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS ::"
-        |                                              ^""".stripMargin
-    )
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 46 (offset: 45))
+            |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS ::"
+            |                                              ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 46 (offset: 45))
+            |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS ::"
+            |                                              ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE CONSTRAINT FOR (n:L) REQUIRE n.p ::") {
-    failsParsing[ast.Statements].withSyntaxError(
-      """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 43 (offset: 42))
-        |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p ::"
-        |                                           ^""".stripMargin
-    )
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 43 (offset: 42))
+            |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p ::"
+            |                                           ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 43 (offset: 42))
+            |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p ::"
+            |                                           ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: TYPED") {
-    failsParsing[ast.Statements].withSyntaxError(
-      """Invalid input 'TYPED': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 44 (offset: 43))
-        |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: TYPED"
-        |                                            ^""".stripMargin
-    )
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """Invalid input 'TYPED': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 44 (offset: 43))
+            |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: TYPED"
+            |                                            ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Invalid input 'TYPED': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 44 (offset: 43))
+            |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: TYPED"
+            |                                            ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: UNIQUE") {
-    failsParsing[ast.Statements].withSyntaxError(
-      """Invalid input 'UNIQUE': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 44 (offset: 43))
-        |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: UNIQUE"
-        |                                            ^""".stripMargin
-    )
+
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          """Invalid input 'UNIQUE': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 44 (offset: 43))
+            |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: UNIQUE"
+            |                                            ^""".stripMargin
+        )
+      case _ => _.withSyntaxErrorContaining(
+          """Invalid input 'UNIQUE': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 44 (offset: 43))
+            |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: UNIQUE"
+            |                                            ^""".stripMargin
+        )
+    }
   }
 
   test("CREATE CONSTRAINT FOR (n:L) REQUIRE n.p :: BOOLEAN UNIQUE") {

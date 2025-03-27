@@ -62,8 +62,12 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType;
 import org.neo4j.cypher.internal.util.symbols.CypherType;
 import org.neo4j.cypher.internal.util.symbols.DateType;
 import org.neo4j.cypher.internal.util.symbols.DurationType;
+import org.neo4j.cypher.internal.util.symbols.Float32Type;
 import org.neo4j.cypher.internal.util.symbols.FloatType;
 import org.neo4j.cypher.internal.util.symbols.GeometryType;
+import org.neo4j.cypher.internal.util.symbols.Integer16Type;
+import org.neo4j.cypher.internal.util.symbols.Integer32Type;
+import org.neo4j.cypher.internal.util.symbols.Integer8Type;
 import org.neo4j.cypher.internal.util.symbols.IntegerType;
 import org.neo4j.cypher.internal.util.symbols.ListType;
 import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType;
@@ -75,9 +79,11 @@ import org.neo4j.cypher.internal.util.symbols.NullType;
 import org.neo4j.cypher.internal.util.symbols.NumberType;
 import org.neo4j.cypher.internal.util.symbols.PathType;
 import org.neo4j.cypher.internal.util.symbols.PointType;
+import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type;
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType;
 import org.neo4j.cypher.internal.util.symbols.RelationshipType;
 import org.neo4j.cypher.internal.util.symbols.StringType;
+import org.neo4j.cypher.internal.util.symbols.VectorType;
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType;
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType;
 import org.neo4j.exceptions.CypherTypeException;
@@ -123,6 +129,7 @@ import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 import org.neo4j.values.storable.ValueRepresentation;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.storable.VectorValue;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.ListValueBuilder;
 import org.neo4j.values.virtual.MapValue;
@@ -2416,6 +2423,15 @@ public final class CypherFunctions {
             result = (item instanceof SequenceValue list) && checkInnerListIsTyped(list, listType);
         } else if (typeName.hasValueRepresentation()) {
             result = possibleValueRepresentations(typeName).contains(item.valueRepresentation());
+            if (result && typeName instanceof VectorType vectorType && item instanceof VectorValue vectorValue) {
+                // If the inner type was matched above, we also need to make sure the dimension is checked
+                if (vectorType.dimension().isDefined()) {
+                    long dimension = (Long) vectorType.dimension().get();
+                    if (vectorValue.dimensions() != dimension) {
+                        result = false;
+                    }
+                }
+            }
         } else if (typeName instanceof NodeType) {
             result = item instanceof VirtualNodeValue;
         } else if (typeName instanceof RelationshipType) {
@@ -2424,11 +2440,21 @@ public final class CypherFunctions {
             result = item instanceof MapValue;
         } else if (typeName instanceof PathType) {
             result = item instanceof VirtualPathValue;
-        } else if (typeName instanceof PropertyValueType) {
-            result = hasPropertyValueRepresentation(item.valueRepresentation())
+        } else if (typeName instanceof VectorType vectorType) {
+            // If we get here, the given Vector type is a super type of either VECTOR or VECTOR(dimension)
+            result = item instanceof VectorValue vectorVal
+                    && (vectorType.dimension().contains(vectorVal.dimensions())
+                            || !vectorType.dimension().isDefined());
+        } else if (typeName instanceof PropertyValueCypher5Type) {
+            result = hasPropertyValueRepresentation(item.valueRepresentation(), false)
                     || (item instanceof ListValue listValue
                             && (listValue.isEmpty()
-                                    || hasPropertyValueRepresentation(listValue.itemValueRepresentation())));
+                                    || hasPropertyValueRepresentation(listValue.itemValueRepresentation(), true)));
+        } else if (typeName instanceof PropertyValueType) {
+            result = hasPropertyValueRepresentation(item.valueRepresentation(), false)
+                    || (item instanceof ListValue listValue
+                            && (listValue.isEmpty()
+                                    || hasPropertyValueRepresentation(listValue.itemValueRepresentation(), true)));
         } else if (typeName instanceof ClosedDynamicUnionType unionType) {
             result = false;
             for (CypherType innerType : asJava(unionType.innerTypes())) {
@@ -2451,10 +2477,21 @@ public final class CypherFunctions {
                 CypherType.normalizeTypes(in.map(CYPHER_TYPE_NAME_VALUE_MAPPER)).description());
     }
 
-    private static boolean hasPropertyValueRepresentation(ValueRepresentation valueRepresentation) {
+    private static boolean hasPropertyValueRepresentation(ValueRepresentation valueRepresentation, Boolean inList) {
         return !valueRepresentation.equals(ValueRepresentation.ANYTHING)
                 && !valueRepresentation.equals(ValueRepresentation.UNKNOWN)
-                && !valueRepresentation.equals(ValueRepresentation.NO_VALUE);
+                && !valueRepresentation.equals(ValueRepresentation.NO_VALUE)
+                // Vectors are property values, but not vectors inside of lists
+                && !(isVectorValueRepresentation(valueRepresentation) && inList);
+    }
+
+    private static boolean isVectorValueRepresentation(ValueRepresentation valueRepresentation) {
+        return valueRepresentation.equals(ValueRepresentation.FLOAT64_VECTOR)
+                || valueRepresentation.equals(ValueRepresentation.FLOAT32_VECTOR)
+                || valueRepresentation.equals(ValueRepresentation.INT64_VECTOR)
+                || valueRepresentation.equals(ValueRepresentation.INT32_VECTOR)
+                || valueRepresentation.equals(ValueRepresentation.INT16_VECTOR)
+                || valueRepresentation.equals(ValueRepresentation.INT8_VECTOR);
     }
 
     private static List<ValueRepresentation> possibleValueRepresentations(CypherType cypherType)
@@ -2493,6 +2530,29 @@ public final class CypherFunctions {
             return List.of(ValueRepresentation.DURATION);
         } else if (cypherType instanceof GeometryType || cypherType instanceof PointType) {
             return List.of(ValueRepresentation.GEOMETRY);
+        } else if (cypherType instanceof VectorType vectorType) {
+            if (vectorType.innerType().isDefined()) {
+                CypherType coordinateType = vectorType.innerType().get();
+                return switch (coordinateType) {
+                    case FloatType floatType -> List.of(ValueRepresentation.FLOAT64_VECTOR);
+                    case Float32Type float32Type -> List.of(ValueRepresentation.FLOAT32_VECTOR);
+                    case IntegerType integerType -> List.of(ValueRepresentation.INT64_VECTOR);
+                    case Integer32Type integer32Type -> List.of(ValueRepresentation.INT32_VECTOR);
+                    case Integer16Type integer16Type -> List.of(ValueRepresentation.INT16_VECTOR);
+                    case Integer8Type integer8Type -> List.of(ValueRepresentation.INT8_VECTOR);
+                    case null, default ->
+                        throw new UnsupportedOperationException(String.format(
+                                "possibleValueRepresentations not supported on %s",
+                                cypherType.getClass().getName()));
+                };
+            } else
+                return List.of(
+                        ValueRepresentation.FLOAT64_VECTOR,
+                        ValueRepresentation.FLOAT32_VECTOR,
+                        ValueRepresentation.INT64_VECTOR,
+                        ValueRepresentation.INT32_VECTOR,
+                        ValueRepresentation.INT16_VECTOR,
+                        ValueRepresentation.INT8_VECTOR);
         } else if (cypherType instanceof ListType listType) {
             if (listType.innerType() instanceof BooleanType) {
                 return List.of(ValueRepresentation.BOOLEAN_ARRAY);
@@ -2551,6 +2611,7 @@ public final class CypherFunctions {
             // else check that the specific array type matches
             return itemType instanceof AnyType
                     || itemType instanceof PropertyValueType
+                    || itemType instanceof PropertyValueCypher5Type
                     || (typeName.hasValueRepresentation()
                             && possibleValueRepresentations(typeName).contains(array.valueRepresentation()));
         } else if (values instanceof ListValue list) {

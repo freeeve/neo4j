@@ -106,6 +106,7 @@ import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.RelationshipsPattern
 import org.neo4j.cypher.internal.expressions.ShortestPathExpression
 import org.neo4j.cypher.internal.expressions.ShortestPathsPatternPart
+import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.SimplePattern
 import org.neo4j.cypher.internal.expressions.SingleIterablePredicate
 import org.neo4j.cypher.internal.expressions.StarQuantifier
@@ -169,6 +170,7 @@ import org.neo4j.cypher.internal.util.symbols.PointType
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
 
@@ -897,71 +899,128 @@ trait ExpressionBuilder extends Cypher25ParserListener {
       case 1 => firstToken match {
           case Cypher25Parser.NOTHING                            => NothingType()(p)
           case Cypher25Parser.NULL                               => NullType()(p)
-          case Cypher25Parser.BOOL | Cypher25Parser.BOOLEAN      => BooleanType(true)(p)
-          case Cypher25Parser.STRING | Cypher25Parser.VARCHAR    => StringType(true)(p)
-          case Cypher25Parser.INT | Cypher25Parser.INTEGER       => IntegerType(true)(p)
-          case Cypher25Parser.FLOAT                              => FloatType(true)(p)
-          case Cypher25Parser.DATE                               => DateType(true)(p)
-          case Cypher25Parser.DURATION                           => DurationType(true)(p)
-          case Cypher25Parser.POINT                              => PointType(true)(p)
-          case Cypher25Parser.NODE | Cypher25Parser.VERTEX       => NodeType(true)(p)
-          case Cypher25Parser.RELATIONSHIP | Cypher25Parser.EDGE => RelationshipType(true)(p)
-          case Cypher25Parser.MAP                                => MapType(true)(p)
-          case Cypher25Parser.PATH | Cypher25Parser.PATHS        => PathType(true)(p)
-          case Cypher25Parser.ANY                                => AnyType(true)(p)
+          case Cypher25Parser.BOOL | Cypher25Parser.BOOLEAN      => BooleanType(isNullable = true)(p)
+          case Cypher25Parser.STRING | Cypher25Parser.VARCHAR    => StringType(isNullable = true)(p)
+          case Cypher25Parser.INT | Cypher25Parser.INTEGER       => IntegerType(isNullable = true)(p)
+          case Cypher25Parser.FLOAT                              => FloatType(isNullable = true)(p)
+          case Cypher25Parser.DATE                               => DateType(isNullable = true)(p)
+          case Cypher25Parser.DURATION                           => DurationType(isNullable = true)(p)
+          case Cypher25Parser.POINT                              => PointType(isNullable = true)(p)
+          case Cypher25Parser.NODE | Cypher25Parser.VERTEX       => NodeType(isNullable = true)(p)
+          case Cypher25Parser.RELATIONSHIP | Cypher25Parser.EDGE => RelationshipType(isNullable = true)(p)
+          case Cypher25Parser.MAP                                => MapType(isNullable = true)(p)
+          case Cypher25Parser.PATH | Cypher25Parser.PATHS        => PathType(isNullable = true)(p)
+          case Cypher25Parser.ANY                                => AnyType(isNullable = true)(p)
+          case Cypher25Parser.VECTOR                             => VectorType(None, None, isNullable = true)(p)
           case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
         }
       case 2 => firstToken match {
-          case Cypher25Parser.SIGNED   => IntegerType(true)(p)
-          case Cypher25Parser.PROPERTY => PropertyValueType(true)(p)
+          case Cypher25Parser.SIGNED   => IntegerType(isNullable = true)(p)
+          case Cypher25Parser.PROPERTY => PropertyValueType(isNullable = true)(p)
           case Cypher25Parser.LOCAL => nodeChild(ctx, 1).getSymbol.getType match {
-              case Cypher25Parser.TIME     => LocalTimeType(true)(p)
-              case Cypher25Parser.DATETIME => LocalDateTimeType(true)(p)
+              case Cypher25Parser.TIME     => LocalTimeType(isNullable = true)(p)
+              case Cypher25Parser.DATETIME => LocalDateTimeType(isNullable = true)(p)
               case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
             }
           case Cypher25Parser.ZONED => nodeChild(ctx, 1).getSymbol.getType match {
-              case Cypher25Parser.TIME     => ZonedTimeType(true)(p)
-              case Cypher25Parser.DATETIME => ZonedDateTimeType(true)(p)
+              case Cypher25Parser.TIME     => ZonedTimeType(isNullable = true)(p)
+              case Cypher25Parser.DATETIME => ZonedDateTimeType(isNullable = true)(p)
               case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
             }
           case Cypher25Parser.ANY => nodeChild(ctx, 1).getSymbol.getType match {
-              case Cypher25Parser.NODE | Cypher25Parser.VERTEX       => NodeType(true)(p)
-              case Cypher25Parser.RELATIONSHIP | Cypher25Parser.EDGE => RelationshipType(true)(p)
-              case Cypher25Parser.MAP                                => MapType(true)(p)
-              case Cypher25Parser.VALUE                              => AnyType(true)(p)
+              case Cypher25Parser.NODE | Cypher25Parser.VERTEX       => NodeType(isNullable = true)(p)
+              case Cypher25Parser.RELATIONSHIP | Cypher25Parser.EDGE => RelationshipType(isNullable = true)(p)
+              case Cypher25Parser.MAP                                => MapType(isNullable = true)(p)
+              case Cypher25Parser.VALUE                              => AnyType(isNullable = true)(p)
               case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
             }
           case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
         }
       case 3 => firstToken match {
           case Cypher25Parser.TIME => nodeChild(ctx, 1).getSymbol.getType match {
-              case Cypher25Parser.WITH    => ZonedTimeType(true)(p)
-              case Cypher25Parser.WITHOUT => LocalTimeType(true)(p)
+              case Cypher25Parser.WITH    => ZonedTimeType(isNullable = true)(p)
+              case Cypher25Parser.WITHOUT => LocalTimeType(isNullable = true)(p)
               case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
             }
           case Cypher25Parser.TIMESTAMP => nodeChild(ctx, 1).getSymbol.getType match {
-              case Cypher25Parser.WITH    => ZonedDateTimeType(true)(p)
-              case Cypher25Parser.WITHOUT => LocalDateTimeType(true)(p)
+              case Cypher25Parser.WITH    => ZonedDateTimeType(isNullable = true)(p)
+              case Cypher25Parser.WITHOUT => LocalDateTimeType(isNullable = true)(p)
               case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
             }
           case Cypher25Parser.ANY => nodeChild(ctx, 1).getSymbol.getType match {
-              case Cypher25Parser.PROPERTY => PropertyValueType(true)(p)
+              case Cypher25Parser.PROPERTY => PropertyValueType(isNullable = true)(p)
               case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
             }
           case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
         }
       case 4 => firstToken match {
+          case Cypher25Parser.VECTOR if ctx.vectorCoordinateType() != null =>
+            VectorType(Some(ctx.vectorCoordinateType().ast()), None, isNullable = true)(p)
+          case Cypher25Parser.VECTOR => nodeChild(ctx, 2).getSymbol.getType match {
+              case Cypher25Parser.UNSIGNED_DECIMAL_INTEGER => VectorType(
+                  None,
+                  Some(SignedDecimalIntegerLiteral(nodeChild(ctx, 2).getText)(pos(nodeChild(ctx, 2))).value),
+                  isNullable = true
+                )(p)
+              case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
+            }
           case Cypher25Parser.TIME => nodeChild(ctx, 1).getSymbol.getType match {
-              case Cypher25Parser.WITH    => ZonedTimeType(true)(p)
-              case Cypher25Parser.WITHOUT => LocalTimeType(true)(p)
+              case Cypher25Parser.WITH    => ZonedTimeType(isNullable = true)(p)
+              case Cypher25Parser.WITHOUT => LocalTimeType(isNullable = true)(p)
               case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
             }
           case Cypher25Parser.TIMESTAMP => nodeChild(ctx, 1).getSymbol.getType match {
-              case Cypher25Parser.WITH    => ZonedDateTimeType(true)(p)
-              case Cypher25Parser.WITHOUT => LocalDateTimeType(true)(p)
+              case Cypher25Parser.WITH    => ZonedDateTimeType(isNullable = true)(p)
+              case Cypher25Parser.WITHOUT => LocalDateTimeType(isNullable = true)(p)
               case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
             }
-          case Cypher25Parser.LIST | Cypher25Parser.ARRAY => ListType(ctx.`type`().ast(), true)(p)
+          case Cypher25Parser.LIST | Cypher25Parser.ARRAY => ListType(ctx.`type`().ast(), isNullable = true)(p)
+          case Cypher25Parser.ANY =>
+            AssertMacros.checkOnlyWhenAssertionsAreEnabled(ctx.LT() != null && ctx.GT() != null)
+            ctx.`type`().ast[CypherType]() match {
+              case du: ClosedDynamicUnionType => du
+              case other                      => ClosedDynamicUnionType(Set(other))(other.position)
+            }
+          case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
+        }
+      case 5 => firstToken match {
+          case Cypher25Parser.LIST | Cypher25Parser.ARRAY => ListType(ctx.`type`().ast(), isNullable = true)(p)
+          case Cypher25Parser.ANY =>
+            AssertMacros.checkOnlyWhenAssertionsAreEnabled(ctx.LT() != null && ctx.GT() != null)
+            ctx.`type`().ast[CypherType]() match {
+              case du: ClosedDynamicUnionType => du
+              case other                      => ClosedDynamicUnionType(Set(other))(other.position)
+            }
+          case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
+        }
+      case 6 => firstToken match {
+          case Cypher25Parser.VECTOR => nodeChild(ctx, 2).getSymbol.getType match {
+              case Cypher25Parser.UNSIGNED_DECIMAL_INTEGER => VectorType(
+                  Some(ctx.vectorCoordinateType().ast()),
+                  Some(SignedDecimalIntegerLiteral(nodeChild(ctx, 2).getText)(pos(nodeChild(ctx, 2))).value),
+                  isNullable = true
+                )(p)
+              case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
+            }
+          case Cypher25Parser.ANY =>
+            AssertMacros.checkOnlyWhenAssertionsAreEnabled(ctx.LT() != null && ctx.GT() != null)
+            ctx.`type`().ast[CypherType]() match {
+              case du: ClosedDynamicUnionType => du
+              case other                      => ClosedDynamicUnionType(Set(other))(other.position)
+            }
+          case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
+        }
+      case 7 => firstToken match {
+          case Cypher25Parser.VECTOR => nodeChild(ctx, 5).getSymbol.getType match {
+              case Cypher25Parser.UNSIGNED_DECIMAL_INTEGER =>
+                VectorType(
+                  Some(ctx.vectorCoordinateType().ast()),
+                  Some(SignedDecimalIntegerLiteral(nodeChild(ctx, 5).getText)(pos(nodeChild(ctx, 5))).value),
+                  isNullable = true
+                )(p)
+              case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
+            }
+          case Cypher25Parser.LIST | Cypher25Parser.ARRAY => ListType(ctx.`type`().ast(), isNullable = true)(p)
           case Cypher25Parser.ANY =>
             AssertMacros.checkOnlyWhenAssertionsAreEnabled(ctx.LT() != null && ctx.GT() != null)
             ctx.`type`().ast[CypherType]() match {
@@ -971,7 +1030,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
           case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
         }
       case _ => firstToken match {
-          case Cypher25Parser.LIST | Cypher25Parser.ARRAY => ListType(ctx.`type`().ast(), true)(p)
+          case Cypher25Parser.LIST | Cypher25Parser.ARRAY => ListType(ctx.`type`().ast(), isNullable = true)(p)
           case Cypher25Parser.ANY =>
             AssertMacros.checkOnlyWhenAssertionsAreEnabled(ctx.LT() != null && ctx.GT() != null)
             ctx.`type`().ast[CypherType]() match {

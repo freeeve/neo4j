@@ -50,6 +50,7 @@ import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType
 import org.neo4j.cypher.internal.util.symbols.LocalTimeType
 import org.neo4j.cypher.internal.util.symbols.PointType
+import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
@@ -608,10 +609,11 @@ sealed trait CreateConstraint extends SchemaCommand {
 
     def allowedTypesCheck = {
       def anyPropertyValueType(pt: CypherType): Boolean = pt match {
-        case _: PropertyValueType      => true
-        case l: ListType               => anyPropertyValueType(l.innerType)
-        case c: ClosedDynamicUnionType => c.sortedInnerTypes.map(anyPropertyValueType).exists(b => b)
-        case _                         => false
+        case _: PropertyValueType        => true
+        case _: PropertyValueCypher5Type => true
+        case l: ListType                 => anyPropertyValueType(l.innerType)
+        case c: ClosedDynamicUnionType   => c.sortedInnerTypes.map(anyPropertyValueType).exists(b => b)
+        case _                           => false
       }
       val containsPropertyValueType = anyPropertyValueType(originalPropertyType)
 

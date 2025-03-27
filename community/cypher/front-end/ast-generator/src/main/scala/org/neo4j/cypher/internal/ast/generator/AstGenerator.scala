@@ -523,7 +523,16 @@ import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.cypher.internal.util.symbols.Float32Type
+import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer16Type
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
+import org.neo4j.cypher.internal.util.symbols.Integer8Type
+import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.ListType
+import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
+import org.neo4j.cypher.internal.util.symbols.PropertyValueType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.util.UnicodeHelper
 import org.reflections.Reflections
 import org.scalacheck.Arbitrary
@@ -2237,7 +2246,7 @@ class AstGenerator(
   } yield props
 
   def _cypherTypeName: Gen[CypherType] = for {
-    _type <- oneOf(allCypherTypeNamesFromReflection)
+    _type <- oneOf(allCypherTypeNamesFromReflection(whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)))
   } yield _type
 
   def _vectorCandidateType: Gen[CypherType] = for {
@@ -2260,9 +2269,9 @@ class AstGenerator(
     )
   } yield _type
 
-  private val allCypherTypeNamesFromReflection: Set[CypherType] = {
+  private def allCypherTypeNamesFromReflection(cypher5Types: Boolean): Set[CypherType] = {
     val reflections = new Reflections("org.neo4j.cypher.internal.util.symbols")
-    val innerTypes = reflections.getSubTypesOf[CypherType](classOf[CypherType]).asScala.toSet
+    var innerTypes = reflections.getSubTypesOf[CypherType](classOf[CypherType]).asScala.toSet
       .flatMap((cls: Class[_ <: CypherType]) => {
         try {
           // NOTHING, NULL
@@ -2289,7 +2298,40 @@ class AstGenerator(
         }
       })
 
-    val supportedInnerTypes = innerTypes.filter(_.hasCypherParserSupport)
+    innerTypes = if (cypher5Types) {
+      innerTypes.filter {
+        case _: VectorType        => false
+        case _: PropertyValueType => false
+        case _                    => true
+      }
+    } else {
+      innerTypes.filter {
+        case _: PropertyValueCypher5Type => false
+        case _                           => true
+      }
+    }
+
+    val supportedInnerVectorTypes = Seq(
+      Some(IntegerType(isNullable = false)(pos)),
+      Some(Integer32Type(isNullable = false)(pos)),
+      Some(Integer16Type(isNullable = false)(pos)),
+      Some(Integer8Type(isNullable = false)(pos)),
+      Some(FloatType(isNullable = false)(pos)),
+      Some(Float32Type(isNullable = false)(pos)),
+      None
+    )
+
+    val vectorTypes: Set[CypherType] = if (!cypher5Types) supportedInnerVectorTypes.flatMap(inner => {
+      Set(
+        VectorType(inner, Some(1024), isNullable = true)(pos),
+        VectorType(inner, Some(1024), isNullable = false)(pos),
+        VectorType(inner, None, isNullable = true)(pos),
+        VectorType(inner, None, isNullable = false)(pos)
+      )
+    }).toSet
+    else Set.empty
+
+    val supportedInnerTypes = innerTypes.filter(_.hasCypherParserSupport) ++ vectorTypes
 
     val listTypes = supportedInnerTypes.flatMap(inner => {
       Set(

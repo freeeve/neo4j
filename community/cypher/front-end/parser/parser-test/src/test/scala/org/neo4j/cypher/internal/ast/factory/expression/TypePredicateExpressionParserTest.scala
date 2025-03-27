@@ -30,7 +30,11 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.DateType
 import org.neo4j.cypher.internal.util.symbols.DurationType
+import org.neo4j.cypher.internal.util.symbols.Float32Type
 import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer16Type
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
+import org.neo4j.cypher.internal.util.symbols.Integer8Type
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType
@@ -41,9 +45,11 @@ import org.neo4j.cypher.internal.util.symbols.NothingType
 import org.neo4j.cypher.internal.util.symbols.NullType
 import org.neo4j.cypher.internal.util.symbols.PathType
 import org.neo4j.cypher.internal.util.symbols.PointType
+import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -283,11 +289,18 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
   }
 
   test("RETURN x :: ") {
-    failsParsing[Statements].withMessage(
-      """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 12 (offset: 11))
-        |"RETURN x ::"
-        |            ^""".stripMargin
-    )
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 12 (offset: 11))
+            |"RETURN x ::"
+            |            ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 12 (offset: 11))
+            |"RETURN x ::"
+            |            ^""".stripMargin
+        )
+    }
   }
 
   test("RETURN x :: ANY VALUE<> NOT NULL") {
@@ -321,11 +334,18 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
   }
 
   test("RETURN x :: NOT NULL") {
-    failsParsing[Statements].withMessage(
-      """Invalid input 'NOT': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
-        |"RETURN x :: NOT NULL"
-        |             ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withMessage(
+          """Invalid input 'NOT': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+            |"RETURN x :: NOT NULL"
+            |             ^""".stripMargin
+        )
+      case _ => _.withMessage(
+          """Invalid input 'NOT': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+            |"RETURN x :: NOT NULL"
+            |             ^""".stripMargin
+        )
+    }
   }
 
   test("RETURN x :: LIST<>") {
@@ -360,35 +380,147 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
     )
   }
 
+  // VECTOR Types
+  test("RETURN x :: VECTOR<STRING>") {
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'VECTOR': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+            |"RETURN x :: VECTOR<STRING>"
+            |             ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected an expression (line 1, column 27 (offset: 26))
+            |"RETURN x :: VECTOR<STRING>"
+            |                           ^""".stripMargin
+        )
+    }
+  }
+
+  // Coordinate types are specific to vectors
+  test("RETURN x :: FLOAT64") {
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'FLOAT64': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+            |"RETURN x :: FLOAT64"
+            |             ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'FLOAT64': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+            |"RETURN x :: FLOAT64"
+            |             ^""".stripMargin
+        )
+    }
+  }
+
+  test("RETURN x :: FLOAT32") {
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'FLOAT32': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+            |"RETURN x :: FLOAT32"
+            |             ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'FLOAT32': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+            |"RETURN x :: FLOAT32"
+            |             ^""".stripMargin
+        )
+    }
+  }
+
+  test("RETURN x :: INTEGER8") {
+    failsParsing[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input 'INTEGER8': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+            |"RETURN x :: INTEGER8"
+            |             ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input 'INTEGER8': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+            |"RETURN x :: INTEGER8"
+            |             ^""".stripMargin
+        )
+    }
+  }
+
+  // In Cypher 5 the property set is different (doesn't contain vector type), so this updates
+  // the types accordingly
+  def getCorrectCypherVersionOfType(fromCypher5: Boolean, typeExpr: CypherType): CypherType = {
+    if (fromCypher5) {
+      typeExpr match {
+        case _: PropertyValueType =>
+          PropertyValueCypher5Type(isNullable = typeExpr.isNullable)(typeExpr.position)
+        case listType: ListType => ListType(
+            getCorrectCypherVersionOfType(fromCypher5, listType.innerType),
+            listType.isNullable
+          )(listType.position)
+        case unionType: ClosedDynamicUnionType => ClosedDynamicUnionType(unionType.innerTypes.map(innerType =>
+            getCorrectCypherVersionOfType(fromCypher5, innerType)
+          ))(unionType.position)
+        case _ => typeExpr
+      }
+    } else typeExpr
+  }
+
   test("all combinations of types should behave") {
     forAll(allCombinations) { case (typeString, typeExpr) =>
-      // Java CC produces invalid input positions in some cases
-      s"x IS :: $typeString" should parse[Expression].toAstIgnorePos {
-        isTyped(varFor("x"), typeExpr)
+      s"x IS :: $typeString" should parseIn[Expression] {
+        case Cypher5 if typeString.contains("VECTOR") =>
+          _.withMessageStart("Invalid input ")
+        case Cypher5 => _.toAstIgnorePos {
+            isTyped(varFor("x"), getCorrectCypherVersionOfType(fromCypher5 = true, typeExpr))
+          }
+        case _ => _.toAstIgnorePos {
+            isTyped(varFor("x"), typeExpr)
+          }
       }
 
-      // Java CC produces invalid input positions in some cases
-      s"n.prop IS TYPED $typeString" should parse[Expression].toAstIgnorePos {
-        isTyped(prop(varFor("n"), "prop"), typeExpr)
+      s"n.prop IS TYPED $typeString" should parseIn[Expression] {
+        case Cypher5 if typeString.contains("VECTOR") =>
+          _.withMessageStart("Invalid input ")
+        case Cypher5 => _.toAstIgnorePos {
+            isTyped(prop(varFor("n"), "prop"), getCorrectCypherVersionOfType(fromCypher5 = true, typeExpr))
+          }
+        case _ => _.toAstIgnorePos {
+            isTyped(prop(varFor("n"), "prop"), typeExpr)
+          }
       }
 
       // Java CC produces invalid input positions in some cases
       s"5 :: $typeString" should parseIn[Expression] {
+        case Cypher5 if typeString.contains("VECTOR") =>
+          _.withMessageStart("Invalid input ")
         case Cypher5 => _.toAstIgnorePos {
-            isTyped(literalInt(5L), typeExpr, withDoubleColonOnly = true)
+            isTyped(
+              literalInt(5L),
+              getCorrectCypherVersionOfType(fromCypher5 = true, typeExpr),
+              withDoubleColonOnly = true
+            )
           }
         case _ => _.toAstIgnorePos {
             isTyped(literalInt(5L), typeExpr)
           }
       }
 
-      // Java CC produces invalid input positions in some cases
-      s"x + y IS NOT :: $typeString" should parse[Expression].toAstIgnorePos {
-        isNotTyped(add(varFor("x"), varFor("y")), typeExpr)
+      s"x + y IS NOT :: $typeString" should parseIn[Expression] {
+        case Cypher5 if typeString.contains("VECTOR") =>
+          _.withMessageStart("Invalid input ")
+        case Cypher5 => _.toAstIgnorePos {
+            isNotTyped(add(varFor("x"), varFor("y")), getCorrectCypherVersionOfType(fromCypher5 = true, typeExpr))
+          }
+        case _ => _.toAstIgnorePos {
+            isNotTyped(add(varFor("x"), varFor("y")), typeExpr)
+          }
       }
 
-      s"['a', 'b', 'c'] IS NOT TYPED $typeString" should parse[Expression].toAstIgnorePos {
-        isNotTyped(listOfString("a", "b", "c"), typeExpr)
+      s"['a', 'b', 'c'] IS NOT TYPED $typeString" should parseIn[Expression] {
+        case Cypher5 if typeString.contains("VECTOR") =>
+          _.withMessageStart("Invalid input ")
+        case Cypher5 => _.toAstIgnorePos {
+            isNotTyped(listOfString("a", "b", "c"), getCorrectCypherVersionOfType(fromCypher5 = true, typeExpr))
+          }
+        case _ => _.toAstIgnorePos {
+            isNotTyped(listOfString("a", "b", "c"), typeExpr)
+          }
       }
 
       // This should not be supported according to CIP-87
@@ -438,6 +570,68 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
 }
 
 object TypePredicateExpressionParserTest extends AstConstructionTestSupport {
+
+  private def vectorCoordinateTypes = Seq(
+    ("INTEGER", IntegerType(isNullable = false)(pos)),
+    ("INTEGER NOT NULL", IntegerType(isNullable = false)(pos)),
+    ("INTEGER!", IntegerType(isNullable = false)(pos)),
+    ("INTEGER64", IntegerType(isNullable = false)(pos)),
+    ("INTEGER64 NOT NULL", IntegerType(isNullable = false)(pos)),
+    ("INTEGER64!", IntegerType(isNullable = false)(pos)),
+    ("INTEGER32", Integer32Type(isNullable = false)(pos)),
+    ("INTEGER32 NOT NULL", Integer32Type(isNullable = false)(pos)),
+    ("INTEGER32!", Integer32Type(isNullable = false)(pos)),
+    ("INTEGER16", Integer16Type(isNullable = false)(pos)),
+    ("INTEGER16 NOT NULL", Integer16Type(isNullable = false)(pos)),
+    ("INTEGER16!", Integer16Type(isNullable = false)(pos)),
+    ("INTEGER8", Integer8Type(isNullable = false)(pos)),
+    ("INTEGER8 NOT NULL", Integer8Type(isNullable = false)(pos)),
+    ("INTEGER8!", Integer8Type(isNullable = false)(pos)),
+    ("INT", IntegerType(isNullable = false)(pos)),
+    ("INT NOT NULL", IntegerType(isNullable = false)(pos)),
+    ("INT!", IntegerType(isNullable = false)(pos)),
+    ("SIGNED INTEGER", IntegerType(isNullable = false)(pos)),
+    ("SIGNED INTEGER NOT NULL", IntegerType(isNullable = false)(pos)),
+    ("SIGNED INTEGER!", IntegerType(isNullable = false)(pos)),
+    ("FLOAT", FloatType(isNullable = false)(pos)),
+    ("FLOAT NOT NULL", FloatType(isNullable = false)(pos)),
+    ("FLOAT!", FloatType(isNullable = false)(pos)),
+    ("FLOAT64", FloatType(isNullable = false)(pos)),
+    ("FLOAT64 NOT NULL", FloatType(isNullable = false)(pos)),
+    ("FLOAT64!", FloatType(isNullable = false)(pos)),
+    ("FLOAT32", Float32Type(isNullable = false)(pos)),
+    ("FLOAT32 NOT NULL", Float32Type(isNullable = false)(pos)),
+    ("FLOAT32!", Float32Type(isNullable = false)(pos))
+  )
+
+  private def vectorTypes = {
+    Seq(
+      // Basic Vector with no inner type or dimension
+      ("VECTOR", VectorType(None, None, isNullable = true)(pos)),
+      ("VECTOR!", VectorType(None, None, isNullable = false)(pos)),
+      ("VECTOR NOT NULL", VectorType(None, None, isNullable = false)(pos)),
+      // Vectors with dimensions only
+      ("VECTOR(5)", VectorType(None, Some(5), isNullable = true)(pos)),
+      ("VECTOR(5)!", VectorType(None, Some(5), isNullable = false)(pos)),
+      ("VECTOR(5) NOT NULL", VectorType(None, Some(5), isNullable = false)(pos))
+    ) ++
+      vectorCoordinateTypes.flatMap { case (innerTypeString, innerTypeExpr: CypherType) =>
+        Seq(
+          // Vectors with inner types
+          (s"VECTOR<$innerTypeString>", VectorType(Some(innerTypeExpr), None, isNullable = true)(pos)),
+          (s"VECTOR<$innerTypeString>!", VectorType(Some(innerTypeExpr), None, isNullable = false)(pos)),
+          (s"VECTOR<$innerTypeString> NOT NULL", VectorType(Some(innerTypeExpr), None, isNullable = false)(pos)),
+          // Vectors with inner types and dimensions
+          (s"VECTOR<$innerTypeString>(5)", VectorType(Some(innerTypeExpr), Some(5), isNullable = true)(pos)),
+          (s"VECTOR<$innerTypeString>(5)!", VectorType(Some(innerTypeExpr), Some(5), isNullable = false)(pos)),
+          (s"VECTOR<$innerTypeString>(5) NOT NULL", VectorType(Some(innerTypeExpr), Some(5), isNullable = false)(pos)),
+          // Vectors with inner types and dimensions (alternate form)
+          (s"VECTOR(5, $innerTypeString)", VectorType(Some(innerTypeExpr), Some(5), isNullable = true)(pos)),
+          (s"VECTOR(5, $innerTypeString)!", VectorType(Some(innerTypeExpr), Some(5), isNullable = false)(pos)),
+          (s"VECTOR(5, $innerTypeString) NOT NULL", VectorType(Some(innerTypeExpr), Some(5), isNullable = false)(pos))
+        )
+      }
+  }
 
   private def allNonListTypes = Seq(
     ("NOTHING", NothingType()(pos)),
@@ -554,7 +748,7 @@ object TypePredicateExpressionParserTest extends AstConstructionTestSupport {
     ("PROPERTY VALUE", PropertyValueType(isNullable = true)(pos)),
     ("PROPERTY VALUE NOT NULL", PropertyValueType(isNullable = false)(pos)),
     ("PROPERTY VALUE!", PropertyValueType(isNullable = false)(pos))
-  )
+  ) ++ vectorTypes
 
   private def superTypes = Seq(
     ("ANY VALUE", AnyType(isNullable = true)(pos)),
@@ -912,6 +1106,6 @@ object TypePredicateExpressionParserTest extends AstConstructionTestSupport {
 
   def allCombinations: TableFor2[String, CypherType] = Tables.Table(
     ("typeString", "typeExpr"),
-    (allNonListTypes ++ superTypes ++ listTypes ++ closedUnionOfAllNonListTypes ++ otherClosedUnionTypes): _*
+    allNonListTypes ++ superTypes ++ listTypes ++ closedUnionOfAllNonListTypes ++ otherClosedUnionTypes: _*
   )
 }

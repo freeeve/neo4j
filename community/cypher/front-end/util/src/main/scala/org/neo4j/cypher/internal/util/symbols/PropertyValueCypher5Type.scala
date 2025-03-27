@@ -18,7 +18,7 @@ package org.neo4j.cypher.internal.util.symbols
 
 import org.neo4j.cypher.internal.util.InputPosition
 
-case class PropertyValueType(isNullable: Boolean)(val position: InputPosition) extends CypherType {
+case class PropertyValueCypher5Type(isNullable: Boolean)(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTAny
   override val toString = "Property Value"
   override val toCypherTypeString = "PROPERTY VALUE"
@@ -39,7 +39,6 @@ case class PropertyValueType(isNullable: Boolean)(val position: InputPosition) e
     ZonedDateTimeType(isNullable)(position),
     DurationType(isNullable)(position),
     PointType(isNullable)(position),
-    VectorType(None, None, isNullable)(position),
     ListType(BooleanType(isNullable = false)(position), isNullable = isNullable)(position),
     ListType(StringType(isNullable = false)(position), isNullable = isNullable)(position),
     ListType(DateType(isNullable = false)(position), isNullable = isNullable)(position),

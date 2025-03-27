@@ -33,8 +33,7 @@ case class VectorType(
     case _                  => "VECTOR"
   }
 
-  // For now; this is coming
-  override def hasCypherParserSupport: Boolean = false
+  override def hasCypherParserSupport: Boolean = true
 
   override val toString: String = if (isNullable) toCypherTypeString else s"$toCypherTypeString!"
 

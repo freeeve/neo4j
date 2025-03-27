@@ -84,6 +84,7 @@ class CypherTypeNameTest extends CypherFunSuite {
     ZonedDateTimeType(isNullable = true)(pos),
     DurationType(isNullable = true)(pos),
     PointType(isNullable = true)(pos),
+    VectorType(None, None, isNullable = true)(pos),
     ListType(BooleanType(isNullable = false)(pos), isNullable = true)(pos),
     ListType(StringType(isNullable = false)(pos), isNullable = true)(pos),
     ListType(DateType(isNullable = false)(pos), isNullable = true)(pos),

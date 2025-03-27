@@ -55,6 +55,11 @@ public abstract sealed class VectorValue extends HashMemoizingScalarValue implem
         }
     }
 
+    @Override
+    public boolean isIncomparableType() {
+        return true;
+    }
+
     /**
      * In order to facilitate implementing {@link #updateHash(HashFunction, long)}.
      *

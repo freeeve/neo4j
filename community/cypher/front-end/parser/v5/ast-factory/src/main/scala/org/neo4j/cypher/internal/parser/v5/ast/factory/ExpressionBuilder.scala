@@ -163,7 +163,7 @@ import org.neo4j.cypher.internal.util.symbols.NothingType
 import org.neo4j.cypher.internal.util.symbols.NullType
 import org.neo4j.cypher.internal.util.symbols.PathType
 import org.neo4j.cypher.internal.util.symbols.PointType
-import org.neo4j.cypher.internal.util.symbols.PropertyValueType
+import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
@@ -896,7 +896,7 @@ trait ExpressionBuilder extends Cypher5ParserListener {
         }
       case 2 => firstToken match {
           case Cypher5Parser.SIGNED   => IntegerType(true)(p)
-          case Cypher5Parser.PROPERTY => PropertyValueType(true)(p)
+          case Cypher5Parser.PROPERTY => PropertyValueCypher5Type(true)(p)
           case Cypher5Parser.LOCAL => nodeChild(ctx, 1).getSymbol.getType match {
               case Cypher5Parser.TIME     => LocalTimeType(true)(p)
               case Cypher5Parser.DATETIME => LocalDateTimeType(true)(p)
@@ -928,7 +928,7 @@ trait ExpressionBuilder extends Cypher5ParserListener {
               case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
             }
           case Cypher5Parser.ANY => nodeChild(ctx, 1).getSymbol.getType match {
-              case Cypher5Parser.PROPERTY => PropertyValueType(true)(p)
+              case Cypher5Parser.PROPERTY => PropertyValueCypher5Type(true)(p)
               case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
             }
           case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")

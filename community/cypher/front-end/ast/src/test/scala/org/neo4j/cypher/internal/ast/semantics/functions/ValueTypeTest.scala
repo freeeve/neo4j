@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPoint
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.CTVector
 
 class ValueTypeTest extends FunctionTestBase("valueType") {
 
@@ -63,6 +64,7 @@ class ValueTypeTest extends FunctionTestBase("valueType") {
     testValidTypes(CTDuration)(CTString)
     testValidTypes(CTGeometry)(CTString)
     testValidTypes(CTPath)(CTString)
+    testValidTypes(CTVector)(CTString)
     testValidTypes(CTList(CTAny).covariant)(CTString)
   }
 

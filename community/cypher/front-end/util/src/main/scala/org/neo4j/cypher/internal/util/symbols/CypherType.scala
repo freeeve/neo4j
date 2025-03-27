@@ -138,8 +138,9 @@ object CypherType {
       case ClosedDynamicUnionType(innerTypes) =>
         val updatedTypes = normalizeInnerTypes(innerTypes)
         ClosedDynamicUnionType(updatedTypes.toSet)(typeToNormalize.position).simplify
-      case lt: ListType          => lt.copy(normalizeTypes(lt.innerType))(lt.position)
-      case pt: PropertyValueType => ClosedDynamicUnionType(pt.expandToTypes.toSet)(pt.position)
+      case lt: ListType                 => lt.copy(normalizeTypes(lt.innerType))(lt.position)
+      case pt: PropertyValueType        => ClosedDynamicUnionType(pt.expandToTypes.toSet)(pt.position)
+      case pt: PropertyValueCypher5Type => ClosedDynamicUnionType(pt.expandToTypes.toSet)(pt.position)
       case numberType: NumberType => ClosedDynamicUnionType(Set(
           IntegerType(numberType.isNullable)(numberType.position),
           FloatType(numberType.isNullable)(numberType.position)
@@ -167,7 +168,8 @@ object CypherType {
   private def normalize(types: List[CypherType]) = {
     // Expand PropertyValueTypeName to all property types instead
     val expandedTypes: List[CypherType] = types.flatMap {
-      case propertyValueTypeName: PropertyValueType => propertyValueTypeName.expandToTypes
+      case propertyValueTypeName: PropertyValueType        => propertyValueTypeName.expandToTypes
+      case propertyValueTypeName: PropertyValueCypher5Type => propertyValueTypeName.expandToTypes
       case numberType: NumberType => List(
           IntegerType(numberType.isNullable)(numberType.position),
           FloatType(numberType.isNullable)(numberType.position)
