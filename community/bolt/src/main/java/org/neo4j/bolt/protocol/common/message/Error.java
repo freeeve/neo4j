@@ -66,10 +66,6 @@ public class Error {
         this(status, message, null, fatal, null, null);
     }
 
-    private Error(Status status, Throwable cause, boolean fatal, Long queryId) {
-        this(status, status.code().description(), cause, fatal, queryId, cause);
-    }
-
     public Status status() {
         return status;
     }
@@ -237,15 +233,6 @@ public class Error {
                 fatal,
                 null,
                 BoltException.unknownError(any));
-    }
-
-    /**
-     * This function is deprecated because it does not include any GQL status information.
-     * Use the method that takes a Throwable instead.
-     */
-    @Deprecated
-    private static Error fatalFrom(Status status, String message) {
-        return new Error(status, message, true);
     }
 
     public static Error fatalFrom(Throwable any) {

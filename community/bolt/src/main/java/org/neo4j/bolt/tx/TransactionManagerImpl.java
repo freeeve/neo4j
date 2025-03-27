@@ -95,7 +95,7 @@ public class TransactionManagerImpl implements TransactionManager {
         } catch (DatabaseNotFoundException ex) {
             throw NoSuchDatabaseTransactionCreationException.databaseDoesNotExist(db, ex);
         } catch (UnavailableException ex) {
-            throw new DatabaseUnavailableTransactionCreationException(databaseName, ex);
+            throw DatabaseUnavailableTransactionCreationException.databaseUnavailable(databaseName, ex);
         }
 
         var executionConfig = notificationsConfig != null

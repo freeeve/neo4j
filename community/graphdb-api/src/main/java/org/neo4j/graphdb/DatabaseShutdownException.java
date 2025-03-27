@@ -34,16 +34,11 @@ public class DatabaseShutdownException extends GqlRuntimeException implements St
         super(MESSAGE);
     }
 
-    public DatabaseShutdownException(ErrorGqlStatusObject gqlStatusObject) {
+    private DatabaseShutdownException(ErrorGqlStatusObject gqlStatusObject) {
         super(gqlStatusObject, MESSAGE);
     }
 
-    @Deprecated
-    public DatabaseShutdownException(Throwable cause) {
-        super(MESSAGE, cause);
-    }
-
-    public DatabaseShutdownException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
+    private DatabaseShutdownException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
         super(gqlStatusObject, MESSAGE, cause);
     }
 

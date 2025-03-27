@@ -31,15 +31,7 @@ public class DatabaseUnavailableTransactionCreationException extends Transaction
     private final ErrorGqlStatusObject gqlStatusObject;
     private final String oldMessage;
 
-    @Deprecated
-    public DatabaseUnavailableTransactionCreationException(String databaseName, Throwable cause) {
-        super(String.format("Database '%s' is unavailable.", databaseName), cause);
-
-        this.gqlStatusObject = null;
-        this.oldMessage = String.format("Database '%s' is unavailable.", databaseName);
-    }
-
-    public DatabaseUnavailableTransactionCreationException(
+    private DatabaseUnavailableTransactionCreationException(
             ErrorGqlStatusObject gqlStatusObject, String databaseName, Throwable cause) {
         super(
                 ErrorMessageHolder.getMessage(
@@ -47,6 +39,12 @@ public class DatabaseUnavailableTransactionCreationException extends Transaction
                 cause);
         this.gqlStatusObject = GqlHelper.getInnerGqlStatusObject(gqlStatusObject, cause);
         this.oldMessage = String.format("Database '%s' is unavailable.", databaseName);
+    }
+
+    public static DatabaseUnavailableTransactionCreationException databaseUnavailable(
+            String databaseName, Throwable cause) {
+        var gql = GqlHelper.getGql08N09(databaseName);
+        return new DatabaseUnavailableTransactionCreationException(gql, databaseName, cause);
     }
 
     @Override

@@ -156,9 +156,9 @@ public class DatabaseAvailabilityGuard extends LifecycleAdapter implements Avail
             case AVAILABLE -> {}
             case SHUTDOWN -> {
                 if (startupFailure != null) {
-                    throw new DatabaseShutdownException(startupFailure);
+                    throw DatabaseShutdownException.databaseUnavailable(databaseName(), startupFailure);
                 }
-                throw new DatabaseShutdownException();
+                throw DatabaseShutdownException.databaseUnavailable(databaseName());
             }
             case UNAVAILABLE -> throwUnavailableException(databaseTimeMillis, availability);
         }
