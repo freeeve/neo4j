@@ -79,7 +79,7 @@ public abstract class AbstractBeginMessageDecoderTest<D extends MessageDecoder<B
     protected void shouldFailWithIllegalStructArgumentWhenInvalidArgumentIsPassed() throws PackstreamReaderException {
         var buf = PackstreamBuf.allocUnpooled();
         var reader = Mockito.mock(PackstreamValueReader.class);
-        var ex = new PackstreamReaderException("Something went kaput :(");
+        var ex = PackstreamReaderException.internalError(this.getClass().getSimpleName(), "Something went kaput :(");
 
         Mockito.doThrow(ex).when(reader).readMap();
 

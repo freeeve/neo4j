@@ -1414,7 +1414,9 @@ class PackstreamBufReadTest {
                 b -> b.writeByte(TypeMarker.TINY_STRUCT.getValue()).writeByte(0x42));
 
         when(registry.getReader(any())).thenReturn(Optional.of(reader));
-        when(reader.read(isNull(), eq(buf), any())).thenThrow(new PackstreamReaderException("Test Exception"));
+        when(reader.read(isNull(), eq(buf), any()))
+                .thenThrow(
+                        PackstreamReaderException.internalError(this.getClass().getSimpleName(), "Test Exception"));
 
         var ex = assertThrows(PackstreamReaderException.class, () -> buf.readStruct(null, registry));
 

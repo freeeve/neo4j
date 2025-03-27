@@ -22,6 +22,7 @@ package org.neo4j.packstream.error.reader;
 import java.util.Set;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.packstream.error.PackstreamException;
@@ -39,6 +40,11 @@ public class PackstreamReaderException extends PackstreamException {
 
     protected PackstreamReaderException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
+    }
+
+    public static PackstreamReaderException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new PackstreamReaderException(gql, message);
     }
 
     public static PackstreamReaderException duplicateMapKey(String key) {

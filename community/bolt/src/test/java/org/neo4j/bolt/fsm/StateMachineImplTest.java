@@ -119,9 +119,7 @@ class StateMachineImplTest {
     void shouldForwardLookupToConfiguration() throws NoSuchStateException {
         var someState = StateMockFactory.attachNewInstance(TEST_REFERENCE, this.configuration);
 
-        Mockito.doThrow(new NoSuchStateException(UNKNOWN_REFERENCE))
-                .when(this.configuration)
-                .lookup(UNKNOWN_REFERENCE);
+        Mockito.doThrow(noSuchState(UNKNOWN_REFERENCE)).when(this.configuration).lookup(UNKNOWN_REFERENCE);
 
         var result = this.fsm.lookup(TEST_REFERENCE);
 
@@ -133,7 +131,7 @@ class StateMachineImplTest {
 
     @Test
     void shouldForwardLookupToConfigurationErrors() throws NoSuchStateException {
-        var ex = new NoSuchStateException(UNKNOWN_REFERENCE);
+        var ex = noSuchState(UNKNOWN_REFERENCE);
 
         Mockito.doThrow(ex).when(this.configuration).lookup(UNKNOWN_REFERENCE);
 
@@ -207,7 +205,7 @@ class StateMachineImplTest {
 
     @Test
     void shouldFailWithNoSuchStateExceptionWhenDefaultStateIsUnknown() throws NoSuchStateException {
-        var ex = new NoSuchStateException(DEFAULT_REFERENCE);
+        var ex = noSuchState(DEFAULT_REFERENCE);
 
         Mockito.doThrow(ex).when(this.configuration).lookup(DEFAULT_REFERENCE);
 
@@ -399,7 +397,7 @@ class StateMachineImplTest {
     void shouldFailWithNoSuchStateExceptionWhenNextStateIsUnknown() throws StateMachineException {
         var responseHandler = Mockito.mock(ResponseHandler.class);
 
-        var ex = new NoSuchStateException(TEST_REFERENCE);
+        var ex = noSuchState(TEST_REFERENCE);
 
         Mockito.doThrow(ex).when(this.configuration).lookup(TEST_REFERENCE);
         Mockito.doReturn(TEST_REFERENCE).when(this.initialState).process(Mockito.any(), Mockito.any(), Mockito.any());
@@ -541,6 +539,10 @@ class StateMachineImplTest {
                 AdmissionControlResponse.ADMISSION_CONTROL_PROCESS_STOPPED,
                 AdmissionControlResponse.UNABLE_TO_ALLOCATE_NEW_TOKEN,
                 AdmissionControlResponse.NO_TENANT_CREDIT);
+    }
+
+    private NoSuchStateException noSuchState(StateReference reference) {
+        return NoSuchStateException.invalidServerStateTransition("No such statue", reference.name(), reference);
     }
 
     private class MockDatabaseException extends StateMachineException implements HasStatus {

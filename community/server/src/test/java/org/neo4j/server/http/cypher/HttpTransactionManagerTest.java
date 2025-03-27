@@ -36,7 +36,7 @@ import org.mockito.Answers;
 import org.neo4j.bolt.tx.TransactionManager;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.kernel.api.security.AuthManager;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade;
@@ -176,7 +176,7 @@ class HttpTransactionManagerTest {
             if (db.equals(defaultDatabase) || db.equals("system")) {
                 return graphWithName(db);
             } else {
-                throw new DatabaseNotFoundException("Not found db named " + db);
+                throw DatabaseNotFoundHelper.databaseNotFound(db);
             }
         });
         return new HttpTransactionManager(

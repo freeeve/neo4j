@@ -54,7 +54,7 @@ public abstract class AbstractRunMessageDecoderTest<D extends MessageDecoder<Run
     @Test
     void shouldFailWithIllegalStructArgumentWhenInvalidParamsArgumentIsPassed() throws PackstreamReaderException {
         var buf = PackstreamBuf.allocUnpooled().writeString("RETURN 1");
-        var ex = new PackstreamReaderException("Something went kaput :(");
+        var ex = PackstreamReaderException.internalError(this.getClass().getSimpleName(), "Something went kaput :(");
 
         var reader = Mockito.mock(PackstreamValueReader.class);
         Mockito.doThrow(ex).when(reader).readMap();

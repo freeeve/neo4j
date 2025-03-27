@@ -951,7 +951,8 @@ class InvocationTest {
 
         InputEventStream inputEventStream = mock(InputEventStream.class);
         when(inputEventStream.read())
-                .thenThrow(new InputFormatException("Cannot parse input", new IOException("JSON ERROR")));
+                .thenThrow(
+                        InputFormatException.jsonParingException("Cannot parse input", new IOException("JSON ERROR")));
 
         Invocation invocation = new Invocation(
                 log,

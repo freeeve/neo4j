@@ -39,26 +39,12 @@ public class NoSuchStateException extends StateMachineException
     private final ErrorGqlStatusObject gqlStatusObject;
     private final String oldMessage;
 
-    @Deprecated
-    public NoSuchStateException(StateReference target, Throwable cause) {
-        super("No such state: " + target.name(), cause);
-        this.target = target;
-
-        this.gqlStatusObject = null;
-        this.oldMessage = "No such state: " + target.name();
-    }
-
     private NoSuchStateException(ErrorGqlStatusObject gqlStatusObject, StateReference target, Throwable cause) {
         super(ErrorMessageHolder.getMessage(gqlStatusObject, "No such state: " + target.name()), cause);
         this.gqlStatusObject = GqlHelper.getInnerGqlStatusObject(gqlStatusObject, cause);
         this.oldMessage = "No such state: " + target.name();
 
         this.target = target;
-    }
-
-    @Deprecated
-    public NoSuchStateException(StateReference target) {
-        this(target, null);
     }
 
     private NoSuchStateException(ErrorGqlStatusObject gqlStatusObject, StateReference target) {
