@@ -66,6 +66,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.batchimport.api.InputIterator;
@@ -485,20 +486,17 @@ class ParquetInputTest {
         }
     }
 
-    @Test
-    void shouldReadListTypes() throws Exception {
+    @ParameterizedTest
+    @MethodSource("listTypes")
+    void shouldReadListTypes(String fileName, List<?> expectedList) throws Exception {
         // GIVEN
-        var fileUrl = getClass().getResource("/parquet/list.parquet");
+        var fileUrl = getClass().getResource("/parquet/" + fileName);
         var nodeFile = Path.of(fileUrl.toURI());
         Input input = createParquetInput(
                 Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
         // WHEN/THEN
         try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
-            assertNextNode(
-                    nodes,
-                    123L,
-                    properties("aList", List.of("a", "b", "c"), "name", "Mattias Persson"),
-                    labels("HACKER"));
+            assertNextNode(nodes, 123L, properties("aList", expectedList, "name", "Mattias Persson"), labels("HACKER"));
             assertFalse(chunk.next(visitor));
         }
     }
@@ -559,6 +557,21 @@ class ParquetInputTest {
                     123L,
                     properties("aMap.a", "aa", "aMap.b", "bb", "name", "Mattias Persson"),
                     labels("HACKER"));
+            assertFalse(chunk.next(visitor));
+        }
+    }
+
+    @Test
+    void shouldReadNumericMapTypes() throws Exception {
+        // GIVEN
+        var fileUrl = getClass().getResource("/parquet/map_numeric.parquet");
+        var nodeFile = Path.of(fileUrl.toURI());
+        Input input = createParquetInput(
+                Map.of(Set.of(""), List.<Path[]>of(new Path[] {nodeFile})), Map.of(), INTEGER, groups, MONITOR);
+        // WHEN/THEN
+        try (InputIterator nodes = input.nodes(EMPTY).iterator()) {
+            assertNextNode(
+                    nodes, 123L, properties("aMap.a", 1L, "aMap.b", 23L, "name", "Mattias Persson"), labels("HACKER"));
             assertFalse(chunk.next(visitor));
         }
     }
@@ -2457,5 +2470,16 @@ class ParquetInputTest {
 
     private static Stream<String> groupNames() {
         return Stream.of("", null);
+    }
+
+    private static Stream<Arguments> listTypes() {
+        return Stream.of(
+                Arguments.of("list.parquet", List.of("a", "b", "c")),
+                Arguments.of("list_int32.parquet", List.of(123, 234, 345)),
+                Arguments.of("list_int64.parquet", List.of(123L, 234L, 345L)),
+                Arguments.of("list_int128.parquet", List.of(123d, 234d, 345d)),
+                Arguments.of("list_float.parquet", List.of(1.01f, 2.21f, 3.23f)),
+                Arguments.of("list_double.parquet", List.of(1.01d, 2.21d, 3.23d)),
+                Arguments.of("list_boolean.parquet", List.of(true, false, true)));
     }
 }

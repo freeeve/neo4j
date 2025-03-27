@@ -174,7 +174,7 @@ class ParquetDataInputChunk implements ParquetInputChunk {
             }
 
             // for now there is only support for String-based arrays
-            if (parquetColumn.isArray()) {
+            if (parquetColumn.isArray() && !(object instanceof List)) {
                 String[] parts = object.toString().split(arrayDelimiter);
                 Object[] values = new Object[parts.length];
                 ParquetColumn nonArrayType = parquetColumn.withoutArray();
@@ -182,6 +182,8 @@ class ParquetDataInputChunk implements ParquetInputChunk {
                     values[i] = convertType(parts[i], nonArrayType);
                 }
                 return values;
+            } else if (object instanceof List) {
+                return object;
             }
 
             return switch (parquetColumn.columnType()) {
