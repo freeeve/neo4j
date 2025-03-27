@@ -363,3 +363,33 @@ Feature: TestFrameworkTests
     Then the result should be, in order:
       | res |
       | 1   |
+
+  Scenario: [020] Syntax error has incorrect code
+    Given an empty graph
+    When executing query:
+      """
+      invalid query
+      """
+    Then execution should fail with GQL code 123TECHNO
+
+  Scenario: [021] Syntax error has incorrect code and correct message
+    Given an empty graph
+    When executing query:
+      """
+      invalid query
+      """
+    Then execution should fail with GQL code 123TECHNO and message containing:
+      """
+      Invalid input
+      """
+
+  Scenario: [022] Syntax error has correct code and incorrect message
+    Given an empty graph
+    When executing query:
+      """
+      invalid query
+      """
+    Then execution should fail with GQL code 42I06 and message containing:
+      """
+      Incorrect message
+      """

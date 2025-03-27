@@ -33,6 +33,7 @@ import org.neo4j.cypher.cucumber.glue.regular.GuiceObjectFactory
 import org.neo4j.cypher.cucumber.glue.regular.NoOpBeforeAndAfterAllModule
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.PreParser
 import org.neo4j.cypher.internal.ast.Statement
@@ -132,6 +133,7 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
   override protected def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit = {}
   override protected def sideEffectsShouldBe(expected: DataTable): Unit = {}
   override protected def errorShouldBeRaised(expected: ExpectedError): Unit = {}
+  override protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = {}
 }
 
 object PrettifierSteps {
@@ -160,6 +162,8 @@ object PrettifierSteps {
     "acceptance/features/GpmSyntaxMixingAcceptance.feature" -> "Mixing QPP and var-length relationship quantifiers in pattern expressions in same statement - syntax error",
     "acceptance/features/GpmSyntaxMixingAcceptance.feature" -> "Explicit match mode DIFFERENT NODES with shortestPath - syntax error",
     "acceptance/features/GpmSyntaxMixingAcceptance.feature" -> "Explicit match mode DIFFERENT NODES with allShortestPaths - syntax error",
-    "acceptance/features/QuantifiedPathPatternAcceptance.feature" -> "Quantifier {-1} lower bound must be less than or equal to upper bound, upper bound needs to be positive"
+    "acceptance/features/QuantifiedPathPatternAcceptance.feature" -> "Quantifier {-1} lower bound must be less than or equal to upper bound, upper bound needs to be positive",
+    "acceptance/features/MiscAcceptance.feature" -> "Syntax error has correct code",
+    "acceptance/features/MiscAcceptance.feature" -> "Syntax error has correct code and message"
   ).groupMap { case (_, name) => name } { case (path, _) => path }
 }

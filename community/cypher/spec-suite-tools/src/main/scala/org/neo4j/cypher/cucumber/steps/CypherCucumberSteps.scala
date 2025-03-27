@@ -24,6 +24,7 @@ import io.cucumber.scala.EN
 import io.cucumber.scala.ScalaDsl
 import org.apache.commons.io.IOUtils
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 
 import java.nio.charset.StandardCharsets
 
@@ -117,6 +118,17 @@ trait CypherCucumberSteps extends ScalaDsl with EN {
       ))
   }
 
+  // Note, searches through all causes for the correct code
+  Then("execution should fail with GQL code {word}") { code: String =>
+    errorShouldBeRaised(ExpectedGqlError(code, None))
+  }
+
+  // Note, searches though all causes for the correct code and description
+  Then("execution should fail with GQL code {word} and message containing:") {
+    (code: String, description: String) =>
+      errorShouldBeRaised(ExpectedGqlError(code, Some(description)))
+  }
+
   private def readNamedGraphCypher(name: String): String = {
     IOUtils.resourceToString(s"graphs/$name/$name.cypher", StandardCharsets.UTF_8, getClass.getClassLoader)
   }
@@ -133,8 +145,10 @@ trait CypherCucumberSteps extends ScalaDsl with EN {
   protected def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit
   protected def sideEffectsShouldBe(expected: DataTable): Unit
   protected def errorShouldBeRaised(expectedError: ExpectedError): Unit
+  protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit
 }
 
 object CypherCucumberSteps {
   case class ExpectedError(error: String, description: Option[String], phase: Option[String])
+  case class ExpectedGqlError(code: String, descriptionContains: Option[String])
 }

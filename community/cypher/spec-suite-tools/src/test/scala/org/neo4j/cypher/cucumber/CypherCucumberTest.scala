@@ -198,7 +198,10 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.7"),
         wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.8"),
         wrongResultOrdered("[018] Most types can fail in cucumber tests - Examples - Example #1.9"),
-        wrongConfTag("[019] Incorrect conf tag")
+        wrongConfTag("[019] Incorrect conf tag"),
+        wrongGqlCode("[020] Syntax error has incorrect code"),
+        wrongGqlCode("[021] Syntax error has incorrect code and correct message"),
+        wrongFailureMessage("[022] Syntax error has correct code and incorrect message")
       )
 
     val summaryOutputStream = new ByteArrayOutputStream()
@@ -209,8 +212,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     withClue(summaryOutputStream.toString) {
       summary.getTestsSucceededCount shouldBe 21
       summary.getContainersFailedCount shouldBe 0
-      summary.getTestsFoundCount shouldBe 101
-      summary.getTestsFailedCount shouldBe 80
+      summary.getTestsFoundCount shouldBe 104
+      summary.getTestsFailedCount shouldBe 83
       summary.getTestsAbortedCount shouldBe 0
       summary.getTestsSkippedCount shouldBe 0
     }
@@ -293,7 +296,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.sideEffectsShouldBe(io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBeInAnyOrderIgnoringListOrder(io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedError)",
-      "private java.lang.String org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.readNamedGraphCypher(java.lang.String)"
+      "private java.lang.String org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.readNamedGraphCypher(java.lang.String)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlError)"
     )
     val methods = classOf[CypherCucumberSteps].getDeclaredMethods
       .filter(c => !Modifier.isStatic(c.getModifiers))
@@ -367,6 +371,23 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
     assertThat(failure.throwable)
       .hasMessageContainingAll("Query failed but was expected to succeed.", "Phase: runtime", "CYPHER runtime=legacy")
+  }
+
+  def wrongGqlCode(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable).hasMessageContainingAll(
+      "Expected GQL status",
+      "Cause: org.neo4j.graphdb.QueryExecutionException: Invalid input"
+    )
+  }
+
+  def wrongFailureMessage(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
+    assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
+    assertThat(failure.throwable).hasMessageContainingAll(
+      "Incorrect message",
+      "42I06: Invalid input",
+      "Cause: org.neo4j.graphdb.QueryExecutionException: Invalid input"
+    )
   }
 
   def wrongConf(name: String): Consumer[CypherCucumberTest.Failure] = failure => {

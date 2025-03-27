@@ -32,17 +32,24 @@ import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryFa
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryResults
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.assertEqualHeaders
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describe
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.doDescribe
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.findAllGqlCodes
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.findMatchingGqlFailure
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.originalError
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.toResultRows
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.unexpectedFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.unexpectedSuccess
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
+import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
 import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser
 import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser.parse
 import org.neo4j.cypher.cucumber.value.ResultValueMapper
 import org.neo4j.cypher.cucumber.value.ResultValueMapper.UnorderedList.rowsWithUnorderedLists
 import org.neo4j.cypher.testing.api.ConsumedResult
+import org.neo4j.cypher.testing.api.CypherExecutorException
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
+import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.internal.helpers.Exceptions
 import org.neo4j.internal.kernel.api.procs.QualifiedName
 import org.neo4j.kernel.api.procedure.Context
@@ -55,6 +62,7 @@ import java.util
 import java.util.Objects
 import java.util.function.Supplier
 
+import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.ListHasAsScala
 import scala.util.Failure
 import scala.util.Success
@@ -224,12 +232,36 @@ final class RegularCypherCucumberSteps @Inject() (
         expected.description.foreach(expectedDesc => assertThat[Any](actual.detail).as(desc).isEqualTo(expectedDesc))
     }
   }
+
+  override protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = {
+    lastResult match {
+      case success: QueryResults => unexpectedSuccess(success)
+      case failure: QueryFailure => findMatchingGqlFailure(expectedError.code, originalError(failure.cause)) match {
+          case Some(actualGql) =>
+            val desc = describe(failure)
+            assertThat[Any](actualGql.code).as(desc).isEqualTo(expectedError.code)
+            expectedError.descriptionContains.foreach { e =>
+              assertThat[Any](actualGql.message).as(desc).asString.contains(e)
+            }
+          case None => fail(
+              s"""
+                 |Expected GQL status ${expectedError.code} but found ${findAllGqlCodes(
+                  originalError(failure.cause)
+                )} in:
+                 |${doDescribe(failure)}
+                 |""".stripMargin
+            )
+        }
+    }
+  }
 }
 
 object RegularCypherCucumberSteps {
   sealed trait QueryExecution
   case class QueryResults(query: String, results: ConsumedResult) extends QueryExecution
   case class QueryFailure(query: String, phase: String, cause: Throwable) extends QueryExecution
+
+  case class GqlFailure(code: String, description: String, message: String)
 
   def toResultRows(table: DataTable): java.util.List[java.util.List[AnyRef]] = {
     if (table.isEmpty) {
@@ -304,14 +336,40 @@ object RegularCypherCucumberSteps {
        >""".stripMargin('>') // | margins messes with the tables
   }
 
-  private def describe(failure: QueryFailure): Supplier[String] = () => {
+  def originalError(throwable: Throwable): Throwable = throwable match {
+    case e: CypherExecutorException => e.original
+    case _                          => throwable
+  }
+
+  @tailrec
+  def findMatchingGqlFailure(code: String, throwable: AnyRef): Option[GqlFailure] = throwable match {
+    case e: org.neo4j.driver.exceptions.Neo4jException if e.gqlStatus() == code =>
+      Some(GqlFailure(e.gqlStatus(), e.statusDescription(), e.getMessage))
+    case e: org.neo4j.driver.exceptions.Neo4jException => findMatchingGqlFailure(code, e.gqlCause().orElse(null))
+    case e: ErrorGqlStatusObject if e.gqlStatus() == code =>
+      Some(GqlFailure(e.gqlStatus(), e.statusDescription(), e.getMessage))
+    case e: ErrorGqlStatusObject => findMatchingGqlFailure(code, e.cause().orElse(null))
+    case _                       => None
+  }
+
+  @tailrec
+  def findAllGqlCodes(throwable: AnyRef, result: Seq[String] = Seq.empty): Seq[String] = throwable match {
+    case e: org.neo4j.driver.exceptions.Neo4jException =>
+      findAllGqlCodes(e.gqlCause().orElse(null), result.appended(e.gqlStatus()))
+    case e: ErrorGqlStatusObject => findAllGqlCodes(e.cause().orElse(null), result.appended(e.gqlStatus()))
+    case _                       => result
+  }
+
+  private def describe(failure: QueryFailure): Supplier[String] = () =>
+    "Query failure (you need to scroll past the stacktrace for actual assertion error).\n" + doDescribe(failure)
+
+  private def doDescribe(failure: QueryFailure): String = {
     s"""
-       |Query failure (you need to scroll past the stacktrace for actual assertion error).
        |Phase: ${failure.phase}
        |Query:
        |${failure.query}
        |
-       |Cause: ${Exceptions.stringify(failure.cause)}
+       |Cause: ${Exceptions.stringify(originalError(failure.cause))}
        |""".stripMargin
   }
 }
