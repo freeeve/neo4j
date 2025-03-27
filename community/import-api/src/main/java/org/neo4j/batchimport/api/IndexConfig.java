@@ -19,16 +19,16 @@
  */
 package org.neo4j.batchimport.api;
 
-import org.eclipse.collections.api.factory.Sets;
-import org.eclipse.collections.api.set.MutableSet;
-import org.neo4j.internal.schema.IndexType;
+import java.util.function.Predicate;
+import org.neo4j.function.Predicates;
+import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.util.Preconditions;
 
 public class IndexConfig {
 
-    private final MutableSet<IndexType> excludedIndexTypes = Sets.mutable.empty();
-
     private boolean createLabelIndex;
     private boolean createRelationTypeIndex;
+    private Predicate<IndexDescriptor> excludeFromPopulating = Predicates.alwaysFalse();
 
     public IndexConfig withLabelIndex() {
         this.createLabelIndex = true;
@@ -40,8 +40,9 @@ public class IndexConfig {
         return this;
     }
 
-    public IndexConfig excludeTypeFromPopulating(IndexType indexType) {
-        excludedIndexTypes.add(indexType);
+    public IndexConfig excludeFromPopulating(Predicate<IndexDescriptor> excludeFromPopulating) {
+        this.excludeFromPopulating = Preconditions.requireNonNull(
+                excludeFromPopulating, "Exclude from populating predicate must not be null");
         return this;
     }
 
@@ -53,8 +54,8 @@ public class IndexConfig {
         return createRelationTypeIndex;
     }
 
-    public boolean isTypeExcludedFromPopulating(IndexType type) {
-        return excludedIndexTypes.contains(type);
+    public boolean isExcludedFromPopulating(IndexDescriptor descriptor) {
+        return excludeFromPopulating.test(descriptor);
     }
 
     public static IndexConfig create() {
