@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.runtime.spec
 
 import org.neo4j.cypher.internal.LogicalQuery
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveUnusedVariablesRewriter
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder
 import org.neo4j.cypher.internal.logical.builder.Resolver
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -30,9 +31,11 @@ import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LeveragedOrders
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.ProvidedOrders
 import org.neo4j.cypher.internal.util.Cardinality
 import org.neo4j.cypher.internal.util.EffectiveCardinality
+import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.attribution.Default
 import org.neo4j.cypher.internal.util.attribution.IdGen
 import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
+import org.neo4j.cypher.internal.util.inSequence
 
 /**
  * Test help utility for hand-writing logical queries.
@@ -70,10 +73,16 @@ class LogicalQueryBuilder(
     this
   }
 
+  private def logicalPlanRewriter: Rewriter =
+    inSequence(
+      expressionRewriter,
+      RemoveUnusedVariablesRewriter
+    )
+
   def build(readOnly: Boolean = true): LogicalQuery = {
     val logicalPlan = buildLogicalPlan()
     LogicalQuery(
-      logicalPlan.endoRewrite(expressionRewriter),
+      logicalPlan.endoRewrite(logicalPlanRewriter),
       "<<queryText>>",
       readOnly,
       resultColumns,
