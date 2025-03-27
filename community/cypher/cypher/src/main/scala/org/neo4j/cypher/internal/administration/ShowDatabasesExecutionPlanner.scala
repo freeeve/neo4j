@@ -117,7 +117,11 @@ case class ShowDatabasesExecutionPlanner(
            |props.$OPTIONS_COL as $OPTIONS_COL,
            |d:$COMPOSITE_DATABASE as $isCompositeKey,
            |$defaultLanguage as $DEFAULT_LANGUAGE_COL
-           |with *, CASE WHEN $isCompositeKey THEN NULL ELSE $OPTIONS_COL END as $OPTIONS_COL
+           |with *,
+           |CASE WHEN $isCompositeKey THEN NULL ELSE $OPTIONS_COL END as $OPTIONS_COL,
+           |CASE WHEN $isCompositeKey THEN NULL ELSE $STORE_COL END as $STORE_COL,
+           |CASE WHEN $isCompositeKey THEN NULL ELSE $CURRENT_PRIMARIES_COUNT_COL END as $CURRENT_PRIMARIES_COUNT_COL,
+           |CASE WHEN $isCompositeKey THEN NULL ELSE $CURRENT_SECONDARIES_COUNT_COL END as $CURRENT_SECONDARIES_COUNT_COL
            |""".stripMargin
       } else {
         ""
