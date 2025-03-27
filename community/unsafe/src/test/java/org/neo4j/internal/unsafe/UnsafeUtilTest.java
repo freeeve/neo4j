@@ -20,6 +20,7 @@
 package org.neo4j.internal.unsafe;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -313,5 +314,18 @@ class UnsafeUtilTest {
     void closeNativeByteBufferWithUnsafe() {
         ByteBuffer directBuffer = ByteBuffer.allocateDirect(1024);
         assertDoesNotThrow(() -> UnsafeUtil.invokeCleaner(directBuffer));
+    }
+
+    @Test
+    void detectBadMemoryAccess() {
+        UnsafeUtil.addAllocatedPointer(0x7fc7f84a1000L, 220976);
+        try {
+            assertThatCode(() -> UnsafeUtil.checkAccess(0x7fc7f84a1000L, 220976))
+                    .doesNotThrowAnyException();
+            assertThatCode(() -> UnsafeUtil.checkAccess(0x7fc7f84a0000L, 220976))
+                    .hasMessageContaining("Bad access to address 0x7fc7f84a0000");
+        } finally {
+            UnsafeUtil.removeAllocatedPointer(0x7fc7f84a1000L);
+        }
     }
 }

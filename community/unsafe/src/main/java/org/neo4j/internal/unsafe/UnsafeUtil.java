@@ -325,7 +325,7 @@ public final class UnsafeUtil {
         freeTraces[idx] = new FreeTrace(pointer, allocation, count);
     }
 
-    private static void checkAccess(long pointer, long size) {
+    static void checkAccess(long pointer, long size) {
         if (CHECK_NATIVE_ACCESS && nativeAccessCheckEnabled) {
             doCheckAccess(pointer, size);
         }
@@ -347,8 +347,10 @@ public final class UnsafeUtil {
             }
         }
 
-        Map.Entry<Long, Allocation> fentry = allocations.floorEntry(boundary);
-        if (fentry == null || compareUnsigned(fentry.getValue().boundary, boundary) < 0) {
+        Map.Entry<Long, Allocation> fentry = allocations.floorEntry(pointer);
+        if (fentry == null
+                || compareUnsigned(fentry.getValue().pointer, pointer) > 0
+                || compareUnsigned(fentry.getValue().boundary, boundary) < 0) {
             Map.Entry<Long, Allocation> centry = allocations.ceilingEntry(pointer);
             throwBadAccess(pointer, size, fentry, centry);
         }
