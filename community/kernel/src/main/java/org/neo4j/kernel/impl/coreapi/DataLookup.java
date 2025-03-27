@@ -96,7 +96,9 @@ public abstract class DataLookup {
     public Node getNodeById(long id) {
         if (id < 0 || !dataRead().nodeExists(id)) {
             throw new NotFoundException(
-                    format("Node %d not found", id), new EntityNotFoundException(EntityType.NODE, valueOf(id)));
+                    format("Node %d not found", id),
+                    EntityNotFoundException.internalError(
+                            this.getClass().getSimpleName(), EntityType.NODE, valueOf(id)));
         }
 
         return newNodeEntity(id);
@@ -106,7 +108,8 @@ public abstract class DataLookup {
         long nodeId = elementIdMapper().nodeId(elementId);
         if (!dataRead().nodeExists(nodeId)) {
             throw new NotFoundException(
-                    format("Node %s not found.", elementId), new EntityNotFoundException(EntityType.NODE, elementId));
+                    format("Node %s not found.", elementId),
+                    EntityNotFoundException.internalError(this.getClass().getSimpleName(), EntityType.NODE, elementId));
         }
         return newNodeEntity(nodeId);
     }
@@ -214,13 +217,15 @@ public abstract class DataLookup {
         if (id < 0) {
             throw new NotFoundException(
                     format("Relationship with %d not found", id),
-                    new EntityNotFoundException(EntityType.RELATIONSHIP, valueOf(id)));
+                    EntityNotFoundException.internalError(
+                            this.getClass().getSimpleName(), EntityType.RELATIONSHIP, valueOf(id)));
         }
 
         if (!dataRead().relationshipExists(id)) {
             throw new NotFoundException(
                     format("Relationship with %d not found", id),
-                    new EntityNotFoundException(EntityType.RELATIONSHIP, valueOf(id)));
+                    EntityNotFoundException.internalError(
+                            this.getClass().getSimpleName(), EntityType.RELATIONSHIP, valueOf(id)));
         }
         return newRelationshipEntity(id);
     }
@@ -230,7 +235,8 @@ public abstract class DataLookup {
         if (!dataRead().relationshipExists(relationshipId)) {
             throw new NotFoundException(
                     format("Relationship %s not found.", elementId),
-                    new EntityNotFoundException(EntityType.RELATIONSHIP, elementId));
+                    EntityNotFoundException.internalError(
+                            this.getClass().getSimpleName(), EntityType.RELATIONSHIP, elementId));
         }
         return newRelationshipEntity(relationshipId);
     }

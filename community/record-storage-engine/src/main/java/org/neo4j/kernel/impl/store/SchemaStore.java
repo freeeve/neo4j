@@ -181,7 +181,8 @@ public class SchemaStore extends CommonAbstractStore<SchemaRecord, IntStoreHeade
                         storeCursors.readCursor(PROPERTY_CURSOR),
                         memoryTracker);
             } catch (InvalidRecordException e) {
-                throw new MalformedSchemaRuleException(
+                throw MalformedSchemaRuleException.internalError(
+                        SchemaStore.class.getSimpleName(),
                         "Cannot read schema rule because it is referencing a property record (id " + nextProp
                                 + ") that is invalid: " + propRecord,
                         e);
@@ -205,7 +206,8 @@ public class SchemaStore extends CommonAbstractStore<SchemaRecord, IntStoreHeade
             props.put(propertyKeyTokenName.name(), propertyKeyValue.value());
         } catch (TokenNotFoundException | InvalidRecordException e) {
             int id = propertyKeyValue.propertyKeyId();
-            throw new MalformedSchemaRuleException(
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaStore.class.getSimpleName(),
                     "Cannot read schema rule because it is referring to a property key token (id " + id
                             + ") that does not exist.",
                     e);

@@ -198,7 +198,8 @@ public class SchemaStore44Reader implements AutoCloseable {
                         storeCursors.readCursor(PROPERTY_CURSOR),
                         memoryTracker);
             } catch (InvalidRecordException e) {
-                throw new MalformedSchemaRuleException(
+                throw MalformedSchemaRuleException.internalError(
+                        this.getClass().getSimpleName(),
                         "Cannot read schema rule because it is referencing a property record (id " + nextProp
                                 + ") that is invalid: " + propRecord,
                         e);
@@ -222,7 +223,8 @@ public class SchemaStore44Reader implements AutoCloseable {
             props.put(propertyKeyTokenName.name(), propertyKeyValue.value());
         } catch (TokenNotFoundException | InvalidRecordException e) {
             int id = propertyKeyValue.propertyKeyId();
-            throw new MalformedSchemaRuleException(
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaStore44Reader.class.getSimpleName(),
                     "Cannot read schema rule because it is referring to a property key token (id " + id
                             + ") that does not exist.",
                     e);
@@ -239,7 +241,8 @@ public class SchemaStore44Reader implements AutoCloseable {
             case "INDEX" -> buildIndexRule(ruleId, props);
             case "CONSTRAINT" -> buildConstraintRule(ruleId, props);
             default ->
-                throw new MalformedSchemaRuleException("Can not create a schema rule of type: " + schemaRuleType);
+                throw MalformedSchemaRuleException.internalError(
+                        this.getClass().getSimpleName(), "Can not create a schema rule of type: " + schemaRuleType);
         };
     }
 
@@ -312,7 +315,10 @@ public class SchemaStore44Reader implements AutoCloseable {
         return switch (indexRuleType) {
             case "NON_UNIQUE" -> false;
             case "UNIQUE" -> true;
-            default -> throw new MalformedSchemaRuleException("Did not recognize index rule type: " + indexRuleType);
+            default ->
+                throw MalformedSchemaRuleException.internalError(
+                        SchemaStore44Reader.class.getSimpleName(),
+                        "Did not recognize index rule type: " + indexRuleType);
         };
     }
 
@@ -345,7 +351,8 @@ public class SchemaStore44Reader implements AutoCloseable {
         try {
             return SchemaRule44.IndexType.valueOf(indexType);
         } catch (Exception e) {
-            throw new MalformedSchemaRuleException("Did not recognize index type: " + indexType, e);
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaStore44Reader.class.getSimpleName(), "Did not recognize index type: " + indexType, e);
         }
     }
 
@@ -354,7 +361,10 @@ public class SchemaStore44Reader implements AutoCloseable {
         try {
             return SchemaRule44.ConstraintRuleType.valueOf(constraintRuleType);
         } catch (Exception e) {
-            throw new MalformedSchemaRuleException("Did not recognize constraint rule type: " + constraintRuleType, e);
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaStore44Reader.class.getSimpleName(),
+                    "Did not recognize constraint rule type: " + constraintRuleType,
+                    e);
         }
     }
 
@@ -372,7 +382,8 @@ public class SchemaStore44Reader implements AutoCloseable {
         try {
             return EntityType.valueOf(entityType);
         } catch (Exception e) {
-            throw new MalformedSchemaRuleException("Did not recognize entity type: " + entityType, e);
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaStore44Reader.class.getSimpleName(), "Did not recognize entity type: " + entityType, e);
         }
     }
 

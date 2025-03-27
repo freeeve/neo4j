@@ -21,16 +21,13 @@ package org.neo4j.kernel.api.exceptions.schema;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class DropIndexFailureException extends SchemaKernelException {
-    private DropIndexFailureException(String message) {
-        super(Status.Schema.IndexDropFailed, message);
-    }
-
     private DropIndexFailureException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, Status.Schema.IndexDropFailed, message);
     }
@@ -40,8 +37,10 @@ public class DropIndexFailureException extends SchemaKernelException {
     }
 
     // KNL-035
-    public static DropIndexFailureException noIndexSpecified() {
-        return new DropIndexFailureException("No index was specified.");
+    public static DropIndexFailureException noIndexSpecified(String msgTitle) {
+        var message = "No index was specified.";
+        var gql = GqlHelper.get50N00(msgTitle, msgTitle);
+        return new DropIndexFailureException(gql, message);
     }
 
     // KNL-036

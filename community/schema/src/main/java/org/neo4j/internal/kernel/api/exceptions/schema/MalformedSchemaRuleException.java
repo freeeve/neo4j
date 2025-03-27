@@ -22,6 +22,7 @@ package org.neo4j.internal.kernel.api.exceptions.schema;
 import java.util.Collections;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -48,6 +49,16 @@ public class MalformedSchemaRuleException extends SchemaKernelException {
 
     public MalformedSchemaRuleException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, Status.General.SchemaCorruptionDetected, message);
+    }
+
+    public static MalformedSchemaRuleException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new MalformedSchemaRuleException(gql, message);
+    }
+
+    public static MalformedSchemaRuleException internalError(String msgTitle, String message, Throwable cause) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new MalformedSchemaRuleException(gql, message, cause);
     }
 
     public static MalformedSchemaRuleException propertyTypeMismatch(

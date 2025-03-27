@@ -374,7 +374,8 @@ public class FlippableIndexProxy extends AbstractDelegatingIndexProxy {
                     }
                 }
             } catch (Exception e) {
-                throw new ExceptionDuringFlipKernelException(e);
+                throw ExceptionDuringFlipKernelException.internalError(
+                        this.getClass().getSimpleName(), e);
             }
         } finally {
             lock.writeLock().unlock();
@@ -388,7 +389,7 @@ public class FlippableIndexProxy extends AbstractDelegatingIndexProxy {
 
     private void assertOpen() throws IndexProxyAlreadyClosedKernelException {
         if (closed) {
-            throw new IndexProxyAlreadyClosedKernelException(this.getClass());
+            throw IndexProxyAlreadyClosedKernelException.internalError(this.getClass());
         }
     }
 

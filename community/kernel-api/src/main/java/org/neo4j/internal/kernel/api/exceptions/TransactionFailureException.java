@@ -27,6 +27,7 @@ import static org.neo4j.kernel.api.exceptions.Status.Transaction.TransactionComm
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.logging.Log;
@@ -73,6 +74,23 @@ public class TransactionFailureException extends KernelException {
 
     private TransactionFailureException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, Status.Transaction.TransactionStartFailed, cause, message);
+    }
+
+    public static TransactionFailureException internalError(String msgTitle, String message, Throwable cause) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new TransactionFailureException(gql, message, cause);
+    }
+
+    public static TransactionFailureException internalError(
+            Status statusCode, String msgTitle, String message, Object... parameters) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new TransactionFailureException(gql, statusCode, message, parameters);
+    }
+
+    public static TransactionFailureException internalError(
+            Status statusCode, Throwable cause, String msgTitle, String message, Object... parameters) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new TransactionFailureException(gql, statusCode, cause, message, parameters);
     }
 
     public static TransactionFailureException leaseExpired(int currentLeaseId, int leaseId) {

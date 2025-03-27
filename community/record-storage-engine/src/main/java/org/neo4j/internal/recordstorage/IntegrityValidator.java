@@ -133,8 +133,9 @@ class IntegrityValidator {
 
     private static TransactionFailureException upgradeNeededForSchemaRule(
             String schemaType, SchemaRule schemaRule, KernelVersion actualVersion, KernelVersion requiredVersion) {
-        return new TransactionFailureException(
+        return TransactionFailureException.internalError(
                 Status.General.UpgradeRequired,
+                IntegrityValidator.class.getSimpleName(),
                 "Operations on %s '%s' not allowed. "
                         + "Required kernel version for this transaction is %s, but actual version was %s.",
                 schemaType,

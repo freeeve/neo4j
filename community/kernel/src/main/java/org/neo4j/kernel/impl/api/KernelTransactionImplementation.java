@@ -1150,8 +1150,9 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             // transaction passed through a happy path, but the transaction was rolled back
             // for one or more reasons. Tell the user that although it looked happy it
             // wasn't committed, but was instead rolled back.
-            throw new TransactionFailureException(
+            throw TransactionFailureException.internalError(
                     Status.Transaction.TransactionMarkedAsFailed,
+                    this.getClass().getSimpleName(),
                     "Transaction rolled back even if marked as successful");
         }
     }

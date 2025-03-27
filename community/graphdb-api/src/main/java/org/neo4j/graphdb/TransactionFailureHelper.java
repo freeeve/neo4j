@@ -20,6 +20,7 @@
 package org.neo4j.graphdb;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -30,6 +31,12 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class TransactionFailureHelper {
 
     public static final String UNABLE_TO_COMPLETE_TRANSACTION = "Unable to complete transaction.";
+
+    public static TransactionFailureException internalError(
+            String msgTitle, String message, Throwable cause, Status status) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new TransactionFailureException(gql, message, cause, status);
+    }
 
     public static TransactionFailureException failToStartTransaction(Throwable e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N06)

@@ -21,22 +21,18 @@ package org.neo4j.kernel.api.exceptions.index;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public final class IndexProxyAlreadyClosedKernelException extends KernelException {
-    @Deprecated
-    public IndexProxyAlreadyClosedKernelException(Class<?> proxyClazz) {
-        super(
-                Status.Schema.IndexCreationFailed,
-                "%s has been closed. No more interactions allowed.",
-                proxyClazz.getSimpleName());
+
+    private IndexProxyAlreadyClosedKernelException(ErrorGqlStatusObject gqlStatusObject, String message) {
+        super(gqlStatusObject, Status.Schema.IndexCreationFailed, message);
     }
 
-    public IndexProxyAlreadyClosedKernelException(ErrorGqlStatusObject gqlStatusObject, Class<?> proxyClazz) {
-        super(
-                gqlStatusObject,
-                Status.Schema.IndexCreationFailed,
-                "%s has been closed. No more interactions allowed.",
-                proxyClazz.getSimpleName());
+    public static IndexProxyAlreadyClosedKernelException internalError(Class<?> proxyClazz) {
+        var message = String.format("%s has been closed. No more interactions allowed.", proxyClazz.getSimpleName());
+        var gql = GqlHelper.get50N00(proxyClazz.getSimpleName(), message);
+        return new IndexProxyAlreadyClosedKernelException(gql, message);
     }
 }

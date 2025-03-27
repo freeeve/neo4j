@@ -52,7 +52,7 @@ class TranslateExceptionMacrosTest extends CypherFunSuite {
   }
 
   test("should rethrow KernelException as CypherExecutionException") {
-    val exception = new EntityNotFoundException(EntityType.NODE, "1")
+    val exception = EntityNotFoundException.internalError(this.getClass.getSimpleName, EntityType.NODE, "1")
     the[CypherExecutionException] thrownBy translateException(
       tokenNameLookup,
       throw exception

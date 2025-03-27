@@ -226,7 +226,8 @@ public class RelationshipEntity implements Relationship, RelationshipVisitor<Run
         internalTransaction.checkInTransaction();
         int typeId = typeId();
         if (typeId == LongReference.NULL) {
-            throw new NotFoundException(new EntityNotFoundException(EntityType.NODE, getElementId()));
+            throw new NotFoundException(EntityNotFoundException.internalError(
+                    this.getClass().getSimpleName(), EntityType.NODE, getElementId()));
         }
         return internalTransaction.getRelationshipTypeById(typeId);
     }
@@ -459,7 +460,8 @@ public class RelationshipEntity implements Relationship, RelationshipVisitor<Run
             transaction.dataRead().singleRelationship(id, relationships);
         }
         if (!relationships.next()) {
-            throw new NotFoundException(new EntityNotFoundException(EntityType.RELATIONSHIP, getElementId()));
+            throw new NotFoundException(EntityNotFoundException.internalError(
+                    this.getClass().getSimpleName(), EntityType.RELATIONSHIP, getElementId()));
         }
     }
 

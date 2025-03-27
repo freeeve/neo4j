@@ -113,7 +113,9 @@ public class SchemaRuleMapifier {
             case "INDEX" -> buildIndexRule(ruleId, map);
             case "CONSTRAINT" -> buildConstraintRule(ruleId, map);
             default ->
-                throw new MalformedSchemaRuleException("Can not create a schema rule of type: " + schemaRuleType);
+                throw MalformedSchemaRuleException.internalError(
+                        SchemaRuleMapifier.class.getSimpleName(),
+                        "Can not create a schema rule of type: " + schemaRuleType);
         };
     }
 
@@ -326,7 +328,10 @@ public class SchemaRuleMapifier {
         return switch (indexRuleType) {
             case "NON_UNIQUE" -> false;
             case "UNIQUE" -> true;
-            default -> throw new MalformedSchemaRuleException("Did not recognize index rule type: " + indexRuleType);
+            default ->
+                throw MalformedSchemaRuleException.internalError(
+                        SchemaRuleMapifier.class.getSimpleName(),
+                        "Did not recognize index rule type: " + indexRuleType);
         };
     }
 
@@ -420,7 +425,8 @@ public class SchemaRuleMapifier {
         try {
             return IndexType.valueOf(indexType);
         } catch (Exception e) {
-            throw new MalformedSchemaRuleException("Did not recognize index type: " + indexType, e);
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaRuleMapifier.class.getSimpleName(), "Did not recognize index type: " + indexType, e);
         }
     }
 
@@ -438,7 +444,8 @@ public class SchemaRuleMapifier {
         try {
             return EntityType.valueOf(entityType);
         } catch (Exception e) {
-            throw new MalformedSchemaRuleException("Did not recognize entity type: " + entityType, e);
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaRuleMapifier.class.getSimpleName(), "Did not recognize entity type: " + entityType, e);
         }
     }
 
@@ -448,7 +455,8 @@ public class SchemaRuleMapifier {
             try {
                 types.add(TypeRepresentation.deserialize(allowedType));
             } catch (Exception e) {
-                throw new MalformedSchemaRuleException(
+                throw MalformedSchemaRuleException.internalError(
+                        SchemaRuleMapifier.class.getSimpleName(),
                         "Did not recognize schema value type '%s' in: %s"
                                 .formatted(allowedType, Arrays.toString(allowedTypes)),
                         e);
@@ -495,7 +503,9 @@ public class SchemaRuleMapifier {
         try {
             return ConstraintType.valueOf(constraintType);
         } catch (Exception e) {
-            throw new MalformedSchemaRuleException("Did not recognize constraint rule type: " + constraintType);
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaRuleMapifier.class.getSimpleName(),
+                    "Did not recognize constraint rule type: " + constraintType);
         }
     }
 }

@@ -22,19 +22,20 @@ package org.neo4j.internal.kernel.api.exceptions.schema;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.logging.Log;
 
 public class IndexNotApplicableKernelException extends KernelException {
-    @Deprecated
-    public IndexNotApplicableKernelException(String msg) {
-        super(Status.Schema.IndexNotApplicable, msg);
-    }
-
     private IndexNotApplicableKernelException(ErrorGqlStatusObject gqlStatusObject, String msg) {
         super(gqlStatusObject, Status.Schema.IndexNotApplicable, msg);
+    }
+
+    public static IndexNotApplicableKernelException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new IndexNotApplicableKernelException(gql, message);
     }
 
     public static IndexNotApplicableKernelException indexNotApplicable(Log log, String indexName, String msg) {

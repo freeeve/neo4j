@@ -133,7 +133,7 @@ public class SchemaStorage implements SchemaRuleAccess {
             throw SchemaRuleNotFoundException.schemaRuleNotFound(descriptor, tokenHolders);
         }
         if (rules.length > 1) {
-            throw new DuplicateSchemaRuleException(descriptor, tokenHolders);
+            throw DuplicateSchemaRuleException.internalError(this.getClass().getSimpleName(), descriptor, tokenHolders);
         }
         return rules[0];
     }
@@ -255,7 +255,8 @@ public class SchemaStorage implements SchemaRuleAccess {
                             nextProp, propRecord, RecordLoad.NORMAL, propertyCursor, memoryTracker);
                     propertyStore.ensureHeavy(propRecord, storeCursors, memoryTracker);
                 } catch (InvalidRecordException e) {
-                    throw new MalformedSchemaRuleException(
+                    throw MalformedSchemaRuleException.internalError(
+                            this.getClass().getSimpleName(),
                             "Cannot read schema rule because it is referencing a property record (id " + nextProp
                                     + ") that is invalid: " + propRecord,
                             e);

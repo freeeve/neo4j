@@ -24,24 +24,24 @@ import static java.util.Objects.requireNonNull;
 import org.neo4j.common.EntityType;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class EntityNotFoundException extends KernelException {
     private final EntityType entityType;
     private final String entityId;
 
-    @Deprecated
-    public EntityNotFoundException(EntityType entityType, String entityId) {
-        super(Status.Statement.EntityNotFound, "Unable to load %s %s.", entityType.name(), entityId);
+    private EntityNotFoundException(
+            ErrorGqlStatusObject gqlStatusObject, String message, EntityType entityType, String entityId) {
+        super(gqlStatusObject, Status.Statement.EntityNotFound, message);
         this.entityType = requireNonNull(entityType);
         this.entityId = requireNonNull(entityId);
     }
 
-    public EntityNotFoundException(ErrorGqlStatusObject gqlStatusObject, EntityType entityType, String entityId) {
-        super(gqlStatusObject, Status.Statement.EntityNotFound, "Unable to load %s %s.", entityType.name(), entityId);
-
-        this.entityType = requireNonNull(entityType);
-        this.entityId = requireNonNull(entityId);
+    public static EntityNotFoundException internalError(String msgTitle, EntityType entityType, String entityId) {
+        var message = String.format("Unable to load %s %s.", entityType.name(), entityId);
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new EntityNotFoundException(gql, message, entityType, entityId);
     }
 
     public EntityType entityType() {

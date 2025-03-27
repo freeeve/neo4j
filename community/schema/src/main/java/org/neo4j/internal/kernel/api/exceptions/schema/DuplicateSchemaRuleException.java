@@ -21,18 +21,14 @@ package org.neo4j.internal.kernel.api.exceptions.schema;
 
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.internal.schema.SchemaDescriptorSupplier;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class DuplicateSchemaRuleException extends SchemaRuleException {
     private static final String MULTIPLE_FOUND_MESSAGE_TEMPLATE = "Multiple %ss found for %s.";
 
-    @Deprecated
-    public DuplicateSchemaRuleException(SchemaDescriptorSupplier schemaThing, TokenNameLookup tokenNameLookup) {
-        super(Status.Schema.SchemaRuleDuplicateFound, MULTIPLE_FOUND_MESSAGE_TEMPLATE, schemaThing, tokenNameLookup);
-    }
-
-    public DuplicateSchemaRuleException(
+    private DuplicateSchemaRuleException(
             ErrorGqlStatusObject gqlStatusObject,
             SchemaDescriptorSupplier schemaThing,
             TokenNameLookup tokenNameLookup) {
@@ -42,5 +38,12 @@ public class DuplicateSchemaRuleException extends SchemaRuleException {
                 MULTIPLE_FOUND_MESSAGE_TEMPLATE,
                 schemaThing,
                 tokenNameLookup);
+    }
+
+    public static DuplicateSchemaRuleException internalError(
+            String msgTitle, SchemaDescriptorSupplier schemaThing, TokenNameLookup tokenNameLookup) {
+        var message = String.format(MULTIPLE_FOUND_MESSAGE_TEMPLATE, schemaThing, tokenNameLookup);
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new DuplicateSchemaRuleException(gql, schemaThing, tokenNameLookup);
     }
 }

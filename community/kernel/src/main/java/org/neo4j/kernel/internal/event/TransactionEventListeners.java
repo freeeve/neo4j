@@ -66,7 +66,8 @@ public class TransactionEventListeners {
                 if (cause instanceof Status.HasStatus se) {
                     throw new TransactionFailureException(se.status(), cause, cause.getMessage());
                 }
-                throw new TransactionFailureException(TransactionHookFailed, cause, cause.getMessage());
+                throw TransactionFailureException.internalError(
+                        TransactionHookFailed, cause, this.getClass().getSimpleName(), cause.getMessage());
             }
         } finally {
             this.listenersState = newState;

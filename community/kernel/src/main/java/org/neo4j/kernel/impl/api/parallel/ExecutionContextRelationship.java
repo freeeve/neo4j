@@ -184,7 +184,8 @@ public class ExecutionContextRelationship extends AbstractEntity implements Rela
             singleRelationship(relationships);
             int type = relationships.type();
             if (type == LongReference.NULL) {
-                throw new NotFoundException(new EntityNotFoundException(EntityType.RELATIONSHIP, getElementId()));
+                throw new NotFoundException(EntityNotFoundException.internalError(
+                        this.getClass().getSimpleName(), EntityType.RELATIONSHIP, getElementId()));
             }
 
             try {
@@ -204,7 +205,8 @@ public class ExecutionContextRelationship extends AbstractEntity implements Rela
     private void singleRelationship(RelationshipScanCursor relationships) {
         executionContext.dataRead().singleRelationship(id, relationships);
         if (!relationships.next()) {
-            throw new NotFoundException(new EntityNotFoundException(EntityType.RELATIONSHIP, getElementId()));
+            throw new NotFoundException(EntityNotFoundException.internalError(
+                    this.getClass().getSimpleName(), EntityType.RELATIONSHIP, getElementId()));
         }
     }
 

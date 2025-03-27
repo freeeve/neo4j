@@ -431,7 +431,8 @@ public class NodeEntity extends AbstractNodeEntity implements RelationshipFactor
     private void singleNode(KernelTransaction transaction, NodeCursor nodes) {
         transaction.dataRead().singleNode(nodeId, nodes);
         if (!nodes.next()) {
-            throw new NotFoundException(new EntityNotFoundException(EntityType.NODE, getElementId()));
+            throw new NotFoundException(EntityNotFoundException.internalError(
+                    this.getClass().getSimpleName(), EntityType.NODE, getElementId()));
         }
     }
 

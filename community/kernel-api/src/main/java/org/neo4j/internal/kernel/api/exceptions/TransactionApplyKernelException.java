@@ -21,20 +21,21 @@ package org.neo4j.internal.kernel.api.exceptions;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
 /**
  * A {@link KernelException} thrown by a {@link org.neo4j.storageengine.api.StorageEngine} if it failed to apply a transaction.
  */
 public class TransactionApplyKernelException extends KernelException {
-
-    @Deprecated
-    public TransactionApplyKernelException(Throwable cause, String message, Object... parameters) {
-        super(Status.General.UnknownError, cause, message, parameters);
-    }
-
-    public TransactionApplyKernelException(
+    private TransactionApplyKernelException(
             ErrorGqlStatusObject gqlStatusObject, Throwable cause, String message, Object... parameters) {
         super(gqlStatusObject, Status.General.UnknownError, cause, message, parameters);
+    }
+
+    public static TransactionApplyKernelException internalError(
+            Throwable cause, String msgTitle, String message, Object... parameters) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new TransactionApplyKernelException(gql, cause, message, parameters);
     }
 }

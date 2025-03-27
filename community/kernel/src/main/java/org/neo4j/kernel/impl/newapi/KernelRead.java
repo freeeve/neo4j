@@ -943,15 +943,19 @@ public class KernelRead implements Read {
             throws IndexNotApplicableKernelException {
         int[] propertyIds = index.schema().getPropertyIds();
         if (propertyIds.length != predicates.length) {
-            throw new IndexNotApplicableKernelException(format(
-                    "The index specifies %d properties, but only %d lookup predicates were given.",
-                    propertyIds.length, predicates.length));
+            throw IndexNotApplicableKernelException.internalError(
+                    KernelRead.class.getSimpleName(),
+                    format(
+                            "The index specifies %d properties, but only %d lookup predicates were given.",
+                            propertyIds.length, predicates.length));
         }
         for (int i = 0; i < predicates.length; i++) {
             if (predicates[i].propertyKeyId() != propertyIds[i]) {
-                throw new IndexNotApplicableKernelException(format(
-                        "The index has the property id %d in position %d, but the lookup property id was %d.",
-                        propertyIds[i], i, predicates[i].propertyKeyId()));
+                throw IndexNotApplicableKernelException.internalError(
+                        KernelRead.class.getSimpleName(),
+                        format(
+                                "The index has the property id %d in position %d, but the lookup property id was %d.",
+                                propertyIds[i], i, predicates[i].propertyKeyId()));
             }
         }
     }

@@ -685,16 +685,20 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     private void singleNode(long node) throws EntityNotFoundException {
         kernelRead.singleNode(node, nodeCursor);
         if (!nodeCursor.next()) {
-            throw new EntityNotFoundException(
-                    NODE, ktx.internalTransaction().elementIdMapper().nodeElementId(node));
+            throw EntityNotFoundException.internalError(
+                    this.getClass().getSimpleName(),
+                    NODE,
+                    ktx.internalTransaction().elementIdMapper().nodeElementId(node));
         }
     }
 
     private void singleRelationship(long relationship) throws EntityNotFoundException {
         kernelRead.singleRelationship(relationship, relationshipCursor);
         if (!relationshipCursor.next()) {
-            throw new EntityNotFoundException(
-                    RELATIONSHIP, ktx.internalTransaction().elementIdMapper().relationshipElementId(relationship));
+            throw EntityNotFoundException.internalError(
+                    this.getClass().getSimpleName(),
+                    RELATIONSHIP,
+                    ktx.internalTransaction().elementIdMapper().relationshipElementId(relationship));
         }
     }
 
@@ -1818,7 +1822,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     public void indexDrop(IndexDescriptor index) throws SchemaKernelException {
         ensureCursors();
         if (index == IndexDescriptor.NO_INDEX) {
-            throw DropIndexFailureException.noIndexSpecified();
+            throw DropIndexFailureException.noIndexSpecified(this.getClass().getSimpleName());
         }
         exclusiveSchemaLock(index.schema());
         exclusiveSchemaNameLock(index.getName());
@@ -2715,8 +2719,10 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
     private void assertNodeExists(long nodeId) throws EntityNotFoundException {
         if (!kernelRead.nodeExists(nodeId)) {
-            throw new EntityNotFoundException(
-                    NODE, ktx.internalTransaction().elementIdMapper().nodeElementId(nodeId));
+            throw EntityNotFoundException.internalError(
+                    this.getClass().getSimpleName(),
+                    NODE,
+                    ktx.internalTransaction().elementIdMapper().nodeElementId(nodeId));
         }
     }
 

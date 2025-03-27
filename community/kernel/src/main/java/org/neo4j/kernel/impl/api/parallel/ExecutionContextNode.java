@@ -280,7 +280,8 @@ public class ExecutionContextNode extends AbstractNodeEntity {
     protected void singleNode(NodeCursor nodes) {
         executionContext.dataRead().singleNode(nodeId, nodes);
         if (!nodes.next()) {
-            throw new NotFoundException(new EntityNotFoundException(EntityType.NODE, getElementId()));
+            throw new NotFoundException(EntityNotFoundException.internalError(
+                    this.getClass().getSimpleName(), EntityType.NODE, getElementId()));
         }
     }
 

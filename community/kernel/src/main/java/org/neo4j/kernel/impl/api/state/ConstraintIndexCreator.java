@@ -146,8 +146,10 @@ public class ConstraintIndexCreator {
                 throw e.turnIntoRealException(constraint, transaction.tokenRead());
             } catch (IndexNotFoundKernelException e) {
                 String indexString = index.userDescription(transaction.tokenRead());
-                throw new TransactionFailureException(
-                        format("Index (%s) that we just created does not exist.", indexString), e);
+                throw TransactionFailureException.internalError(
+                        this.getClass().getSimpleName(),
+                        format("Index (%s) that we just created does not exist.", indexString),
+                        e);
             } catch (IndexPopulationFailedKernelException | InterruptedException e) {
                 throw CreateConstraintFailureException.constraintCreationFailed(constraint, transaction.tokenRead(), e);
             }
