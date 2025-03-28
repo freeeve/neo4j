@@ -114,15 +114,11 @@ public class DbRepresentation {
     }
 
     public static DbRepresentation of(Path storeDirectory, String databaseName, Config config) {
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(storeDirectory)
+        try (DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(storeDirectory)
                 .setConfig(config)
                 .noOpSystemGraphInitializer()
-                .build();
-        GraphDatabaseService db = managementService.database(databaseName);
-        try {
-            return of(db);
-        } finally {
-            managementService.shutdown();
+                .build()) {
+            return of(managementService.database(databaseName));
         }
     }
 

@@ -475,13 +475,13 @@ class DumpCommandIT {
 
     private void putStoreInDirectory(Config config, Path databaseDirectory) {
         String databaseName = databaseDirectory.getFileName().toString();
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(
+        try (DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(
                         databaseDirectory.getParent().getParent().getParent())
                 .setConfig(config)
                 .setConfig(initial_default_database, databaseName)
-                .build();
-        databaseLayout = ((GraphDatabaseAPI) managementService.database(databaseName)).databaseLayout();
-        managementService.shutdown();
+                .build()) {
+            databaseLayout = ((GraphDatabaseAPI) managementService.database(databaseName)).databaseLayout();
+        }
     }
 
     private static Closeable withPermissions(Path file, Set<PosixFilePermission> permissions) throws IOException {

@@ -274,10 +274,9 @@ class RecordStorageMigratorIT {
         StoreId storeId;
         ExternalStoreId externalStoreId;
         UUID databaseUUID = UUID.randomUUID();
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
+        try (var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setConfig(db_format, FormatFamily.STANDARD.name())
-                .build();
-        try {
+                .build()) {
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             MetadataProvider metadataProvider =
                     database.getDependencyResolver().resolveDependency(MetadataProvider.class);
@@ -285,8 +284,6 @@ class RecordStorageMigratorIT {
             externalStoreId = metadataProvider.getExternalStoreId();
 
             metadataProvider.setDatabaseIdUuid(databaseUUID, NULL_CONTEXT);
-        } finally {
-            dbms.shutdown();
         }
 
         LogService logService = NullLogService.getInstance();

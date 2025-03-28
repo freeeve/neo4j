@@ -49,25 +49,19 @@ public class DbFormatIT {
         // The default format for community is aligned, but our test format migrator can be in play and override it.
         String property = System.getProperty(FormatOverrideMigrator.OVERRIDE_STORE_FORMAT_KEY);
         String expectedFormat = property != null ? property : PageAligned.LATEST_NAME;
-        DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(directory.homePath()).build();
-        try {
+        try (DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(directory.homePath()).build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             verifyStoreFormat(db, expectedFormat);
-        } finally {
-            dbms.shutdown();
         }
     }
 
     @Test
     void setFormatIsRespected() throws IOException {
-        DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(directory.homePath())
+        try (DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(directory.homePath())
                 .setConfig(db_format, Standard.LATEST_NAME)
-                .build();
-        try {
+                .build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             verifyStoreFormat(db, Standard.LATEST_NAME);
-        } finally {
-            dbms.shutdown();
         }
     }
 

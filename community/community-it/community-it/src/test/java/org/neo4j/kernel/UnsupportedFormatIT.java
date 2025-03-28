@@ -42,10 +42,10 @@ public class UnsupportedFormatIT {
     @ParameterizedTest
     @ValueSource(strings = {"block", "high_limit"})
     void startDbmsOnEnterpriseFormatInCommunityShouldNotFailDbmsStartup(String enterpriseFormat) {
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(testDirectory.homePath())
+        try (DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(
+                        testDirectory.homePath())
                 .setConfig(GraphDatabaseSettings.db_format, enterpriseFormat)
-                .build();
-        try {
+                .build()) {
             // System db should have started up and be on aligned format
             GraphDatabaseAPI system =
                     (GraphDatabaseAPI) managementService.database(GraphDatabaseSettings.SYSTEM_DATABASE_NAME);
@@ -53,8 +53,6 @@ public class UnsupportedFormatIT {
             MetadataProvider metadataProvider =
                     system.getDependencyResolver().resolveDependency(MetadataProvider.class);
             assertThat(metadataProvider.getStoreId().getFormatName()).isEqualTo(PageAligned.LATEST_NAME);
-        } finally {
-            managementService.shutdown();
         }
     }
 }

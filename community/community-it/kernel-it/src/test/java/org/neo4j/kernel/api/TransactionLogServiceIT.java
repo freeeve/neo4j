@@ -104,7 +104,6 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.storageengine.api.TransactionIdStore;
-import org.neo4j.test.DelegatingDatabaseManagementService;
 import org.neo4j.test.OtherThreadExecutor;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
@@ -718,14 +717,13 @@ class TransactionLogServiceIT {
     @Test
     void setsPreviousChecksumCorrectlyForEnvelopedLogs() throws IOException {
         Path directory = testDirectory.directory("home-dir");
-        try (var dbms = new DelegatingDatabaseManagementService.AutoCloseable(
-                new TestDatabaseManagementServiceBuilder(directory)
-                        .setConfig(Map.of(
-                                GraphDatabaseInternalSettings.latest_kernel_version,
-                                KernelVersion.GLORIOUS_FUTURE.version(),
-                                GraphDatabaseInternalSettings.latest_runtime_version,
-                                DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion()))
-                        .build())) {
+        try (var dbms = new TestDatabaseManagementServiceBuilder(directory)
+                .setConfig(Map.of(
+                        GraphDatabaseInternalSettings.latest_kernel_version,
+                        KernelVersion.GLORIOUS_FUTURE.version(),
+                        GraphDatabaseInternalSettings.latest_runtime_version,
+                        DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion()))
+                .build()) {
 
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             var propertyValue = randomAscii((int) THRESHOLD / 16);
@@ -771,14 +769,13 @@ class TransactionLogServiceIT {
     @Test
     void setsPreviousChecksumCorrectlyForNonEnvelopedLogs() throws IOException {
         Path directory = testDirectory.directory("home-dir2");
-        try (var dbms = new DelegatingDatabaseManagementService.AutoCloseable(
-                new TestDatabaseManagementServiceBuilder(directory)
-                        .setConfig(Map.of(
-                                GraphDatabaseInternalSettings.latest_kernel_version,
-                                LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES.version(),
-                                GraphDatabaseInternalSettings.latest_runtime_version,
-                                LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES.getVersion()))
-                        .build())) {
+        try (var dbms = new TestDatabaseManagementServiceBuilder(directory)
+                .setConfig(Map.of(
+                        GraphDatabaseInternalSettings.latest_kernel_version,
+                        LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES.version(),
+                        GraphDatabaseInternalSettings.latest_runtime_version,
+                        LATEST_RUNTIME_VERSION_WITHOUT_ENVELOPES.getVersion()))
+                .build()) {
 
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
 

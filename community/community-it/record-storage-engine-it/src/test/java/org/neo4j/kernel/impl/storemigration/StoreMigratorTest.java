@@ -109,10 +109,9 @@ class StoreMigratorTest {
     @BeforeEach
     void setUp() {
         databaseLayout = RecordDatabaseLayout.of(neo4jLayout, DEFAULT_DATABASE_NAME);
-        var dbms = new TestDatabaseManagementServiceBuilder(neo4jLayout.homeDirectory())
+        try (var dbms = new TestDatabaseManagementServiceBuilder(neo4jLayout.homeDirectory())
                 .setConfig(GraphDatabaseSettings.db_format, FormatFamily.STANDARD.name())
-                .build();
-        dbms.shutdown();
+                .build()) {}
     }
 
     @AfterEach
@@ -501,8 +500,7 @@ class StoreMigratorTest {
     }
 
     private void verifyDbStartAndFormat(RecordFormats expectedStoreFormat) throws IOException {
-        var dbms = new TestDatabaseManagementServiceBuilder(neo4jLayout.homeDirectory()).build();
-        try {
+        try (var dbms = new TestDatabaseManagementServiceBuilder(neo4jLayout.homeDirectory()).build()) {
             var db = dbms.database(DEFAULT_DATABASE_NAME);
             // let's check the DB is operational
             db.beginTx().close();
@@ -521,8 +519,6 @@ class StoreMigratorTest {
                 assertEquals(expectedStoreFormat.majorVersion(), storeId.getMajorVersion());
                 assertEquals(expectedStoreFormat.minorVersion(), storeId.getMinorVersion());
             }
-        } finally {
-            dbms.shutdown();
         }
     }
 

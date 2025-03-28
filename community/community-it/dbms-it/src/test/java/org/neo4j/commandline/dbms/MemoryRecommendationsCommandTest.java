@@ -336,10 +336,9 @@ class MemoryRecommendationsCommandTest {
 
     private static void createDatabaseWithIndexes(Path homeDirectory, String databaseName) {
         // Create one index for every provider that we have
-        var dbms = new TestDatabaseManagementServiceBuilder(homeDirectory)
+        try (var dbms = new TestDatabaseManagementServiceBuilder(homeDirectory)
                 .setConfig(initial_default_database, databaseName)
-                .build();
-        try {
+                .build()) {
             var db = dbms.database(databaseName);
             for (IndexType indexType : Arrays.stream(IndexType.values())
                     .filter(type -> type != IndexType.LOOKUP)
@@ -370,8 +369,6 @@ class MemoryRecommendationsCommandTest {
                     tx.commit();
                 }
             }
-        } finally {
-            dbms.shutdown();
         }
     }
 }

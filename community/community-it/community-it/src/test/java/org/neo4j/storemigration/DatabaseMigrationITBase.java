@@ -127,9 +127,7 @@ public abstract class DatabaseMigrationITBase {
         if (includeExperimental) {
             builder.setConfig(GraphDatabaseSettings.db_format, toRecordFormat);
         }
-        DatabaseManagementService dbms = builder.build();
-
-        try {
+        try (DatabaseManagementService dbms = builder.build()) {
             GraphDatabaseService db = dbms.database(DEFAULT_DATABASE_NAME);
             verifyContents(db, zippedStore.statistics(), toRecordFormat);
             verifyStoreFormat(db, expectedFormat(db, toRecordFormat));
@@ -137,8 +135,6 @@ public abstract class DatabaseMigrationITBase {
             verifyKernelVersion(db);
             verifyRemovedIndexProviders(db);
             verifyFulltextIndexes(db, zippedStore.statistics().kernelVersion());
-        } finally {
-            dbms.shutdown();
         }
         // for now we skip index check for experimental formats (multiversion only atm)
         consistencyCheck(homeDir, DEFAULT_DATABASE_NAME, includeExperimental);
@@ -188,13 +184,11 @@ public abstract class DatabaseMigrationITBase {
         migrate.accept(neo4jLayout);
 
         var initialIndexStateMonitor = new InitialIndexStateMonitor(SYSTEM_DATABASE_NAME);
-        DatabaseManagementService dbms = newDbmsBuilder(targetDirectory)
+        // then
+        try (DatabaseManagementService dbms = newDbmsBuilder(targetDirectory)
                 .setConfig(automatic_upgrade_enabled, false)
                 .setMonitors(initialIndexStateMonitor.monitors())
-                .build();
-
-        // then
-        try {
+                .build()) {
             var system = dbms.database(SYSTEM_DATABASE_NAME);
             verifyInitialIndexState(initialIndexStateMonitor);
             verifyGraphComponents(system);
@@ -215,8 +209,6 @@ public abstract class DatabaseMigrationITBase {
                 tx.createNode();
                 tx.commit();
             }
-        } finally {
-            dbms.shutdown();
         }
         consistencyCheck(targetDirectory, SYSTEM_DATABASE_NAME, true);
     }

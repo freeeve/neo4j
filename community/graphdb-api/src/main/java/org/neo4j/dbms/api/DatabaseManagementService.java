@@ -30,7 +30,7 @@ import org.neo4j.graphdb.event.TransactionEventListener;
  * The {@link DatabaseManagementService} provides an API to manage databases and provided access to the managed database services.
  */
 @PublicApi
-public interface DatabaseManagementService {
+public interface DatabaseManagementService extends AutoCloseable {
     /**
      * Retrieve a database service by name.
      * @param databaseName name of the database.
@@ -140,4 +140,12 @@ public interface DatabaseManagementService {
      * Shutdown database server.
      */
     void shutdown();
+
+    /**
+     * Shutdown database server.
+     */
+    @Override
+    default void close() {
+        shutdown();
+    }
 }

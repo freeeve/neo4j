@@ -91,15 +91,4 @@ public class DelegatingDatabaseManagementService implements DatabaseManagementSe
     public void shutdown() {
         delegate.shutdown();
     }
-
-    public static class AutoCloseable extends DelegatingDatabaseManagementService implements java.lang.AutoCloseable {
-        public AutoCloseable(DatabaseManagementService delegate) {
-            super(delegate);
-        }
-
-        @Override
-        public void close() {
-            shutdown();
-        }
-    }
 }

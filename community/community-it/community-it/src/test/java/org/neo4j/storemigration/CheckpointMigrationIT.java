@@ -62,8 +62,7 @@ public class CheckpointMigrationIT {
     void checkpointDatabaseWithLegacyKernelVersion(ZippedStore zippedStore) throws IOException {
         Path homeDir = layout.homeDirectory();
         zippedStore.unzip(homeDir);
-        DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(homeDir).build();
-        try {
+        try (DatabaseManagementService dbms = new TestDatabaseManagementServiceBuilder(homeDir).build(); ) {
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
             forceCheckpoint(database);
 
@@ -73,8 +72,6 @@ public class CheckpointMigrationIT {
                     .findLatestCheckpoint()
                     .orElseThrow();
             assertEquals(KernelVersion.V5_0, latestCheckpoint.kernelVersion());
-        } finally {
-            dbms.shutdown();
         }
     }
 
