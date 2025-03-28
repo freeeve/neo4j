@@ -28,6 +28,7 @@ import org.neo4j.common.DependencyResolver;
 import org.neo4j.graphdb.security.URLAccessChecker;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
+import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
 import org.neo4j.internal.kernel.api.procs.UserAggregationReducer;
 import org.neo4j.internal.kernel.api.procs.UserAggregationUpdater;
 import org.neo4j.internal.kernel.api.security.AccessMode;
@@ -189,6 +190,10 @@ public abstract class ProcedureCaller {
         }
 
         return createIterator(procedureSecurityContext, procedureCall);
+    }
+
+    public ProcedureSignature procedureSignature(int id) throws ProcedureException {
+        return procedureView.procedureSignature(id);
     }
 
     private ResourceRawIterator<AnyValue[], ProcedureException> createIterator(

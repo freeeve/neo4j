@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.collection.ResourceRawIterator;
+import org.neo4j.common.DependencyResolver;
 import org.neo4j.internal.kernel.api.Procedures;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
@@ -35,16 +36,16 @@ import org.neo4j.internal.kernel.api.procs.UserFunctionSignature;
 import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
 import org.neo4j.kernel.api.AssertOpen;
+import org.neo4j.kernel.api.ExecutionContext;
 import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.procedure.ProcedureView;
 import org.neo4j.kernel.impl.api.ClockContext;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.OverridableSecurityContext;
 import org.neo4j.kernel.impl.api.parallel.ExecutionContextProcedureKernelTransaction;
-import org.neo4j.kernel.impl.api.parallel.ThreadExecutionContext;
 import org.neo4j.values.AnyValue;
 
-public abstract sealed class KernelProcedures implements Procedures {
+public abstract class KernelProcedures implements Procedures {
 
     private final AssertOpen assertOpen;
 
@@ -52,7 +53,7 @@ public abstract sealed class KernelProcedures implements Procedures {
         this.assertOpen = assertOpen;
     }
 
-    public static final class ForTransactionScope extends KernelProcedures {
+    public static class ForTransactionScope extends KernelProcedures {
 
         private final KernelTransactionImplementation ktx;
         private final Dependencies databaseDependencies;
@@ -79,13 +80,13 @@ public abstract sealed class KernelProcedures implements Procedures {
         }
     }
 
-    public static final class ForThreadExecutionContextScope extends KernelProcedures {
+    public static class ForThreadExecutionContextScope extends KernelProcedures {
 
         private final ProcedureCaller.ForThreadExecutionContextScope procedureCaller;
 
         public ForThreadExecutionContextScope(
-                ThreadExecutionContext executionContext,
-                Dependencies databaseDependencies,
+                ExecutionContext executionContext,
+                DependencyResolver databaseDependencies,
                 OverridableSecurityContext overridableSecurityContext,
                 ExecutionContextProcedureKernelTransaction kernelTransaction,
                 SecurityAuthorizationHandler securityAuthorizationHandler,

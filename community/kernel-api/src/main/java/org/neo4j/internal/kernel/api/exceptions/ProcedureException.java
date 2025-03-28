@@ -152,6 +152,20 @@ public class ProcedureException extends KernelException {
                 name);
     }
 
+    public static ProcedureException unsupportedProcedure(QualifiedName name) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N71)
+                .withParam(GqlParams.StringParam.feat, "Unsupported procedure call")
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N08)
+                        .withParam(GqlParams.StringParam.procFun, name.toString())
+                        .build())
+                .build();
+        return new ProcedureException(
+                gql,
+                Status.Procedure.ProcedureCallFailed,
+                "Procedure `%s` is not supported in a sharded database.",
+                name);
+    }
+
     public static ProcedureException noSuchConstituentGraph(String graphName, String ctxDatabaseName) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N01)

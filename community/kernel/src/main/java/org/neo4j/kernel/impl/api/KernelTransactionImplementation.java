@@ -100,6 +100,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.AccessModeProvider;
+import org.neo4j.kernel.api.AssertOpen;
 import org.neo4j.kernel.api.ExecutionContext;
 import org.neo4j.kernel.api.InnerTransactionHandler;
 import org.neo4j.kernel.api.KernelTransaction;
@@ -407,8 +408,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 this::dataRead, cursorFactory, this, this::cursorContext, memoryTracker, indexingService.getMonitor());
         this.entityLocks = new EntityLocks(
                 storageLocks, currentStatement::lockTracer, lockClient, this::assertOpenWithParallelAccessCheck);
-        this.procedures =
-                new KernelProcedures.ForTransactionScope(this, dependencies, this::assertOpenWithParallelAccessCheck);
+        this.procedures = createProcedures(dependencies, this::assertOpenWithParallelAccessCheck);
         AccessModeProvider accessModeProvider = () -> securityContext().mode();
         this.schemaRead = createSchemaRead(
                 schemaState, indexStatisticsStore, storageReader, entityLocks, indexingService, accessModeProvider);
@@ -475,6 +475,11 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.transactionEventListeners = new TransactionEventListeners(transactionEventListeners, this, storageReader);
         this.txStateWriter = createChunkWriter(multiVersioned);
         registerConfigChangeListeners(config);
+    }
+
+    protected KernelProcedures.ForTransactionScope createProcedures(
+            Dependencies databaseDependencies, AssertOpen assertOpen) {
+        return new KernelProcedures.ForTransactionScope(this, databaseDependencies, assertOpen);
     }
 
     protected DefaultPooledCursors createCursors(
