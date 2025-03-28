@@ -27,11 +27,6 @@ import org.neo4j.kernel.api.exceptions.Status;
  * A hint was not be fulfilled for unknown reasons. This possibly points to a bug in the planner.
  */
 public class HintException extends Neo4jException {
-    @Deprecated
-    public HintException(String message) {
-        super(message);
-    }
-
     private HintException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }

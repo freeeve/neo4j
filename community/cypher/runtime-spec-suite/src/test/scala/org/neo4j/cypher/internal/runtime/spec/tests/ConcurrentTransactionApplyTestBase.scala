@@ -770,7 +770,7 @@ abstract class ConcurrentTransactionApplyTestBase[CONTEXT <: RuntimeContext](
         val shouldThrow = x == 16L
         if (shouldThrow) {
           startBarrier.reached()
-          throw new CypherTypeException("I hate the number you chose")
+          throw CypherTypeException.internalError(this.getClass.getSimpleName, "I hate the number you chose")
         }
         if (shouldBeInterrupted) {
           startBarrier.await()

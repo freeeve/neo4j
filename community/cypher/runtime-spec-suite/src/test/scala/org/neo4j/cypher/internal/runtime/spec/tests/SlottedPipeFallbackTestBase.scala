@@ -177,7 +177,7 @@ abstract class SlottedPipeFallbackTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .errorPlan(new HintException("hello"))
+      .errorPlan(HintException.internalError(this.getClass.getSimpleName, "hello"))
       .allNodeScan("x")
       .build()
 

@@ -37,7 +37,7 @@ import org.neo4j.graphdb.Relationship
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.Result
 import org.neo4j.graphdb.Transaction
-import org.neo4j.graphdb.TransactionFailureException
+import org.neo4j.graphdb.TransactionFailureHelper
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.internal.helpers.collection.Iterables
 import org.neo4j.internal.kernel.api.TokenRead
@@ -189,8 +189,10 @@ trait GraphDatabaseTestSupport
 
   protected def beginTransaction(`type`: KernelTransaction.Type, loginContext: LoginContext): InternalTransaction = {
     if (tx != null) {
-      throw new TransactionFailureException(
+      throw TransactionFailureHelper.internalError(
+        this.getClass.getSimpleName,
         "Failed to start a new transaction. Already have an open transaction in `tx` in this test.",
+        new RuntimeException(),
         Status.Transaction.TransactionStartFailed
       )
     }

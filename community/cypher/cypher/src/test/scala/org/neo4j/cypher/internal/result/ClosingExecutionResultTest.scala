@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.runtime.InternalQueryType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.Neo4jException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.graphdb.GqlStatusObject
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.query.ExecutingQuery
@@ -296,10 +297,10 @@ class ClosingExecutionResultTest extends CypherFunSuite {
   }
 }
 
-abstract class TestException(msg: String) extends Neo4jException(msg, null) {
+abstract class TestException(gql: ErrorGqlStatusObject, msg: String) extends Neo4jException(gql, msg, null) {
   override def status: Status = Status.General.UnknownError
   override def toString: String = s"${getClass.getSimpleName}($msg)"
 }
 
-case class TestClosingException(msg: String) extends TestException(msg)
-case class TestSubscriberException() extends TestException("")
+case class TestClosingException(msg: String) extends TestException(GqlHelper.get50N00("TestClosingException", msg), msg)
+case class TestSubscriberException() extends TestException(GqlHelper.get50N00("TestSubscriberException", ""), "")
