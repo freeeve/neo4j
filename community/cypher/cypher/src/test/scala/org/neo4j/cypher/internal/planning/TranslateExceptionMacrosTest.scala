@@ -25,6 +25,8 @@ import org.neo4j.cypher.internal.macros.TranslateExceptionMacros.translateExcept
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.KernelException
+import org.neo4j.gqlstatus.ErrorGqlStatusObject
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException
 import org.neo4j.kernel.api.exceptions.Status
 
@@ -35,7 +37,8 @@ import org.neo4j.kernel.api.exceptions.Status
  */
 class TranslateExceptionMacrosTest extends CypherFunSuite {
 
-  class MyKernelException(message: String) extends KernelException(null: Status, message) {
+  class MyKernelException(gql: ErrorGqlStatusObject, message: String)
+      extends KernelException(gql, null: Status, message) {
 
     override def getUserMessage(tokenNameLookup: TokenNameLookup): String =
       s"$message with ${tokenNameLookup.propertyKeyGetName(1)}"
@@ -60,7 +63,8 @@ class TranslateExceptionMacrosTest extends CypherFunSuite {
   }
 
   test("should rethrow KernelException as CypherExecutionException and use getUserMessage") {
-    val exception = new MyKernelException("kaboom")
+    val internalGql = GqlHelper.get50N00(this.getClass.getSimpleName, "kaboom")
+    val exception = new MyKernelException(internalGql, "kaboom")
     the[CypherExecutionException] thrownBy translateException(
       tokenNameLookup,
       throw exception
