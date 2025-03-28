@@ -36,20 +36,18 @@ public class Neo4jLeakListener implements ResourceLeakDetector.LeakListener {
         if (description == null) {
             return;
         }
-        var exceptionBuilder = new StringBuilder(
+        String exceptionBuilder =
                 """
                                                       ***WARNING***
                 Netty buffer leak has been detected. The test session will be marked as failed.
                 Please review the details of unreleased allocations from the tests executed in the current session below.
-                Executed tests:
-                """);
-        exceptionBuilder
-                .append(testPlanDescriptionSupplier.get())
-                .append(System.lineSeparator())
-                .append(System.lineSeparator());
-        exceptionBuilder.append("Leak description:").append(System.lineSeparator());
-        exceptionBuilder.append(description);
-        System.out.println(exceptionBuilder);
-        throw new RuntimeException(exceptionBuilder.toString());
+                Last executed tests:
+                """
+                        + testPlanDescriptionSupplier.get()
+                        + System.lineSeparator()
+                        + System.lineSeparator()
+                        + "Leak description:"
+                        + System.lineSeparator() + description;
+        throw new RuntimeException(exceptionBuilder);
     }
 }

@@ -146,7 +146,7 @@
     <excludedTestGroups/>
     <test.vm.heap.size>2G</test.vm.heap.size>
     <test.vm.maxmetaspace>550m</test.vm.maxmetaspace>
-    <test.vm.netty.leakDetection.level>DISABLED</test.vm.netty.leakDetection.level>
+    <test.vm.netty.leakDetection.level>PARANOID</test.vm.netty.leakDetection.level>
     <forkCounts>1</forkCounts>
     <parallel.tests>false</parallel.tests>
     <maven.build.timestamp.format>yyMMddHHmmssSSS</maven.build.timestamp.format>
