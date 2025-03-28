@@ -85,7 +85,7 @@ abstract class ExecutionEngine(
 ) extends Closeable {
 
   // HELPER OBJECTS
-  protected val defaultQueryExecutionMonitor = kernelMonitors.newMonitor(classOf[QueryExecutionMonitor])
+  val defaultQueryExecutionMonitor: QueryExecutionMonitor = kernelMonitors.newMonitor(classOf[QueryExecutionMonitor])
 
   private val preParser = new CachingPreParser(config, queryCaches.preParserCache)
 
