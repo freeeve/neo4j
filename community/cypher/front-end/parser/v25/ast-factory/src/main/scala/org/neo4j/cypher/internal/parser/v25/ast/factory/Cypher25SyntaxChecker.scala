@@ -70,7 +70,7 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
       case Cypher25Parser.RULE_createUser                       => checkCreateUser(cast(ctx))
       case Cypher25Parser.RULE_alterUser                        => checkAlterUser(cast(ctx))
       case Cypher25Parser.RULE_allPrivilege                     => checkAllPrivilege(cast(ctx))
-      case Cypher25Parser.RULE_createDatabase                   => checkCreateDatabase(cast(ctx))
+      case Cypher25Parser.RULE_topology                         => checkTopology(cast(ctx))
       case Cypher25Parser.RULE_alterDatabase                    => checkAlterDatabase(cast(ctx))
       case Cypher25Parser.RULE_alterDatabaseTopology            => checkAlterDatabaseTopology(cast(ctx))
       case Cypher25Parser.RULE_createAlias                      => checkCreateAlias(cast(ctx))
@@ -406,7 +406,7 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     }
   }
 
-  private def checkCreateDatabase(ctx: Cypher25Parser.CreateDatabaseContext): Unit = {
+  private def checkTopology(ctx: Cypher25Parser.TopologyContext): Unit = {
     errorOnDuplicateRule[Cypher25Parser.PrimaryTopologyContext](ctx.primaryTopology(), "PRIMARY")
     errorOnDuplicateRule[Cypher25Parser.SecondaryTopologyContext](ctx.secondaryTopology(), "SECONDARY")
   }

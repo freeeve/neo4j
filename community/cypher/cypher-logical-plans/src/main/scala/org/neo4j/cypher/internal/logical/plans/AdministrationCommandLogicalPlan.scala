@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.PrivilegeQualifier
 import org.neo4j.cypher.internal.ast.RemoveAuth
 import org.neo4j.cypher.internal.ast.Return
+import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.ShowPrivilegeScope
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Topology
@@ -524,6 +525,20 @@ case class ShowDatabase(
   returns: Option[Return]
 )(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan
 
+abstract class CreateDatabasePlan(source: AdministrationCommandLogicalPlan)(implicit idGen: IdGen)
+    extends DatabaseAdministrationLogicalPlan(Some(source)) {
+  def databaseName: Either[String, Parameter]
+}
+
+case class CreateShardedDatabase(
+  source: AdministrationCommandLogicalPlan,
+  databaseName: Either[String, Parameter],
+  options: Options,
+  ifExistsDo: IfExistsDo,
+  shardDef: ShardDefinition,
+  defaultLanguageVersion: Option[CypherVersion]
+)(implicit idGen: IdGen) extends CreateDatabasePlan(source)
+
 case class CreateDatabase(
   source: AdministrationCommandLogicalPlan,
   databaseName: Either[String, Parameter],
@@ -532,7 +547,7 @@ case class CreateDatabase(
   isComposite: Boolean,
   topology: Option[Topology],
   defaultLanguageVersion: Option[CypherVersion]
-)(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
+)(implicit idGen: IdGen) extends CreateDatabasePlan(source)
 
 case class DropDatabase(
   source: AdministrationCommandLogicalPlan,
@@ -639,6 +654,14 @@ case class EnsureNameIsNotAmbiguous(
   isComposite: Boolean
 )(implicit idGen: IdGen) extends DatabaseAdministrationLogicalPlan(Some(source))
 
+case class AssertNotShardedDatabase(
+  source: AdministrationCommandLogicalPlan,
+  name: DatabaseName,
+  action: String,
+  actionVerb: String
+)(implicit idGen: IdGen)
+    extends DatabaseAdministrationLogicalPlan(Some(source))
+
 case class AssertNotShardTarget(
   source: AdministrationCommandLogicalPlan,
   name: DatabaseName,
@@ -687,7 +710,7 @@ case class DeallocateServer(
 case class ReallocateDatabases(source: AdministrationCommandLogicalPlan, dryRun: Boolean)(implicit idGen: IdGen)
     extends DatabaseAdministrationLogicalPlan(Some(source))
 
-case class EnsureValidNumberOfDatabases(source: CreateDatabase)(implicit idGen: IdGen)
+case class EnsureValidNumberOfDatabases(source: CreateDatabasePlan)(implicit idGen: IdGen)
     extends DatabaseAdministrationLogicalPlan(Some(source))
 
 case class WaitForCompletion(

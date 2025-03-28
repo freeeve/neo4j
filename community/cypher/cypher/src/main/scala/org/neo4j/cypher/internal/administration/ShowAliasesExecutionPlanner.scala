@@ -49,6 +49,7 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DRIVER_SETTINGS
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTIES
@@ -101,7 +102,7 @@ case class ShowAliasesExecutionPlanner(
     val query =
       s"""UNWIND $$$aliasTargetParameter AS alias
          |WITH alias $aliasPropertyFilter
-         |MATCH (aliasNode:$DATABASE_NAME{$NAME_PROPERTY: alias.name, $NAMESPACE_PROPERTY: alias.namespace})
+         |MATCH (aliasNode:$DATABASE_NAME&!$GRAPH_SHARD{$NAME_PROPERTY: alias.name, $NAMESPACE_PROPERTY: alias.namespace})
          |OPTIONAL MATCH (aliasNode)-[:$CONNECTS_WITH]->(driverSettings:$DRIVER_SETTINGS)
          |OPTIONAL MATCH (aliasNode)-[:$PROPERTIES]->(properties:$ALIAS_PROPERTIES)
          |WITH alias.$displayNameProperty as name,

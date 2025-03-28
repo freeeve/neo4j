@@ -71,6 +71,7 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STATUS_PROPERT
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STOPPED_AT_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY
+import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.QUOTED_DISPLAY_NAME_PROPERTY
@@ -145,7 +146,7 @@ case class ShowDatabasesExecutionPlanner(
       s"""UNWIND $$`$accessibleDbsKey` AS props
            |MATCH (d:$DATABASE)<-[:$TARGETS]-(dn:$DATABASE_NAME {$NAME_PROPERTY: props.name, $NAMESPACE_PROPERTY: '$DEFAULT_NAMESPACE'})
            |WITH d, dn, props
-           |OPTIONAL MATCH (d)<-[:$TARGETS]-(a:$DATABASE_NAME)
+           |OPTIONAL MATCH (d)<-[:$TARGETS]-(a:$DATABASE_NAME&!$GRAPH_SHARD)
            |WITH a, d, dn, props ORDER BY a.$displayNameProperty
            |OPTIONAL MATCH (constituent:$DATABASE_NAME {$NAMESPACE_PROPERTY: dn.$NAME_PROPERTY})
            |WHERE d:$COMPOSITE_DATABASE AND constituent <> dn

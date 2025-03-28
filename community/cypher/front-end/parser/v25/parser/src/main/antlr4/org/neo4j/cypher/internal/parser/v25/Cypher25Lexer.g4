@@ -996,6 +996,14 @@ REPLACE
    : R E P L A C E
    ;
 
+REPLICA
+   : R E P L I C A
+   ;
+
+REPLICAS
+   : R E P L I C A S
+   ;
+
 REPORT
    : R E P O R T
    ;
@@ -1094,6 +1102,14 @@ SETTING
 
 SETTINGS
    : S E T T I N G S
+   ;
+
+SHARD
+   : S H A R D
+   ;
+
+SHARDS
+   : S H A R D S
    ;
 
 SHORTEST_PATH

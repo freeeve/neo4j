@@ -61,7 +61,6 @@ import java.util
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
-import scala.jdk.CollectionConverters.SetHasAsJava
 
 class DatabaseListParameterTransformerFunction(
   referenceResolver: DatabaseReferenceRepository,
@@ -94,14 +93,14 @@ class DatabaseListParameterTransformerFunction(
         (allReferences, Set.empty)
     }
 
-    val accessibleDatabases = filteredReferences
+    val accessibleDatabases = filteredReferences.toList
       .collect {
         case db if db.isPrimary && securityContext.databaseAccessMode().canSeeDatabase(db) =>
           DatabaseIdFactory.from(db.alias().name(), db.id())
       }
 
     val dbMetadata: util.List[AnyValue] = {
-      val dbInfos: util.Set[DatabaseDetails] =
+      val dbInfos: util.List[DatabaseDetails] =
         infoService.databases(transaction, accessibleDatabases.asJava, detailLevels(verbose, maybeYield))
       dbInfos.asScala.map(info => DatabaseDetailsMapper.toMapValue(info, defaultDatabase, homeDatabase)).toList.asJava
     }

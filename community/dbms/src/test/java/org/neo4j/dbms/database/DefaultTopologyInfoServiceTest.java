@@ -34,6 +34,7 @@ import static org.neo4j.kernel.database.DatabaseId.SYSTEM_DATABASE_ID;
 import static org.neo4j.kernel.database.NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID;
 import static org.neo4j.kernel.database.NamedDatabaseId.SYSTEM_DATABASE_NAME;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -93,7 +94,7 @@ class DefaultTopologyInfoServiceTest {
                 serverId, config, stateService, new DefaultReadOnlyDatabases(), extrasProvider);
 
         // when
-        var result = service.databases(null, Set.of(NAMED_SYSTEM_DATABASE_ID, databaseId), ALL);
+        var result = service.databases(null, List.of(NAMED_SYSTEM_DATABASE_ID, databaseId), ALL);
 
         // then
         assertThat(result).hasSize(2);

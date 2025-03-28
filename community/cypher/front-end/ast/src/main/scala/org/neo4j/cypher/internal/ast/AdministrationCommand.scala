@@ -223,32 +223,6 @@ sealed trait WriteAdministrationCommand extends AdministrationCommand {
   val isReadOnly: Boolean = false
   override def returnColumns: List[LogicalVariable] = List.empty
 
-  protected def topologyCheck(topology: Option[Topology], command: String): SemanticCheck = {
-
-    def numPrimaryGreaterThanZero(topology: Topology): SemanticCheck =
-      if (topology.primaries.flatMap(_.left.toOption).exists(_ < 1)) {
-        val count = topology.primaries.flatMap(_.left.toOption).get
-        val topologyString = Prettifier.extractTopology(topology).trim
-        error(SemanticError.numPrimariesOutOfRange(count, command, topologyString, position))
-      } else {
-        SemanticCheck.success
-      }
-
-    def numSecondaryPositive(topology: Topology): SemanticCheck =
-      if (topology.secondaries.flatMap(_.left.toOption).exists(_ < 0)) {
-        val count = topology.secondaries.flatMap(_.left.toOption).get
-        val topologyString = Prettifier.extractTopology(topology).trim
-        error(SemanticError.numSecondariesOutOfRange(count, command, topologyString, position))
-      } else {
-        SemanticCheck.success
-      }
-
-    topology.map(topology => {
-      numPrimaryGreaterThanZero(topology) chain
-        numSecondaryPositive(topology)
-    }).getOrElse(SemanticCheck.success)
-  }
-
   protected def defaultLanguageVersionCheck(defaultVersion: Option[CypherVersion], command: String): SemanticCheck = {
     defaultVersion.map(version =>
       if (version.experimental) {
@@ -275,6 +249,36 @@ sealed trait WriteAdministrationCommand extends AdministrationCommand {
       }
     }).getOrElse(SemanticCheck.success)
   }
+}
+
+sealed trait TopologyCheck extends SemanticAnalysisTooling {
+
+  protected def topologyCheck(topology: Option[Topology], command: String, position: InputPosition): SemanticCheck = {
+
+    def numPrimaryGreaterThanZero(topology: Topology, position: InputPosition): SemanticCheck =
+      if (topology.primaries.flatMap(_.left.toOption).exists(_ < 1)) {
+        val count = topology.primaries.flatMap(_.left.toOption).get
+        val topologyString = Prettifier.extractTopology(topology).trim
+        error(SemanticError.numPrimariesOutOfRange(count, command, topologyString, position))
+      } else {
+        SemanticCheck.success
+      }
+
+    def numSecondaryPositive(topology: Topology, position: InputPosition): SemanticCheck =
+      if (topology.secondaries.flatMap(_.left.toOption).exists(_ < 0)) {
+        val count = topology.secondaries.flatMap(_.left.toOption).get
+        val topologyString = Prettifier.extractTopology(topology).trim
+        error(SemanticError.numSecondariesOutOfRange(count, command, topologyString, position))
+      } else {
+        SemanticCheck.success
+      }
+
+    topology.map(topology => {
+      numPrimaryGreaterThanZero(topology, position) chain
+        numSecondaryPositive(topology, position)
+    }).getOrElse(SemanticCheck.success)
+  }
+
 }
 
 // User commands
@@ -1480,28 +1484,60 @@ final case class CreateDatabase(
   options: Options,
   waitUntilComplete: WaitUntilComplete,
   topology: Option[Topology],
-  defaultLanguage: Option[CypherVersion]
+  defaultLanguage: Option[CypherVersion],
+  shards: Option[ShardDefinition]
 )(val position: InputPosition)
-    extends WaitableAdministrationCommand {
+    extends WaitableAdministrationCommand with TopologyCheck {
 
   override def name: String = ifExistsDo match {
     case IfExistsReplace | IfExistsInvalidSyntax => "CREATE OR REPLACE DATABASE"
     case _                                       => "CREATE DATABASE"
   }
 
-  override def semanticCheck: SemanticCheck = (ifExistsDo match {
-    case IfExistsInvalidSyntax =>
-      val name = Prettifier.escapeName(dbName)
-      SemanticCheck.error(SemanticError.bothOrReplaceAndIfNotExists("database", name, position))
-    case _ =>
-      super.semanticCheck chain
-        SemanticState.recordCurrentScope(this)
-  })
-    .chain(topologyCheck(topology, name))
-    .chain(defaultLanguageVersionCheck(defaultLanguage, name))
+  override def semanticCheck: SemanticCheck =
+    (ifExistsDo match {
+      case IfExistsInvalidSyntax =>
+        val name = Prettifier.escapeName(dbName)
+        SemanticCheck.error(SemanticError.bothOrReplaceAndIfNotExists("database", name, position))
+      case _ =>
+        super.semanticCheck chain
+          SemanticState.recordCurrentScope(this)
+    }) chain topologyCheck(topology, name, position) chain
+      defaultLanguageVersionCheck(defaultLanguage, name) chain
+      shards.map(_.semanticCheck(name, position)).getOrElse(success)
 }
 
 case class Topology(primaries: Option[Either[Int, Parameter]], secondaries: Option[Either[Int, Parameter]])
+
+case class ShardDefinition(
+  propertyShardCount: Int,
+  graphShardTopology: Option[Topology],
+  propertyShardReplicaCount: Option[Either[Int, Parameter]]
+) extends TopologyCheck {
+
+  def semanticCheck(command: String, position: InputPosition): SemanticCheck = {
+
+    def numShardsGreaterThanZero(shardCount: Int): SemanticCheck = {
+      if (shardCount < 1) {
+        error(SemanticError.numShardsOutOfRange(shardCount, command, s"COUNT $shardCount", position))
+      } else success
+    }
+
+    def numReplicasGreaterThanZero(replicas: Option[Either[Int, Parameter]]): SemanticCheck =
+      if (replicas.flatMap(_.left.toOption).exists(c => c < 1 || c > 20)) {
+        val count = replicas.flatMap(_.left.toOption).get
+        val topologyString = Prettifier.extractShardTopology(replicas).trim
+        error(SemanticError.numReplicasOutOfRange(count, command, topologyString, position))
+      } else {
+        SemanticCheck.success
+      }
+
+    topologyCheck(graphShardTopology, command, position) chain
+      numShardsGreaterThanZero(propertyShardCount) chain
+      numReplicasGreaterThanZero(propertyShardReplicaCount)
+  }
+
+}
 
 final case class CreateCompositeDatabase(
   databaseName: DatabaseName,
@@ -1564,7 +1600,7 @@ final case class AlterDatabase(
   defaultLanguage: Option[CypherVersion]
 )(
   val position: InputPosition
-) extends WaitableAdministrationCommand {
+) extends WaitableAdministrationCommand with TopologyCheck {
 
   override def name = "ALTER DATABASE"
 
@@ -1585,7 +1621,7 @@ final case class AlterDatabase(
   override def semanticCheck: SemanticCheck =
     super.semanticCheck chain
       SemanticState.recordCurrentScope(this) chain
-      topologyCheck(topology, name) chain
+      topologyCheck(topology, name, position) chain
       defaultLanguageVersionCheck(defaultLanguage, name)
 }
 

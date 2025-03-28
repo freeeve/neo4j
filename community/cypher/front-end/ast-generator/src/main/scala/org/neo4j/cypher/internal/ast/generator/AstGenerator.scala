@@ -267,6 +267,7 @@ import org.neo4j.cypher.internal.ast.SetPropertyItem
 import org.neo4j.cypher.internal.ast.SetUserHomeDatabaseAction
 import org.neo4j.cypher.internal.ast.SetUserStatusAction
 import org.neo4j.cypher.internal.ast.SettingQualifier
+import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.ShowAliasAction
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
@@ -2739,6 +2740,14 @@ class AstGenerator(
     secondaries <- oneOf(Left(intSecondaries), Right(paramSecondaries))
   } yield secondaries
 
+  def _shardDef: Gen[ShardDefinition] = for {
+    shardCount <- chooseNum[Int](1, Integer.MAX_VALUE)
+    graphTopology <- option(_topology)
+    intReplicas <- chooseNum[Int](1, Integer.MAX_VALUE)
+    paramReplicas <- _parameter
+    replicas <- oneOf(Some(Left(intReplicas)), Some(Right(paramReplicas)), None)
+  } yield ShardDefinition(shardCount, graphTopology, replicas)
+
   def _defaultLanguage: Gen[CypherVersion] = oneOf(CypherVersion.values)
 
   // User commands
@@ -3333,9 +3342,14 @@ class AstGenerator(
     ifExistsDo <- _ifExistsDo
     wait <- _waitUntilComplete
     options <- _optionsMapAsEitherOrNone
-    topology <- option(_topology)
+    topologyOption <- option(_topology)
     defaultLanguageVersion <- option(_defaultLanguage)
-  } yield CreateDatabase(dbName, ifExistsDo, options, wait, topology, defaultLanguageVersion)(pos)
+    shardDefOption <- option(_shardDef)
+    (topology, shard) <- oneOf(const((topologyOption, None)), const((None, shardDefOption)))
+  } yield {
+    val shardDef = if (whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)) None else shard
+    CreateDatabase(dbName, ifExistsDo, options, wait, topology, defaultLanguageVersion, shardDef)(pos)
+  }
 
   def _createCompositeDatabase: Gen[CreateCompositeDatabase] = for {
     dbName <- _databaseNameNoNamespace

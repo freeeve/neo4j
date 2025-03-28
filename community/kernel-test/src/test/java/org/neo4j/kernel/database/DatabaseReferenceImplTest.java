@@ -1,0 +1,51 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.kernel.database;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
+
+public class DatabaseReferenceImplTest {
+    @Test
+    void shouldSeeLegacyAsShard() {
+        assertThat(DatabaseReferenceImpl.SPD.isShardName("foo-shard-00")).isTrue();
+        assertThat(DatabaseReferenceImpl.SPD.isShardName("badger-shard-99")).isTrue();
+    }
+
+    @Test
+    void shouldSeeAsShard() {
+        assertThat(DatabaseReferenceImpl.SPD.isShardName("badger-p000")).isTrue();
+        assertThat(DatabaseReferenceImpl.SPD.isShardName("snake-p999")).isTrue();
+    }
+
+    @Test
+    void shouldParseShardIndex() {
+        assertThat(DatabaseReferenceImpl.SPD.shardIndex("badger-shard-27")).isEqualTo(27);
+        assertThat(DatabaseReferenceImpl.SPD.shardIndex("badger-p027")).isEqualTo(27);
+        assertThat(DatabaseReferenceImpl.SPD.shardIndex("badger-p108")).isEqualTo(108);
+    }
+
+    @Test
+    void tooManyDigits() {
+        assertThat(DatabaseReferenceImpl.SPD.isShardName("foo-shard-000")).isFalse();
+        assertThat(DatabaseReferenceImpl.SPD.isShardName("foo-p0000")).isFalse();
+    }
+}

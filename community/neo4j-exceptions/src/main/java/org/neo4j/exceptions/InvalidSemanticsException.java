@@ -133,6 +133,20 @@ public class InvalidSemanticsException extends Neo4jException {
                         action, db1, db2));
     }
 
+    public static InvalidSemanticsException invalidShardedTarget(String db1, String db2) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N0B)
+                        .withParam(GqlParams.StringParam.db1, db1)
+                        .withParam(GqlParams.StringParam.db2, db2)
+                        .build())
+                .build();
+        return new InvalidSemanticsException(
+                gql,
+                String.format(
+                        "The database identified by `%s` is sharded. Drop the database `%s` before recreating.",
+                        db1, db2));
+    }
+
     public static InvalidSemanticsException profileNotSupportedOnComposite() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N06)

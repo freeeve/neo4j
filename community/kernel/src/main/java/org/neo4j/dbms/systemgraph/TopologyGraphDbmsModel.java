@@ -275,6 +275,7 @@ public interface TopologyGraphDbmsModel {
             RelationshipType.withName("LATEST_SUPPORTED_VERSIONS");
     RelationshipType HAS_SHARD = RelationshipType.withName("HAS_SHARD");
     String HAS_SHARD_INDEX_PROPERTY = "index";
+    String GRAPH_SHARD = "GraphShard";
     Label ALLOCATION_HINTS_LABEL = Label.label("AllocationHints");
     RelationshipType HAS_ALLOCATION_HINTS_RELATIONSHIP = RelationshipType.withName("HAS_ALLOCATION_HINTS");
     RelationshipType IS_MIRROR_OF_RELATIONSHIP = RelationshipType.withName("IS_MIRROR_OF");

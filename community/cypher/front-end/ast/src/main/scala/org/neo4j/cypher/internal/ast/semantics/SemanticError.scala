@@ -1048,6 +1048,54 @@ object SemanticError {
     )
   }
 
+  def numReplicasOutOfRange(
+    count: Int,
+    command: String,
+    topologyString: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+      .withParam(GqlParams.StringParam.value, String.valueOf(count))
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N58)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.NumberParam.count, count)
+        .withParam(GqlParams.NumberParam.upper, 20)
+        .withParam(GqlParams.StringParam.context, "replicas")
+        .build())
+      .build()
+
+    SemanticError(
+      gql,
+      s"Failed to $command with `$topologyString`, REPLICA must be between 1 and 20.",
+      position
+    )
+  }
+
+  def numShardsOutOfRange(
+    count: Int,
+    command: String,
+    topologyString: String,
+    position: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22003)
+      .withParam(GqlParams.StringParam.value, String.valueOf(count))
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N58)
+        .atPosition(position.offset, position.line, position.column)
+        .withParam(GqlParams.NumberParam.count, count)
+        .withParam(GqlParams.NumberParam.upper, 100)
+        .withParam(GqlParams.StringParam.context, "shards")
+        .build())
+      .build()
+
+    SemanticError(
+      gql,
+      s"Failed to $command with `$topologyString`, COUNT must be greater than 0.",
+      position
+    )
+  }
+
   def unsupportedUseOfProperties(props: Expression, funcName: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)

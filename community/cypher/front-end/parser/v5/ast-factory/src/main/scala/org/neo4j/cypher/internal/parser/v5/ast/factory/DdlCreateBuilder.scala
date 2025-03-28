@@ -494,7 +494,8 @@ trait DdlCreateBuilder extends Cypher5ParserListener {
       astOpt[Options](ctx.commandOptions(), NoOptions),
       astOpt[WaitUntilComplete](ctx.waitClause(), NoWait()(InputPosition.NONE)),
       topology,
-      astOpt[CypherVersion](ctx.defaultLanguageSpecification())
+      astOpt[CypherVersion](ctx.defaultLanguageSpecification()),
+      None
     )(pos(parent))
   }
 

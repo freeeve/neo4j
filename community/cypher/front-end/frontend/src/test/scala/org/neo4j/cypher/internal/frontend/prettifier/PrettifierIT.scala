@@ -2522,6 +2522,27 @@ class PrettifierIT extends CypherFunSuite {
       "CREATE COMPOSITE DATABASE foo DEFAULT LANGUAGE CYPHER 25",
     "create composite database foo default language cypher 25 OPTIONS {`backticked key`: \"use\"} wait" ->
       "CREATE COMPOSITE DATABASE foo DEFAULT LANGUAGE CYPHER 25 OPTIONS {`backticked key`: \"use\"} WAIT",
+    FailsInCypher5("create database foo property shard {COUNT 2}", "CREATE DATABASE foo PROPERTY SHARD {COUNT 2}"),
+    FailsInCypher5(
+      "create database foo set property shard {count 2 topology 1 replicas}",
+      "CREATE DATABASE foo PROPERTY SHARD {COUNT 2 TOPOLOGY 1 REPLICA}"
+    ),
+    FailsInCypher5(
+      "create database foo graph shard {} property shard {count 2 topology 3 replicas}",
+      "CREATE DATABASE foo PROPERTY SHARD {COUNT 2 TOPOLOGY 3 REPLICAS}"
+    ),
+    FailsInCypher5(
+      "create database foo set graph shard { topology 1 primary} property shard {count 2 topology $r replicas}",
+      "CREATE DATABASE foo GRAPH SHARD {TOPOLOGY 1 PRIMARY} PROPERTY SHARD {COUNT 2 TOPOLOGY $r REPLICAS}"
+    ),
+    FailsInCypher5(
+      "create database foo graph shard { topology 2 primary 3 secondary} set property shard {count 2 topology 3 replicas}",
+      "CREATE DATABASE foo GRAPH SHARD {TOPOLOGY 2 PRIMARIES 3 SECONDARIES} PROPERTY SHARD {COUNT 2 TOPOLOGY 3 REPLICAS}"
+    ),
+    FailsInCypher5(
+      "create database foo graph shard { topology 2 primary 3 secondary} set property shard {count 2 topology 3 replicas} options {seedUri: 'niceUri'}",
+      "CREATE DATABASE foo GRAPH SHARD {TOPOLOGY 2 PRIMARIES 3 SECONDARIES} PROPERTY SHARD {COUNT 2 TOPOLOGY 3 REPLICAS} OPTIONS {seedUri: \"niceUri\"}"
+    ),
     "DROP database foO_Bar_42" ->
       "DROP DATABASE foO_Bar_42 RESTRICT DESTROY DATA",
     "DROP database $foo" ->

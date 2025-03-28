@@ -169,6 +169,7 @@ import org.neo4j.cypher.internal.ast.SetPropertyItem
 import org.neo4j.cypher.internal.ast.SetPropertyItems
 import org.neo4j.cypher.internal.ast.SettingAllQualifier
 import org.neo4j.cypher.internal.ast.SettingQualifier
+import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.ShowAliases
 import org.neo4j.cypher.internal.ast.ShowAllPrivileges
 import org.neo4j.cypher.internal.ast.ShowConstraintsClause
@@ -685,19 +686,28 @@ case class Prettifier(
         }
         s"${x.name}$optionalName$y$r"
 
-      case x @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, topology, defaultCypherVersion) =>
+      case x @ CreateDatabase(
+          dbName,
+          ifExistsDo,
+          options,
+          waitUntilComplete,
+          topology,
+          defaultCypherVersion,
+          shardDef
+        ) =>
         val formattedOptions = asString(options)
         val withoutNamespace = dbName match {
           case n: NamespacedName => Left(n.toString)
           case ParameterName(p)  => Right(p)
         }
         val maybeTopologyString = topology.map(Prettifier.extractTopology).getOrElse("")
+        val maybeShardString = shardDef.map(Prettifier.extractShardDefinition).getOrElse("")
         val maybeCypherVersion = defaultCypherVersion.map(cv => s" DEFAULT LANGUAGE ${cv.description}").getOrElse("")
         ifExistsDo match {
           case IfExistsDoNothing | IfExistsInvalidSyntax =>
             s"${x.name} ${Prettifier.escapeName(withoutNamespace)} IF NOT EXISTS$maybeCypherVersion$maybeTopologyString$formattedOptions${waitUntilComplete.name}"
           case _ =>
-            s"${x.name} ${Prettifier.escapeName(withoutNamespace)}$maybeCypherVersion$maybeTopologyString$formattedOptions${waitUntilComplete.name}"
+            s"${x.name} ${Prettifier.escapeName(withoutNamespace)}$maybeCypherVersion$maybeTopologyString$maybeShardString$formattedOptions${waitUntilComplete.name}"
         }
 
       case x @ CreateCompositeDatabase(name, ifExistsDo, options, waitUntilComplete, defaultCypherVersion) =>
@@ -1652,6 +1662,23 @@ object Prettifier {
       case Right(p) => Some(s" $$${backtick(p.name)} SECONDARIES")
     }.getOrElse("")
     s" TOPOLOGY$primariesString$maybeSecondariesString"
+  }
+
+  def extractShardTopology(replicas: Option[Either[Int, Parameter]]): String = {
+    replicas.flatMap {
+      case Left(1)  => Some(" TOPOLOGY 1 REPLICA")
+      case Left(n)  => Some(s" TOPOLOGY $n REPLICAS")
+      case Right(p) => Some(s" TOPOLOGY $$${backtick(p.name)} REPLICAS")
+    }.getOrElse("")
+  }
+
+  def extractShardDefinition(shardDefinition: ShardDefinition): String = {
+    val graphTopology = shardDefinition.graphShardTopology
+      .map(Prettifier.extractTopology)
+      .map(s => s"GRAPH SHARD {${s.trim}} ")
+      .getOrElse("")
+    val replicaString = extractShardTopology(shardDefinition.propertyShardReplicaCount)
+    s" ${graphTopology}PROPERTY SHARD {COUNT ${shardDefinition.propertyShardCount}$replicaString}"
   }
 
   def maybeImmutable(immutable: Boolean): String = if (immutable) " IMMUTABLE" else ""

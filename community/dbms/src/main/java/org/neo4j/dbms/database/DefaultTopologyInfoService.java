@@ -26,6 +26,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DatabaseAccess.R
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DatabaseAccess.READ_WRITE;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -91,9 +92,9 @@ public class DefaultTopologyInfoService implements TopologyInfoService {
     }
 
     @Override
-    public Set<DatabaseDetails> databases(
-            Transaction transaction, Set<NamedDatabaseId> databaseIds, RequestedExtras requestedExtras) {
-        return databaseIds.stream().map(id -> database(id, requestedExtras)).collect(Collectors.toSet());
+    public List<DatabaseDetails> databases(
+            Transaction transaction, List<NamedDatabaseId> databaseIds, RequestedExtras requestedExtras) {
+        return databaseIds.stream().map(id -> database(id, requestedExtras)).collect(Collectors.toList());
     }
 
     private DatabaseDetails database(NamedDatabaseId id, RequestedExtras detailsLevel) {

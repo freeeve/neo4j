@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.ast.NoWait
 import org.neo4j.cypher.internal.ast.Options
 import org.neo4j.cypher.internal.ast.Password
 import org.neo4j.cypher.internal.ast.PasswordChange
+import org.neo4j.cypher.internal.ast.ShardDefinition
 import org.neo4j.cypher.internal.ast.Topology
 import org.neo4j.cypher.internal.ast.UserOptions
 import org.neo4j.cypher.internal.ast.WaitUntilComplete
@@ -45,6 +46,7 @@ import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.RelTypeName
+import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.parser.AstRuleCtx
@@ -469,20 +471,38 @@ trait DdlCreateBuilder extends Cypher25ParserListener {
     ctx: Cypher25Parser.CreateDatabaseContext
   ): Unit = {
     val parent = ctx.getParent.asInstanceOf[CreateCommandContext]
-    val topology =
-      if (ctx.TOPOLOGY() != null) {
-        val pT = astOptFromList[Either[Int, Parameter]](ctx.primaryTopology(), None)
-        val sT = astOptFromList[Either[Int, Parameter]](ctx.secondaryTopology(), None)
-        Some(Topology(pT, sT))
-      } else None
     ctx.ast = CreateDatabase(
       ctx.databaseName().ast[DatabaseName](),
       ifExistsDo(parent.REPLACE() != null, ctx.EXISTS() != null),
       astOpt[Options](ctx.commandOptions(), NoOptions),
       astOpt[WaitUntilComplete](ctx.waitClause(), NoWait()(InputPosition.NONE)),
-      topology,
-      astOpt[CypherVersion](ctx.defaultLanguageSpecification())
+      astOpt[Topology](ctx.topology()),
+      astOpt[CypherVersion](ctx.defaultLanguageSpecification()),
+      astOpt[ShardDefinition](ctx.shards())
     )(pos(parent))
+  }
+
+  def exitShards(ctx: Cypher25Parser.ShardsContext): Unit = {
+    ctx.ast = ShardDefinition(
+      SignedDecimalIntegerLiteral(ctx.propertyShard().UNSIGNED_DECIMAL_INTEGER().getText)(pos(ctx)).value.intValue(),
+      if (ctx.graphShard() != null && ctx.graphShard().topology() != null)
+        Some(ctx.graphShard().topology().ast[Topology]())
+      else None,
+      if (ctx.propertyShard() != null && ctx.propertyShard().TOPOLOGY() != null)
+        Some(ctx.propertyShard().uIntOrIntParameter().ast[Either[Int, Parameter]]())
+      else None
+    )
+  }
+
+  def exitGraphShard(ctx: Cypher25Parser.GraphShardContext): Unit = {}
+
+  def exitPropertyShard(ctx: Cypher25Parser.PropertyShardContext): Unit = {}
+
+  def exitTopology(ctx: Cypher25Parser.TopologyContext): Unit = {
+    ctx.ast = Topology(
+      astOptFromList[Either[Int, Parameter]](ctx.primaryTopology(), None),
+      astOptFromList[Either[Int, Parameter]](ctx.secondaryTopology(), None)
+    )
   }
 
   final override def exitCreateAlias(

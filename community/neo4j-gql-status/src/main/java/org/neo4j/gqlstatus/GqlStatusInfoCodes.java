@@ -3184,6 +3184,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "invalid shard target",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42N0B(
+            new GqlStatus("42N0B"),
+            """
+                    The database identified by { %s } is sharded. Drop the database { %s } before recreating.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "cannot replace sharded database",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42N10(
             new GqlStatus("42N10"),
             """
@@ -4793,6 +4802,17 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "generic topology modification error",
             ErrorClassification.DATABASE_ERROR),
+    STATUS_51N58(
+            new GqlStatus("51N58"),
+            """
+                    Invalid database shard topology. The number of { %s } { %s } needs to be at least 1 and may not exceed { %s }.""",
+            new GqlParams.GqlParam[] {
+                GqlParams.StringParam.context, GqlParams.NumberParam.count, GqlParams.NumberParam.upper
+            },
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "invalid shard topology",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_51N59(
             new GqlStatus("51N59"),
             """

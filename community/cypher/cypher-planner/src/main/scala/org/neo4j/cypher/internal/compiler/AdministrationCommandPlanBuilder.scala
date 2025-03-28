@@ -1067,8 +1067,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
           sd.returns
         ))
 
-      // CREATE [OR REPLACE] DATABASE foo [IF NOT EXISTS]
-      case c @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, topology, cypherVersion) =>
+      // CREATE [OR REPLACE] DATABASE foo [IF NOT EXISTS] (with shards)
+      case c @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, None, cypherVersion, Some(shardDef)) =>
         Some(plans.AssertManagementActionNotBlocked(CreateDatabaseAction))
           .map(plans.AssertAllowedDbmsActions(_, CreateDatabaseAction))
           .flatMap(canCreateCheck =>
@@ -1079,6 +1079,38 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
                   dbName,
                   DropDatabaseAction
                 ))
+                  .map(plans.AssertNotShardedDatabase(_, dbName, "DROP DATABASE", "delete"))
+                  .map(plans.EnsureDatabaseSafeToDelete(_, dbName, Restrict))
+                  .map(plans.DropDatabase(_, dbName, DestroyData, forceComposite = false, Restrict))
+              case IfExistsDoNothing =>
+                Some(canCreateCheck)
+                  .map(plans.DoNothingIfDatabaseExists(
+                    _,
+                    "CREATE DATABASE",
+                    dbName
+                  ))
+              case _ =>
+                Some(canCreateCheck)
+            }
+          ).map(plans.EnsureNameIsNotAmbiguous(_, dbName.asLegacyName, isComposite = false))
+          .map(plans.CreateShardedDatabase(_, dbName.asLegacyName, options, ifExistsDo, shardDef, cypherVersion))
+          .map(plans.EnsureValidNumberOfDatabases(_))
+          .map(wrapInWait(_, dbName, waitUntilComplete))
+          .map(plans.LogSystemCommand(_, prettifier.asString(c)))
+
+      // CREATE [OR REPLACE] DATABASE foo [IF NOT EXISTS]
+      case c @ CreateDatabase(dbName, ifExistsDo, options, waitUntilComplete, topology, cypherVersion, None) =>
+        Some(plans.AssertManagementActionNotBlocked(CreateDatabaseAction))
+          .map(plans.AssertAllowedDbmsActions(_, CreateDatabaseAction))
+          .flatMap(canCreateCheck =>
+            ifExistsDo match {
+              case IfExistsReplace =>
+                Some(plans.AssertCanDropDatabase(
+                  canCreateCheck,
+                  dbName,
+                  DropDatabaseAction
+                ))
+                  .map(plans.AssertNotShardedDatabase(_, dbName, "DROP DATABASE", "delete"))
                   .map(plans.EnsureDatabaseSafeToDelete(_, dbName, Restrict))
                   .map(plans.DropDatabase(_, dbName, DestroyData, forceComposite = false, Restrict))
               case IfExistsDoNothing =>

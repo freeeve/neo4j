@@ -1587,7 +1587,23 @@ createCompositeDatabase
    ;
 
 createDatabase
-   : DATABASE databaseName (IF NOT EXISTS)? (SET? defaultLanguageSpecification)? (SET? TOPOLOGY (primaryTopology | secondaryTopology)+)? commandOptions? waitClause?
+   : DATABASE databaseName (IF NOT EXISTS)? (SET? defaultLanguageSpecification)? (topology | shards)? commandOptions? waitClause?
+   ;
+
+shards
+   : (SET? graphShard)? SET? propertyShard
+   ;
+
+graphShard
+   : GRAPH SHARD LCURLY (SET? topology)? RCURLY
+   ;
+
+propertyShard
+   : PROPERTY (SHARD | SHARDS) LCURLY COUNT UNSIGNED_DECIMAL_INTEGER (SET? TOPOLOGY uIntOrIntParameter (REPLICA | REPLICAS))? RCURLY
+   ;
+
+topology
+   : SET? TOPOLOGY (primaryTopology | secondaryTopology)+
    ;
 
 primaryTopology
@@ -2014,6 +2030,8 @@ unescapedSymbolicNameString_
    | RENAME
    | REPEATABLE
    | REPLACE
+   | REPLICA
+   | REPLICAS
    | REPORT
    | REQUIRE
    | REQUIRED
@@ -2037,6 +2055,8 @@ unescapedSymbolicNameString_
    | SET
    | SETTING
    | SETTINGS
+   | SHARD
+   | SHARDS
    | SHORTEST
    | SHORTEST_PATH
    | SHOW
