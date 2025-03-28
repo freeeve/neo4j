@@ -435,8 +435,10 @@ public class SchemaRuleMapifier {
         try {
             return SchemaPatternMatchingType.valueOf(schemaPatternMatchingType);
         } catch (Exception e) {
-            throw new MalformedSchemaRuleException(
-                    "Did not recognize schema pattern matching type: " + schemaPatternMatchingType, e);
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaRuleMapifier.class.getSimpleName(),
+                    "Did not recognize schema pattern matching type: " + schemaPatternMatchingType,
+                    e);
         }
     }
 
@@ -473,12 +475,16 @@ public class SchemaRuleMapifier {
             try {
                 graphTypeDependence = GraphTypeDependence.valueOf(maybeGraphTypeDependence.get());
             } catch (Exception e) {
-                throw new MalformedSchemaRuleException(
-                        "Did not recognize constraint dependency type: " + maybeGraphTypeDependence.get(), e);
+                throw MalformedSchemaRuleException.internalError(
+                        SchemaRuleMapifier.class.getSimpleName(),
+                        "Did not recognize constraint dependency type: " + maybeGraphTypeDependence.get(),
+                        e);
             }
             if (constraintType.enforcesUniqueness() && graphTypeDependence != GraphTypeDependence.UNDESIGNATED) {
-                throw new MalformedSchemaRuleException("incompatible graph type dependence " + graphTypeDependence
-                        + " with constraint rule type " + constraintType);
+                throw MalformedSchemaRuleException.internalError(
+                        SchemaRuleMapifier.class.getSimpleName(),
+                        "incompatible graph type dependence " + graphTypeDependence + " with constraint rule type "
+                                + constraintType);
             }
             return graphTypeDependence;
         }
@@ -492,10 +498,13 @@ public class SchemaRuleMapifier {
             try {
                 return EndpointType.valueOf(enumName);
             } catch (IllegalArgumentException e) {
-                throw new MalformedSchemaRuleException("Endpoint type with name " + enumName + " not recognized");
+                throw MalformedSchemaRuleException.internalError(
+                        SchemaRuleMapifier.class.getSimpleName(),
+                        "Endpoint type with name " + enumName + " not recognized");
             }
         } else {
-            throw new MalformedSchemaRuleException("Endpoint type of endpoint label constraint not found");
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaRuleMapifier.class.getSimpleName(), "Endpoint type of endpoint label constraint not found");
         }
     }
 

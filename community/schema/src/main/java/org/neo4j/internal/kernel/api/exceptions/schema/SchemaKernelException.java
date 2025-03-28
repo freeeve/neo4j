@@ -43,22 +43,12 @@ public abstract class SchemaKernelException extends KernelException {
         super(gqlStatusObject, statusCode, cause, message, parameters);
     }
 
-    @Deprecated
-    public SchemaKernelException(Status statusCode, String message, Throwable cause) {
-        super(statusCode, cause, message);
-    }
-
-    public SchemaKernelException(
+    protected SchemaKernelException(
             ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message, Throwable cause) {
         super(gqlStatusObject, statusCode, cause, message);
     }
 
-    @Deprecated
-    public SchemaKernelException(Status statusCode, String message) {
-        super(statusCode, message);
-    }
-
-    public SchemaKernelException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message) {
+    protected SchemaKernelException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message) {
         super(gqlStatusObject, statusCode, message);
     }
 

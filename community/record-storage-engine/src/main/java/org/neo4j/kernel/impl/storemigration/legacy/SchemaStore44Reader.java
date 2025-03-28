@@ -373,8 +373,10 @@ public class SchemaStore44Reader implements AutoCloseable {
         try {
             return SchemaPatternMatchingType.valueOf(schemaPatternMatchingType);
         } catch (Exception e) {
-            throw new MalformedSchemaRuleException(
-                    "Did not recognize schema pattern matching type: " + schemaPatternMatchingType, e);
+            throw MalformedSchemaRuleException.internalError(
+                    SchemaStore44Reader.class.getSimpleName(),
+                    "Did not recognize schema pattern matching type: " + schemaPatternMatchingType,
+                    e);
         }
     }
 

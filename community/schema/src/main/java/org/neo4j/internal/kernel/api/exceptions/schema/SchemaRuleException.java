@@ -42,23 +42,7 @@ public class SchemaRuleException extends SchemaKernelException {
      * @param schemaThing schema element relevant to this exception.
      * @param tokenNameLookup how to look up tokens for describing the given {@code schemaThing}.
      */
-    @Deprecated
-    SchemaRuleException(
-            Status status,
-            String messageTemplate,
-            SchemaDescriptorSupplier schemaThing,
-            TokenNameLookup tokenNameLookup) {
-        super(
-                status,
-                format(
-                        messageTemplate,
-                        describe(schemaThing),
-                        schemaThing.schema().userDescription(tokenNameLookup)));
-        this.schemaThing = schemaThing;
-        this.messageTemplate = messageTemplate;
-    }
-
-    SchemaRuleException(
+    protected SchemaRuleException(
             ErrorGqlStatusObject gqlStatusObject,
             Status status,
             String messageTemplate,
