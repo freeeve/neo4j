@@ -57,7 +57,8 @@ class AvgFunction(val value: Expression)
       Values.doubleValue(avgNumber)
     case Some(AggregatingDurations) =>
       DurationValue.approximate(monthsRunningAvg, daysRunningAvg, secondsRunningAvg, nanosRunningAvg).normalize()
-    case _ => throw new InternalException(s"invalid aggregation type $aggregatingType")
+    case _ =>
+      throw InternalException.internalError(this.getClass.getSimpleName, s"invalid aggregation type $aggregatingType")
   }
 
   override def apply(data: ReadableRow, state: QueryState): Unit = {

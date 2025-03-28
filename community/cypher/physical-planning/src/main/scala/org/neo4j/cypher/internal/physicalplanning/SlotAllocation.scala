@@ -190,6 +190,7 @@ import org.neo4j.cypher.internal.util.symbols.CTPath
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.exceptions.InternalException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
+import org.neo4j.gqlstatus.GqlHelper
 
 import java.util
 
@@ -743,7 +744,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         for (v <- variables)
           slots.newReference(v, nullableInput || nullable, CTAny)
 
-      case p => throw new SlotAllocationFailed(s"Don't know how to handle $p")
+      case p => throw SlotAllocationFailed.internalError(this.getClass.getSimpleName, s"Don't know how to handle $p")
     }
 
   /**
@@ -1000,7 +1001,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         p.columns.foreach(v => slots.newReference(v.name, true, CTAny))
 
       case p =>
-        throw new SlotAllocationFailed(s"Don't know how to handle $p")
+        throw SlotAllocationFailed.internalError(this.getClass.getSimpleName, s"Don't know how to handle $p")
     }
     discardUnusedSlots(lp, slots, source, None)
   }
@@ -1323,7 +1324,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         breakingPolicy.invoke(lp, rhs, argument.slotConfiguration, applyPlans)
 
       case p =>
-        throw new SlotAllocationFailed(s"Don't know how to handle $p")
+        throw SlotAllocationFailed.internalError(this.getClass.getSimpleName, s"Don't know how to handle $p")
     }
     discardUnusedSlots(lp, result, lhs, Some(rhs))
     result
@@ -1440,11 +1441,12 @@ class SingleQuerySlotAllocator private[physicalplanning] (
 }
 
 class SlotAllocationFailed(gqlStatusObject: ErrorGqlStatusObject, str: String)
-    extends InternalException(gqlStatusObject, str) {
+    extends InternalException(gqlStatusObject, str)
 
-  @deprecated("Use the class constructor with gqlStatusObject", since = "2025-04")
-  def this(str: String) = {
-    this(null, str)
+object SlotAllocationFailed {
+
+  def internalError(msgTitle: String, message: String): SlotAllocationFailed = {
+    val gql = GqlHelper.get50N00(msgTitle, message)
+    new SlotAllocationFailed(gql, message)
   }
-
 }

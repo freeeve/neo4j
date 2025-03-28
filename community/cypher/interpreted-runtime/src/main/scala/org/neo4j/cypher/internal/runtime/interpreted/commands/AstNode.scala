@@ -31,7 +31,7 @@ trait AstNode[T] {
 
   def typedRewrite[R <: T](f: Expression => Expression)(implicit mf: ClassTag[R]): R = rewrite(f) match {
     case value: R => value
-    case _        => throw new CypherTypeException("Invalid rewrite")
+    case _        => throw CypherTypeException.internalError(this.getClass.getSimpleName, "Invalid rewrite")
   }
 
   def exists(f: Expression => Boolean): Boolean = {

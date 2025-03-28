@@ -20,15 +20,12 @@
 package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class QueryExecutionTimeoutException extends Neo4jException {
-    @Deprecated
-    public QueryExecutionTimeoutException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
-    public QueryExecutionTimeoutException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    private QueryExecutionTimeoutException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
     }
 
@@ -37,8 +34,18 @@ public class QueryExecutionTimeoutException extends Neo4jException {
         super(message);
     }
 
-    public QueryExecutionTimeoutException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private QueryExecutionTimeoutException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static QueryExecutionTimeoutException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new QueryExecutionTimeoutException(gql, message);
+    }
+
+    public static QueryExecutionTimeoutException internalError(String msgTitle, String message, Throwable cause) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new QueryExecutionTimeoutException(gql, message, cause);
     }
 
     @Override

@@ -265,11 +265,17 @@ case class CommunityExpressionConverter(
       case e: internal.ast.IsTyped =>
         predicates.IsTyped(self.toCommandExpression(id, e.lhs), e.typeName)
       case _: internal.ast.IsNotTyped =>
-        throw new InternalException("`IsNotTyped` should have been rewritten away")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "`IsNotTyped` should have been rewritten away"
+        )
       case e: internal.ast.IsNormalized =>
         predicates.IsNormalized(self.toCommandExpression(id, e.lhs), e.normalForm)
       case _: internal.ast.IsNotNormalized =>
-        throw new InternalException("`IsNotNormalized` should have been rewritten away")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "`IsNotNormalized` should have been rewritten away"
+        )
       case e: internal.expressions.InequalityExpression => inequalityExpression(id, e, self)
       case e: internal.expressions.Add =>
         commands.expressions.Add(self.toCommandExpression(id, e.lhs), self.toCommandExpression(id, e.rhs))
@@ -490,16 +496,34 @@ case class CommunityExpressionConverter(
           commands.expressions.UserFunctionInvocation(id, signature, callArgumentCommands.toArray)
 
       case _: internal.expressions.MapProjection =>
-        throw new InternalException("`MapProjection` should have been rewritten away")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "`MapProjection` should have been rewritten away"
+        )
       case _: internal.expressions.PatternComprehension =>
-        throw new InternalException("`PatternComprehension` should have been rewritten away")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "`PatternComprehension` should have been rewritten away"
+        )
       case _: internal.expressions.PatternExpression =>
-        throw new InternalException("`PatternExpression` should have been rewritten away")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "`PatternExpression` should have been rewritten away"
+        )
       case _: NestedPlanExpression =>
-        throw new InternalException("`NestedPlanExpression` should have been rewritten away")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "`NestedPlanExpression` should have been rewritten away"
+        )
       case _: internal.expressions.Parameter =>
-        throw new InternalException("`Parameter` should have been rewritten away")
-      case _: ExistsExpression      => throw new InternalException("`ExistsExpression` should have been rewritten away")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "`Parameter` should have been rewritten away"
+        )
+      case _: ExistsExpression => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "`ExistsExpression` should have been rewritten away"
+        )
       case CoerceToPredicate(inner) => predicates.CoercedPredicate(self.toCommandExpression(id, inner))
       case e: internal.expressions.CollectAll =>
         commands.expressions.CollectAll(self.toCommandExpression(id, e.arguments.head))
@@ -598,7 +622,7 @@ case class CommunityExpressionConverter(
           case nestedExpression: pipes.NestedPipeCollectExpression =>
             self.toCommandPredicate(id, nestedExpression)
           case _: NestedPlanExpression =>
-            throw new InternalException("should have been rewritten away")
+            throw InternalException.internalError(this.getClass.getSimpleName, "should have been rewritten away")
         }
       case Exp      => commands.expressions.ExpFunction(self.toCommandExpression(id, invocation.arguments.head))
       case File     => commands.expressions.File()

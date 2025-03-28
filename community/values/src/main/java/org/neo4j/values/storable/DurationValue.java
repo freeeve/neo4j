@@ -150,10 +150,12 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
                 case SECONDS:
                     return durationInSecondsAndNanos(from, to);
                 default:
-                    throw new UnsupportedTemporalUnitException("Unsupported unit: " + unit);
+                    throw UnsupportedTemporalUnitException.internalError(
+                            DurationValue.class.getSimpleName(), "Unsupported unit: " + unit);
             }
         } else {
-            throw new UnsupportedTemporalUnitException("Unsupported unit: " + unit);
+            throw UnsupportedTemporalUnitException.internalError(
+                    DurationValue.class.getSimpleName(), "Unsupported unit: " + unit);
         }
     }
 
@@ -690,7 +692,8 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
                     break;
             }
         }
-        throw new UnsupportedTemporalUnitException("Unsupported unit: " + unit);
+        throw UnsupportedTemporalUnitException.internalError(
+                DurationValue.class.getSimpleName(), "Unsupported unit: " + unit);
     }
 
     /**

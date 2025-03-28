@@ -159,6 +159,7 @@ public class DefaultComparatorTopTable<T> extends MemoryTrackingHeap<T>
 
     @Override
     protected void overflow(long maxSize) {
-        throw new CypherExecutionException("Top table cannot hold more than " + maxSize + " elements.");
+        throw CypherExecutionException.internalError(
+                this.getClass().getSimpleName(), "Top table cannot hold more than " + maxSize + " elements.");
     }
 }

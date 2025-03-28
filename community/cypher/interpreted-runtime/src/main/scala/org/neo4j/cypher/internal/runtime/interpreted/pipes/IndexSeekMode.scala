@@ -42,7 +42,7 @@ object IndexSeekMode {
 
   def assertSingleValue(values: Seq[Any]): Any = {
     if (values.size != 1)
-      throw new InternalException("Composite lookups not yet supported")
+      throw InternalException.internalError(this.getClass.getSimpleName, "Composite lookups not yet supported")
     values.head
   }
 }

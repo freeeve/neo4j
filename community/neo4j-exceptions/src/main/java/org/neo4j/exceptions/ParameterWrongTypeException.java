@@ -43,6 +43,11 @@ public class ParameterWrongTypeException extends Neo4jException {
         super(gqlStatusObject, message);
     }
 
+    public static ParameterWrongTypeException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new ParameterWrongTypeException(gql, message);
+    }
+
     public static ParameterWrongTypeException expectedNodeFoundInstead(
             String got, String gotPretty, String gotCypherType) {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("NODE"), gotCypherType);

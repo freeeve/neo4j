@@ -57,6 +57,11 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         this.status = Status.General.InvalidArguments;
     }
 
+    public static InvalidArgumentsException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new InvalidArgumentsException(gql, message);
+    }
+
     public static InvalidArgumentsException invalidProcedureArgument(
             String providedInvalidArgument,
             String argumentName,

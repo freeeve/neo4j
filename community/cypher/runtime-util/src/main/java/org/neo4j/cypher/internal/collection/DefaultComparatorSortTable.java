@@ -98,6 +98,7 @@ public class DefaultComparatorSortTable<T> extends MemoryTrackingHeap<T> {
 
     @Override
     protected void overflow(long maxSize) {
-        throw new CypherExecutionException("Sort table cannot hold more than " + maxSize + " elements.");
+        throw CypherExecutionException.internalError(
+                this.getClass().getSimpleName(), "Sort table cannot hold more than " + maxSize + " elements.");
     }
 }

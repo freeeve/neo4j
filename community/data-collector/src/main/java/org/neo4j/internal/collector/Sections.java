@@ -35,7 +35,8 @@ class Sections {
     private static final String NAMES = Arrays.toString(SECTIONS);
 
     static InvalidArgumentsException unknownSectionException(String section) {
-        return new InvalidArgumentsException(
+        return InvalidArgumentsException.internalError(
+                Sections.class.getSimpleName(),
                 String.format("Unknown section '%s', known sections are %s", section, NAMES));
     }
 }

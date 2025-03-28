@@ -63,7 +63,9 @@ public class SlotAccessor {
                     RelNullableRefSlot,
                     OtherNonNullRefSlot,
                     OtherNullableRefSlot -> row.getRefAt(offset);
-            default -> throw new InternalException("Unknown slot type " + slot.slotType());
+            default ->
+                throw InternalException.internalError(
+                        SlotAccessor.class.getSimpleName(), "Unknown slot type " + slot.slotType());
         };
     }
 
@@ -95,7 +97,9 @@ public class SlotAccessor {
                     RelNullableRefSlot,
                     OtherNonNullRefSlot,
                     OtherNullableRefSlot -> row.setRefAt(offset, value);
-            default -> throw new InternalException("Unknown slot type " + slot.slotType());
+            default ->
+                throw InternalException.internalError(
+                        SlotAccessor.class.getSimpleName(), "Unknown slot type " + slot.slotType());
         }
     }
 
@@ -171,10 +175,12 @@ public class SlotAccessor {
     }
 
     private static InternalException failedToMakeGetter(Slot slot) {
-        return new InternalException("Do not know how to make getter for slot " + slot);
+        return InternalException.internalError(
+                SlotAccessor.class.getSimpleName(), "Do not know how to make getter for slot " + slot);
     }
 
     private static InternalException failedToMakeSetter(Slot slot) {
-        return new InternalException("Do not know how to make setter for slot " + slot);
+        return InternalException.internalError(
+                SlotAccessor.class.getSimpleName(), "Do not know how to make setter for slot " + slot);
     }
 }

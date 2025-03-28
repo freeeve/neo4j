@@ -362,7 +362,10 @@ object TopSlottedPipeTestSupport {
           case (RefSlot(offset1, _, _), RefSlot(offset2, _, _)) =>
             (c.getRefAt(offset1), c.getRefAt(offset2))
           case _ =>
-            throw new InternalException("LongSlot not yet supported in the test framework")
+            throw InternalException.internalError(
+              this.getClass.getSimpleName,
+              "LongSlot not yet supported in the test framework"
+            )
         }
     }.toList
   }

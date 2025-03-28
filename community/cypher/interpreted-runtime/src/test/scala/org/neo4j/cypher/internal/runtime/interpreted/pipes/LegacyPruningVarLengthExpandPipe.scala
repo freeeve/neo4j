@@ -295,7 +295,7 @@ case class LegacyPruningVarLengthExpandPipe(
           case x: Value if x == Values.NO_VALUE =>
             (Empty, null)
           case _ =>
-            throw new InternalException(s"Expected a node on `$fromName`")
+            throw InternalException.internalError(this.getClass.getSimpleName, s"Expected a node on `$fromName`")
         }
       }
     }

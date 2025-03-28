@@ -28,7 +28,8 @@ object ExpressionVariable {
     variable match {
       case ev: ExpressionVariable => ev
       case v =>
-        throw new InternalException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
           s"Error during interpreted physical planning: expression variable '$v' has not been allocated"
         )
     }

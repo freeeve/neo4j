@@ -201,7 +201,8 @@ class MapCypherRow(
   override def setRefAt(offset: Int, value: AnyValue): Unit = fail()
   override def getRefAt(offset: Int): AnyValue = fail()
 
-  private def fail(): Nothing = throw new InternalException("Tried using a map context as a slotted context")
+  private def fail(): Nothing =
+    throw InternalException.internalError(this.getClass.getSimpleName, "Tried using a map context as a slotted context")
 
   override def mergeWith(other: ReadableRow, entityById: EntityById, checkNullability: Boolean = true): Unit =
     other match {

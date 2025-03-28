@@ -123,7 +123,7 @@ object CypherQueryOptions {
         throw InvalidCypherOption.unsupportedOptions(remainder.keyValues.map(_._1).toArray: _*)
       case OptionReader.Result(_, options) =>
         if (options.debugOptions.generateJavaSourceEnabled && !config.allowSourceGeneration) {
-          throw InvalidCypherOption.sourceGenerationDisabled()
+          throw InvalidCypherOption.sourceGenerationDisabled(this.getClass.getSimpleName)
         }
         if (options.cypherVersion.explicitVersion.exists(_.experimental) && !config.enableExperimentalCypherVersions) {
           throw InvalidCypherOption.invalidOption(

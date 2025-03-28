@@ -514,7 +514,10 @@ object TransactionPipeWrapper {
 
   def assertTransactionStateIsEmpty(state: QueryState): Unit = {
     if (state.query.transactionalContext.dataRead.transactionStateHasChanges)
-      throw new InternalException("Expected transaction state to be empty when calling transactional subquery.")
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Expected transaction state to be empty when calling transactional subquery."
+      )
   }
 
   private def logError(state: QueryState, innerTxId: String, t: Throwable): Unit = {

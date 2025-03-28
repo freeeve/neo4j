@@ -39,5 +39,6 @@ abstract class RuntimeVariable(override val name: String) extends LogicalVariabl
 
   override def renameId(newName: String) = fail()
 
-  private def fail(): Nothing = throw new InternalException("Tried using a RuntimeVariable as Variable")
+  private def fail(): Nothing =
+    throw InternalException.internalError(this.getClass.getSimpleName, "Tried using a RuntimeVariable as Variable")
 }

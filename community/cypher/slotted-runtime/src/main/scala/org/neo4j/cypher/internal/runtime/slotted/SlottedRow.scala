@@ -109,7 +109,7 @@ object SlottedRow {
           case RuntimeMetadataValue(l: ResourceLinenumber) => Some(l)
           case Values.NO_VALUE                             => None
           case null                                        => None
-          case _                                           => throw new InternalException("Wrong type of linenumber")
+          case _ => throw InternalException.internalError(this.getClass.getSimpleName, "Wrong type of linenumber")
         }
 
       case _ =>
@@ -155,7 +155,8 @@ final case class SlottedRow(slots: SlotConfiguration) extends CypherRow {
 
   override def copyFrom(input: ReadableRow, nLongs: Int, nRefs: Int): Unit =
     if (nLongs > slots.numberOfLongs || nRefs > slots.numberOfReferences)
-      throw new InternalException(
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
         "A bug has occurred in the slotted runtime: The target slotted execution context cannot hold the data to copy."
       )
     else input match {
@@ -228,7 +229,8 @@ final case class SlottedRow(slots: SlotConfiguration) extends CypherRow {
       otherPipeline.numberOfLongs > slots.numberOfLongs ||
       otherPipeline.numberOfReferences > slots.numberOfReferences
     ) {
-      throw new InternalException(
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
         s"""A bug has occurred in the slotted runtime: The target slotted execution context cannot hold the data to copy
            |From : $otherPipeline
            |To :   $slots""".stripMargin
@@ -269,7 +271,10 @@ final case class SlottedRow(slots: SlotConfiguration) extends CypherRow {
   override def getRefAt(offset: Int): AnyValue = {
     val value = refs(offset)
     if (SlottedRow.DEBUG && value == null)
-      throw new InternalException(s"Reference value not initialised at offset $offset in $this")
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        s"Reference value not initialised at offset $offset in $this"
+      )
     value
   }
 
@@ -341,7 +346,8 @@ final case class SlottedRow(slots: SlotConfiguration) extends CypherRow {
     }
   }
 
-  private def fail(): Nothing = throw new InternalException("Tried using a slotted context as a map")
+  private def fail(): Nothing =
+    throw InternalException.internalError(this.getClass.getSimpleName, "Tried using a slotted context as a map")
 
   // -----------------------------------------------------------------------------------------------------------
   // Compatibility implementations of the old ExecutionContext API used by Community interpreted runtime pipes
@@ -441,7 +447,10 @@ final case class SlottedRow(slots: SlotConfiguration) extends CypherRow {
         setRefAt(offset, nullableNode(value))
       case OtherNullableRefSlot if slot.slot.typ.isAssignableFrom(CTNode) =>
         setRefAt(offset, nullableNode(value))
-      case _ => throw new InternalException(s"Do not know how to make a primitive Node setter for slot ${slot.slot}")
+      case _ => throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Do not know how to make a primitive Node setter for slot ${slot.slot}"
+        )
     }
   }
 
@@ -466,7 +475,10 @@ final case class SlottedRow(slots: SlotConfiguration) extends CypherRow {
       case OtherNullableRefSlot if slot.slot.typ.isAssignableFrom(CTRelationship) =>
         setRefAt(offset, nullableRel(value))
       case _ =>
-        throw new InternalException(s"Do not know how to make a primitive Relationship setter for slot ${slot.slot}")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Do not know how to make a primitive Relationship setter for slot ${slot.slot}"
+        )
     }
   }
 
@@ -502,14 +514,18 @@ final case class SlottedRow(slots: SlotConfiguration) extends CypherRow {
 
   override def mergeWith(other: ReadableRow, entityById: EntityById, nullCheck: Boolean = true): Unit = other match {
     case slottedOther: SlottedRow => mergeWith(slottedOther, nullCheck)
-    case _                        => throw new InternalException("Well well, isn't this a delicate situation?")
+    case _ =>
+      throw InternalException.internalError(this.getClass.getSimpleName, "Well well, isn't this a delicate situation?")
   }
 
   private def checkCompatibleNullablility(key: SlotKey, otherSlot: KeyedSlot): Boolean = {
     val thisSlot = slots(key)
     // This should be guaranteed by slot allocation or else we could get incorrect results
     if (!isNullable(thisSlot.slotType) && isNullable(otherSlot.slotType))
-      throw new InternalException(s"Tried to merge slot $otherSlot into $thisSlot but its nullability is incompatible")
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        s"Tried to merge slot $otherSlot into $thisSlot but its nullability is incompatible"
+      )
     true
   }
 

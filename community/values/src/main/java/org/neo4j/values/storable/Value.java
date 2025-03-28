@@ -296,8 +296,11 @@ public abstract class Value extends AnyValue {
 
     private static void checkParseState(CharSequence text, int i, boolean condition) {
         if (!condition) {
-            throw new InvalidArgumentException(format(
-                    "Was expecting key:value, key:'value' or key:\"value\" pairs in %s. Error near index %d", text, i));
+            throw InvalidArgumentException.internalError(
+                    Value.class.getSimpleName(),
+                    format(
+                            "Was expecting key:value, key:'value' or key:\"value\" pairs in %s. Error near index %d",
+                            text, i));
         }
     }
 }

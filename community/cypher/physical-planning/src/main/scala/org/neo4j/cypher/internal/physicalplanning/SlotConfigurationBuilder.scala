@@ -122,7 +122,10 @@ final class SlotConfigurationBuilder private (
     require(!finalized)
     val slot = slots.getOrElse(
       VariableSlotKey(existingKey),
-      throw new SlotAllocationFailed(s"Tried to alias non-existing slot '$existingKey' with alias '$newKey'")
+      throw SlotAllocationFailed.internalError(
+        this.getClass.getSimpleName,
+        s"Tried to alias non-existing slot '$existingKey' with alias '$newKey'"
+      )
     )
     markNotDiscarded(slot)
     val maybeOldSlot = slots.put(VariableSlotKey(newKey), slot)
@@ -199,7 +202,10 @@ final class SlotConfigurationBuilder private (
       // Find original key
       val originalKey = slotAliases.collectFirst {
         case (slotKey, aliases) if aliases.contains(key) => slotKey
-      }.getOrElse(throw new InternalException(s"No original key found for alias $key"))
+      }.getOrElse(throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        s"No original key found for alias $key"
+      ))
       replaceExistingSlot(originalKey, existingSlot, modifiedSlot)
     }
   }
@@ -223,7 +229,8 @@ final class SlotConfigurationBuilder private (
           LongSlot(offset, nullable, newSlot.typ)
         case (RefSlot(offset, nullable, _), false, true) =>
           RefSlot(offset, nullable, newSlot.typ)
-        case config => throw new InternalException(s"Unexpected slot configuration: $config")
+        case config =>
+          throw InternalException.internalError(this.getClass.getSimpleName, s"Unexpected slot configuration: $config")
       }
       replaceExistingSlot(key, existingSlot, modifiedSlot)
     }
@@ -243,7 +250,8 @@ final class SlotConfigurationBuilder private (
     slots.get(VariableSlotKey(key)) match {
       case Some(existingSlot) =>
         if (!existingSlot.isTypeCompatibleWith(slot)) {
-          throw new InternalException(
+          throw InternalException.internalError(
+            this.getClass.getSimpleName,
             s"Tried overwriting already taken variable name '$key' as $slot (was: $existingSlot)"
           )
         }
@@ -298,7 +306,8 @@ final class SlotConfigurationBuilder private (
       case Some(existingSlot) =>
         markNotDiscarded(existingSlot)
         if (!existingSlot.isTypeCompatibleWith(slot)) {
-          throw new InternalException(
+          throw InternalException.internalError(
+            this.getClass.getSimpleName,
             s"Tried overwriting already taken variable name '$key' as $slot (was: $existingSlot)"
           )
         }

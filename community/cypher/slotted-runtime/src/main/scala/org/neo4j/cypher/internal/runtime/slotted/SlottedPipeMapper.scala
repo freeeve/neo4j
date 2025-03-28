@@ -1468,7 +1468,10 @@ class SlottedPipeMapper(
 
       case Foreach(_, variable, expression, mutations) =>
         val innerVariableSlot =
-          slots.get(variable).getOrElse(throw new InternalException(s"Foreach variable '$variable' has no slot"))
+          slots.get(variable).getOrElse(throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            s"Foreach variable '$variable' has no slot"
+          ))
         ForeachSlottedPipe(
           source,
           innerVariableSlot.slot,
@@ -1591,7 +1594,8 @@ class SlottedPipeMapper(
               case RelationshipFromSlot(offset, _)                       => offset
               case NullCheckVariable(_, NodeFromSlot(offset, _))         => offset
               case NullCheckVariable(_, RelationshipFromSlot(offset, _)) => offset
-              case x => throw new InternalException(
+              case x => throw InternalException.internalError(
+                  this.getClass.getSimpleName,
                   s"Cannot build slotted aggregation pipe. Unexpected grouping expression: $x"
                 )
             }
@@ -1836,7 +1840,10 @@ class SlottedPipeMapper(
           slots.getSlot(idName) match {
             case Some(_: LongSlot) => true
             case Some(_: RefSlot)  => false
-            case _                 => throw new InternalException("We expect only an existing LongSlot or RefSlot here")
+            case _ => throw InternalException.internalError(
+                this.getClass.getSimpleName,
+                "We expect only an existing LongSlot or RefSlot here"
+              )
           }
         )
         val longOffsets = longIds.map(e => slots.longOffset(e))
@@ -1849,7 +1856,10 @@ class SlottedPipeMapper(
           slots.getSlot(idName) match {
             case Some(_: LongSlot) => true
             case Some(_: RefSlot)  => false
-            case _                 => throw new InternalException("We expect only an existing LongSlot or RefSlot here")
+            case _ => throw InternalException.internalError(
+                this.getClass.getSimpleName,
+                "We expect only an existing LongSlot or RefSlot here"
+              )
           }
         )
         val longOffsets = longIds.map(e => slots.longOffset(e))
@@ -1859,7 +1869,8 @@ class SlottedPipeMapper(
 
       case ForeachApply(_, _, variable, expression) =>
         val innerVariableSlot =
-          slots.get(variable).map(_.slot).getOrElse(throw new InternalException(
+          slots.get(variable).map(_.slot).getOrElse(throw InternalException.internalError(
+            this.getClass.getSimpleName,
             s"Foreach variable '$variable' has no slot"
           ))
         ForeachSlottedApplyPipe(lhs, rhs, innerVariableSlot, convertExpressions(expression))(id)
@@ -2177,8 +2188,10 @@ class SlottedPipeMapper(
           slot
         case (key: DuplicatedSlotKey, slot) if lhsSlots.contains(key)                                         => slot
         case (key: MetaDataSlotKey, slot) if slot.offset < argumentSize.nReferences && lhsSlots.contains(key) => slot
-        case (key: ApplyPlanSlotKey, _)            => throw new InternalException(s"Unexpected slot key $key")
-        case (key: OuterNestedApplyPlanSlotKey, _) => throw new InternalException(s"Unexpected slot key $key")
+        case (key: ApplyPlanSlotKey, _) =>
+          throw InternalException.internalError(this.getClass.getSimpleName, s"Unexpected slot key $key")
+        case (key: OuterNestedApplyPlanSlotKey, _) =>
+          throw InternalException.internalError(this.getClass.getSimpleName, s"Unexpected slot key $key")
       }
       .toSeq
       .partition(_.isLongSlot)
@@ -2208,7 +2221,8 @@ class SlottedPipeMapper(
         if (longSlotsOk) "" else s"#long arguments=${argumentSize.nLongs} shared long slots: $sharedLongSlots "
       val refSlotsMessage =
         if (refSlotsOk) "" else s"#ref arguments=${argumentSize.nReferences} shared ref slots: $sharedRefSlots "
-      throw new InternalException(
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
         s"Unexpected slot configuration. Shared slots not only within argument size: $longSlotsMessage$refSlotsMessage"
       )
     }
@@ -2245,9 +2259,9 @@ class SlottedPipeMapper(
           lhsArgRefSlots += (key.toString -> slot)
         }
       case SlotWithKeyAndAliases(key: ApplyPlanSlotKey, _, _) =>
-        throw new InternalException(s"Unexpected slot key $key")
+        throw InternalException.internalError(this.getClass.getSimpleName, s"Unexpected slot key $key")
       case SlotWithKeyAndAliases(key: OuterNestedApplyPlanSlotKey, _, _) =>
-        throw new InternalException(s"Unexpected slot key $key")
+        throw InternalException.internalError(this.getClass.getSimpleName, s"Unexpected slot key $key")
       case SlotWithKeyAndAliases(key: DuplicatedSlotKey, slot, _) =>
         if (slot.isLongSlot && slot.offset < argumentSize.nLongs) {
           lhsArgLongSlots += (key.toString -> slot)
@@ -2273,9 +2287,9 @@ class SlottedPipeMapper(
           rhsArgRefSlots += (key.toString -> slot)
         }
       case SlotWithKeyAndAliases(key: ApplyPlanSlotKey, _, _) =>
-        throw new InternalException(s"Unexpected slot key $key")
+        throw InternalException.internalError(this.getClass.getSimpleName, s"Unexpected slot key $key")
       case SlotWithKeyAndAliases(key: OuterNestedApplyPlanSlotKey, _, _) =>
-        throw new InternalException(s"Unexpected slot key $key")
+        throw InternalException.internalError(this.getClass.getSimpleName, s"Unexpected slot key $key")
       case SlotWithKeyAndAliases(key: DuplicatedSlotKey, slot, _) =>
         if (slot.isLongSlot && slot.offset < argumentSize.nLongs) {
           lhsArgLongSlots += (key.toString -> slot)
@@ -2298,7 +2312,8 @@ class SlottedPipeMapper(
         if (longSlotsOk) "" else s"#long arguments=${argumentSize.nLongs} lhs: $lhsArgLongSlots rhs: $rhsArgLongSlots "
       val refSlotsMessage =
         if (refSlotsOk) "" else s"#ref arguments=${argumentSize.nReferences} lhs: $lhsArgRefSlots rhs: $rhsArgRefSlots "
-      throw new InternalException(
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
         s"Unexpected slot configuration. Arguments differ between lhs and rhs: $longSlotsMessage$refSlotsMessage"
       )
     }
@@ -2461,7 +2476,7 @@ object SlottedPipeMapper {
         slotted.expressions.ReferenceFromSlot(offset)
 
       case _ =>
-        throw new InternalException(s"Do not know how to project $slot")
+        throw InternalException.internalError(this.getClass.getSimpleName, s"Do not know how to project $slot")
     }
   }
 
@@ -2592,12 +2607,18 @@ object SlottedPipeMapper {
     case plans.Ascending(name) =>
       slots.getSlot(name) match {
         case Some(slot) => slotted.Ascending(slot)
-        case None       => throw new InternalException(s"Did not find `$name` in the pipeline information")
+        case None => throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            s"Did not find `$name` in the pipeline information"
+          )
       }
     case plans.Descending(name) =>
       slots.getSlot(name) match {
         case Some(slot) => slotted.Descending(slot)
-        case None       => throw new InternalException(s"Did not find `$name` in the pipeline information")
+        case None => throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            s"Did not find `$name` in the pipeline information"
+          )
       }
   }
 
@@ -2613,22 +2634,34 @@ object SlottedPipeMapper {
     case plans.Ascending(name) =>
       val lhsSlot = lhsSlots.getSlot(name) match {
         case Some(slot) => slot
-        case None       => throw new InternalException(s"Did not find `$name` in the pipeline information")
+        case None => throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            s"Did not find `$name` in the pipeline information"
+          )
       }
       val rhsSlot = rhsSlots.getSlot(name) match {
         case Some(slot) => slot
-        case None       => throw new InternalException(s"Did not find `$name` in the pipeline information")
+        case None => throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            s"Did not find `$name` in the pipeline information"
+          )
       }
       Ascending2(lhsSlot, rhsSlot)
 
     case plans.Descending(name) =>
       val lhsSlot = lhsSlots.getSlot(name) match {
         case Some(slot) => slot
-        case None       => throw new InternalException(s"Did not find `$name` in the pipeline information")
+        case None => throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            s"Did not find `$name` in the pipeline information"
+          )
       }
       val rhsSlot = rhsSlots.getSlot(name) match {
         case Some(slot) => slot
-        case None       => throw new InternalException(s"Did not find `$name` in the pipeline information")
+        case None => throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            s"Did not find `$name` in the pipeline information"
+          )
       }
       Descending2(lhsSlot, rhsSlot)
   }

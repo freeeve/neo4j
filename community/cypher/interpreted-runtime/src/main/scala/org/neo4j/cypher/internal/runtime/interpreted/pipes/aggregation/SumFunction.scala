@@ -45,7 +45,8 @@ class SumFunction(val value: Expression)
       sumNumber
     case Some(AggregatingDurations) =>
       sumDuration
-    case _ => throw new InternalException(s"invalid aggregation type $aggregatingType")
+    case _ =>
+      throw InternalException.internalError(this.getClass.getSimpleName, s"invalid aggregation type $aggregatingType")
 
   }
 

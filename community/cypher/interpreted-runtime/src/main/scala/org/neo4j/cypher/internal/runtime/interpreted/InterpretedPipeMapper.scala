@@ -1026,7 +1026,10 @@ case class InterpretedPipeMapper(
         InputPipe((nodes ++ relationships ++ variables).map(_.name).toArray)(id = id)
 
       case x =>
-        throw new InternalException(s"Received a logical plan that has no physical operator $x")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Received a logical plan that has no physical operator $x"
+        )
     }
   }
 
@@ -1884,7 +1887,10 @@ case class InterpretedPipeMapper(
         )
 
       case x =>
-        throw new InternalException(s"Received a logical plan that has no physical operator $x")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Received a logical plan that has no physical operator $x"
+        )
     }
   }
 
@@ -2159,7 +2165,10 @@ case class InterpretedPipeMapper(
         )(id = id)
 
       case x =>
-        throw new InternalException(s"Received a logical plan that has no physical operator $x")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Received a logical plan that has no physical operator $x"
+        )
     }
   }
 

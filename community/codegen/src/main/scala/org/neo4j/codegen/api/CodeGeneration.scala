@@ -578,7 +578,8 @@ class CodeGeneration(methodLimit: Int, val codeGenerationMode: CodeGenerationMod
 
     val estimatedSize = estimateByteCodeSize(m)
     if (estimatedSize > methodLimit) {
-      throw new CantCompileQueryException(
+      throw CantCompileQueryException.internalError(
+        this.getClass.getSimpleName,
         s"Method '${m.methodName}' is too big, estimated size $estimatedSize is bigger than $methodLimit"
       )
     }
@@ -607,7 +608,8 @@ class CodeGeneration(methodLimit: Int, val codeGenerationMode: CodeGenerationMod
     } catch {
       case e: ArrayIndexOutOfBoundsException =>
         // NOTE: This could be a CantCompileQueryException, but then it would be handled at runtime, and may pass unnoticed
-        throw new InternalException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
           s"""Method '${m.methodName}' in class '${clazz.handle().name()}' failed in code generation: ${e.getClass.getSimpleName} '${e.getMessage}
              |This could mean that an intermediate representation instruction has been generated with an incorrect type.
              |One common mistake is that a method type parameter of an invoke has been set to the wrong type:
@@ -618,7 +620,8 @@ class CodeGeneration(methodLimit: Int, val codeGenerationMode: CodeGenerationMod
 
       case e: Exception =>
         // NOTE: This could be a CantCompileQueryException, but then it would be handled at runtime, and may pass unnoticed
-        throw new InternalException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
           s"Method '${m.methodName}' in class '${clazz.handle().name()}' failed in code generation: ${e.getClass.getSimpleName} '${e.getMessage}",
           e
         )

@@ -110,8 +110,11 @@ object PatternConverters {
           m.items.map(p => (p._1.name, converter.toCommandExpression(id, p._2))).toMap
         case Some(p: internal.expressions.Parameter) =>
           Map[String, commands.expressions.Expression]("*" -> converter.toCommandExpression(id, p))
-        case Some(p) => throw new SyntaxException(s"Properties of a node must be a map or parameter (${p.position})")
-        case None    => Map[String, commands.expressions.Expression]()
+        case Some(p) => throw SyntaxException.internalError(
+            this.getClass.getSimpleName,
+            s"Properties of a node must be a map or parameter (${p.position})"
+          )
+        case None => Map[String, commands.expressions.Expression]()
       }
   }
 }

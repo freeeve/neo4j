@@ -27,18 +27,8 @@ import org.neo4j.kernel.api.exceptions.Status;
 
 public class InternalException extends Neo4jException {
 
-    @Deprecated
-    public InternalException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
     private InternalException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
-    }
-
-    @Deprecated
-    public InternalException(String message) {
-        super(message);
     }
 
     protected InternalException(ErrorGqlStatusObject gqlStatusObject, String message) {

@@ -303,7 +303,7 @@ class ExpressionConverters(
       }
       i += 1
     }
-    throw new InternalException(errorMsg)
+    throw InternalException.internalError(this.getClass.getSimpleName, errorMsg)
   }
 }
 

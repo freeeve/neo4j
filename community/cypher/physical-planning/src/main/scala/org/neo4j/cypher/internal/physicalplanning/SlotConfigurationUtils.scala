@@ -80,7 +80,10 @@ object SlotConfigurationUtils {
           context.getRefAt(offset)
 
       case _ =>
-        throw new InternalException(s"Do not know how to make getter for slot $slot")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Do not know how to make getter for slot $slot"
+        )
     }
 
   def makeNullableGetPrimitiveNodeFunctionFor(offset: Int): ToLongFunction[ReadableRow] = {
@@ -192,7 +195,10 @@ object SlotConfigurationUtils {
           }
 
       case _ =>
-        throw new InternalException(s"Do not know how to make a primitive getter for slot $slot with type $returnType")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Do not know how to make a primitive getter for slot $slot with type $returnType"
+        )
     }
 
   /**
@@ -340,7 +346,10 @@ object SlotConfigurationUtils {
           context.setRefAt(offset, value)
 
       case _ =>
-        throw new InternalException(s"Do not know how to make setter for slot $slot")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Do not know how to make setter for slot $slot"
+        )
     }
 
   /**
@@ -353,7 +362,10 @@ object SlotConfigurationUtils {
         if (AssertionRunner.isAssertionsEnabled && !nullable) {
           (context: CypherRow, value: Long, _: EntityById) =>
             if (value == PRIMITIVE_NULL)
-              throw new ParameterWrongTypeException(s"Cannot assign null to a non-nullable slot")
+              throw ParameterWrongTypeException.internalError(
+                this.getClass.getSimpleName,
+                s"Cannot assign null to a non-nullable slot"
+              )
             context.setLongAt(offset, value)
         } else {
           (context: CypherRow, value: Long, _: EntityById) =>
@@ -364,7 +376,10 @@ object SlotConfigurationUtils {
         if (AssertionRunner.isAssertionsEnabled && !nullable) {
           (context: CypherRow, value: Long, _: EntityById) =>
             if (value == PRIMITIVE_NULL)
-              throw new ParameterWrongTypeException(s"Cannot assign null to a non-nullable slot")
+              throw ParameterWrongTypeException.internalError(
+                this.getClass.getSimpleName,
+                s"Cannot assign null to a non-nullable slot"
+              )
             context.setLongAt(offset, value)
         } else {
           (context: CypherRow, value: Long, _: EntityById) =>
@@ -375,7 +390,10 @@ object SlotConfigurationUtils {
         if (AssertionRunner.isAssertionsEnabled) {
           (context: CypherRow, value: Long, entityById: EntityById) =>
             if (value == PRIMITIVE_NULL)
-              throw new ParameterWrongTypeException(s"Cannot assign null to a non-nullable slot")
+              throw ParameterWrongTypeException.internalError(
+                this.getClass.getSimpleName,
+                s"Cannot assign null to a non-nullable slot"
+              )
             context.setRefAt(offset, entityById.nodeById(value))
         } else {
           (context: CypherRow, value: Long, entityById: EntityById) =>
@@ -388,7 +406,10 @@ object SlotConfigurationUtils {
           (context: CypherRow, value: Long, entityById: EntityById) =>
             if (value == -1L)
               if (value == PRIMITIVE_NULL)
-                throw new ParameterWrongTypeException(s"Cannot assign null to a non-nullable slot")
+                throw ParameterWrongTypeException.internalError(
+                  this.getClass.getSimpleName,
+                  s"Cannot assign null to a non-nullable slot"
+                )
             context.setRefAt(offset, entityById.relationshipById(value))
         } else {
           (context: CypherRow, value: Long, entityById: EntityById) =>
@@ -411,7 +432,10 @@ object SlotConfigurationUtils {
             context.setRefAt(offset, entityById.relationshipById(value))
 
       case _ =>
-        throw new InternalException(s"Do not know how to make a primitive $valueType setter for slot $slot")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Do not know how to make a primitive $valueType setter for slot $slot"
+        )
     }
 
   /**

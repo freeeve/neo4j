@@ -44,6 +44,11 @@ public class CypherTypeException extends Neo4jException {
         super(gqlStatusObject, message);
     }
 
+    public static CypherTypeException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new CypherTypeException(gql, message);
+    }
+
     public static CypherTypeException invalidType(
             String value, List<String> expectedTypes, String actualType, String signature) {
         var gql = GqlHelper.getGql22G03_22N01(value, expectedTypes, actualType);

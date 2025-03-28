@@ -187,7 +187,10 @@ object SlottedExecutionContextOrdering {
       }
 
     case _ =>
-      throw new CantCompileQueryException(s"Do not know how to create comparator for $order")
+      throw CantCompileQueryException.internalError(
+        this.getClass.getSimpleName,
+        s"Do not know how to create comparator for $order"
+      )
   }
 
   /**

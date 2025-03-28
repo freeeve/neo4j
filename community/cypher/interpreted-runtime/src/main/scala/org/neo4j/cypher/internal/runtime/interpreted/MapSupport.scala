@@ -116,7 +116,8 @@ class LazyMap[T, CURSOR](
   // we need a way forcefully load lazy values
   def load(): MapValue =
     if (allProps != null) this
-    else throw new InternalException("properties must be loadable at this instant")
+    else
+      throw InternalException.internalError(this.getClass.getSimpleName, "properties must be loadable at this instant")
 
   override def estimatedHeapUsage(): Long = 0 // Turns out programmers are lazy too
 }

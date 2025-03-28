@@ -227,7 +227,8 @@ class PercentilesFunction(
       i += 1
     }
     if (keysValue.intSize() != percs.length) {
-      throw new InternalException(
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
         s"Expected 'percentiles' ${percs.mkString(",")} and 'keys' ${mapKeys.mkString(",")} to have the same length"
       )
     }
@@ -240,7 +241,8 @@ class PercentilesFunction(
       i += 1
     }
     if (isDiscreteValues.intSize() != percs.length) {
-      throw new InternalException(
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
         s"Expected 'percentiles' ${percs.mkString(",")} and 'isDiscreteRange' ${isDiscretes.mkString(",")} to have the same length"
       )
     }

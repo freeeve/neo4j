@@ -24,16 +24,11 @@ import static java.lang.String.format;
 import java.util.Arrays;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 public class InvalidCypherOption extends InvalidArgumentException {
-
-    @Deprecated
-    private InvalidCypherOption(String message) {
-        super(message);
-    }
-
     private InvalidCypherOption(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
@@ -96,9 +91,10 @@ public class InvalidCypherOption extends InvalidArgumentException {
         return new InvalidCypherOption(gql, format("Unsupported options: %s", String.join(", ", keys)));
     }
 
-    // NOTE: this is an internal error and should probably not have any GQL code
-    public static InvalidCypherOption sourceGenerationDisabled() {
-        return new InvalidCypherOption("In order to use source generation you need to enable "
-                + "`internal.cypher.pipelined.allow_source_generation`");
+    public static InvalidCypherOption sourceGenerationDisabled(String msgTitle) {
+        var msg = "In order to use source generation you need to enable "
+                + "`internal.cypher.pipelined.allow_source_generation`";
+        var gql = GqlHelper.get50N00(msgTitle, msg);
+        return new InvalidCypherOption(gql, msg);
     }
 }

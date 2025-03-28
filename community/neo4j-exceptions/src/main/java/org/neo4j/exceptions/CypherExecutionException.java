@@ -84,11 +84,13 @@ public class CypherExecutionException extends Neo4jException {
                 cause);
     }
 
+    public static CypherExecutionException internalError(String msgTitle, String msg) {
+        var gql = GqlHelper.get50N00(msgTitle, msg);
+        return new CypherExecutionException(gql, msg);
+    }
+
     public static CypherExecutionException internalError(String msgTitle, String msg, Throwable cause) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N00)
-                .withParam(GqlParams.StringParam.msgTitle, msgTitle)
-                .withParam(GqlParams.StringParam.msg, msg)
-                .build();
+        var gql = GqlHelper.get50N00(msgTitle, msg);
         return new CypherExecutionException(gql, msg, cause);
     }
 

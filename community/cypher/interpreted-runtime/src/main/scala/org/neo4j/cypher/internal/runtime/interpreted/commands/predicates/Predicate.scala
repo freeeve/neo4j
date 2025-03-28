@@ -294,7 +294,10 @@ object CachedNodePropertyExists {
   def apply(expression: Expression): CachedNodePropertyExists = expression match {
     case cp: AbstractCachedNodeProperty    => CachedNodePropertyExistsWithValue(cp)
     case cp: AbstractCachedNodeHasProperty => CachedNodePropertyExistsWithoutValue(cp)
-    case _ => throw new CypherTypeException("Expected " + expression + " to be a cached node property.")
+    case _ => throw CypherTypeException.internalError(
+        this.getClass.getSimpleName,
+        "Expected " + expression + " to be a cached node property."
+      )
   }
 }
 
@@ -396,7 +399,10 @@ object CachedRelationshipPropertyExists {
   def apply(expression: Expression): CachedRelationshipPropertyExists = expression match {
     case cp: AbstractCachedRelationshipProperty    => CachedRelationshipPropertyExistsWithValue(cp)
     case cp: AbstractCachedRelationshipHasProperty => CachedRelationshipPropertyExistsWithoutValue(cp)
-    case _ => throw new CypherTypeException("Expected " + expression + " to be a cached relationship property.")
+    case _ => throw CypherTypeException.internalError(
+        this.getClass.getSimpleName,
+        "Expected " + expression + " to be a cached relationship property."
+      )
   }
 }
 

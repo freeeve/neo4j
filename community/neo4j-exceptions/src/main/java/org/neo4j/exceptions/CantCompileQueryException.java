@@ -28,12 +28,8 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class CantCompileQueryException extends Neo4jException {
-    @Deprecated
-    public CantCompileQueryException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
-    public CantCompileQueryException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    private CantCompileQueryException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
     }
 
@@ -42,8 +38,18 @@ public class CantCompileQueryException extends Neo4jException {
         super(message);
     }
 
-    public CantCompileQueryException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    private CantCompileQueryException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static CantCompileQueryException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new CantCompileQueryException(gql, message);
+    }
+
+    public static CantCompileQueryException internalError(String msgTitle, String message, Throwable cause) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new CantCompileQueryException(gql, message, cause);
     }
 
     public static CantCompileQueryException unsupportedRuntimeInCommunityEdition(String runtime) {

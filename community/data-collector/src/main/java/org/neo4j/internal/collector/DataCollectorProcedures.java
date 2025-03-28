@@ -103,7 +103,8 @@ public class DataCollectorProcedures {
         }
 
         if (graphToken == null || graphToken.equals("")) {
-            throw new InvalidArgumentsException("Graph token must be a non-empty string");
+            throw InvalidArgumentsException.internalError(
+                    this.getClass().getSimpleName(), "Graph token must be a non-empty string");
         }
 
         return Stream.of(
@@ -186,9 +187,11 @@ public class DataCollectorProcedures {
         switch (section) {
             case Sections.TOKENS:
             case Sections.GRAPH_COUNTS:
-                throw new InvalidArgumentsException(format(
-                        "Section '%s' does not have to be explicitly collected, it can always be directly retrieved.",
-                        section));
+                throw InvalidArgumentsException.internalError(
+                        this.getClass().getSimpleName(),
+                        format(
+                                "Section '%s' does not have to be explicitly collected, it can always be directly retrieved.",
+                                section));
             case Sections.QUERIES:
                 return dataCollector.getQueryCollector();
             default:

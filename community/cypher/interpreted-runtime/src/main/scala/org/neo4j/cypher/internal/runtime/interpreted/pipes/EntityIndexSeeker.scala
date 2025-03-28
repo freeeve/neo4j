@@ -202,7 +202,8 @@ trait EntityIndexSeeker {
         combine(indexQueries)
 
       case ExistenceQueryExpression() =>
-        throw new InternalException(
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
           "An ExistenceQueryExpression shouldn't be found outside of a CompositeQueryExpression"
         )
 
@@ -349,7 +350,10 @@ trait EntityIndexSeeker {
           case (expr, propId) =>
             computeCompositeQueries(state, row)(expr, propId).flatMap {
               case e: PropertyIndexQuery.ExactPredicate => Some(e)
-              case _ => throw new InternalException("Expected only exact for LockingUniqueIndexSeek")
+              case _ => throw InternalException.internalError(
+                  this.getClass.getSimpleName,
+                  "Expected only exact for LockingUniqueIndexSeek"
+                )
             }
         }
 
@@ -390,7 +394,10 @@ trait EntityIndexSeeker {
         ).distinct
 
       case CompositeQueryExpression(_) =>
-        throw new InternalException("A CompositeQueryExpression can't be nested in a CompositeQueryExpression")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          "A CompositeQueryExpression can't be nested in a CompositeQueryExpression"
+        )
 
       case RangeQueryExpression(rangeWrapper) =>
         computeRangeQueries(state, row, rangeWrapper, propertyId)

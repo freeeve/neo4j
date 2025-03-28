@@ -236,10 +236,10 @@ object SlotConfiguration {
   }
 
   def missingArg(id: Id): InternalException =
-    new InternalException(s"No argument slot allocated for plan with $id")
+    InternalException.internalError(this.getClass.getSimpleName, s"No argument slot allocated for plan with $id")
 
   def missingNestedArg(id: Id): InternalException =
-    new InternalException(s"No nested argument slot allocated for plan with $id")
+    InternalException.internalError(this.getClass.getSimpleName, s"No nested argument slot allocated for plan with $id")
 }
 
 trait SlotView[S] {

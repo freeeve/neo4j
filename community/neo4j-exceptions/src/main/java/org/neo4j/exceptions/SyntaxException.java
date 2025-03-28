@@ -75,6 +75,16 @@ public class SyntaxException extends Neo4jException {
         this(gqlStatusObject, message, "", null, null);
     }
 
+    public static SyntaxException internalError(String msgTitle, String message, String query, int offset) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new SyntaxException(gql, message, query, offset, null);
+    }
+
+    public static SyntaxException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new SyntaxException(gql, message);
+    }
+
     public static SyntaxException invalidShortestPathException(String start) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N33)

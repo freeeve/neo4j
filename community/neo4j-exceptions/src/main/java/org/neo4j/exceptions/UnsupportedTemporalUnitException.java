@@ -32,17 +32,17 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
  * trying to get the timezone of a {@code LocalDateTimeValue}.
  */
 public class UnsupportedTemporalUnitException extends CypherTypeException {
-    @Deprecated
-    public UnsupportedTemporalUnitException(String errorMsg) {
-        super(errorMsg);
-    }
-
-    public UnsupportedTemporalUnitException(ErrorGqlStatusObject gqlStatusObject, String errorMsg) {
+    private UnsupportedTemporalUnitException(ErrorGqlStatusObject gqlStatusObject, String errorMsg) {
         super(gqlStatusObject, errorMsg);
     }
 
-    public UnsupportedTemporalUnitException(ErrorGqlStatusObject gqlStatusObject, String errorMsg, Throwable cause) {
+    private UnsupportedTemporalUnitException(ErrorGqlStatusObject gqlStatusObject, String errorMsg, Throwable cause) {
         super(gqlStatusObject, errorMsg, cause);
+    }
+
+    public static UnsupportedTemporalUnitException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new UnsupportedTemporalUnitException(gql, message);
     }
 
     public static UnsupportedTemporalUnitException cannotProcess(String value, Throwable e) {

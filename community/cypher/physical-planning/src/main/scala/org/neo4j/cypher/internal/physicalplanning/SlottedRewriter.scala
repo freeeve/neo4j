@@ -167,7 +167,10 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
         case oldPlan: AggregatingPlan =>
           // Grouping and aggregation expressions needs to be rewritten using the incoming slot configuration
           // as these slots are not available on the outgoing rows
-          val leftPlan = oldPlan.lhs.getOrElse(throw new InternalException("Leaf plans cannot be rewritten this way"))
+          val leftPlan = oldPlan.lhs.getOrElse(throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            "Leaf plans cannot be rewritten this way"
+          ))
           val slotConfiguration = slotConfigurations(oldPlan.id)
           val incomingSlotConfiguration = slotConfigurations(leftPlan.id)
           val incomingRewriter = rewriteCreator(incomingSlotConfiguration, oldPlan, slotConfigurations, trailPlans)
@@ -211,7 +214,10 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
       .endoRewrite(PostSlottedRewriter)
 
     checkOnlyWhenAssertionsAreEnabled(!resultPlan.folder.findAllByClass[Variable].exists(v =>
-      throw new CantCompileQueryException(s"Failed to rewrite away $v\n$resultPlan")
+      throw CantCompileQueryException.internalError(
+        this.getClass.getSimpleName,
+        s"Failed to rewrite away $v\n$resultPlan"
+      )
     ))
 
     resultPlan
@@ -228,7 +234,10 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
         // NOTE: The top-down rewriter will descend into the nested plan, so no need to explicitly rewrite it here
         val innerSlotConf = slotConfigurations.getOrElse(
           e.plan.id,
-          throw new InternalException(s"Missing slot configuration for plan with ${e.plan.id}")
+          throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            s"Missing slot configuration for plan with ${e.plan.id}"
+          )
         )
         val rewriter = rewriteCreator(innerSlotConf, thisPlan, slotConfigurations, trailPlans)
         e match {
@@ -251,7 +260,8 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
               case (CTNode, None)                => NodePropertyLate(offset, propKey, s"$key.$propKey")(prop)
               case (CTRelationship, Some(token)) => RelationshipProperty(offset, token, s"$key.$propKey")(prop)
               case (CTRelationship, None)        => RelationshipPropertyLate(offset, propKey, s"$key.$propKey")(prop)
-              case _ => throw new InternalException(
+              case _ => throw InternalException.internalError(
+                  this.getClass.getSimpleName,
                   s"Expressions on object other then nodes and relationships are not yet supported"
                 )
             }
@@ -529,7 +539,10 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
       case IsRepeatTrailUnique(innerRel: Variable) =>
         val trailId: Id = trailPlans.getOrElse(
           thisPlan.id,
-          throw new InternalException("Expected IsRepeatTrailUnique to be under Trail")
+          throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            "Expected IsRepeatTrailUnique to be under Trail"
+          )
         )
         ast.TrailRelationshipUniqueness(SlotAllocation.TRAIL_STATE_METADATA_KEY, trailId.x, innerRel)
 
@@ -591,7 +604,10 @@ class SlottedRewriter(tokenContext: ReadTokenContext) {
         propExpression
 
       case slot @ LongSlot(_, _, _) =>
-        throw new InternalException(s"Unexpected type on slot '$slot' for cached property $prop")
+        throw InternalException.internalError(
+          this.getClass.getSimpleName,
+          s"Unexpected type on slot '$slot' for cached property $prop"
+        )
 
       // We can skip checking the type of the refslot. We will only get cached properties, if semantic analysis determined that an expression is
       // a node or a relationship. We loose this information for RefSlots for some expressions, otherwise we would have allocated long slots
@@ -801,16 +817,21 @@ object SlottedRewriter {
               case LongSlot(offset, true, CTRelationship)  => NullCheckVariable(offset, RelationshipFromSlot(offset, k))
               case RefSlot(offset, _, _)                   => ReferenceFromSlot(offset, k)
               case _ =>
-                throw new CantCompileQueryException("Unknown type for `" + k + "` in the slot configuration")
+                throw CantCompileQueryException.internalError(
+                  this.getClass.getSimpleName,
+                  "Unknown type for `" + k + "` in the slot configuration"
+                )
             }
           case _ =>
-            throw new CantCompileQueryException(
+            throw CantCompileQueryException.internalError(
+              this.getClass.getSimpleName,
               s"Did not find `$k` in the slot configuration of ${thisPlan.getClass.getSimpleName} (${thisPlan.id})"
             )
         }
       case ev: ExpressionVariable => ev
       case _ =>
-        throw new CantCompileQueryException(
+        throw CantCompileQueryException.internalError(
+          this.getClass.getSimpleName,
           s"Don't know how to rewrite variable $v in ${thisPlan.getClass.getSimpleName} (${thisPlan.id})"
         )
     }
