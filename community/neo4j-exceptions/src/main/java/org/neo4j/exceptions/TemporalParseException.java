@@ -37,11 +37,6 @@ public class TemporalParseException extends SyntaxException {
         super(gqlStatusObject, errorMsg, cause);
     }
 
-    @Deprecated
-    public TemporalParseException(String errorMsg, String parsedData, int errorIndex) {
-        super(errorMsg, parsedData, errorIndex);
-    }
-
     public TemporalParseException(
             ErrorGqlStatusObject gqlStatusObject, String errorMsg, String parsedData, int errorIndex) {
         super(gqlStatusObject, errorMsg, parsedData, errorIndex);

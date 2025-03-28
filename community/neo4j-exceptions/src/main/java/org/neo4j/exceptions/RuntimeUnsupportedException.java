@@ -35,11 +35,6 @@ public class RuntimeUnsupportedException extends Neo4jException {
         super(gqlStatusObject, message, cause);
     }
 
-    @Deprecated
-    public RuntimeUnsupportedException(String message) {
-        super(message);
-    }
-
     private RuntimeUnsupportedException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }

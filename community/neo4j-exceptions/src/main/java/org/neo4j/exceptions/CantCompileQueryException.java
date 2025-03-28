@@ -33,11 +33,6 @@ public class CantCompileQueryException extends Neo4jException {
         super(gqlStatusObject, message, cause);
     }
 
-    @Deprecated
-    public CantCompileQueryException(String message) {
-        super(message);
-    }
-
     private CantCompileQueryException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
@@ -83,6 +78,7 @@ public class CantCompileQueryException extends Neo4jException {
                 .withParam(GqlParams.StringParam.edition, "community edition")
                 .build();
         return new CantCompileQueryException(
+                gql,
                 "Plan is not a recognized database administration command in community edition: %s"
                         .formatted(planName));
     }

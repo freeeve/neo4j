@@ -379,7 +379,7 @@ public abstract class TemporalValue<T extends Temporal, V extends TemporalValue<
         Matcher matcher = text.matcher(pattern);
         VALUE result = matcher != null && matcher.matches() ? parser.apply(matcher, defaultZone) : null;
         if (result == null) {
-            throw new TemporalParseException("Text cannot be parsed to a " + valueName(type), text.stringValue(), 0);
+            throw TemporalParseException.cannotParseText(valueName(type), text.stringValue());
         }
         return result;
     }
