@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.frontend.FoldableTest.Sum
 import org.neo4j.cypher.internal.frontend.FoldableTest.Val
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Foldable
+import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.SkipChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildrenNewAccForSiblings
@@ -464,5 +465,13 @@ class FoldableTest extends CypherFunSuite {
     )
 
     ex.getMessage.shouldEqual(cancellation.message)
+  }
+
+  test("should also work on non-standard iterables") {
+    val map = Map("key" -> "value")
+
+    map.values.folder.treeCollect {
+      case x: String => x
+    } should equal(Seq("value"))
   }
 }

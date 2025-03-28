@@ -34,7 +34,9 @@ object Foldable {
       case m: Map[_, _] =>
         m.iterator.flatMap { case (k, v) => Iterator[Any](k, v) }.asInstanceOf[Iterator[AnyRef]]
       case p: Product => p.productIterator.asInstanceOf[Iterator[AnyRef]]
-      case _          => Iterator.empty.asInstanceOf[Iterator[AnyRef]]
+      case i: Iterable[_] =>
+        i.iterator.asInstanceOf[Iterator[AnyRef]]
+      case _ => Iterator.empty.asInstanceOf[Iterator[AnyRef]]
     }
 
     def reverseTreeChildren: Iterator[AnyRef] = that match {
@@ -48,8 +50,11 @@ object Foldable {
       case s: Set[_] => s.toVector.reverseIterator.asInstanceOf[Iterator[AnyRef]]
       case m: Map[_, _] =>
         m.toVector.reverseIterator.flatMap { case (k, v) => Iterator[Any](v, k) }.asInstanceOf[Iterator[AnyRef]]
-      case p: Product => reverseProductIterator(p)
-      case _          => Iterator.empty.asInstanceOf[Iterator[AnyRef]]
+      case p: Product     => reverseProductIterator(p)
+      case i: Iterable[_] =>
+        // We do not know what kind of Iterable it is, so consuming it whole and then reversing it is the best we can do.
+        i.toSeq.reverseIterator.asInstanceOf[Iterator[AnyRef]]
+      case _ => Iterator.empty.asInstanceOf[Iterator[AnyRef]]
     }
 
     /**
