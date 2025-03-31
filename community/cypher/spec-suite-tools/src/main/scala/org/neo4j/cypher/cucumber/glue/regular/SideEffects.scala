@@ -47,18 +47,18 @@ case class SideEffects(
   propsRemoved: Int
 ) {
 
-  override def toString: String = {
-    DataTable.create(java.util.List.of(
-      java.util.List.of("+nodes", nodesCreated.toString),
-      java.util.List.of("-nodes", nodesDeleted.toString),
-      java.util.List.of("+relationships", relsCreated.toString),
-      java.util.List.of("-relationships", relsDeleted.toString),
-      java.util.List.of("+labels", labelsAdded.toString),
-      java.util.List.of("-labels", labelsRemoved.toString),
-      java.util.List.of("+properties", propsAdded.toString),
-      java.util.List.of("-properties", propsRemoved.toString)
-    )).toString
-  }
+  def asDataTable: DataTable = DataTable.create(java.util.List.of(
+    java.util.List.of("+nodes", nodesCreated.toString),
+    java.util.List.of("-nodes", nodesDeleted.toString),
+    java.util.List.of("+relationships", relsCreated.toString),
+    java.util.List.of("-relationships", relsDeleted.toString),
+    java.util.List.of("+labels", labelsAdded.toString),
+    java.util.List.of("-labels", labelsRemoved.toString),
+    java.util.List.of("+properties", propsAdded.toString),
+    java.util.List.of("-properties", propsRemoved.toString)
+  ))
+
+  override def toString: String = asDataTable.toString
 }
 
 object SideEffects {

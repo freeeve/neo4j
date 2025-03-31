@@ -285,7 +285,7 @@ object RegularCypherCucumberSteps {
     }
   }
 
-  private def renderAsTable(results: ConsumedResult): String = {
+  def renderAsTable(results: ConsumedResult): String = {
     val table = new util.ArrayList[util.List[String]](results.rows.size() + 1)
     table.add(results.headers)
     results.rows.forEach(row => table.add(row.stream().map[String](v => Objects.toString(v)).toList))

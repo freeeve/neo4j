@@ -69,7 +69,7 @@
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-cypher-dsl</artifactId>
-            <version>2024.5.0</version>
+            <version>${cypherdsl.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.apiguardian</groupId>
