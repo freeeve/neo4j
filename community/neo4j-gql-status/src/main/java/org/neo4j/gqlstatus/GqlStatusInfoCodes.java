@@ -2371,7 +2371,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_2DN01(
             new GqlStatus("2DN01"),
             """
-                    Failed to commit transaction. See debug log for details.""",
+                    Failed to commit transaction.""",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_TERMINATION,
