@@ -36,7 +36,6 @@ import org.neo4j.storageengine.api.StorageProperty;
 public class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<DefaultNodeValueIndexCursor>
         implements NodeValueIndexCursor {
     private final InternalCursorFactory internalCursors;
-    private final boolean applyAccessModeToTxState;
     private DefaultNodeCursor securityNodeCursor;
     private TraceablePropertyCursor propertyCursor;
     private int[] propertyIds;
@@ -48,7 +47,6 @@ public class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<D
             boolean applyAccessModeToTxState) {
         super(pool, applyAccessModeToTxState);
         this.internalCursors = internalCursors;
-        this.applyAccessModeToTxState = applyAccessModeToTxState;
     }
 
     /**

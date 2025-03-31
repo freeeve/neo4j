@@ -209,16 +209,16 @@ public class RestrictedAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean allowsReadRelPropertiesWithPropertyRules(
-            RelTypeSupplier relType, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
-        return original.allowsReadRelPropertiesWithPropertyRules(relType, propertyKeys, propertyProvider)
-                && wrapping.allowsReadRelPropertiesWithPropertyRules(relType, propertyKeys, propertyProvider);
+    public boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys) {
+        return original.allowsTraverseAndReadAllMatchingRelProperties(relTypes, propertyKeys)
+                && wrapping.allowsTraverseAndReadAllMatchingRelProperties(relTypes, propertyKeys);
     }
 
     @Override
-    public boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys) {
-        return original.allowsReadRelProperties(relType, propertyKeys)
-                && wrapping.allowsReadRelProperties(relType, propertyKeys);
+    public boolean allowsReadRelProperties(
+            RelTypeSupplier relType, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
+        return original.allowsReadRelProperties(relType, propertyKeys, propertyProvider)
+                && wrapping.allowsReadRelProperties(relType, propertyKeys, propertyProvider);
     }
 
     @Override

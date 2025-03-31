@@ -180,14 +180,14 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean allowsReadRelPropertiesWithPropertyRules(
-            RelTypeSupplier relType, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
-        return wrapping.allowsReadRelPropertiesWithPropertyRules(relType, propertyKeys, propertyProvider);
+    public boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys) {
+        return wrapping.allowsTraverseAndReadAllMatchingRelProperties(relTypes, propertyKeys);
     }
 
     @Override
-    public boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys) {
-        return wrapping.allowsReadRelProperties(relType, propertyKeys);
+    public boolean allowsReadRelProperties(
+            RelTypeSupplier relType, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
+        return wrapping.allowsReadRelProperties(relType, propertyKeys, propertyProvider);
     }
 
     @Override

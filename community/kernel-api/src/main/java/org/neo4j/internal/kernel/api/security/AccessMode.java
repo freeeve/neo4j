@@ -232,13 +232,13 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean allowsReadRelPropertiesWithPropertyRules(
-                RelTypeSupplier relType, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
+        public boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys) {
             return read;
         }
 
         @Override
-        public boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys) {
+        public boolean allowsReadRelProperties(
+                RelTypeSupplier relType, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
             return read;
         }
 
@@ -558,6 +558,16 @@ public interface AccessMode {
     boolean allowsReadRelProperty(RelTypeSupplier relType, int propertyKey);
 
     /**
+     * Check that the user is allowed to access all relationships and properties described by given relationship types and properties.
+     * Positive result means specific checks for individual entities can be ommitted, a.k.a. security shortcut.
+     *
+     * @param relTypes the types of the relationship in question
+     * @param propertyKeys the properties which the principal is requesting to read
+     * @return {@code true} if there is no restictions affecting described set of entities
+     */
+    boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys);
+
+    /**
      * determines whether the authenticated principal is allowed to read the specified {@code propertyKeys} according
      * to the property-based RBAC read rules AND the type-based RBAC rules.
      * Optimised for a multi-property reads.
@@ -566,18 +576,8 @@ public interface AccessMode {
      * @param propertyProvider the provider of the relationship's property values. Used as operands for the property rules.
      * @return {@code true} if the principal is allowed to read ALL of the requested {@code propertyKeys}
      */
-    boolean allowsReadRelPropertiesWithPropertyRules(
-            RelTypeSupplier relType, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider);
-
-    /**
-     * determines whether the authenticated principal is allowed to read the specified {@code propertyKeys} according
-     * to type-based RBAC rules. For use in contexts where there are no property-based RBAC rules in place.
-     * Optimised for a multi-property reads.
-     * @param relType the type of the relationship in question. Used to determine which RBAC rules are applicable.
-     * @param propertyKeys the properties which the principal is requesting to read
-     * @return {@code true} if the principal is allowed to read ALL of the requested {@code propertyKeys}
-     */
-    boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys);
+    boolean allowsReadRelProperties(
+            RelTypeSupplier relType, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider);
 
     /**
      * Returns predicate that determines whether the authenticated principal is allowed to read the specified {@code propertyKey}

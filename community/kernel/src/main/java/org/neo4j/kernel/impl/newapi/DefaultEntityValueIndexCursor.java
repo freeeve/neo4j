@@ -83,7 +83,7 @@ public abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<
     private boolean shortcutSecurity;
     private boolean needStoreFilter;
     private PropertySelection propertySelection;
-    private final boolean applyAccessModeToTxState;
+    protected final boolean applyAccessModeToTxState;
     private int numberOfProperties;
 
     DefaultEntityValueIndexCursor(CursorPool<CURSOR> pool, boolean applyAccessModeToTxState) {
@@ -356,6 +356,7 @@ public abstract class DefaultEntityValueIndexCursor<CURSOR> extends IndexCursor<
             this.read = null;
             this.txStateHolder = null;
             this.accessModeProvider = null;
+            this.accessMode = null;
             this.added = ImmutableEmptyLongIterator.INSTANCE;
             this.addedWithValues = Collections.emptyIterator();
             this.removed = LongSets.immutable.empty();

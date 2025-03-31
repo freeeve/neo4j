@@ -22,16 +22,17 @@ package org.neo4j.kernel.impl.newapi;
 import static org.neo4j.collection.PrimitiveLongCollections.mergeToSet;
 
 import org.eclipse.collections.api.set.primitive.LongSet;
+import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor;
-import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.storageengine.api.PropertySelection;
 import org.neo4j.storageengine.api.Reference;
+import org.neo4j.storageengine.api.StorageProperty;
 
 public class DefaultRelationshipValueIndexCursor
         extends DefaultEntityValueIndexCursor<DefaultRelationshipValueIndexCursor>
@@ -40,6 +41,7 @@ public class DefaultRelationshipValueIndexCursor
     private final DefaultRelationshipScanCursor relationshipScanCursor;
     private TraceablePropertyCursor securityPropertyCursor;
     private int[] propertyIds;
+    private AccessControlDataProvider accessControlDataProvider;
 
     DefaultRelationshipValueIndexCursor(
             CursorPool<DefaultRelationshipValueIndexCursor> pool,
@@ -142,24 +144,9 @@ public class DefaultRelationshipValueIndexCursor
     @Override
     protected boolean canAccessAllDescribedEntities(IndexDescriptor descriptor) {
         propertyIds = descriptor.schema().getPropertyIds();
-        AccessMode accessMode = accessModeProvider.getAccessMode();
+        int[] relTypes = descriptor.schema().getEntityTokenIds();
 
-        for (int relType : descriptor.schema().getEntityTokenIds()) {
-            if (!accessMode.allowsTraverseRelType(relType)) {
-                return false;
-            }
-        }
-        if (!accessMode.allowsTraverseAllLabels()) {
-            return false;
-        }
-        for (int propId : propertyIds) {
-            for (int relType : descriptor.schema().getEntityTokenIds()) {
-                if (!accessMode.allowsReadRelProperty(() -> relType, propId)) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return accessMode.allowsTraverseAndReadAllMatchingRelProperties(relTypes, propertyIds);
     }
 
     @Override
@@ -176,13 +163,36 @@ public class DefaultRelationshipValueIndexCursor
             return false;
         }
 
-        int relType = relationshipScanCursor.type();
-        for (int prop : propertyIds) {
-            if (!accessModeProvider.getAccessMode().allowsReadRelProperty(() -> relType, prop)) {
-                return false;
-            }
+        assert accessMode == accessModeProvider.getAccessMode() : "access mode changed while cursor is in use";
+        return accessMode.allowsReadRelProperties(
+                relationshipScanCursor::type, propertyIds, this::getAccessControlDataProvider);
+    }
+
+    /**
+     * AccessControlDataProvider when used as SelectedPropertiesProvider will return properties for the node pointed by {@link #relationshipScanCursor}
+     * This indirection is here for the sake of ultimate laziness
+     */
+    private AccessControlDataProvider getAccessControlDataProvider() {
+        if (accessControlDataProvider == null) {
+            accessControlDataProvider = new AccessControlDataProvider(
+                    () -> (propertyCursor, selection) -> propertyCursor.initRelationshipProperties(
+                            relationshipScanCursor.propertiesReference(), selection),
+                    internalCursors,
+                    applyAccessModeToTxState,
+                    this::txStateProperties,
+                    () -> read);
         }
-        return true;
+        return accessControlDataProvider;
+    }
+
+    private Iterable<StorageProperty> txStateProperties() {
+        if (txStateHolder.hasTxStateWithChanges()) {
+            return txStateHolder
+                    .txState()
+                    .getRelationshipState(relationshipScanCursor.relationshipReference())
+                    .addedAndChangedProperties();
+        }
+        return Iterables.empty();
     }
 
     @Override
@@ -205,6 +215,11 @@ public class DefaultRelationshipValueIndexCursor
             securityPropertyCursor.close();
             securityPropertyCursor.release();
             securityPropertyCursor = null;
+        }
+        if (accessControlDataProvider != null) {
+            accessControlDataProvider.close();
+            accessControlDataProvider.release();
+            accessControlDataProvider = null;
         }
     }
 }

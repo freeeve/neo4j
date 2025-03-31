@@ -190,13 +190,13 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean allowsReadRelPropertiesWithPropertyRules(
-            RelTypeSupplier relType, int[] propertyKeys, ReadSecurityPropertyProvider propertyProvider) {
+    public boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys) {
         return allowRead;
     }
 
     @Override
-    public boolean allowsReadRelProperties(RelTypeSupplier relType, int[] propertyKeys) {
+    public boolean allowsReadRelProperties(
+            RelTypeSupplier relType, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
         return allowRead;
     }
 
