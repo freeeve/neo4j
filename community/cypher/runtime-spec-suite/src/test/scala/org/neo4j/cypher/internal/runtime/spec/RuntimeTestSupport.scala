@@ -1066,7 +1066,8 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
       operatorEngine = queryOptions.queryOptions.operatorEngine,
       interpretedPipesFallback = queryOptions.queryOptions.interpretedPipesFallback,
       anonymousVariableNameGenerator = new AnonymousVariableNameGenerator(),
-      () => {}
+      () => {},
+      queryOptions.queryOptions.parallelRuntimeConfigOption
     )
   }
 

@@ -48,7 +48,6 @@ object CypherRuntimeConfiguration {
       freeMemoryOfUnusedColumns = config.freeMemoryOfUnusedColumns,
       expressionEngineOption = config.expressionEngineOption,
       spdBatchSize = config.shardedPropertyBatchSize,
-      parallelRuntimeConfig = config.parallel_runtime_config,
       warnOnAggregationSkipNull = config.warnOnAggregationSkipNull
     )
   }
@@ -74,7 +73,6 @@ case class CypherRuntimeConfiguration(
   freeMemoryOfUnusedColumns: Boolean,
   expressionEngineOption: CypherExpressionEngineOption,
   spdBatchSize: Int,
-  parallelRuntimeConfig: CypherParallelRuntimeConfigOption,
   warnOnAggregationSkipNull: Boolean
 ) {
 

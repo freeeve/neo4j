@@ -20,10 +20,12 @@
 package org.neo4j.cypher.internal
 
 import org.neo4j.cypher.internal.ast.semantics.CachableSemanticTable
+import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
+import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LeveragedOrders
@@ -142,7 +144,8 @@ trait RuntimeContextManager[+CONTEXT <: RuntimeContext] {
     operatorEngine: CypherOperatorEngineOption,
     interpretedPipesFallback: CypherInterpretedPipesFallbackOption,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
-    assertOpen: AssertOpen
+    assertOpen: AssertOpen,
+    parallelRuntimeConfig: CypherParallelRuntimeConfigOption
   ): CONTEXT
 
   def config: CypherRuntimeConfiguration

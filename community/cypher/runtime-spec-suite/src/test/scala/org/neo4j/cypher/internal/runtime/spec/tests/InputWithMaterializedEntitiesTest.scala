@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
+import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
+import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption.none
 import org.neo4j.cypher.internal.runtime.QueryContext
 import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
@@ -260,7 +262,8 @@ abstract class InputWithMaterializedEntitiesTest[CONTEXT <: RuntimeContext](
           operatorEngine = CypherOperatorEngineOption.default,
           interpretedPipesFallback = CypherInterpretedPipesFallbackOption.default,
           anonymousVariableNameGenerator = new AnonymousVariableNameGenerator(),
-          () => {}
+          () => {},
+          CypherParallelRuntimeConfigOption.default
         )
       }
     }
