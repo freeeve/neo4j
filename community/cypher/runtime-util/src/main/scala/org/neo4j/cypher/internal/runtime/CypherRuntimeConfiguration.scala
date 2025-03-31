@@ -23,7 +23,6 @@ import org.neo4j.configuration.Config
 import org.neo4j.cypher.internal.config.CypherConfiguration
 import org.neo4j.cypher.internal.config.MemoryTrackingController
 import org.neo4j.cypher.internal.options.CypherExpressionEngineOption
-import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.util.Preconditions
 
 import java.io.File
