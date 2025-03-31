@@ -361,7 +361,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             """
                         Server `{ %s }` at address `{ %s }` failed: { %s }""",
             new GqlParams.GqlParam[] {
-                GqlParams.StringParam.serverName, GqlParams.StringParam.serverAddress, GqlParams.StringParam.msg
+                GqlParams.StringParam.server, GqlParams.StringParam.serverAddress, GqlParams.StringParam.msg
             },
             emptyMap(),
             Condition.WARNING,
@@ -371,7 +371,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("01N81"),
             """
                         Server `{ %s }` at address `{ %s }` is still catching up.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.serverName, GqlParams.StringParam.serverAddress},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.server, GqlParams.StringParam.serverAddress},
             emptyMap(),
             Condition.WARNING,
             "server is catching up",
@@ -380,7 +380,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("01N82"),
             """
                         Server `{ %s }` is not available.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.serverName},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.WARNING,
             "server is not available",
@@ -452,7 +452,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_03N85(
             new GqlStatus("03N85"),
             "Server `{ %s }` at address `{ %s }` has caught up.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.serverName, GqlParams.StringParam.serverAddress},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.server, GqlParams.StringParam.serverAddress},
             emptyMap(),
             Condition.INFORMATIONAL,
             "server has caught up",

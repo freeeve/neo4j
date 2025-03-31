@@ -137,7 +137,6 @@ public class GqlParams {
         selectorType2(new STRLIT()),
         server(new STRLIT()), // Server | 'example.com
         serverAddress(new STRLIT()), // Server address | localhost:1024
-        serverName(new STRLIT()), // Server name as set with RENAME SERVER or fallback to ServerId
         serverType(new STRLIT()), // Server type
         sig(new VERBATIM()), // Procedure or function signature
         syntax(new IDENT()), // Freeform syntax or keyword
