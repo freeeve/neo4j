@@ -99,7 +99,7 @@ class DbInfoIntegrationTest extends TestHarness {
     // Note: needs server supporting cypher 25 with apoc installed to work
     @Test
     void fillsVersionedInfoInDbInfo() throws Exception {
-        assumeAtLeastVersion("5.27.0-2025040");
+        assumeAtLeastVersion("2025.05.0");
         // assumeAtLeastVersion("5.26.0"); // Switch to this for testing pre-2025.03.0, also switching in
         // QueryPoller.startPolling.
 

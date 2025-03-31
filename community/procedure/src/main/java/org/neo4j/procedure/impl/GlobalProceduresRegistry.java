@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import org.neo4j.configuration.Config;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.function.ThrowingFunction;
 import org.neo4j.graphdb.Resource;
@@ -42,7 +43,6 @@ import org.neo4j.kernel.api.procedure.Context;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.api.procedure.ProcedureView;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
-import org.neo4j.kernel.internal.Version;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.NullLog;
@@ -75,7 +75,7 @@ public class GlobalProceduresRegistry extends LifecycleAdapter implements Global
     @VisibleForTesting
     public GlobalProceduresRegistry() {
         this(
-                SpecialBuiltInProcedures.from(Version.getKernel(), "N/A"),
+                SpecialBuiltInProcedures.from("N/A", "N/A", Config.defaults()),
                 null,
                 NullLog.getInstance(),
                 ProcedureConfig.DEFAULT);

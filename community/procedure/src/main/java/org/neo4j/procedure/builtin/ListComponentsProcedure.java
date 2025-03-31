@@ -39,44 +39,45 @@ import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.virtual.VirtualValues;
 
 /**
- * This procedure lists "components" and their version.
- * While components are currently hard-coded, it is intended
- * that this implementation will be replaced once a clean
- * system for component assembly exists where we could dynamically
- * get a list of which components are loaded and what versions of them.
- *
- * This way, it works as a general mechanism into which capabilities
- * a given Neo4j system has, and which version of those components
- * are in use.
- *
- * This would include things like Kernel, Storage Engine, Query Engines,
- * Bolt protocol versions et cetera.
- *
- * Note: As of version 2025.01.0, unless the neo4j version has been overridden using the
- * `internal.neo4j.custom.version` custom property, the neo4jVersion field is always overwritten to return
- * "5.27.0". This version, known here as the "false semantic version" never technically existed, but is
- * returned to ensure compatibility with some old clients which depend on the specific structure of the
- * return value from `dbms.components()` calls. In future `dbms.components()` will be deprecated in favour
- * of another procedure which returns a value correctly connected to the release version.
+ * This procedure lists "components" and their version. While components are currently hard-coded, it is intended that this implementation will be replaced once
+ * a clean system for component assembly exists where we could dynamically get a list of which components are loaded and what versions of them.
+ * <p>
+ * This way, it works as a general mechanism into which capabilities a given Neo4j system has, and which version of those components are in use.
+ * <p>
+ * This would include things like Kernel, Storage Engine, Query Engines, Bolt protocol versions et cetera.
+ * <p>
+ * The versions returned from `dbms.components()` for the "Neo4j Kernel" component depend on several factors
+ * <p>
+ * 1. If a value has been explicitly set for the `internal.dbms.custom_kernel_version` configuration then we return that.
+ * <p>
+ * 2. Else, if a custom system property `internal.neo4j.custom.version` has been set, then we return that.
+ * <p>
+ * 3. Else, we return the current version.
  */
 public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
-    private static final TextValue FALSE_SEMANTIC_VERSION = utf8Value("5.27.0");
-    private static final TextValue NEO4J_KERNEL = utf8Value("Neo4j Kernel");
+    public static final String NAME_COLUMN = "name";
+    public static final String VERSIONS_COLUMN = "versions";
+    public static final String EDITION_COLUMN = "edition";
+    public static final String KERNEL_COMPONENT_NAME = "Neo4j Kernel";
+
+    private static final TextValue NEO4J_KERNEL = utf8Value(KERNEL_COMPONENT_NAME);
     private final TextValue neo4jVersion;
     private final TextValue neo4jEdition;
 
-    public ListComponentsProcedure(QualifiedName name, String neo4jVersion, String neo4jEdition, boolean overridden) {
+    public ListComponentsProcedure(
+            QualifiedName name, String neo4jVersion, String neo4jEdition, String customVersionConfig) {
         super(procedureSignature(name)
-                .out("name", NTString, "The name of the component.")
+                .out(NAME_COLUMN, NTString, "The name of the component.")
                 // Since Bolt, Cypher and other components support multiple versions
                 // at the same time, list of versions rather than single version.
-                .out("versions", NTList(NTString), "The installed versions of the component.")
-                .out("edition", NTString, "The Neo4j edition of the DBMS.")
+                .out(VERSIONS_COLUMN, NTList(NTString), "The installed versions of the component.")
+                .out(EDITION_COLUMN, NTString, "The Neo4j edition of the DBMS.")
                 .mode(Mode.DBMS)
                 .description("List DBMS components and their versions.")
                 .systemProcedure()
                 .build());
-        this.neo4jVersion = overridden ? stringValue(neo4jVersion) : FALSE_SEMANTIC_VERSION;
+
+        this.neo4jVersion = customVersionConfig != null ? stringValue(customVersionConfig) : stringValue(neo4jVersion);
         this.neo4jEdition = stringValue(neo4jEdition);
     }
 

@@ -24,7 +24,6 @@ import static java.util.Objects.requireNonNull;
 import static java.util.Objects.requireNonNullElse;
 
 import java.util.Objects;
-import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -32,15 +31,12 @@ public final class Version {
     static final String CUSTOM_VERSION_SETTING = "internal.neo4j.custom.version";
     private static final String DEFAULT_DEV_VERSION = "dev";
     private static final String KERNEL_ARTIFACT_ID = "neo4j-kernel";
-    private static final Version KERNEL_VERSION = new Version(KERNEL_ARTIFACT_ID, Version::selectVersion);
+    private static final Version KERNEL_VERSION = new Version(KERNEL_ARTIFACT_ID, selectVersion());
 
     static String selectVersion() {
-        var versionString = getProperty(CUSTOM_VERSION_SETTING, lookupImplementationVersion());
+        var versionString =
+                getProperty(CUSTOM_VERSION_SETTING, Version.class.getPackage().getImplementationVersion());
         return Objects.toString(versionString, DEFAULT_DEV_VERSION);
-    }
-
-    private static String lookupImplementationVersion() {
-        return Version.class.getPackage().getImplementationVersion();
     }
 
     public static Version getKernel() {
@@ -57,24 +53,16 @@ public final class Version {
 
     private final String artifactId;
     private final String title;
-    private final Supplier<String> versionSupplier;
+    private final String version;
+    private final String releaseVersion;
 
-    // Variables are effectively final, but lazily initialised in order to avoid issues with resolving package metadata
-    // statically.
-    private String implementationVersion;
-    private String version;
-    private String releaseVersion;
-
-    Version(String artifactId, Supplier<String> versionSupplier) {
+    Version(String artifactId, String version) {
         requireNonNull(artifactId);
+        requireNonNull(version);
         this.artifactId = artifactId;
         this.title = artifactId;
-        this.versionSupplier = versionSupplier;
-    }
-
-    public boolean isOverridden() {
-        var version = getVersion();
-        return !(version.equals(getImplementationVersion()) || version.equals(DEFAULT_DEV_VERSION));
+        this.version = version;
+        this.releaseVersion = parseReleaseVersion(version);
     }
 
     @Override
@@ -101,9 +89,6 @@ public final class Version {
      * for internal use, logging and debugging.
      */
     public String getVersion() {
-        if (version == null) {
-            version = versionSupplier.get();
-        }
         return version;
     }
 
@@ -111,23 +96,13 @@ public final class Version {
      * @return a user-friendly version string, like "1.0.0-M01" or "2.0.0", suitable for end-user display
      */
     public String getReleaseVersion() {
-        if (releaseVersion == null) {
-            releaseVersion = parseReleaseVersion(getVersion());
-        }
         return releaseVersion;
-    }
-
-    private String getImplementationVersion() {
-        if (implementationVersion == null) {
-            implementationVersion = lookupImplementationVersion();
-        }
-        return implementationVersion;
     }
 
     /**
      * This reads out the user friendly part of the version, for public display.
      */
-    private String parseReleaseVersion(String fullVersion) {
+    private static String parseReleaseVersion(String fullVersion) {
         // Generally, a version we extract from the jar manifest will look like:
         //   1.2.3-M01,abcdef-dirty
         // Parse out the first part of it:

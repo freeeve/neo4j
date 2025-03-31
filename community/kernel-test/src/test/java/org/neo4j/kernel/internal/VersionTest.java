@@ -71,7 +71,6 @@ class VersionTest {
         var planetExpressVersion = version(planetExpress);
         assertThat(planetExpressVersion.getVersion()).isEqualTo(planetExpress);
         assertThat(planetExpressVersion.getReleaseVersion()).isEqualTo(planetExpress);
-        assertThat(planetExpressVersion.isOverridden()).isTrue();
     }
 
     @Test
@@ -86,6 +85,6 @@ class VersionTest {
     }
 
     private static Version version(String version) {
-        return new Version("test-component", () -> version);
+        return new Version("test-component", version);
     }
 }

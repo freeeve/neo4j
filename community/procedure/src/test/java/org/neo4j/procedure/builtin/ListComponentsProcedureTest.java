@@ -35,10 +35,11 @@ import org.neo4j.values.virtual.ListValue;
  */
 class ListComponentsProcedureTest {
     @Test
-    void usesFalseSemanticVersionWhenNotOverridden() throws ProcedureException {
+    void usesCustomVersionWhenConfigured() throws ProcedureException {
         // Given
+        var customConfigVersion = "5.27.0";
         var procedure = new ListComponentsProcedure(
-                new QualifiedName(new String[] {"dbms"}, "components"), "2025.01.0", "community", false);
+                new QualifiedName(new String[] {"dbms"}, "components"), "2025.01.0", "community", customConfigVersion);
 
         // When
         try (var result = procedure.apply(null, new AnyValue[0], null)) {
@@ -51,29 +52,6 @@ class ListComponentsProcedureTest {
             assertEquals(1, versions.intSize());
             assertEquals("5.27.0", ((TextValue) versions.value(0)).stringValue());
             assertEquals("community", ((TextValue) row[2]).stringValue());
-
-            assertFalse(result.hasNext(), "Expected only one row from the procedure.");
-        }
-    }
-
-    @Test
-    void usesCustomVersionWhenOverridden() throws ProcedureException {
-        // Given
-        var procedure = new ListComponentsProcedure(
-                new QualifiedName(new String[] {"dbms"}, "components"), "banana", "enterprise", true);
-
-        // When
-        try (var result = procedure.apply(null, new AnyValue[0], null)) {
-            // Then
-            assertTrue(result.hasNext(), "Expected a result row from the procedure.");
-
-            var row = result.next();
-
-            assertEquals("Neo4j Kernel", ((TextValue) row[0]).stringValue());
-            var versions = (ListValue) row[1];
-            assertEquals(1, versions.intSize());
-            assertEquals("banana", ((TextValue) versions.value(0)).stringValue());
-            assertEquals("enterprise", ((TextValue) row[2]).stringValue());
 
             assertFalse(result.hasNext(), "Expected only one row from the procedure.");
         }

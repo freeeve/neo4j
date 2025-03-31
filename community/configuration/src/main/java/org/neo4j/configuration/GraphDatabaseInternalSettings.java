@@ -1685,6 +1685,13 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .dynamic()
             .build();
 
+    @Internal
+    @Description(
+            "A custom value to return in the 'versions' column of the `dbms.components()` procedure, for the 'Neo4j Kernel' component."
+                    + "Note: is overridden by the `internal.neo4j.custom_version` system property.")
+    public static final Setting<String> custom_kernel_version =
+            newBuilder("internal.dbms.custom_kernel_version", STRING, null).build();
+
     // Helper method
     public static HeapEstimatorCacheConfig extractCustomHeapEstimatorCacheConfig(Config config) {
         return new HeapEstimatorCacheConfig(

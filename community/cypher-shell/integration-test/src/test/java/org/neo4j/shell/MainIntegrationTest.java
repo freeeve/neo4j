@@ -104,8 +104,7 @@ class MainIntegrationTest extends TestHarness {
 
     @Test
     void shouldGetVersionedFunction() throws Exception {
-        assumeAtLeastVersion(
-                "5.27.0-2025040"); // For testing - switch to 5.26.0, have 5.26.+ server running with version
+        assumeAtLeastVersion("2025.05.0"); // For testing - switch to 5.26.0, have 5.26.+ server running with version
         // featureflag
         buildTest()
                 .addArgs("-u", USER, "-p", PASSWORD, "--format", "plain")
