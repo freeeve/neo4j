@@ -82,7 +82,19 @@ abstract class AbstractUnixBootloaderOs extends BootloaderOsAbstraction {
     private void destroyOrFail(ProcessHandle process) throws CommandFailedException {
         var couldIssueDestroy = process.destroy();
         if (!couldIssueDestroy) {
-            throw new CommandFailedException("Failed to stop process.");
+            final var stopInvokingUser = System.getProperty("user.name");
+            process.info()
+                    .user()
+                    .ifPresentOrElse(
+                            otherProcessUser -> {
+                                final var msg = String.format(
+                                        "Failed to stop process. User of the process to stop '%s' and user running this process '%s' differs, which means this could be a permission problem.",
+                                        otherProcessUser, stopInvokingUser);
+                                throw new CommandFailedException(msg);
+                            },
+                            () -> {
+                                throw new CommandFailedException("Failed to stop process.");
+                            });
         }
     }
 

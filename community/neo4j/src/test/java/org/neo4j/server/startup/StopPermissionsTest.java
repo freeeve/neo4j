@@ -21,9 +21,11 @@ package org.neo4j.server.startup;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -40,8 +42,10 @@ class StopPermissionsTest extends StopTestBase {
         assertThat(out.toString())
                 .contains("Stopping Neo4j")
                 .contains("failed to stop")
-                .contains("Neo4j (pid:" + handler.runningPid
-                        + ") process could not be stopped. Do you have the right permissions?");
+                .contains("Neo4j (pid:" + handler.runningPid + ") process could not be stopped.")
+                .contains(
+                        "Failed to stop process. User of the process to stop 'not you' and user running this process '")
+                .contains("' differs, which means this could be a permission problem.");
         assertThat(err.toString()).contains("Failed to stop");
     }
 
@@ -61,6 +65,9 @@ class StopPermissionsTest extends StopTestBase {
             doAnswer(inv -> handler.isRunning()).when(ph).isAlive();
             // Simulates OS access control denying to destroy process
             doAnswer(inv -> false).when(ph).destroy();
+            var infoMock = mock(ProcessHandle.Info.class);
+            doAnswer(inv -> infoMock).when(ph).info();
+            doAnswer(inv -> Optional.of("not you")).when(infoMock).user();
         }
     }
 }

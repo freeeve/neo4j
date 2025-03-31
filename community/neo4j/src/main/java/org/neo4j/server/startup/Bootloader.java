@@ -514,9 +514,7 @@ public abstract class Bootloader implements AutoCloseable {
                 environment.out().println(" failed to stop.");
                 environment
                         .out()
-                        .printf(
-                                "Neo4j%s process could not be stopped. Do you have the right permissions?%n",
-                                pidIfKnown(pid));
+                        .printf("Neo4j%s process could not be stopped.%n%s%n", pidIfKnown(pid), e.getMessage());
                 throw new CommandFailedException("Failed to stop", e, EXIT_CODE_RUNNING);
             }
 
