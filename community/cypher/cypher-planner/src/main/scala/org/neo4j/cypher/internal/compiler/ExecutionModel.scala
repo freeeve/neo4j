@@ -76,6 +76,8 @@ sealed trait ExecutionModel {
    */
   def isSingleThreaded: Boolean
 
+  def isParallel: Boolean = !isSingleThreaded
+
   /**
    * "For Block format, setting a property cursor on a relationship using only
    * the id is much more expensive than setting it using an existing

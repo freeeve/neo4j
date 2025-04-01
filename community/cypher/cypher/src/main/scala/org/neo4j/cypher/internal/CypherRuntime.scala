@@ -25,7 +25,6 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
-import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.EffectiveCardinalities
 import org.neo4j.cypher.internal.planner.spi.PlanningAttributes.LeveragedOrders
@@ -145,7 +144,7 @@ trait RuntimeContextManager[+CONTEXT <: RuntimeContext] {
     interpretedPipesFallback: CypherInterpretedPipesFallbackOption,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
     assertOpen: AssertOpen,
-    parallelRuntimeConfig: CypherParallelRuntimeConfigOption
+    executionModel: ExecutionModel
   ): CONTEXT
 
   def config: CypherRuntimeConfiguration

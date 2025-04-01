@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.MasterCompiler
 import org.neo4j.cypher.internal.ResourceManagerFactory
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.RuntimeContextManager
+import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.plandescription.InternalPlanDescription
@@ -1067,7 +1068,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
       interpretedPipesFallback = queryOptions.queryOptions.interpretedPipesFallback,
       anonymousVariableNameGenerator = new AnonymousVariableNameGenerator(),
       () => {},
-      queryOptions.queryOptions.parallelRuntimeConfigOption
+      ExecutionModel.default
     )
   }
 

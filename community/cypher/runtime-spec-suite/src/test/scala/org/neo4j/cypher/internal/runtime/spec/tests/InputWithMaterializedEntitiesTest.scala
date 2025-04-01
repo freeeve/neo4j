@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.MasterCompiler
 import org.neo4j.cypher.internal.RuntimeContext
+import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
@@ -263,7 +264,7 @@ abstract class InputWithMaterializedEntitiesTest[CONTEXT <: RuntimeContext](
           interpretedPipesFallback = CypherInterpretedPipesFallbackOption.default,
           anonymousVariableNameGenerator = new AnonymousVariableNameGenerator(),
           () => {},
-          CypherParallelRuntimeConfigOption.default
+          ExecutionModel.default
         )
       }
     }

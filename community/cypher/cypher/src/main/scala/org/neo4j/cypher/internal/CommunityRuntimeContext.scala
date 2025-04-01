@@ -19,10 +19,10 @@
  */
 package org.neo4j.cypher.internal
 
+import org.neo4j.cypher.internal.compiler.ExecutionModel
 import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.options.CypherInterpretedPipesFallbackOption
 import org.neo4j.cypher.internal.options.CypherOperatorEngineOption
-import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
 import org.neo4j.cypher.internal.runtime.CypherRuntimeConfiguration
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
@@ -68,7 +68,7 @@ case class CommunityRuntimeContextManager(log: InternalLog, config: CypherRuntim
     ignore4: CypherInterpretedPipesFallbackOption,
     anonymousVariableNameGenerator: AnonymousVariableNameGenerator,
     assertOpen: AssertOpen,
-    ignore5: CypherParallelRuntimeConfigOption
+    ignore5: ExecutionModel
   ): CommunityRuntimeContext =
     CommunityRuntimeContext(
       cypherVersion,
