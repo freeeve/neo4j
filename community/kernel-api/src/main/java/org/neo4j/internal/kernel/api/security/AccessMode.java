@@ -168,6 +168,11 @@ public interface AccessMode {
         }
 
         @Override
+        public boolean allowsTraverseAllRelsWithType(int relType) {
+            return read;
+        }
+
+        @Override
         public boolean disallowsTraverseRelType(int relType) {
             return false;
         }
@@ -474,6 +479,14 @@ public interface AccessMode {
      *                the same as {@link #allowsTraverseAllRelTypes}
      */
     boolean allowsTraverseRelType(int relType);
+
+    /**
+     * true if *all* relationships with the relType can be traversed.
+     * this includes check for {@link #allowsTraverseAllLabels()} as it pre-requesite to traverse relationship
+     *
+     * @param relType the relationship type to check access for
+     */
+    boolean allowsTraverseAllRelsWithType(int relType);
 
     /**
      * true if the relType is deny-listed for traversal.

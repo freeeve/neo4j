@@ -130,6 +130,11 @@ public class RestrictedAccessMode extends WrappedAccessMode {
     }
 
     @Override
+    public boolean allowsTraverseAllRelsWithType(int relType) {
+        return original.allowsTraverseAllRelsWithType(relType) && wrapping.allowsTraverseAllRelsWithType(relType);
+    }
+
+    @Override
     public boolean disallowsTraverseRelType(int relType) {
         return original.disallowsTraverseRelType(relType) && wrapping.disallowsTraverseRelType(relType);
     }

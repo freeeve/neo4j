@@ -78,7 +78,7 @@ public class DefaultRelationshipBasedRelationshipTypeIndexCursor
     @Override
     protected final boolean allowedToSeeAllEntitiesWithToken(int token) {
         AccessMode accessMode = accessModeProvider.getAccessMode();
-        return accessMode.allowsTraverseRelType(token) && accessMode.allowsTraverseAllLabels();
+        return accessMode.allowsTraverseAllRelsWithType(token);
     }
 
     @Override
@@ -144,9 +144,6 @@ public class DefaultRelationshipBasedRelationshipTypeIndexCursor
 
     @Override
     protected boolean allowedToSeeEntity(long entityReference) {
-        if (accessModeProvider.getAccessMode().allowsTraverseAllRelTypes()) {
-            return true;
-        }
         read.singleRelationship(entityReference, relationshipScanCursor);
         return relationshipScanCursor.next();
     }

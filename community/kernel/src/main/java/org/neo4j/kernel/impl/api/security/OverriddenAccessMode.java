@@ -125,6 +125,11 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
+    public boolean allowsTraverseAllRelsWithType(int relType) {
+        return wrapping.allowsTraverseAllRelsWithType(relType);
+    }
+
+    @Override
     public boolean disallowsTraverseRelType(int relType) {
         return wrapping.disallowsTraverseRelType(relType);
     }

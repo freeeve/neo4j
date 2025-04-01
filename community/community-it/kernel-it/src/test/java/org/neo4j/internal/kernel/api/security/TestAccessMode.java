@@ -128,6 +128,11 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
+    public boolean allowsTraverseAllRelsWithType(int relType) {
+        return allowRead;
+    }
+
+    @Override
     public boolean disallowsTraverseRelType(int relType) {
         return !allowRead;
     }
