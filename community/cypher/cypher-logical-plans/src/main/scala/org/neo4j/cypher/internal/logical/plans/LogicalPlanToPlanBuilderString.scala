@@ -97,6 +97,7 @@ import org.neo4j.cypher.internal.logical.plans.NFA.Transition
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
+import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTDate
 import org.neo4j.cypher.internal.util.symbols.CTDateTime
@@ -1793,6 +1794,7 @@ object LogicalPlanToPlanBuilderString {
 
   private def typeValue(cypherType: CypherType): String = {
     cypherType match {
+      case CTAny           => "CTAny"
       case CTBoolean       => "CTBoolean"
       case CTInteger       => "CTInteger"
       case CTFloat         => "CTFloat"

@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.ir.EagernessReason.Conflict
 import org.neo4j.cypher.internal.ir.EagernessReason.ReadCreateConflict
 import org.neo4j.cypher.internal.ir.EagernessReason.TypeReadSetConflict
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
+import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.column
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createRelationship
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
@@ -66,6 +67,7 @@ import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.To
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 import java.lang.Boolean.FALSE
@@ -5121,5 +5123,76 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       )
       .allRelationshipsScan("(b)-[r2]->(c)")
       .build()
+  }
+
+  testVersionsExcept5(
+    "should plan shortest path with repeatable elements with predicate inside referring to the nodes inside a QPP"
+  ) { version =>
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("Station", 1000)
+      .setRelationshipCardinality("()-[:LINK]->()", 5000)
+      .setRelationshipCardinality("(:Station)-[:LINK]->(:Station)", 5000)
+      .setRelationshipCardinality("()-[:LINK]->(:Station)", 5000)
+      .setRelationshipCardinality("(:Station)-[:LINK]->()", 5000)
+      .addNodeIndex("Station", Seq("name"), 0.1, 0.01)
+      .addSemanticFeature(MatchModes)
+      .build()
+
+    val query =
+      """MATCH REPEATABLE ELEMENTS
+        |  ANY (startStation:Station {name:$startStation})
+        |    ((l)-[link:LINK]-(r)
+        |      WHERE r.location < l.location
+        |    ){, 1}
+        |   (endStation:Station {name:$endStation})
+        |RETURN startStation
+        |""".stripMargin
+
+    val relPredicate = lessThan(
+      prop(TraversalEndpoint(v"anon_0", To), "location"),
+      prop(TraversalEndpoint(v"anon_1", From), "location")
+    )
+
+    val nfa = new TestNFABuilder(0, "startStation")
+      .addTransition(0, 1, "(startStation) (l)")
+      .addTransition(0, 3, "(startStation) (endStation)")
+      .addTransition(1, 2, "(l)-[link:LINK]-(r)", maybeRelPredicate = Some(_ => relPredicate))
+      .addTransition(2, 3, "(r) (endStation)")
+      .setFinalState(3)
+      .build()
+
+    planner.plan(version, query) should equal(
+      planner.planBuilder()
+        .produceResults(column("startStation", "cacheN[startStation.name]"))
+        .statefulShortestPath(
+          "startStation",
+          "endStation",
+          "ANY 1 (startStation) ((`l`)-[`link`]-(`r`)){0, 1} (endStation)",
+          None,
+          Set.empty,
+          Set.empty,
+          Set.empty,
+          Set.empty,
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
+          nfa,
+          ExpandInto,
+          false,
+          0,
+          Some(1),
+          Walk
+        )
+        .cartesianProduct()
+        .|.nodeIndexOperator(
+          "endStation:Station(name = ???)",
+          paramExpr = Some(parameter("endStation", CTAny))
+        )
+        .nodeIndexOperator(
+          "startStation:Station(name = ???)",
+          getValue = _ => GetValue,
+          paramExpr = Some(parameter("startStation", CTAny))
+        )
+        .build()
+    )
   }
 }

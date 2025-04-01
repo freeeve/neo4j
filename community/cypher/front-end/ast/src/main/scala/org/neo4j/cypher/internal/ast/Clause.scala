@@ -1003,25 +1003,30 @@ case class Match(
   private def checkSelectivePathPatternPredicates(
     state: SemanticState
   ): Seq[SemanticError] = {
-    case class selectorWithInvalidReferences(patternString: String, invalidReferences: Set[LogicalVariable])
+    case class PatternPartWithReferences(patternString: String, invalidReferences: Set[LogicalVariable])
 
     val symbolDefinitions = state.currentScope.availableSymbolDefinitions
     val variablesInPattern = pattern.patternParts.flatMap(_.allVariables).toSet
 
     val variablesDefinedInPreviousClauses = symbolDefinitions.filterNot(variablesInPattern.map(SymbolUse(_)))
-    val selectivePatternPartWithInvalidReferences = pattern.patternParts.collect {
+    val selectivePatternPartWithReferences = pattern.patternParts.collect {
       case patternPart if patternPart.selector.isSelective =>
-        selectorWithInvalidReferences(
+        val singletons = patternPart.folder.treeCollect {
+          case QuantifiedPath(_, _, _, groupings) => groupings.map(_.singleton)
+        }
+        PatternPartWithReferences(
           patternStringifier(patternPart),
           patternPart.dependencies
-            -- patternPart.allVariables // allowed: references to current pattern variables are allowed
-            -- variablesDefinedInPreviousClauses.map(
-              _.asVariable
-            ) // allowed: references to previously bounded variables
+          // allowed: references to current pattern variables are allowed
+          -- patternPart.allVariables
+          // allowed: references inside QPPs to variables inside the QPP. Disallowing accessing these from outside is handled elsewhere.
+          -- singletons.flatten
+          // allowed: references to previously bounded variables
+          -- variablesDefinedInPreviousClauses.map(_.asVariable)
         )
     }
 
-    selectivePatternPartWithInvalidReferences.filter(_.invalidReferences.nonEmpty).map(errorDetails => {
+    selectivePatternPartWithReferences.filter(_.invalidReferences.nonEmpty).map(errorDetails => {
       val invalidVars = errorDetails.invalidReferences.map(_.name)
       SemanticError.invalidReferenceInParenthesizedPathPatternPredicate(
         errorDetails.patternString,
