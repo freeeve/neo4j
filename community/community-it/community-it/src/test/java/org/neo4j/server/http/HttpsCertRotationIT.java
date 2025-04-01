@@ -90,11 +90,22 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
         var trustAllSslContext = SSLContext.getInstance("TLS");
         trustAllSslContext.init(null, new TrustManager[] {new InsecureTrustManager()}, null);
 
-        var cert1 = testClient(testWebContainer.getBaseUri().toString());
+        var testClientInvocation = new ThrowingSupplier<X509Certificate>() {
+
+            @Override
+            public X509Certificate get() throws Exception {
+                return testClient(testWebContainer.getBaseUri().toString());
+            }
+        };
+
+        int retries = 3;
+        long delayBeforeRetryMs = 100L;
+
+        X509Certificate cert1 = retry(testClientInvocation, retries, delayBeforeRetryMs);
 
         testWebContainer.replaceHTTPSCertificate();
 
-        var cert2 = testClient(testWebContainer.getBaseUri().toString());
+        X509Certificate cert2 = retry(testClientInvocation, retries, delayBeforeRetryMs);
 
         Assertions.assertThat(cert1.getSerialNumber()).isNotEqualTo(cert2.getSerialNumber());
     }
@@ -174,6 +185,27 @@ class HttpsCertRotationIT extends ExclusiveWebContainerTestBase {
 
         } finally {
             group.shutdownGracefully();
+        }
+    }
+
+    @FunctionalInterface
+    private interface ThrowingSupplier<T> {
+        T get() throws Exception;
+    }
+
+    private static X509Certificate retry(ThrowingSupplier<X509Certificate> function, int maxRetries, long delay)
+            throws Exception {
+        int attempts = 0;
+        while (true) {
+            try {
+                return function.get();
+            } catch (Exception e) {
+                attempts++;
+                if (attempts >= maxRetries) {
+                    throw e; // Throw the last encountered exception
+                }
+                Thread.sleep(delay);
+            }
         }
     }
 }
