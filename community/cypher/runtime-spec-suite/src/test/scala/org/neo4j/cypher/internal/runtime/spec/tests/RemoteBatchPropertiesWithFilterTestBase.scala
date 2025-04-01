@@ -388,6 +388,64 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     }
   }
 
+  test("should work with projections and multiple predicates") {
+    givenGraph {
+      tx.createNode().setProperty("prop", 10)
+      tx.createNode().setProperty("prop", 20)
+      tx.createNode().setProperty("prop", 30)
+
+    }
+
+    forEvery(propertyPredicates) { (predicate: String, expected) =>
+      withClue(s"predicate: $predicate") {
+        val query = new LogicalQueryBuilder(this)
+          .produceResults("prop")
+          .projection("cache[x.prop] as prop")
+          .remoteBatchPropertiesWithFilter("cache[x.prop]")("x IS NOT NULL", predicate)
+          .projection("y as x")
+          .allNodeScan("y")
+          .build()
+
+        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+        result should beColumns("prop").withRows(singleColumn(expected))
+      }
+    }
+  }
+
+  test("should work with expand and projection") {
+    givenGraph {
+      val startNode = tx.createNode(Label.label("START"))
+      val n1 = tx.createNode()
+      n1.setProperty("prop", 10)
+      val n2 = tx.createNode()
+      n2.setProperty("prop", 20)
+      val n3 = tx.createNode()
+      n3.setProperty("prop", 30)
+
+      startNode.createRelationshipTo(n1, RelationshipType.withName("R"))
+      startNode.createRelationshipTo(n2, RelationshipType.withName("R"))
+      startNode.createRelationshipTo(n3, RelationshipType.withName("R"))
+
+    }
+
+    forEvery(propertyPredicates) { (predicate: String, expected) =>
+      withClue(s"predicate: $predicate") {
+        val query = new LogicalQueryBuilder(this)
+          .produceResults("prop")
+          .projection("cache[x.prop] as prop")
+          .remoteBatchPropertiesWithFilter("cache[x.prop]")(predicate)
+          .projection("y as x")
+          .expandAll("(z)-[]->(y)")
+          .nodeByLabelScan("z", "START")
+          .build()
+
+        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+
+        result should beColumns("prop").withRows(singleColumn(expected))
+      }
+    }
+  }
+
   test("should return one relationship property column - on tiny graph") {
 
     givenGraph {
@@ -1430,4 +1488,65 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     runtimeResult should beColumns("c").withSingleRow(sizeHint / 4)
   }
 
+  test("should work with predicate on anonymous relationship variable and autoint parameter") {
+
+    givenGraph {
+      val (nodes, rels) = lineGraph(3, "R")
+      nodes.zipWithIndex.foreach {
+        case (n, i) => n.setProperty("prop", i)
+      }
+      rels.zipWithIndex.foreach {
+        case (r, i) => r.setProperty("rel", i * 10)
+      }
+    }
+
+    val generator = new AnonymousVariableNameGenerator()
+    val anonymousVarName = generator.nextName
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("prop")
+      .projection("x.prop as prop")
+      .remoteBatchProperties("cache[x.prop]")
+      .apply()
+      .|.limit(1)
+      .|.remoteBatchPropertiesWithFilter(s"cacheR[`$anonymousVarName`.rel]")(
+        s"`$anonymousVarName`.rel = $$`  AUTOINT0`"
+      )
+      .|.expandAll(s"(x)-[`$anonymousVarName`]->(y)")
+      .|.argument("x")
+      .allNodeScan("x")
+      .build()
+
+    val result = execute(logicalQuery, runtime, Map("  AUTOINT0" -> 10))
+
+    result should beColumns("prop").withSingleRow(1)
+  }
+
+  test("should escape property keys") {
+    givenGraph {
+      tx.createNode().setProperty("prop ` 1", 10)
+      tx.createNode().setProperty("prop ` 1", 20)
+      tx.createNode().setProperty("prop ` 1", 30)
+
+    }
+
+    val props = propertyPredicates.map {
+      case (predicate, expected) => (predicate.replace("prop", "`prop `` 1`"), expected)
+    }
+
+    val newTable = Table(("expression", "expected"), props: _*)
+    forEvery(newTable) { (predicate: String, expected) =>
+      withClue(s"predicate: $predicate") {
+        val query = new LogicalQueryBuilder(this)
+          .produceResults("prop")
+          .projection("cache[x.`prop `` 1`] as prop")
+          .remoteBatchPropertiesWithFilter("cache[x.`prop `` 1`]")(predicate)
+          .allNodeScan("x")
+          .build()
+
+        val result = execute(query, runtime, Map("param" -> 20, "listParam" -> Array(10, 30)))
+        result should beColumns("prop").withRows(singleColumn(expected))
+      }
+    }
+  }
 }

@@ -50,6 +50,7 @@ import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipPropertyLate
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipTypeFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.SlottedCachedProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifier.nameFromLongSlot
+import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifier.nameFromSlotOrAlias
 import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
 import org.neo4j.cypher.internal.runtime.ast.ParameterFromSlot
 import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
@@ -66,8 +67,6 @@ case class RuntimeExpressionStringifier(tokenContext: ReadTokenContext, slots: S
       backtickPropertyAccess(ctx, e.asInstanceOf[LogicalProperty])
     case e @ (_: NodePropertyExists | _: NodePropertyExistsLate | _: RelationshipPropertyExists | _: RelationshipPropertyExistsLate) =>
       backtickPropertyAccess(ctx, e.asInstanceOf[LogicalProperty]) + " IS NOT NULL"
-    case r: RuntimeConstant   => ctx.apply(r.inner)
-    case e: NullCheckProperty => ctx.apply(e.inner)
     case l: HasLabelsFromSlot =>
       val labels = l.resolvedLabelTokens.map(tokenContext.getLabelName) ++ l.lateLabels
       labelPredicates(labels, nameFromLongSlot(slots, l.offset, ctx), " AND ")
@@ -83,17 +82,20 @@ case class RuntimeExpressionStringifier(tokenContext: ReadTokenContext, slots: S
     case r: RelationshipTypeFromSlot =>
       val varName = expressions.Variable(nameFromLongSlot(slots, r.offset, ctx))(InputPosition.NONE, isIsolated = false)
       Type.asInvocation(varName)(InputPosition.NONE).asCanonicalStringVal
-    case p: PrimitiveEquals => nameFromLongSlot(slots, p.offset1, ctx) + " = " + nameFromLongSlot(slots, p.offset2, ctx)
-    case n: NodeFromSlot    => nameFromLongSlot(slots, n.offset, ctx)
-    case r: RelationshipFromSlot => nameFromLongSlot(slots, r.offset, ctx)
+    case e: PrimitiveEquals => nameFromLongSlot(slots, e.offset1, ctx) + " = " + nameFromLongSlot(slots, e.offset2, ctx)
+    case e: NodeFromSlot    => nameFromLongSlot(slots, e.offset, ctx)
+    case e: RelationshipFromSlot => nameFromLongSlot(slots, e.offset, ctx)
     case e: IsPrimitiveNull      => nameFromLongSlot(slots, e.offset, ctx) + " IS NULL"
+    case e: RuntimeConstant      => ctx.apply(e.inner)
     case e: NullCheck            => ctx.apply(e.inner)
     case e: NullCheckVariable    => ctx.apply(e.inner)
+    case e: NullCheckProperty    => ctx.apply(e.inner)
     case e                       => throw new UnsupportedOperationException(s"Don't know how to stringify $e")
   }
 
   private def backtickPropertyAccess(ctx: ExpressionStringifier, ee: LogicalProperty) = {
-    ctx.backtick(ee.map.asCanonicalStringVal) + "." + ee.propertyKey.name
+    val name = nameFromSlotOrAlias(slots, ee.map.asCanonicalStringVal, ctx)
+    name + "." + ctx.backtick(ee.propertyKey.name)
   }
 
   private def labelPredicates(labels: Seq[String], predicateVariable: String, separator: String): String = {
@@ -112,6 +114,14 @@ case class RuntimeExpressionStringifier(tokenContext: ReadTokenContext, slots: S
 }
 
 object RuntimeExpressionStringifier {
+
+  def nameFromSlotOrAlias(slots: SlotConfiguration, variableName: String, ctx: ExpressionStringifier): String = {
+    slots(variableName) match {
+      case KeyedSlot(VariableSlotKey(name), _, _) => ctx.backtick(name)
+      case KeyedSlot(key, _, _) =>
+        throw new IllegalStateException(s"Expected a VariableSlotKey for `$variableName` but found $key")
+    }
+  }
 
   def nameFromLongSlot(slots: SlotConfiguration, offset: Int, ctx: ExpressionStringifier): String = {
     if (offset >= slots.numberOfLongs) {

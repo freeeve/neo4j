@@ -104,7 +104,9 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     .newLong("r", nullable = true, CTRelationship)
     .newLong("a", nullable = true, typ = CTNode)
     .addAlias("alias", "a")
+    .addAlias("rAlias", "r")
     .newArgument(Id(1))
+    .newLong("  x@10", nullable = true, typ = CTNode)
     .build()
 
   private val readTokenContext: ReadTokenContext =
@@ -155,31 +157,12 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
       "a.prop"
     ),
     (
-      SlottedCachedPropertyWithPropertyToken.create(
-        "alias",
-        propName("prop"),
-        1,
-        offsetIsForLongSlot = true,
-        2,
-        3,
-        NODE_TYPE,
-        nullable = false,
-        needsValue = true,
-        failOnMissingEntity = true
-      ).asInstanceOf[RuntimeExpression],
-      "alias.prop"
-    ),
-    (
       SlottedCachedPropertyWithoutPropertyToken("x", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false, true),
       "x.prop"
     ),
     (
       SlottedCachedPropertyWithoutPropertyToken("a", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false, true),
       "a.prop"
-    ),
-    (
-      SlottedCachedPropertyWithoutPropertyToken("alias", propName("prop"), 1, true, "prop", 1, NODE_TYPE, false, true),
-      "alias.prop"
     ),
     (SlottedCachedHasPropertyWithPropertyToken("x", propName("prop"), 0, true, 1, 2, NODE_TYPE, false), "x.prop"),
     (
@@ -250,7 +233,7 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     NullCheckReferenceProperty(0, cachedNodeProp("n", "prop"))
   )
 
-  private val supportedRuntimVariables = Table(
+  private val supportedRuntimeVariables = Table(
     ("runtime variable", "stringified"),
     (NodeFromSlot(0, "x"), "x"),
     (RelationshipFromSlot(1, "r"), "r"),
@@ -283,8 +266,8 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
         SlottedCachedPropertyWithPropertyToken(
           "  x@10",
           propName("prop"),
-          0,
-          offsetIsForLongSlot = true,
+          4,
+          true,
           1,
           2,
           NODE_TYPE,
@@ -293,18 +276,63 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
         ),
         "`  x@10`.prop"
       ),
-      (NodeProperty(0, 1, "  x@10.prop")(prop("  x@10", "prop", InputPosition.NONE)), "`  x@10`.prop"),
-      (NodePropertyExists(0, 1, "  x@10.prop")(prop("  x@10", "prop", InputPosition.NONE)), "`  x@10`.prop IS NOT NULL")
+      (NodeProperty(4, 1, "  x@10.prop")(prop("  x@10", "prop", InputPosition.NONE)), "`  x@10`.prop"),
+      (
+        NodePropertyExists(99, 1, "  x@10.prop")(prop("  x@10", "prop", InputPosition.NONE)),
+        "`  x@10`.prop IS NOT NULL"
+      )
     )
 
     forEvery(generatedVariables) { (expression, stringified) =>
       stringifier(ctx)(expression) shouldBe stringified
     }
-
   }
 
   test("should backtick generated parameter names") {
     stringifier(ctx)(ParameterFromSlot(0, " p0", IntegerType(isNullable = false)(InputPosition.NONE))) shouldBe "$` p0`"
+  }
+
+  test("should resolve alias to original slot variable name") {
+
+    val aliasedVariables = Table(
+      ("expression", "stringified"),
+      (
+        SlottedCachedPropertyWithPropertyToken(
+          "alias",
+          propName("prop"),
+          1,
+          offsetIsForLongSlot = true,
+          2,
+          3,
+          NODE_TYPE,
+          nullable = false,
+          failOnMissingEntity = false
+        ).asInstanceOf[RuntimeExpression],
+        "a.prop"
+      ),
+      (
+        SlottedCachedPropertyWithoutPropertyToken(
+          "alias",
+          propName("prop"),
+          1,
+          true,
+          "prop",
+          1,
+          NODE_TYPE,
+          false,
+          false
+        ),
+        "a.prop"
+      ),
+      (NodeFromSlot(2, "alias"), "a"),
+      (RelationshipFromSlot(1, "rAlias"), "r"),
+      (NodeProperty(2, 1, "alias.prop")(prop("alias", "prop", InputPosition.NONE)), "a.prop"),
+      (NodePropertyExists(2, 1, "alias.prop")(prop("alias", "prop", InputPosition.NONE)), "a.prop IS NOT NULL"),
+      (RelationshipProperty(1, 1, "rAlias.prop")(prop("rAlias", "prop", InputPosition.NONE)), "r.prop")
+    )
+    forEvery(aliasedVariables) { (expression, stringified) =>
+      stringifier(ctx)(expression) shouldBe stringified
+    }
   }
 
   test("should test all runtime expressions") {
@@ -365,7 +393,7 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
   }
 
   test("should stringify runtime variables") {
-    forEvery(supportedRuntimVariables) { (expression, stringified) =>
+    forEvery(supportedRuntimeVariables) { (expression, stringified) =>
       stringifier(ctx)(expression) shouldBe stringified
     }
   }
@@ -384,11 +412,78 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
         .filter(planClass => !Modifier.isAbstract(planClass.getModifiers)).toSet
 
     val testedClasses: Set[Class[_ <: RuntimeVariable]] =
-      supportedRuntimVariables.map(_._1.getClass).toSet ++ unsupportedRuntimeVariables.map(_.getClass).toSet
+      supportedRuntimeVariables.map(_._1.getClass).toSet ++ unsupportedRuntimeVariables.map(_.getClass).toSet
 
     withClue("tests missing for these runtime expressions: ") {
       allRuntimeProperties should not be empty
       allRuntimeProperties -- testedClasses should be(empty)
+    }
+  }
+
+  test("should escape property keys") {
+    val property = prop("x", "property ` 1", InputPosition.NONE)
+    val expressions = Table(
+      ("expression", "expected"),
+      (NodeProperty(0, 0, "property ` 1")(property), "x.`property `` 1`"),
+      (NodePropertyLate(0, "property ` 1", "x.`property `` 1`")(property), "x.`property `` 1`"),
+      (NodePropertyExists(0, 1, "x.`property `` 1`")(property), "x.`property `` 1` IS NOT NULL"),
+      (NodePropertyExistsLate(0, "property ` 1", "x.`property `` 1`")(property), "x.`property `` 1` IS NOT NULL"),
+      (RelationshipProperty(0, 1, "x.`property `` 1`")(property), "x.`property `` 1`"),
+      (RelationshipPropertyLate(0, "property ` 1", "x.`property `` 1`")(property), "x.`property `` 1`"),
+      (RelationshipPropertyExists(0, 1, "x.`property `` 1`")(property), "x.`property `` 1` IS NOT NULL"),
+      (
+        RelationshipPropertyExistsLate(0, "property ` 1", "x.`property `` 1`")(property),
+        "x.`property `` 1` IS NOT NULL"
+      ),
+      (
+        SlottedCachedPropertyWithPropertyToken(
+          "x",
+          propName("property ` 1"),
+          1,
+          true,
+          2,
+          3,
+          NODE_TYPE,
+          false,
+          true
+        ),
+        "x.`property `` 1`"
+      ),
+      (
+        SlottedCachedPropertyWithoutPropertyToken(
+          "x",
+          propName("property ` 1"),
+          1,
+          true,
+          "property ` 1",
+          1,
+          NODE_TYPE,
+          false,
+          false
+        ),
+        "x.`property `` 1`"
+      ),
+      (
+        SlottedCachedHasPropertyWithPropertyToken("x", propName("property ` 1"), 0, true, 1, 2, NODE_TYPE, false),
+        "x.`property `` 1`"
+      ),
+      (
+        SlottedCachedHasPropertyWithoutPropertyToken(
+          "x",
+          propName("property ` 1"),
+          0,
+          true,
+          "property ` 1",
+          1,
+          NODE_TYPE,
+          false
+        ),
+        "x.`property `` 1`"
+      )
+    )
+
+    forEvery(expressions) { (expression, stringified) =>
+      stringifier(ctx)(expression) shouldBe stringified
     }
   }
 }

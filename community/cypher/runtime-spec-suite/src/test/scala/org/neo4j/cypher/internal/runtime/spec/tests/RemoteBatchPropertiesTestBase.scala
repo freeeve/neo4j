@@ -19,7 +19,6 @@
  */
 package org.neo4j.cypher.internal.runtime.spec.tests
 
-import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.TrailParameters
@@ -32,7 +31,6 @@ import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.graphdb.Label
 import org.neo4j.graphdb.Label.label
 import org.neo4j.graphdb.RelationshipType.withName
-import org.neo4j.graphdb.config.Setting
 
 import java.util.Collections.emptyList
 
@@ -43,18 +41,6 @@ abstract class RemoteBatchPropertiesTestBase[CONTEXT <: RuntimeContext](
   runtime: CypherRuntime[CONTEXT],
   val sizeHint: Int
 ) extends RuntimeTestSuite[CONTEXT](edition, runtime) {
-
-  def restartWithSizes(morselSize: Int, spdBatchSize: Int): Unit = {
-    shutdownDatabase()
-    val additionalConfigs: Array[(Setting[_], Object)] = Array(
-      GraphDatabaseInternalSettings.cypher_pipelined_batch_size_small -> Int.box(morselSize),
-      GraphDatabaseInternalSettings.cypher_pipelined_batch_size_big -> Int.box(morselSize),
-      GraphDatabaseInternalSettings.sharded_property_database_batch_size -> Int.box(spdBatchSize)
-    )
-    setAdditionalConfigs(additionalConfigs)
-    restartDB()
-    createRuntimeTestSupport()
-  }
 
   test("should return one node property column - on tiny graph") {
     givenGraph {
