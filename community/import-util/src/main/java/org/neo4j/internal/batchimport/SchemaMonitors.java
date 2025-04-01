@@ -21,10 +21,13 @@ package org.neo4j.internal.batchimport;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Optional;
 import java.util.function.LongPredicate;
 import org.eclipse.collections.api.factory.primitive.LongSets;
 import org.eclipse.collections.api.set.primitive.LongSet;
 import org.neo4j.batchimport.api.input.Collector;
+import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.kernel.api.index.IndexAccessor;
 
 public interface SchemaMonitors extends Closeable {
     SchemaMonitors NO_SCHEMA = new SchemaMonitors() {
@@ -39,6 +42,16 @@ public interface SchemaMonitors extends Closeable {
         @Override
         public LongSet affectedIndexes() {
             return LongSets.immutable.empty();
+        }
+
+        @Override
+        public Optional<IndexDescriptor> indexDescriptor(long indexId) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<IndexAccessor> openIndexAccessor(long indexId) {
+            return Optional.empty();
         }
 
         @Override
@@ -71,6 +84,10 @@ public interface SchemaMonitors extends Closeable {
     void writeToTarget(LongPredicate violatingIdMapperEntityIds, LongSet otherViolatingEntityIds) throws IOException;
 
     LongSet affectedIndexes();
+
+    Optional<IndexDescriptor> indexDescriptor(long indexId);
+
+    Optional<IndexAccessor> openIndexAccessor(long indexId) throws IOException;
 
     SchemaMonitor get();
 }

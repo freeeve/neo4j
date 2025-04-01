@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.nio.file.OpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.LongPredicate;
 import java.util.function.Predicate;
 import org.eclipse.collections.api.block.function.primitive.LongToLongFunction;
@@ -47,6 +48,7 @@ import org.neo4j.internal.schema.SchemaCache;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.internal.schema.constraints.TypeRepresentation;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
@@ -148,6 +150,16 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
     @Override
     public LongSet affectedIndexes() {
         return indexBuilder.affectedIndexes();
+    }
+
+    @Override
+    public Optional<IndexAccessor> openIndexAccessor(long indexId) throws IOException {
+        return indexBuilder.openIndexAccessor(indexId);
+    }
+
+    @Override
+    public Optional<IndexDescriptor> indexDescriptor(long indexId) {
+        return indexBuilder.indexDescriptor(indexId);
     }
 
     private class OtherAffectedSchemaMonitor implements SchemaMonitor {

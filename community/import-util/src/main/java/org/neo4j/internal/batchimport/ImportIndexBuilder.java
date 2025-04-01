@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.locks.Lock;
@@ -354,11 +355,44 @@ public class ImportIndexBuilder implements Closeable {
         return ids;
     }
 
+    public Optional<IndexAccessor> openIndexAccessor(long indexId) throws IOException {
+        var descriptor = indexDescriptor(indexId);
+        if (descriptor.isEmpty()) {
+            return Optional.empty();
+        }
+        var accessor = tempIndexes
+                .lookup(descriptor.get().getIndexProvider())
+                .getOnlineAccessor(
+                        descriptor.get(),
+                        indexSamplingConfig,
+                        tokenNameLookup,
+                        ElementIdMapper.PLACEHOLDER,
+                        openOptions,
+                        indexingBehaviour);
+        return Optional.of(accessor);
+    }
+
+    public Optional<IndexDescriptor> indexDescriptor(long indexId) {
+        return indexBuilders.keySet().stream()
+                .filter(index -> index.getId() == indexId)
+                .findFirst();
+    }
+
     @Override
     public void close() throws IOException {
         List<AutoCloseable> toClose = new ArrayList<>(indexBuilders.values());
         toClose.add(bufferFactory);
         IOUtils.closeAll(toClose);
+    }
+
+    public static Map<String, Object> asPropertyMap(
+            IndexDescriptor descriptor, Value[] values, TokenNameLookup tokenNameLookup) {
+        var properties = new HashMap<String, Object>();
+        var propertyIds = descriptor.schema().getPropertyIds();
+        for (var i = 0; i < propertyIds.length; i++) {
+            properties.put(tokenNameLookup.propertyKeyGetName(propertyIds[i]), values[i].asObjectCopy());
+        }
+        return properties;
     }
 
     private record RecordingIndexEntryConflictHandler(
@@ -376,19 +410,10 @@ public class ImportIndexBuilder implements Closeable {
             badCollector.collectEntityViolatingConstraint(
                     null,
                     realId,
-                    asPropertyMap(descriptor, values),
+                    asPropertyMap(descriptor, values, tokenNameLookup),
                     descriptor.userDescription(tokenNameLookup),
                     descriptor.schema().entityType());
             return IndexEntryConflictAction.DELETE;
-        }
-
-        private Map<String, Object> asPropertyMap(IndexDescriptor descriptor, Value[] values) {
-            var properties = new HashMap<String, Object>();
-            var propertyIds = descriptor.schema().getPropertyIds();
-            for (var i = 0; i < propertyIds.length; i++) {
-                properties.put(tokenNameLookup.propertyKeyGetName(propertyIds[i]), values[i].asObjectCopy());
-            }
-            return properties;
         }
     }
 
