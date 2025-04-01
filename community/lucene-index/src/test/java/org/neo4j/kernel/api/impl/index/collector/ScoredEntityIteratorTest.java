@@ -19,13 +19,10 @@
  */
 package org.neo4j.kernel.api.impl.index.collector;
 
-import static java.lang.Double.isInfinite;
-import static java.lang.Double.isNaN;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.data.Offset.offset;
 
-import java.util.Arrays;
+import org.eclipse.collections.api.factory.Lists;
 import org.junit.jupiter.api.Test;
 
 class ScoredEntityIteratorTest {
@@ -41,15 +38,14 @@ class ScoredEntityIteratorTest {
         StubValuesIterator three =
                 new StubValuesIterator().add(2, 11).add(4, 9).add(6, 7).add(9, 4);
 
-        ValuesIterator concat = ScoredEntityIterator.mergeIterators(Arrays.asList(one, two, three));
+        ValuesIterator concat = ScoredEntityIterator.mergeIterators(Lists.fixedSize.of(one, two, three));
 
         for (int i = 1; i <= 12; i++) {
-            assertTrue(concat.hasNext());
-            assertEquals(i, concat.next());
-            assertEquals(i, concat.current());
-            assertEquals(13 - i, concat.currentScore(), 0.001);
+            assertThat(concat.hasNext()).isTrue();
+            assertThat(concat.next()).isEqualTo(concat.current()).isEqualTo(i);
+            assertThat(concat.currentScore()).isEqualTo(13 - i, offset(0.001f));
         }
-        assertFalse(concat.hasNext());
+        assertThat(concat.hasNext()).isFalse();
     }
 
     @Test
@@ -67,22 +63,23 @@ class ScoredEntityIteratorTest {
                 .add(7, 0.0f)
                 .add(9, Float.NEGATIVE_INFINITY);
 
-        ValuesIterator concat = ScoredEntityIterator.mergeIterators(Arrays.asList(one, two));
+        ValuesIterator concat = ScoredEntityIterator.mergeIterators(Lists.fixedSize.of(one, two));
 
-        assertTrue(concat.hasNext());
-        assertEquals(1, concat.next());
-        assertTrue(isNaN(concat.currentScore()));
-        assertEquals(2, concat.next());
-        assertTrue(isInfinite(concat.currentScore()));
-        assertTrue(concat.currentScore() > 0.0f);
-        assertEquals(3, concat.next());
-        assertEquals(4, concat.next());
-        assertEquals(5, concat.next());
-        assertEquals(6, concat.next());
-        assertEquals(7, concat.next());
-        assertEquals(8, concat.next());
-        assertEquals(9, concat.next());
-        assertFalse(concat.hasNext());
+        assertThat(concat.hasNext()).isTrue();
+        assertThat(concat.next()).isEqualTo(1);
+        assertThat(concat.currentScore()).isNaN();
+
+        assertThat(concat.next()).isEqualTo(2);
+        assertThat(concat.currentScore()).isInfinite().isPositive();
+
+        assertThat(concat.next()).isEqualTo(3);
+        assertThat(concat.next()).isEqualTo(4);
+        assertThat(concat.next()).isEqualTo(5);
+        assertThat(concat.next()).isEqualTo(6);
+        assertThat(concat.next()).isEqualTo(7);
+        assertThat(concat.next()).isEqualTo(8);
+        assertThat(concat.next()).isEqualTo(9);
+        assertThat(concat.hasNext()).isFalse();
     }
 
     @Test
@@ -92,15 +89,15 @@ class ScoredEntityIteratorTest {
                 new StubValuesIterator().add(1, 5).add(2, 4).add(3, 3).add(4, 2).add(5, 1);
         StubValuesIterator three = new StubValuesIterator();
 
-        ValuesIterator concat = ScoredEntityIterator.mergeIterators(Arrays.asList(one, two, three));
+        ValuesIterator concat = ScoredEntityIterator.mergeIterators(Lists.fixedSize.of(one, two, three));
 
         for (int i = 1; i <= 5; i++) {
-            assertTrue(concat.hasNext());
-            assertEquals(i, concat.next());
-            assertEquals(i, concat.current());
-            assertEquals(6 - i, concat.currentScore(), 0.001);
+            assertThat(concat.hasNext()).isTrue();
+            assertThat(concat.next()).isEqualTo(i);
+            assertThat(concat.current()).isEqualTo(i);
+            assertThat(concat.currentScore()).isEqualTo(6 - i, offset(0.001f));
         }
-        assertFalse(concat.hasNext());
+        assertThat(concat.hasNext()).isFalse();
     }
 
     @Test
@@ -109,8 +106,7 @@ class ScoredEntityIteratorTest {
         StubValuesIterator two = new StubValuesIterator();
         StubValuesIterator three = new StubValuesIterator();
 
-        ValuesIterator concat = ScoredEntityIterator.mergeIterators(Arrays.asList(one, two, three));
-
-        assertFalse(concat.hasNext());
+        ValuesIterator concat = ScoredEntityIterator.mergeIterators(Lists.fixedSize.of(one, two, three));
+        assertThat(concat.hasNext()).isFalse();
     }
 }

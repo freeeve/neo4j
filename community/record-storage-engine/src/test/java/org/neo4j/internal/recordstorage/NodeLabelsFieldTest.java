@@ -646,7 +646,7 @@ class NodeLabelsFieldTest {
     }
 
     private static <T extends AbstractBaseRecord> Iterable<T> cloned(Iterable<T> items, final Class<T> itemClass) {
-        return Iterables.map(obj -> itemClass.cast(ReflectionUtil.callCopyConstructor(obj)), items);
+        return Iterables.map(items, obj -> itemClass.cast(ReflectionUtil.callCopyConstructor(obj)));
     }
 
     private static LongSet idsOf(Set<DynamicRecord> records) {

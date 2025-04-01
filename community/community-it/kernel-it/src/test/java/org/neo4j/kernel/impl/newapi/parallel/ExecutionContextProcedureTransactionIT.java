@@ -194,12 +194,12 @@ class ExecutionContextProcedureTransactionIT {
 
         try (var tx = db.beginTx()) {
             Schema schema = executionContextTransaction(tx).schema();
-            assertThat(count(filter((i) -> i.getName().equals("MyIndex"), schema.getIndexes())))
+            assertThat(count(filter(schema.getIndexes(), (i) -> i.getName().equals("MyIndex"))))
                     .isEqualTo(1L);
             assertThat(single(schema.getIndexByName("MyIndex").getPropertyKeys()))
                     .isEqualTo("prop");
             assertThat(single(schema.getIndexes(Label.label("L"))).getName()).isEqualTo("MyIndex");
-            assertThat(count(filter((i) -> i.getName().equals("MyConstraint"), schema.getConstraints())))
+            assertThat(count(filter(schema.getConstraints(), (i) -> i.getName().equals("MyConstraint"))))
                     .isEqualTo(1L);
             assertThat(single(schema.getConstraintByName("MyConstraint").getPropertyKeys()))
                     .isEqualTo("prop");

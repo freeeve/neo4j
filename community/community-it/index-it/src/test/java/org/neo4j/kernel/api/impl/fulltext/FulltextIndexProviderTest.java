@@ -22,12 +22,8 @@ package org.neo4j.kernel.api.impl.fulltext;
 import static java.lang.String.format;
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assumptions.assumeThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.graphdb.Label.label;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
@@ -201,7 +197,7 @@ class FulltextIndexProviderTest {
                 createIndex(new int[] {labelIdHej, labelIdHa, labelIdHe}, new int[] {propIdHej, propIdHa, propIdHe});
         try (KernelTransactionImplementation transaction = getKernelTransaction()) {
             IndexDescriptor descriptor = transaction.schemaRead().indexGetForName(NAME);
-            assertEquals(descriptor.schema(), fulltextIndex.schema());
+            assertThat(fulltextIndex.schema()).isEqualTo(descriptor.schema());
         }
     }
 
@@ -221,9 +217,11 @@ class FulltextIndexProviderTest {
                     descriptor.getIndexProvider().name(),
                     "" + descriptor.getId());
             List<Path> listFiles = List.of(requireNonNull(FileUtils.listPaths(indexDir)));
-            assertTrue(listFiles.contains(indexDir.resolve("failure-message")));
-            assertTrue(listFiles.contains(indexDir.resolve("1")));
-            assertTrue(listFiles.contains(indexDir.resolve(indexDir.getFileName() + ".tx")));
+            assertThat(listFiles)
+                    .contains(
+                            indexDir.resolve("failure-message"),
+                            indexDir.resolve("1"),
+                            indexDir.resolve(indexDir.getFileName() + ".tx"));
         }
     }
 
@@ -320,26 +318,18 @@ class FulltextIndexProviderTest {
                 if (index.getIndexType() == org.neo4j.graphdb.schema.IndexType.LOOKUP) {
                     continue;
                 }
-                assertFalse(index.isConstraintIndex());
-                assertTrue(index.isMultiTokenIndex());
-                assertTrue(index.isCompositeIndex());
+                assertThat(index.isConstraintIndex()).isFalse();
+                assertThat(index.isMultiTokenIndex()).isTrue();
+                assertThat(index.isCompositeIndex()).isTrue();
                 if (index.isNodeIndex()) {
-                    assertFalse(index.isRelationshipIndex());
+                    assertThat(index.isRelationshipIndex()).isFalse();
                     assertThat(index.getLabels()).contains(Label.label("Label1"), Label.label("Label2"));
-                    try {
-                        index.getRelationshipTypes();
-                        fail("index.getRelationshipTypes() on node IndexDefinition should have thrown.");
-                    } catch (IllegalStateException ignore) {
-                    }
+                    assertThatThrownBy(index::getRelationshipTypes).isInstanceOf(IllegalStateException.class);
                 } else {
-                    assertTrue(index.isRelationshipIndex());
+                    assertThat(index.isRelationshipIndex()).isTrue();
                     assertThat(index.getRelationshipTypes())
                             .contains(RelationshipType.withName("RelType1"), RelationshipType.withName("RelType2"));
-                    try {
-                        index.getLabels();
-                        fail("index.getLabels() on node IndexDefinition should have thrown.");
-                    } catch (IllegalStateException ignore) {
-                    }
+                    assertThatThrownBy(index::getLabels).isInstanceOf(IllegalStateException.class);
                 }
             }
             tx.commit();
@@ -474,7 +464,7 @@ class FulltextIndexProviderTest {
                 @Override
                 public boolean acceptEntity(long reference, float score, Value... values) {
                     this.nodeReference = reference;
-                    assertFalse(Float.isNaN(score), "score should not be NaN");
+                    assertThat(score).as("score should not be NaN").isNotNaN();
                     assertThat(score).as("score must be positive").isGreaterThan(0.0f);
                     acceptedEntities.add(
                             "reference = " + reference + ", score = " + score + ", " + Arrays.toString(values));
@@ -504,8 +494,9 @@ class FulltextIndexProviderTest {
             IndexPrototype prototype =
                     IndexPrototype.forSchema(schema).withIndexType(FULLTEXT).withName(NAME);
             SchemaWrite schemaWrite = transaction.schemaWrite();
-            var e = assertThrows(IllegalArgumentException.class, () -> schemaWrite.indexCreate(prototype));
-            assertThat(e.getMessage()).contains("schema is not a full-text index schema");
+            assertThatThrownBy(() -> schemaWrite.indexCreate(prototype))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("schema is not a full-text index schema");
         }
     }
 
@@ -602,15 +593,15 @@ class FulltextIndexProviderTest {
         // Verify that the failed index can be dropped.
         try (Transaction tx = db.beginTx()) {
             tx.schema().getIndexByName(NAME).drop();
-            assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(NAME));
+            assertThatThrownBy(() -> tx.schema().getIndexByName(NAME)).isInstanceOf(IllegalArgumentException.class);
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(NAME));
+            assertThatThrownBy(() -> tx.schema().getIndexByName(NAME)).isInstanceOf(IllegalArgumentException.class);
         }
         controller.restartDbms();
         try (Transaction tx = db.beginTx()) {
-            assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(NAME));
+            assertThatThrownBy(() -> tx.schema().getIndexByName(NAME)).isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -628,8 +619,9 @@ class FulltextIndexProviderTest {
                     .withName(NAME);
 
             // Validation must initially prevent this index from being created.
-            var e = assertThrows(RuntimeException.class, creator::create);
-            assertThat(e.getMessage()).contains("boom");
+            assertThatThrownBy(creator::create)
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining("boom");
 
             // Create the index anyway.
             BrokenAnalyzerProvider.shouldThrow = false;
@@ -640,9 +632,9 @@ class FulltextIndexProviderTest {
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            var e = assertThrows(
-                    IllegalStateException.class, () -> tx.schema().awaitIndexOnline(NAME, 10, TimeUnit.SECONDS));
-            assertThat(e.getMessage()).contains("FAILED");
+            assertThatThrownBy(() -> tx.schema().awaitIndexOnline(NAME, 10, TimeUnit.SECONDS))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("FAILED");
             IndexDefinition index = tx.schema().getIndexByName(NAME);
             assertThat(tx.schema().getIndexState(index)).isEqualTo(Schema.IndexState.FAILED);
             index.drop();
@@ -690,8 +682,9 @@ class FulltextIndexProviderTest {
                     .withName(NAME);
 
             // Validation must initially prevent this index from being created.
-            var e = assertThrows(RuntimeException.class, creator::create);
-            assertThat(e.getMessage()).contains("null");
+            assertThatThrownBy(creator::create)
+                    .isInstanceOf(NullPointerException.class)
+                    .hasMessageContaining("null");
 
             // Create the index anyway.
             BrokenAnalyzerProvider.shouldReturnNull = false;
@@ -703,9 +696,9 @@ class FulltextIndexProviderTest {
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            var e = assertThrows(
-                    IllegalStateException.class, () -> tx.schema().awaitIndexOnline(NAME, 1, TimeUnit.MINUTES));
-            assertThat(e.getMessage()).contains("FAILED");
+            assertThatThrownBy(() -> tx.schema().awaitIndexOnline(NAME, 1, TimeUnit.MINUTES))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("FAILED");
             IndexDefinition index = tx.schema().getIndexByName(NAME);
             assertThat(tx.schema().getIndexState(index)).isEqualTo(Schema.IndexState.FAILED);
             index.drop();
@@ -775,7 +768,7 @@ class FulltextIndexProviderTest {
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(NAME));
+            assertThatThrownBy(() -> tx.schema().getIndexByName(NAME)).isInstanceOf(IllegalArgumentException.class);
             tx.commit();
         }
     }
@@ -816,7 +809,7 @@ class FulltextIndexProviderTest {
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
-            assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(NAME));
+            assertThatThrownBy(() -> tx.schema().getIndexByName(NAME)).isInstanceOf(IllegalArgumentException.class);
             tx.commit();
         }
     }
@@ -869,8 +862,8 @@ class FulltextIndexProviderTest {
             throws TransactionFailureException {
         try (KernelTransactionImplementation transaction = getKernelTransaction()) {
             IndexDescriptor descriptor = transaction.schemaRead().indexGetForName(NAME);
-            assertEquals(fulltextIndexDescriptor.schema(), descriptor.schema());
-            assertEquals(fulltextIndexDescriptor.isUnique(), descriptor.isUnique());
+            assertThat(descriptor.schema()).isEqualTo(fulltextIndexDescriptor.schema());
+            assertThat(descriptor.isUnique()).isEqualTo(fulltextIndexDescriptor.isUnique());
         }
     }
 
@@ -915,7 +908,7 @@ class FulltextIndexProviderTest {
         while (cursor.next()) {
             found.add(idMapper.nodeElementId(cursor.nodeReference()));
         }
-        assertThat(found).isEqualTo(asSet(nodeIds));
+        assertThat(found).containsExactlyInAnyOrder(nodeIds);
     }
 
     private void verifyRelationshipData(String secondRelId) throws Exception {

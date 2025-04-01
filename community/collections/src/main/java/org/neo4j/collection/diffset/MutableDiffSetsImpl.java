@@ -116,7 +116,7 @@ public class MutableDiffSetsImpl<T> implements MutableDiffSets<T> {
     @Override
     public MutableDiffSetsImpl<T> filterAdded(Predicate<T> addedFilter) {
         return new MutableDiffSetsImpl<>(
-                Iterables.asSet(Iterables.filter(addedFilter, added(false))),
+                Iterables.asSet(Iterables.filter(added(false), addedFilter)),
                 Iterables.asSet(removed(false)),
                 EmptyMemoryTracker.INSTANCE); // no tracker, hopefully a temporary copy
     }

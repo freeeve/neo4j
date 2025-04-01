@@ -177,7 +177,7 @@ public class EntityUpdates {
      */
     public Iterable<IndexEntryUpdate> valueUpdatesForIndexKeys(Iterable<IndexDescriptor> indexKeys) {
         Iterable<IndexDescriptor> potentiallyRelevant =
-                Iterables.filter(indexKey -> atLeastOneRelevantChange(indexKey.schema()), indexKeys);
+                Iterables.filter(indexKeys, indexKey -> atLeastOneRelevantChange(indexKey.schema()));
 
         return gatherUpdatesForPotentials(potentiallyRelevant, true);
     }

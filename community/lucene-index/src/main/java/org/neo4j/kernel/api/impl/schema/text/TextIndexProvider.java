@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema;
+package org.neo4j.kernel.api.impl.schema.text;
 
 import static org.neo4j.internal.schema.IndexCapability.NO_CAPABILITY;
 
@@ -38,6 +38,8 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.TextModes;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
+import org.neo4j.kernel.api.impl.schema.AbstractTextIndexProvider;
+import org.neo4j.kernel.api.impl.schema.TextIndexCapability;
 import org.neo4j.kernel.api.impl.schema.populator.TextIndexPopulator;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexDirectoryStructure;

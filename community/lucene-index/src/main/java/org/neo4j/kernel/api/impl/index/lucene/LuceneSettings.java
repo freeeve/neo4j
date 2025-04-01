@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index;
+package org.neo4j.kernel.api.impl.index.lucene;
 
 import static java.lang.Boolean.TRUE;
 import static org.neo4j.configuration.SettingImpl.newBuilder;
@@ -34,6 +34,13 @@ import org.neo4j.graphdb.config.Setting;
 
 @ServiceProvider
 public class LuceneSettings implements SettingsDeclaration {
+    @Internal
+    @Description(
+            "Configure lucene partition size. This is mainly used to test partitioning behaviour without having to create "
+                    + "Integer.MAX_VALUE indexed entities.")
+    public static final Setting<Integer> lucene_max_partition_size =
+            newBuilder("internal.dbms.lucene.max_partition_size", INT, null).build();
+
     @Internal
     @Description("Determines the minimal number of documents required before the buffered in-memory documents are "
             + "flushed as a new Segment. Large values generally give faster indexing.")
@@ -100,7 +107,7 @@ public class LuceneSettings implements SettingsDeclaration {
             newBuilder("internal.dbms.index.lucene.max_merge", DOUBLE, 2048D).build();
 
     @Internal
-    @Description("Determines the amount of RAM that may be used for buffering added documents and deletions "
+    @Description("Determines the amount of RAM (in MiB) that may be used for buffering added documents and deletions "
             + "before they are flushed to the Directory. Generally for faster indexing performance it's best "
             + "to flush by RAM usage instead of document count and use as large a RAM buffer as you can.")
     public static final Setting<Double> lucene_standard_ram_buffer_size = newBuilder(

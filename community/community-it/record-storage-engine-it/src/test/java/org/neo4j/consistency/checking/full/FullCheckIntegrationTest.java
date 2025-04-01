@@ -3519,7 +3519,7 @@ public class FullCheckIntegrationTest {
     }
 
     protected Iterable<IndexDescriptor> getValueIndexDescriptors() {
-        return Iterables.filter(descriptor -> !descriptor.isTokenIndex(), fixture.getIndexDescriptors());
+        return Iterables.filter(fixture.getIndexDescriptors(), descriptor -> !descriptor.isTokenIndex());
     }
 
     private static class Reference<T> {

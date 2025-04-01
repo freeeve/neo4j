@@ -26,7 +26,7 @@ import org.neo4j.internal.schema.AllIndexProviderDescriptors
 import org.neo4j.internal.schema.IndexCapability
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType
-import org.neo4j.kernel.api.impl.schema.TextIndexProvider
+import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider
 import org.neo4j.kernel.impl.index.schema.PointIndexProvider
 import org.neo4j.kernel.impl.index.schema.RangeIndexProvider
 import org.neo4j.values.storable.ValueCategory

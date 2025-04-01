@@ -50,7 +50,7 @@ public final class IOUtils {
      * @throws IOException if an exception was thrown by one of the close methods.
      * @see #closeAll(AutoCloseable[])
      */
-    public static <T extends AutoCloseable> void closeAll(Collection<T> closeables) throws IOException {
+    public static <T extends AutoCloseable> void closeAll(Iterable<T> closeables) throws IOException {
         close(IOException::new, closeables);
     }
 
@@ -61,7 +61,7 @@ public final class IOUtils {
      * @param <T> the type of closeable.
      * @throws UncheckedIOException if any exception is thrown from any of the {@code closeables}.
      */
-    public static <T extends AutoCloseable> void closeAllUnchecked(Collection<T> closeables) {
+    public static <T extends AutoCloseable> void closeAllUnchecked(Iterable<T> closeables) {
         try {
             closeAll(closeables);
         } catch (IOException e) {
@@ -86,7 +86,7 @@ public final class IOUtils {
      * @param <T> the type of closeable
      * @see #closeAll(AutoCloseable[])
      */
-    public static <T extends AutoCloseable> void closeAllSilently(Collection<T> closeables) {
+    public static <T extends AutoCloseable> void closeAllSilently(Iterable<T> closeables) {
         close((msg, cause) -> null, closeables);
     }
 
@@ -141,7 +141,7 @@ public final class IOUtils {
      * @throws E when any {@link AutoCloseable#close()} throws exception
      */
     public static <T extends AutoCloseable, E extends Throwable> void close(
-            BiFunction<String, Throwable, E> constructor, Collection<T> closeables) throws E {
+            BiFunction<String, Throwable, E> constructor, Iterable<T> closeables) throws E {
         E closeThrowable = null;
         for (T closeable : closeables) {
             try {

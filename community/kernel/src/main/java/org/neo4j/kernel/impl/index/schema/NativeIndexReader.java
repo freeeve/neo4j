@@ -122,13 +122,13 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
     @Override
     public void query(
             IndexProgressor.EntityValueClient cursor,
-            QueryContext context,
+            QueryContext queryContext,
             CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         validateQuery(constraints, predicates);
-        context.monitor().queried(descriptor);
+        queryContext.monitor().queried(descriptor);
         usageTracker.queried();
 
         KEY treeKeyFrom = layout.newKey();

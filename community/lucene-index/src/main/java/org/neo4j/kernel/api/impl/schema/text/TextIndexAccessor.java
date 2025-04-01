@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema;
+package org.neo4j.kernel.api.impl.schema.text;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -29,6 +29,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.AbstractLuceneIndexAccessor;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
+import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.LuceneIndexValueValidator;

@@ -259,7 +259,7 @@ public class BatchingMultipleIndexPopulatorTest {
                         .build())
                 .collect(Collectors.toList());
         return Iterables.asList(Iterables.concat(
-                Iterables.map(update -> update.valueUpdatesForIndexKeys(Iterables.asIterable(index)), entityUpdates)));
+                Iterables.map(entityUpdates, update -> update.valueUpdatesForIndexKeys(Iterables.asIterable(index)))));
     }
 
     private static Update nodeUpdate(int nodeId, int propertyId, String propertyValue, int... labelIds) {

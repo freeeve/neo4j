@@ -19,9 +19,9 @@
  */
 package org.neo4j.kernel.api.impl.index;
 
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.lucene_max_merge;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.lucene_min_merge;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.lucene_nocfs_ratio;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_max_merge;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_min_merge;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_nocfs_ratio;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;

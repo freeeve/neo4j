@@ -93,12 +93,12 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
     @Override
     public void query(
             EntityValueClient client,
-            QueryContext context,
+            QueryContext queryContext,
             CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
-        super.query(client, context, cursorContext, adjustedConstraints(constraints, predicates), predicates);
+        super.query(client, queryContext, cursorContext, adjustedConstraints(constraints, predicates), predicates);
     }
 
     @Override

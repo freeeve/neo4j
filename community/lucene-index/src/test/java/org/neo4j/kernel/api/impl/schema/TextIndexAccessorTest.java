@@ -36,6 +36,7 @@ import org.neo4j.annotations.documented.ReporterFactories;
 import org.neo4j.annotations.documented.ReporterFactory;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
+import org.neo4j.kernel.api.impl.schema.text.TextIndexAccessor;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.values.ElementIdMapper;
 

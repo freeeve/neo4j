@@ -30,7 +30,7 @@ import static org.neo4j.values.storable.ValueType.STRING_ASCII;
 import static org.neo4j.values.storable.ValueType.STRING_BMP;
 
 import org.neo4j.internal.schema.IndexType;
-import org.neo4j.kernel.api.impl.schema.TextIndexProvider;
+import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
 

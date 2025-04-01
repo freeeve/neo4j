@@ -2168,7 +2168,7 @@ class IndexingServiceTest {
         @Override
         public void query(
                 IndexProgressor.EntityValueClient client,
-                QueryContext context,
+                QueryContext queryContext,
                 CursorContext cursorContext,
                 IndexQueryConstraints constraints,
                 PropertyIndexQuery... query) {

@@ -65,7 +65,7 @@ class IdValueBuilder {
     }
 
     Iterable<Part> idPropertyValues() {
-        return Iterables.filter(p -> p.name != null, parts);
+        return Iterables.filter(parts, p -> p.name != null);
     }
 
     boolean isEmpty() {

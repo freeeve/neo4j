@@ -120,11 +120,11 @@ public class IndexPopulationMissConcurrentUpdateIT {
             } while (node.getId() < INITIAL_CREATION_NODE_ID_THRESHOLD);
             tx.commit();
         }
-        assertThat(count(filter(n -> n.getId() <= SCAN_BARRIER_NODE_ID_THRESHOLD, nodes)))
+        assertThat(count(filter(nodes, n -> n.getId() <= SCAN_BARRIER_NODE_ID_THRESHOLD)))
                 .as(
                         "At least one node below the scan barrier threshold must have been created, otherwise test assumptions are invalid or outdated")
                 .isGreaterThan(0L);
-        assertThat(count(filter(n -> n.getId() > SCAN_BARRIER_NODE_ID_THRESHOLD, nodes)))
+        assertThat(count(filter(nodes, n -> n.getId() > SCAN_BARRIER_NODE_ID_THRESHOLD)))
                 .as(
                         "At least two nodes above the scan barrier threshold and below initial creation threshold must have been created, "
                                 + "otherwise test assumptions are invalid or outdated")

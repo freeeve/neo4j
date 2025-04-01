@@ -115,7 +115,7 @@ public class NodeRecord extends PrimitiveRecord {
     }
 
     public List<DynamicRecord> getUsedDynamicLabelRecords() {
-        return Iterables.asList(Iterables.filter(AbstractBaseRecord::inUse, dynamicLabelRecords));
+        return Iterables.asList(Iterables.filter(dynamicLabelRecords, AbstractBaseRecord::inUse));
     }
 
     public boolean isDense() {

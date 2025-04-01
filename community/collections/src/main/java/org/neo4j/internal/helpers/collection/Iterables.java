@@ -94,11 +94,11 @@ public final class Iterables {
         return collection;
     }
 
-    public static <X> Iterable<X> filter(Predicate<? super X> specification, Iterable<X> i) {
+    public static <X> Iterable<X> filter(Iterable<X> i, Predicate<? super X> specification) {
         return new FilterIterable<>(i, specification);
     }
 
-    public static <FROM, TO> Iterable<TO> map(Function<? super FROM, ? extends TO> function, Iterable<FROM> from) {
+    public static <FROM, TO> Iterable<TO> map(Iterable<FROM> from, Function<? super FROM, ? extends TO> function) {
         return new MapIterable<>(from, function);
     }
 

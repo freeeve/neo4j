@@ -95,13 +95,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description(
-            "Configure lucene partition size. This is mainly used to test partitioning behaviour without having to create "
-                    + "Integer.MAX_VALUE indexed entities.")
-    public static final Setting<Integer> lucene_max_partition_size =
-            newBuilder("internal.dbms.lucene.max_partition_size", INT, null).build();
-
-    @Internal
     @Description("Include additional information in deadlock descriptions.")
     public static final Setting<Boolean> lock_manager_verbose_deadlocks = newBuilder(
                     "internal.dbms.lock_manager.verbose_deadlocks", BOOL, false)

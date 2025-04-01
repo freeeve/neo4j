@@ -23,7 +23,7 @@ import static org.neo4j.internal.schema.IndexCapability.NO_CAPABILITY;
 
 import org.junit.jupiter.api.Nested;
 import org.neo4j.kernel.api.impl.fulltext.FulltextIndexCapability;
-import org.neo4j.kernel.api.impl.schema.TextIndexProvider;
+import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.kernel.api.impl.schema.trigram.TrigramIndexProvider;
 
 public class NoSupportPartitionedScanTest extends SupportPartitionedScanTestSuite {

@@ -39,7 +39,7 @@ import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.VectorModes;
-import org.neo4j.kernel.api.impl.index.LuceneSettings;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.AbstractLuceneIndexProvider;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;

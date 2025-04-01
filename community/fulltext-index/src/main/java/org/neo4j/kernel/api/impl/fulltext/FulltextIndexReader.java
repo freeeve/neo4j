@@ -101,18 +101,18 @@ public class FulltextIndexReader implements ValueIndexReader {
     @Override
     public void query(
             IndexProgressor.EntityValueClient client,
-            QueryContext context,
+            QueryContext queryContext,
             CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... queries)
             throws IndexNotApplicableKernelException {
         final var predicate = validateQuery(queries);
         final var query = toLuceneQuery(predicate);
-        context.monitor().queried(index);
+        queryContext.monitor().queried(index);
         usageTracker.queried();
 
-        final var iterator =
-                searchLucene(query, constraints, context, context.cursorContext(), context.memoryTracker());
+        final var iterator = searchLucene(
+                query, constraints, queryContext, queryContext.cursorContext(), queryContext.memoryTracker());
         final var progressor = new LuceneScoredEntityIndexProgressor(iterator, client, constraints);
         client.initializeQuery(index, progressor, true, false, constraints, queries);
     }

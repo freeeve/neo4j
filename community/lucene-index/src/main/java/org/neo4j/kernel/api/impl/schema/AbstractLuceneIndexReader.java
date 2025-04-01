@@ -58,14 +58,14 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
     @Override
     public void query(
             IndexProgressor.EntityValueClient client,
-            QueryContext context,
+            QueryContext queryContext,
             CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         final var predicate = validateQuery(predicates);
         final var query = toLuceneQuery(predicate, constraints);
-        context.monitor().queried(descriptor);
+        queryContext.monitor().queried(descriptor);
         usageTracker.queried();
 
         final var progressor = indexProgressor(query, constraints, client);

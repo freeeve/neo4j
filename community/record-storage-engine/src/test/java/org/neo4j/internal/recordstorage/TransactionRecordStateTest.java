@@ -1951,11 +1951,11 @@ class TransactionRecordStateTest {
     }
 
     private static PropertyCommand singlePropertyCommand(Collection<StorageCommand> commands) {
-        return (PropertyCommand) single(filter(t -> t instanceof PropertyCommand, commands));
+        return (PropertyCommand) single(filter(commands, t -> t instanceof PropertyCommand));
     }
 
     private static RelationshipGroupCommand singleRelationshipGroupCommand(Collection<StorageCommand> commands) {
-        return (RelationshipGroupCommand) single(filter(t -> t instanceof RelationshipGroupCommand, commands));
+        return (RelationshipGroupCommand) single(filter(commands, t -> t instanceof RelationshipGroupCommand));
     }
 
     private IndexDescriptor createIndex(int labelId, int... propertyKeyIds) {

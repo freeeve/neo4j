@@ -20,7 +20,7 @@
 package org.neo4j.kernel.api.impl.index;
 
 import static org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.DefaultModes;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.lucene_merge_factor;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_merge_factor;
 
 import org.apache.lucene.index.LogMergePolicy;
 import org.neo4j.configuration.Config;

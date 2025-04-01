@@ -384,7 +384,7 @@ class IndexStatisticsTest {
                             ktx.cursors().allocateNodeValueIndexCursor(ktx.cursorContext(), ktx.memoryTracker());
                     ResourceIterable<Node> allNodes = transaction.getAllNodes()) {
                 // Node --> Index
-                for (Node node : filter(n -> n.hasLabel(label) && n.hasProperty(NAME_PROPERTY), allNodes)) {
+                for (Node node : filter(allNodes, n -> n.hasLabel(label) && n.hasProperty(NAME_PROPERTY))) {
                     nodesInStore++;
                     String name = (String) node.getProperty(NAME_PROPERTY);
                     ktx.dataRead()

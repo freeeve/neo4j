@@ -39,6 +39,7 @@ import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
+import org.neo4j.kernel.api.impl.schema.text.TextIndexBuilder;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.test.extension.Inject;

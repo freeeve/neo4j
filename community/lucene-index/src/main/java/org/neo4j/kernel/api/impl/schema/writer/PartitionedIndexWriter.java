@@ -28,8 +28,8 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.store.Directory;
 import org.neo4j.configuration.Config;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 
 /**
@@ -37,7 +37,7 @@ import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
  * on-demand if needed.
  * <p>
  * Writer threats partition as writable if partition has number of live and deleted documents that is less
- * than a value explicitly configured using {@link GraphDatabaseInternalSettings#lucene_max_partition_size}
+ * than a value explicitly configured using {@link LuceneSettings#lucene_max_partition_size}
  * or {@link #DEFAULT_MAXIMUM_PARTITION_SIZE} otherwise.
  * First observable partition that satisfy writer criteria is used for writing.
  */
@@ -51,7 +51,7 @@ public class PartitionedIndexWriter implements LuceneIndexWriter {
 
     public PartitionedIndexWriter(WritableDatabaseIndex<?, ?> index, Config config) {
         this.index = index;
-        var configuredMaxPartitionSize = config.get(GraphDatabaseInternalSettings.lucene_max_partition_size);
+        var configuredMaxPartitionSize = config.get(LuceneSettings.lucene_max_partition_size);
         maximumPartitionSize = Objects.requireNonNullElse(configuredMaxPartitionSize, DEFAULT_MAXIMUM_PARTITION_SIZE);
     }
 

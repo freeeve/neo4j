@@ -100,7 +100,7 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
     @Override
     public void query(
             IndexProgressor.EntityValueClient client,
-            QueryContext context,
+            QueryContext queryContext,
             CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... predicates)
@@ -112,7 +112,7 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
         PropertyIndexQuery predicate = predicates[0];
         if (predicate.type() == IndexQueryType.BOUNDING_BOX) {
             usageTracker.queried();
-            context.monitor().queried(descriptor);
+            queryContext.monitor().queried(descriptor);
             validateQuery(constraints, predicates);
             PropertyIndexQuery.BoundingBoxPredicate boundingBoxPredicate =
                     (PropertyIndexQuery.BoundingBoxPredicate) predicate;
@@ -142,7 +142,7 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
                             multiProgressor,
                             treeKeyFrom,
                             treeKeyTo,
-                            context.cursorContext(),
+                            queryContext.cursorContext(),
                             true,
                             constraints,
                             boundingBoxPredicate);
@@ -153,7 +153,7 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
                         descriptor, IndexProgressor.EMPTY, false, false, constraints, boundingBoxPredicate);
             }
         } else {
-            super.query(client, context, cursorContext, constraints, predicates);
+            super.query(client, queryContext, cursorContext, constraints, predicates);
         }
     }
 

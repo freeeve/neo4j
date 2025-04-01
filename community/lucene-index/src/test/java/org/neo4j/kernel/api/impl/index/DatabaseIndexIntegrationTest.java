@@ -20,8 +20,8 @@
 package org.neo4j.kernel.api.impl.index;
 
 import static java.time.Duration.ofSeconds;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
 
@@ -109,12 +109,10 @@ class DatabaseIndexIntegrationTest {
     void testSaveCallCommitAndCloseFromMultipleThreads() {
         assertTimeoutPreemptively(ofSeconds(60), () -> {
             generateInitialData();
-            Supplier<Runnable> closeTaskSupplier = () -> createConcurrentCloseTask(raceSignal);
-            List<Future<?>> closeFutures = submitTasks(closeTaskSupplier);
+            List<Future<?>> closeFutures = submitTasks(() -> createConcurrentCloseTask(raceSignal));
 
             Futures.getAll(closeFutures);
-
-            assertFalse(luceneIndex.isOpen());
+            assertThat(luceneIndex.isOpen()).isFalse();
         });
     }
 
@@ -122,12 +120,10 @@ class DatabaseIndexIntegrationTest {
     void saveCallCloseAndDropFromMultipleThreads() {
         assertTimeoutPreemptively(ofSeconds(60), () -> {
             generateInitialData();
-            Supplier<Runnable> dropTaskSupplier = () -> createConcurrentDropTask(raceSignal);
-            List<Future<?>> futures = submitTasks(dropTaskSupplier);
+            List<Future<?>> futures = submitTasks(() -> createConcurrentDropTask(raceSignal));
 
             Futures.getAll(futures);
-
-            assertFalse(luceneIndex.isOpen());
+            assertThat(luceneIndex.isOpen()).isFalse();
         });
     }
 

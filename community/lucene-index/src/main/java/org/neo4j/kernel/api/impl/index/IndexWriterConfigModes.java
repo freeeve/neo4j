@@ -19,15 +19,15 @@
  */
 package org.neo4j.kernel.api.impl.index;
 
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.lucene_merge_factor;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.lucene_population_max_buffered_docs;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.lucene_population_ram_buffer_size;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.lucene_population_serial_merge_scheduler;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.lucene_standard_ram_buffer_size;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.lucene_writer_max_buffered_docs;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.vector_population_merge_factor;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.vector_population_ram_buffer_size;
-import static org.neo4j.kernel.api.impl.index.LuceneSettings.vector_standard_merge_factor;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_merge_factor;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_population_max_buffered_docs;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_population_ram_buffer_size;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_population_serial_merge_scheduler;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_standard_ram_buffer_size;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_writer_max_buffered_docs;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.vector_population_merge_factor;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.vector_population_ram_buffer_size;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.vector_standard_merge_factor;
 
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LogMergePolicy;

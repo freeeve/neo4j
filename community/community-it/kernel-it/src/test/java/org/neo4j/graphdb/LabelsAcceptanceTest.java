@@ -389,7 +389,7 @@ class LabelsAcceptanceTest {
 
         // Then
         assertEquals(2, labels.size());
-        assertThat(map(Label::name, labels)).contains(Labels.MY_LABEL.name(), Labels.MY_OTHER_LABEL.name());
+        assertThat(map(labels, Label::name)).contains(Labels.MY_LABEL.name(), Labels.MY_OTHER_LABEL.name());
     }
 
     @Test
@@ -410,7 +410,7 @@ class LabelsAcceptanceTest {
 
         // Then
         assertEquals(1, labels.size());
-        assertThat(map(Label::name, labels)).contains(Labels.MY_LABEL.name());
+        assertThat(map(labels, Label::name)).contains(Labels.MY_LABEL.name());
     }
 
     @Test
@@ -447,7 +447,7 @@ class LabelsAcceptanceTest {
 
             // Then
             assertEquals(1, labels.size());
-            assertThat(map(Label::name, labels)).contains(Labels.MY_LABEL.name());
+            assertThat(map(labels, Label::name)).contains(Labels.MY_LABEL.name());
         });
     }
 
@@ -486,7 +486,7 @@ class LabelsAcceptanceTest {
 
             // Then
             assertEquals(1, relTypes.size());
-            assertThat(map(RelationshipType::name, relTypes)).contains(relType.name());
+            assertThat(map(relTypes, RelationshipType::name)).contains(relType.name());
         });
     }
 

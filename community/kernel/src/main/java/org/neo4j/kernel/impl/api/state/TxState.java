@@ -324,7 +324,7 @@ public class TxState implements TransactionState {
             return Iterables.empty();
         }
         Collection<NodeStateImpl> nodeStates = nodeStatesMap.values();
-        return Iterables.cast(Iterables.filter(ns -> !ns.isDeleted(), nodeStates));
+        return Iterables.cast(Iterables.filter(nodeStates, ns -> !ns.isDeleted()));
     }
 
     @VisibleForTesting
@@ -725,7 +725,7 @@ public class TxState implements TransactionState {
     public Iterable<RelationshipState> modifiedRelationships() {
         return relationshipStatesMap == null
                 ? Iterables.empty()
-                : Iterables.cast(Iterables.filter(rel -> !rel.isDeleted(), relationshipStatesMap.values()));
+                : Iterables.cast(Iterables.filter(relationshipStatesMap.values(), rel -> !rel.isDeleted()));
     }
 
     @VisibleForTesting
