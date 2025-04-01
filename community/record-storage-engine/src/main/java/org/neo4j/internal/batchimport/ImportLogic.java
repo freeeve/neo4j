@@ -284,8 +284,7 @@ public class ImportLogic implements Closeable {
         // Compare notes with schema monitors
         var otherViolatingNodes = schemaMonitors.validate(badCollector);
         prepareIdMapper(otherViolatingNodes);
-        schemaMonitors.writeToTarget(
-                IdMappers.combineSkipFilter(idMapper.leftOverDuplicateNodesIdsPredicate(), otherViolatingNodes), true);
+        schemaMonitors.writeToTarget(idMapper.leftOverDuplicateNodesIdsPredicate(), otherViolatingNodes);
     }
 
     /**
@@ -356,7 +355,7 @@ public class ImportLogic implements Closeable {
 
         // Compare notes with schema monitors
         var otherViolatingRelationships = schemaMonitors.validate(badCollector);
-        schemaMonitors.writeToTarget(null, true);
+        schemaMonitors.writeToTarget(null, otherViolatingRelationships);
         removeViolatingRelationships(otherViolatingRelationships);
     }
 

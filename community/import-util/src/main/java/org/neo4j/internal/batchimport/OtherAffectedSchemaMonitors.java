@@ -136,8 +136,8 @@ public class OtherAffectedSchemaMonitors implements SchemaMonitors {
     }
 
     @Override
-    public void writeToTarget(LongPredicate violatingIdMapperEntityIds, boolean skipViolatingEntities) {
-        indexBuilder.writeToTarget(violatingIdMapperEntityIds, skipViolatingEntities);
+    public void writeToTarget(LongPredicate violatingIdMapperEntityIds, LongSet otherViolatingEntityIds) {
+        indexBuilder.writeToTarget(violatingIdMapperEntityIds, otherViolatingEntityIds);
     }
 
     @Override

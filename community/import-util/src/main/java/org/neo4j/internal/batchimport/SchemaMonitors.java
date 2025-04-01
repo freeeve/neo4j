@@ -34,7 +34,7 @@ public interface SchemaMonitors extends Closeable {
         }
 
         @Override
-        public void writeToTarget(LongPredicate violatingIdMapperEntityIds, boolean skipViolatingEntities) {}
+        public void writeToTarget(LongPredicate violatingIdMapperEntityIds, LongSet otherViolatingEntityIds) {}
 
         @Override
         public LongSet affectedIndexes() {
@@ -50,9 +50,25 @@ public interface SchemaMonitors extends Closeable {
         }
     };
 
+    /**
+     * Validates indexes for correctness (mostly uniqueness for those that have such constraints)
+     * and returns a {@link LongSet} of entity IDs that violate such constraints.
+     * @param collector for reporting the violating entities.
+     * @return a {@link LongSet} of entity IDs that violate any constraints.
+     * @throws IOException on I/O error.
+     */
     LongSet validate(Collector collector) throws IOException;
 
-    void writeToTarget(LongPredicate violatingIdMapperEntityIds, boolean skipViolatingEntities) throws IOException;
+    /**
+     * Writes the built indexes into their target index. For full import this is just moving the index into
+     * place in the happy case. For incremental import the incremental indexes are merged into the target indexes.
+     *
+     * @param violatingIdMapperEntityIds entity IDs from the {@link org.neo4j.internal.batchimport.cache.idmapping.IdMapper}
+     * that violate constraints
+     * @param otherViolatingEntityIds entity IDs from e.g. {@link #validate(Collector)}.
+     * @throws IOException on I/O error.
+     */
+    void writeToTarget(LongPredicate violatingIdMapperEntityIds, LongSet otherViolatingEntityIds) throws IOException;
 
     LongSet affectedIndexes();
 

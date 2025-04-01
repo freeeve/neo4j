@@ -95,9 +95,9 @@ public class ImportIndexBuilder implements Closeable {
     private final Map<IndexDescriptor, IndexBuilder> indexBuilders = new ConcurrentHashMap<>();
     private final Lock builderConstructionLock = new ReentrantLock();
     private final ByteBufferFactory bufferFactory;
-    private final MutableLongSet violatingEntities = LongSets.mutable.empty().asSynchronized();
     private final StorageEngineIndexingBehaviour indexingBehaviour;
     private final Predicate<IndexDescriptor> excludedIndexes;
+    private final IndexSamplingConfig indexSamplingConfig;
 
     public ImportIndexBuilder(
             FileSystemAbstraction fileSystem,
@@ -127,6 +127,7 @@ public class ImportIndexBuilder implements Closeable {
         this.bufferFactory = new ByteBufferFactory(
                 UnsafeDirectByteBufferAllocator::new,
                 Config.defaults().get(index_populator_block_size).intValue());
+        this.indexSamplingConfig = new IndexSamplingConfig(Config.defaults());
     }
 
     public void add(IndexEntryUpdate indexUpdate) {
@@ -180,7 +181,7 @@ public class ImportIndexBuilder implements Closeable {
             var completedIndex = indexProvider.completeConfiguration(index, indexingBehaviour);
             return indexProvider.getOnlineAccessor(
                     completedIndex,
-                    new IndexSamplingConfig(Config.defaults()),
+                    indexSamplingConfig,
                     tokenNameLookup,
                     ElementIdMapper.PLACEHOLDER,
                     openOptions,
@@ -194,7 +195,7 @@ public class ImportIndexBuilder implements Closeable {
         var indexProvider = tempIndexes.lookup(index.getIndexProvider());
         var populator = indexProvider.getPopulator(
                 index,
-                new IndexSamplingConfig(Config.defaults()),
+                indexSamplingConfig,
                 bufferFactory,
                 EmptyMemoryTracker.INSTANCE,
                 tokenNameLookup,
@@ -213,7 +214,7 @@ public class ImportIndexBuilder implements Closeable {
      * Schedules "scanCompleted" calls to any index populations that are part of this ID mapper,
      * such that they can be scheduled with "scanCompleted" calls to other index populations.
      */
-    private void completeBuild(Collector collector, Consumer<Runnable> scheduler) {
+    private void completeBuild(MutableLongSet violatingEntityIds, Collector collector, Consumer<Runnable> scheduler) {
         for (var population : indexBuilders.entrySet()) {
             // Complete the population of the increment index
             var builder = population.getValue();
@@ -222,7 +223,7 @@ public class ImportIndexBuilder implements Closeable {
             scheduler.accept(() -> {
                 var conflictHandler = new RecordingIndexEntryConflictHandler(
                         collector,
-                        violatingEntities,
+                        violatingEntityIds,
                         population.getKey(),
                         tokenNameLookup,
                         entityIdFromIndexIdConverter);
@@ -246,16 +247,16 @@ public class ImportIndexBuilder implements Closeable {
      */
     public LongSet validate(Collector collector) throws IOException {
         // Merge increments into copied-target-indexes and skip (and remember) those that violate constraints
+        var violatingEntityIds = LongSets.mutable.empty().asSynchronized();
         try (var scheduler = new BuildCompletionScheduler(workScheduler.jobScheduler())) {
-            completeBuild(collector, scheduler);
+            completeBuild(violatingEntityIds, collector, scheduler);
         }
 
-        var indexSamplingConfig = new IndexSamplingConfig(Config.defaults());
         for (var population : indexBuilders.entrySet()) {
             var descriptor = population.getKey();
             var builder = population.getValue();
             var conflictHandler = new RecordingIndexEntryConflictHandler(
-                    collector, violatingEntities, descriptor, tokenNameLookup, entityIdFromIndexIdConverter);
+                    collector, violatingEntityIds, descriptor, tokenNameLookup, entityIdFromIndexIdConverter);
             // For constraint indexes checking violations
             if (descriptor.isUnique() && !isEmpty(builder.accessor)) {
                 // Validate uniqueness, since it's a constraint index
@@ -277,25 +278,36 @@ public class ImportIndexBuilder implements Closeable {
                 }
             }
         }
-        return violatingEntities;
+        return violatingEntityIds;
     }
 
-    public void writeToTarget(LongPredicate violatingIdMapperEntityIds, boolean skipViolatingEntities) {
+    /**
+     * Writes new data (from "temp" indexes) into the target indexes. After this call all index data
+     * will exist in the target {@link IndexAccessor} for each index.
+     * @param violatingIdMapperEntityIds entity IDs found by the
+     * {@link org.neo4j.internal.batchimport.cache.idmapping.IdMapper} to be duplicates.
+     * @param otherViolatingEntityIds entity IDs found by other indexes to be duplicates, e.g. from
+     * {@link #validate(Collector)}.
+     */
+    public void writeToTarget(LongPredicate violatingIdMapperEntityIds, LongSet otherViolatingEntityIds) {
         try {
             // When all violations are known then merge all increment indexes
-            LongPredicate filter = violatingIdMapperEntityIds == null && violatingEntities.isEmpty()
+            LongPredicate filter = violatingIdMapperEntityIds == null && otherViolatingEntityIds.isEmpty()
                     ? null
-                    : indexEntityId -> (violatingIdMapperEntityIds == null
-                                    || !violatingIdMapperEntityIds.test(indexEntityId))
-                            && !violatingEntities.contains(entityIdFromIndexIdConverter.applyAsLong(indexEntityId));
-            var indexSamplingConfig = new IndexSamplingConfig(Config.defaults());
-            for (var population : indexBuilders.entrySet()) {
+                    : indexEntityId ->
+                            (violatingIdMapperEntityIds == null || !violatingIdMapperEntityIds.test(indexEntityId))
+                                    && !otherViolatingEntityIds.contains(
+                                            entityIdFromIndexIdConverter.applyAsLong(indexEntityId));
+            for (var population : new HashMap<>(indexBuilders).entrySet()) {
                 var descriptor = population.getKey();
                 var builder = population.getValue();
                 boolean targetIndexEmpty = isEmpty(builder.accessor);
                 if (targetIndexEmpty && filter == null) {
+                    // Close the index to be able to move it
                     builder.close();
                     moveIndex(fileSystem, tempIndexes, indexProviderMap, descriptor);
+                    // Re-open the index so that it may accept removals or other updates afterward
+                    indexBuilders.put(descriptor, new IndexBuilder(null, constructIndexAccessor(descriptor)));
                 } else {
                     try (var builtIncrementIndex = tempIndexes
                             .lookup(descriptor.getIndexProvider())
@@ -311,11 +323,10 @@ public class ImportIndexBuilder implements Closeable {
                                 null,
                                 false,
                                 IndexEntryConflictHandler.THROW,
-                                skipViolatingEntities ? filter : null,
+                                filter,
                                 configuration.maxNumberOfWorkerThreads(),
                                 workScheduler.jobScheduler(),
                                 ProgressListener.NONE);
-                        builder.accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
                     }
                 }
             }
@@ -421,9 +432,8 @@ public class ImportIndexBuilder implements Closeable {
 
         @Override
         public void close() {
-            if (flush()) {
-                accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
-            }
+            flush();
+            accessor.force(FileFlushEvent.NULL, NULL_CONTEXT);
             accessor.close();
         }
     }
