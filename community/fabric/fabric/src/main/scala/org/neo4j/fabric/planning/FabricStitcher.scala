@@ -214,22 +214,6 @@ case class FabricStitcher(
       apply.copy(input = convertSeparate(apply.input, lastInChain = false), inner = convert(apply.inner))(apply.pos)
   }
 
-  def validateNoTransactionalSubquery(fragment: Fragment): Unit = {
-    fragment.flatten.foreach {
-      case apply: Fragment.Apply if apply.inTransactionsParameters.isDefined =>
-        failFabricTransactionalSubquery(apply.pos)
-      case exec: Fragment.Exec => SubqueryCall.findTransactionalSubquery(exec.query).foreach(subquery =>
-          failFabricTransactionalSubquery(subquery.position)
-        )
-      case leaf: Fragment.Leaf => leaf.clauses.foreach(c =>
-          SubqueryCall.findTransactionalSubquery(c).foreach(subquery =>
-            failFabricTransactionalSubquery(subquery.position)
-          )
-        )
-      case _ => ()
-    }
-  }
-
   /**
    * Transform a single leaf into exec
    */
@@ -335,13 +319,6 @@ case class FabricStitcher(
          |Attempted to access graph ${Use.show(useInner)}""".stripMargin,
       queryString,
       useInner.position.offset
-    )
-
-  private def failFabricTransactionalSubquery(pos: InputPosition): Nothing =
-    throw new SyntaxException(
-      "Transactional subquery is not allowed here. This feature is not supported on composite databases.",
-      queryString,
-      pos.offset
     )
 
   private case class StitchResult(
