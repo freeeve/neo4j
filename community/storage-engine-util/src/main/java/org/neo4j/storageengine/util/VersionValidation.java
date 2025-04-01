@@ -45,13 +45,13 @@ public class VersionValidation {
             LockTracer lockTracer)
             throws IOException {
 
-        long nodeId = pageId | (position << PAGE_ID_BITS);
+        long id = pageId | (position << PAGE_ID_BITS);
         if (failFast) {
-            if (!validationLockClient.tryExclusiveLock(PAGE, nodeId)) {
+            if (!validationLockClient.tryExclusiveLock(PAGE, id)) {
                 throw TransactionConflictException.transactionConflict(databaseFile, pageId);
             }
         } else {
-            validationLockClient.acquireExclusive(lockTracer, PAGE, nodeId);
+            validationLockClient.acquireExclusive(lockTracer, PAGE, id);
         }
 
         if (pageCursor.next(pageId)) {
