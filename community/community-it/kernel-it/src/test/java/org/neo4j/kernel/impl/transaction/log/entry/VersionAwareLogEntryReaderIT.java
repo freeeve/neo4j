@@ -46,6 +46,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.lifecycle.Lifespan;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.LatestVersions;
@@ -81,7 +82,9 @@ class VersionAwareLogEntryReaderIT {
         databaseLayout = database.databaseLayout();
         storageEngineFactory = database.getDependencyResolver().resolveDependency(StorageEngineFactory.class);
         entryReader = new VersionAwareLogEntryReader(
-                storageEngineFactory.commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
+                storageEngineFactory.commandReaderFactory(),
+                LatestVersions.BINARY_VERSIONS,
+                EmptyMemoryTracker.INSTANCE);
         managementService.shutdown();
     }
 

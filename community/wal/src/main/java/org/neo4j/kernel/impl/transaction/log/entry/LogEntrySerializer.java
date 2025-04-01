@@ -24,6 +24,7 @@ import org.neo4j.io.fs.ReadableChannel;
 import org.neo4j.io.fs.WritableChannel;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
@@ -55,6 +56,7 @@ public abstract class LogEntrySerializer<T extends LogEntry> {
      * start of this entry.
      * @param commandReaderFactory {@link CommandReaderFactory} for retrieving a {@link CommandReader}
      * for reading commands from, for log entry types that need that.
+     * @param memoryTracker to track allocated memory.
      * @return the next {@link LogEntry} read and parsed from the {@code channel}.
      * @throws IOException I/O error from channel or if data was read past the end of the channel.
      */
@@ -62,7 +64,8 @@ public abstract class LogEntrySerializer<T extends LogEntry> {
             KernelVersion version,
             ReadableChannel channel,
             LogPositionMarker marker,
-            CommandReaderFactory commandReaderFactory)
+            CommandReaderFactory commandReaderFactory,
+            MemoryTracker memoryTracker)
             throws IOException;
 
     /**

@@ -321,7 +321,9 @@ class TestLogPruning {
                 try (CommittedCommandBatchCursor physicalTransactionCursor = new CommittedCommandBatchCursor(
                         channel,
                         new VersionAwareLogEntryReader(
-                                storageEngineFactory.commandReaderFactory(), LatestVersions.BINARY_VERSIONS))) {
+                                storageEngineFactory.commandReaderFactory(),
+                                LatestVersions.BINARY_VERSIONS,
+                                INSTANCE))) {
                     while (physicalTransactionCursor.next()) {
                         counter++;
                     }

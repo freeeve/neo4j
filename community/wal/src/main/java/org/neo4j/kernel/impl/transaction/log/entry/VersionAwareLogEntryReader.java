@@ -32,6 +32,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.enveloped.IncompleteEnvelopeReadException;
 import org.neo4j.kernel.impl.transaction.log.enveloped.InvalidLogEnvelopeReadException;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
 /**
@@ -41,14 +42,18 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
     private final CommandReaderFactory commandReaderFactory;
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final LogPositionMarker positionMarker;
+    private final MemoryTracker memoryTracker;
     private boolean brokenLastEntry;
     private LogEntrySerializationSet parserSet;
 
     public VersionAwareLogEntryReader(
-            CommandReaderFactory commandReaderFactory, BinarySupportedKernelVersions binarySupportedKernelVersions) {
+            CommandReaderFactory commandReaderFactory,
+            BinarySupportedKernelVersions binarySupportedKernelVersions,
+            MemoryTracker memoryTracker) {
         this.commandReaderFactory = commandReaderFactory;
         this.positionMarker = new LogPositionMarker();
         this.binarySupportedKernelVersions = binarySupportedKernelVersions;
+        this.memoryTracker = memoryTracker;
     }
 
     @Override
@@ -68,7 +73,7 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
             updateParserSet(channel, versionCode);
 
             byte typeCode = channel.get();
-            return readEntry(channel, versionCode, typeCode);
+            return readEntry(channel, versionCode, typeCode, memoryTracker);
         } catch (ReadPastEndException e) {
             return null;
         } catch (UnsupportedLogVersionException | IllegalStateException | InvalidLogEnvelopeReadException e) {
@@ -118,7 +123,8 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
         channel.getCurrentLogPosition(positionMarker);
     }
 
-    private LogEntry readEntry(ReadableLogPositionAwareChannel channel, byte versionCode, byte typeCode)
+    private LogEntry readEntry(
+            ReadableLogPositionAwareChannel channel, byte versionCode, byte typeCode, MemoryTracker memoryTracker)
             throws IOException {
         try {
             return parserSet
@@ -127,7 +133,8 @@ public class VersionAwareLogEntryReader implements LogEntryReader {
                             parserSet.getIntroductionVersion(),
                             parserSet.wrap(channel),
                             positionMarker,
-                            commandReaderFactory);
+                            commandReaderFactory,
+                            memoryTracker);
         } catch (ReadPastEndException | IncompleteEnvelopeReadException e) {
             // Make these exceptions slip by straight out to the outer handler
             throw e;

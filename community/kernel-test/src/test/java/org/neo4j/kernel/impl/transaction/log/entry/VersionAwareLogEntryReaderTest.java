@@ -37,13 +37,14 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReader;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.arguments.KernelVersionSource;
 
 class VersionAwareLogEntryReaderTest {
-    private final LogEntryReader logEntryReader =
-            new VersionAwareLogEntryReader(TestCommandReaderFactory.INSTANCE, LatestVersions.BINARY_VERSIONS);
+    private final LogEntryReader logEntryReader = new VersionAwareLogEntryReader(
+            TestCommandReaderFactory.INSTANCE, LatestVersions.BINARY_VERSIONS, EmptyMemoryTracker.INSTANCE);
 
     @ParameterizedTest
     @KernelVersionSource(atLeast = "5.0")

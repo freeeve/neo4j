@@ -705,7 +705,8 @@ public final class Recovery {
                 storageEngineFactory.commandReaderFactory(),
                 monitors,
                 failOnCorruptedLogFiles,
-                config);
+                config,
+                memoryTracker);
 
         LifeSupport schemaLife = new LifeSupport();
         schemaLife.add(storageEngine.schemaAndTokensLifecycle());

@@ -39,6 +39,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkStart;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryRollback;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
 public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoProvider {
@@ -48,6 +49,7 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
     private final LogPosition logPosition;
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
     private final CommandReaderFactory commandReaderFactory;
+    private final MemoryTracker memoryTracker;
 
     public DetachedLogTailAppendIndexProvider(
             CommandReaderFactory commandReaderFactory,
@@ -55,13 +57,15 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
             LogFile logFile,
             KernelVersion kernelVersion,
             long startingAppendIndex,
-            LogPosition logPosition) {
+            LogPosition logPosition,
+            MemoryTracker memoryTracker) {
         this.logFile = logFile;
         this.kernelVersion = kernelVersion;
         this.startingAppendIndex = startingAppendIndex;
         this.logPosition = logPosition;
         this.binarySupportedKernelVersions = binarySupportedKernelVersions;
         this.commandReaderFactory = commandReaderFactory;
+        this.memoryTracker = memoryTracker;
     }
 
     @Override
@@ -83,7 +87,8 @@ public class DetachedLogTailAppendIndexProvider implements LastAppendBatchInfoPr
                 return new AppendBatchInfo(appendIndex, postLogPosition);
             }
 
-            var logEntryReader = new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions);
+            var logEntryReader =
+                    new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions, memoryTracker);
             try (var reader = logFile.getReader(lookupPosition, ReaderLogVersionBridge.forFile(logFile));
                     var cursor = new LogEntryCursor(logEntryReader, reader)) {
                 long currentAppendIndex = UNKNOWN_APPEND_INDEX;

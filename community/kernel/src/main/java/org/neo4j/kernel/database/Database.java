@@ -568,7 +568,8 @@ public class Database extends AbstractDatabase {
                 databaseMonitors,
                 databaseDependencies,
                 cursorContextFactory,
-                storageEngineFactory.commandReaderFactory());
+                storageEngineFactory.commandReaderFactory(),
+                otherDatabaseMemoryTracker);
         commitmentFactory = new TransactionCommitmentFactory(metadataProvider);
 
         databaseTransactionEventListeners =
@@ -917,7 +918,8 @@ public class Database extends AbstractDatabase {
             Monitors monitors,
             Dependencies databaseDependencies,
             CursorContextFactory cursorContextFactory,
-            CommandReaderFactory commandReaderFactory) {
+            CommandReaderFactory commandReaderFactory,
+            MemoryTracker memoryTracker) {
         TransactionMetadataCache transactionMetadataCache = new TransactionMetadataCache();
         databaseDependencies.satisfyDependencies(transactionMetadataCache);
 
@@ -944,7 +946,13 @@ public class Database extends AbstractDatabase {
         life.add(transactionAppender);
 
         final LogicalTransactionStore logicalTransactionStore = new PhysicalLogicalTransactionStore(
-                logFiles, transactionMetadataCache, commandReaderFactory, monitors, true, databaseConfig);
+                logFiles,
+                transactionMetadataCache,
+                commandReaderFactory,
+                monitors,
+                true,
+                databaseConfig,
+                memoryTracker);
 
         CheckPointThreshold threshold =
                 CheckPointThreshold.createThreshold(databaseConfig, clock, logPruning, logProvider);

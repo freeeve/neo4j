@@ -24,6 +24,7 @@ import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
+import org.neo4j.memory.EmptyMemoryTracker;
 
 public final class TestLogEntryReader {
     private TestLogEntryReader() {}
@@ -33,6 +34,7 @@ public final class TestLogEntryReader {
     }
 
     public static LogEntryReader logEntryReader(BinarySupportedKernelVersions supportedKernelVersions) {
-        return new VersionAwareLogEntryReader(TestCommandReaderFactory.INSTANCE, supportedKernelVersions);
+        return new VersionAwareLogEntryReader(
+                TestCommandReaderFactory.INSTANCE, supportedKernelVersions, EmptyMemoryTracker.INSTANCE);
     }
 }

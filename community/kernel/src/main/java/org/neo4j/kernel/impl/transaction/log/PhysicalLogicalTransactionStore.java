@@ -30,6 +30,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.reverse.ReversedMultiFileCommandBatchCursor;
 import org.neo4j.kernel.impl.transaction.log.reverse.ReversedTransactionCursorMonitor;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
@@ -41,6 +42,7 @@ public class PhysicalLogicalTransactionStore implements LogicalTransactionStore 
     private final boolean failOnCorruptedLogFiles;
     private final boolean presketchLogFiles;
     private final BinarySupportedKernelVersions binarySupportedKernelVersions;
+    private final MemoryTracker memoryTracker;
 
     public PhysicalLogicalTransactionStore(
             LogFiles logFiles,
@@ -48,7 +50,8 @@ public class PhysicalLogicalTransactionStore implements LogicalTransactionStore 
             CommandReaderFactory commandReaderFactory,
             Monitors monitors,
             boolean failOnCorruptedLogFiles,
-            Config config) {
+            Config config,
+            MemoryTracker memoryTracker) {
         this.logFile = logFiles.getLogFile();
         this.transactionMetadataCache = transactionMetadataCache;
         this.commandReaderFactory = commandReaderFactory;
@@ -56,13 +59,14 @@ public class PhysicalLogicalTransactionStore implements LogicalTransactionStore 
         this.failOnCorruptedLogFiles = failOnCorruptedLogFiles;
         this.presketchLogFiles = config.get(pre_sketch_transaction_logs);
         this.binarySupportedKernelVersions = new BinarySupportedKernelVersions(config);
+        this.memoryTracker = memoryTracker;
     }
 
     @Override
     public CommandBatchCursor getCommandBatches(LogPosition position) throws IOException {
         return new CommittedCommandBatchCursor(
                 logFile.getReader(position),
-                new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions));
+                new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions, memoryTracker));
     }
 
     @Override
@@ -70,7 +74,7 @@ public class PhysicalLogicalTransactionStore implements LogicalTransactionStore 
         return ReversedMultiFileCommandBatchCursor.fromLogFile(
                 logFile,
                 backToPosition,
-                new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions),
+                new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions, memoryTracker),
                 failOnCorruptedLogFiles,
                 monitors.newMonitor(ReversedTransactionCursorMonitor.class),
                 presketchLogFiles);
@@ -80,7 +84,8 @@ public class PhysicalLogicalTransactionStore implements LogicalTransactionStore 
     public CommandBatchCursor getCommandBatches(final long appendIndexToStartFrom) throws IOException {
         // look up in position cache
         try {
-            var logEntryReader = new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions);
+            var logEntryReader =
+                    new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions, memoryTracker);
             TransactionMetadataCache.TransactionMetadata transactionMetadata =
                     transactionMetadataCache.getTransactionMetadata(appendIndexToStartFrom);
             if (transactionMetadata != null) {

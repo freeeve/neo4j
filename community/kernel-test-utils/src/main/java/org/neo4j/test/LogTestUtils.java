@@ -103,7 +103,7 @@ public final class LogTestUtils {
                     in, logHeader, file, ChannelNativeAccessor.EMPTY_ACCESSOR, DatabaseTracer.NULL);
             try (ReadableLogChannel inBuffer = ReadAheadUtils.newChannel(inChannel, logHeader, INSTANCE)) {
                 LogEntryReader entryReader =
-                        new VersionAwareLogEntryReader(commandReaderFactory, LatestVersions.BINARY_VERSIONS);
+                        new VersionAwareLogEntryReader(commandReaderFactory, LatestVersions.BINARY_VERSIONS, INSTANCE);
 
                 LogEntry entry;
                 while ((entry = entryReader.readLogEntry(inBuffer)) != null) {

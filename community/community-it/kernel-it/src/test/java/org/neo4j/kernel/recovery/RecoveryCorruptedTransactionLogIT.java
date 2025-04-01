@@ -1287,7 +1287,7 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private boolean checkpointEntryLooksCorrupted(byte[] array) {
-        var testReader = new VersionAwareLogEntryReader(version -> null, BINARY_VERSIONS);
+        var testReader = new VersionAwareLogEntryReader(version -> null, BINARY_VERSIONS, EmptyMemoryTracker.INSTANCE);
         var ch = new InMemoryVersionableReadableClosablePositionAwareChannel();
         ch.putVersion(array[0]);
         ch.putAll(ByteBuffer.wrap(array).position(1));
@@ -1362,8 +1362,8 @@ class RecoveryCorruptedTransactionLogIT {
     record Positions(LogPosition startPosition, LogPosition lastReadable) {}
 
     private Positions getLastReadablePosition(Path logFile) throws IOException {
-        VersionAwareLogEntryReader entryReader =
-                new VersionAwareLogEntryReader(storageEngineFactory.commandReaderFactory(), BINARY_VERSIONS);
+        VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
+                storageEngineFactory.commandReaderFactory(), BINARY_VERSIONS, EmptyMemoryTracker.INSTANCE);
         LogFile txLogFile = logFiles.getLogFile();
         long logVersion = txLogFile.getLogVersion(logFile);
         LogPosition startPosition = txLogFile.extractHeader(logVersion).getStartPosition();
@@ -1391,8 +1391,8 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private LogPosition getLastReadablePosition(LogFile logFile) throws IOException {
-        VersionAwareLogEntryReader entryReader =
-                new VersionAwareLogEntryReader(storageEngineFactory.commandReaderFactory(), BINARY_VERSIONS);
+        VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
+                storageEngineFactory.commandReaderFactory(), BINARY_VERSIONS, EmptyMemoryTracker.INSTANCE);
         LogPosition startPosition = logFile.extractHeader(logFiles.getLogFile().getHighestLogVersion())
                 .getStartPosition();
         try (ReadableLogChannel reader = logFile.getReader(startPosition)) {

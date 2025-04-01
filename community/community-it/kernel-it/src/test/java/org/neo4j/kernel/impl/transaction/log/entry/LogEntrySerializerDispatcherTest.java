@@ -99,7 +99,7 @@ class LogEntrySerializerDispatcherTest {
         }
 
         VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
-                StorageEngineFactory.defaultStorageEngine().commandReaderFactory(), BINARY_VERSIONS);
+                StorageEngineFactory.defaultStorageEngine().commandReaderFactory(), BINARY_VERSIONS, INSTANCE);
         try (var readChannel = ReadAheadUtils.newChannel(
                 new PhysicalLogVersionedStoreChannel(
                         fs.read(path), 1, logFormat, path, EMPTY_ACCESSOR, DatabaseTracer.NULL),
@@ -153,7 +153,7 @@ class LogEntrySerializerDispatcherTest {
         // when
         LogEntrySerializer<LogEntry> parser =
                 serializationSet(version, BINARY_VERSIONS).select(LogEntryTypeCodes.TX_START);
-        LogEntry logEntry = parser.parse(version, channel, marker, commandReader);
+        LogEntry logEntry = parser.parse(version, channel, marker, commandReader, INSTANCE);
 
         // then
         assertEquals(start, logEntry);
@@ -181,7 +181,7 @@ class LogEntrySerializerDispatcherTest {
             LogEntrySerializer<LogEntry> parser =
                     serializationSet(version, BINARY_VERSIONS).select(LogEntryTypeCodes.TX_START);
 
-            assertThatThrownBy(() -> parser.parse(version, channel, marker, commandReader))
+            assertThatThrownBy(() -> parser.parse(version, channel, marker, commandReader, INSTANCE))
                     .isInstanceOf(IOException.class);
         }
     }
@@ -230,7 +230,7 @@ class LogEntrySerializerDispatcherTest {
         byte readVersion = channel.getVersion();
         LogEntrySerializer<LogEntry> parser =
                 serializationSet(version, BINARY_VERSIONS).select(LogEntryTypeCodes.TX_COMMIT);
-        LogEntry logEntry = parser.parse(version, channel, marker, commandReader);
+        LogEntry logEntry = parser.parse(version, channel, marker, commandReader, INSTANCE);
 
         // then
         assertEquals(version.version(), readVersion);
@@ -251,7 +251,7 @@ class LogEntrySerializerDispatcherTest {
         // when
         LogEntrySerializer<LogEntry> parser =
                 serializationSet(version, BINARY_VERSIONS).select(LogEntryTypeCodes.COMMAND);
-        LogEntry logEntry = parser.parse(version, channel, marker, commandReader);
+        LogEntry logEntry = parser.parse(version, channel, marker, commandReader, INSTANCE);
 
         // then
         assertEquals(command, logEntry);

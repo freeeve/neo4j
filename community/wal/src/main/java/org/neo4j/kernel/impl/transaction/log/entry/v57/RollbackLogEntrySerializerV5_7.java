@@ -29,6 +29,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
 /**
@@ -79,7 +80,8 @@ public class RollbackLogEntrySerializerV5_7 extends LogEntrySerializer<LogEntryR
             KernelVersion version,
             ReadableChannel channel,
             LogPositionMarker marker,
-            CommandReaderFactory commandReaderFactory)
+            CommandReaderFactory commandReaderFactory,
+            MemoryTracker memoryTracker)
             throws IOException {
         long transactionId = channel.getLong();
         long timeWritten = channel.getLong();

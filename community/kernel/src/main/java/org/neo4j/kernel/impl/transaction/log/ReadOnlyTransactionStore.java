@@ -26,6 +26,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
@@ -49,7 +50,13 @@ public class ReadOnlyTransactionStore implements LogicalTransactionStore {
                 .withConfig(config)
                 .build();
         physicalStore = new PhysicalLogicalTransactionStore(
-                logFiles, transactionMetadataCache, commandReaderFactory, monitors, true, config);
+                logFiles,
+                transactionMetadataCache,
+                commandReaderFactory,
+                monitors,
+                true,
+                config,
+                EmptyMemoryTracker.INSTANCE);
     }
 
     @Override

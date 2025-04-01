@@ -167,7 +167,8 @@ public class DetachedLogTailScanner {
                         logFiles.getLogFile(),
                         checkpoint.kernelVersion(),
                         checkpoint.appendIndex(),
-                        checkpoint.transactionLogPosition()));
+                        checkpoint.transactionLogPosition(),
+                        memoryTracker));
     }
 
     private PostCheckpointInfo getPostCheckpointInfo(
@@ -197,7 +198,8 @@ public class DetachedLogTailScanner {
                         logFiles.getLogFile(),
                         logFileVersion,
                         UNKNOWN_APPEND_INDEX,
-                        startPosition));
+                        startPosition,
+                        memoryTracker));
     }
 
     private static LogPosition getLogStartPosition(LogFile logFile, long lowestLogVersion) throws IOException {
@@ -260,8 +262,8 @@ public class DetachedLogTailScanner {
                             ? logPosition
                             : logFile.extractHeader(logVersion).getStartPosition();
 
-                    var logEntryReader =
-                            new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions);
+                    var logEntryReader = new VersionAwareLogEntryReader(
+                            commandReaderFactory, binarySupportedKernelVersions, memoryTracker);
                     LogPosition position;
                     try (var reader = logFile.getReader(lookupPosition, NO_MORE_CHANNELS);
                             var cursor = new LogEntryCursor(logEntryReader, reader)) {
@@ -315,8 +317,8 @@ public class DetachedLogTailScanner {
                             ? logPosition
                             : logFile.extractHeader(logVersion).getStartPosition();
 
-                    var logEntryReader =
-                            new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions);
+                    var logEntryReader = new VersionAwareLogEntryReader(
+                            commandReaderFactory, binarySupportedKernelVersions, memoryTracker);
                     try (var reader = logFile.getReader(lookupPosition, NO_MORE_CHANNELS);
                             var cursor = new LogEntryCursor(logEntryReader, reader)) {
                         AbstractVersionAwareLogEntry entry;
@@ -406,7 +408,8 @@ public class DetachedLogTailScanner {
     private long findConsensusIndexForTransactionId(
             LogFile logFile, long requiredTransactionId, LogPosition checkpointTransactionPosition) throws IOException {
         long logVersion = checkpointTransactionPosition.getLogVersion();
-        var logEntryReader = new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions);
+        var logEntryReader =
+                new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions, memoryTracker);
         try {
             while (logFile.versionExists(logVersion)) {
                 var logHeader = logFile.extractHeader(logVersion);

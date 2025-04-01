@@ -30,6 +30,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.BadLogEntryException;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 
 public class StartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntryStartV5_20> {
@@ -42,7 +43,8 @@ public class StartLogEntrySerializerV5_20 extends LogEntrySerializer<LogEntrySta
             KernelVersion version,
             ReadableChannel channel,
             LogPositionMarker marker,
-            CommandReaderFactory commandReaderFactory)
+            CommandReaderFactory commandReaderFactory,
+            MemoryTracker memoryTracker)
             throws IOException {
         long timeWritten = channel.getLong();
         long latestCommittedTxWhenStarted = channel.getLong();

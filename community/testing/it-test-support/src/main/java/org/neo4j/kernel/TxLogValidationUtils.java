@@ -157,7 +157,8 @@ public class TxLogValidationUtils {
             LogEntryReader entryReader = new VersionAwareLogEntryReader(
                     commandReaderFactory,
                     new BinarySupportedKernelVersions(Config.defaults(
-                            GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version())));
+                            GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version())),
+                    EmptyMemoryTracker.INSTANCE);
             LogEntry entry;
             boolean inTx = false;
             while ((entry = entryReader.readLogEntry(reader)) != null) {
@@ -233,7 +234,8 @@ public class TxLogValidationUtils {
             LogEntryReader entryReader = new VersionAwareLogEntryReader(
                     commandReaderFactory,
                     new BinarySupportedKernelVersions(Config.defaults(
-                            GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version())));
+                            GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version())),
+                    EmptyMemoryTracker.INSTANCE);
             LogEntry entry;
             while ((entry = entryReader.readLogEntry(reader)) != null) {
                 LogEntryDetachedCheckpointV5_22 logEntry =

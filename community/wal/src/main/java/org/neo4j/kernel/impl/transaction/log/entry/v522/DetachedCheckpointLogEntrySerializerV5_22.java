@@ -34,6 +34,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializer;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
+import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdSerialization;
@@ -60,7 +61,8 @@ public class DetachedCheckpointLogEntrySerializerV5_22 extends LogEntrySerialize
             KernelVersion version,
             ReadableChannel channel,
             LogPositionMarker marker,
-            CommandReaderFactory commandReaderFactory)
+            CommandReaderFactory commandReaderFactory,
+            MemoryTracker memoryTracker)
             throws IOException {
         LogPosition checkpointedLogPosition = new LogPosition(channel.getLong(), channel.getLong());
         LogPosition oldestNotCompletedPosition = new LogPosition(channel.getLong(), channel.getLong());

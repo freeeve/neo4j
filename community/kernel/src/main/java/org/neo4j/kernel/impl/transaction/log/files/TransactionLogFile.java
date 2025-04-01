@@ -873,7 +873,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         try (var readAheadLogChannel =
                 ReadAheadUtils.newChannel(new UnclosableChannel(channel), logHeader, memoryTracker)) {
             final var logEntryReader = new VersionAwareLogEntryReader(
-                    context.getCommandReaderFactory(), context.getBinarySupportedKernelVersions());
+                    context.getCommandReaderFactory(), context.getBinarySupportedKernelVersions(), memoryTracker);
             LogEntry entry;
             do {
                 // seek to the end the records.

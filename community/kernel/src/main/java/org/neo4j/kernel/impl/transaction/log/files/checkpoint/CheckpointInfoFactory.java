@@ -133,7 +133,9 @@ public final class CheckpointInfoFactory {
                 var reader = new ReadAheadLogChannel(new UnclosableChannel(channel), context.getMemoryTracker());
                 var logEntryCursor = new LogEntryCursor(
                         new VersionAwareLogEntryReader(
-                                context.getCommandReaderFactory(), context.getBinarySupportedKernelVersions()),
+                                context.getCommandReaderFactory(),
+                                context.getBinarySupportedKernelVersions(),
+                                context.getMemoryTracker()),
                         reader)) {
             LogPosition checkedPosition = null;
             LogEntryStart logEntryStart = null;

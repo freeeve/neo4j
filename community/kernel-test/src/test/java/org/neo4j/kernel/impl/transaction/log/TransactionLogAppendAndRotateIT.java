@@ -443,7 +443,8 @@ class TransactionLogAppendAndRotateIT {
                             GraphDatabaseInternalSettings.latest_runtime_version,
                             DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion(),
                             GraphDatabaseInternalSettings.latest_kernel_version,
-                            GLORIOUS_FUTURE.version()))));
+                            GLORIOUS_FUTURE.version()))),
+                    EmptyMemoryTracker.INSTANCE);
             LogEntry entry;
             boolean inTx = false;
             while ((entry = entryReader.readLogEntry(reader)) != null) {

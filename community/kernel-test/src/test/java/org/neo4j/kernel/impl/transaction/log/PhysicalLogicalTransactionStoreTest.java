@@ -157,7 +157,7 @@ class PhysicalLogicalTransactionStoreTest {
         positionCache.clear();
 
         final LogicalTransactionStore store = new PhysicalLogicalTransactionStore(
-                logFiles, positionCache, TestCommandReaderFactory.INSTANCE, monitors, true, config);
+                logFiles, positionCache, TestCommandReaderFactory.INSTANCE, monitors, true, config, INSTANCE);
         verifyTransaction(
                 positionCache,
                 consensusIndex,
@@ -230,7 +230,7 @@ class PhysicalLogicalTransactionStoreTest {
                 new FakeRecoveryVisitor(consensusIndex, timeStarted, timeCommitted, latestCommittedTxWhenStarted);
 
         LogicalTransactionStore txStore = new PhysicalLogicalTransactionStore(
-                logFiles, positionCache, TestCommandReaderFactory.INSTANCE, monitors, true, config);
+                logFiles, positionCache, TestCommandReaderFactory.INSTANCE, monitors, true, config, INSTANCE);
 
         life.add(createTransactionAppender(
                 transactionIdStore, logFiles, new DatabaseConfig(Config.defaults()), jobScheduler, positionCache));
@@ -299,7 +299,7 @@ class PhysicalLogicalTransactionStoreTest {
         life = new LifeSupport();
         life.add(logFiles);
         final LogicalTransactionStore store = new PhysicalLogicalTransactionStore(
-                logFiles, positionCache, TestCommandReaderFactory.INSTANCE, monitors, true, config);
+                logFiles, positionCache, TestCommandReaderFactory.INSTANCE, monitors, true, config, INSTANCE);
 
         // WHEN
         life.start();
@@ -333,7 +333,7 @@ class PhysicalLogicalTransactionStoreTest {
         LifeSupport life = new LifeSupport();
 
         final LogicalTransactionStore txStore = new PhysicalLogicalTransactionStore(
-                logFiles, cache, TestCommandReaderFactory.INSTANCE, monitors, true, config);
+                logFiles, cache, TestCommandReaderFactory.INSTANCE, monitors, true, config, INSTANCE);
 
         try {
             life.start();

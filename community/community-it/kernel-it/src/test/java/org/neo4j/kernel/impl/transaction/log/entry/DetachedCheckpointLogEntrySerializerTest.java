@@ -57,6 +57,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.v50.LogEntryDetachedCheckpoin
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryDetachedCheckpointV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.LogEntryDetachedCheckpointV5_22;
 import org.neo4j.kernel.impl.transaction.tracing.DatabaseTracer;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.StoreIdSerialization;
@@ -88,7 +89,9 @@ class DetachedCheckpointLogEntrySerializerTest {
             }
 
             VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
-                    StorageEngineFactory.defaultStorageEngine().commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
+                    StorageEngineFactory.defaultStorageEngine().commandReaderFactory(),
+                    LatestVersions.BINARY_VERSIONS,
+                    INSTANCE);
             try (var readChannel = new ReadAheadLogChannel(
                     new PhysicalLogVersionedStoreChannel(
                             fs.read(path), 0, LATEST_LOG_FORMAT, path, EMPTY_ACCESSOR, DatabaseTracer.NULL),
@@ -130,7 +133,9 @@ class DetachedCheckpointLogEntrySerializerTest {
             }
 
             VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
-                    StorageEngineFactory.defaultStorageEngine().commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
+                    StorageEngineFactory.defaultStorageEngine().commandReaderFactory(),
+                    LatestVersions.BINARY_VERSIONS,
+                    EmptyMemoryTracker.INSTANCE);
             try (var readChannel = new ReadAheadLogChannel(
                     new PhysicalLogVersionedStoreChannel(
                             fs.read(path), 1, LogFormat.V7, path, EMPTY_ACCESSOR, DatabaseTracer.NULL),
@@ -204,7 +209,9 @@ class DetachedCheckpointLogEntrySerializerTest {
             }
 
             VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
-                    StorageEngineFactory.defaultStorageEngine().commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
+                    StorageEngineFactory.defaultStorageEngine().commandReaderFactory(),
+                    LatestVersions.BINARY_VERSIONS,
+                    EmptyMemoryTracker.INSTANCE);
             try (var readChannel = new ReadAheadLogChannel(
                     new PhysicalLogVersionedStoreChannel(
                             fs.read(path), 0, LATEST_LOG_FORMAT, path, EMPTY_ACCESSOR, DatabaseTracer.NULL),

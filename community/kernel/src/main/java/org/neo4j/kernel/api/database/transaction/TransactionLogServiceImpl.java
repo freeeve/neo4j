@@ -51,6 +51,7 @@ import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.TransactionId;
@@ -138,7 +139,8 @@ public class TransactionLogServiceImpl implements TransactionLogService {
         var versionLocator = new AppendedChunkLogVersionLocator(appendIndexToLookup);
         logFile.accept(versionLocator);
 
-        var logEntryReader = new VersionAwareLogEntryReader(commandReaderFactory, binarySupportedKernelVersions);
+        var logEntryReader = new VersionAwareLogEntryReader(
+                commandReaderFactory, binarySupportedKernelVersions, EmptyMemoryTracker.INSTANCE);
         var transactionPositionLocator = new AppendedChunkPositionLocator(appendIndexToLookup, logEntryReader);
         logFile.accept(
                 transactionPositionLocator,

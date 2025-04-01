@@ -49,7 +49,9 @@ public class TransactionLogFileInformation implements LogFileInformation {
                 logHeaderCache,
                 context,
                 () -> new VersionAwareLogEntryReader(
-                        context.getCommandReaderFactory(), context.getBinarySupportedKernelVersions()));
+                        context.getCommandReaderFactory(),
+                        context.getBinarySupportedKernelVersions(),
+                        context.getMemoryTracker()));
     }
 
     @VisibleForTesting

@@ -156,7 +156,7 @@ class RecoverIndexDropIT {
         LogHeader logHeader = logFile.extractHeader(0);
         try (ReadableLogChannel reader = logFile.getReader(logHeader.getStartPosition())) {
             LogEntryReader logEntryReader = new VersionAwareLogEntryReader(
-                    storageEngineFactory.commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
+                    storageEngineFactory.commandReaderFactory(), LatestVersions.BINARY_VERSIONS, INSTANCE);
             while (logEntryReader.readLogEntry(reader) != null) {}
             LogPosition position = logEntryReader.lastPosition();
             Path logFileForVersion = logFile.getLogFileForVersion(logFile.getHighestLogVersion());

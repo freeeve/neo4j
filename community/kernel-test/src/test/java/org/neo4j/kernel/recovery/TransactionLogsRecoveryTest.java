@@ -215,7 +215,13 @@ class TransactionLogsRecoveryTest {
 
             TransactionMetadataCache metadataCache = new TransactionMetadataCache();
             LogicalTransactionStore txStore = new PhysicalLogicalTransactionStore(
-                    recoveryLogFiles, metadataCache, TestCommandReaderFactory.INSTANCE, monitors, false, config);
+                    recoveryLogFiles,
+                    metadataCache,
+                    TestCommandReaderFactory.INSTANCE,
+                    monitors,
+                    false,
+                    config,
+                    INSTANCE);
             CorruptedLogsTruncator logPruner =
                     new CorruptedLogsTruncator(storeDir, recoveryLogFiles, fileSystem, INSTANCE);
             monitors.addMonitorListener(monitor);
@@ -335,7 +341,7 @@ class TransactionLogsRecoveryTest {
 
             TransactionMetadataCache metadataCache = new TransactionMetadataCache();
             LogicalTransactionStore txStore = new PhysicalLogicalTransactionStore(
-                    logFiles, metadataCache, TestCommandReaderFactory.INSTANCE, monitors, false, config);
+                    logFiles, metadataCache, TestCommandReaderFactory.INSTANCE, monitors, false, config, INSTANCE);
             CorruptedLogsTruncator logPruner = new CorruptedLogsTruncator(storeDir, logFiles, fileSystem, INSTANCE);
             monitors.addMonitorListener(new RecoveryMonitor() {
                 @Override
@@ -657,7 +663,7 @@ class TransactionLogsRecoveryTest {
 
             TransactionMetadataCache metadataCache = new TransactionMetadataCache();
             LogicalTransactionStore txStore = new PhysicalLogicalTransactionStore(
-                    logFiles, metadataCache, TestCommandReaderFactory.INSTANCE, monitors, false, config);
+                    logFiles, metadataCache, TestCommandReaderFactory.INSTANCE, monitors, false, config, INSTANCE);
             CorruptedLogsTruncator logPruner = new CorruptedLogsTruncator(storeDir, logFiles, fileSystem, INSTANCE);
             monitors.addMonitorListener(monitor);
             life.add(new TransactionLogsRecovery(

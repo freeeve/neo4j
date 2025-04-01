@@ -46,7 +46,6 @@ import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.VersionedFile;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.CommandReaderFactory;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -83,8 +82,7 @@ public class TransactionLogChecker {
 
         KernelVersion versionSeen = KernelVersion.EARLIEST;
         for (long i = logFile.getLowestLogVersion(); i <= logFile.getHighestLogVersion(); i++) {
-            LogHeader logHeader =
-                    LogHeaderReader.readLogHeader(fs, logFile.getLogFileForVersion(i), EmptyMemoryTracker.INSTANCE);
+            LogHeader logHeader = LogHeaderReader.readLogHeader(fs, logFile.getLogFileForVersion(i), INSTANCE);
             if (logHeader == null) {
                 throw new InconsistentTransactionLogException(
                         "Could not read log header of %s file version %d".formatted(fileType.lowerCase, i));
@@ -192,8 +190,8 @@ public class TransactionLogChecker {
         KernelVersion seenVersion = expectedVersion;
         try (ReadableLogChannel reader =
                 logFile.getReader(logHeader.getStartPosition(), LogVersionBridge.NO_MORE_CHANNELS)) {
-            LogEntryReader entryReader =
-                    new VersionAwareLogEntryReader(commandReaderFactory, new BinarySupportedKernelVersions(config));
+            LogEntryReader entryReader = new VersionAwareLogEntryReader(
+                    commandReaderFactory, new BinarySupportedKernelVersions(config), INSTANCE);
 
             LogEntry entry;
             while ((entry = entryReader.readLogEntry(reader)) != null) {

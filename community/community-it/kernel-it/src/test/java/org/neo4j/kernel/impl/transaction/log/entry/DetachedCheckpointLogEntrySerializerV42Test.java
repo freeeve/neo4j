@@ -101,7 +101,7 @@ class DetachedCheckpointLogEntrySerializerV42Test {
         assertEquals(DETACHED_CHECK_POINT, channel.get());
         var checkpointParser = LogEntrySerializationSets.serializationSet(version, LatestVersions.BINARY_VERSIONS)
                 .select(DETACHED_CHECK_POINT);
-        LogEntry logEntry = checkpointParser.parse(version, channel, positionMarker, commandReader);
+        LogEntry logEntry = checkpointParser.parse(version, channel, positionMarker, commandReader, INSTANCE);
         assertEquals(checkpoint, logEntry);
     }
 
@@ -123,7 +123,9 @@ class DetachedCheckpointLogEntrySerializerV42Test {
         }
 
         VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
-                StorageEngineFactory.defaultStorageEngine().commandReaderFactory(), LatestVersions.BINARY_VERSIONS);
+                StorageEngineFactory.defaultStorageEngine().commandReaderFactory(),
+                LatestVersions.BINARY_VERSIONS,
+                INSTANCE);
         try (var readChannel = new ReadAheadLogChannel(
                 new PhysicalLogVersionedStoreChannel(
                         fs.read(path), 0, LATEST_LOG_FORMAT, path, EMPTY_ACCESSOR, DatabaseTracer.NULL),

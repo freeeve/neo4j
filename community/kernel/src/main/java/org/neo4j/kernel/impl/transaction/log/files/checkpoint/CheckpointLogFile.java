@@ -138,7 +138,8 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
         long lowestVersion = versionVisitor.getLowestVersion();
         long currentVersion = highestVersion;
 
-        var checkpointReader = new VersionAwareLogEntryReader(NO_COMMANDS, binarySupportedKernelVersions);
+        var checkpointReader =
+                new VersionAwareLogEntryReader(NO_COMMANDS, binarySupportedKernelVersions, context.getMemoryTracker());
         while (currentVersion >= lowestVersion) {
             CheckpointEntryInfo checkpointEntry = null;
             Path currentCheckpointFile = getLogFileForVersion(currentVersion);
@@ -258,7 +259,8 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
         }
 
         long currentVersion = versionVisitor.getLowestVersion();
-        var checkpointReader = new VersionAwareLogEntryReader(NO_COMMANDS, binarySupportedKernelVersions);
+        var checkpointReader =
+                new VersionAwareLogEntryReader(NO_COMMANDS, binarySupportedKernelVersions, context.getMemoryTracker());
         var checkpoints = new ArrayList<CheckpointInfo>();
 
         final var readerBridge = ReaderLogVersionBridge.forFile(this);
