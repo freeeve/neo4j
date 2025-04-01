@@ -2608,6 +2608,12 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(UnaryOperator(source => RemoteBatchProperties(source, properties)(_)))
   }
 
+  def remoteBatchPropertiesWithFilterExpression(cachedProperties: String*)(expressions: Expression*): IMPL =
+    remoteBatchPropertiesWithFilter(
+      expressions.toSet,
+      cachedProperties.map(parseExpression(_).asInstanceOf[LogicalProperty]).toSet
+    )
+
   def remoteBatchPropertiesWithFilter(cachedProperties: String*)(expressions: String*): IMPL =
     remoteBatchPropertiesWithFilter(
       expressions.map(parseExpression).toSet,

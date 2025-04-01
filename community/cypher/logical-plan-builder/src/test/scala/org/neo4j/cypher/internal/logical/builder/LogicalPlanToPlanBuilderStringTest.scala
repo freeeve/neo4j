@@ -1072,6 +1072,18 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "remoteBatchPropertiesWithFilterExpression",
+    new TestPlanBuilder()
+      .produceResults("x", "y")
+      .remoteBatchPropertiesWithFilterExpression("n.prop", "m.prop", "r.prop")(
+        equals(prop("n", "prop"), literalInt(5)),
+        equals(prop("r", "prop"), literalInt(5))
+      )
+      .argument()
+      .build()
+  )
+
+  testPlan(
     "cartesianProduct",
     new TestPlanBuilder()
       .produceResults("x", "y")

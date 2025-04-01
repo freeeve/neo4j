@@ -44,6 +44,8 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.StartsWith
+import org.neo4j.cypher.internal.frontend.phases.QualifiedName
+import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
@@ -336,7 +338,10 @@ object ShardPredicatePushdownPartition {
             findAllSupportedPropertyAccesses(nextExpressions ++ inequalities, knownUncachedPropertyAccesses)
           case _: Parameter => findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
           case _: Literal   => findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
-          case _            => Left(PredicatePushdownUnsupported)
+          case ResolvedFunctionInvocation(QualifiedName(_, name), _, args)
+            if args.nonEmpty && (name == "date" || name == "datetime" || name == "localdatetime" || name == "localtime" || name == "time" || name == "duration") =>
+            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
+          case _ => Left(PredicatePushdownUnsupported)
         }
     }
 
