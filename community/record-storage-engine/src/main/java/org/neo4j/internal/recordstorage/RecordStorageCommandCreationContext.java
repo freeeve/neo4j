@@ -64,7 +64,7 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
     private StoreCursors storeCursors;
     private ResourceLocker locks;
     private final DynamicAllocatorProvider dynamicAllocatorProvider;
-    private final IdSequenceProvider transactionSequenceProvider;
+    private final IdSequenceProvider idSequenceProvider;
 
     RecordStorageCommandCreationContext(
             NeoStores neoStores,
@@ -79,8 +79,8 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
         this.neoStores = neoStores;
         this.config = config;
         this.multiVersioned = multiVersioned;
-        this.transactionSequenceProvider = createIdSequenceProvider(neoStores, multiVersioned);
-        this.dynamicAllocatorProvider = new TransactionDynamicAllocatorProvider(neoStores, transactionSequenceProvider);
+        this.idSequenceProvider = createIdSequenceProvider(neoStores, multiVersioned);
+        this.dynamicAllocatorProvider = new TransactionDynamicAllocatorProvider(neoStores, idSequenceProvider);
     }
 
     @Override
@@ -105,17 +105,17 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
                 dynamicAllocatorProvider.allocator(StoreType.PROPERTY_STRING),
                 dynamicAllocatorProvider.allocator(StoreType.PROPERTY_ARRAY),
                 propertyTraverser,
-                transactionSequenceProvider,
+                idSequenceProvider,
                 cursorContext);
     }
 
     @Override
     public boolean resetIds() {
-        return multiVersioned && transactionSequenceProvider.reset();
+        return multiVersioned && idSequenceProvider.reset();
     }
 
     private long nextId(StoreType storeType) {
-        return transactionSequenceProvider.getIdSequence(storeType).nextId(cursorContext);
+        return idSequenceProvider.getIdSequence(storeType).nextId(cursorContext);
     }
 
     ResourceLocker getLocks() {
@@ -159,7 +159,7 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
 
     @Override
     public void close() {
-        transactionSequenceProvider.release(cursorContext);
+        idSequenceProvider.release(cursorContext);
     }
 
     TransactionRecordState createTransactionRecordState(
@@ -194,7 +194,7 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
                 memoryTracker,
                 commandSerialization,
                 dynamicAllocatorProvider,
-                transactionSequenceProvider);
+                idSequenceProvider);
     }
 
     @Override
@@ -205,13 +205,12 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
     private static class TransactionDynamicAllocatorProvider implements DynamicAllocatorProvider {
         private final StandardDynamicRecordAllocator[] dynamicAllocators =
                 new StandardDynamicRecordAllocator[StoreType.STORE_TYPES.length];
-        private final IdSequenceProvider transactionSequenceProvider;
+        private final IdSequenceProvider idSequenceProvider;
         private final NeoStores neoStores;
 
-        public TransactionDynamicAllocatorProvider(
-                NeoStores neoStores, IdSequenceProvider transactionSequenceProvider) {
+        public TransactionDynamicAllocatorProvider(NeoStores neoStores, IdSequenceProvider idSequenceProvider) {
             this.neoStores = neoStores;
-            this.transactionSequenceProvider = transactionSequenceProvider;
+            this.idSequenceProvider = idSequenceProvider;
         }
 
         @Override
@@ -222,8 +221,7 @@ class RecordStorageCommandCreationContext implements CommandCreationContext {
             }
 
             var newAllocator = new StandardDynamicRecordAllocator(
-                    cursorContext ->
-                            transactionSequenceProvider.getIdSequence(type).nextId(cursorContext),
+                    cursorContext -> idSequenceProvider.getIdSequence(type).nextId(cursorContext),
                     neoStores.getRecordStore(type).getRecordDataSize());
             dynamicAllocators[type.ordinal()] = newAllocator;
             return newAllocator;

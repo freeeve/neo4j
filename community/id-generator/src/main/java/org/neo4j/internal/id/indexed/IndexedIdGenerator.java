@@ -187,7 +187,7 @@ public class IndexedIdGenerator implements IdGenerator {
     /**
      * Represents the absence of an id in the id cache.
      */
-    static final long NO_ID = -1;
+    public static final long NO_ID = -1;
 
     /**
      * Number of ids per entry in the GBPTree.

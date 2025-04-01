@@ -2193,6 +2193,30 @@ class IndexedIdGeneratorTest {
         assertThat(gatherDeleteIds()).isEqualTo(gatherExpectedDeleteIds(allocatedIds));
     }
 
+    @Test
+    void shouldMultiVersionIdGGeneratorGood() throws IOException {
+        /*
+           [1, 2, 4, 8]
+           [1]  5, 24, 52
+           [2]  6(2)
+           [4]  //6(5)
+           [8]
+
+
+           - record deletion -> buffering -> IdCache
+           - record deletion -> buffering -> write to tree -> later find via search ->
+
+           [00000000 00000000 00000111 11000000] commit bits used/deleted
+           [00000000 00000000 00000000 00000000] free bits
+           [00000000 00000000 00000000 00000000] reserved bits
+        */
+
+        open(customization().with(slotDistribution(new int[] {1, 2, 3, 4})));
+        idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
+        var pageRange = idGenerator.nextPageRange(NULL_CONTEXT, 128);
+        //        pageRange.nextConsecutiveIds(4);
+    }
+
     private MutableLongList gatherDeleteIds() throws IOException {
         var actualFreeIds = LongLists.mutable.empty();
         try (var freeIdsIterator = idGenerator.notUsedIdsIterator()) {
