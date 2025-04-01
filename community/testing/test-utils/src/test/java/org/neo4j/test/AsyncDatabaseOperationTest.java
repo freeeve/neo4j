@@ -32,6 +32,7 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.graphdb.GraphDatabaseService;
 
 class AsyncDatabaseOperationTest {
@@ -42,7 +43,7 @@ class AsyncDatabaseOperationTest {
     @Test
     void shouldThrowAtTheEnd() {
         var managementService = mock(DatabaseManagementService.class);
-        when(managementService.database(DB)).thenThrow(new DatabaseNotFoundException());
+        when(managementService.database(DB)).thenThrow(DatabaseNotFoundHelper.databaseNotFound(DB));
 
         assertThat(assertThrows(
                         DatabaseNotFoundException.class, () -> findDatabaseEventually(managementService, DB, TIMEOUT)))
@@ -56,7 +57,7 @@ class AsyncDatabaseOperationTest {
         var database = mock(GraphDatabaseService.class);
         when(database.isAvailable()).thenReturn(false);
         when(managementService.database(DB))
-                .thenThrow(new DatabaseNotFoundException())
+                .thenThrow(DatabaseNotFoundHelper.databaseNotFound(DB))
                 .thenReturn(database);
 
         assertThat(assertThrows(
@@ -73,7 +74,7 @@ class AsyncDatabaseOperationTest {
         when(unavaliableDatabase.isAvailable()).thenReturn(false);
         when(availableDatabase.isAvailable()).thenReturn(true);
         when(managementService.database(DB))
-                .thenThrow(new DatabaseNotFoundException())
+                .thenThrow(DatabaseNotFoundHelper.databaseNotFound(DB))
                 .thenReturn(unavaliableDatabase)
                 .thenReturn(availableDatabase);
 
