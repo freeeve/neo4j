@@ -25,39 +25,32 @@ import java.util.Scanner;
 /**
  * To test manually proxy create a server and client socket with nc tool
  * */
-public class ManuallyTestNeo4jProxy
-{
-    public static void main( String[] args ) throws IOException
-    {
-        Scanner scanner = new Scanner( System.in );
+public class ManualNeo4jProxy {
+    public static void main(String[] args) throws IOException {
+        Scanner scanner = new Scanner(System.in);
         var proxy = TcpCrusherProxy.builder().build();
         var proxyConfig = proxy.getProxyConfig();
-        System.out.println( proxyConfig );
-        while ( true )
-        {
+        System.out.println(proxyConfig);
+        while (true) {
             var line = scanner.nextLine();
-            if ( line.equals( "o" ) )
-            {
-                System.out.println( "startAcceptingConnections" );
-                proxy.startAcceptingConnections();
-            }
-            else if ( line.equals( "c" ) )
-            {
-                System.out.println( "stopAcceptingConnections" );
-                proxy.stopAcceptingConnections();
-            }
-            else if ( line.equals( "f" ) )
-            {
-                System.out.println( "freezeConnection" );
-                proxy.freezeConnection();
-            }
-            else if ( line.equals( "u" ) )
-            {
-                System.out.println( "unfreezeConnection" );
-                proxy.unfreezeConnection();
-            }
-            else {
-                System.out.println("error");
+            switch (line) {
+                case "o" -> {
+                    System.out.println("startAcceptingConnections");
+                    proxy.startAcceptingConnections();
+                }
+                case "c" -> {
+                    System.out.println("stopAcceptingConnections");
+                    proxy.stopAcceptingConnections();
+                }
+                case "f" -> {
+                    System.out.println("freezeConnection");
+                    proxy.freezeConnection();
+                }
+                case "u" -> {
+                    System.out.println("unfreezeConnection");
+                    proxy.unfreezeConnection();
+                }
+                default -> System.out.println("error");
             }
         }
     }
