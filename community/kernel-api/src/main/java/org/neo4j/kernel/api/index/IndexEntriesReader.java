@@ -25,6 +25,10 @@ import org.neo4j.values.storable.Value;
 public interface IndexEntriesReader extends LongIterator, AutoCloseable {
     Value[] values();
 
+    default int compareCurrentValues(IndexEntriesReader other) {
+        throw new UnsupportedOperationException(getClass().getName() + " does not support compareCurrentValues");
+    }
+
     @Override
     void close();
 }

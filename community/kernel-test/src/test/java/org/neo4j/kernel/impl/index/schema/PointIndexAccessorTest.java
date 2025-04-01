@@ -97,7 +97,7 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
     }
 
     @Override
-    IndexAccessor createAccessor(PageCache pageCache) {
+    IndexAccessor createAccessor(PageCache pageCache, IndexDescriptor indexDescriptor) {
         RecoveryCleanupWorkCollector cleanup = RecoveryCleanupWorkCollector.immediate();
         DatabaseIndexContext context = DatabaseIndexContext.builder(
                         pageCache, fs, contextFactory, pageCacheTracer, DEFAULT_DATABASE_NAME)
@@ -105,10 +105,10 @@ class PointIndexAccessorTest extends NativeIndexAccessorTests<PointKey> {
                 .build();
         return new PointIndexAccessor(
                 context,
-                indexFiles,
+                createIndexFiles(fs, directory, indexDescriptor),
                 layout,
                 cleanup,
-                INDEX_DESCRIPTOR,
+                indexDescriptor,
                 SPACE_FILLING_CURVE_SETTINGS,
                 CONFIGURATION,
                 Sets.immutable.empty(),

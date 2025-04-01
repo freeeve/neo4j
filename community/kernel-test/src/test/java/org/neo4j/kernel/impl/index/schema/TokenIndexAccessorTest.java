@@ -79,7 +79,7 @@ import org.neo4j.storageengine.api.TokenIndexEntryUpdate;
 
 public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, TokenScanValue, TokenScanLayout> {
     @Override
-    IndexAccessor createAccessor(PageCache pageCache) {
+    IndexAccessor createAccessor(PageCache pageCache, IndexDescriptor indexDescriptor) {
         RecoveryCleanupWorkCollector cleanup = RecoveryCleanupWorkCollector.immediate();
         DatabaseIndexContext context = DatabaseIndexContext.builder(
                         pageCache, fs, contextFactory, pageCacheTracer, DEFAULT_DATABASE_NAME)
@@ -87,7 +87,7 @@ public class TokenIndexAccessorTest extends IndexAccessorTests<TokenScanKey, Tok
                 .build();
         return new TokenIndexAccessor(
                 context,
-                indexFiles,
+                createIndexFiles(fs, directory, indexDescriptor),
                 indexDescriptor,
                 cleanup,
                 Sets.immutable.empty(),

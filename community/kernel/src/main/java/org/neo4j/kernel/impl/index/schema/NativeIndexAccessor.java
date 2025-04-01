@@ -219,6 +219,92 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
         }
     }
 
+    @Override
+    public void validateShards(
+            IndexAccessor[] otherShards,
+            boolean valueUniqueness,
+            ShardedIndexEntryConflictHandler conflictHandler,
+            int threads,
+            JobScheduler jobScheduler) {
+        List<NativeIndexAccessor<KEY>> allShards = new ArrayList<>();
+        allShards.add(this);
+        for (var shard : otherShards) {
+            allShards.add((NativeIndexAccessor<KEY>) shard);
+        }
+
+        try {
+            List<JobHandle<Void>> handles = new ArrayList<>();
+            List<KEY> partitionEdges = tree.partitionedSeek(lowestKey(), highestKey(), threads, NULL_CONTEXT);
+            for (int p = 0; p < partitionEdges.size() - 1; p++) {
+                KEY from = partitionEdges.get(p);
+                KEY to = partitionEdges.get(p + 1);
+                handles.add(jobScheduler.schedule(
+                        Group.INDEX_POPULATION_WORK,
+                        new JobMonitoringParams(Subject.AUTH_DISABLED, databaseName, "validateShard"),
+                        () -> {
+                            IndexValueIterator[] readers = new IndexValueIterator[allShards.size()];
+                            for (int i = 0; i < allShards.size(); i++) {
+                                var accessor = allShards.get(i);
+                                var seeker = accessor.tree.seek(from, to, NULL_CONTEXT);
+                                readers[i] = new IndexValueIterator(accessor, new NativeIndexEntriesReader(seeker));
+                            }
+                            validateShardData(conflictHandler, readers);
+                            return null;
+                        }));
+            }
+            JobHandles.getAllResults(handles, RuntimeException.class, RuntimeException::new);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static void validateShardData(
+            ShardedIndexEntryConflictHandler conflictHandler, IndexValueIterator[] readers) {
+        try {
+            while (true) {
+                int lowestShardIndex = -1;
+                for (int shardIndex = 0; shardIndex < readers.length; shardIndex++) {
+                    var reader = readers[shardIndex];
+                    if (reader.isExhausted()) {
+                        continue;
+                    }
+
+                    if (lowestShardIndex == -1) {
+                        lowestShardIndex = shardIndex;
+                    } else {
+                        int comparison = reader.reader.compareCurrentValues(readers[lowestShardIndex].reader);
+                        if (comparison < 0) {
+                            lowestShardIndex = shardIndex;
+                        }
+                    }
+                }
+                if (lowestShardIndex == -1) {
+                    break;
+                }
+
+                for (int shardIndex = 0; shardIndex < readers.length; shardIndex++) {
+                    var reader = readers[shardIndex];
+                    if (reader.isExhausted() || shardIndex == lowestShardIndex) {
+                        continue;
+                    }
+                    var lowest = readers[lowestShardIndex];
+                    if (reader.reader.compareCurrentValues(lowest.reader) == 0) {
+                        conflictHandler.indexEntryConflict(
+                                lowest.currentEntityId,
+                                lowest.accessor,
+                                reader.currentEntityId,
+                                reader.accessor,
+                                reader.reader.values());
+                        reader.next();
+                    }
+                }
+                readers[lowestShardIndex].next();
+            }
+        } finally {
+            IOUtils.closeAllUnchecked(readers);
+        }
+    }
+
     /**
      * {@link IndexUpdateIgnoreStrategy Ignore strategy} to be used by index updater.
      * Sub-classes are expected to override this method if they want to use something
@@ -272,51 +358,108 @@ public abstract class NativeIndexAccessor<KEY extends NativeIndexKey<KEY>> exten
 
     @Override
     public IndexEntriesReader[] newAllEntriesValueReader(int partitions, CursorContext cursorContext) {
-        KEY lowest = layout.newKey();
-        lowest.initialize(Long.MIN_VALUE);
-        lowest.initValuesAsLowest();
-        KEY highest = layout.newKey();
-        highest.initialize(Long.MAX_VALUE);
-        highest.initValuesAsHighest();
         try {
-            List<KEY> partitionEdges = tree.partitionedSeek(lowest, highest, partitions, cursorContext);
+            List<KEY> partitionEdges = tree.partitionedSeek(lowestKey(), highestKey(), partitions, cursorContext);
             Collection<IndexEntriesReader> readers = new ArrayList<>();
             for (int i = 0; i < partitionEdges.size() - 1; i++) {
                 Seeker<KEY, NullValue> seeker =
                         tree.seek(partitionEdges.get(i), partitionEdges.get(i + 1), cursorContext);
-                readers.add(new IndexEntriesReader() {
-                    @Override
-                    public long next() {
-                        return seeker.key().getEntityId();
-                    }
-
-                    @Override
-                    public boolean hasNext() {
-                        try {
-                            return seeker.next();
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    }
-
-                    @Override
-                    public Value[] values() {
-                        return seeker.key().asValues();
-                    }
-
-                    @Override
-                    public void close() {
-                        try {
-                            seeker.close();
-                        } catch (IOException e) {
-                            throw new UncheckedIOException(e);
-                        }
-                    }
-                });
+                readers.add(new NativeIndexEntriesReader(seeker));
             }
             return readers.toArray(IndexEntriesReader[]::new);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    private KEY highestKey() {
+        KEY highest = layout.newKey();
+        highest.initialize(Long.MAX_VALUE);
+        highest.initValuesAsHighest();
+        return highest;
+    }
+
+    private KEY lowestKey() {
+        KEY lowest = layout.newKey();
+        lowest.initialize(Long.MIN_VALUE);
+        lowest.initValuesAsLowest();
+        return lowest;
+    }
+
+    private class NativeIndexEntriesReader implements IndexEntriesReader {
+        private final Seeker<KEY, NullValue> seeker;
+
+        public NativeIndexEntriesReader(Seeker<KEY, NullValue> seeker) {
+            this.seeker = seeker;
+        }
+
+        @Override
+        public long next() {
+            return seeker.key().getEntityId();
+        }
+
+        @Override
+        public boolean hasNext() {
+            try {
+                return seeker.next();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+
+        @Override
+        public Value[] values() {
+            return seeker.key().asValues();
+        }
+
+        @Override
+        public int compareCurrentValues(IndexEntriesReader other) {
+            var otherReader = (NativeIndexEntriesReader) other;
+            return layout.compareValue(seeker.key(), otherReader.seeker.key());
+        }
+
+        @Override
+        public void close() {
+            try {
+                seeker.close();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        }
+    }
+
+    private static class IndexValueIterator implements AutoCloseable {
+        private final IndexAccessor accessor;
+        private final IndexEntriesReader reader;
+
+        private boolean isExhausted;
+        private long currentEntityId;
+
+        IndexValueIterator(IndexAccessor accessor, IndexEntriesReader reader) {
+            this.accessor = accessor;
+            this.reader = reader;
+            next();
+        }
+
+        boolean isExhausted() {
+            return isExhausted;
+        }
+
+        void next() {
+            if (isExhausted) {
+                return;
+            }
+
+            if (reader.hasNext()) {
+                currentEntityId = reader.next();
+            } else {
+                isExhausted = true;
+            }
+        }
+
+        @Override
+        public void close() {
+            reader.close();
         }
     }
 }

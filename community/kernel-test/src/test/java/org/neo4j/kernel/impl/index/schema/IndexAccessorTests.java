@@ -34,6 +34,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.index.internal.gbptree.Layout;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexUpdater;
@@ -54,7 +55,11 @@ abstract class IndexAccessorTests<KEY, VALUE, LAYOUT extends Layout<KEY, VALUE>>
         accessor.close();
     }
 
-    abstract IndexAccessor createAccessor(PageCache pageCache) throws IOException;
+    final IndexAccessor createAccessor(PageCache pageCache) throws IOException {
+        return createAccessor(pageCache, indexDescriptor());
+    }
+
+    abstract IndexAccessor createAccessor(PageCache pageCache, IndexDescriptor indexDescriptor) throws IOException;
 
     @Test
     void shouldHandleCloseWithoutCallsToProcess() throws Exception {

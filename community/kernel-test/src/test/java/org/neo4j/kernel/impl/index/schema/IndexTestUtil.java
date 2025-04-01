@@ -114,7 +114,7 @@ public abstract class IndexTestUtil<KEY, VALUE, LAYOUT extends Layout<KEY, VALUE
 
     abstract LAYOUT layout();
 
-    private IndexFiles createIndexFiles(
+    protected IndexFiles createIndexFiles(
             FileSystemAbstraction fs, TestDirectory directory, IndexDescriptor indexDescriptor) {
         IndexDirectoryStructure indexDirectoryStructure =
                 directoriesByProvider(directory.directory("root")).forProvider(indexDescriptor.getIndexProvider());

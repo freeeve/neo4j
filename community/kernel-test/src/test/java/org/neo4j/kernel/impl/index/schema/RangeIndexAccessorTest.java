@@ -32,9 +32,18 @@ import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
 import static org.neo4j.kernel.impl.index.schema.ValueCreatorUtil.FRACTION_DUPLICATE_NON_UNIQUE;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+import org.eclipse.collections.api.factory.primitive.IntSets;
+import org.eclipse.collections.api.factory.primitive.LongSets;
+import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.Sets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -46,19 +55,26 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelE
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexOrder;
+import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.IndexQuery;
 import org.neo4j.internal.schema.IndexType;
+import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
+import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
+import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.api.schema.SimpleEntityValueClient;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
+import org.neo4j.values.storable.ValueTuple;
 import org.neo4j.values.storable.ValueType;
 import org.neo4j.values.storable.Values;
 
@@ -79,7 +95,7 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
     }
 
     @Override
-    NativeIndexAccessor<RangeKey> createAccessor(PageCache pageCache) {
+    NativeIndexAccessor<RangeKey> createAccessor(PageCache pageCache, IndexDescriptor indexDescriptor) {
         RecoveryCleanupWorkCollector cleanup = RecoveryCleanupWorkCollector.immediate();
         DatabaseIndexContext context = DatabaseIndexContext.builder(
                         pageCache, fs, contextFactory, pageCacheTracer, DEFAULT_DATABASE_NAME)
@@ -87,10 +103,10 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
                 .build();
         return new RangeIndexAccessor(
                 context,
-                indexFiles,
+                createIndexFiles(fs, directory, indexDescriptor),
                 layout,
                 cleanup,
-                INDEX_DESCRIPTOR,
+                indexDescriptor,
                 tokenNameLookup,
                 ElementIdMapper.PLACEHOLDER,
                 Sets.immutable.empty(),
@@ -218,6 +234,87 @@ class RangeIndexAccessorTest extends GenericNativeIndexAccessorTests<RangeKey> {
 
             expectIndexOrder(allValues, reader, IndexOrder.ASCENDING, exists);
             expectIndexOrder(allValues, reader, IndexOrder.DESCENDING, exists);
+        }
+    }
+
+    @Test
+    void shouldValidateUniquenessAmongShards() throws IOException, IndexEntryConflictException {
+        // given
+        int totalNumShards = 4;
+        var otherShards = new NativeIndexAccessor[totalNumShards - 1];
+        List<IndexDescriptor> indexDescriptors = new ArrayList<>();
+        indexDescriptors.add(indexDescriptor());
+        for (int i = 0; i < otherShards.length; i++) {
+            var shardIndexDescriptor = IndexPrototype.forSchema(INDEX_DESCRIPTOR.schema())
+                    .withIndexProvider(INDEX_DESCRIPTOR.getIndexProvider())
+                    .withName("shard-" + i)
+                    .materialise(INDEX_DESCRIPTOR.getId() + 1 + i);
+            otherShards[i] = createAccessor(pageCache, shardIndexDescriptor);
+            indexDescriptors.add(shardIndexDescriptor);
+        }
+
+        // Inserting a bunch of (across all shards) unique values into the shards
+        List<IndexUpdater> updaters = new ArrayList<>();
+        updaters.add(accessor.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false));
+        for (var shard : otherShards) {
+            updaters.add(shard.newUpdater(IndexUpdateMode.ONLINE, CursorContext.NULL_CONTEXT, false));
+        }
+        int initialDataSize = 100_000;
+        int numConflicts = random.nextInt(100, 1_000);
+        Map<ValueTuple, MutableLongSet> data = new ConcurrentHashMap<>();
+        try {
+            for (int i = 0; i < initialDataSize; i++) {
+                int shard = i % totalNumShards;
+                var updater = updaters.get(shard);
+                var descriptor = indexDescriptors.get(shard);
+                var value = Values.stringValue("Value" + i);
+                updater.process(IndexEntryUpdate.add(i, descriptor, value));
+                data.put(ValueTuple.of(value), LongSets.mutable.of(i));
+            }
+
+            var conflictsAdded = IntSets.mutable.empty();
+            for (int i = 0; i < numConflicts; i++) {
+                // The assumption here is that all these shards are internally unique
+                int conflictingValueId;
+                do {
+                    conflictingValueId = random.nextInt(initialDataSize);
+                } while (!conflictsAdded.add(conflictingValueId));
+
+                // Don't make a shard have conflicts, there should only be conflicts across shards
+                int shard;
+                do {
+                    shard = random.nextInt(totalNumShards);
+                } while (shard == conflictingValueId % totalNumShards);
+
+                var updater = updaters.get(shard);
+                var descriptor = indexDescriptors.get(shard);
+                var value = Values.stringValue("Value" + conflictingValueId);
+                long entityId = initialDataSize + i;
+                updater.process(IndexEntryUpdate.add(entityId, descriptor, value));
+                data.get(ValueTuple.of(value)).add(entityId);
+            }
+        } finally {
+            IOUtils.closeAll(updaters);
+        }
+
+        try {
+            // when
+            var foundConflicts = new AtomicInteger();
+            accessor.validateShards(
+                    otherShards,
+                    true,
+                    (firstEntityId, firstShardId, otherEntityId, otherShardId, values) -> {
+                        foundConflicts.incrementAndGet();
+                        var expectedConflict = data.remove(ValueTuple.of(values));
+                        assertThat(expectedConflict).isEqualTo(LongSets.mutable.of(firstEntityId, otherEntityId));
+                    },
+                    4,
+                    jobScheduler);
+
+            // then
+            assertThat(foundConflicts.get()).isEqualTo(numConflicts);
+        } finally {
+            IOUtils.closeAll(otherShards);
         }
     }
 

@@ -233,6 +233,26 @@ public interface IndexAccessor extends Closeable, ConsistencyCheckable, MinimalI
             int threads,
             JobScheduler jobScheduler);
 
+    /**
+     * Validates this index, as if it was one shard out of many where all shards collectively makes up the
+     * entire index. This method validates uniqueness across all these shards. Any violations will be reported
+     * via the {@code conflictHandler}.
+     *
+     * @param otherShards the other shards to include in the validation.
+     * @param valueUniqueness whether to include the values into uniqueness checks.
+     * @param conflictHandler handling violations between these indexes.
+     * @param threads number of threads to use for this validation.
+     * @param jobScheduler to run the jobs for this validation.
+     */
+    default void validateShards(
+            IndexAccessor[] otherShards,
+            boolean valueUniqueness,
+            ShardedIndexEntryConflictHandler conflictHandler,
+            int threads,
+            JobScheduler jobScheduler) {
+        throw new UnsupportedOperationException();
+    }
+
     default void maintenance() {}
 
     class Adapter implements IndexAccessor {
@@ -447,8 +467,27 @@ public interface IndexAccessor extends Closeable, ConsistencyCheckable, MinimalI
         }
 
         @Override
+        public void validateShards(
+                IndexAccessor[] otherShards,
+                boolean valueUniqueness,
+                ShardedIndexEntryConflictHandler conflictHandler,
+                int threads,
+                JobScheduler jobScheduler) {
+            delegate.validateShards(otherShards, valueUniqueness, conflictHandler, threads, jobScheduler);
+        }
+
+        @Override
         public void maintenance() {
             delegate.maintenance();
         }
+    }
+
+    interface ShardedIndexEntryConflictHandler {
+        void indexEntryConflict(
+                long firstEntityId,
+                IndexAccessor firstShard,
+                long otherEntityId,
+                IndexAccessor otherShard,
+                Value[] values);
     }
 }
