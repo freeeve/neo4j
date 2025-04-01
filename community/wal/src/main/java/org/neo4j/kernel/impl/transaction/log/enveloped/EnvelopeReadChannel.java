@@ -90,6 +90,7 @@ import org.neo4j.memory.MemoryTracker;
  * @see EnvelopeWriteChannel
  */
 public class EnvelopeReadChannel implements ReadableLogChannel {
+    private static final long UNSPECIFIED_SEGMENT = -1;
     private static final byte CHECKSUM_SIZE = Integer.BYTES;
     private static final byte PAYLOAD_CHECKSUM_OFFSET_FROM_START = HEADER_SIZE - CHECKSUM_SIZE;
 
@@ -198,6 +199,17 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         return currentIndex;
     }
 
+    @Override
+    public LogPosition firstEntryPosition() throws IOException {
+        long currentPosition = position();
+        try {
+            position(logHeader().getStartPosition().getByteOffset());
+            return new LogPosition(getLogVersion(), alignWithStartEntry());
+        } finally {
+            position(currentPosition);
+        }
+    }
+
     public long currentTerm() {
         return currentTerm;
     }
@@ -223,6 +235,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
     @Override
     public void resetToPosition(long byteOffset) throws IOException {
+        currentSegment = UNSPECIFIED_SEGMENT;
         position(byteOffset);
     }
 
@@ -825,8 +838,16 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             }
             throw ReadPastEndException.INSTANCE;
         }
-        channel = nextChannel;
+        setNextChannel(nextChannel, true);
+    }
 
+    public void setNextChannel(LogVersionedStoreChannel nextChannel, boolean enforceChannelIntegrityChecks)
+            throws IOException {
+        channel = nextChannel;
+        if (!enforceChannelIntegrityChecks) {
+            enforceChecksumChain = false;
+            payloadType = null;
+        }
         readAndValidateFileHeader();
     }
 

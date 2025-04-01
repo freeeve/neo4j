@@ -110,6 +110,11 @@ public class FormatSwitchingReadAheadLogChannel implements ReadableLogChannel {
     }
 
     @Override
+    public LogPosition firstEntryPosition() throws IOException {
+        return delegate.firstEntryPosition();
+    }
+
+    @Override
     public void beginChecksum() {
         delegate.beginChecksum();
     }

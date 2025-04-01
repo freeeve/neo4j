@@ -89,6 +89,12 @@ public class ReadAheadLogChannel extends ReadAheadChannel<LogVersionedStoreChann
     }
 
     @Override
+    public LogPosition firstEntryPosition() {
+        int headerSize = getLogFormatVersion().getHeaderSize();
+        return new LogPosition(getLogVersion(), headerSize);
+    }
+
+    @Override
     public byte markAndGetVersion(LogPositionMarker marker) throws IOException {
         final var currentMarker = getCurrentLogPosition(marker);
         final var data = getVersion();

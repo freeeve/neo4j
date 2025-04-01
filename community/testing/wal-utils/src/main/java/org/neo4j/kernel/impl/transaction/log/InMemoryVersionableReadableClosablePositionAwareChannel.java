@@ -46,6 +46,11 @@ public class InMemoryVersionableReadableClosablePositionAwareChannel extends InM
     }
 
     @Override
+    public LogPosition firstEntryPosition() {
+        return new LogPosition(getLogVersion(), getLogFormatVersion().getHeaderSize());
+    }
+
+    @Override
     public long position() throws IOException {
         return getCurrentLogPosition().getByteOffset();
     }

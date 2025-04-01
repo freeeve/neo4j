@@ -24,4 +24,8 @@ import java.io.IOException;
 public interface ReadableLogChannel extends ReadableLogPositionAwareChannel, VersionableLog {
     // reset channel to position and clear any underlying buffering
     void resetToPosition(long byteOffset) throws IOException;
+
+    // Get position of the first entry of the channel. Please note that in some of the channel
+    // implementations(envelopes) the first entry is not the same as the first available data in the particular channel.
+    LogPosition firstEntryPosition() throws IOException;
 }
