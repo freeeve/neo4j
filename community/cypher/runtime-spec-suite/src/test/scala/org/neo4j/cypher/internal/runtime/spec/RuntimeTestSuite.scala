@@ -41,6 +41,7 @@ import org.neo4j.cypher.internal.options.CypherDebugOptions
 import org.neo4j.cypher.internal.runtime.InputValues
 import org.neo4j.cypher.internal.runtime.TestSubscriber
 import org.neo4j.cypher.internal.runtime.debug.DebugSupport
+import org.neo4j.cypher.internal.runtime.spec.Edition.SpdConfig
 import org.neo4j.cypher.internal.runtime.spec.execution.RuntimeTestSupportExecution
 import org.neo4j.cypher.internal.runtime.spec.matcher.RuntimeResultMatchers
 import org.neo4j.cypher.internal.runtime.spec.resolver.RuntimeTestResolver
@@ -53,6 +54,7 @@ import org.neo4j.dbms.api.DatabaseManagementService
 import org.neo4j.graphdb.GraphDatabaseService
 import org.neo4j.graphdb.QueryStatistics
 import org.neo4j.graphdb.Result
+import org.neo4j.graphdb.ResultTransformer
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction
 import org.neo4j.kernel.api.Kernel
@@ -82,6 +84,7 @@ import org.scalatest.Status
 import org.scalatest.SucceededStatus
 import org.scalatest.Tag
 
+import java.time.Duration
 import java.time.LocalTime
 import java.time.OffsetTime
 import java.time.chrono.ChronoLocalDate
@@ -194,8 +197,8 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
     logProvider = new AssertableLogProvider()
     val dbms = edition.newGraphManagementService(logProvider)
 
-    if (edition.isSpd) {
-      setupSpd(dbms)
+    if (edition.spd.isDefined) {
+      setupSpd(dbms, edition.spd.get)
     }
 
     managementService = dbms.dbms
@@ -205,10 +208,19 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
     kernel = graphDb.asInstanceOf[GraphDatabaseFacade].getDependencyResolver.resolveDependency(classOf[Kernel])
   }
 
-  private def setupSpd(dbms: Edition.Dbms): Unit = {
+  private def setupSpd(dbms: Edition.Dbms, spdConfig: SpdConfig): Unit = {
+    val system = dbms.dbms.database(SYSTEM_DATABASE_NAME)
+
+    system.executeTransactionally(
+      s"CALL internal.dbms.spd.createSPDWithPropertyShardSecondariesOnly('${DEFAULT_DATABASE_NAME}', ${spdConfig.primaries}, 0, ${spdConfig.shards}, 1)",
+      util.Map.of(),
+      ResultTransformer.EMPTY_TRANSFORMER,
+      Duration.ofSeconds(60)
+    )
+
     // First let's wait until the SPD is actually available
     val callable: Callable[String] = () => {
-      dbms.dbms.database(SYSTEM_DATABASE_NAME).executeTransactionally(
+      system.executeTransactionally(
         "CALL internal.dbms.spd.available",
         java.util.Map.of[String, Object],
         (result: Result) => result.next.get("detail").asInstanceOf[String]

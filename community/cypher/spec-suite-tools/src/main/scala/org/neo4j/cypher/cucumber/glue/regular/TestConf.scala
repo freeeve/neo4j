@@ -266,22 +266,33 @@ object TestConf {
     }
   }
 
+  private val spdConf: Map[String, String] = Map(
+    "internal.db.query.default_language" -> "cypher_25",
+    "internal.dbms.cypher.enable_experimental_versions" -> "true",
+    // For unknown reasons multiversion store format override (NEO4J_OVERRIDE_STORE_FORMAT) fails here
+    "db.format" -> "block",
+    "internal.dbms.extra_lock_verification" -> "false",
+    "server.bolt.enabled" -> "true",
+    "server.routing.listen_address" -> "127.0.0.1:0",
+    "server.routing.advertised_address" -> "127.0.0.1:0",
+    "server.cluster.listen_address" -> "127.0.0.1:0",
+    "server.cluster.raft.listen_address" -> "127.0.0.1:0",
+    "server.cluster.advertised_address" -> "127.0.0.1:0",
+    "server.cluster.raft.advertised_address" -> "127.0.0.1:0",
+    "db.cluster.catchup.pull_interval" -> "10ms",
+    "internal.dbms.single_raft_enabled" -> "true",
+    "internal.dbms.replication_enabled" -> "true",
+    "internal.initial.dbms.default_database.enable" -> "false",
+    "internal.dbms.sharded_property_database.enabled" -> "true",
+    "internal.dbms.sharded_property_database.transactional_writes" -> "true",
+    "internal.dbms.sharded_property_database.read_only" -> "false"
+  )
+
   object SpdBolt extends InjectedTestConf {
     final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdBolt$ObjectFactory"
 
     final override val conf: TestConf = TestConf(
-      neo4jConf = Map(
-        "internal.db.query.default_language" -> "cypher_25",
-        "internal.dbms.cypher.enable_experimental_versions" -> "true",
-        // For unknown reasons multiversion store format override (NEO4J_OVERRIDE_STORE_FORMAT) fails here
-        "db.format" -> "block",
-        "server.bolt.enabled" -> "true",
-        "server.routing.listen_address" -> "127.0.0.1:0",
-        "server.routing.advertised_address" -> "127.0.0.1:0",
-        "internal.dbms.sharded_property_database.shard_count" -> "3",
-        "internal.dbms.sharded_property_database.enabled" -> "true",
-        "internal.dbms.sharded_property_database.read_only" -> "false"
-      ),
+      neo4jConf = spdConf,
       useBolt = true,
       useSpd = true,
       tagContext = Set("spd", "cypher-25", "bolt")
@@ -293,16 +304,7 @@ object TestConf {
     final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdParallel$ObjectFactory"
 
     final override val conf: TestConf = TestConf(
-      neo4jConf = Map(
-        "internal.db.query.default_language" -> "cypher_25",
-        "internal.dbms.cypher.enable_experimental_versions" -> "true",
-        "server.bolt.enabled" -> "true",
-        "server.routing.listen_address" -> "127.0.0.1:0",
-        "server.routing.advertised_address" -> "127.0.0.1:0",
-        "internal.dbms.sharded_property_database.shard_count" -> "3",
-        "internal.dbms.sharded_property_database.enabled" -> "true",
-        "internal.dbms.sharded_property_database.read_only" -> "false"
-      ),
+      neo4jConf = spdConf,
       preparserOptions = Map("runtime" -> "parallel"),
       useSpd = true,
       useBolt = true,

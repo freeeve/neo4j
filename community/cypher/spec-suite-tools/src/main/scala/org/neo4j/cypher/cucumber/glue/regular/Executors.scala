@@ -39,13 +39,14 @@ import org.neo4j.kernel.impl.factory.GraphDatabaseFacade
 import org.neo4j.test.TestDatabaseManagementServiceBuilder
 import org.neo4j.util.Preconditions.checkState
 
+import java.nio.file.Path
+import java.util.UUID
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.TimeUnit
 
 import scala.jdk.CollectionConverters.CollectionHasAsScala
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
-import scala.util.Using
 
 trait Executors {
 
@@ -147,7 +148,9 @@ trait ExecutorPool extends Executors {
     } else {
       new TestDatabaseManagementServiceBuilder()
     }
-    dbmsBuilder.impermanent().setConfigRaw((conf.neo4jConf ++ extraSettings).asJava).build()
+    dbmsBuilder.setDatabaseRootDirectory(
+      Path.of("target", "test data", UUID.randomUUID().toString)
+    ).impermanent().setConfigRaw((conf.neo4jConf ++ extraSettings).asJava).build()
   }
 
   final private def accessorFrom(
@@ -198,13 +201,16 @@ final class SpdExecutorPool @Inject() (override val conf: TestConf) extends Exec
   override protected def startDbms(extraSettings: Settings): DatabaseManagementService = {
     val dbms = super.startDbms(extraSettings)
     val systemDb = dbms.database(SYSTEM_DATABASE_NAME)
+    systemDb.executeTransactionally(
+      "CALL internal.dbms.spd.createSPDWithPropertyShardSecondariesOnly(\"neo4j\", 1, 0, 3, 1)"
+    )
 
     val spdAvailabilityQuery = "CALL internal.dbms.spd.available()"
     val emptyMap = java.util.Map.of[String, AnyRef]()
 
     // Wait until the SPD is available
     await()
-      .atMost(60, TimeUnit.SECONDS)
+      .atMost(120, TimeUnit.SECONDS)
       .pollDelay(1, TimeUnit.SECONDS)
       .pollInSameThread
       .untilAsserted { () =>
@@ -212,20 +218,6 @@ final class SpdExecutorPool @Inject() (override val conf: TestConf) extends Exec
           .containsExactly(java.util.Map.of("available", java.lang.Boolean.TRUE, "detail", "All started"))
       }
 
-    // Create lookup indexes that could not be created when the database was created
-    val dbs = dbms.listDatabases().stream()
-      .filter(dbName => !dbName.equals(SYSTEM_DATABASE_NAME) && !dbName.contains("shard"))
-      .map(dbName => dbms.database(dbName))
-      .toList
-
-    dbs.forEach { db =>
-      db.executeTransactionally("CREATE LOOKUP INDEX node_label_lookup_index FOR (n) ON EACH labels(n)")
-      db.executeTransactionally("CREATE LOOKUP INDEX rel_type_lookup_index FOR ()-[r]-() ON EACH type(r)")
-    }
-
-    dbs.forEach { db =>
-      Using.resource(db.beginTx())(tx => tx.schema().awaitIndexesOnline(60, TimeUnit.SECONDS))
-    }
     dbms
   }
 }

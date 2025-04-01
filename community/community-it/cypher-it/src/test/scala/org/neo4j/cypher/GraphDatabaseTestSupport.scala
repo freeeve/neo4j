@@ -20,6 +20,7 @@
 package org.neo4j.cypher
 
 import org.assertj.core.api.Condition
+import org.awaitility.Awaitility.await
 import org.neo4j.collection.Dependencies
 import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
@@ -74,6 +75,8 @@ import java.nio.file.Path
 import java.time.Duration
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeUnit.MILLISECONDS
+import java.util.concurrent.TimeUnit.MINUTES
 
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters.IterableHasAsScala
@@ -154,24 +157,28 @@ trait GraphDatabaseTestSupport
 
     managementService =
       updatedDatabaseFactory.setConfig(config.asJava).setInternalLogProvider(logProvider).build()
+
     if (expectedShardCount > 0) {
+      // need to start a db here, but this is community so might need to check if this should be moved to enterprise
+      managementService.database(SYSTEM_DATABASE_NAME).executeTransactionally(
+        "CALL internal.dbms.spd.createSPDWithPropertyShardSecondariesOnly(\"neo4j\", 1, 0, " + expectedShardCount + ", 1)"
+      )
+
       assertEventually(
         () => managementService.listDatabases().contains(dbName),
         new Condition[Boolean]((value: Boolean) => value, "Should be true."),
         60L,
         TimeUnit.SECONDS
       )
-    }
-    graphOps = managementService.database(dbName)
-    if (expectedShardCount > 0) {
+
       assertEventually(
         () => {
-          val onlineDatabaseCount: Long = managementService.database(SYSTEM_DATABASE_NAME).executeTransactionally(
-            "SHOW DATABASES YIELD name, currentStatus WHERE currentStatus = 'online'",
-            Map.empty.asJava,
-            (result: Result) => result.stream.count()
+          val detail: String = managementService.database(SYSTEM_DATABASE_NAME).executeTransactionally(
+            "CALL internal.dbms.spd.available",
+            java.util.Map.of[String, Object],
+            (result: Result) => result.next.get("detail").asInstanceOf[String]
           )
-          onlineDatabaseCount >= expectedShardCount
+          detail.eq("All started")
         },
         new Condition[Boolean]((value: Boolean) => value, "Should be true."),
         60L,
@@ -179,6 +186,7 @@ trait GraphDatabaseTestSupport
       )
     }
 
+    graphOps = managementService.database(dbName)
     graph = new GraphDatabaseCypherService(graphOps)
     onNewGraphDatabase()
   }
@@ -237,6 +245,13 @@ trait GraphDatabaseTestSupport
   }
 
   def selectDatabase(name: String): Unit = {
+    if (expectedShardCount > 0) {
+      await("database created").atMost(1, MINUTES)
+        .pollInterval(50, MILLISECONDS)
+        .pollInSameThread
+        .until(() => managementService.database(name).isAvailable == true)
+    }
+
     graphOps = managementService.database(name)
     graph = new GraphDatabaseCypherService(graphOps)
     onSelectDatabase()
