@@ -112,6 +112,53 @@ abstract class SortTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("a", "b").withRows(expected)
   }
 
+  test("should sort and limit under apply") {
+    val nodesPerLabel = 100
+    val (aNodes, bNodes) = givenGraph { bipartiteGraph(nodesPerLabel, "A", "B", "R") }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("a", "b")
+      .apply()
+      .|.limit(1)
+      .|.sort("b ASC")
+      .|.expandAll("(a)-->(b)")
+      .|.argument("a")
+      .allNodeScan("a")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = for {
+      x <- aNodes
+      y <- bNodes.sortBy(_.getId).take(1)
+    } yield Array[Any](x, y)
+
+    runtimeResult should beColumns("a", "b").withRows(expected)
+  }
+
+  test("should sort under apply with limit") {
+    val node = givenGraph { nodeGraph(1).head }
+    val unwindSize = sizeHint
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("a")
+      .limit(1)
+      .apply()
+      .|.sort("a ASC")
+      .|.argument("a")
+      .unwind(s"range(0,$unwindSize) AS unused")
+      .allNodeScan("a")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("a").withSingleRow(node)
+  }
+
   test("should sort twice in a row") {
     // given
     val nodes = givenGraph { nodeGraph(1000) }
