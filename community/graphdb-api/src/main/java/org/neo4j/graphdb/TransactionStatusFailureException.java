@@ -34,7 +34,7 @@ public class TransactionStatusFailureException extends TransactionFailureExcepti
         this.status = status;
     }
 
-    private TransactionStatusFailureException(
+    public TransactionStatusFailureException(
             ErrorGqlStatusObject gqlStatusObject, Status status, String message, Exception exception) {
         super(gqlStatusObject, message, exception, status);
 
