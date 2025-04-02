@@ -25,11 +25,19 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.eclipse.collections.impl.list.Interval;
 import org.eclipse.collections.impl.parallel.ParallelIterate;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.memory.EmptyMemoryTracker;
 
 @SuppressWarnings({"SameParameterValue", "resource"})
 public class HeapTrackingConcurrentLongHashSetTest {
+
+    private final ExecutorService executor = Executors.newFixedThreadPool(20);
+
+    @AfterEach
+    void tearDown() {
+        executor.shutdown();
+    }
 
     @Test
     public void add() {
@@ -72,7 +80,7 @@ public class HeapTrackingConcurrentLongHashSetTest {
                     assertThat(set2.add(each)).isTrue();
                 },
                 1,
-                executor());
+                executor);
         assertThat(set1).isEqualTo(set2);
         assertThat(set1).hasSameHashCodeAs(set2);
     }
@@ -89,7 +97,7 @@ public class HeapTrackingConcurrentLongHashSetTest {
                     set.clear();
                 },
                 1,
-                executor());
+                executor);
         assertThat(set.isEmpty()).isTrue();
     }
 
@@ -100,9 +108,5 @@ public class HeapTrackingConcurrentLongHashSetTest {
             set.add(k);
         }
         return set;
-    }
-
-    private ExecutorService executor() {
-        return Executors.newFixedThreadPool(20);
     }
 }

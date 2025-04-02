@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.assertj.core.api.Assertions;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
@@ -86,8 +85,7 @@ public class ConcurrentAccessIT {
             });
         }
 
-        var pool = Executors.newFixedThreadPool(nWorkers);
-        try {
+        try (var pool = Executors.newFixedThreadPool(nWorkers)) {
             var futures = pool.invokeAll(tasks);
 
             // when
@@ -95,9 +93,6 @@ public class ConcurrentAccessIT {
 
             // then no exception is thrown, and
             Assertions.assertThat(highestNumConcurrentWorkers.get()).isEqualTo(nWorkers);
-        } finally {
-            pool.shutdownNow();
-            pool.awaitTermination(30, TimeUnit.SECONDS);
         }
     }
 

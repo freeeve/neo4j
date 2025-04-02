@@ -338,38 +338,40 @@ class IndexStatisticsTest {
         int initialNodes = nodes.length;
         int threads = 5;
         indexOnlineMonitor.initialize(threads);
-        ExecutorService executorService = Executors.newFixedThreadPool(threads);
+        try (ExecutorService executorService = Executors.newFixedThreadPool(threads)) {
 
-        // when populating while creating
-        final IndexDescriptor index = createPersonNameIndex();
+            // when populating while creating
+            final IndexDescriptor index = createPersonNameIndex();
 
-        final Collection<Callable<UpdatesTracker>> jobs = new ArrayList<>(threads);
-        for (int i = 0; i < threads; i++) {
-            jobs.add(() -> executeCreationsDeletionsAndUpdates(nodes, CREATION_MULTIPLIER));
+            final Collection<Callable<UpdatesTracker>> jobs = new ArrayList<>(threads);
+            for (int i = 0; i < threads; i++) {
+                jobs.add(() -> executeCreationsDeletionsAndUpdates(nodes, CREATION_MULTIPLIER));
+            }
+
+            List<Future<UpdatesTracker>> futures = executorService.invokeAll(jobs);
+            // sum result into empty result
+            UpdatesTracker result = new UpdatesTracker();
+            result.notifyPopulationCompleted();
+            for (UpdatesTracker jobTracker : Futures.getAllResults(futures)) {
+                result.add(jobTracker);
+            }
+            awaitIndexesOnline();
+
+            executorService.shutdown();
+            assertTrue(executorService.awaitTermination(1, TimeUnit.MINUTES));
+
+            // then
+            assertIndexedNodesMatchesStoreNodes(index);
+            int seenWhilePopulating =
+                    initialNodes + result.createdDuringPopulation() - result.deletedDuringPopulation();
+            assertCorrectIndexSelectivity(index, seenWhilePopulating);
+            assertCorrectIndexSize("Tracker had " + result, seenWhilePopulating, indexSize(index));
+            int expectedIndexUpdates = result.deletedAfterPopulation()
+                    + result.createdAfterPopulation()
+                    + result.updatedAfterPopulation()
+                    + toIntExact(indexOnlineMonitor.indexSampleOnCompletion.updates());
+            assertCorrectIndexUpdates("Tracker had " + result, expectedIndexUpdates, indexUpdates(index));
         }
-
-        List<Future<UpdatesTracker>> futures = executorService.invokeAll(jobs);
-        // sum result into empty result
-        UpdatesTracker result = new UpdatesTracker();
-        result.notifyPopulationCompleted();
-        for (UpdatesTracker jobTracker : Futures.getAllResults(futures)) {
-            result.add(jobTracker);
-        }
-        awaitIndexesOnline();
-
-        executorService.shutdown();
-        assertTrue(executorService.awaitTermination(1, TimeUnit.MINUTES));
-
-        // then
-        assertIndexedNodesMatchesStoreNodes(index);
-        int seenWhilePopulating = initialNodes + result.createdDuringPopulation() - result.deletedDuringPopulation();
-        assertCorrectIndexSelectivity(index, seenWhilePopulating);
-        assertCorrectIndexSize("Tracker had " + result, seenWhilePopulating, indexSize(index));
-        int expectedIndexUpdates = result.deletedAfterPopulation()
-                + result.createdAfterPopulation()
-                + result.updatedAfterPopulation()
-                + toIntExact(indexOnlineMonitor.indexSampleOnCompletion.updates());
-        assertCorrectIndexUpdates("Tracker had " + result, expectedIndexUpdates, indexUpdates(index));
     }
 
     private void assertIndexedNodesMatchesStoreNodes(IndexDescriptor index) throws Exception {
@@ -470,40 +472,41 @@ class IndexStatisticsTest {
         final int threads = 100;
         final int peoplePerThread = totalNumberOfPeople / threads;
 
-        final ExecutorService service = Executors.newFixedThreadPool(threads);
-        final AtomicReference<KernelException> exception = new AtomicReference<>();
+        try (final ExecutorService service = Executors.newFixedThreadPool(threads)) {
+            final AtomicReference<KernelException> exception = new AtomicReference<>();
 
-        final List<Callable<Void>> jobs = new ArrayList<>(threads);
-        // Start threads that creates these people, relying on batched writes to speed things up
-        for (int i = 0; i < threads; i++) {
-            final int finalI = i;
+            final List<Callable<Void>> jobs = new ArrayList<>(threads);
+            // Start threads that creates these people, relying on batched writes to speed things up
+            for (int i = 0; i < threads; i++) {
+                final int finalI = i;
 
-            jobs.add(() -> {
-                int offset = finalI * peoplePerThread;
-                while (offset < (finalI + 1) * peoplePerThread) {
-                    try {
-                        offset += createNamedPeople(nodes, offset);
-                    } catch (KernelException e) {
-                        exception.compareAndSet(null, e);
-                        throw new RuntimeException(e);
+                jobs.add(() -> {
+                    int offset = finalI * peoplePerThread;
+                    while (offset < (finalI + 1) * peoplePerThread) {
+                        try {
+                            offset += createNamedPeople(nodes, offset);
+                        } catch (KernelException e) {
+                            exception.compareAndSet(null, e);
+                            throw new RuntimeException(e);
+                        }
                     }
-                }
-                return null;
-            });
+                    return null;
+                });
+            }
+
+            Futures.getAllResults(service.invokeAll(jobs));
+
+            service.awaitTermination(1, TimeUnit.SECONDS);
+            service.shutdown();
+
+            // Make any KernelException thrown from a creation thread visible in the main thread
+            Exception ex = exception.get();
+            if (ex != null) {
+                throw ex;
+            }
+
+            return nodes;
         }
-
-        Futures.getAllResults(service.invokeAll(jobs));
-
-        service.awaitTermination(1, TimeUnit.SECONDS);
-        service.shutdown();
-
-        // Make any KernelException thrown from a creation thread visible in the main thread
-        Exception ex = exception.get();
-        if (ex != null) {
-            throw ex;
-        }
-
-        return nodes;
     }
 
     private void dropIndex(IndexDescriptor index) throws KernelException {

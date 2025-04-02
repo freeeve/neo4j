@@ -237,8 +237,7 @@ class TransactionMemoryPoolTest {
     @Test
     void reportHeapFromMultipleThreads() throws ExecutionException {
         int numberOfWorkers = 20;
-        var executor = Executors.newFixedThreadPool(numberOfWorkers);
-        try {
+        try (var executor = Executors.newFixedThreadPool(numberOfWorkers)) {
             var futures = new ArrayList<Future<?>>(numberOfWorkers);
             for (int i = 0; i < 20; i++) {
                 futures.add(executor.submit(() -> {
@@ -253,16 +252,13 @@ class TransactionMemoryPoolTest {
 
             assertEquals(940, pool.usedHeap());
             assertEquals(0, pool.usedNative());
-        } finally {
-            executor.shutdown();
         }
     }
 
     @Test
     void reportNativeFromMultipleThreads() throws ExecutionException {
         int numberOfWorkers = 20;
-        var executor = Executors.newFixedThreadPool(numberOfWorkers);
-        try {
+        try (var executor = Executors.newFixedThreadPool(numberOfWorkers)) {
             var futures = new ArrayList<Future<?>>(numberOfWorkers);
             for (int i = 0; i < numberOfWorkers; i++) {
                 futures.add(executor.submit(() -> {
@@ -277,8 +273,6 @@ class TransactionMemoryPoolTest {
 
             assertEquals(0, pool.usedHeap());
             assertEquals(900, pool.usedNative());
-        } finally {
-            executor.shutdown();
         }
     }
 }

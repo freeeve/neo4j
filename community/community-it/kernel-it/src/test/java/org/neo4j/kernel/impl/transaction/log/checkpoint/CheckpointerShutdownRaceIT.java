@@ -55,14 +55,12 @@ public class CheckpointerShutdownRaceIT {
 
     @RepeatedTest(5)
     void databaseShutdownDuringConstantCheckPointing() {
-        var executor = Executors.newSingleThreadExecutor();
-        DatabaseManagementService managementService = null;
         Future<?> asyncCheckpointer;
-        try {
-            managementService = new TestDatabaseManagementServiceBuilder(databaseLayout)
-                    .setFileSystem(fs)
-                    .setInternalLogProvider(logProvider)
-                    .build();
+        try (var executor = Executors.newSingleThreadExecutor();
+                var managementService = new TestDatabaseManagementServiceBuilder(databaseLayout)
+                        .setFileSystem(fs)
+                        .setInternalLogProvider(logProvider)
+                        .build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             try (Transaction tx = db.beginTx()) {
                 tx.createNode();
@@ -82,25 +80,18 @@ public class CheckpointerShutdownRaceIT {
             assertThat(asyncCheckpointer).succeedsWithin(ofMinutes(1));
             LogAssertions.assertThat(logProvider)
                     .doesNotContainMessage("Checkpoint was requested on already shutdown checkpointer.");
-        } finally {
-            if (managementService != null) {
-                managementService.shutdown();
-            }
-            executor.shutdown();
         }
     }
 
     @RepeatedTest(5)
     void databaseShutdownDuringContinuousCheckpointing() {
-        var executor = Executors.newSingleThreadExecutor();
-        DatabaseManagementService managementService = null;
         Future<?> asyncCheckpointer;
-        try {
-            managementService = new TestDatabaseManagementServiceBuilder(databaseLayout)
-                    .setFileSystem(fs)
-                    .setInternalLogProvider(logProvider)
-                    .setConfig(GraphDatabaseSettings.check_point_policy, CONTINUOUS)
-                    .build();
+        try (var executor = Executors.newSingleThreadExecutor();
+                DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(databaseLayout)
+                        .setFileSystem(fs)
+                        .setInternalLogProvider(logProvider)
+                        .setConfig(GraphDatabaseSettings.check_point_policy, CONTINUOUS)
+                        .build()) {
             GraphDatabaseAPI db = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
             try (Transaction tx = db.beginTx()) {
                 tx.createNode();
@@ -120,11 +111,6 @@ public class CheckpointerShutdownRaceIT {
 
             LogAssertions.assertThat(logProvider)
                     .doesNotContainMessage("Checkpoint was requested on already shutdown checkpointer.");
-        } finally {
-            if (managementService != null) {
-                managementService.shutdown();
-            }
-            executor.shutdown();
         }
     }
 

@@ -130,30 +130,31 @@ class ArrayQueueOutOfOrderSequenceTest {
         final OutOfOrderSequence sequence =
                 new ArrayQueueOutOfOrderSequence(numberSource.get(), 5, metaFunction.apply(numberSource.get()));
         int offerThreads = max(2, Runtime.getRuntime().availableProcessors() - 1);
-        final ExecutorService race = Executors.newFixedThreadPool(offerThreads + 1);
-        for (int i = 0; i < offerThreads; i++) {
+        try (final ExecutorService race = Executors.newFixedThreadPool(offerThreads + 1)) {
+            for (int i = 0; i < offerThreads; i++) {
+                race.submit(() -> {
+                    long number;
+                    while ((number = numberSource.incrementAndGet()) < 10_000_000) {
+                        sequence.offer(number, metaFunction.apply(number));
+                    }
+                });
+            }
+            Runnable verifier = () -> {
+                var highest = sequence.get();
+                Meta expectedMeta = metaFunction.apply(highest.number());
+                assertThat(expectedMeta).isEqualTo(highest.meta());
+            };
             race.submit(() -> {
-                long number;
-                while ((number = numberSource.incrementAndGet()) < 10_000_000) {
-                    sequence.offer(number, metaFunction.apply(number));
+                while (numberSource.get() < 10_000_000) {
+                    verifier.run();
                 }
             });
-        }
-        Runnable verifier = () -> {
-            var highest = sequence.get();
-            Meta expectedMeta = metaFunction.apply(highest.number());
-            assertThat(expectedMeta).isEqualTo(highest.meta());
-        };
-        race.submit(() -> {
-            while (numberSource.get() < 10_000_000) {
-                verifier.run();
-            }
-        });
-        race.shutdown();
-        race.awaitTermination(1, TimeUnit.MINUTES);
+            race.shutdown();
+            race.awaitTermination(1, TimeUnit.MINUTES);
 
-        // THEN
-        verifier.run();
+            // THEN
+            verifier.run();
+        }
     }
 
     @Test
@@ -288,46 +289,47 @@ class ArrayQueueOutOfOrderSequenceTest {
         // given
         OutOfOrderSequence sequence = new ArrayQueueOutOfOrderSequence(0, 8, EMPTY_META);
         int threads = max(2, Runtime.getRuntime().availableProcessors() - 1);
-        ExecutorService executorService = Executors.newFixedThreadPool(threads + 1);
-        AtomicLong nextNumber = new AtomicLong(1);
-        AtomicInteger snapshots = new AtomicInteger(10);
-        for (int i = 0; i < threads; i++) {
-            executorService.submit(() -> {
-                while (snapshots.get() > 0) {
-                    long number = nextNumber.getAndIncrement();
-                    sequence.offer(number, simpleMeta(number * 2));
+        try (ExecutorService executorService = Executors.newFixedThreadPool(threads + 1)) {
+            AtomicLong nextNumber = new AtomicLong(1);
+            AtomicInteger snapshots = new AtomicInteger(10);
+            for (int i = 0; i < threads; i++) {
+                executorService.submit(() -> {
+                    while (snapshots.get() > 0) {
+                        long number = nextNumber.getAndIncrement();
+                        sequence.offer(number, simpleMeta(number * 2));
+                    }
+                });
+            }
+            AtomicReference<Throwable> throwed = new AtomicReference<>();
+            executorService.submit(new Callable<Void>() {
+                @Override
+                public Void call() throws InterruptedException {
+                    try {
+                        while (snapshots.get() > 0) {
+                            verifyInternallyConsistent(sequence.get());
+                            sleep(1);
+                            snapshots.decrementAndGet();
+                        }
+                    } catch (Throwable t) {
+                        throwed.set(t);
+                    } finally {
+                        snapshots.set(0);
+                    }
+                    return null;
+                }
+
+                private void verifyInternallyConsistent(NumberWithMeta data) {
+                    long number = data.number();
+                    assertThat(data.meta()).isEqualTo(simpleMeta(number * 2));
                 }
             });
-        }
-        AtomicReference<Throwable> throwed = new AtomicReference<>();
-        executorService.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws InterruptedException {
-                try {
-                    while (snapshots.get() > 0) {
-                        verifyInternallyConsistent(sequence.get());
-                        sleep(1);
-                        snapshots.decrementAndGet();
-                    }
-                } catch (Throwable t) {
-                    throwed.set(t);
-                } finally {
-                    snapshots.set(0);
-                }
-                return null;
-            }
 
-            private void verifyInternallyConsistent(NumberWithMeta data) {
-                long number = data.number();
-                assertThat(data.meta()).isEqualTo(simpleMeta(number * 2));
+            // when/then verifications are made inside the race
+            executorService.shutdown();
+            executorService.awaitTermination(10, TimeUnit.MINUTES);
+            if (throwed.get() != null) {
+                throw throwed.get();
             }
-        });
-
-        // when/then verifications are made inside the race
-        executorService.shutdown();
-        executorService.awaitTermination(10, TimeUnit.MINUTES);
-        if (throwed.get() != null) {
-            throw throwed.get();
         }
     }
 

@@ -108,25 +108,26 @@ class BlockBasedIndexPopulationMemoryUsageIT {
 
     private void someData() throws InterruptedException {
         int threads = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(threads);
-        for (int i = 0; i < threads; i++) {
-            executor.submit(() -> {
-                for (int t = 0; t < 100; t++) {
-                    try (Transaction tx = db.beginTx()) {
-                        for (int n = 0; n < 100; n++) {
-                            Node node = tx.createNode(LABELS);
-                            for (String key : KEYS) {
-                                node.setProperty(key, format("some value %d", n));
+        try (ExecutorService executor = Executors.newFixedThreadPool(threads)) {
+            for (int i = 0; i < threads; i++) {
+                executor.submit(() -> {
+                    for (int t = 0; t < 100; t++) {
+                        try (Transaction tx = db.beginTx()) {
+                            for (int n = 0; n < 100; n++) {
+                                Node node = tx.createNode(LABELS);
+                                for (String key : KEYS) {
+                                    node.setProperty(key, format("some value %d", n));
+                                }
                             }
+                            tx.commit();
                         }
-                        tx.commit();
                     }
-                }
-            });
-        }
-        executor.shutdown();
-        while (!executor.awaitTermination(1, SECONDS)) {
-            // Just wait longer
+                });
+            }
+            executor.shutdown();
+            while (!executor.awaitTermination(1, SECONDS)) {
+                // Just wait longer
+            }
         }
     }
 

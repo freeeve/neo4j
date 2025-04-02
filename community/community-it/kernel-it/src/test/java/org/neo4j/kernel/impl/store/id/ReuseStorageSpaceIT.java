@@ -139,13 +139,16 @@ class ReuseStorageSpaceIT {
             for (int i = 0; i < numThreads; i++) {
                 allocators.add(() -> createNodes(db, numNodes / numThreads));
             }
-            ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-            List<Future<MutableLongSet>> results = executor.invokeAll(allocators);
-            MutableLongSet reallocatedNodeIds = LongSets.mutable.withInitialCapacity(numNodes);
-            for (Future<MutableLongSet> result : results) {
-                reallocatedNodeIds.addAll(result.get());
+            try (ExecutorService executor = Executors.newFixedThreadPool(numThreads)) {
+                List<Future<MutableLongSet>> results = executor.invokeAll(allocators);
+                MutableLongSet reallocatedNodeIds = LongSets.mutable.withInitialCapacity(numNodes);
+                for (Future<MutableLongSet> result : results) {
+                    reallocatedNodeIds.addAll(result.get());
+                }
+                assertThat(reallocatedNodeIds)
+                        .as(diff(nodeIds, reallocatedNodeIds))
+                        .isEqualTo(nodeIds);
             }
-            assertThat(reallocatedNodeIds).as(diff(nodeIds, reallocatedNodeIds)).isEqualTo(nodeIds);
         } finally {
             dbms.shutdown();
         }

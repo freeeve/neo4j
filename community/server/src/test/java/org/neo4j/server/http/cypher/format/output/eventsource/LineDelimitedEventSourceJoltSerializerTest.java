@@ -405,13 +405,12 @@ public class LineDelimitedEventSourceJoltSerializerTest extends AbstractEventSou
         });
 
         int numberOfRequests = 10;
-        ExecutorService executor = Executors.newCachedThreadPool();
+        try (ExecutorService executor = Executors.newCachedThreadPool()) {
 
-        List<Future<String>> calledRequests = executor.invokeAll(IntStream.range(0, numberOfRequests)
-                .boxed()
-                .map(callableProvider)
-                .collect(Collectors.toList()));
-        try {
+            List<Future<String>> calledRequests = executor.invokeAll(IntStream.range(0, numberOfRequests)
+                    .boxed()
+                    .map(callableProvider)
+                    .collect(Collectors.toList()));
             int i = 0;
             for (Future<String> request : calledRequests) {
                 var expectedResult =
@@ -426,8 +425,6 @@ public class LineDelimitedEventSourceJoltSerializerTest extends AbstractEventSou
                 }
                 ++i;
             }
-        } finally {
-            executor.shutdown();
         }
     }
 

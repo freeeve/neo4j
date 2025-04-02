@@ -74,9 +74,7 @@ class ReentrantLockServiceTest {
     @Timeout(60)
     void shouldBlockOnLockedLock() {
         // given
-        var executor = Executors.newSingleThreadExecutor();
-
-        try {
+        try (var executor = Executors.newSingleThreadExecutor()) {
             var threadHolder = new AtomicReference<Thread>();
             try (var lock = locks.acquireNodeLock(17, EXCLUSIVE)) {
                 executor.execute(() -> {
@@ -94,8 +92,6 @@ class ReentrantLockServiceTest {
                     parkNanos(MILLISECONDS.toNanos(10));
                 }
             }
-        } finally {
-            executor.shutdown();
         }
     }
 

@@ -600,16 +600,13 @@ class TransactionLogFileTest {
         channelMap.put(2, logFile.openForVersion(2));
         channelMap.put(3, logFile.openForVersion(3));
 
-        ExecutorService registerCalls = Executors.newFixedThreadPool(5);
         ArrayList<Future<?>> futures = new ArrayList<>(10);
-        try {
+        try (ExecutorService registerCalls = Executors.newFixedThreadPool(5)) {
             for (int i = 0; i < 10; i++) {
                 futures.add(registerCalls.submit(() -> logFile.registerExternalReaders(channelMap)));
             }
-        } finally {
-            registerCalls.shutdown();
+            Futures.getAll(futures);
         }
-        Futures.getAll(futures);
 
         var externalFileReaders = ((TransactionLogFile) logFile).getExternalFileReaders();
         try {
@@ -649,16 +646,13 @@ class TransactionLogFileTest {
         channelMap.put(3, logFile.openForVersion(3));
         channelMap.put(4, logFile.openForVersion(4));
 
-        ExecutorService registerCalls = Executors.newCachedThreadPool();
         ArrayList<Future<?>> futures = new ArrayList<>(10);
-        try {
+        try (ExecutorService registerCalls = Executors.newCachedThreadPool()) {
             for (int i = 0; i < 10; i++) {
                 futures.add(registerCalls.submit(() -> logFile.registerExternalReaders(channelMap)));
             }
-        } finally {
-            registerCalls.shutdown();
+            Futures.getAll(futures);
         }
-        Futures.getAll(futures);
 
         logFile.terminateExternalReaders(3);
 
@@ -699,14 +693,11 @@ class TransactionLogFileTest {
         channelMap.put(1, channel1);
         channelMap.put(2, channel2);
 
-        ExecutorService registerCalls = Executors.newCachedThreadPool();
         ArrayList<Future<?>> futures = new ArrayList<>(10);
-        try {
+        try (ExecutorService registerCalls = Executors.newCachedThreadPool()) {
             for (int i = 0; i < 10; i++) {
                 futures.add(registerCalls.submit(() -> logFile.registerExternalReaders(channelMap)));
             }
-        } finally {
-            registerCalls.shutdown();
         }
         Futures.getAll(futures);
 

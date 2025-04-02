@@ -71,8 +71,7 @@ class DynamicVerboseDeadlockIT {
                 return null;
             });
         }
-        var executor = Executors.newFixedThreadPool(2);
-        try {
+        try (var executor = Executors.newFixedThreadPool(2)) {
             for (var future : executor.invokeAll(tasks)) {
                 future.get();
             }
@@ -80,8 +79,6 @@ class DynamicVerboseDeadlockIT {
             if (e.getCause() instanceof DeadlockDetectedException dde) {
                 return dde;
             }
-        } finally {
-            executor.shutdown();
         }
         throw new RuntimeException("Was expecting a deadlock to occur");
     }

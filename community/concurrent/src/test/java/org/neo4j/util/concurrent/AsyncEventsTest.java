@@ -131,26 +131,26 @@ class AsyncEventsTest {
         final AsyncEvents<Event> asyncEvents = new AsyncEvents<>(consumer, AsyncEvents.Monitor.NONE);
         executor.submit(asyncEvents);
 
-        ExecutorService threadPool = Executors.newFixedThreadPool(threads);
-        Runnable runner = () -> {
-            try {
-                startLatch.await();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+        try (ExecutorService threadPool = Executors.newFixedThreadPool(threads)) {
+            Runnable runner = () -> {
+                try {
+                    startLatch.await();
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
 
-            for (int i = 0; i < iterations; i++) {
-                asyncEvents.send(new Event());
+                for (int i = 0; i < iterations; i++) {
+                    asyncEvents.send(new Event());
+                }
+            };
+            for (int i = 0; i < threads; i++) {
+                threadPool.submit(runner);
             }
-        };
-        for (int i = 0; i < threads; i++) {
-            threadPool.submit(runner);
-        }
-        startLatch.countDown();
+            startLatch.countDown();
 
-        Thread thisThread = Thread.currentThread();
-        int eventCount = threads * iterations;
-        try {
+            Thread thisThread = Thread.currentThread();
+            int eventCount = threads * iterations;
+
             for (int i = 0; i < eventCount; i++) {
                 Event event = consumer.poll(1, TimeUnit.SECONDS);
                 if (event == null) {
@@ -161,7 +161,6 @@ class AsyncEventsTest {
             }
         } finally {
             asyncEvents.shutdown();
-            threadPool.shutdown();
         }
     }
 

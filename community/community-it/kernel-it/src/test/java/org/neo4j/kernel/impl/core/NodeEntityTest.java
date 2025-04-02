@@ -194,8 +194,7 @@ public class NodeEntityTest extends EntityTest {
     @Test
     void getAllPropertiesShouldWorkFineWithConcurrentPropertyModifications() throws Exception {
         // Given
-        ExecutorService executor = Executors.newFixedThreadPool(2, named("Test-executor-thread"));
-        try {
+        try (ExecutorService executor = Executors.newFixedThreadPool(2, named("Test-executor-thread"))) {
             final int propertiesCount = 100;
 
             final long nodeId;
@@ -258,8 +257,6 @@ public class NodeEntityTest extends EntityTest {
                         tx.getNodeById(nodeId).getAllProperties().size());
                 tx.commit();
             }
-        } finally {
-            executor.shutdown();
         }
     }
 

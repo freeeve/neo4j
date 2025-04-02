@@ -1857,9 +1857,7 @@ class GBPTreeTest {
             // When seek end up in this corrupt child we should eventually fail with a tree inconsistency exception
             // even if we have multiple seeker that traverse different part of the tree and both get stuck in start from
             // root loop.
-            ExecutorService executor = null;
-            try {
-                executor = Executors.newFixedThreadPool(2);
+            try (var executor = Executors.newFixedThreadPool(2)) {
                 CountDownLatch go = new CountDownLatch(2);
                 Future<Object> execute1 = executor.submit(() -> {
                     go.countDown();
@@ -1883,10 +1881,6 @@ class GBPTreeTest {
 
                 assertFutureFailsWithTreeInconsistencyException(execute1);
                 assertFutureFailsWithTreeInconsistencyException(execute2);
-            } finally {
-                if (executor != null) {
-                    executor.shutdown();
-                }
             }
         }
     }

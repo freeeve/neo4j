@@ -265,12 +265,9 @@ class SnapshotExecutionIT {
 
         @Procedure(mode = Mode.WRITE, name = "se.doConcurrently")
         public void doConcurrently(@Name("query") String query) throws Exception {
-            var executor = Executors.newSingleThreadExecutor();
-            try {
+            try (var executor = Executors.newSingleThreadExecutor()) {
                 var future = executor.submit(() -> db.executeTransactionally(query));
                 future.get();
-            } finally {
-                executor.shutdown();
             }
         }
     }

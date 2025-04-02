@@ -229,8 +229,7 @@ class TransactionEventsIT {
 
     @Test
     void registerUnregisterWithConcurrentTransactions() throws Exception {
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        try {
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
             AtomicInteger runningCounter = new AtomicInteger();
             AtomicInteger doneCounter = new AtomicInteger();
             BinaryLatch startLatch = new BinaryLatch();
@@ -299,8 +298,6 @@ class TransactionEventsIT {
             for (CountingTransactionEventListener handler : handlers) {
                 assertEquals(0, handler.get());
             }
-        } finally {
-            executor.shutdown();
         }
     }
 

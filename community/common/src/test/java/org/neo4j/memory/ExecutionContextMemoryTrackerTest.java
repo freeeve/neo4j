@@ -550,19 +550,20 @@ class ExecutionContextMemoryTrackerTest {
         var grabSize = 100;
 
         int nThreads = 10;
-        ExecutorService service = Executors.newFixedThreadPool(10);
+        try (ExecutorService service = Executors.newFixedThreadPool(10)) {
 
-        for (int i = 0; i < nThreads; i++) {
-            service.submit(() -> {
-                try (var memoryTracker =
-                        new ExecutionContextMemoryTracker(pool, NO_LIMIT, grabSize, grabSize, "poolSetting")) {
-                    memoryTracker.allocateHeap(11);
-                }
-            });
+            for (int i = 0; i < nThreads; i++) {
+                service.submit(() -> {
+                    try (var memoryTracker =
+                            new ExecutionContextMemoryTracker(pool, NO_LIMIT, grabSize, grabSize, "poolSetting")) {
+                        memoryTracker.allocateHeap(11);
+                    }
+                });
+            }
+            service.shutdown();
+            assertTrue(service.awaitTermination(1L, TimeUnit.MINUTES));
+
+            assertThat(pool.heapHighWaterMark()).isLessThanOrEqualTo(nThreads * grabSize);
         }
-        service.shutdown();
-        assertTrue(service.awaitTermination(1L, TimeUnit.MINUTES));
-
-        assertThat(pool.heapHighWaterMark()).isLessThanOrEqualTo(nThreads * grabSize);
     }
 }

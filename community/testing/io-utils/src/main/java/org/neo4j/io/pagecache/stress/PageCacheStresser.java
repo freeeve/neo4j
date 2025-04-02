@@ -19,8 +19,6 @@
  */
 package org.neo4j.io.pagecache.stress;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.OpenOption;
@@ -32,7 +30,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCursor;
@@ -97,15 +94,14 @@ public class PageCacheStresser {
     }
 
     private void execute(List<RecordStresser> recordStressers) throws InterruptedException, ExecutionException {
-        ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads, r -> {
+        try (ExecutorService executorService = Executors.newFixedThreadPool(numberOfThreads, r -> {
             Thread thread = Executors.defaultThreadFactory().newThread(r);
             thread.setDaemon(true);
             return thread;
-        });
-        List<Future<Void>> futures = executorService.invokeAll(recordStressers);
-        Futures.getAllResults(futures);
-        executorService.shutdown();
-        assertTrue(executorService.awaitTermination(10, TimeUnit.SECONDS));
+        })) {
+            List<Future<Void>> futures = executorService.invokeAll(recordStressers);
+            Futures.getAllResults(futures);
+        }
     }
 
     private static void verifyResults(RecordFormat format, PagedFile pagedFile, List<RecordStresser> recordStressers)

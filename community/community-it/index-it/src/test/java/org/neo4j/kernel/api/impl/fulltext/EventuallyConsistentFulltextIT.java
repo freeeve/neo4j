@@ -148,11 +148,8 @@ class EventuallyConsistentFulltextIT {
             });
         }
 
-        var executor = Executors.newFixedThreadPool(numThreads);
-        try {
+        try (var executor = Executors.newFixedThreadPool(numThreads)) {
             Futures.getAll(executor.invokeAll(tasks));
-        } finally {
-            executor.shutdown();
         }
         return numThreads * numTransactionsPerThread * txSize;
     }

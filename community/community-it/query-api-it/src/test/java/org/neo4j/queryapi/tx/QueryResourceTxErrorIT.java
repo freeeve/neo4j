@@ -151,32 +151,34 @@ public class QueryResourceTxErrorIT {
         var res = testClient.beginTx();
         var latch = new CountDownLatch(1);
 
-        Executors.newSingleThreadExecutor().submit(() -> {
-            try {
-                testClient.runInTx(
-                        QueryRequest.newBuilder()
-                                .statement("CALL queryAPI.nightnight(5000)")
-                                .build(),
-                        res.body().txId());
-                latch.countDown();
-            } catch (IOException | InterruptedException ignored) {
-                fail("Error starting long running transaction");
-            }
-        });
+        try (var executorService = Executors.newSingleThreadExecutor()) {
+            executorService.submit(() -> {
+                try {
+                    testClient.runInTx(
+                            QueryRequest.newBuilder()
+                                    .statement("CALL queryAPI.nightnight(5000)")
+                                    .build(),
+                            res.body().txId());
+                    latch.countDown();
+                } catch (IOException | InterruptedException ignored) {
+                    fail("Error starting long running transaction");
+                }
+            });
 
-        Thread.sleep(500);
+            Thread.sleep(500);
 
-        var concurrent = testClient.runInTx(res.body().txId());
-        assertThat(concurrent).hasErrorStatus(400, TransactionAccessedConcurrently);
+            var concurrent = testClient.runInTx(res.body().txId());
+            assertThat(concurrent).hasErrorStatus(400, TransactionAccessedConcurrently);
 
-        // wait for tx to free up
-        latch.await();
+            // wait for tx to free up
+            latch.await();
 
-        var accessReq = testClient.commitTx(
-                QueryRequest.newBuilder().statement("RETURN 1").build(),
-                res.body().txId());
-        assertThat(accessReq).wasSuccessful();
-        assertThat(accessReq).hasNoTransaction();
+            var accessReq = testClient.commitTx(
+                    QueryRequest.newBuilder().statement("RETURN 1").build(),
+                    res.body().txId());
+            assertThat(accessReq).wasSuccessful();
+            assertThat(accessReq).hasNoTransaction();
+        }
     }
 
     @Test

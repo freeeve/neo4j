@@ -118,14 +118,14 @@ class StageTest {
         int customTickets = 1000;
         CountDownLatch processedBatches = new CountDownLatch(customTickets + 1);
 
-        ExecutorService executorService = Executors.newCachedThreadPool();
-        try (Stage stage = new Stage(
-                "Test stage",
-                null,
-                config,
-                Step.ORDER_SEND_DOWNSTREAM,
-                (job, name) -> executorService.submit(job),
-                DEFAULT_PANIC_MONITOR)) {
+        try (ExecutorService executorService = Executors.newCachedThreadPool();
+                Stage stage = new Stage(
+                        "Test stage",
+                        null,
+                        config,
+                        Step.ORDER_SEND_DOWNSTREAM,
+                        (job, name) -> executorService.submit(job),
+                        DEFAULT_PANIC_MONITOR)) {
             stage.add(new PullingProducerStep<TestProcessContext>(stage.control(), config) {
                 @Override
                 protected Object nextBatchOrNull(long ticket, int batchSize, TestProcessContext processContext) {
@@ -171,8 +171,6 @@ class StageTest {
 
             assertTrue(processedBatches.await(5, MINUTES));
             assertEquals((customTickets + 1) * TEST_BATCH_SIZE, globalCounterAccumulator.get());
-        } finally {
-            executorService.shutdown();
         }
     }
 

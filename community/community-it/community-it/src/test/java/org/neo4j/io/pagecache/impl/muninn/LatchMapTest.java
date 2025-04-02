@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -52,9 +51,7 @@ class LatchMapTest {
         AtomicReference<Thread> threadRef = new AtomicReference<>();
         BinaryLatch latch = latches.takeOrAwaitLatch(42);
         assertThat(latch).isNotNull();
-        ExecutorService executor = null;
-        try {
-            executor = Executors.newSingleThreadExecutor();
+        try (var executor = Executors.newSingleThreadExecutor()) {
             Future<BinaryLatch> future = executor.submit(() -> {
                 threadRef.set(Thread.currentThread());
                 return latches.takeOrAwaitLatch(42);
@@ -66,10 +63,6 @@ class LatchMapTest {
             ThreadTestUtils.awaitThreadState(th, 10_000, Thread.State.WAITING);
             latch.release();
             assertThat(future.get(1, TimeUnit.SECONDS)).isNull();
-        } finally {
-            if (executor != null) {
-                executor.shutdown();
-            }
         }
     }
 
@@ -79,16 +72,10 @@ class LatchMapTest {
         LatchMap latches = new LatchMap(size);
         BinaryLatch latch = latches.takeOrAwaitLatch(42);
         assertThat(latch).isNotNull();
-        ExecutorService executor = null;
-        try {
-            executor = Executors.newSingleThreadExecutor();
+        try (var executor = Executors.newSingleThreadExecutor()) {
             Future<BinaryLatch> future = executor.submit(() -> latches.takeOrAwaitLatch(33));
             assertThat(future.get(30, TimeUnit.SECONDS)).isNotNull();
             latch.release();
-        } finally {
-            if (executor != null) {
-                executor.shutdown();
-            }
         }
     }
 

@@ -302,20 +302,20 @@ class FreeIdScannerTest {
         });
 
         // when
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Future<?> scanFuture = executorService.submit(() -> tryLoadFreeIdsIntoCache(scanner, false));
-        barrier.await();
-        // now it's stuck in trying to offer to the cache
+        try (ExecutorService executorService = Executors.newSingleThreadExecutor()) {
+            Future<?> scanFuture = executorService.submit(() -> tryLoadFreeIdsIntoCache(scanner, false));
+            barrier.await();
+            // now it's stuck in trying to offer to the cache
 
-        // then a scan call from another thread should complete but not do anything
-        assertThat(recordingMonitor.cached.isEmpty()).isTrue();
-        tryLoadFreeIdsIntoCache(scanner, false);
-        assertThat(recordingMonitor.cached.isEmpty()).isTrue();
+            // then a scan call from another thread should complete but not do anything
+            assertThat(recordingMonitor.cached.isEmpty()).isTrue();
+            tryLoadFreeIdsIntoCache(scanner, false);
+            assertThat(recordingMonitor.cached.isEmpty()).isTrue();
 
-        // clean up
-        barrier.release();
-        scanFuture.get();
-        executorService.shutdown();
+            // clean up
+            barrier.release();
+            scanFuture.get();
+        }
     }
 
     @Test
@@ -332,25 +332,25 @@ class FreeIdScannerTest {
         });
 
         // when
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Future<?> scanFuture = executorService.submit(() -> tryLoadFreeIdsIntoCache(scanner, false));
-        barrier.await();
-        // now it's stuck in trying to offer to the cache
+        try (ExecutorService executorService = Executors.newSingleThreadExecutor()) {
+            Future<?> scanFuture = executorService.submit(() -> tryLoadFreeIdsIntoCache(scanner, false));
+            barrier.await();
+            // now it's stuck in trying to offer to the cache
 
-        // then a scan call from another thread should block too
-        try (OtherThreadExecutor t2 = new OtherThreadExecutor("T2")) {
-            Future<Void> t2Completion = t2.executeDontWait(() -> {
-                tryLoadFreeIdsIntoCache(scanner, true);
-                return null;
-            });
-            t2.waitUntilWaiting(details -> details.isAt(FreeIdScanner.class, "tryLoadFreeIdsIntoCache"));
-            barrier.release();
-            t2Completion.get();
+            // then a scan call from another thread should block too
+            try (OtherThreadExecutor t2 = new OtherThreadExecutor("T2")) {
+                Future<Void> t2Completion = t2.executeDontWait(() -> {
+                    tryLoadFreeIdsIntoCache(scanner, true);
+                    return null;
+                });
+                t2.waitUntilWaiting(details -> details.isAt(FreeIdScanner.class, "tryLoadFreeIdsIntoCache"));
+                barrier.release();
+                t2Completion.get();
+            }
+
+            // clean up
+            scanFuture.get();
         }
-
-        // clean up
-        scanFuture.get();
-        executorService.shutdown();
 
         // and then
         assertThat(recordingMonitor.hasCached(0, 1)).isTrue();
@@ -371,27 +371,27 @@ class FreeIdScannerTest {
         });
 
         // when
-        ExecutorService executorService = Executors.newSingleThreadExecutor();
-        Future<?> scanFuture = executorService.submit(() -> tryLoadFreeIdsIntoCache(scanner, false));
-        barrier.await();
-        // now it's stuck in trying to offer to the cache
+        try (ExecutorService executorService = Executors.newSingleThreadExecutor()) {
+            Future<?> scanFuture = executorService.submit(() -> tryLoadFreeIdsIntoCache(scanner, false));
+            barrier.await();
+            // now it's stuck in trying to offer to the cache
 
-        // then a scan call from another thread should complete but not do anything
-        assertThat(recordingMonitor.cached.isEmpty()).isTrue();
-        try (OtherThreadExecutor t2 = new OtherThreadExecutor("T2")) {
-            Future<Void> t2Completion = t2.executeDontWait(() -> {
-                tryLoadFreeIdsIntoCache(scanner, true);
-                return null;
-            });
-            t2.waitUntilWaiting(details -> details.isAt(FreeIdScanner.class, "tryLoadFreeIdsIntoCache"));
+            // then a scan call from another thread should complete but not do anything
             assertThat(recordingMonitor.cached.isEmpty()).isTrue();
-            barrier.release();
-            t2Completion.get();
-        }
+            try (OtherThreadExecutor t2 = new OtherThreadExecutor("T2")) {
+                Future<Void> t2Completion = t2.executeDontWait(() -> {
+                    tryLoadFreeIdsIntoCache(scanner, true);
+                    return null;
+                });
+                t2.waitUntilWaiting(details -> details.isAt(FreeIdScanner.class, "tryLoadFreeIdsIntoCache"));
+                assertThat(recordingMonitor.cached.isEmpty()).isTrue();
+                barrier.release();
+                t2Completion.get();
+            }
 
-        // clean up
-        scanFuture.get();
-        executorService.shutdown();
+            // clean up
+            scanFuture.get();
+        }
 
         // and then
         assertThat(recordingMonitor.hasCached(0, 1)).isTrue();

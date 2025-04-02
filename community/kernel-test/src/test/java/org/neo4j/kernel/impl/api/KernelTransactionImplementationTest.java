@@ -403,8 +403,7 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
         final KernelTransaction transaction = newTransaction(loginContext(isWriteTx));
         transactionInitializer.accept(transaction);
 
-        var executorService = Executors.newSingleThreadExecutor();
-        try {
+        try (var executorService = Executors.newSingleThreadExecutor()) {
             Future<?> terminationFuture = executorService.submit(() -> {
                 latch.waitForAllToStart();
                 transaction.markForTermination(Status.General.UnknownError);
@@ -416,8 +415,6 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
 
             assertNull(terminationFuture.get(1, TimeUnit.MINUTES));
             assertThrows(TransactionTerminatedException.class, transaction::commit);
-        } finally {
-            executorService.shutdownNow();
         }
 
         // THEN
@@ -826,47 +823,47 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
     @Test
     void transactionExecutionContexts() throws TransactionFailureException, ExecutionException, InterruptedException {
         int workerCount = 4;
-        ExecutorService executorService = Executors.newFixedThreadPool(workerCount);
-
-        try (var transaction = newTransaction(AUTH_DISABLED);
-                var statement = transaction.acquireStatement()) {
-            List<ExecutionContext> executionContexts = new ArrayList<>(workerCount);
-            List<Future<?>> futures = new ArrayList<>(workerCount);
-            for (int i = 0; i < workerCount; i++) {
-                executionContexts.add(transaction.createExecutionContext());
-            }
-            for (int i = 0; i < workerCount; i++) {
-                ExecutionContext executionContext = executionContexts.get(i);
-                int iterations = i;
-                futures.add(executorService.submit(() -> {
-                    try {
-                        PageCursorTracer cursorTracer =
-                                executionContext.cursorContext().getCursorTracer();
-                        for (int j = 0; j <= iterations; j++) {
-                            PageSwapper swapper = mock(PageSwapper.class, RETURNS_MOCKS);
-                            try (var pinEvent = cursorTracer.beginPin(false, 1, swapper)) {
-                                try (var pageFaultEvent = pinEvent.beginPageFault(1, swapper)) {
-                                    pageFaultEvent.addBytesRead(42);
+        try (ExecutorService executorService = Executors.newFixedThreadPool(workerCount)) {
+            try (var transaction = newTransaction(AUTH_DISABLED);
+                    var statement = transaction.acquireStatement()) {
+                List<ExecutionContext> executionContexts = new ArrayList<>(workerCount);
+                List<Future<?>> futures = new ArrayList<>(workerCount);
+                for (int i = 0; i < workerCount; i++) {
+                    executionContexts.add(transaction.createExecutionContext());
+                }
+                for (int i = 0; i < workerCount; i++) {
+                    ExecutionContext executionContext = executionContexts.get(i);
+                    int iterations = i;
+                    futures.add(executorService.submit(() -> {
+                        try {
+                            PageCursorTracer cursorTracer =
+                                    executionContext.cursorContext().getCursorTracer();
+                            for (int j = 0; j <= iterations; j++) {
+                                PageSwapper swapper = mock(PageSwapper.class, RETURNS_MOCKS);
+                                try (var pinEvent = cursorTracer.beginPin(false, 1, swapper)) {
+                                    try (var pageFaultEvent = pinEvent.beginPageFault(1, swapper)) {
+                                        pageFaultEvent.addBytesRead(42);
+                                    }
                                 }
+                                cursorTracer.unpin(1, swapper);
                             }
-                            cursorTracer.unpin(1, swapper);
+                        } finally {
+                            executionContext.complete();
                         }
-                    } finally {
-                        executionContext.complete();
-                    }
-                }));
+                    }));
+                }
+                Futures.getAll(futures);
+                closeAllUnchecked(executionContexts);
+
+                PageCursorTracer transactionCursor = transaction.cursorContext().getCursorTracer();
+
+                assertEquals(10, transactionCursor.pins());
+                assertEquals(10, transactionCursor.unpins());
+                assertEquals(420, transactionCursor.bytesRead());
+            } finally {
+                executorService.shutdown();
+                assertTrue(executorService.awaitTermination(1, MINUTES));
             }
-            Futures.getAll(futures);
-            closeAllUnchecked(executionContexts);
-
-            PageCursorTracer transactionCursor = transaction.cursorContext().getCursorTracer();
-
-            assertEquals(10, transactionCursor.pins());
-            assertEquals(10, transactionCursor.unpins());
-            assertEquals(420, transactionCursor.bytesRead());
-        } finally {
-            executorService.shutdown();
-            assertTrue(executorService.awaitTermination(1, MINUTES));
         }
     }
 

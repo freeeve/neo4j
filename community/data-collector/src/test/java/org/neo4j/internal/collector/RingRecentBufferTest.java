@@ -100,9 +100,8 @@ class RingRecentBufferTest {
         int n = 1000;
         int bufferSize = 16;
         RingRecentBuffer<Long> buffer = new RingRecentBuffer<>(bufferSize, q -> {});
-        ExecutorService executor = Executors.newFixedThreadPool(2);
 
-        try {
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
             UniqueElementsConsumer consumer = new UniqueElementsConsumer();
 
             // when
@@ -121,8 +120,6 @@ class RingRecentBufferTest {
             consume.get();
             latch.countDown();
             produce.get();
-        } finally {
-            executor.shutdown();
         }
         assertEquals(0, buffer.numSilentQueryDrops());
     }
@@ -133,9 +130,8 @@ class RingRecentBufferTest {
         int n = 1000000;
         int bufferSize = 16;
         RingRecentBuffer<Long> buffer = new RingRecentBuffer<>(bufferSize, q -> {});
-        ExecutorService executor = Executors.newFixedThreadPool(2);
 
-        try {
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
             // when
             // producer thread
             CountDownLatch latch = new CountDownLatch(1);
@@ -150,8 +146,6 @@ class RingRecentBufferTest {
             consume.get();
             latch.countDown();
             produce.get();
-        } finally {
-            executor.shutdown();
         }
         assertEquals(0, buffer.numSilentQueryDrops());
     }
@@ -162,9 +156,7 @@ class RingRecentBufferTest {
         int n = 1000000;
         int bufferSize = 16;
         RingRecentBuffer<Long> buffer = new RingRecentBuffer<>(bufferSize, q -> {});
-        ExecutorService executor = Executors.newFixedThreadPool(4);
-
-        try {
+        try (ExecutorService executor = Executors.newFixedThreadPool(4)) {
             // when
             // producer threads
             CountDownLatch latch = new CountDownLatch(1);
@@ -183,8 +175,6 @@ class RingRecentBufferTest {
             produce1.get();
             produce2.get();
             produce3.get();
-        } finally {
-            executor.shutdown();
         }
         // on some systems thread scheduling variance actually causes ~100 silent drops in this test
         assertTrue(buffer.numSilentQueryDrops() < 1000, "only a few silent drops expected");

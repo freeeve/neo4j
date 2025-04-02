@@ -184,8 +184,7 @@ class SwapperSetTest {
     @RepeatedTest(10)
     void concurrentSweepAttemptsShouldNotFreeIdsMultipleTimes() throws ExecutionException {
         int numberOfExecutors = 20;
-        ExecutorService executors = Executors.newFixedThreadPool(numberOfExecutors);
-        try {
+        try (ExecutorService executors = Executors.newFixedThreadPool(numberOfExecutors)) {
             DummyPageSwapper swapper = new DummyPageSwapper("b", 43);
             while (set.skipSweep()) {
                 set.postponedFree(set.allocate(swapper));
@@ -224,8 +223,6 @@ class SwapperSetTest {
                 }
                 assertNotNull(nonEmptyResult);
             });
-        } finally {
-            executors.shutdown();
         }
     }
 

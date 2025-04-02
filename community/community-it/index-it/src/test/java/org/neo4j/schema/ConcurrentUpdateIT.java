@@ -70,32 +70,33 @@ class ConcurrentUpdateIT {
             }
 
             int populatorCount = 5;
-            ExecutorService executor = Executors.newFixedThreadPool(populatorCount);
-            CountDownLatch startSignal = new CountDownLatch(1);
-            AtomicBoolean endSignal = new AtomicBoolean();
-            for (int i = 0; i < populatorCount; i++) {
-                executor.submit(new Populator(database, counter, startSignal, endSignal));
-            }
-
-            try {
-                try (Transaction transaction = database.beginTx()) {
-                    transaction
-                            .schema()
-                            .indexFor(Label.label("label10"))
-                            .on("property")
-                            .create();
-                    transaction.commit();
+            try (ExecutorService executor = Executors.newFixedThreadPool(populatorCount)) {
+                CountDownLatch startSignal = new CountDownLatch(1);
+                AtomicBoolean endSignal = new AtomicBoolean();
+                for (int i = 0; i < populatorCount; i++) {
+                    executor.submit(new Populator(database, counter, startSignal, endSignal));
                 }
-                startSignal.countDown();
 
-                try (Transaction transaction = database.beginTx()) {
-                    transaction.schema().awaitIndexesOnline(populatorCount, TimeUnit.MINUTES);
-                    transaction.commit();
+                try {
+                    try (Transaction transaction = database.beginTx()) {
+                        transaction
+                                .schema()
+                                .indexFor(Label.label("label10"))
+                                .on("property")
+                                .create();
+                        transaction.commit();
+                    }
+                    startSignal.countDown();
+
+                    try (Transaction transaction = database.beginTx()) {
+                        transaction.schema().awaitIndexesOnline(populatorCount, TimeUnit.MINUTES);
+                        transaction.commit();
+                    }
+                } finally {
+                    endSignal.set(true);
+                    executor.shutdown();
+                    // Basically we don't care to await their completion because they've done their job
                 }
-            } finally {
-                endSignal.set(true);
-                executor.shutdown();
-                // Basically we don't care to await their completion because they've done their job
             }
         } finally {
             DatabaseLayout databaseLayout = database.databaseLayout();

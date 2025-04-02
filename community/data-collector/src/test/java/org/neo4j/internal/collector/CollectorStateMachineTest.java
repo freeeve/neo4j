@@ -37,20 +37,20 @@ class CollectorStateMachineTest {
         // given
         int n = 1000;
         TestStateMachine stateMachine = new TestStateMachine();
-        ExecutorService executor = Executors.newFixedThreadPool(3);
+        try (ExecutorService executor = Executors.newFixedThreadPool(3)) {
 
-        // when
-        Future<?> collect = executor.submit(stress(n, () -> collect(stateMachine)));
-        Future<?> stop = executor.submit(stress(n, () -> stateMachine.stop(Long.MAX_VALUE)));
-        Future<?> clear = executor.submit(stress(n, stateMachine::clear));
-        Future<?> status = executor.submit(stress(n, stateMachine::status));
+            // when
+            Future<?> collect = executor.submit(stress(n, () -> collect(stateMachine)));
+            Future<?> stop = executor.submit(stress(n, () -> stateMachine.stop(Long.MAX_VALUE)));
+            Future<?> clear = executor.submit(stress(n, stateMachine::clear));
+            Future<?> status = executor.submit(stress(n, stateMachine::status));
 
-        // then without illegal transitions or exceptions
-        collect.get();
-        stop.get();
-        clear.get();
-        status.get();
-        executor.shutdown();
+            // then without illegal transitions or exceptions
+            collect.get();
+            stop.get();
+            clear.get();
+            status.get();
+        }
     }
 
     private static <T> Runnable stress(int n, Supplier<T> action) {
@@ -83,7 +83,7 @@ class CollectorStateMachineTest {
 
         @Override
         protected Result doCollect(Map<String, Object> config, long collectionId) {
-            assertSame(state, State.IDLE);
+            assertSame(State.IDLE, state);
             state = State.COLLECTING;
             return null;
         }

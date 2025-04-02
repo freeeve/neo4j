@@ -134,9 +134,8 @@ class NodeCountsTest {
         final Barrier.Control barrier = new Barrier.Control();
         long before = numberOfNodes();
 
-        var executor = Executors.newSingleThreadExecutor(NamedThreadFactory.named("create-nodes"));
         var graphDb = db;
-        try {
+        try (var executor = Executors.newSingleThreadExecutor(NamedThreadFactory.named("create-nodes")); ) {
 
             Future<Long> done = executor.submit(() -> {
                 try (Transaction tx = graphDb.beginTx()) {
@@ -162,8 +161,6 @@ class NodeCountsTest {
             assertEquals(0, during);
             assertEquals(after, whatOtherThreadSees);
             assertEquals(2, after);
-        } finally {
-            executor.shutdown();
         }
     }
 

@@ -39,7 +39,7 @@ class IndexFreshDataReadIT {
     @Inject
     private GraphDatabaseService db;
 
-    private ExecutorService executor = Executors.newCachedThreadPool();
+    private final ExecutorService executor = Executors.newCachedThreadPool();
 
     @AfterEach
     void tearDown() {

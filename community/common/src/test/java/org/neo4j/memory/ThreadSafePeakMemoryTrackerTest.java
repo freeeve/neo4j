@@ -34,26 +34,27 @@ class ThreadSafePeakMemoryTrackerTest {
     void shouldRegisterConcurrentAllocationsAndDeallocations() throws InterruptedException {
         // given
         ThreadSafePeakMemoryTracker tracker = new ThreadSafePeakMemoryTracker();
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
-        for (int t = 0; t < 10; t++) {
-            executorService.submit(() -> {
-                for (int i = 1; i < 100; i++) {
-                    tracker.allocateNative(i);
-                    assertThat(tracker.usedNativeMemory()).isGreaterThan(0L);
-                }
-                for (int i = 1; i < 100; i++) {
-                    assertThat(tracker.usedNativeMemory()).isGreaterThan(0L);
-                    tracker.releaseNative(i);
-                }
-            });
+        try (ExecutorService executorService = Executors.newFixedThreadPool(10)) {
+            for (int t = 0; t < 10; t++) {
+                executorService.submit(() -> {
+                    for (int i = 1; i < 100; i++) {
+                        tracker.allocateNative(i);
+                        assertThat(tracker.usedNativeMemory()).isGreaterThan(0L);
+                    }
+                    for (int i = 1; i < 100; i++) {
+                        assertThat(tracker.usedNativeMemory()).isGreaterThan(0L);
+                        tracker.releaseNative(i);
+                    }
+                });
+            }
+
+            // when
+            executorService.shutdown();
+            executorService.awaitTermination(10, TimeUnit.MINUTES);
+
+            // then
+            assertEquals(0, tracker.usedNativeMemory());
         }
-
-        // when
-        executorService.shutdown();
-        executorService.awaitTermination(10, TimeUnit.MINUTES);
-
-        // then
-        assertEquals(0, tracker.usedNativeMemory());
     }
 
     @Test
@@ -70,13 +71,14 @@ class ThreadSafePeakMemoryTrackerTest {
         }
 
         // when
-        ExecutorService executorService = Executors.newFixedThreadPool(threads);
-        for (int i = 0; i < threads; i++) {
-            int id = i;
-            executorService.submit(() -> tracker.allocateNative(allocations[id]));
+        try (ExecutorService executorService = Executors.newFixedThreadPool(threads)) {
+            for (int i = 0; i < threads; i++) {
+                int id = i;
+                executorService.submit(() -> tracker.allocateNative(allocations[id]));
+            }
+            executorService.shutdown();
+            executorService.awaitTermination(10, TimeUnit.MINUTES);
         }
-        executorService.shutdown();
-        executorService.awaitTermination(10, TimeUnit.MINUTES);
 
         long peakAfterAllocation = tracker.peakMemoryUsage();
         LongStream.of(allocations).forEach(tracker::releaseNative);

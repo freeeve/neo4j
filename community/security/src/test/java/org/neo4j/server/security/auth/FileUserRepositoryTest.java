@@ -254,8 +254,7 @@ class FileUserRepositoryTest {
         DoubleLatch latch = new DoubleLatch(2);
 
         // When
-        var executor = Executors.newSingleThreadExecutor();
-        try {
+        try (var executor = Executors.newSingleThreadExecutor()) {
             Future<?> setUsers = executor.submit(() -> {
                 try {
                     users.setUsers(new HangingListSnapshot(latch, 10L, Collections.emptyList()));
@@ -271,8 +270,6 @@ class FileUserRepositoryTest {
 
             latch.finish();
             setUsers.get();
-        } finally {
-            executor.shutdown();
         }
     }
 

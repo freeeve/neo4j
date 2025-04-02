@@ -85,8 +85,7 @@ class ChunkedTransactionRegistryTest {
     @Test
     void multiThreadedTransactionRegistryOperations() throws InterruptedException {
         int numberOfWorkers = 10;
-        var transactionReporters = Executors.newFixedThreadPool(numberOfWorkers);
-        try {
+        try (var transactionReporters = Executors.newFixedThreadPool(numberOfWorkers)) {
             var registrationLatch = new CountDownLatch(numberOfWorkers);
             var deletionLatch = new CountDownLatch(numberOfWorkers / 2);
             for (int i = 0; i < numberOfWorkers; i++) {
@@ -116,8 +115,6 @@ class ChunkedTransactionRegistryTest {
             assertEquals(
                     new OpenTransactionMetadata(6, 106, new LogPosition(6, 100)),
                     transactionRegistry.oldestOpenTransactionMetadata());
-        } finally {
-            transactionReporters.shutdown();
         }
     }
 }

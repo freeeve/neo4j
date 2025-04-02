@@ -159,13 +159,12 @@ public class KernelTransactionTimeoutMonitorIT {
     @Test
     void concurrentTransactionAndSnapshotCreation() throws ExecutionException, InterruptedException {
         int numberOfExecutors = 40;
-        var txExecutors = Executors.newFixedThreadPool(numberOfExecutors);
-        var monitorThread = Executors.newSingleThreadExecutor();
-        CountDownLatch startLatch = new CountDownLatch(1);
+        try (var txExecutors = Executors.newFixedThreadPool(numberOfExecutors);
+                var monitorThread = Executors.newSingleThreadExecutor()) {
+            CountDownLatch startLatch = new CountDownLatch(1);
 
-        var transactionFutures = new ArrayList<Future<?>>(numberOfExecutors);
+            var transactionFutures = new ArrayList<Future<?>>(numberOfExecutors);
 
-        try {
             TestTransactionMonitor transactionMonitor = new TestTransactionMonitor(
                     database.getDependencyResolver().resolveDependency(KernelTransactions.class));
             var monitorFuture = monitorThread.submit(transactionMonitor);
@@ -189,8 +188,6 @@ public class KernelTransactionTimeoutMonitorIT {
             transactionMonitor.terminate();
 
             monitorFuture.get();
-        } finally {
-            txExecutors.shutdown();
         }
     }
 

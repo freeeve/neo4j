@@ -226,8 +226,7 @@ class ConcurrentCreateDropIndexIT {
 
     @Test
     void concurrentCreatingAndAwaitingIndexesOnline() throws Exception {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        try {
+        try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
             Future<?> indexCreate = executor.submit(() -> {
                 try (Transaction tx = db.beginTx()) {
                     indexCreate(tx, 0);
@@ -241,8 +240,6 @@ class ConcurrentCreateDropIndexIT {
                 }
             }
             indexCreate.get();
-        } finally {
-            executor.shutdown();
         }
     }
 

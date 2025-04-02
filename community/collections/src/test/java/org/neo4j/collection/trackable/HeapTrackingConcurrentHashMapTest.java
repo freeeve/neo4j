@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 import org.eclipse.collections.impl.list.Interval;
 import org.eclipse.collections.impl.parallel.ParallelIterate;
 import org.eclipse.collections.impl.tuple.ImmutableEntry;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.neo4j.memory.EmptyMemoryTracker;
@@ -44,6 +45,12 @@ import org.neo4j.memory.EmptyMemoryTracker;
 public class HeapTrackingConcurrentHashMapTest {
 
     public volatile long volatileLong = 0L;
+    private final ExecutorService executor = Executors.newFixedThreadPool(20);
+
+    @AfterEach
+    void tearDown() {
+        executor.shutdown();
+    }
 
     @Test
     public void putIfAbsent() {
@@ -150,7 +157,7 @@ public class HeapTrackingConcurrentHashMapTest {
                     assertThat(map2.putIfAbsent(each, each)).isNull();
                 },
                 1,
-                executor());
+                executor);
         assertThat(map1).isEqualTo(map2);
         assertThat(map1).hasSameHashCodeAs(map2);
     }
@@ -198,7 +205,7 @@ public class HeapTrackingConcurrentHashMapTest {
                     assertThat(map2.putIfAbsent(each, each)).isNull();
                 },
                 1,
-                executor());
+                executor);
         assertThat(map1).isEqualTo(map2);
         assertThat(map1).hasSameHashCodeAs(map2);
     }
@@ -216,7 +223,7 @@ public class HeapTrackingConcurrentHashMapTest {
                     map.clear();
                 },
                 1,
-                executor());
+                executor);
         assertThat(map).isEmpty();
     }
 
@@ -247,7 +254,7 @@ public class HeapTrackingConcurrentHashMapTest {
                     }
                 },
                 1,
-                executor());
+                executor);
     }
 
     @RepeatedTest(100)
@@ -257,42 +264,43 @@ public class HeapTrackingConcurrentHashMapTest {
         ThreadLocalRandom random = ThreadLocalRandom.current();
 
         int threads = random.nextInt(1, 2 * Runtime.getRuntime().availableProcessors());
-        var executor = Executors.newFixedThreadPool(threads);
-        int key = 42;
-        int value = 1337;
+        try (var executor = Executors.newFixedThreadPool(threads)) {
+            int key = 42;
+            int value = 1337;
 
-        final AtomicBoolean hasBeenCalledMultipleTimes = new AtomicBoolean(false);
-        var callOnce = new Function<Integer, Integer>() {
-            private final AtomicBoolean hasBeenCalled = new AtomicBoolean(false);
+            final AtomicBoolean hasBeenCalledMultipleTimes = new AtomicBoolean(false);
+            var callOnce = new Function<Integer, Integer>() {
+                private final AtomicBoolean hasBeenCalled = new AtomicBoolean(false);
 
-            @Override
-            public Integer apply(Integer anInt) {
-                if (hasBeenCalled.compareAndSet(false, true)) {
-                    try {
-                        Thread.sleep(10);
-                    } catch (InterruptedException e) {
-                        throw new RuntimeException(e);
+                @Override
+                public Integer apply(Integer anInt) {
+                    if (hasBeenCalled.compareAndSet(false, true)) {
+                        try {
+                            Thread.sleep(10);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else {
+                        hasBeenCalledMultipleTimes.set(true);
                     }
-                } else {
-                    hasBeenCalledMultipleTimes.set(true);
+
+                    return value;
                 }
-
-                return value;
+            };
+            var getFailed = new AtomicBoolean(false);
+            executor.submit(new GetContestant(map, key, value, getFailed));
+            for (int i = 0; i < threads; i++) {
+                executor.submit(() -> {
+                    map.computeIfAbsent(key, callOnce);
+                });
             }
-        };
-        var getFailed = new AtomicBoolean(false);
-        executor.submit(new GetContestant(map, key, value, getFailed));
-        for (int i = 0; i < threads; i++) {
-            executor.submit(() -> {
-                map.computeIfAbsent(key, callOnce);
-            });
-        }
 
-        executor.shutdown();
-        assertThat(executor.awaitTermination(1, TimeUnit.MINUTES)).isTrue();
-        assertThat(map.size()).isEqualTo(1);
-        assertThat(hasBeenCalledMultipleTimes.get()).isFalse();
-        assertThat(getFailed.get()).isFalse();
+            executor.shutdown();
+            assertThat(executor.awaitTermination(1, TimeUnit.MINUTES)).isTrue();
+            assertThat(map.size()).isEqualTo(1);
+            assertThat(hasBeenCalledMultipleTimes.get()).isFalse();
+            assertThat(getFailed.get()).isFalse();
+        }
     }
 
     @Test
@@ -309,7 +317,6 @@ public class HeapTrackingConcurrentHashMapTest {
         final var map = HeapTrackingConcurrentHashMap.<Integer, String>newMap(EmptyMemoryTracker.INSTANCE);
         for (final var key : initialKeys) map.put(key, "occupied1");
 
-        final var executor = executor();
         try {
             for (final var key : newKeys) {
                 executor.submit(() -> map.computeIfAbsent(key, k -> "occupied2"));
@@ -367,9 +374,5 @@ public class HeapTrackingConcurrentHashMapTest {
 
     private <K, V> Map.Entry<K, V> entry(K k, V v) {
         return ImmutableEntry.of(k, v);
-    }
-
-    private ExecutorService executor() {
-        return Executors.newFixedThreadPool(20);
     }
 }

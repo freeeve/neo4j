@@ -39,7 +39,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadLocalRandom;
@@ -890,13 +889,11 @@ public abstract class PageSwapperTest {
         };
 
         int threads = 8;
-        ExecutorService executor = null;
-        try {
-            executor = Executors.newFixedThreadPool(threads, r -> {
-                Thread thread = Executors.defaultThreadFactory().newThread(r);
-                thread.setDaemon(true);
-                return thread;
-            });
+        try (var executor = Executors.newFixedThreadPool(threads, r -> {
+            Thread thread = Executors.defaultThreadFactory().newThread(r);
+            thread.setDaemon(true);
+            return thread;
+        })) {
             List<Future<?>> futures = new ArrayList<>(threads);
             for (int i = 0; i < threads; i++) {
                 futures.add(executor.submit(work));
@@ -904,10 +901,6 @@ public abstract class PageSwapperTest {
 
             startLatch.countDown();
             Futures.getAll(futures);
-        } finally {
-            if (executor != null) {
-                executor.shutdown();
-            }
         }
     }
 

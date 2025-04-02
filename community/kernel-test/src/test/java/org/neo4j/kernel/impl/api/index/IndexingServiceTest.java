@@ -1107,8 +1107,7 @@ class IndexingServiceTest {
         when(indexProvider.getInitialState(eq(indexRule), any(), any())).thenReturn(POPULATING);
 
         life.init();
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        try {
+        try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
             executor.submit(() -> {
                 try {
                     life.start();
@@ -1145,8 +1144,6 @@ class IndexingServiceTest {
             assertThat(internalLogProvider)
                     .containsMessages(expectedCause.getMessage())
                     .containsMessages(format("Index %s entered %s state ", indexRule, FAILED));
-        } finally {
-            executor.shutdown();
         }
     }
 

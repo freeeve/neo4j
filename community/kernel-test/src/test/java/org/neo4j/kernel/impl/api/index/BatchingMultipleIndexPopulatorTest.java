@@ -219,33 +219,34 @@ public class BatchingMultipleIndexPopulatorTest {
         RuntimeException batchFlushError = new RuntimeException("Batch failed");
 
         IndexPopulator populator;
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        ThreadPoolJobScheduler jobScheduler = new ThreadPoolJobScheduler(executor);
-        try {
-            MultipleIndexPopulator batchingPopulator = new MultipleIndexPopulator(
-                    storeView,
-                    NullLogProvider.getInstance(),
-                    EntityType.NODE,
-                    mock(SchemaState.class),
-                    jobScheduler,
-                    tokens,
-                    CONTEXT_FACTORY,
-                    INSTANCE,
-                    "",
-                    AUTH_DISABLED,
-                    Config.defaults(GraphDatabaseInternalSettings.index_population_batch_max_byte_size, 1L),
-                    EMPTY_VISIBILITY_PROVIDER,
-                    IndexMonitor.NO_MONITOR,
-                    CursorContext.NULL_CONTEXT);
+        try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+            ThreadPoolJobScheduler jobScheduler = new ThreadPoolJobScheduler(executor);
+            try {
+                MultipleIndexPopulator batchingPopulator = new MultipleIndexPopulator(
+                        storeView,
+                        NullLogProvider.getInstance(),
+                        EntityType.NODE,
+                        mock(SchemaState.class),
+                        jobScheduler,
+                        tokens,
+                        CONTEXT_FACTORY,
+                        INSTANCE,
+                        "",
+                        AUTH_DISABLED,
+                        Config.defaults(GraphDatabaseInternalSettings.index_population_batch_max_byte_size, 1L),
+                        EMPTY_VISIBILITY_PROVIDER,
+                        IndexMonitor.NO_MONITOR,
+                        CursorContext.NULL_CONTEXT);
 
-            populator = addPopulator(batchingPopulator, index1);
-            List<IndexEntryUpdate> expected = forUpdates(index1, update1, update2);
-            doThrow(batchFlushError).when(populator).add(eq(expected), any());
+                populator = addPopulator(batchingPopulator, index1);
+                List<IndexEntryUpdate> expected = forUpdates(index1, update1, update2);
+                doThrow(batchFlushError).when(populator).add(eq(expected), any());
 
-            batchingPopulator.createStoreScan(CONTEXT_FACTORY).run(NO_EXTERNAL_UPDATES);
-        } finally {
-            jobScheduler.shutdown();
-            executor.awaitTermination(1, TimeUnit.MINUTES);
+                batchingPopulator.createStoreScan(CONTEXT_FACTORY).run(NO_EXTERNAL_UPDATES);
+            } finally {
+                jobScheduler.shutdown();
+                executor.awaitTermination(1, TimeUnit.MINUTES);
+            }
         }
 
         verify(populator).markAsFailed(failure(batchFlushError).asString());

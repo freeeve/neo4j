@@ -197,32 +197,32 @@ class DbInfoIntegrationTest extends TestHarness {
 
     @Test
     void stopsAndResumesPollingCorrectly() throws Exception {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        var isOutputInteractive = true;
-        var boltStateHandler = new BoltStateHandler(isOutputInteractive, AccessMode.WRITE);
-        var paramService = ParameterService.create(boltStateHandler);
-        var dbInfo = new TestDbInfo(paramService, boltStateHandler, true);
-        var testBuilder = new TestBuilder(paramService, boltStateHandler, dbInfo, isOutputInteractive, false);
+        try (ExecutorService executor = Executors.newSingleThreadExecutor()) {
+            var isOutputInteractive = true;
+            var boltStateHandler = new BoltStateHandler(isOutputInteractive, AccessMode.WRITE);
+            var paramService = ParameterService.create(boltStateHandler);
+            var dbInfo = new TestDbInfo(paramService, boltStateHandler, true);
+            var testBuilder = new TestBuilder(paramService, boltStateHandler, dbInfo, isOutputInteractive, false);
 
-        executor.submit(() -> {
-            try {
-                testBuilder
-                        .addArgs("-u", USER, "-p", PASSWORD, "--enable-autocompletions")
-                        .run();
-            } catch (Exception e) {
-            }
-        });
+            executor.submit(() -> {
+                try {
+                    testBuilder
+                            .addArgs("-u", USER, "-p", PASSWORD, "--enable-autocompletions")
+                            .run();
+                } catch (Exception e) {
+                }
+            });
 
-        // Test that after some inactivity the poller has stopped
-        assertEventually(() -> dbInfo, db -> db.stopPollingCalls.get() > 0, 2, MINUTES);
+            // Test that after some inactivity the poller has stopped
+            assertEventually(() -> dbInfo, db -> db.stopPollingCalls.get() > 0, 2, MINUTES);
 
-        dbInfo.resumePollingCalls = new AtomicInteger(0);
-        testBuilder.terminal.write().println("CREATE (n:E);");
+            dbInfo.resumePollingCalls = new AtomicInteger(0);
+            testBuilder.terminal.write().println("CREATE (n:E);");
 
-        // We check the polling has been resumed after the user has typed something
-        assertEventually(() -> dbInfo, db -> db.resumePollingCalls.get() > 0, 2, MINUTES);
+            // We check the polling has been resumed after the user has typed something
+            assertEventually(() -> dbInfo, db -> db.resumePollingCalls.get() > 0, 2, MINUTES);
 
-        testBuilder.closeMain();
-        executor.shutdown();
+            testBuilder.closeMain();
+        }
     }
 }

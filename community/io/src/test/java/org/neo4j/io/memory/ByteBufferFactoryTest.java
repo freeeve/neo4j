@@ -121,37 +121,37 @@ class ByteBufferFactoryTest {
     @Test
     void shouldShareThreadLocalBuffersLoggingIndexedIdGeneratorMonitorStressfully() throws Throwable {
         // given
-        ByteBufferFactory factory = heapBufferFactory(1024);
         int threads = 10;
-        CountDownLatch startLatch = new CountDownLatch(1);
-        ExecutorService executor = Executors.newFixedThreadPool(threads);
-        List<Future<?>> futures = new ArrayList<>();
-        List<Set<ByteBuffer>> seenBuffers = new ArrayList<>();
-        for (int i = 0; i < threads; i++) {
-            Set<ByteBuffer> seen = new HashSet<>();
-            seenBuffers.add(seen);
-            futures.add(executor.submit(() -> {
-                startLatch.await();
-                for (int j = 0; j < 1000; j++) {
-                    ByteBuffer buffer = factory.acquireThreadLocalBuffer(INSTANCE);
-                    assertNotNull(buffer);
-                    seen.add(buffer);
-                    factory.releaseThreadLocalBuffer();
-                }
-                return null;
-            }));
-        }
+        try (ByteBufferFactory factory = heapBufferFactory(1024);
+                ExecutorService executor = Executors.newFixedThreadPool(threads)) {
+            CountDownLatch startLatch = new CountDownLatch(1);
+            List<Future<?>> futures = new ArrayList<>();
+            List<Set<ByteBuffer>> seenBuffers = new ArrayList<>();
+            for (int i = 0; i < threads; i++) {
+                Set<ByteBuffer> seen = new HashSet<>();
+                seenBuffers.add(seen);
+                futures.add(executor.submit(() -> {
+                    startLatch.await();
+                    for (int j = 0; j < 1000; j++) {
+                        ByteBuffer buffer = factory.acquireThreadLocalBuffer(INSTANCE);
+                        assertNotNull(buffer);
+                        seen.add(buffer);
+                        factory.releaseThreadLocalBuffer();
+                    }
+                    return null;
+                }));
+            }
 
-        // when
-        startLatch.countDown();
-        Futures.getAll(futures);
-        executor.shutdown();
-        executor.awaitTermination(10, TimeUnit.SECONDS);
+            // when
+            startLatch.countDown();
+            Futures.getAll(futures);
+            executor.shutdown();
+            executor.awaitTermination(10, TimeUnit.SECONDS);
 
-        // then
-        for (int i = 0; i < threads; i++) {
-            assertEquals(1, seenBuffers.get(i).size());
+            // then
+            for (int i = 0; i < threads; i++) {
+                assertEquals(1, seenBuffers.get(i).size());
+            }
         }
-        factory.close();
     }
 }

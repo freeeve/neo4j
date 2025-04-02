@@ -256,13 +256,12 @@ class MultiRootGBPTreeTest {
         var numRoots = random.nextInt(2, 50);
         var numThreads = random.nextInt(2, 16);
         var externalIds = randomExternalIds(numRoots);
-        var executor = Executors.newFixedThreadPool(numThreads);
-        var numWritten = new AtomicInteger[numRoots];
-        for (var i = 0; i < numRoots; i++) {
-            numWritten[i] = new AtomicInteger();
-        }
+        try (var executor = Executors.newFixedThreadPool(numThreads)) {
+            var numWritten = new AtomicInteger[numRoots];
+            for (var i = 0; i < numRoots; i++) {
+                numWritten[i] = new AtomicInteger();
+            }
 
-        try {
             // create the roots in parallel
             var creationTasks = new ArrayList<Callable<Void>>();
             for (var i = 0; i < numRoots; i++) {
@@ -301,13 +300,11 @@ class MultiRootGBPTreeTest {
                 }
             }
             getAllResults(executor.invokeAll(writeTasks));
-        } finally {
-            executor.shutdown();
-        }
 
-        // then all mappings and data should be there
-        for (var i = 0; i < externalIds.length; i++) {
-            assertSeek(externalIds[i], externalIds[i], numWritten[i].get());
+            // then all mappings and data should be there
+            for (var i = 0; i < externalIds.length; i++) {
+                assertSeek(externalIds[i], externalIds[i], numWritten[i].get());
+            }
         }
     }
 

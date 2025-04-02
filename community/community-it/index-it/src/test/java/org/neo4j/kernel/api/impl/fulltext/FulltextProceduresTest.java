@@ -76,7 +76,6 @@ import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.helpers.collection.Iterables;
-import org.neo4j.io.IOUtils;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.procedure.builtin.FulltextProcedures;
 import org.neo4j.test.ThreadTestUtils;
@@ -542,15 +541,15 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
                 tx.commit();
             }
         };
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-        Future<?> future1 = executor.submit(createIndexes);
-        Future<?> future2 = executor.submit(makeAllEntitiesGreen);
-        readyLatch.await();
-        startLatch.release();
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            Future<?> future1 = executor.submit(createIndexes);
+            Future<?> future2 = executor.submit(makeAllEntitiesGreen);
+            readyLatch.await();
+            startLatch.release();
 
-        // Finally, when everything has settled down, we should see that all of the nodes and relationships are indexed
-        // with the value "green".
-        try {
+            // Finally, when everything has settled down, we should see that all of the nodes and relationships are
+            // indexed
+            // with the value "green".
             future1.get();
             future2.get();
             awaitIndexesOnline();
@@ -559,8 +558,6 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
             }
             assertQueryFindsIds(db, true, DEFAULT_NODE_IDX_NAME, newValue, nodeIds);
             assertQueryFindsIds(db, false, DEFAULT_REL_IDX_NAME, newValue, relIds);
-        } finally {
-            IOUtils.closeAllSilently(executor::shutdown);
         }
     }
 
