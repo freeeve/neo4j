@@ -20,22 +20,16 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.VarLengthBound
 import org.neo4j.cypher.internal.logical.plans.RelationshipLogicalLeafPlan
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Rewriter
-import org.neo4j.cypher.internal.util.Rewriter.TopDownMergeableRewriter
 import org.neo4j.cypher.internal.util.topDown
 
 /**
  * Removes variables that are declared but never used in the logical plan
  */
-case object RemoveUnusedVariablesRewriter extends Rewriter with TopDownMergeableRewriter {
-
-  override val innerRewriter: Rewriter = Rewriter.lift {
-    case predicate: VarLengthBound => predicate.getRewrittenPredicate
-  }
+case object RemoveUnusedVariablesRewriter extends Rewriter {
 
   override def apply(value: AnyRef): AnyRef = {
     val variableUsage = value.folder.treeFold(Map.empty[LogicalVariable, Int]) {
