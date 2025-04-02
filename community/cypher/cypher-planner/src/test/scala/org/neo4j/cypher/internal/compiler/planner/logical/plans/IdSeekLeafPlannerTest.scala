@@ -661,10 +661,10 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     // when
     val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
 
-    val newTo = "  UNNAMED0"
+    val newTo = "`  UNNAMED0`"
     // then
     val expectedPlan = new LogicalPlanBuilder(wholePlan = false)
-      .filter(s"${to.name} = `$newTo`")
+      .filter(s"${to.name} = $newTo")
       .relationshipByIdSeek(s"(${from.name})-[r]->($newTo)", Set.empty, 42)
       .build()
 
@@ -712,10 +712,10 @@ class IdSeekLeafPlannerTest extends CypherFunSuite with LogicalPlanningTestSuppo
     // when
     val resultPlans = idSeekLeafPlanner(Set.empty)(qg, InterestingOrderConfig.empty, context)
 
-    val newTo = "  UNNAMED0"
+    val newTo = "`  UNNAMED0`"
     // then
     val expectedPlan = new LogicalPlanBuilder(wholePlan = false)
-      .filter(s"${to.name} = `$newTo`")
+      .filter(s"${to.name} = $newTo")
       .relationshipByIdSeek(s"(${from.name})-[r]->($newTo)", Set.empty, 42, 43, 43)
       .build()
 

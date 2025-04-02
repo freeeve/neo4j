@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 
 object VariableParser {
 
-  private val raw = "(\\s*[a-zA-Z0-9_]*)".r
+  private val raw = "([a-zA-Z0-9_]*)".r
   private val escaped = "`(.*)`".r
 
   def unescaped(varName: String): String = unapply(varName) match {
