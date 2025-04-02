@@ -30,6 +30,7 @@ import static org.neo4j.internal.unsafe.UnsafeUtil.arrayBaseOffset;
 import static org.neo4j.internal.unsafe.UnsafeUtil.arrayIndexScale;
 import static org.neo4j.internal.unsafe.UnsafeUtil.arrayOffset;
 import static org.neo4j.internal.unsafe.UnsafeUtil.assertHasUnsafe;
+import static org.neo4j.internal.unsafe.UnsafeUtil.checkAccess;
 import static org.neo4j.internal.unsafe.UnsafeUtil.compareAndSwapLong;
 import static org.neo4j.internal.unsafe.UnsafeUtil.free;
 import static org.neo4j.internal.unsafe.UnsafeUtil.getAndSetLong;
@@ -51,6 +52,8 @@ import static org.neo4j.internal.unsafe.UnsafeUtil.setMemory;
 import java.nio.ByteBuffer;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import org.assertj.core.api.AbstractThrowableAssert;
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.Test;
 import org.neo4j.memory.LocalMemoryTracker;
 
@@ -320,12 +323,62 @@ class UnsafeUtilTest {
     void detectBadMemoryAccess() {
         UnsafeUtil.addAllocatedPointer(0x7fc7f84a1000L, 220976);
         try {
-            assertThatCode(() -> UnsafeUtil.checkAccess(0x7fc7f84a1000L, 220976))
-                    .doesNotThrowAnyException();
-            assertThatCode(() -> UnsafeUtil.checkAccess(0x7fc7f84a0000L, 220976))
+            assertThatCode(() -> checkAccess(0x7fc7f84a1000L, 220976)).doesNotThrowAnyException();
+            assertThatCode(() -> checkAccess(0x7fc7f84a0000L, 220976))
                     .hasMessageContaining("Bad access to address 0x7fc7f84a0000");
         } finally {
             UnsafeUtil.removeAllocatedPointer(0x7fc7f84a1000L);
+        }
+    }
+
+    @Test
+    void allowAdjacentAllocationAccesses() {
+        allocateCheckAndAssertThat(() -> checkAccess(64, 128), 128, 0, 128).doesNotThrowAnyException();
+        allocateCheckAndAssertThat(() -> checkAccess(20, 100), 32, 0, 32, 64, 96, 128)
+                .doesNotThrowAnyException();
+        allocateCheckAndAssertThat(() -> checkAccess(64, 40), 32, 0, 32, 64, 96, 128)
+                .doesNotThrowAnyException();
+
+        allocateCheckAndAssertThat(() -> checkAccess(20, 100), 32, 0, 32, 96, 128)
+                .hasMessageContaining("Bad access to address 0x14 with size 100");
+        allocateCheckAndAssertThat(() -> checkAccess(64, 40), 32, 0, 32, 96, 128)
+                .hasMessageContaining("Bad access to address 0x40 with size 40");
+        allocateCheckAndAssertThat(() -> checkAccess(32, 65), 32, 32, 64)
+                .hasMessageContaining("'[0x20 - <access start(0x20)>  0x40][0x40 - 0x60] <access end(0x61)> '");
+    }
+
+    @Test
+    void accessMap() {
+        long[] pointers = new long[] {32, 96, 128};
+
+        allocateCheckAndAssertThat(() -> checkAccess(10, 10), 32, pointers)
+                .hasMessageContaining("' <access start(0xa)>  <access end(0x14)> [0x20 - 0x40]'");
+        allocateCheckAndAssertThat(() -> checkAccess(10, 32), 32, pointers)
+                .hasMessageContaining("' <access start(0xa)> [0x20 - <access end(0x2a)>  0x40]'");
+        allocateCheckAndAssertThat(() -> checkAccess(10, 64), 32, pointers)
+                .hasMessageContaining("' <access start(0xa)> [0x20 - 0x40] <access end(0x4a)> '");
+        allocateCheckAndAssertThat(() -> checkAccess(10, 128), 32, pointers)
+                .hasMessageContaining(
+                        "' <access start(0xa)> [0x20 - 0x40] GAP! [0x60 - 0x80][0x80 - <access end(0x8a)>  0xa0]'");
+        allocateCheckAndAssertThat(() -> checkAccess(32, 70), 32, pointers)
+                .hasMessageContaining("'[0x20 - <access start(0x20)>  0x40] GAP! [0x60 - <access end(0x66)>  0x80]'");
+        allocateCheckAndAssertThat(() -> checkAccess(128, 40), 32, pointers)
+                .hasMessageContaining("'[0x80 - <access start(0x80)>  0xa0] <access end(0xa8)> '");
+        allocateCheckAndAssertThat(() -> checkAccess(161, 32), 32, pointers)
+                .hasMessageContaining("'[0x80 - 0xa0] <access start(0xa1)>  <access end(0xc1)> '");
+    }
+
+    private static AbstractThrowableAssert<?, ? extends Throwable> allocateCheckAndAssertThat(
+            ThrowingCallable check, int size, long... pointers) {
+        for (long pointer : pointers) {
+            UnsafeUtil.addAllocatedPointer(pointer, size);
+        }
+        try {
+            return assertThatCode(check);
+        } finally {
+            for (long pointer : pointers) {
+                UnsafeUtil.removeAllocatedPointer(pointer);
+            }
         }
     }
 }

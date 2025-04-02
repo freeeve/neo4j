@@ -35,9 +35,11 @@ import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 import org.neo4j.internal.helpers.Exceptions;
@@ -342,50 +344,113 @@ public final class UnsafeUtil {
         Allocation allocation = lastUsedAllocation.get();
         if (allocation != null && !allocation.freed) {
             if (compareUnsigned(allocation.pointer, pointer) <= 0
-                    && compareUnsigned(allocation.boundary, boundary) > 0) {
+                    && compareUnsigned(allocation.boundary, boundary) >= 0) {
                 return;
             }
         }
 
-        Map.Entry<Long, Allocation> fentry = allocations.floorEntry(pointer);
-        if (fentry == null
-                || compareUnsigned(fentry.getValue().pointer, pointer) > 0
-                || compareUnsigned(fentry.getValue().boundary, boundary) < 0) {
-            Map.Entry<Long, Allocation> centry = allocations.ceilingEntry(pointer);
-            throwBadAccess(pointer, size, fentry, centry);
+        Map.Entry<Long, Allocation> floorEntry = allocations.floorEntry(pointer);
+        if (floorEntry == null) {
+            ConcurrentNavigableMap<Long, Allocation> allocationsInRange = allocations.headMap(boundary);
+            throwBadAccess(pointer, size, allocationsInRange);
+            return;
+        }
+
+        Allocation floorAllocation = floorEntry.getValue();
+        if (compareUnsigned(floorAllocation.pointer, pointer) > 0
+                || compareUnsigned(floorAllocation.boundary, boundary) < 0) {
+
+            // Access was not within one allocation, check if we have adjacent allocations
+            ConcurrentNavigableMap<Long, Allocation> allocationsInRange =
+                    allocations.subMap(floorAllocation.pointer, pointer + size);
+            long lastAllocatedAddress = allocationsInRange.lastEntry().getValue().boundary;
+            if (compareUnsigned(boundary, lastAllocatedAddress) <= 0 && isContinuous(allocationsInRange)) {
+                // All is fine, no need to cache the allocations since the cross allocation accesses are rare
+                return;
+            }
+            throwBadAccess(pointer, size, allocationsInRange);
         }
         //noinspection ConstantConditions
-        lastUsedAllocation.set(fentry.getValue());
+        lastUsedAllocation.set(floorAllocation);
+    }
+
+    private static boolean isContinuous(ConcurrentNavigableMap<Long, Allocation> allocationsInRange) {
+        if (allocationsInRange.size() < 2) {
+            return false;
+        }
+        Iterator<Allocation> iterator = allocationsInRange.values().iterator();
+        Allocation previous = iterator.next();
+        while (iterator.hasNext()) {
+            Allocation next = iterator.next();
+            if (next.pointer != previous.boundary) {
+                return false;
+            }
+            previous = next;
+        }
+        return true;
     }
 
     private static void throwBadAccess(
-            long pointer, long size, Map.Entry<Long, Allocation> fentry, Map.Entry<Long, Allocation> centry) {
+            long pointer, long size, ConcurrentNavigableMap<Long, Allocation> allocationsInRange) {
         long now = System.nanoTime();
-        long faddr = fentry == null ? 0 : fentry.getKey();
-        long fsize = fentry == null ? 0 : fentry.getValue().sizeInBytes;
-        long foffset = pointer - (faddr + fsize);
-        long caddr = centry == null ? 0 : centry.getKey();
-        long csize = centry == null ? 0 : centry.getValue().sizeInBytes;
-        long coffset = caddr - (pointer + size);
-        boolean floorIsNearest = foffset < coffset;
-        long naddr = floorIsNearest ? faddr : caddr;
-        long nsize = floorIsNearest ? fsize : csize;
-        long noffset = floorIsNearest ? foffset : coffset;
+
+        // Construct allocation layout
+        String accessMap = buildAccessMap(pointer, size, allocationsInRange);
+
         List<FreeTrace> recentFrees = Arrays.stream(freeTraces)
                 .filter(Objects::nonNull)
                 .filter(trace -> trace.contains(pointer))
                 .sorted()
                 .toList();
         AssertionError error = new AssertionError(format(
-                "Bad access to address 0x%x with size %s, nearest valid allocation is "
-                        + "0x%x (%s bytes, off by %s bytes). "
+                "Bad access to address 0x%x with size %s. Access map: '%s'. "
                         + "Recent relevant frees (of %s) are attached as suppressed exceptions.",
-                pointer, size, naddr, nsize, noffset, freeCounter.get()));
+                pointer, size, accessMap, freeCounter.get()));
         for (FreeTrace recentFree : recentFrees) {
             recentFree.referenceTime = now;
             error.addSuppressed(recentFree);
         }
         throw error;
+    }
+
+    private static String buildAccessMap(
+            long pointer, long size, ConcurrentNavigableMap<Long, Allocation> allocationsInRange) {
+
+        if (allocationsInRange.isEmpty()) {
+            Map.Entry<Long, Allocation> longAllocationEntry = allocations.ceilingEntry(pointer);
+            if (longAllocationEntry != null) {
+                StringBuilder sb = new StringBuilder();
+                appendAccessInfo(sb, pointer, size, 0, -1);
+                sb.append("[0x%x - 0x%x]"
+                        .formatted(longAllocationEntry.getValue().pointer, longAllocationEntry.getValue().boundary));
+                return sb.toString();
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        long previousBoundary = 0;
+        for (Allocation value : allocationsInRange.values()) {
+            if (previousBoundary != 0 && previousBoundary != value.pointer) {
+                sb.append(" GAP! ");
+            }
+            previousBoundary = appendAccessInfo(sb, pointer, size, previousBoundary, value.pointer);
+            sb.append("[0x%x -".formatted(value.pointer));
+            previousBoundary = appendAccessInfo(sb, pointer, size, previousBoundary, value.boundary);
+            sb.append(" 0x%x]".formatted(value.boundary));
+        }
+        appendAccessInfo(sb, pointer, size, previousBoundary, -1L);
+        return sb.toString();
+    }
+
+    private static long appendAccessInfo(StringBuilder sb, long startAccess, long size, long start, long end) {
+        if (compareUnsigned(startAccess, start) >= 0 && compareUnsigned(startAccess, end) < 0) {
+            sb.append(" <access start(0x%x)> ".formatted(startAccess));
+        }
+        long endAccess = startAccess + size;
+        if (compareUnsigned(endAccess, start) >= 0 && compareUnsigned(endAccess, end) < 0) {
+            sb.append(" <access end(0x%x)> ".formatted(endAccess));
+        }
+        return end;
     }
 
     /**
