@@ -96,6 +96,18 @@ import org.neo4j.cypher.internal.logical.plans.NFA.Transition
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
 import org.neo4j.cypher.internal.util.NonEmptyList
 import org.neo4j.cypher.internal.util.Repetition
+import org.neo4j.cypher.internal.util.symbols.CTBoolean
+import org.neo4j.cypher.internal.util.symbols.CTDate
+import org.neo4j.cypher.internal.util.symbols.CTDateTime
+import org.neo4j.cypher.internal.util.symbols.CTFloat
+import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.CTLocalDateTime
+import org.neo4j.cypher.internal.util.symbols.CTLocalTime
+import org.neo4j.cypher.internal.util.symbols.CTPoint
+import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.CTTime
+import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.graphdb.schema.IndexType
 
 import scala.collection.mutable
@@ -795,6 +807,7 @@ object LogicalPlanToPlanBuilderString {
           properties,
           argumentIds,
           indexOrder,
+          Seq.empty,
           unique = false,
           propNames.mkString(", "),
           indexType,
@@ -812,27 +825,31 @@ object LogicalPlanToPlanBuilderString {
         )
       case NodeIndexContainsScan(idName, labelToken, property, valueExpr, argumentIds, indexOrder, indexType) =>
         val propName = property.propertyKeyToken.name
+        val paramExpr = getParamExpr(valueExpr)
         nodeIndexOperator(
           idName,
           labelToken,
           Seq(property),
           argumentIds,
           indexOrder,
+          paramExpr,
           unique = false,
-          s"$propName CONTAINS ${expressionStringifier(valueExpr)}",
+          s"$propName CONTAINS ${stringifyValueInIndexOperator(valueExpr)}",
           indexType,
           supportPartitionedScan = false
         )
       case NodeIndexEndsWithScan(idName, labelToken, property, valueExpr, argumentIds, indexOrder, indexType) =>
         val propName = property.propertyKeyToken.name
+        val paramExpr = getParamExpr(valueExpr)
         nodeIndexOperator(
           idName,
           labelToken,
           Seq(property),
           argumentIds,
           indexOrder,
+          paramExpr,
           unique = false,
-          s"$propName ENDS WITH ${expressionStringifier(valueExpr)}",
+          s"$propName ENDS WITH ${stringifyValueInIndexOperator(valueExpr)}",
           indexType,
           supportPartitionedScan = false
         )
@@ -895,12 +912,14 @@ object LogicalPlanToPlanBuilderString {
         ) =>
         val propNames = properties.map(_.propertyKeyToken.name)
         val queryStr = queryExpressionStr(valueExpr, propNames)
+        val paramExpr = getParamExpr(valueExpr)
         nodeIndexOperator(
           idName,
           labelToken,
           properties,
           argumentIds,
           indexOrder,
+          paramExpr,
           unique = false,
           queryStr,
           indexType,
@@ -922,12 +941,14 @@ object LogicalPlanToPlanBuilderString {
         ) =>
         val propNames = properties.map(_.propertyKeyToken.name)
         val queryStr = queryExpressionStr(valueExpr, propNames)
+        val paramExpr = getParamExpr(valueExpr)
         nodeIndexOperator(
           idName,
           labelToken,
           properties,
           argumentIds,
           indexOrder,
+          paramExpr,
           unique = true,
           queryStr,
           indexType,
@@ -1057,6 +1078,7 @@ object LogicalPlanToPlanBuilderString {
         ) =>
         val propNames = properties.map(_.propertyKeyToken.name)
         val queryStr = queryExpressionStr(valueExpr, propNames)
+        val paramExpr = getParamExpr(valueExpr)
         relationshipIndexOperator(
           idName,
           start,
@@ -1065,6 +1087,7 @@ object LogicalPlanToPlanBuilderString {
           properties,
           argumentIds,
           indexOrder,
+          paramExpr,
           directed = true,
           unique = false,
           queryStr,
@@ -1085,6 +1108,7 @@ object LogicalPlanToPlanBuilderString {
         ) =>
         val propNames = properties.map(_.propertyKeyToken.name)
         val queryStr = queryExpressionStr(valueExpr, propNames)
+        val paramExpr = getParamExpr(valueExpr)
         relationshipIndexOperator(
           idName,
           start,
@@ -1093,6 +1117,7 @@ object LogicalPlanToPlanBuilderString {
           properties,
           argumentIds,
           indexOrder,
+          paramExpr,
           directed = false,
           unique = false,
           queryStr,
@@ -1165,6 +1190,7 @@ object LogicalPlanToPlanBuilderString {
           properties,
           argumentIds,
           indexOrder,
+          Seq.empty,
           directed = true,
           unique = false,
           propNames.mkString(", "),
@@ -1191,6 +1217,7 @@ object LogicalPlanToPlanBuilderString {
           properties,
           argumentIds,
           indexOrder,
+          Seq.empty,
           directed = false,
           unique = false,
           propNames.mkString(", "),
@@ -1251,6 +1278,7 @@ object LogicalPlanToPlanBuilderString {
           indexType
         ) =>
         val propName = property.propertyKeyToken.name
+        val paramExpr = getParamExpr(valueExpr)
         relationshipIndexOperator(
           idName,
           start,
@@ -1259,9 +1287,10 @@ object LogicalPlanToPlanBuilderString {
           Seq(property),
           argumentIds,
           indexOrder,
+          paramExpr,
           directed = true,
           unique = false,
-          s"$propName CONTAINS ${expressionStringifier(valueExpr)}",
+          s"$propName CONTAINS ${stringifyValueInIndexOperator(valueExpr)}",
           indexType,
           supportPartitionedScan = false
         )
@@ -1277,6 +1306,7 @@ object LogicalPlanToPlanBuilderString {
           indexType
         ) =>
         val propName = property.propertyKeyToken.name
+        val paramExpr = getParamExpr(valueExpr)
         relationshipIndexOperator(
           idName,
           start,
@@ -1285,9 +1315,10 @@ object LogicalPlanToPlanBuilderString {
           Seq(property),
           argumentIds,
           indexOrder,
+          paramExpr,
           directed = false,
           unique = false,
-          s"$propName CONTAINS ${expressionStringifier(valueExpr)}",
+          s"$propName CONTAINS ${stringifyValueInIndexOperator(valueExpr)}",
           indexType,
           supportPartitionedScan = false
         )
@@ -1303,6 +1334,7 @@ object LogicalPlanToPlanBuilderString {
           indexType
         ) =>
         val propName = property.propertyKeyToken.name
+        val paramExpr = getParamExpr(valueExpr)
         relationshipIndexOperator(
           idName,
           start,
@@ -1311,9 +1343,10 @@ object LogicalPlanToPlanBuilderString {
           Seq(property),
           argumentIds,
           indexOrder,
+          paramExpr,
           directed = true,
           unique = false,
-          s"$propName ENDS WITH ${expressionStringifier(valueExpr)}",
+          s"$propName ENDS WITH ${stringifyValueInIndexOperator(valueExpr)}",
           indexType,
           supportPartitionedScan = false
         )
@@ -1329,6 +1362,7 @@ object LogicalPlanToPlanBuilderString {
           indexType
         ) =>
         val propName = property.propertyKeyToken.name
+        val paramExpr = getParamExpr(valueExpr)
         relationshipIndexOperator(
           idName,
           start,
@@ -1337,9 +1371,10 @@ object LogicalPlanToPlanBuilderString {
           Seq(property),
           argumentIds,
           indexOrder,
+          paramExpr,
           directed = false,
           unique = false,
-          s"$propName ENDS WITH ${expressionStringifier(valueExpr)}",
+          s"$propName ENDS WITH ${stringifyValueInIndexOperator(valueExpr)}",
           indexType,
           supportPartitionedScan = false
         )
@@ -1356,6 +1391,7 @@ object LogicalPlanToPlanBuilderString {
         ) =>
         val propNames = properties.map(_.propertyKeyToken.name)
         val queryStr = queryExpressionStr(valueExpr, propNames)
+        val paramExpr = getParamExpr(valueExpr)
         relationshipIndexOperator(
           idName,
           start,
@@ -1364,6 +1400,7 @@ object LogicalPlanToPlanBuilderString {
           properties,
           argumentIds,
           indexOrder,
+          paramExpr,
           directed = true,
           unique = true,
           queryStr,
@@ -1383,6 +1420,7 @@ object LogicalPlanToPlanBuilderString {
         ) =>
         val propNames = properties.map(_.propertyKeyToken.name)
         val queryStr = queryExpressionStr(valueExpr, propNames)
+        val paramExpr = getParamExpr(valueExpr)
         relationshipIndexOperator(
           idName,
           start,
@@ -1391,6 +1429,7 @@ object LogicalPlanToPlanBuilderString {
           properties,
           argumentIds,
           indexOrder,
+          paramExpr,
           directed = false,
           unique = true,
           queryStr,
@@ -1611,13 +1650,15 @@ object LogicalPlanToPlanBuilderString {
 
   private def queryExpressionStr(valueExpr: QueryExpression[Expression], propNames: Seq[String]): String = {
     valueExpr match {
-      case SingleQueryExpression(expression) => s"${propNames.head} = ${expressionStringifier(expression)}"
+      case SingleQueryExpression(expression) =>
+        s"${propNames.head} = ${stringifyValueInIndexOperator(expression)}"
       case ManyQueryExpression(ListLiteral(expressions)) =>
-        s"${propNames.head} = ${expressions.map(expressionStringifier(_)).mkString(" OR ")}"
-      case ManyQueryExpression(expr)  => s"${propNames.head} IN ${expressionStringifier(expr)}"
+        s"${propNames.head} = ${expressions.map(stringifyValueInIndexOperator).mkString(" OR ")}"
+      case ManyQueryExpression(expr) =>
+        s"${propNames.head} IN ${stringifyValueInIndexOperator(expr)}"
       case ExistenceQueryExpression() => propNames.head
       case RangeQueryExpression(PrefixSeekRangeWrapper(PrefixRange(expression))) =>
-        s"${propNames.head} STARTS WITH ${expressionStringifier(expression)}"
+        s"${propNames.head} STARTS WITH ${stringifyValueInIndexOperator(expression)}"
       case RangeQueryExpression(InequalitySeekRangeWrapper(range)) => rangeStr(range, propNames.head).toString
       case CompositeQueryExpression(inner) => inner.zip(propNames).map { case (qe, propName) =>
           queryExpressionStr(qe, Seq(propName))
@@ -1641,21 +1682,21 @@ object LogicalPlanToPlanBuilderString {
   private def rangeStr(range: InequalitySeekRange[Expression], propName: String): RangeStr = {
     range match {
       case RangeGreaterThan(NonEmptyList(ExclusiveBound(expression))) =>
-        RangeStr(None, propName, (">", expressionStringifier(expression)))
+        RangeStr(None, propName, (">", stringifyValueInIndexOperator(expression)))
       case RangeGreaterThan(NonEmptyList(InclusiveBound(expression))) =>
-        RangeStr(None, propName, (">=", expressionStringifier(expression)))
+        RangeStr(None, propName, (">=", stringifyValueInIndexOperator(expression)))
       case RangeGreaterThan(NonEmptyList(preBound, postBound)) =>
         val pre = boundStringifier(preBound, "<")
         val post = boundStringifier(postBound, ">")
         RangeStr(Some(pre.swap), propName, post)
       case RangeLessThan(NonEmptyList(ExclusiveBound(expression))) =>
-        RangeStr(None, propName, ("<", expressionStringifier(expression)))
+        RangeStr(None, propName, ("<", stringifyValueInIndexOperator(expression)))
       case RangeLessThan(NonEmptyList(preBound, postBound)) =>
         val pre = boundStringifier(preBound, ">")
         val post = boundStringifier(postBound, "<")
         RangeStr(Some(pre.swap), propName, post)
       case RangeLessThan(NonEmptyList(InclusiveBound(expression))) =>
-        RangeStr(None, propName, ("<=", expressionStringifier(expression)))
+        RangeStr(None, propName, ("<=", stringifyValueInIndexOperator(expression)))
       case RangeBetween(greaterThan, lessThan) =>
         val gt = rangeStr(greaterThan, propName)
         val lt = rangeStr(lessThan, propName)
@@ -1669,8 +1710,51 @@ object LogicalPlanToPlanBuilderString {
 
   private def boundStringifier(expression: Bound[Expression], exclusiveSign: String) = {
     expression match {
-      case InclusiveBound(endPoint) => (exclusiveSign + "=", expressionStringifier(endPoint))
-      case ExclusiveBound(endPoint) => (exclusiveSign, expressionStringifier(endPoint))
+      case InclusiveBound(endPoint) => (exclusiveSign + "=", stringifyValueInIndexOperator(endPoint))
+      case ExclusiveBound(endPoint) => (exclusiveSign, stringifyValueInIndexOperator(endPoint))
+    }
+  }
+
+  // we support parameters in index operators, if they are top-level values.
+  // That is, something like "n.prop = $param" is supported, whereas "n.prop = $param + 1" is not.
+  private def stringifyValueInIndexOperator(expression: Expression): String = expression match {
+    case _: ExplicitParameter => "???"
+    case other                => expressionStringifier(other)
+  }
+
+  private def getParamExpr(valueExpr: QueryExpression[Expression]): Seq[String] = {
+    valueExpr.folder.treeCollect {
+      case ExplicitParameter(param, parameterType, _) =>
+        stringifyParameter(param, parameterType)
+    }
+  }
+
+  private def getParamExpr(valueExpr: Expression): Seq[String] = {
+    Seq(valueExpr).collect {
+      case ExplicitParameter(param, parameterType, _) =>
+        stringifyParameter(param, parameterType)
+    }
+  }
+
+  private def stringifyParameter(param: String, parameterType: CypherType) =
+    s"""parameter("$param", ${typeValue(parameterType)})"""
+
+  private def typeValue(cypherType: CypherType): String = {
+    cypherType match {
+      case CTBoolean       => "CTBoolean"
+      case CTInteger       => "CTInteger"
+      case CTFloat         => "CTFloat"
+      case CTString        => "CTString"
+      case CTDate          => "CTDate"
+      case CTTime          => "CTTime"
+      case CTLocalTime     => "CTLocalTime"
+      case CTDateTime      => "CTDateTime"
+      case CTLocalDateTime => "CTLocalDateTime"
+      case CTPoint         => "CTPoint"
+      case ListType(underlying, _) =>
+        s"CTList(${typeValue(underlying)})"
+      case _ =>
+        throw new IllegalArgumentException(s"Unsupported Cypher type: $cypherType")
     }
   }
 
@@ -1687,6 +1771,7 @@ object LogicalPlanToPlanBuilderString {
     properties: Seq[IndexedProperty],
     argumentIds: Set[LogicalVariable],
     indexOrder: IndexOrder,
+    paramExpr: Seq[String],
     unique: Boolean,
     parenthesesContent: String,
     indexType: IndexType,
@@ -1695,6 +1780,7 @@ object LogicalPlanToPlanBuilderString {
     params(
       s"${idName.name}:${labelToken.name}($parenthesesContent)".quoted,
       "indexOrder" -> indexOrder,
+      "paramExpr" -> paramExpr,
       "argumentIds" -> argumentIds,
       "getValue" -> Param.mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
       "unique" -> unique,
@@ -1725,6 +1811,7 @@ object LogicalPlanToPlanBuilderString {
     properties: Seq[IndexedProperty],
     argumentIds: Set[LogicalVariable],
     indexOrder: IndexOrder,
+    paramExpr: Seq[String],
     directed: Boolean,
     unique: Boolean,
     parenthesesContent: String,
@@ -1735,6 +1822,7 @@ object LogicalPlanToPlanBuilderString {
     params(
       s"(${start.name})-[${idName.name}:${typeToken.name}($parenthesesContent)]$rarrow(${end.name})".quoted,
       "indexOrder" -> indexOrder,
+      "paramExpr" -> paramExpr,
       "argumentIds" -> argumentIds,
       "getValue" -> Param.mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
       "unique" -> unique,

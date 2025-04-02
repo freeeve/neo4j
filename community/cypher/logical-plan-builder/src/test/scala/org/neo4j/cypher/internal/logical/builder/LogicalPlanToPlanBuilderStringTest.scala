@@ -81,6 +81,8 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.UpperBound.Limited
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.symbols.CTInteger
+import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
 import org.neo4j.graphdb.schema.IndexType
@@ -1892,7 +1894,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       .build()
   )
 
-  // Formatting paramExpr and customQueryExpression is currently not supported.
+  // Formatting paramExpr for complex expressions and customQueryExpression is currently not supported.
   // These cases will need manual fixup.
   testPlan(
     "nodeIndexOperator", {
@@ -2044,6 +2046,14 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         )
         .apply()
         .|.nodeIndexOperator(
+          "x:Comb(poo = ???)",
+          paramExpr = Some(parameter("parameter", CTString)),
+          getValue = _ => GetValue,
+          unique = true,
+          indexType = IndexType.RANGE
+        )
+        .apply()
+        .|.nodeIndexOperator(
           "x:Honey(prop = 10, prop2 = '20')",
           indexOrder = IndexOrderDescending,
           unique = true,
@@ -2056,9 +2066,41 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
           unique = true,
           indexType = IndexType.RANGE
         )
-        .nodeIndexOperator(
+        .apply()
+        .|.nodeIndexOperator(
           "x:Label(text STARTS WITH 'as')",
           indexOrder = IndexOrderAscending,
+          unique = true,
+          indexType = IndexType.RANGE
+        )
+        .apply()
+        .|.nodeIndexOperator(
+          "x:Label(text STARTS WITH ???)",
+          indexOrder = IndexOrderAscending,
+          paramExpr = Some(parameter("parameter", CTString)),
+          unique = true,
+          indexType = IndexType.RANGE
+        )
+        .apply()
+        .|.nodeIndexOperator(
+          "x:Label(text ENDS WITH ???)",
+          indexOrder = IndexOrderAscending,
+          paramExpr = Some(parameter("parameter", CTString)),
+          unique = true,
+          indexType = IndexType.RANGE
+        )
+        .apply()
+        .|.nodeIndexOperator(
+          "x:Label(prop < ???)",
+          indexOrder = IndexOrderAscending,
+          paramExpr = Some(parameter("parameter", CTString)),
+          unique = true,
+          indexType = IndexType.RANGE
+        )
+        .nodeIndexOperator(
+          "x:Label(??? < prop >= ???)",
+          indexOrder = IndexOrderAscending,
+          paramExpr = Seq(parameter("exclusiveBound", CTInteger), parameter("inclusiveBound", CTInteger)),
           unique = true,
           indexType = IndexType.RANGE
         )
@@ -2138,7 +2180,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     }
   )
 
-  // Formatting paramExpr and customQueryExpression is currently not supported.
+  // Formatting paramExpr for complex expressions and customQueryExpression is currently not supported.
   // These cases will need manual fixup.
   testPlan(
     "relationshipIndexOperator", {
@@ -2187,6 +2229,13 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         .apply()
         .|.relationshipIndexOperator(
           "(x)-[r:Honey(prop = 10 OR 20, prop2 = '10' OR '30')->(y)",
+          argumentIds = Set("a", "b"),
+          indexType = IndexType.RANGE
+        )
+        .apply()
+        .|.relationshipIndexOperator(
+          "(x)-[r:Honey(prop = ???, prop2 = '10' OR '30')->(y)",
+          paramExpr = Some(parameter("parameter", CTInteger)),
           argumentIds = Set("a", "b"),
           indexType = IndexType.RANGE
         )
@@ -3083,6 +3132,7 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
         interpreter.interpret(
           """import org.neo4j.cypher.internal.util.collection.immutable.ListSet
             |
+            |import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.parameter
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorFail
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorContinue
             |import org.neo4j.cypher.internal.ast.SubqueryCall.InTransactionsOnErrorBehaviour.OnErrorBreak
@@ -3131,6 +3181,8 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
             |import org.neo4j.cypher.internal.util.InputPosition
             |import org.neo4j.cypher.internal.util.UpperBound.Limited
             |import org.neo4j.cypher.internal.util.Repetition
+            |// For Cypher types CT...
+            |import org.neo4j.cypher.internal.util.symbols._
             |import org.neo4j.cypher.internal.util.UpperBound.Unlimited
             |import org.neo4j.graphdb.schema.IndexType
             |import org.neo4j.cypher.internal.logical.plans.FindShortestPaths._
