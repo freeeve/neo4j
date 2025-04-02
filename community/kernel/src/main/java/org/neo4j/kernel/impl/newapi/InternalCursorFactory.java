@@ -80,6 +80,14 @@ public class InternalCursorFactory {
                 c -> {}, storageReader.allocateRelationshipScanCursor(cursorContext, storeCursors, memoryTracker));
     }
 
+    protected DefaultRelationshipTraversalCursor allocateRelationshipTraversalCursor() {
+        return new DefaultRelationshipTraversalCursor(
+                c -> {},
+                storageReader.allocateRelationshipTraversalCursor(cursorContext, storeCursors, memoryTracker),
+                this,
+                applyAccessModeToTxState);
+    }
+
     protected TraceablePropertyCursor allocatePropertyCursor() {
         return new DefaultPropertyCursor(
                 c -> {},

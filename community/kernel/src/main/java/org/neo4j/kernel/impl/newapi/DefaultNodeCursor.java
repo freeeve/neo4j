@@ -47,7 +47,6 @@ import org.neo4j.storageengine.api.RelationshipSelection;
 import org.neo4j.storageengine.api.StorageNodeCursor;
 import org.neo4j.storageengine.api.StorageProperty;
 import org.neo4j.storageengine.api.StoragePropertyCursor;
-import org.neo4j.storageengine.api.StorageRelationshipTraversalCursor;
 import org.neo4j.storageengine.api.txstate.NodeState;
 import org.neo4j.storageengine.util.EagerDegrees;
 import org.neo4j.storageengine.util.SingleDegree;
@@ -63,9 +62,8 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
     boolean hasChanges;
     private LongIterator addedNodes;
     private boolean singleIsAddedInTx;
-    private StorageNodeCursor securityStoreNodeCursor;
-    private StorageRelationshipTraversalCursor securityStoreRelationshipCursor;
     private StoragePropertyCursor securityPropertyCursor;
+    private DefaultRelationshipTraversalCursor securityRelationshipTraversalCursor;
     private long currentAddedInTx = LongReference.NULL;
     private long single;
     private boolean isSingle;
@@ -319,51 +317,44 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
     }
 
     private void fillDegrees(RelationshipSelection selection, Degrees.Mutator degrees) {
+        if (!allowsTraverseAll()) {
+            readRestrictedDegrees(selection, degrees);
+            return;
+        }
         if (hasChanges()) {
             var nodeTxState = txStateHolder.txState().getNodeState(nodeReference());
             if (nodeTxState != null && !nodeTxState.fillDegrees(selection, degrees)) {
                 return;
             }
         }
-        if (currentAddedInTx == LongReference.NULL) {
-            if (allowsTraverseAll()) {
-                storeCursor.degrees(selection, degrees);
-            } else {
-                readRestrictedDegrees(selection, degrees);
+        if (currentNodeIsAddedInTx()) {
+            return;
+        }
+        storeCursor.degrees(selection, degrees);
+    }
+
+    private void readRestrictedDegrees(RelationshipSelection selection, Degrees.Mutator degrees) {
+        var cursor = getSecurityRelationshipTraversalCursor();
+        relationships(cursor, selection);
+        long thisReference = nodeReference();
+        while (cursor.next()) {
+            int type = cursor.type();
+            long source = cursor.sourceNodeReference();
+            long target = cursor.targetNodeReference();
+            boolean loop = source == target;
+            boolean outgoing = !loop && source == thisReference;
+            boolean incoming = !loop && !outgoing;
+            if (!degrees.add(type, outgoing ? 1 : 0, incoming ? 1 : 0, loop ? 1 : 0)) {
+                return;
             }
         }
     }
 
-    private void readRestrictedDegrees(RelationshipSelection selection, Degrees.Mutator degrees) {
-        // When we read degrees limited by security we need to traverse all relationships and check the "other side" if
-        // we can add it
-        if (securityStoreRelationshipCursor == null) {
-            securityStoreRelationshipCursor = internalCursors.allocateStorageRelationshipTraversalCursor();
+    private DefaultRelationshipTraversalCursor getSecurityRelationshipTraversalCursor() {
+        if (securityRelationshipTraversalCursor == null) {
+            securityRelationshipTraversalCursor = internalCursors.allocateRelationshipTraversalCursor();
         }
-        storeCursor.relationships(securityStoreRelationshipCursor, selection);
-        while (securityStoreRelationshipCursor.next()) {
-            int type = securityStoreRelationshipCursor.type();
-            if (accessModeProvider.getAccessMode().allowsTraverseRelType(type)) {
-                long source = securityStoreRelationshipCursor.sourceNodeReference();
-                long target = securityStoreRelationshipCursor.targetNodeReference();
-                boolean loop = source == target;
-                boolean outgoing = !loop && source == nodeReference();
-                boolean incoming = !loop && !outgoing;
-                if (!loop) { // No need to check labels for loops. We already know we are allowed since we have the node
-                    // loaded in this cursor
-                    if (securityStoreNodeCursor == null) {
-                        securityStoreNodeCursor = internalCursors.allocateStorageNodeCursor();
-                    }
-                    securityStoreNodeCursor.single(outgoing ? target : source);
-                    if (!securityStoreNodeCursor.next() || !allowsTraverse(securityStoreNodeCursor)) {
-                        continue;
-                    }
-                }
-                if (!degrees.add(type, outgoing ? 1 : 0, incoming ? 1 : 0, loop ? 1 : 0)) {
-                    return;
-                }
-            }
-        }
+        return securityRelationshipTraversalCursor;
     }
 
     private boolean allowsTraverse(StorageNodeCursor nodeCursor) {
@@ -480,14 +471,12 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
             checkHasChanges = true;
             addedNodes = ImmutableEmptyLongIterator.INSTANCE;
             storeCursor.reset();
-            if (securityStoreNodeCursor != null) {
-                securityStoreNodeCursor.reset();
-            }
-            if (securityStoreRelationshipCursor != null) {
-                securityStoreRelationshipCursor.reset();
-            }
             if (securityPropertyCursor != null) {
                 securityPropertyCursor.reset();
+            }
+            if (securityRelationshipTraversalCursor != null) {
+                securityRelationshipTraversalCursor.close();
+                securityRelationshipTraversalCursor = null;
             }
         }
         super.closeInternal();
@@ -530,25 +519,24 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
     public String toString() {
         if (isClosed()) {
             return "NodeCursor[closed state]";
-        } else {
-            return "NodeCursor[id=" + nodeReference() + ", " + storeCursor + "]";
         }
+        return "NodeCursor[id=" + nodeReference() + ", " + storeCursor + "]";
     }
 
     @Override
     public void release() {
         final var localSecurityPropertyCursor = securityPropertyCursor;
-        final var localSecurityRelationshipCursor = securityStoreRelationshipCursor;
-        final var localSecurityNodeCursor = securityStoreNodeCursor;
+        final var localSecurityRelationshipTraversalCursor = securityRelationshipTraversalCursor;
         try (localSecurityPropertyCursor;
-                localSecurityRelationshipCursor;
-                localSecurityNodeCursor;
+                localSecurityRelationshipTraversalCursor;
                 storeCursor) {
             // A concise and low-cost way of closing all these cursors w/o the overhead of, say IOUtils.closeAll
+            if (localSecurityRelationshipTraversalCursor != null) {
+                localSecurityRelationshipTraversalCursor.release();
+            }
         } finally {
             securityPropertyCursor = null;
-            securityStoreRelationshipCursor = null;
-            securityStoreNodeCursor = null;
+            securityRelationshipTraversalCursor = null;
         }
     }
 }
