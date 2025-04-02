@@ -392,6 +392,9 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
      */
     public void markAsOnline() throws IOException {
         ensureOpen();
+        if (getPartitions().isEmpty()) {
+            addNewPartition();
+        }
         AbstractIndexPartition partition = getFirstPartition(getPartitions());
         IndexWriter indexWriter = partition.getIndexWriter();
         indexWriter.setLiveCommitData(ONLINE_COMMIT_USER_DATA);
