@@ -40,12 +40,12 @@ final case class SemanticError(
   override val msg: String,
   override val position: InputPosition
 ) extends SemanticErrorDef {
-  def this(msg: String, position: InputPosition) = this(null, msg, position)
   override def withMsg(error: SemanticError): SemanticError = error
 }
 
 object SemanticError {
 
+  @deprecated("Use the case class constructor with gqlStatusObject", since = "2025-04")
   def apply(msg: String, position: InputPosition): SemanticError = new SemanticError(null, msg, position)
 
   def unapply(errorDef: SemanticErrorDef): Option[(ErrorGqlStatusObject, String, InputPosition)] =

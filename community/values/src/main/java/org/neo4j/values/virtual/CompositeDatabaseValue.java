@@ -72,7 +72,7 @@ public interface CompositeDatabaseValue {
                  *
                  * We should never get here, as we always work with either only composite or only non-composite values.
                  */
-                throw new IncomparableValuesException(
+                throw IncomparableValuesException.internalError(
                         this.getClass().getSimpleName(), other.getClass().getSimpleName());
             }
         }
@@ -144,7 +144,7 @@ public interface CompositeDatabaseValue {
                  *
                  * We should never get here, as we always work with either only composite or only non-composite values.
                  */
-                throw new IncomparableValuesException(
+                throw IncomparableValuesException.internalError(
                         this.getClass().getSimpleName(), other.getClass().getSimpleName());
             }
         }
@@ -198,7 +198,7 @@ public interface CompositeDatabaseValue {
                  *
                  * We should never get here, as we always work with either only composite or only non-composite values.
                  */
-                throw new IncomparableValuesException(
+                throw IncomparableValuesException.internalError(
                         this.getClass().getSimpleName(), other.getClass().getSimpleName());
             }
         }

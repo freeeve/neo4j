@@ -20,15 +20,18 @@
 package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 
 public class IncomparableValuesException extends CypherTypeException {
-    @Deprecated
-    public IncomparableValuesException(String lhs, String rhs) {
-        super(msg(lhs, rhs));
+
+    private IncomparableValuesException(ErrorGqlStatusObject gqlStatusObject, String lhs, String rhs) {
+        super(gqlStatusObject, msg(lhs, rhs));
     }
 
-    public IncomparableValuesException(ErrorGqlStatusObject gqlStatusObject, String lhs, String rhs) {
-        super(gqlStatusObject, msg(lhs, rhs));
+    public static IncomparableValuesException internalError(String lhs, String rhs) {
+        var legacyMsg = msg(lhs, rhs);
+        var gql = GqlHelper.get50N00(lhs, legacyMsg);
+        return new IncomparableValuesException(gql, lhs, rhs);
     }
 
     private static String msg(String lhs, String rhs) {

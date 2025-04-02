@@ -123,8 +123,11 @@ public class SnapshotExecutionEngine extends ExecutionEngine {
         boolean dirtySnapshot;
         do {
             if (attempt == maxQueryExecutionAttempts) {
-                throw QueryExecutionKernelException.wrapError(new UnstableSnapshotException(
-                        "Unable to get clean data snapshot for query '%s' after %d attempts.", query, attempt));
+                throw QueryExecutionKernelException.wrapError(UnstableSnapshotException.internalError(
+                        this.getClass().getSimpleName(),
+                        "Unable to get clean data snapshot for query '%s' after %d attempts.",
+                        query,
+                        attempt));
             }
 
             if (attempt > 0) {
@@ -149,8 +152,11 @@ public class SnapshotExecutionEngine extends ExecutionEngine {
             }
             dirtySnapshot = versionContext.isDirty();
             if (isUnstableSnapshot(materialisedResult, dirtySnapshot)) {
-                throw QueryExecutionKernelException.wrapError(new UnstableSnapshotException(
-                        "Unable to get clean data snapshot for query '%s' that performs updates.", query, attempt));
+                throw QueryExecutionKernelException.wrapError(UnstableSnapshotException.internalError(
+                        this.getClass().getSimpleName(),
+                        "Unable to get clean data snapshot for query '%s' that performs updates.",
+                        query,
+                        attempt));
             }
         } while (dirtySnapshot);
 

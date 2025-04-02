@@ -371,8 +371,10 @@ public class FabricKernelTransaction {
         }
 
         private static FabricException unableToTagError(AnyValue value) {
-            return new FabricException(
-                    Status.General.UnknownError, "Unable to add graph id to entity of type " + value.getTypeName());
+            return FabricException.internalError(
+                    FabricKernelTransaction.class.getSimpleName(),
+                    Status.General.UnknownError,
+                    "Unable to add graph id to entity of type " + value.getTypeName());
         }
     }
 }

@@ -579,12 +579,20 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
 
     idsClauses.size match {
       case c if c > 1 =>
-        error("There can be only one INPUT DATA STREAM in a query", idsClauses(1).position)
+        error(SemanticError.internalError(
+          this.getClass.getSimpleName,
+          "There can be only one INPUT DATA STREAM in a query",
+          idsClauses(1).position
+        ))
       case c if c == 1 =>
         if (clauses.head.isInstanceOf[InputDataStream]) {
           success
         } else {
-          error("INPUT DATA STREAM must be the first clause in a query", idsClauses.head.position)
+          error(SemanticError.internalError(
+            this.getClass.getSimpleName,
+            "INPUT DATA STREAM must be the first clause in a query",
+            idsClauses.head.position
+          ))
         }
       case _ => success
     }
@@ -987,7 +995,11 @@ sealed trait Union extends Query {
         case inputDataStream: InputDataStream => inputDataStream
       }
       .foldSemanticCheck { inputDataStream =>
-        error("INPUT DATA STREAM is not supported in UNION queries", inputDataStream.position)
+        error(SemanticError.internalError(
+          this.getClass.getSimpleName,
+          "INPUT DATA STREAM is not supported in UNION queries",
+          inputDataStream.position
+        ))
       }
 
   private def checkUnionAggregation: SemanticCheck = (lhs, this) match {

@@ -126,13 +126,13 @@ public class CommunityQueryRouterBootstrap extends CommonQueryRouterBootstrap {
                     RoutingContext routingContext,
                     QueryExecutionConfiguration queryExecutionConfiguration) {
                 // If a piece of code tries to use this in Community edition, it means a bug
-                throw new InvalidSemanticsException("Composite database is not supported in Community Edition");
+                throw InvalidSemanticsException.compositeUnsupportedInCommunity();
             }
 
             @Override
             public DatabaseReference getDatabaseReference() {
                 // If a piece of code tries to use this in Community edition, it means a bug
-                throw new InvalidSemanticsException("Composite database is not supported in Community Edition");
+                throw InvalidSemanticsException.compositeUnsupportedInCommunity();
             }
         };
     }

@@ -48,5 +48,11 @@ object QueryTypes {
     a == expected || b == expected
 
   private def invalidCombination(a: QueryExecutionType, b: QueryExecutionType): Nothing =
-    throw new FabricException(Status.General.UnknownError, "Invalid combination of query execution types: %s, %s", a, b)
+    throw FabricException.internalError(
+      this.getClass.getSimpleName,
+      Status.General.UnknownError,
+      "Invalid combination of query execution types: %s, %s",
+      a,
+      b
+    )
 }

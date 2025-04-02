@@ -98,6 +98,12 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
         return new FabricException(localException.status(), localException.getMessage(), localException);
     }
 
+    public static FabricException internalError(
+            String msgTitle, Status statusCode, String message, Object... parameters) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new FabricException(gql, statusCode, message, parameters);
+    }
+
     public static FabricException noLeaderAddress(String dbName) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N00)
                 .withParam(GqlParams.StringParam.db, dbName)

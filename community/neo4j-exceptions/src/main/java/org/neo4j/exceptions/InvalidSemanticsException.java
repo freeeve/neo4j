@@ -42,6 +42,19 @@ public class InvalidSemanticsException extends Neo4jException {
         super(gqlStatusObject, message);
     }
 
+    public static InvalidSemanticsException internalError(String msgTitle, String message) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new InvalidSemanticsException(gql, message);
+    }
+
+    public static InvalidArgumentException compositeUnsupportedInCommunity() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
+                .withParam(GqlParams.StringParam.feat, "Composite database")
+                .withParam(GqlParams.StringParam.edition, "community edition")
+                .build();
+        return new InvalidArgumentException(gql, "Composite database is not supported in Community Edition");
+    }
+
     public static InvalidSemanticsException invalidCombinationOfProfileAndExplain() {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N52)

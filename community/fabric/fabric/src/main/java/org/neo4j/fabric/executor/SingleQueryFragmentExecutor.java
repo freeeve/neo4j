@@ -209,7 +209,7 @@ abstract class SingleQueryFragmentExecutor {
     }
 
     private RuntimeException notImplemented(String msg, String info) {
-        return new InvalidSemanticsException(msg + ": " + info);
+        return InvalidSemanticsException.internalError(this.getClass().getSimpleName(), msg + ": " + info);
     }
 
     private FragmentResult runRemoteQueryAt(
