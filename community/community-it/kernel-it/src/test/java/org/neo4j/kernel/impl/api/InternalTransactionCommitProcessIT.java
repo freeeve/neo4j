@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.api;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -94,7 +93,7 @@ class InternalTransactionCommitProcessIT {
                 });
             }
 
-            Thread.sleep(SECONDS.toMillis(2));
+            Thread.sleep(Duration.ofSeconds(2));
         } finally {
             done.set(true);
         }

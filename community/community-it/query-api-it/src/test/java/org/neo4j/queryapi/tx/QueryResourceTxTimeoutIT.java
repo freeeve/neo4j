@@ -19,15 +19,14 @@
  */
 package org.neo4j.queryapi.tx;
 
+import static java.time.Duration.ofSeconds;
 import static org.neo4j.queryapi.QueryApiTestUtil.resolveDependency;
 import static org.neo4j.queryapi.QueryApiTestUtil.setupLogging;
 import static org.neo4j.queryapi.QueryApiTestUtil.sleepProcedure;
 import static org.neo4j.queryapi.QueryResponseAssertions.assertThat;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.EnumSet;
-import java.util.concurrent.TimeUnit;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -70,8 +69,8 @@ public class QueryResourceTxTimeoutIT {
                 .setConfig(BoltConnector.enabled, true)
                 .setConfig(BoltConnectorInternalSettings.enable_local_connector, true)
                 .setConfig(ServerSettings.http_enabled_modules, EnumSet.allOf(ConfigurableServerModules.class))
-                .setConfig(ServerSettings.queryapi_transaction_timeout, Duration.ofSeconds(5))
-                .setConfig(GraphDatabaseSettings.transaction_timeout, Duration.ofSeconds(10))
+                .setConfig(ServerSettings.queryapi_transaction_timeout, ofSeconds(5))
+                .setConfig(GraphDatabaseSettings.transaction_timeout, ofSeconds(10))
                 .impermanent()
                 .build();
         resolveDependency(dbms, GlobalProcedures.class).register(sleepProcedure());
@@ -99,7 +98,7 @@ public class QueryResourceTxTimeoutIT {
         assertThat(res).hasTransaction();
 
         // timeout transaction
-        Thread.sleep(TimeUnit.SECONDS.toMillis(10));
+        Thread.sleep(ofSeconds(10));
 
         var timeout = testClient.commitTx(res.body().txId());
         assertThat(timeout).wasNotFound();
@@ -113,7 +112,7 @@ public class QueryResourceTxTimeoutIT {
         assertThat(res).hasTransaction();
 
         // timeout transaction
-        Thread.sleep(TimeUnit.SECONDS.toMillis(10));
+        Thread.sleep(ofSeconds(10));
 
         var timeout = testClient.runInTx(
                 QueryRequest.newBuilder().statement("RETURN 1").build(),
@@ -126,7 +125,7 @@ public class QueryResourceTxTimeoutIT {
     void shouldIncreaseTimeoutAfterEachRequest() throws IOException, InterruptedException {
         var res = testClient.beginTx();
 
-        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        Thread.sleep(ofSeconds(1));
 
         var extended = testClient.runInTx(
                 QueryRequest.newBuilder().statement("RETURN 1").build(),
@@ -141,7 +140,7 @@ public class QueryResourceTxTimeoutIT {
     void shouldIncreaseTimeoutAfterBlankContinue() throws IOException, InterruptedException {
         var res = testClient.beginTx();
 
-        Thread.sleep(TimeUnit.SECONDS.toMillis(1));
+        Thread.sleep(ofSeconds(1));
 
         var extended = testClient.runInTx(res.body().txId());
 

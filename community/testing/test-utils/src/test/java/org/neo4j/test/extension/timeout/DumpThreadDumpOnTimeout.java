@@ -21,6 +21,7 @@ package org.neo4j.test.extension.timeout;
 
 import static java.lang.Thread.sleep;
 import static java.time.Duration.ofMillis;
+import static java.time.Duration.ofMinutes;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -45,14 +46,14 @@ class DumpThreadDumpOnTimeout {
     @Test
     void dumpOnTimeoutPreemptively() {
         assertTimeoutPreemptively(ofMillis(10), () -> {
-            sleep(TimeUnit.MINUTES.toMillis(1));
+            sleep(ofMinutes(1));
         });
     }
 
     @Test
     @Timeout(value = 10, unit = TimeUnit.MILLISECONDS)
     void dumpOnTimeoutAnnotation() throws InterruptedException {
-        sleep(TimeUnit.MINUTES.toMillis(1));
+        sleep(ofMinutes(1));
     }
 
     @Test

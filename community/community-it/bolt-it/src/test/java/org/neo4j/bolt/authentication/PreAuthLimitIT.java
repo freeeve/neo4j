@@ -245,7 +245,7 @@ public class PreAuthLimitIT {
 
     @ProtocolTest
     @IncludeWire(since = @Version(major = 5, minor = 1))
-    void whenLoggedInShouldBeNoAuthenticationTimout(BoltWire wire, @VersionSelected BoltTestConnection connection)
+    void whenLoggedInShouldBeNoAuthenticationTimeout(BoltWire wire, @VersionSelected BoltTestConnection connection)
             throws InterruptedException {
         connection.send(wire.hello());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
@@ -253,7 +253,7 @@ public class PreAuthLimitIT {
         connection.send(wire.logon());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
 
-        Thread.sleep(ofSeconds(5).toMillis()); // this should be fine in a test.
+        Thread.sleep(ofSeconds(5)); // this should be fine in a test.
 
         connection.send(wire.begin());
         BoltConnectionAssertions.assertThat(connection).receivesSuccess();
