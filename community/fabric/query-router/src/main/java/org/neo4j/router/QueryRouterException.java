@@ -49,13 +49,6 @@ public class QueryRouterException extends GqlRuntimeException implements Status.
         this.queryId = null;
     }
 
-    @Deprecated
-    public QueryRouterException(Status statusCode, String message, Object... parameters) {
-        super(String.format(message, parameters));
-        this.statusCode = statusCode;
-        this.queryId = null;
-    }
-
     private QueryRouterException(
             ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message, Object... parameters) {
         super(gqlStatusObject, String.format(message, parameters));

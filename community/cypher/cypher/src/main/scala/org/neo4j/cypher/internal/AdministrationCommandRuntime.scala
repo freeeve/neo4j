@@ -344,7 +344,7 @@ object AdministrationCommandRuntime {
           (error, error.getCause) match {
             case (_, e: UniquePropertyValueValidationException) =>
               if (e.constraint().getName.equals(AUTH_CONSTRAINT)) {
-                InvalidArgumentException.providerIdCombinationAlreadyInUse(runtimeStringValue(userName, params));
+                InvalidArgumentException.providerIdCombinationAlreadyInUseCreate(runtimeStringValue(userName, params));
               } else {
                 InvalidArgumentException.createEntityAlreadyExists(
                   PrivilegeGqlCodeEntity.USER,
@@ -573,10 +573,7 @@ object AdministrationCommandRuntime {
         .handleError((error, p) =>
           (error, error.getCause) match {
             case (_, _: UniquePropertyValueValidationException) =>
-              new InvalidArgumentException(
-                s"Failed to alter the specified user '${runtimeStringValue(userName, p)}': The combination of provider and id is already in use.",
-                error
-              )
+              InvalidArgumentException.providerIdCombinationAlreadyInUseAlter(runtimeStringValue(userName, p))
             case (e: HasStatus, _) if e.status() == Status.Cluster.NotALeader =>
               DatabaseAdministrationOnFollowerException.notALeader(
                 "ALTER USER",
@@ -588,9 +585,7 @@ object AdministrationCommandRuntime {
         )
         .handleResult {
           case (0, value: BooleanValue, p) if !value.booleanValue() =>
-            ThrowException(new InvalidArgumentException(
-              s"Failed to alter the specified user '${runtimeStringValue(userName, p)}': User does not exist."
-            ))
+            ThrowException(InvalidArgumentException.alterMissingUser(runtimeStringValue(userName, p)))
           case (1, value: TextValue, p) =>
             maybePw.map {
               newPw =>

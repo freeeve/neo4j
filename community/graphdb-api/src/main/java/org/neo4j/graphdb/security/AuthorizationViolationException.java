@@ -37,7 +37,7 @@ public class AuthorizationViolationException extends GqlRuntimeException impleme
 
     private final Status statusCode;
 
-    public AuthorizationViolationException(ErrorGqlStatusObject gqlStatusObject, String message, Status statusCode) {
+    private AuthorizationViolationException(ErrorGqlStatusObject gqlStatusObject, String message, Status statusCode) {
         super(gqlStatusObject, message);
         this.statusCode = statusCode;
     }

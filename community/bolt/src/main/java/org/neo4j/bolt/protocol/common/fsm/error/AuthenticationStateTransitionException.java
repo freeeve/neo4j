@@ -43,7 +43,8 @@ public final class AuthenticationStateTransitionException extends StateTransitio
         this.oldMessage = ErrorMessageHolder.getOldCauseMessage(cause);
     }
 
-    public AuthenticationStateTransitionException(ErrorGqlStatusObject gqlStatusObject, AuthenticationException cause) {
+    private AuthenticationStateTransitionException(
+            ErrorGqlStatusObject gqlStatusObject, AuthenticationException cause) {
         super(ErrorMessageHolder.getMessage(gqlStatusObject, ErrorMessageHolder.getOldCauseMessage(cause)), cause);
         this.gqlStatusObject = GqlHelper.getInnerGqlStatusObject(gqlStatusObject, cause);
 

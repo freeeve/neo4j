@@ -52,7 +52,7 @@ public class ProcedureException extends KernelException {
         super(statusCode, cause, message, parameters);
     }
 
-    protected ProcedureException(
+    private ProcedureException(
             ErrorGqlStatusObject gqlStatusObject,
             Status statusCode,
             Throwable cause,

@@ -37,7 +37,7 @@ public class EntityAlreadyExistsException extends KernelException {
         this.entityId = requireNonNull(entityId);
     }
 
-    public EntityAlreadyExistsException(ErrorGqlStatusObject gqlStatusObject, EntityType entityType, String entityId) {
+    private EntityAlreadyExistsException(ErrorGqlStatusObject gqlStatusObject, EntityType entityType, String entityId) {
         super(gqlStatusObject, Status.Statement.EntityNotFound, "%s %s already exists.", entityType.name(), entityId);
 
         this.entityType = requireNonNull(entityType);

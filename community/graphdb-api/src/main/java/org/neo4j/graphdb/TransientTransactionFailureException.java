@@ -42,7 +42,8 @@ public class TransientTransactionFailureException extends TransientFailureExcept
         this.status = status;
     }
 
-    public TransientTransactionFailureException(ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
+    protected TransientTransactionFailureException(
+            ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
         super(gqlStatusObject, message);
 
         this.status = status;

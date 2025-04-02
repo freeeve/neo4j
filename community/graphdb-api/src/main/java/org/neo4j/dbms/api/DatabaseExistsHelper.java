@@ -22,6 +22,10 @@ package org.neo4j.dbms.api;
 import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.DATABASE;
 import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.entityAlreadyExists;
 
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
+
 /**
  * This helper class contains methods to create `DatabaseExistsException`. These would normally be on the exception
  * class itself, but that is `@PublicApi`, and we don't want these methods to be public API.
@@ -44,6 +48,19 @@ public class DatabaseExistsHelper {
                 gql,
                 "Failed to create the specified database alias '%s': Database name or alias already exists."
                         .formatted(databaseName));
+    }
+
+    public static DatabaseExistsException failedCreateDatabaseBecauseDatabaseExists(String name, String otherName) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N87)
+                .withParam(GqlParams.StringParam.db1, name)
+                .withParam(GqlParams.StringParam.db2, otherName)
+                .build();
+
+        return new DatabaseExistsException(
+                gql,
+                String.format(
+                        "Cannot create database '%s' because another database '%s' exists with an ambiguous name.",
+                        name, otherName));
     }
 
     public static DatabaseExistsException failedCreateDatabaseBecauseAliasExists(String databaseName) {

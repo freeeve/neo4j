@@ -31,7 +31,7 @@ public class CypherExecutionInterruptedException extends Neo4jException {
         this.status = status;
     }
 
-    public CypherExecutionInterruptedException(ErrorGqlStatusObject gqlStatusObject, String message, Status status) {
+    private CypherExecutionInterruptedException(ErrorGqlStatusObject gqlStatusObject, String message, Status status) {
         super(gqlStatusObject, message);
 
         this.status = status;

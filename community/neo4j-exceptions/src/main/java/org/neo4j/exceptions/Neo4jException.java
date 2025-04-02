@@ -26,20 +26,20 @@ import org.neo4j.kernel.api.exceptions.Status;
 public abstract class Neo4jException extends GqlRuntimeException implements Status.HasStatus {
 
     @Deprecated
-    public Neo4jException(String message, Throwable cause) {
+    protected Neo4jException(String message, Throwable cause) {
         super(message, cause);
     }
 
-    public Neo4jException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    protected Neo4jException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
     }
 
     @Deprecated
-    public Neo4jException(String message) {
+    protected Neo4jException(String message) {
         this(message, null);
     }
 
-    public Neo4jException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    protected Neo4jException(ErrorGqlStatusObject gqlStatusObject, String message) {
         this(gqlStatusObject, message, null);
     }
 }

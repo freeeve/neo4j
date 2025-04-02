@@ -33,7 +33,7 @@ public class CypherExecutionException extends Neo4jException {
         super(message, cause);
     }
 
-    public CypherExecutionException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    protected CypherExecutionException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
     }
 
@@ -42,7 +42,7 @@ public class CypherExecutionException extends Neo4jException {
         super(message);
     }
 
-    public CypherExecutionException(ErrorGqlStatusObject gqlStatusObject, String message) {
+    protected CypherExecutionException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 

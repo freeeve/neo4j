@@ -45,7 +45,7 @@ public class SyntaxException extends Neo4jException {
         this.query = query;
     }
 
-    public SyntaxException(
+    protected SyntaxException(
             ErrorGqlStatusObject gqlStatusObject, String message, String query, Integer offset, Throwable cause) {
         super(gqlStatusObject, message, cause);
 
@@ -62,7 +62,7 @@ public class SyntaxException extends Neo4jException {
         this(gqlStatusObject, message, query, offset, null);
     }
 
-    public SyntaxException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
+    protected SyntaxException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         this(gqlStatusObject, message, "", null, cause);
     }
 

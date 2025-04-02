@@ -61,7 +61,7 @@ public class TransactionFailureException extends KernelException {
         super(statusCode, message, parameters);
     }
 
-    public TransactionFailureException(
+    protected TransactionFailureException(
             ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message, Object... parameters) {
         super(gqlStatusObject, statusCode, message, parameters);
     }

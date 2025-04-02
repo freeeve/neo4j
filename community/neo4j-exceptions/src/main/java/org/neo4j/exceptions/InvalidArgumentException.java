@@ -1179,12 +1179,21 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, "Failed to %s: '%s' is a reserved role.".formatted(action, role));
     }
 
-    public static InvalidArgumentException providerIdCombinationAlreadyInUse(String username) {
+    public static InvalidArgumentException providerIdCombinationAlreadyInUseCreate(String username) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N95)
                 .build();
         return new InvalidArgumentException(
                 gql,
                 "Failed to create the specified user '%s': The combination of provider and id is already in use."
+                        .formatted(username));
+    }
+
+    public static InvalidArgumentException providerIdCombinationAlreadyInUseAlter(String username) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N95)
+                .build();
+        return new InvalidArgumentException(
+                gql,
+                "Failed to alter the specified user '%s': The combination of provider and id is already in use."
                         .formatted(username));
     }
 

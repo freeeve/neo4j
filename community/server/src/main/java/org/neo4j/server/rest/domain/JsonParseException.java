@@ -53,7 +53,7 @@ public class JsonParseException extends GqlException implements Status.HasStatus
         super(ErrorMessageHolder.getOldCauseMessage(cause), cause);
     }
 
-    public JsonParseException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
+    private JsonParseException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
         super(gqlStatusObject, ErrorMessageHolder.getOldCauseMessage(cause), cause);
     }
 

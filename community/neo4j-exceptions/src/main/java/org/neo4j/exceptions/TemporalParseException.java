@@ -33,16 +33,16 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
  */
 public class TemporalParseException extends SyntaxException {
 
-    public TemporalParseException(ErrorGqlStatusObject gqlStatusObject, String errorMsg, Throwable cause) {
+    private TemporalParseException(ErrorGqlStatusObject gqlStatusObject, String errorMsg, Throwable cause) {
         super(gqlStatusObject, errorMsg, cause);
     }
 
-    public TemporalParseException(
+    private TemporalParseException(
             ErrorGqlStatusObject gqlStatusObject, String errorMsg, String parsedData, int errorIndex) {
         super(gqlStatusObject, errorMsg, parsedData, errorIndex);
     }
 
-    public TemporalParseException(
+    private TemporalParseException(
             ErrorGqlStatusObject gqlStatusObject, String errorMsg, String parsedData, int errorIndex, Throwable cause) {
         super(gqlStatusObject, errorMsg, parsedData, errorIndex, cause);
     }
