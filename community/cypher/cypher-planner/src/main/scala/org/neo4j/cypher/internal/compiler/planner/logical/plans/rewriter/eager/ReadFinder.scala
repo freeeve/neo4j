@@ -204,6 +204,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
+import org.neo4j.exceptions.InternalException
 
 /**
  * Finds all reads for a single plan.
@@ -288,7 +289,10 @@ object ReadFinder {
     def withIntroducedNodeVariable(variable: Option[LogicalVariable]): PlanReads = {
       variable match {
         case Some(value) => withIntroducedNodeVariable(value)
-        case None        => this
+        case None => throw InternalException.internalError(
+            this.getClass.getSimpleName,
+            "Node variable must exist for eager analysis to work correctly."
+          )
       }
     }
 
