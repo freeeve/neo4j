@@ -145,7 +145,8 @@ public abstract class KernelTokenRead implements TokenRead {
         performCheckBeforeOperation();
         return Iterators.stream(
                         tokenHolders.relationshipTypeTokens().getAllTokens().iterator())
-                .filter(relType -> getAccessMode().allowsTraverseRelType(relType.id()))
+                .filter(relType -> getAccessMode().allowsTraverseRelType(relType.id())
+                        || getAccessMode().hasApplicableTraverseRelAllowPropertyRules(relType.id()))
                 .iterator();
     }
 
