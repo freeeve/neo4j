@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.cardinality
 
+import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.configuration.GraphDatabaseSettings.InferSchemaPartsStrategy
 import org.neo4j.cypher.internal.compiler.planner.logical.PlannerDefaults
@@ -1877,6 +1878,74 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
     // No simple index on book publication year, calculate it from the composite index
     val bookFrom2019: Double = allBooks * math.sqrt(1.0 / bookPublicationYearAndGenres)
     queryShouldHaveCardinality(planner, "MATCH (book:Book {publicationYear: 2019})", bookFrom2019)
+  }
+
+  test("use histogram for cardinality estimation of simple range predicates") {
+    val allBooks: Double = 100.0
+
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(1000)
+        .setLabelCardinality("Book", allBooks)
+        .withSetting(
+          GraphDatabaseInternalSettings.histogram_data,
+          GraphDatabaseInternalSettings.HistogramsOfStandardBucketTypeParser.parse(
+            """
+              |entityType=node;labelOrType=Book;property=publishYear;min=2000;max=2010;selectivity=0.2,
+              |entityType=node;labelOrType=Book;property=publishYear;min=2010;max=2015;selectivity=0.5,
+              |entityType=node;labelOrType=Book;property=publishYear;min=2015;max=2025;selectivity=0.3,
+              |""".stripMargin
+          )
+        )
+
+    val histogramEstimateGt2012: Double = allBooks * (2.0 / 5 * 0.5 + 0.3)
+    queryShouldHaveCardinality(
+      planner.build(),
+      "MATCH (book:Book) WHERE book.publishYear > 2012",
+      histogramEstimateGt2012
+    )
+
+    val histogramEstimateGte2012: Double = allBooks * (3.0 / 5 * 0.5 + 0.3)
+    queryShouldHaveCardinality(
+      planner.build(),
+      "MATCH (book:Book) WHERE book.publishYear >= 2012",
+      histogramEstimateGte2012
+    )
+
+    val histogramEstimateGte2015: Double = allBooks * 0.3
+    queryShouldHaveCardinality(
+      planner.build(),
+      "MATCH (book:Book) WHERE book.publishYear >= 2015",
+      histogramEstimateGte2015
+    )
+
+    val histogramEstimate2012_2013: Double = allBooks * (2.0 / 5 * 0.5)
+    queryShouldHaveCardinality(
+      planner.build(),
+      "MATCH (book:Book) WHERE book.publishYear >= 2012 AND book.publishYear <= 2013",
+      histogramEstimate2012_2013
+    )
+
+    val histogramEstimate2012_2014: Double = allBooks * (3.0 / 5 * 0.5)
+    queryShouldHaveCardinality(
+      planner.build(),
+      "MATCH (book:Book) WHERE book.publishYear >= 2012 AND book.publishYear < 2015",
+      histogramEstimate2012_2014
+    )
+
+    val histogramEstimate2012_2020: Double = allBooks * (3.0 / 5 * 0.5 + 6.0 / 10 * 0.3)
+    queryShouldHaveCardinality(
+      planner.build(),
+      "MATCH (book:Book) WHERE book.publishYear >= 2012 AND book.publishYear <= 2020",
+      histogramEstimate2012_2020
+    )
+
+    val histogramEstimate2012_2030: Double = allBooks * (3.0 / 5 * 0.5 + 0.3)
+    queryShouldHaveCardinality(
+      planner.build(),
+      "MATCH (book:Book) WHERE book.publishYear > 2011 AND book.publishYear < 2031",
+      histogramEstimate2012_2030
+    )
   }
 
   private def uniquenessSelectivityForNRels(n: Int): Double = {

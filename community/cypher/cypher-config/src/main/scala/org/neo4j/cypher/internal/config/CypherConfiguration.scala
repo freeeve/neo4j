@@ -211,6 +211,9 @@ class CypherConfiguration private (val config: Config) {
   val antlrPreparserEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled)
 
+  val histogramData: java.util.Set[java.util.Map[String, String]] =
+    config.get(GraphDatabaseInternalSettings.histogram_data)
+
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)

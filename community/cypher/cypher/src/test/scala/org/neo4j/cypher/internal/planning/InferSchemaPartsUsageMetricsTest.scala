@@ -273,7 +273,7 @@ class InferSchemaPartsUsageMetricsTest extends CypherFunSuite with CypherVersion
       override def storageHasPropertyColocation: Boolean = true
     }
 
-    CypherPlanner.customPlanContextCreator = Some((_, _, _, _) => planContext)
+    CypherPlanner.customPlanContextCreator = Some((_, _, _, _, _) => planContext)
 
     val monitors = new monitoring.Monitors()
 

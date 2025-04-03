@@ -21,7 +21,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram
 
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram.HistogramTestHelper.nPropLtV_int
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
-import org.neo4j.cypher.internal.planner.spi.histogram.BucketingStrategy
 import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
 import org.neo4j.cypher.internal.util.Selectivity
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -33,7 +32,6 @@ class HistogramTest extends CypherFunSuite {
       NODE_TYPE,
       "Person",
       "prop",
-      BucketingStrategy.MAX_DIFF,
       """
         |+-------------------------------------------------------+
         || minInclusive | maxExclusive | frequency | selectivity |

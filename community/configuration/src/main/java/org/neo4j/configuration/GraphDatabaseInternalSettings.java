@@ -52,7 +52,9 @@ import inet.ipaddr.IPAddressString;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.graphdb.config.Setting;
@@ -1226,6 +1228,39 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Description("Set this to specify the literal extraction strategy")
     public static final Setting<ExtractLiteral> extract_literals = newBuilder(
                     "internal.cypher.extract_literals", ofEnum(ExtractLiteral.class), ExtractLiteral.ALWAYS)
+            .build();
+
+    public static SettingValueParser<Set<Map<String, String>>> HistogramsOfStandardBucketTypeParser =
+            setOf(new SettingValueParsers.MapPattern(
+                    Set.of("entityType", "labelOrType", "property", "min", "max", "selectivity"),
+                    Set.of("entityType", "labelOrType", "property", "min", "max", "selectivity")));
+
+    /**
+     * This option allows histograms to be loaded through the configuration file, serialized per bucket.
+     * Specify a bucket using key-value pairs separated by semicolons: key1=value1;key2=value2;key3=value3
+     * Each bucket should have the following keys: entityType, labelOrType, property, min, max, selectivity
+     * Combine the buckets using commas: bucket1,bucket2,bucket3
+     *
+     * All buckets with the same values for entityType, labelOrType and property will become a single histogram.
+     * Different values for EntityType, labelOrType and property will lead to the construction of multiple histograms.
+     * If you want the histograms to be used during planning, you will have to disable literal extraction completely for
+     * now.
+     *
+     * Example:
+     *  internal.cypher.extract_literals=NEVER
+     *  internal.cypher.histograms_standard_type_buckets= \
+     *    labelOrType=Person;property=prop;min=10;max=20;selectivity=0.28;entityType=node, \
+     *    labelOrType=Person;property=prop;min=20;max=30;selectivity=0.48;entityType=node, \
+     *    labelOrType=Person;property=prop;min=30;max=40;selectivity=0.05;entityType=node, \
+     *    labelOrType=Person;property=prop;min=40;max=50;selectivity=0.19;entityType=node
+     *
+     */
+    @Internal
+    @Description("Add histogram using configuration.")
+    public static final Setting<Set<Map<String, String>>> histogram_data = newBuilder(
+                    "internal.cypher.histograms_standard_type_buckets",
+                    HistogramsOfStandardBucketTypeParser,
+                    new HashSet<>())
             .build();
 
     @Internal

@@ -38,7 +38,9 @@ object EstimateSelectivityUsingHistogram {
     histogram: Histogram,
     inequalities: NonEmptyList[InequalityExpression]
   ): Selectivity = {
-    val selectivitySum = histogram.buckets.map(bucket => {
+    // The '.toList' is needed because two buckets can lead to the same selectivity.
+    // Keeping it as a set would then incorrectly drop one of those selectivity values.
+    val selectivitySum = histogram.buckets.toList.map(bucket => {
       estimateBucketSelectivity(bucket, inequalities)
     }).sum
     Selectivity(selectivitySum)

@@ -20,17 +20,6 @@
 package org.neo4j.cypher.internal.planner.spi.histogram
 
 import org.neo4j.cypher.internal.expressions.EntityType
-import org.neo4j.cypher.internal.planner.spi.histogram.BucketingStrategy.BucketingStrategy
-
-/**
- * The strategy that was used to create the bucket boundaries.
- */
-object BucketingStrategy extends Enumeration {
-  type BucketingStrategy = Value
-  val MAX_DIFF: Value = Value("MaxDiff")
-  val EQUI_HEIGHT: Value = Value("EquiHeight")
-  val EQUI_WIDTH: Value = Value("EquiWidth")
-}
 
 /**
  *
@@ -51,8 +40,7 @@ case class Histogram(
   nodeOrRelationship: EntityType,
   labelOrTypeName: String,
   property: String,
-  bucketingStrategy: BucketingStrategy,
-  buckets: List[Bucket]
+  buckets: Set[Bucket]
 ) {}
 
 trait Bucket {

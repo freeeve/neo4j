@@ -81,9 +81,9 @@ trait GraphStatistics {
    * @param propertyKey  The property-key of the range predicate
    * @return The available histograms that can be used to estimate the range predicate. We currently only implement this for integration testing purposes.
    */
-  def getHistograms(labels: Set[LabelId], propertyKey: Option[PropertyKeyId]): Set[Histogram] = Set.empty
+  def getHistograms(labels: Set[LabelId], propertyKey: PropertyKeyId): Set[Histogram] = Set.empty
 
-  def getHistograms(typeId: RelTypeId, propertyKey: Option[PropertyKeyId]): Set[Histogram] = Set.empty
+  def getHistograms(typeId: RelTypeId, propertyKey: PropertyKeyId): Set[Histogram] = Set.empty
 }
 
 class DelegatingGraphStatistics(delegate: GraphStatistics) extends GraphStatistics {
@@ -109,9 +109,9 @@ class DelegatingGraphStatistics(delegate: GraphStatistics) extends GraphStatisti
   override def mostCommonLabelGivenRelationshipType(typ: Int): Seq[Int] =
     delegate.mostCommonLabelGivenRelationshipType(typ)
 
-  override def getHistograms(labels: Set[LabelId], propertyKey: Option[PropertyKeyId]): Set[Histogram] =
+  override def getHistograms(labels: Set[LabelId], propertyKey: PropertyKeyId): Set[Histogram] =
     delegate.getHistograms(labels, propertyKey)
 
-  override def getHistograms(typeId: RelTypeId, propertyKey: Option[PropertyKeyId]): Set[Histogram] =
+  override def getHistograms(typeId: RelTypeId, propertyKey: PropertyKeyId): Set[Histogram] =
     delegate.getHistograms(typeId, propertyKey)
 }

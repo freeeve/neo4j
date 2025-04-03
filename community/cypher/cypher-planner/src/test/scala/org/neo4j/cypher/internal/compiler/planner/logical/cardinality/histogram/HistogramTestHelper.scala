@@ -22,7 +22,6 @@ package org.neo4j.cypher.internal.compiler.planner.logical.cardinality.histogram
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.expressions.EntityType
 import org.neo4j.cypher.internal.expressions.InequalityExpression
-import org.neo4j.cypher.internal.planner.spi.histogram.BucketingStrategy.BucketingStrategy
 import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
 import org.neo4j.cypher.internal.planner.spi.histogram.StandardBucket
 import org.neo4j.cypher.internal.util.NonEmptyList
@@ -46,11 +45,10 @@ object HistogramTestHelper extends AstConstructionTestSupport {
     nodeOrRelationship: EntityType,
     labelOrTypeName: String,
     property: String,
-    bucketingStrategy: BucketingStrategy,
     filePath: String
   ): Histogram = {
     val fileContent = Files.readString(Paths.get(filePath))
-    createHistogramFromString(nodeOrRelationship, labelOrTypeName, property, bucketingStrategy, fileContent)
+    createHistogramFromString(nodeOrRelationship, labelOrTypeName, property, fileContent)
   }
 
   /**
@@ -65,7 +63,6 @@ object HistogramTestHelper extends AstConstructionTestSupport {
     nodeOrRelationship: EntityType,
     labelOrTypeName: String,
     property: String,
-    bucketingStrategy: BucketingStrategy,
     histogramString: String
   ): Histogram = {
     // We are only interested in the lines starting with a vertical bar.
@@ -89,7 +86,7 @@ object HistogramTestHelper extends AstConstructionTestSupport {
         case line => throw new IllegalArgumentException(s"Invalid histogram format: $line in \n$histogramString")
       })
 
-    Histogram(nodeOrRelationship, labelOrTypeName, property, bucketingStrategy, List.from(bucketIterator))
+    Histogram(nodeOrRelationship, labelOrTypeName, property, Set.from(bucketIterator))
   }
 
   // n.prop < v

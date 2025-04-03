@@ -58,6 +58,8 @@ import org.neo4j.cypher.internal.compiler.planner.logical.idp.ConfigurableIDPSol
 import org.neo4j.cypher.internal.compiler.planner.logical.simpleExpressionEvaluator
 import org.neo4j.cypher.internal.compiler.test_helpers.ContextHelper
 import org.neo4j.cypher.internal.config.CypherConfiguration
+import org.neo4j.cypher.internal.expressions.NODE_TYPE
+import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.frontend.phases.FieldSignature
 import org.neo4j.cypher.internal.frontend.phases.InitialState
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
@@ -1144,6 +1146,10 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
     val resolver = tokens.getResolver(procedures)
 
+    // Get the parsed histograms from the config
+    val plannerConfiguration = CypherPlannerConfiguration.withSettings(settings)
+    val histogramsFromConfig = plannerConfiguration.histograms
+
     val internalGraphStatistics = new GraphStatistics {
       override def nodesAllCardinality(): Cardinality = cardinalities.allNodes.get
 
@@ -1211,21 +1217,33 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         }.groupMap(_._1)(_._2).maxByOption(_._1).map(_._2.toSeq).getOrElse(Seq.empty)
       }
 
-      override def getHistograms(labels: Set[LabelId], propertyKey: Option[PropertyKeyId]): Set[Histogram] = {
+      override def getHistograms(labels: Set[LabelId], propertyKey: PropertyKeyId): Set[Histogram] = {
         val resolver = tokens.getResolver(procedures)
         histograms.filter(histogram =>
-          resolver.getOptPropertyKeyId(histogram.property).map(PropertyKeyId) == propertyKey && labels.contains(
-            LabelId(resolver.getLabelId(histogram.labelOrTypeName))
-          )
+          histogram.nodeOrRelationship == NODE_TYPE &&
+            resolver.getOptPropertyKeyId(
+              histogram.property
+            ).map(PropertyKeyId).contains(propertyKey) && labels.contains(
+              LabelId(resolver.getLabelId(histogram.labelOrTypeName))
+            )
+        ) ++ histogramsFromConfig.filter(histogram =>
+          histogram.nodeOrRelationship == NODE_TYPE &&
+            resolver.getOptPropertyKeyId(histogram.property).map(PropertyKeyId).contains(propertyKey) &&
+            labels.contains(LabelId(resolver.getLabelId(histogram.labelOrTypeName)))
         )
       }
 
-      override def getHistograms(typeId: RelTypeId, propertyKey: Option[PropertyKeyId]): Set[Histogram] = {
+      override def getHistograms(typeId: RelTypeId, propertyKey: PropertyKeyId): Set[Histogram] = {
         val resolver = tokens.getResolver(procedures)
+
         histograms.filter(histogram =>
-          resolver.getOptPropertyKeyId(histogram.property).map(
-            PropertyKeyId
-          ) == propertyKey && resolver.getOptRelTypeId(histogram.labelOrTypeName).map(RelTypeId).contains(typeId)
+          histogram.nodeOrRelationship == RELATIONSHIP_TYPE &&
+            resolver.getOptPropertyKeyId(histogram.property).map(PropertyKeyId).contains(propertyKey) &&
+            resolver.getOptRelTypeId(histogram.labelOrTypeName).map(RelTypeId).contains(typeId)
+        ) ++ histogramsFromConfig.filter(histogram =>
+          histogram.nodeOrRelationship == RELATIONSHIP_TYPE &&
+            resolver.getOptPropertyKeyId(histogram.property).map(PropertyKeyId).contains(propertyKey) &&
+            resolver.getOptRelTypeId(histogram.labelOrTypeName).map(RelTypeId).contains(typeId)
         )
       }
     }

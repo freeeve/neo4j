@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode.DatabaseMode
 import org.neo4j.cypher.internal.planner.spi.EventuallyConsistent
+import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.IndexDescriptor
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability
 import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
@@ -74,7 +75,8 @@ object TransactionBoundPlanContext {
     tc: TransactionalContextWrapper,
     logger: InternalNotificationLogger,
     log: InternalLog,
-    cypherVersion: CypherVersion
+    cypherVersion: CypherVersion,
+    graphStatisticsDecorator: GraphStatistics => GraphStatistics
   ): TransactionBoundPlanContext = {
 
     val statistics = TransactionBoundGraphStatistics(tc.dataRead, tc.schemaRead, log)
@@ -82,7 +84,7 @@ object TransactionBoundPlanContext {
     new TransactionBoundPlanContext(
       tc,
       logger,
-      InstrumentedGraphStatistics(statistics, new MutableGraphStatisticsSnapshot()),
+      InstrumentedGraphStatistics(graphStatisticsDecorator(statistics), new MutableGraphStatisticsSnapshot()),
       cypherVersion
     )
   }

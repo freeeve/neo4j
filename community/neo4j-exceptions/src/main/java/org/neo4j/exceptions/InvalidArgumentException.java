@@ -1214,4 +1214,16 @@ public class InvalidArgumentException extends Neo4jException {
                                 + "where a relationship node is missing, set 'dbms.cypher.lenient_create_relationship = true' in neo4j.conf",
                         relName, nodeName));
     }
+
+    public static InvalidArgumentException invalidValueInHistogramFromConfig(
+            String fieldKey, String fieldValue, List<String> expected) {
+        var legacyMessage = "Invalid input '%s' for %s. Expected %s.".formatted(fieldValue, fieldKey, expected);
+
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N04)
+                .withParam(GqlParams.StringParam.input, fieldValue)
+                .withParam(GqlParams.StringParam.context, fieldKey)
+                .withParam(GqlParams.ListParam.inputList, expected)
+                .build();
+        return new InvalidArgumentException(gql, legacyMessage);
+    }
 }

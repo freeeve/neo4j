@@ -63,7 +63,8 @@ object LogicalQueryGenerator {
       TransactionalContextWrapper(txContext),
       devNullLogger,
       log,
-      CypherVersion.Default
+      CypherVersion.Default,
+      identity
     )
     val labelMap = tokenRead.labelsGetAllTokens().asScala.map(l => l.name() -> l.id()).toMap
     val relMap = tokenRead.relationshipTypesGetAllTokens().asScala.toVector.map(r => r.name() -> r.id()).toMap

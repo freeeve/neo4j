@@ -25,6 +25,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings.RemoteBatchProperti
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.compiler.helpers.HistogramsFromConfigHelper
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.planPipeLine
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.prepareForCaching
 import org.neo4j.cypher.internal.compiler.phases.CompilationPhases.systemPipeLine
@@ -42,6 +43,7 @@ import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.options.CypherPlanVarExpandInto
 import org.neo4j.cypher.internal.options.CypherStatefulShortestPlanningModeOption
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
+import org.neo4j.cypher.internal.planner.spi.histogram.Histogram
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
@@ -190,6 +192,13 @@ class CypherPlannerConfiguration(
   val useErrorsOverWarnings: () => Boolean = {
     AssertMacros.checkOnlyWhenAssertionsAreEnabled(!GraphDatabaseSettings.cypher_hints_error.dynamic())
     () => config.useErrorsOverWarnings
+  }
+
+  val histograms: Set[Histogram] = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.histogram_data.dynamic()
+    )
+    HistogramsFromConfigHelper.getHistogramsFromConfig(config.histogramData)
   }
 
   val idpMaxTableSize: () => Int = {

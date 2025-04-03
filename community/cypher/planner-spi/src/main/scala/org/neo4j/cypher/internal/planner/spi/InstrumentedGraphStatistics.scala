@@ -126,9 +126,9 @@ case class InstrumentedGraphStatistics(inner: GraphStatistics, snapshot: Mutable
     inner.mostCommonLabelGivenRelationshipType(typ)
   }
 
-  override def getHistograms(labels: Set[LabelId], propertyKey: Option[PropertyKeyId]): Set[Histogram] =
+  override def getHistograms(labels: Set[LabelId], propertyKey: PropertyKeyId): Set[Histogram] =
     inner.getHistograms(labels, propertyKey)
 
-  override def getHistograms(typeId: RelTypeId, propertyKey: Option[PropertyKeyId]): Set[Histogram] =
+  override def getHistograms(typeId: RelTypeId, propertyKey: PropertyKeyId): Set[Histogram] =
     inner.getHistograms(typeId, propertyKey)
 }

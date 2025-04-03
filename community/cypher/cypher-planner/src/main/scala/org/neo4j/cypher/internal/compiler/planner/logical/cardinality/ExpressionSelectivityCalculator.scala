@@ -596,11 +596,11 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
       true // https://trello.com/c/esdvGOrL/2987-cypher-option-to-not-use-histograms-during-planning
     val useHistogramsInPlanning = useHistogramsInPlanningConfig && inequalityPredicatesCanBeHandleByHistogram(seekable)
     val availableHists =
-      if (useHistogramsInPlanning) {
+      if (useHistogramsInPlanning && propKeyId.isDefined) {
         if (maybeRelTypeId.nonEmpty) {
-          stats.getHistograms(maybeRelTypeId.flatten.get, propKeyId)
+          stats.getHistograms(maybeRelTypeId.flatten.get, propKeyId.get)
         } else {
-          stats.getHistograms(labelIds.flatten, propKeyId)
+          stats.getHistograms(labelIds.flatten, propKeyId.get)
         }
       } else
         Set.empty

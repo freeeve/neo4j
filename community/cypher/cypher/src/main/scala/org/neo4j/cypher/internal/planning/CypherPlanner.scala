@@ -46,6 +46,8 @@ import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.UpdateStrategy
 import org.neo4j.cypher.internal.compiler.defaultUpdateStrategy
 import org.neo4j.cypher.internal.compiler.eagerUpdateStrategy
+import org.neo4j.cypher.internal.compiler.helpers.HistogramsFromConfigHelper
+import org.neo4j.cypher.internal.compiler.helpers.HistogramsFromConfigHelper.graphStatisticsDecoratorWithHistogramsFromConfig
 import org.neo4j.cypher.internal.compiler.phases.CachableLogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
@@ -83,12 +85,14 @@ import org.neo4j.cypher.internal.options.CypherRuntimeOption
 import org.neo4j.cypher.internal.options.CypherUpdateStrategy
 import org.neo4j.cypher.internal.planner.spi.CostBasedPlannerName
 import org.neo4j.cypher.internal.planner.spi.DPPlannerName
+import org.neo4j.cypher.internal.planner.spi.GraphStatistics
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planning.CypherPlanner.createQueryGraphSolver
 import org.neo4j.cypher.internal.preparser.FullyParsedQuery
 import org.neo4j.cypher.internal.preparser.PreParsedQuery
 import org.neo4j.cypher.internal.preparser.QueryOptions
+import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundReadTokenContext
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionalContextWrapper
 import org.neo4j.cypher.internal.spi.ExceptionTranslatingPlanContext
 import org.neo4j.cypher.internal.spi.TransactionBoundPlanContext
@@ -128,7 +132,13 @@ object CypherPlanner {
    * where we need to inject some specific indexes and statistics.
    */
   var customPlanContextCreator
-    : Option[(TransactionalContextWrapper, InternalNotificationLogger, InternalLog, CypherVersion) => PlanContext] =
+    : Option[(
+      TransactionalContextWrapper,
+      InternalNotificationLogger,
+      InternalLog,
+      CypherVersion,
+      GraphStatistics => GraphStatistics
+    ) => PlanContext] =
     None
 
   /**
@@ -354,12 +364,28 @@ case class CypherPlanner(
   ): LogicalPlanResult = {
     // Context used for db communication during planning
     val createPlanContext = CypherPlanner.customPlanContextCreator.getOrElse(TransactionBoundPlanContext.apply _)
+
+    // Group the histograms from the config by the histogram key: entity type, labelId or relTypeId, PropertyKeyId
+    // To get the histogram key, the label or type string and property key string will be resolved to ids
+    val tokenContext = new TransactionBoundReadTokenContext(transactionalContextWrapper) {}
+    val histogramsFromConfigWithIdsGrouped =
+      plannerConfig.histograms
+        .flatMap { histogram =>
+          HistogramsFromConfigHelper
+            .getHistogramKey(histogram, tokenContext)
+            .map(_ -> histogram)
+        }
+        .groupBy(_._1)
+        .view.mapValues(_.map(_._2))
+        .toMap
+
     val planContext =
       new ExceptionTranslatingPlanContext(createPlanContext(
         transactionalContextWrapper,
         notificationLogger,
         log,
-        options.resolvedLanguage
+        options.resolvedLanguage,
+        graphStatisticsDecoratorWithHistogramsFromConfig(histogramsFromConfigWithIdsGrouped)
       ))
 
     val inferredRuntime: CypherRuntimeOption = options.queryOptions.runtime match {
