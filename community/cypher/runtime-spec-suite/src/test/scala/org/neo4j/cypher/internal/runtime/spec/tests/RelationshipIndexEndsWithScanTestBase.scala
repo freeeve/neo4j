@@ -50,7 +50,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("text")
       .projection("r.text AS text")
-      .relationshipIndexOperator("(x)-[r:R(text ENDS WITH 'se')]->(y)", indexType = IndexType.TEXT)
+      .relationshipIndexOperator("()-[r:R(text ENDS WITH 'se')]->()", indexType = IndexType.TEXT)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -74,7 +74,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("text")
       .projection("r.text AS text")
-      .relationshipIndexOperator("(x)-[r:R(text ENDS WITH 'se')]-(y)", indexType = IndexType.TEXT)
+      .relationshipIndexOperator("()-[r:R(text ENDS WITH 'se')]-()", indexType = IndexType.TEXT)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -99,7 +99,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
       .produceResults("text")
       .projection("r.text AS text")
       .relationshipIndexOperator(
-        "(x)-[r:R(text ENDS WITH ???)]->(y)",
+        "()-[r:R(text ENDS WITH ???)]->()",
         paramExpr = Some(nullLiteral),
         indexType = IndexType.TEXT
       )
@@ -126,7 +126,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
       .produceResults("text")
       .projection("r.text AS text")
       .relationshipIndexOperator(
-        "(x)-[r:R(text ENDS WITH ???)]-(y)",
+        "()-[r:R(text ENDS WITH ???)]-()",
         paramExpr = Some(nullLiteral),
         indexType = IndexType.TEXT
       )
@@ -152,7 +152,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("text")
       .projection("x.text AS text")
-      .relationshipIndexOperator("(x)-[r:R(text ENDS WITH 1337)]->(y)", indexType = IndexType.TEXT)
+      .relationshipIndexOperator("(x)-[r:R(text ENDS WITH 1337)]->()", indexType = IndexType.TEXT)
       .build()
 
     execute(logicalQuery, runtime) should beColumns("text").withNoRows()
@@ -172,7 +172,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("text")
       .projection("x.text AS text")
-      .relationshipIndexOperator("(x)-[r:R(text ENDS WITH 1337)]-(y)", indexType = IndexType.TEXT)
+      .relationshipIndexOperator("(x)-[r:R(text ENDS WITH 1337)]-()", indexType = IndexType.TEXT)
       .build()
 
     execute(logicalQuery, runtime) should beColumns("text").withNoRows()
@@ -309,8 +309,8 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r1", "r2")
       .cartesianProduct()
-      .|.relationshipIndexOperator("(x2)-[r2:R(text ENDS WITH '2')]->(y2)", indexType = IndexType.TEXT)
-      .relationshipIndexOperator("(x1)-[r1:R(text ENDS WITH '1')]->(y1)", indexType = IndexType.TEXT)
+      .|.relationshipIndexOperator("()-[r2:R(text ENDS WITH '2')]->()", indexType = IndexType.TEXT)
+      .relationshipIndexOperator("()-[r1:R(text ENDS WITH '1')]->()", indexType = IndexType.TEXT)
       .build()
     val runtimeResult = execute(logicalQuery, runtime)
 
@@ -337,8 +337,8 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r1", "r2")
       .cartesianProduct()
-      .|.relationshipIndexOperator("(x2)-[r2:R(text ENDS WITH '2')]-(y2)", indexType = IndexType.TEXT)
-      .relationshipIndexOperator("(x1)-[r1:R(text ENDS WITH '1')]-(y1)", indexType = IndexType.TEXT)
+      .|.relationshipIndexOperator("()-[r2:R(text ENDS WITH '2')]-()", indexType = IndexType.TEXT)
+      .relationshipIndexOperator("()-[r1:R(text ENDS WITH '1')]-()", indexType = IndexType.TEXT)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -368,7 +368,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
       .produceResults("c")
       .aggregation(Seq.empty, Seq("count(*) AS c"))
       .limit(limit)
-      .relationshipIndexOperator("(x)-[r:R(text ENDS WITH 'ue')]->(y)", indexType = IndexType.TEXT)
+      .relationshipIndexOperator("()-[r:R(text ENDS WITH 'ue')]->()", indexType = IndexType.TEXT)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -394,7 +394,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
       .produceResults("c")
       .aggregation(Seq.empty, Seq("count(*) AS c"))
       .limit(limit)
-      .relationshipIndexOperator("(x)-[r:R(text ENDS WITH 'ue')]->(y)", indexType = IndexType.TEXT)
+      .relationshipIndexOperator("()-[r:R(text ENDS WITH 'ue')]->()", indexType = IndexType.TEXT)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -421,7 +421,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
       .|.projection("r.text AS value")
       .|.limit(limit)
       .|.relationshipIndexOperator(
-        "(x)-[r:R(text ENDS WITH 'alue')]->(y)",
+        "()-[r:R(text ENDS WITH 'alue')]->()",
         argumentIds = Set("i"),
         indexType = IndexType.TEXT
       )
@@ -453,7 +453,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
       .|.projection("r.text AS value")
       .|.limit(limit)
       .|.relationshipIndexOperator(
-        "(x)-[r:R(text ENDS WITH 'alue')]-(y)",
+        "()-[r:R(text ENDS WITH 'alue')]-()",
         argumentIds = Set("i"),
         indexType = IndexType.TEXT
       )
@@ -485,7 +485,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
       .apply()
       .|.projection("r.text AS value")
       .|.relationshipIndexOperator(
-        "(x)-[r:R(text ENDS WITH 'alue')]->(y)",
+        "()-[r:R(text ENDS WITH 'alue')]->()",
         argumentIds = Set("i"),
         indexType = IndexType.TEXT
       )
@@ -517,7 +517,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
       .apply()
       .|.projection("r.text AS value")
       .|.relationshipIndexOperator(
-        "(x)-[r:R(text ENDS WITH 'alue')]-(y)",
+        "()-[r:R(text ENDS WITH 'alue')]-()",
         argumentIds = Set("i"),
         indexType = IndexType.TEXT
       )
@@ -544,7 +544,7 @@ abstract class RelationshipIndexEndsWithScanTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .relationshipIndexOperator("(n)-[r:R(text ENDS WITH 'alue')]-(m)", indexType = IndexType.TEXT)
+      .relationshipIndexOperator("()-[r:R(text ENDS WITH 'alue')]-()", indexType = IndexType.TEXT)
       .build()
 
     execute(logicalQuery, runtime) should beColumns("r").withSingleRow(rel)

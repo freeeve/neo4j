@@ -1055,7 +1055,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("r", "prop")
       .projection("cacheR[r.prop] AS prop")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop = ???)]->(y)",
+        "()-[r:R(prop = ???)]->()",
         paramExpr = Some(toExpression(lookFor)),
         getValue = _ => GetValue,
         indexType = index.indexType
@@ -1079,7 +1079,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("r", "prop")
       .projection("cacheR[r.prop] AS prop")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop = ???)]-(y)",
+        "()-[r:R(prop = ???)]-()",
         paramExpr = Some(toExpression(lookFor)),
         getValue = _ => GetValue,
         indexType = index.indexType
@@ -1106,7 +1106,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("r", "prop")
       .projection("cacheR[r.prop] AS prop")
       .relationshipIndexOperator(
-        s"(x)-[r:R(prop > ???)]->(y)",
+        s"()-[r:R(prop > ???)]->()",
         paramExpr = Some(toExpression(someProp)),
         getValue = _ => GetValue,
         indexType = index.indexType
@@ -1132,7 +1132,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("r", "prop")
       .projection("cacheR[r.prop] AS prop")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop > ???)]-(y)",
+        "()-[r:R(prop > ???)]-()",
         paramExpr = Some(toExpression(someProp)),
         getValue = _ => GetValue,
         indexType = index.indexType
@@ -1166,7 +1166,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("r", "prop", "prop2")
       .projection("cacheR[r.prop] AS prop", "cacheR[r.prop2] AS prop2")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop = 10, prop2 = '10')]->(y)",
+        "()-[r:R(prop = 10, prop2 = '10')]->()",
         getValue = _ => GetValue,
         indexType = index.indexType
       )
@@ -1196,7 +1196,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("r", "prop", "prop2")
       .projection("cacheR[r.prop] AS prop", "cacheR[r.prop2] AS prop2")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop = 10, prop2 = '10')]-(y)",
+        "()-[r:R(prop = 10, prop2 = '10')]-()",
         getValue = _ => GetValue,
         indexType = index.indexType
       )
@@ -1296,7 +1296,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("result")
       .projection("r.prop AS result")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop > ???)]->(y)",
+        "()-[r:R(prop > ???)]->()",
         indexOrder = IndexOrderAscending,
         paramExpr = Some(toExpression(someProp)),
         indexType = index.indexType
@@ -1328,7 +1328,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("result")
       .projection("r.prop AS result")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop > ???)]-(y)",
+        "()-[r:R(prop > ???)]-()",
         indexOrder = IndexOrderAscending,
         paramExpr = Some(toExpression(someProp)),
         indexType = index.indexType
@@ -1362,7 +1362,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("result")
       .projection("r.prop as result")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop > ???)]->(y)",
+        "()-[r:R(prop > ???)]->()",
         indexOrder = IndexOrderDescending,
         paramExpr = Some(toExpression(someProp)),
         indexType = index.indexType
@@ -1394,7 +1394,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("result")
       .projection("r.prop AS result")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop > ???)]-(y)",
+        "()-[r:R(prop > ???)]-()",
         indexOrder = IndexOrderDescending,
         paramExpr = Some(toExpression(someProp)),
         indexType = index.indexType
@@ -1428,7 +1428,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("prop")
       .projection("r.prop AS prop")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop)]->(y)",
+        "()-[r:R(prop)]->()",
         customQueryExpression = Some(ManyQueryExpression(listOf(someProps.map(toExpression): _*))),
         indexOrder = IndexOrderAscending,
         indexType = index.indexType
@@ -1461,7 +1461,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("prop")
       .projection("r.prop AS prop")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop)]-(y)",
+        "()-[r:R(prop)]-()",
         customQueryExpression = Some(ManyQueryExpression(listOf(someProps.map(toExpression): _*))),
         indexOrder = IndexOrderAscending,
         indexType = index.indexType
@@ -1495,7 +1495,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("prop")
       .projection("r.prop AS prop")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop)]->(y)",
+        "()-[r:R(prop)]->()",
         customQueryExpression = Some(ManyQueryExpression(listOf(someProps.map(toExpression): _*))),
         indexOrder = IndexOrderDescending,
         indexType = index.indexType
@@ -1528,7 +1528,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
       .produceResults("prop")
       .projection("r.prop AS prop")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop)]-(y)",
+        "()-[r:R(prop)]-()",
         customQueryExpression = Some(ManyQueryExpression(listOf(someProps.map(toExpression): _*))),
         indexOrder = IndexOrderDescending,
         indexType = index.indexType
@@ -1585,8 +1585,8 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .union()
-      .|.relationshipIndexOperator("(x)-[r:R(prop > 42)]->(y)", indexType = IndexType.RANGE)
-      .relationshipIndexOperator("(a)-[r:R(prop CONTAINS '1')]->(b)", indexType = IndexType.TEXT)
+      .|.relationshipIndexOperator("()-[r:R(prop > 42)]->()", indexType = IndexType.RANGE)
+      .relationshipIndexOperator("()-[r:R(prop CONTAINS '1')]->()", indexType = IndexType.TEXT)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1616,7 +1616,7 @@ abstract class RelationshipIndexSeekTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .relationshipIndexOperator("(n)-[r:R(prop = 42)]-(m)", indexType = IndexType.RANGE)
+      .relationshipIndexOperator("()-[r:R(prop = 42)]-()", indexType = IndexType.RANGE)
       .build()
 
     execute(logicalQuery, runtime) should beColumns("r").withSingleRow(rel)
@@ -1668,7 +1668,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator(s"(x)-[r:R(prop = $propToFind)]->(y)", unique = true, indexType = IndexType.RANGE)
+      .relationshipIndexOperator(s"()-[r:R(prop = $propToFind)]->()", unique = true, indexType = IndexType.RANGE)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1693,7 +1693,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator(s"(x)-[r:R(prop = $propToFind)]-(y)", unique = true, indexType = IndexType.RANGE)
+      .relationshipIndexOperator(s"()-[r:R(prop = $propToFind)]-()", unique = true, indexType = IndexType.RANGE)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1720,7 +1720,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator(s"(x)-[r:R(prop1 = $propToFind, prop2 = '$propToFind')]->(y)", unique = true)
+      .relationshipIndexOperator(s"()-[r:R(prop1 = $propToFind, prop2 = '$propToFind')]->()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1747,7 +1747,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator(s"(x)-[r:R(prop1 = $propToFind, prop2 = '$propToFind')]-(y)", unique = true)
+      .relationshipIndexOperator(s"()-[r:R(prop1 = $propToFind, prop2 = '$propToFind')]-()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1773,7 +1773,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator(s"(x)-[r:R(prop = $propToFind)]->(y)", unique = true)
+      .relationshipIndexOperator(s"()-[r:R(prop = $propToFind)]->()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1795,7 +1795,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator(s"(x)-[r:R(prop = $propToFind)]-(y)", unique = true)
+      .relationshipIndexOperator(s"()-[r:R(prop = $propToFind)]-()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1817,7 +1817,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator(s"(x)-[r:R(prop = $propToFind)]->(y)", unique = true)
+      .relationshipIndexOperator(s"()-[r:R(prop = $propToFind)]->()", unique = true)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1840,7 +1840,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator(s"(x)-[r:R(prop = $propToFind)]-(y)", unique = true)
+      .relationshipIndexOperator(s"()-[r:R(prop = $propToFind)]-()", unique = true)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1862,7 +1862,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop = 20)]->(y)", unique = true)
+      .relationshipIndexOperator("()-[r:R(prop = 20)]->()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1887,7 +1887,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop = 20)]-(y)", unique = true)
+      .relationshipIndexOperator("()-[r:R(prop = 20)]-()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1915,7 +1915,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop1 = 20, prop2 = '20')]->(y)", unique = true)
+      .relationshipIndexOperator("()-[r:R(prop1 = 20, prop2 = '20')]->()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1943,7 +1943,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop1 = 20, prop2 = '20')]-(y)", unique = true)
+      .relationshipIndexOperator("()-[r:R(prop1 = 20, prop2 = '20')]-()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -1972,7 +1972,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop = 20 OR 20)]->(y)", unique = true)
+      .relationshipIndexOperator("()-[r:R(prop = 20 OR 20)]->()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2001,7 +2001,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop = 20 OR 20)]-(y)", unique = true)
+      .relationshipIndexOperator("()-[r:R(prop = 20 OR 20)]-()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2029,7 +2029,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop1 = 20, prop2 = '20')]->(y)", unique = true)
+      .relationshipIndexOperator("()-[r:R(prop1 = 20, prop2 = '20')]->()", unique = true)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2054,7 +2054,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop1 = 20, prop2 = '20')]-(y)", unique = true)
+      .relationshipIndexOperator("()-[r:R(prop1 = 20, prop2 = '20')]-()", unique = true)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2079,7 +2079,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator(s"(x)-[r:R(prop1 > ${sizeHint / 2}, prop2)]->(y)", unique = true)
+      .relationshipIndexOperator(s"()-[r:R(prop1 > ${sizeHint / 2}, prop2)]->()", unique = true)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2104,7 +2104,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator(s"(x)-[r:R(prop1 > ${sizeHint / 2}, prop2)]-(y)", unique = true)
+      .relationshipIndexOperator(s"()-[r:R(prop1 > ${sizeHint / 2}, prop2)]-()", unique = true)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2190,7 +2190,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop1 = 10, prop2 = '10')]->(y)", unique = true, indexType = IndexType.RANGE)
+      .relationshipIndexOperator("()-[r:R(prop1 = 10, prop2 = '10')]->()", unique = true, indexType = IndexType.RANGE)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2218,7 +2218,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop1 = 10, prop2 = '10')]-(y)", unique = true, indexType = IndexType.RANGE)
+      .relationshipIndexOperator("()-[r:R(prop1 = 10, prop2 = '10')]-()", unique = true, indexType = IndexType.RANGE)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2246,7 +2246,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop1 = 10, prop2 = '10')]->(y)", unique = true)
+      .relationshipIndexOperator("()-[r:R(prop1 = 10, prop2 = '10')]->()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2274,7 +2274,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
       .filter("true")
-      .relationshipIndexOperator("(x)-[r:R(prop1 = 10, prop2 = '10')]-(y)", unique = true)
+      .relationshipIndexOperator("()-[r:R(prop1 = 10, prop2 = '10')]-()", unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2301,7 +2301,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r", "prop")
       .projection("cacheR[r.prop] AS prop")
-      .relationshipIndexOperator("(x)-[r:R(prop = 10)]->(y)", _ => GetValue, unique = true)
+      .relationshipIndexOperator("()-[r:R(prop = 10)]->()", _ => GetValue, unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2327,7 +2327,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r", "prop")
       .projection("cacheR[r.prop] AS prop")
-      .relationshipIndexOperator("(x)-[r:R(prop = 10)]-(y)", _ => GetValue, unique = true)
+      .relationshipIndexOperator("()-[r:R(prop = 10)]-()", _ => GetValue, unique = true)
       .build(readOnly = false)
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -2354,7 +2354,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
       .produceResults("r")
       .filter("true")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop)]->(y)",
+        "()-[r:R(prop)]->()",
         customQueryExpression = Some(ManyQueryExpression(listOf(Seq(-1L, 0L, 1L, 10L, 20L).map(literalInt(_)): _*))),
         unique = true
       )
@@ -2390,7 +2390,7 @@ trait RelationshipLockingUniqueIndexSeekTestBase[CONTEXT <: RuntimeContext] {
       .produceResults("r")
       .filter("true")
       .relationshipIndexOperator(
-        "(x)-[r:R(prop)]-(y)",
+        "()-[r:R(prop)]-()",
         customQueryExpression = Some(ManyQueryExpression(listOf(Seq(-1L, 0L, 1L, 10L, 20L).map(literalInt(_)): _*))),
         unique = true
       )

@@ -65,7 +65,7 @@ abstract class DirectedRelationshipByIdSeekTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("r")
-      .relationshipByIdSeek("(x)-[r]->(y)", Set.empty, rel.getId.toDouble)
+      .relationshipByIdSeek("()-[r]->()", Set.empty, rel.getId.toDouble)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
