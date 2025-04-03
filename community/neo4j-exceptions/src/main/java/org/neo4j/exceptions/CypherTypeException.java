@@ -286,9 +286,7 @@ public class CypherTypeException extends Neo4jException {
                         "LOCAL DATETIME",
                         "ZONED DATETIME",
                         "DURATION",
-                        "POINT",
-                        "NODE",
-                        "RELATIONSHIP"),
+                        "POINT"),
                 gotCypherType);
         String msg = "Property values can only be of primitive types or arrays thereof";
         if (withEncountered) msg += String.format(". Encountered: %s.", got);

@@ -200,7 +200,7 @@ class ValueRepresentationTest {
                 .gqlCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N01)
                 .hasStatusDescription(
-                        "error: data exception - invalid type. Expected the value vector([5], 1, INTEGER32) to be of type BOOLEAN, STRING, INTEGER, FLOAT, DATE, LOCAL TIME, ZONED TIME, LOCAL DATETIME, ZONED DATETIME, DURATION, POINT, NODE or RELATIONSHIP, but was of type INT32VECTOR.");
+                        "error: data exception - invalid type. Expected the value vector([5], 1, INTEGER32) to be of type BOOLEAN, STRING, INTEGER, FLOAT, DATE, LOCAL TIME, ZONED TIME, LOCAL DATETIME, ZONED DATETIME, DURATION or POINT, but was of type INT32VECTOR.");
     }
 
     @Test
@@ -213,6 +213,6 @@ class ValueRepresentationTest {
                 .gqlCause()
                 .hasGqlStatus(GqlStatusInfoCodes.STATUS_22N01)
                 .hasStatusDescription(
-                        "error: data exception - invalid type. Expected the value Map{} to be of type BOOLEAN, STRING, INTEGER, FLOAT, DATE, LOCAL TIME, ZONED TIME, LOCAL DATETIME, ZONED DATETIME, DURATION, POINT, NODE or RELATIONSHIP, but was of type MAP.");
+                        "error: data exception - invalid type. Expected the value Map{} to be of type BOOLEAN, STRING, INTEGER, FLOAT, DATE, LOCAL TIME, ZONED TIME, LOCAL DATETIME, ZONED DATETIME, DURATION or POINT, but was of type MAP.");
     }
 }
