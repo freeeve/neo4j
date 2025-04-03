@@ -2037,7 +2037,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22NA5(
             new GqlStatus("22NA5"),
             """
-                    The property value access rule pattern { %s } always evaluates to 'NULL'. Use `IS NULL' instead.""",
+                    The property value access rule pattern { %s } always evaluates to 'NULL'. Use 'IS NULL' instead.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.pred},
             emptyMap(),
             Condition.DATA_EXCEPTION,
