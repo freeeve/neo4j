@@ -1745,7 +1745,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N74(
             new GqlStatus("22N74"),
             """
-                    An index that belongs to the constraint { %s } contains a conflicting index.""",
+                    Index conflicts with already existing index owned by constraint { %s }.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constr},
             emptyMap(),
             Condition.DATA_EXCEPTION,

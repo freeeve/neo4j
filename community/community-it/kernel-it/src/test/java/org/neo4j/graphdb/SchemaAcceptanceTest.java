@@ -373,7 +373,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
         assertThat(ace.gqlStatus()).isEqualTo("22N74");
         assertThat(ace.statusDescription())
                 .isEqualTo(
-                        "error: data exception - index conflicts with existing constraint. An index that belongs to the constraint `name` contains a conflicting index.");
+                        "error: data exception - index conflicts with existing constraint. Index conflicts with already existing index owned by constraint `name`.");
         assertThat(ace.gqlStatusObject().cause()).isPresent();
         var cause = ace.gqlStatusObject().cause().get();
         assertThat(cause.gqlStatus()).isEqualTo("22N70");
