@@ -49,6 +49,6 @@ object ValueRepresentation {
   }
 
   case class NoIdPath(start: NoIdNode, connections: Seq[Connection]) {
-    override def toString: String = start + connections.mkString("")
+    override def toString: String = "<" + start + connections.mkString("") + ">"
   }
 }
