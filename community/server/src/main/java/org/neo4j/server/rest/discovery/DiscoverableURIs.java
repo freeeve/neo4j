@@ -168,9 +168,11 @@ public class DiscoverableURIs {
                 String key, String scheme, Setting<URI> override, Config config, ConnectorPortRegister portRegister) {
             URITemplate path;
 
+            var forceUseBaseURI = config.get(ServerSettings.bolt_discoverable_address_from_base_uri);
+
             if (config.isExplicitlySet(override)) {
                 var uri = config.get(override);
-                path = new URIBasedURITemplate(uri, false);
+                path = new URIBasedURITemplate(uri, forceUseBaseURI);
             } else {
                 var address = config.get(BoltConnector.advertised_address);
                 var port = address.getPort() == 0
@@ -181,16 +183,19 @@ public class DiscoverableURIs {
 
                 if (config.get(GraphDatabaseSettings.routing_default_router)
                         == GraphDatabaseSettings.RoutingMode.SERVER) {
+
                     path = new ConditionalURIBasedURITemplate(
-                            uri,
-                            baseUri -> !(isBoltHostNameExplicitlySet(config)
-                                    && shouldHostGetClientSideRouting(port, baseUri)));
+                            uri, baseUri -> shouldUseBaseUri(baseUri, config, port) || forceUseBaseURI);
                 } else {
-                    path = new URIBasedURITemplate(uri, !isBoltHostNameExplicitlySet(config));
+                    path = new URIBasedURITemplate(uri, !isBoltHostNameExplicitlySet(config) || forceUseBaseURI);
                 }
             }
 
             entries.put(key, path);
+        }
+
+        private boolean shouldUseBaseUri(URI baseUri, Config config, int port) {
+            return !(isBoltHostNameExplicitlySet(config) && shouldHostGetClientSideRouting(port, baseUri));
         }
 
         private boolean shouldHostGetClientSideRouting(int port, URI uri) {

@@ -28,17 +28,25 @@ import static org.mockito.Mockito.verify;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.configuration.connectors.BoltConnector;
 import org.neo4j.configuration.connectors.ConnectorPortRegister;
 import org.neo4j.configuration.connectors.ConnectorType;
 import org.neo4j.configuration.helpers.SocketAddress;
+import org.neo4j.dbms.routing.ClientRoutingDomainChecker;
+import org.neo4j.graphdb.config.Setting;
 import org.neo4j.server.configuration.ServerSettings;
 
 class DiscoverableURIsTest {
+
     private final BiConsumer<String, String> consumer = mock(BiConsumer.class);
     private final ConnectorPortRegister portRegister = mock(ConnectorPortRegister.class);
 
@@ -219,7 +227,112 @@ class DiscoverableURIsTest {
         verify(consumer).accept("bolt_routing", "neo4j://myCat.com:7687");
     }
 
+    @ParameterizedTest
+    @MethodSource("provideBoltDiscoverableAddressConfigs")
+    void shouldAlwaysForceUseBaseURIForBoltDiscoverableAddressEvenIfExplicitlySet(
+            Map<Setting<?>, Object> configs, ClientRoutingDomainChecker checker) {
+        var config = Config.newBuilder().set(configs).build();
+
+        var discoverableURIs = new DiscoverableURIs.Builder(checker)
+                .addBoltEndpoint(config, portRegister)
+                .build();
+
+        discoverableURIs.update(URI.create("https://forcedBaseURI.com:9999"));
+
+        discoverableURIs.forEach(consumer);
+
+        verify(consumer).accept("bolt_routing", "neo4j://forcedBaseURI.com:7683");
+        verify(consumer).accept("bolt_direct", "bolt://forcedBaseURI.com:7683");
+    }
+
+    private static Stream<Arguments> provideBoltDiscoverableAddressConfigs() {
+        return Stream.of(
+                // Explicitly set bolt discoverable addresses
+                Arguments.of(
+                        Map.of(
+                                ServerSettings.bolt_discoverable_address_from_base_uri,
+                                true,
+                                ServerSettings.bolt_discoverable_address,
+                                URI.create("bolt://discoverable-address.com:7683"),
+                                ServerSettings.bolt_routing_discoverable_address,
+                                URI.create("neo4j://discoverable-address.com:7683"),
+                                BoltConnector.enabled,
+                                true),
+                        null),
+                // Set bolt advertised addresses
+                Arguments.of(
+                        Map.of(
+                                ServerSettings.bolt_discoverable_address_from_base_uri, true,
+                                BoltConnector.advertised_address, new SocketAddress("advertised-address.com", 7683),
+                                BoltConnector.enabled, true),
+                        null),
+                // Set bolt advertised address and default to server side routing without exemption
+                Arguments.of(
+                        Map.of(
+                                ServerSettings.bolt_discoverable_address_from_base_uri,
+                                true,
+                                GraphDatabaseSettings.routing_default_router,
+                                GraphDatabaseSettings.RoutingMode.SERVER,
+                                BoltConnector.advertised_address,
+                                new SocketAddress("advertised-address.com", 7683),
+                                BoltConnector.enabled,
+                                true),
+                        new ExemptNoneClientRoutingChecker()),
+                // Set bolt advertised address and default to server side routing all exempt
+                Arguments.of(
+                        Map.of(
+                                ServerSettings.bolt_discoverable_address_from_base_uri,
+                                true,
+                                GraphDatabaseSettings.routing_default_router,
+                                GraphDatabaseSettings.RoutingMode.SERVER,
+                                BoltConnector.advertised_address,
+                                new SocketAddress("advertised-address.com", 7683),
+                                BoltConnector.enabled,
+                                true),
+                        new ExemptAllClientRoutingChecker()));
+    }
+
     private static Config configWithBoltEnabled() {
         return Config.newBuilder().set(BoltConnector.enabled, true).build();
+    }
+
+    private static class ExemptAllClientRoutingChecker implements ClientRoutingDomainChecker {
+
+        ExemptAllClientRoutingChecker() {}
+
+        @Override
+        public boolean isEmpty() {
+            return false;
+        }
+
+        @Override
+        public boolean shouldGetClientRouting(SocketAddress ignored) {
+            return true;
+        }
+
+        @Override
+        public void accept(Set<String> strings, Set<String> strings2) {
+            // do nothing
+        }
+    }
+
+    private static class ExemptNoneClientRoutingChecker implements ClientRoutingDomainChecker {
+
+        ExemptNoneClientRoutingChecker() {}
+
+        @Override
+        public boolean isEmpty() {
+            return false;
+        }
+
+        @Override
+        public boolean shouldGetClientRouting(SocketAddress ignored) {
+            return false;
+        }
+
+        @Override
+        public void accept(Set<String> strings, Set<String> strings2) {
+            // do nothing
+        }
     }
 }

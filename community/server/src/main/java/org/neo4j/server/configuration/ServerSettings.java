@@ -209,6 +209,13 @@ public class ServerSettings implements SettingsDeclaration {
                     SettingValueParsers.URI.parse(""))
             .build();
 
+    @Internal
+    @Description(
+            "If set to true, forces the discoverable bolt address to be derived from the request base URI when calling the discovery http endpoint.")
+    public static final Setting<Boolean> bolt_discoverable_address_from_base_uri = newBuilder(
+                    "internal.dbms.discoverable_bolt_address_from_base_uri_enabled", BOOL, false)
+            .build();
+
     @SuppressWarnings("unused") // accessed from the browser
     @Description("Commands to be run when Neo4j Browser successfully connects to this server. Separate multiple "
             + "commands with semi-colon.")
