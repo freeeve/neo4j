@@ -32,6 +32,7 @@ import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.storageengine.api.StorageReader;
+import org.neo4j.storageengine.api.StorageRelationshipScanCursor;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 
 /**
@@ -127,7 +128,11 @@ public class DefaultPooledCursors extends DefaultCursors implements CursorFactor
     public RelationshipScanCursor allocateRelationshipScanCursor(
             CursorContext cursorContext, MemoryTracker memoryTracker) {
         if (relationshipScanCursor == null) {
-            return trace(newRelationshipScanCursor(cursorContext, memoryTracker));
+            return trace(newRelationshipScanCursor(
+                    this::accept,
+                    storageReader.allocateRelationshipScanCursor(cursorContext, storeCursors, memoryTracker),
+                    newInternalCursors(cursorContext, memoryTracker),
+                    applyAccessModeToTxState));
         }
         try {
             return acquire(relationshipScanCursor);
@@ -137,12 +142,11 @@ public class DefaultPooledCursors extends DefaultCursors implements CursorFactor
     }
 
     protected DefaultRelationshipScanCursor newRelationshipScanCursor(
-            CursorContext cursorContext, MemoryTracker memoryTracker) {
-        return new DefaultRelationshipScanCursor(
-                this::accept,
-                storageReader.allocateRelationshipScanCursor(cursorContext, storeCursors, memoryTracker),
-                newInternalCursors(cursorContext, memoryTracker),
-                applyAccessModeToTxState);
+            CursorPool<DefaultRelationshipScanCursor> pool,
+            StorageRelationshipScanCursor storeCursor,
+            InternalCursorFactory internalCursors,
+            boolean applyAccessModeToTxState) {
+        return new DefaultRelationshipScanCursor(pool, storeCursor, internalCursors, applyAccessModeToTxState);
     }
 
     protected void accept(DefaultRelationshipScanCursor cursor) {
@@ -364,7 +368,7 @@ public class DefaultPooledCursors extends DefaultCursors implements CursorFactor
             CursorContext cursorContext, MemoryTracker memoryTracker) {
         if (relationshipValueIndexCursor == null) {
             var internalCursors = newInternalCursors(cursorContext, memoryTracker);
-            DefaultRelationshipScanCursor relationshipScanCursor = new DefaultRelationshipScanCursor(
+            DefaultRelationshipScanCursor relationshipScanCursor = newRelationshipScanCursor(
                     c -> {},
                     storageReader.allocateRelationshipScanCursor(cursorContext, storeCursors, memoryTracker),
                     internalCursors,
