@@ -20,10 +20,12 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.common.Subject.ANONYMOUS;
 import static org.neo4j.kernel.impl.transaction.log.GivenCommandBatchCursor.exhaust;
 import static org.neo4j.kernel.impl.transaction.log.GivenCommandBatchCursor.given;
 import static org.neo4j.kernel.impl.transaction.log.TestLogEntryReader.logEntryReader;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.reverse.EagerlyReversedCommandBatchCursor.eagerlyReverse;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
@@ -38,8 +40,10 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.api.TestCommand;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
@@ -82,6 +86,8 @@ class EagerlyReversedCommandBatchCursorTest {
     private LogFile logFile;
     private LogFiles logFiles;
 
+    private static final byte[] LARGE_TX_PADDING = new byte[2 * DEFAULT_LOG_SEGMENT_SIZE];
+
     @BeforeEach
     void setUp() throws IOException {
         LogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
@@ -93,6 +99,7 @@ class EagerlyReversedCommandBatchCursorTest {
                 .withTransactionIdStore(transactionIdStore)
                 .withAppendIndexProvider(appendIndexProvider)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
+                .withRotationThreshold(ByteUnit.kibiBytes(512L))
                 .withStoreId(storeId)
                 .build();
         life.add(logFiles);
@@ -102,7 +109,7 @@ class EagerlyReversedCommandBatchCursorTest {
     @Test
     void reverseTransactionsFromSource() throws Exception {
         int transactionsToGenerate = 10;
-        writeTransactions(transactionsToGenerate);
+        writeTransactions(transactionsToGenerate, false);
 
         int observedTransaction = 0;
         try (ReadableLogChannel reader =
@@ -123,7 +130,7 @@ class EagerlyReversedCommandBatchCursorTest {
     @Test
     void reverseCursorBatchStartPositions() throws IOException {
         int transactionsToGenerate = 10;
-        List<LogPosition> startPositions = writeTransactions(transactionsToGenerate);
+        List<LogPosition> startPositions = writeTransactions(transactionsToGenerate, false);
         Collections.reverse(startPositions);
 
         int observedTransaction = 0;
@@ -157,7 +164,34 @@ class EagerlyReversedCommandBatchCursorTest {
         assertEquals(0, reversed.length);
     }
 
-    private List<LogPosition> writeTransactions(int count) throws IOException {
+    @Test
+    void handleLargeTransactionsThatWithEnvelopesSpanFiles() throws IOException {
+        int transactionsToGenerate = 10;
+        // write transactions we know will span segments and cross file boundaries
+        // when on enveloped files
+        List<LogPosition> startPositions = writeTransactions(transactionsToGenerate, true);
+        assertTrue(logFile.getLowestLogVersion() < logFile.getHighestLogVersion(), "Failed to roll log files");
+        Collections.reverse(startPositions);
+
+        int observedTransaction = 0;
+        int transaction = 0;
+        try (ReadableLogChannel reader =
+                logFile.getReader(logFiles.getLogFile().extractHeader(0).getStartPosition())) {
+            var source = new CommittedCommandBatchCursor(reader, logEntryReader());
+            CommandBatchCursor cursor = eagerlyReverse(source);
+
+            long currentTxId = txId;
+            while (cursor.next()) {
+                CommittedCommandBatchRepresentation commandBatch = cursor.get();
+                assertEquals(currentTxId--, commandBatch.txId());
+                assertEquals(startPositions.get(transaction++), cursor.position());
+                observedTransaction++;
+            }
+        }
+        assertEquals(transactionsToGenerate, observedTransaction);
+    }
+
+    private List<LogPosition> writeTransactions(int count, boolean large) throws IOException {
         FlushableLogPositionAwareChannel channel =
                 logFile.getTransactionLogWriter().getChannel();
         TransactionLogWriter writer = logFile.getTransactionLogWriter();
@@ -166,8 +200,15 @@ class EagerlyReversedCommandBatchCursorTest {
         for (int i = 0; i < count; i++) {
             long transactionId = ++txId;
             positions.add(writer.getCurrentPosition());
+            if (large && logFile.rotationNeeded()) {
+                // rotate after position capture to ensure consistency with verify loop
+                // should never be required with enveloped log files
+                assertTrue(LatestVersions.LATEST_KERNEL_VERSION.isLessThan(
+                        KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED));
+                logFile.rotate();
+            }
             previousChecksum = writer.append(
-                    tx(random.intBetween(1, 5)),
+                    tx(random.intBetween(1, 5), large),
                     transactionId,
                     UNKNOWN_CHUNK_ID,
                     transactionId,
@@ -179,10 +220,14 @@ class EagerlyReversedCommandBatchCursorTest {
         return positions;
     }
 
-    private static CommandBatch tx(int size) {
+    private static CommandBatch tx(int size, boolean large) {
         List<StorageCommand> commands = new ArrayList<>();
         for (int i = 0; i < size; i++) {
-            commands.add(new TestCommand());
+            if (large) {
+                commands.add(new TestCommand(LARGE_TX_PADDING));
+            } else {
+                commands.add(new TestCommand());
+            }
         }
         return new CompleteCommandBatch(
                 commands, UNKNOWN_CONSENSUS_INDEX, 0, 0, 0, 0, LatestVersions.LATEST_KERNEL_VERSION, ANONYMOUS);
