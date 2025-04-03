@@ -146,4 +146,9 @@ class TransformerTest extends CypherFunSuite with CypherVersionTestSupport {
     (p(Set(cond1), Set(cond3)) andThen p(Set(cond2), Set(cond1))).invalidatedConditions shouldBe Set(cond1, cond3)
     (p(Set(cond1), Set(cond3)) andThen p(Set(cond3), Set(cond1))).invalidatedConditions shouldBe Set(cond1)
   }
+
+  test("debug is off") {
+    Transformer.Debug.LogChangedFields shouldBe false
+    Transformer.Debug.LogStatementsAsQueries shouldBe false
+  }
 }

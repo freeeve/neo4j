@@ -18,6 +18,8 @@ package org.neo4j.cypher.internal.frontend.phases
 
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
+import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogChangedFields
+import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatementsAsQueries
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.rewriting.ValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
@@ -47,9 +49,21 @@ trait Transformer[-C <: BaseContext, -FROM, +TO] {
     conditions: Set[StepSequencer.Condition]
   )(cancellationChecker: CancellationChecker): Boolean =
     Transformer.checkConditions(state, conditions, name)(cancellationChecker)
+
+  final protected[Transformer] def printDebugInfo(
+    fromState: Any,
+    toState: Any
+  ): Unit =
+    Transformer.printDebugInfo(name, fromState, toState)
 }
 
 object Transformer {
+
+  object Debug {
+    // Debug flags, requires that assertions are enabled to have effect (jvm option -ea)
+    final val LogStatementsAsQueries = false
+    final val LogChangedFields = false
+  }
 
   /**
    * Transformer that can be inserted when debugging, to help detect
@@ -82,6 +96,36 @@ object Transformer {
       throw new IllegalStateException(prefix + messages.mkString(", "))
     }
     true
+  }
+
+  def printDebugInfo(
+    transformerName: String,
+    fromState: Any,
+    toState: Any
+  ): Unit = {
+    if (LogChangedFields) {
+      (fromState, toState) match {
+        case (from: Product, to: Product) =>
+          val changedFields = from.productIterator.zip(to.productIterator).zip(to.productElementNames)
+            .collect { case ((fromVal, toVal), name) if fromVal != toVal => name }
+          if (changedFields.nonEmpty) {
+            println(s"######## DEBUG $transformerName, state changed in the following fields:")
+            println(changedFields.mkString("", "\n", "\n"))
+          }
+        case _ =>
+      }
+    }
+
+    if (LogStatementsAsQueries) {
+      (fromState, toState) match {
+        case (from: BaseState, to: BaseState)
+          if to.maybeStatement.isDefined && from.maybeStatement != to.maybeStatement =>
+          println(s"######## DEBUG $transformerName, statement changed:")
+          println(Prettifier(ExpressionStringifier()).asString(to.statement()))
+          println("\n")
+        case _ =>
+      }
+    }
   }
 }
 

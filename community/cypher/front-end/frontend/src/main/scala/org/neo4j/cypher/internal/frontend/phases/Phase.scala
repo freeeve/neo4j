@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.cypher.internal.frontend.helpers.closing
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
+import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.cypher.internal.util.StepSequencer
 
 /*
@@ -34,8 +35,13 @@ trait Phase[-C <: BaseContext, FROM, +TO] extends Transformer[C, FROM, TO] {
     context.cancellationChecker.throwIfCancelled()
     closing(context.tracer.beginPhase(phase)) {
       val result = process(from, context)
-      // Checking conditions inside assert so they are not run in production
-      checkOnlyWhenAssertionsAreEnabled(checkConditions(result, postConditions)(context.cancellationChecker))
+
+      // Debug functionality, should not run in production
+      if (AssertionRunner.ASSERTIONS_ENABLED) {
+        printDebugInfo(from, result)
+        checkOnlyWhenAssertionsAreEnabled(checkConditions(result, postConditions)(context.cancellationChecker))
+      }
+
       result
     }
   }
