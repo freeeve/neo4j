@@ -251,6 +251,77 @@ abstract class OptionalTestBase[CONTEXT <: RuntimeContext](
     })
   }
 
+  test("should support nested optional with top-level limit - zero RHS rows") {
+    // given
+    val node = givenGraph { nodeGraph(1).head }
+    val unwindSize = sizeHint
+
+    // when
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("a")
+      .limit(1)
+      .apply()
+      .|.optional("a")
+      .|.filter("false")
+      .|.argument("a")
+      .unwind(s"range(0,$unwindSize) AS unused")
+      .allNodeScan("a")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("a").withSingleRow(node)
+  }
+
+  test("should support nested optional with top-level limit - one RHS rows") {
+    // given
+    val node = givenGraph { nodeGraph(1).head }
+    val unwindSize = sizeHint
+
+    // when
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("a")
+      .limit(1)
+      .apply()
+      .|.optional("a")
+      .|.argument("a")
+      .unwind(s"range(0,$unwindSize) AS unused")
+      .allNodeScan("a")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("a").withSingleRow(node)
+  }
+
+  test("should support nested optional with top-level limit - many RHS rows") {
+    // given
+    val node = givenGraph { nodeGraph(1).head }
+    val unwindSize = sizeHint
+
+    // when
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("a")
+      .limit(1)
+      .apply()
+      .|.optional("a")
+      .|.unwind(s"range(0,$unwindSize) AS unused1")
+      .|.argument("a")
+      .unwind(s"range(0,$unwindSize) AS unused0")
+      .allNodeScan("a")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("a").withSingleRow(node)
+  }
+
   test("should stream") {
     // given
     val stream = createBatchedInputValues().stream()
