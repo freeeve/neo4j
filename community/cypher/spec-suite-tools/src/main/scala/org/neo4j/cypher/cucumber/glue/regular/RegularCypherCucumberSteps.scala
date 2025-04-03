@@ -307,7 +307,7 @@ object RegularCypherCucumberSteps {
        |Query:
        |${failure.query}
        |
-       |Cause: ${Exceptions.stringify(failure.cause)}
+       |Cause: ${Exceptions.stringify(originalError(failure.cause))}
        |""".stripMargin
   )
 
