@@ -20,6 +20,7 @@
 package org.neo4j.internal.schema.constraints;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.stream.Stream;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,5 +57,36 @@ class VectorTypeTest {
         var actual = TypeRepresentation.deserialize(expected.serialize());
         // Check object identity
         assertSame(actual, expected);
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testHistoricalSerializations(String serialized, VectorType expected) {
+        assertSame(TypeRepresentation.deserialize(serialized), expected);
+    }
+
+    static Stream<Arguments> testHistoricalSerializations() {
+        return Stream.of(
+                Arguments.of("VECTOR[coordinate=INTEGER8, dimensions=1234]", VectorType.int8Vector(1234)),
+                Arguments.of("VECTOR[coordinate=INTEGER16, dimensions=1234]", VectorType.int16Vector(1234)),
+                Arguments.of("VECTOR[coordinate=INTEGER32, dimensions=1234]", VectorType.int32Vector(1234)),
+                Arguments.of("VECTOR[coordinate=INTEGER64, dimensions=1234]", VectorType.int64Vector(1234)),
+                Arguments.of("VECTOR[coordinate=FLOAT32, dimensions=1234]", VectorType.float32Vector(1234)),
+                Arguments.of("VECTOR[coordinate=FLOAT64, dimensions=1234]", VectorType.float64Vector(1234)));
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testInvalidSerializations(String serialized) {
+        assertThrows(IllegalArgumentException.class, () -> TypeRepresentation.deserialize(serialized));
+    }
+
+    static Stream<String> testInvalidSerializations() {
+        return Stream.of(
+                "VECTOR[INTEGER8, 1234]", // Missing labels
+                "vector[coordinate=INTEGER16, dimensions=1234]", // Invalid container
+                "VECTOR[coordinate=INTEGER11, dimensions=1234]", // Invalid CoordinateType
+                "VECTOR[coordinate=INTEGER64, dimensions=1.232]", // Invalid dimension
+                "");
     }
 }
