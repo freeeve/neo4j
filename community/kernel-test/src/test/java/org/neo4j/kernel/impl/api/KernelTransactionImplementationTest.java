@@ -726,7 +726,8 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
 
             @Override
             public void ensureValid() throws LeaseException {
-                throw new LeaseException("Invalid lease!", TransactionValidationFailed);
+                throw LeaseException.internalError(
+                        this.getClass().getSimpleName(), "Invalid lease!", TransactionValidationFailed);
             }
         });
         var transaction = newNotInitializedTransaction(leaseService);
@@ -1169,7 +1170,7 @@ class KernelTransactionImplementationTest extends KernelTransactionTestBase {
 
     private static class ExpiredLeases implements LeaseService {
         LeaseException expired() {
-            return new LeaseException("Expired", Status.Cluster.NotALeader);
+            return LeaseException.internalError(this.getClass().getSimpleName(), "Expired", Status.Cluster.NotALeader);
         }
 
         @Override

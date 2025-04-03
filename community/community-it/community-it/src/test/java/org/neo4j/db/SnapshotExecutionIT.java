@@ -284,7 +284,8 @@ class SnapshotExecutionIT {
                     .cursorContext()
                     .getVersionContext()
                     .markAsDirty();
-            throw new TransientTransactionFailureException(Status.Transaction.Outdated, "Surprise!");
+            throw TransientTransactionFailureException.internalError(
+                    this.getClass().getSimpleName(), "Surprise!", Status.Transaction.Outdated);
         }
     }
 }

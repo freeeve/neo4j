@@ -42,6 +42,7 @@ import static org.neo4j.collection.Dependencies.dependenciesOf;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.shutdown_terminated_transaction_wait_timeout;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker.writable;
+import static org.neo4j.graphdb.security.AuthorizationExpiredException.LDAP_AUTH_INFO_EXPIRED;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 import static org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo.EMBEDDED_CONNECTION;
 import static org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED;
@@ -481,16 +482,16 @@ class KernelTransactionsTest {
     }
 
     @Test
-    void shouldNotLeakTransactionOnSecurityContextFreezeFailure() throws Throwable {
+    void shouldNotLeakTransactionOnSecurityContextFailure() throws Throwable {
         KernelTransactions kernelTransactions = newKernelTransactions();
         LoginContext loginContext = mock(LoginContext.class);
         when(loginContext.authorize(any(), any(), any()))
-                .thenThrow(new AuthorizationExpiredException("Freeze failed."));
+                .thenThrow(AuthorizationExpiredException.ldapAuthInfoExpired());
 
         assertThatThrownBy(
                         () -> kernelTransactions.newInstance(EXPLICIT, loginContext, EMBEDDED_CONNECTION, NO_TIMEOUT))
                 .isInstanceOf(AuthorizationExpiredException.class)
-                .hasMessage("Freeze failed.");
+                .hasMessage(LDAP_AUTH_INFO_EXPIRED);
 
         assertThat(kernelTransactions.activeTransactions())
                 .as("We should not have any transaction")

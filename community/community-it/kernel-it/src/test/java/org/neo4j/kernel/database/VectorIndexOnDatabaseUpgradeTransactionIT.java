@@ -273,8 +273,10 @@ class VectorIndexOnDatabaseUpgradeTransactionIT {
                     case V5_15 -> ZippedStoreCommunity.REC_AF11_V515_EMPTY;
                     case V5_22 -> ZippedStoreCommunity.REC_AF11_V522_EMPTY;
                     default ->
-                        throw new InvalidArgumentException("Test not setup to find a %s for %s."
-                                .formatted(ZippedStore.class.getSimpleName(), kernelVersion));
+                        throw InvalidArgumentException.internalError(
+                                this.getClass().getSimpleName(),
+                                "Test not setup to find a %s for %s."
+                                        .formatted(ZippedStore.class.getSimpleName(), kernelVersion));
                 };
         setup(store);
     }

@@ -42,6 +42,7 @@ import java.util.function.Consumer;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.Answer;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -110,7 +111,8 @@ class TransactionImplTest {
         // GIVEN
         KernelTransaction kernelTransaction = mock(KernelTransaction.class);
         when(kernelTransaction.isOpen()).thenReturn(true);
-        doThrow(new TransientFailureException("Just a random failure") {
+        var dummyGql = GqlHelper.get50N00(this.getClass().getSimpleName(), "Just a random failure");
+        doThrow(new TransientFailureException(dummyGql, "Just a random failure") {
                     @Override
                     public Status status() {
                         return null;
@@ -174,7 +176,8 @@ class TransactionImplTest {
         doThrow(new ResourceCloseFailureException("not so fast", null))
                 .when(resourceTracker)
                 .closeAllCloseableResources();
-        var exceptionFromClose = new TransactionFailureException("This transaction can't be closed", null);
+        var exceptionFromClose = TransactionFailureException.internalError(
+                this.getClass().getSimpleName(), "This transaction can't be closed", null);
         doThrow(exceptionFromClose).when(kernelTransaction).close();
 
         assertThatThrownBy(tx::close)

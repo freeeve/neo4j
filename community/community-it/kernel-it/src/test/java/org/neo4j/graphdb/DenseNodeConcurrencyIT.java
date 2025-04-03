@@ -1155,8 +1155,10 @@ class DenseNodeConcurrencyIT {
             } catch (NotFoundException e) {
                 // this is not yet fully understood, but is caught and rethrown as transient to cause retry of this
                 // transaction
-                throw new TransientTransactionFailureException(
-                        Status.Database.Unknown, "Relationship vanished in front of us, hmm");
+                throw TransientTransactionFailureException.internalError(
+                        DenseNodeConcurrencyIT.class.getSimpleName(),
+                        "Relationship vanished in front of us, hmm",
+                        Status.Database.Unknown);
             }
         }
 

@@ -38,6 +38,11 @@ public class TransactionFailureHelper {
         return new TransactionFailureException(gql, message, cause, status);
     }
 
+    public static TransactionFailureException internalError(String msgTitle, String message, Status status) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new TransactionFailureException(gql, message, status);
+    }
+
     public static TransactionFailureException failToStartTransaction(Throwable e) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N06)
                 .build();

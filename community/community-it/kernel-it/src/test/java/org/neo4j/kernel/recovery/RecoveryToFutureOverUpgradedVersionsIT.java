@@ -47,6 +47,7 @@ import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.TransactionFailureException;
+import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
@@ -265,8 +266,11 @@ class RecoveryToFutureOverUpgradedVersionsIT {
             public Object beforeCommit(
                     TransactionData data, Transaction transaction, GraphDatabaseService databaseService) {
                 if (data.metaData().containsKey("triggerTx")) {
-                    throw new TransactionFailureException(
-                            "Failed because you asked for it", Status.Transaction.TransactionHookFailed);
+                    throw TransactionFailureHelper.internalError(
+                            this.getClass().getSimpleName(),
+                            "Failed because you asked for it",
+                            new RuntimeException(),
+                            Status.Transaction.TransactionHookFailed);
                 }
                 return null;
             }
@@ -324,8 +328,11 @@ class RecoveryToFutureOverUpgradedVersionsIT {
             public Object beforeCommit(
                     TransactionData data, Transaction transaction, GraphDatabaseService databaseService) {
                 if (data.metaData().containsKey("triggerTx")) {
-                    throw new TransactionFailureException(
-                            "Failed because you asked for it", Status.Transaction.TransactionHookFailed);
+                    throw TransactionFailureHelper.internalError(
+                            this.getClass().getSimpleName(),
+                            "Failed because you asked for it",
+                            new RuntimeException(),
+                            Status.Transaction.TransactionHookFailed);
                 }
                 return null;
             }

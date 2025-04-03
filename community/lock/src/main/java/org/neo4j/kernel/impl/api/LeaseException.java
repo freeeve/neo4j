@@ -24,6 +24,7 @@ import static org.neo4j.kernel.api.exceptions.Status.Cluster.ReplicationFailure;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlRuntimeException;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
@@ -33,24 +34,18 @@ public class LeaseException extends GqlRuntimeException implements Status.HasSta
 
     private static final String NOT_ON_LEADER_ERROR_MESSAGE = "Should only attempt to acquire lease when leader.";
 
-    @Deprecated
-    public LeaseException(String message, Status status) {
-        this(message, null, status);
-    }
-
     private LeaseException(ErrorGqlStatusObject gqlStatusObject, String message, Status status) {
         this(gqlStatusObject, message, null, status);
-    }
-
-    @Deprecated
-    public LeaseException(String message, Throwable cause, Status status) {
-        super(message, cause);
-        this.status = status;
     }
 
     private LeaseException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause, Status status) {
         super(gqlStatusObject, message, cause);
         this.status = status;
+    }
+
+    public static LeaseException internalError(String msgTitle, String message, Status status) {
+        var gql = GqlHelper.get50N00(msgTitle, message);
+        return new LeaseException(gql, message, status);
     }
 
     public static LeaseException failedToAcquireLease(Throwable cause) {

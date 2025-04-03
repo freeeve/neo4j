@@ -29,6 +29,7 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.TransactionFailureException;
+import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.graphdb.TransientTransactionFailureException;
 import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.graphdb.event.TransactionEventListenerAdapter;
@@ -50,7 +51,8 @@ class TransactionExceptionMappingIT {
 
     @Test
     void transactionFailureOnTransactionClose() {
-        var rootCause = new TransactionFailureException("Test failure", TransactionStartFailed);
+        var rootCause = TransactionFailureHelper.internalError(
+                this.getClass().getSimpleName(), "Test failure", null, TransactionStartFailed);
         var e = assertThrows(Exception.class, () -> {
             try (var tx = database.beginTransaction(KernelTransaction.Type.EXPLICIT, LoginContext.AUTH_DISABLED)) {
                 tx.registerCloseableResource(() -> {
@@ -85,7 +87,8 @@ class TransactionExceptionMappingIT {
 
     @Test
     void transientTransientFailureOnTransactionClose() {
-        var rootCause = new TransientTransactionFailureException(DeadlockDetected, "Deadlock detected.");
+        var rootCause = TransientTransactionFailureException.internalError(
+                this.getClass().getSimpleName(), "Deadlock detected.", DeadlockDetected);
         managementService.registerTransactionEventListener(
                 database.databaseName(), new TransactionEventListenerAdapter<>() {
                     @Override
@@ -106,7 +109,7 @@ class TransactionExceptionMappingIT {
 
     @Test
     void transientExceptionOnDeadlockDetectedError() {
-        var rootCause = new DeadlockDetectedException("No panic!");
+        var rootCause = DeadlockDetectedException.deadlockDetected("No panic!");
         managementService.registerTransactionEventListener(
                 database.databaseName(), new TransactionEventListenerAdapter<>() {
                     @Override

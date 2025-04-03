@@ -154,8 +154,11 @@ public abstract class EntityTest {
         var ktx = mock(KernelTransaction.class);
         var tokenWrite = mock(TokenWrite.class);
         when(ktx.tokenWrite()).thenReturn(tokenWrite);
-        TransactionFailureException transientFailure =
-                new TransactionFailureException(Status.Transaction.Outdated, new Exception("Just some cause"));
+        TransactionFailureException transientFailure = TransactionFailureException.internalError(
+                Status.Transaction.Outdated,
+                new Exception("Just some cause"),
+                EntityTest.class.getSimpleName(),
+                "just some msg");
         doThrow(transientFailure).when(tokenWrite).labelGetOrCreateForNames(any(), any());
         when(tokenWrite.labelGetOrCreateForName(any())).thenThrow(transientFailure);
         when(tokenWrite.propertyKeyGetOrCreateForName(any())).thenThrow(transientFailure);

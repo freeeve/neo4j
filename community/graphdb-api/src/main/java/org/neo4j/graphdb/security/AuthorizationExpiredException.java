@@ -34,11 +34,6 @@ public class AuthorizationExpiredException extends GqlRuntimeException implement
     public static final String LDAP_AUTH_INFO_EXPIRED = "LDAP authorization info expired.";
     private static final String OIDC_AUTH_INFO_EXPIRED = "OIDC authorization info expired.";
 
-    @Deprecated
-    public AuthorizationExpiredException(String message) {
-        super(message);
-    }
-
     private AuthorizationExpiredException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }

@@ -162,7 +162,7 @@ class TestTransactionEvents {
     @Test
     void onlyTransientErrorsShouldBeRethrown() {
         // Given
-        DeadlockDetectedException transientException = new DeadlockDetectedException("transient error");
+        DeadlockDetectedException transientException = DeadlockDetectedException.deadlockDetected("transient error");
         ExceptionThrowingEventListener transientThrowingListener =
                 new ExceptionThrowingEventListener(transientException, null, null);
         Exception otherException = new Exception("other error");
