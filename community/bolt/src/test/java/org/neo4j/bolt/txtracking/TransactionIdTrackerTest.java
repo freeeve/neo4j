@@ -36,6 +36,7 @@ import static org.neo4j.kernel.database.DatabaseIdFactory.from;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_ID;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.UUID;
 import org.assertj.core.api.ThrowableAssert;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,6 +63,7 @@ class TransactionIdTrackerTest {
     private final TransactionIdStore transactionIdStore = mock(TransactionIdStore.class);
     private final DatabaseAvailabilityGuard databaseAvailabilityGuard = mock(DatabaseAvailabilityGuard.class);
     private final NamedDatabaseId namedDatabaseId = from("foo", UUID.randomUUID());
+    private final Dependencies resolver = mock(Dependencies.class);
     private final Database db = mock(Database.class);
     private final DatabaseManagementService managementService = mock(DatabaseManagementService.class);
 
@@ -70,7 +72,6 @@ class TransactionIdTrackerTest {
     @BeforeEach
     void setup() {
         var dbApi = mock(GraphDatabaseAPI.class);
-        var resolver = mock(Dependencies.class);
 
         when(managementService.database(namedDatabaseId.name())).thenReturn(dbApi);
         when(dbApi.getDependencyResolver()).thenReturn(resolver);
@@ -106,6 +107,28 @@ class TransactionIdTrackerTest {
         transactionIdTracker.awaitUpToDate(namedDatabaseId, BASE_TX_ID, ofSeconds(5));
 
         // then
+        verifyNoInteractions(transactionIdStore);
+    }
+
+    @Test
+    void shouldUseSystemLastTransactionIdProviderIfPresent() {
+        // given
+        var version = 5L;
+
+        when(db.isSystem()).thenReturn(true);
+        var systemLastTransactionIdProvider = mock(SystemLastTransactionIdProvider.class);
+        when(resolver.resolveOptionalDependency(SystemLastTransactionIdProvider.class))
+                .thenReturn(Optional.of(systemLastTransactionIdProvider));
+        when(systemLastTransactionIdProvider.lastTransactionId())
+                .thenReturn(1L)
+                .thenReturn(2L)
+                .thenReturn(6L);
+
+        // when
+        transactionIdTracker.awaitUpToDate(namedDatabaseId, version, DEFAULT_DURATION);
+
+        // then
+        verify(systemLastTransactionIdProvider, times(3)).lastTransactionId();
         verifyNoInteractions(transactionIdStore);
     }
 

@@ -145,6 +145,15 @@ public class TransactionIdTracker {
     }
 
     private static long currentTransactionId(AbstractDatabase db) {
+        // special handling for system database as for that the simple fact that a transaction is applied to the store
+        // might not be enough, we might need to ensure that certain caches are cleared or refreshed
+        if (db.isSystem()) {
+            var systemLastTransactionIdProvider =
+                    db.getDependencyResolver().resolveOptionalDependency(SystemLastTransactionIdProvider.class);
+            if (systemLastTransactionIdProvider.isPresent()) {
+                return systemLastTransactionIdProvider.get().lastTransactionId();
+            }
+        }
         // await for the last closed transaction id to to have at least the expected value
         // it has to be "last closed" and not "last committed" because all transactions before the expected one should
         // also be committed
