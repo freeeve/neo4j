@@ -594,8 +594,8 @@ named arguments:
                          `verbose` displays results in tabular format and prints statistics.
                          `plain` displays data with minimal formatting. (default: auto)
   -P PARAM, --param PARAM
-                         Add a parameter to this session.  Example:  `-P  {a:  1}`  or `-P {a: 1, b:
-                         duration({seconds: 1})}`. This argument  can  be  specified multiple times.
+                         Add a parameter to this session. Example:  `-P  '{a: 1}'` or `-P '{a: 1, b:
+                         duration({seconds: 1})}'`. This argument  can  be specified multiple times.
                          (default: [])
   --non-interactive      Force non-interactive mode. Only useful  when auto-detection fails (like on
                          Windows). (default: false)

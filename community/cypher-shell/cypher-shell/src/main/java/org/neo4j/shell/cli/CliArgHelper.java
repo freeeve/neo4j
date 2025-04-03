@@ -350,7 +350,7 @@ public class CliArgHelper {
 
         parser.addArgument("-P", "--param")
                 .help("Add a parameter to this session."
-                        + " Example: `-P {a: 1}` or `-P {a: 1, b: duration({seconds: 1})}`."
+                        + " Example: `-P '{a: 1}'` or `-P '{a: 1, b: duration({seconds: 1})}'`."
                         + " This argument can be specified multiple times.")
                 .action(new AddParamArgumentAction(ParameterService.createParser()))
                 .setDefault(new ArrayList<ParameterService.RawParameters>());
