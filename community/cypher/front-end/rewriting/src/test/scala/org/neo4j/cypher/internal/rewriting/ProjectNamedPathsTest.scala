@@ -28,12 +28,16 @@ import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItems
 import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.SingleQuery
+import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnionDistinct
 import org.neo4j.cypher.internal.ast.Where
 import org.neo4j.cypher.internal.ast.With
+import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.expressions.CountStar
+import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.MatchMode
 import org.neo4j.cypher.internal.expressions.MultiRelationshipPathStep
 import org.neo4j.cypher.internal.expressions.NilPathStep
@@ -77,8 +81,7 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
     normalized.endoRewrite(inSequence(ExpandStar(checkResult.state)))
   }
 
-  private def parseReturnedExpr(queryText: String) = {
-    val query = projectionInlinedAst(queryText).asInstanceOf[Query]
+  private def findReturnPExp(query: Statement): Expression = {
     query.asInstanceOf[SingleQuery].clauses.last.asInstanceOf[Return].returnItems.items.collectFirst {
       case AliasedReturnItem(expr, Variable("p")) => expr
     }.get
@@ -91,94 +94,145 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
     }.get
   }
 
+  private def assertRewrittenReturnP(query: String, rewrittenQuery: String, returnExpr: Expression): Unit = {
+    val rewritten = projectionInlinedAst(query)
+    Prettifier(ExpressionStringifier()).asString(rewritten) shouldBe rewrittenQuery
+    findReturnPExp(rewritten) shouldBe returnExpr
+  }
+
   test("MATCH p = (a) RETURN p") {
-    val returns = parseReturnedExpr("MATCH p = (a) RETURN p")
-
-    val expected = PathExpression(
-      NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      "MATCH p = (a) RETURN p",
+      """MATCH (a)
+        |RETURN (a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (a) CALL () {RETURN 1} RETURN p") {
-    val returns = parseReturnedExpr(testName)
-
-    val expected = PathExpression(
-      NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      testName,
+      """MATCH (a)
+        |CALL () {
+        |  RETURN 1
+        |}
+        |RETURN (a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (a) CALL {RETURN 1} RETURN p") {
-    val returns = parseReturnedExpr(testName)
-
-    val expected = PathExpression(
-      NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      testName,
+      """MATCH (a)
+        |CALL {
+        |  RETURN 1
+        |}
+        |RETURN (a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (a) CALL (a) {RETURN 1} RETURN p") {
-    val returns = parseReturnedExpr(testName)
-
-    val expected = PathExpression(
-      NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      testName,
+      """MATCH (a)
+        |CALL (a) {
+        |  RETURN 1
+        |}
+        |RETURN (a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (a) CALL {WITH a RETURN 1} RETURN p") {
-    val returns = parseReturnedExpr(testName)
-
-    val expected = PathExpression(
-      NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      testName,
+      """MATCH (a)
+        |CALL {
+        |  WITH a AS a
+        |  RETURN 1
+        |}
+        |RETURN (a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (a) CALL () {RETURN 1 AS one UNION RETURN 2 as one} RETURN p") {
-    val returns = parseReturnedExpr(testName)
-
-    val expected = PathExpression(
-      NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      testName,
+      """MATCH (a)
+        |CALL () {
+        |  RETURN 1 AS one
+        |  UNION
+        |  RETURN 2 AS one
+        |}
+        |RETURN (a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (a) CALL {RETURN 1 AS one UNION RETURN 2 as one} RETURN p") {
-    val returns = parseReturnedExpr(testName)
-
-    val expected = PathExpression(
-      NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      testName,
+      """MATCH (a)
+        |CALL {
+        |  RETURN 1 AS one
+        |  UNION
+        |  RETURN 2 AS one
+        |}
+        |RETURN (a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (a) CALL (a) {RETURN 1 AS one UNION RETURN 2 as one} RETURN p") {
-    val returns = parseReturnedExpr(testName)
+    assertRewrittenReturnP(
+      testName,
+      """MATCH (a)
+        |CALL (a) {
+        |  RETURN 1 AS one
+        |  UNION
+        |  RETURN 2 AS one
+        |}
+        |RETURN (a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
+      ) _
+    )
 
-    val expected = PathExpression(
-      NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
   }
 
   test("MATCH p = (a) CALL {WITH a RETURN 1 AS one UNION WITH a RETURN 2 as one} RETURN p") {
-    val returns = parseReturnedExpr(testName)
-
-    val expected = PathExpression(
-      NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      testName,
+      """MATCH (a)
+        |CALL {
+        |  WITH a AS a
+        |  RETURN 1 AS one
+        |  UNION
+        |  WITH a AS a
+        |  RETURN 2 AS one
+        |}
+        |RETURN (a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(varFor("a"), NilPathStep()(pos))(pos)
+      ) _
+    )
   }
 
   test("CALL () {MATCH p = (a) RETURN p} RETURN p") {
@@ -1869,55 +1923,69 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
   }
 
   test("MATCH p = (a)-[r]->(b) RETURN p") {
-    val returns = parseReturnedExpr("MATCH p = (a)-[r]->(b) RETURN p")
-
-    val expected = PathExpression(
-      NodePathStep(
-        varFor("a"),
-        SingleRelationshipPathStep(varFor("r"), SemanticDirection.OUTGOING, Some(varFor("b")), NilPathStep()(pos))(pos)
-      )(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      "MATCH p = (a)-[r]->(b) RETURN p",
+      """MATCH (a)-[r]->(b)
+        |RETURN (a)-[r]->(b) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(
+          varFor("a"),
+          SingleRelationshipPathStep(
+            varFor("r"),
+            SemanticDirection.OUTGOING,
+            Some(varFor("b")),
+            NilPathStep()(pos)
+          )(pos)
+        )(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (b)<-[r]->(a) RETURN p") {
-    val returns = parseReturnedExpr("MATCH p = (b)<-[r]-(a) RETURN p")
-
-    val expected = PathExpression(
-      NodePathStep(
-        varFor("b"),
-        SingleRelationshipPathStep(varFor("r"), SemanticDirection.INCOMING, Some(varFor("a")), NilPathStep()(pos))(pos)
-      )(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      "MATCH p = (b)<-[r]-(a) RETURN p",
+      """MATCH (b)<-[r]-(a)
+        |RETURN (b)<-[r]-(a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(
+          varFor("b"),
+          SingleRelationshipPathStep(
+            varFor("r"),
+            SemanticDirection.INCOMING,
+            Some(varFor("a")),
+            NilPathStep()(pos)
+          )(pos)
+        )(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (a)-[r*]->(b) RETURN p") {
-    val returns = parseReturnedExpr("MATCH p = (a)-[r*]->(b) RETURN p")
-
-    val expected = PathExpression(
-      NodePathStep(
-        varFor("a"),
-        MultiRelationshipPathStep(varFor("r"), SemanticDirection.OUTGOING, Some(varFor("b")), NilPathStep()(pos))(pos)
-      )(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      "MATCH p = (a)-[r*]->(b) RETURN p",
+      """MATCH (a)-[r*]->(b)
+        |RETURN (a)-[r*]->(b) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(
+          varFor("a"),
+          MultiRelationshipPathStep(varFor("r"), SemanticDirection.OUTGOING, Some(varFor("b")), NilPathStep()(pos))(pos)
+        )(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (b)<-[r*]-(a) RETURN p AS p") {
-    val returns = parseReturnedExpr("MATCH p = (b)<-[r*]-(a) RETURN p AS p")
-
-    val expected = PathExpression(
-      NodePathStep(
-        varFor("b"),
-        MultiRelationshipPathStep(varFor("r"), SemanticDirection.INCOMING, Some(varFor("a")), NilPathStep()(pos))(pos)
-      )(pos)
-    ) _
-
-    returns should equal(expected: PathExpression)
+    assertRewrittenReturnP(
+      "MATCH p = (b)<-[r*]-(a) RETURN p AS p",
+      """MATCH (b)<-[r*]-(a)
+        |RETURN (b)<-[r*]-(a) AS p""".stripMargin,
+      PathExpression(
+        NodePathStep(
+          varFor("b"),
+          MultiRelationshipPathStep(varFor("r"), SemanticDirection.INCOMING, Some(varFor("a")), NilPathStep()(pos))(pos)
+        )(pos)
+      ) _
+    )
   }
 
   test("MATCH p = (a) ((n)-[r]->(m)-[q]->(o))+ (b) RETURN p AS p") {
@@ -2220,9 +2288,10 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
   }
 
   test("Shortest path with predicate and path assignment, 1 relationship, OUTGOING") {
-    val returns = parseReturnedExpr("MATCH p = ANY SHORTEST ((a)-[r]->+(b) WHERE a.prop IS NOT NULL) RETURN p")
-
-    val expectedPathExpression =
+    assertRewrittenReturnP(
+      "MATCH p = ANY SHORTEST ((a)-[r]->+(b) WHERE a.prop IS NOT NULL) RETURN p",
+      """MATCH SHORTEST 1 PATHS ((a) (()-[r]->())+ (b) WHERE a.prop IS NOT NULL)
+        |RETURN (a)-[r*]->(b) AS p""".stripMargin,
       PathExpression(step =
         NodePathStep(
           node = varFor("a"),
@@ -2234,14 +2303,14 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos)
         )(pos)
       )(pos)
-
-    returns shouldEqual expectedPathExpression
+    )
   }
 
   test("Shortest path with predicate and path assignment, 1 relationship, INCOMING") {
-    val returns = parseReturnedExpr("MATCH p = ANY SHORTEST ((a)<-[r]-+(b) WHERE a.prop IS NOT NULL) RETURN p")
-
-    val expectedPathExpression =
+    assertRewrittenReturnP(
+      "MATCH p = ANY SHORTEST ((a)<-[r]-+(b) WHERE a.prop IS NOT NULL) RETURN p",
+      """MATCH SHORTEST 1 PATHS ((a) (()<-[r]-())+ (b) WHERE a.prop IS NOT NULL)
+        |RETURN (a)<-[r*]-(b) AS p""".stripMargin,
       PathExpression(step =
         NodePathStep(
           node = varFor("a"),
@@ -2253,14 +2322,14 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos)
         )(pos)
       )(pos)
-
-    returns shouldEqual expectedPathExpression
+    )
   }
 
   test("Shortest path with path assignment, 2 relationships") {
-    val returns = parseReturnedExpr("MATCH p = ANY SHORTEST ((a) ((a_in)-[r]->(b_in)-[r2]->(c_in))+ (c)) RETURN p")
-
-    val expectedPathExpression =
+    assertRewrittenReturnP(
+      "MATCH p = ANY SHORTEST ((a) ((a_in)-[r]->(b_in)-[r2]->(c_in))+ (c)) RETURN p",
+      """MATCH SHORTEST 1 PATHS ((a) ((a_in)-[r]->(b_in)-[r2]->(c_in))+ (c))
+        |RETURN (a) ((a_in)-[r]-(b_in)-[r2]-())* (c) AS p""".stripMargin,
       PathExpression(step =
         NodePathStep(
           node = varFor("a"),
@@ -2271,7 +2340,6 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
           )(pos)
         )(pos)
       )(pos)
-
-    returns shouldEqual expectedPathExpression
+    )
   }
 }
