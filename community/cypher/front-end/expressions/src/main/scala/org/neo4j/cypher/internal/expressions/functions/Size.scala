@@ -16,12 +16,14 @@
  */
 package org.neo4j.cypher.internal.expressions.functions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTList
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.CTVector
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 
 case object Size extends Function {
@@ -36,6 +38,18 @@ case object Size extends Function {
       description = "Returns the number of items in a `LIST<ANY>` or the number of Unicode characters in a `STRING`.",
       category = Category.SCALAR,
       argumentDescriptions = Map("input" -> "A value whose length is to be calculated.")
+    ),
+    FunctionTypeSignature(
+      this,
+      names = Vector("input"),
+      argumentTypes = Vector(ClosedDynamicUnionType(Set(CTString, CTList(CTAny), CTVector))(InputPosition.NONE)),
+      outputType = CTInteger,
+      description =
+        "Returns the number of items in a `LIST<ANY>`, the number of Unicode characters in a `STRING` or the dimension of a `VECTOR`.",
+      category = Category.SCALAR,
+      argumentDescriptions = Map("input" -> "A value whose length is to be calculated."),
+      scopes = Set(CypherVersion.Cypher25),
+      internal = true // Remove when the vector type is ready to be released
     )
   )
 }

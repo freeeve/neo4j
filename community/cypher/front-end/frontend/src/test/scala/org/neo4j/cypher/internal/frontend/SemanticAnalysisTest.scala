@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.literal
 import org.neo4j.cypher.internal.ast.UnmappedUnion
@@ -1698,13 +1699,22 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
   }
 
   test("should fail for size(COUNT{...})") {
-    run("RETURN size(COUNT{ (n) }) AS foo").hasErrors(invalidEntityType(
-      "Integer",
-      "argument at index 0 of function size()",
-      List("String", "List<T>"),
-      "Type mismatch: expected String or List<T> but was Integer",
-      InputPosition(12, 1, 13)
-    ))
+    run("RETURN size(COUNT{ (n) }) AS foo").hasSemanticErrorsIn {
+      case Cypher5 => Seq(invalidEntityType(
+          "Integer",
+          "argument at index 0 of function size()",
+          List("String", "List<T>"),
+          "Type mismatch: expected String or List<T> but was Integer",
+          InputPosition(12, 1, 13)
+        ))
+      case _ => Seq(invalidEntityType(
+          "Integer",
+          "argument at index 0 of function size()",
+          List("String", "VECTOR", "List<T>"),
+          "Type mismatch: expected String, VECTOR or List<T> but was Integer",
+          InputPosition(12, 1, 13)
+        ))
+    }
   }
 
   test("should fail for percentileCont(0.5, n) where n is a node variable") {

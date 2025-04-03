@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.expressions
 
+import org.neo4j.cypher.internal.CypherVersion
+
 trait TypeSignatures {
 
   def signatures: Seq[TypeSignature] = Seq.empty
@@ -26,4 +28,10 @@ trait TypeSignatures {
 trait FunctionTypeSignatures extends TypeSignatures {
 
   override def signatures: Seq[FunctionTypeSignature] = Seq.empty
+
+  def signaturesByScope(cypherVersion: CypherVersion): Seq[FunctionTypeSignature] =
+    signatures.filter(_.scopes.contains(cypherVersion))
+
+  def signatureLengthsByScope(cypherVersion: CypherVersion): Seq[Int] =
+    signaturesByScope(cypherVersion).map(_.argumentTypes.length)
 }

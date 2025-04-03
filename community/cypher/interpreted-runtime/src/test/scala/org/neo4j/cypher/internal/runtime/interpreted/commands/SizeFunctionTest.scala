@@ -28,12 +28,19 @@ import org.neo4j.cypher.internal.runtime.PathImpl
 import org.neo4j.cypher.internal.runtime.interpreted.QueryStateHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.SizeFunction
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Variable
+import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.VectorDimensionCountFunction
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.functionArgumentGqlException
 import org.neo4j.exceptions.CypherTypeException
 import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.Relationship
 import org.neo4j.values.storable.Values
+import org.neo4j.values.storable.Values.float32Vector
+import org.neo4j.values.storable.Values.float64Vector
+import org.neo4j.values.storable.Values.int16Vector
+import org.neo4j.values.storable.Values.int32Vector
+import org.neo4j.values.storable.Values.int64Vector
+import org.neo4j.values.storable.Values.int8Vector
 import org.neo4j.values.storable.Values.longValue
 
 class SizeFunctionTest extends CypherFunSuite {
@@ -64,6 +71,31 @@ class SizeFunctionTest extends CypherFunSuite {
     result should equal(longValue(10))
   }
 
+  test("size and vector_dimension_count can be used on vectors") {
+    // given
+    val vectors = Seq(
+      int64Vector(1, 2, 3, 4),
+      int32Vector(1, 2, 3, 4),
+      int16Vector(1, 2, 3, 4),
+      int8Vector(1, 2, 3, 4),
+      float64Vector(1, 2, 3, 4),
+      float32Vector(1, 2, 3, 4)
+    )
+    vectors.forEach { v =>
+      val m = CypherRow.from("v" -> v)
+      val sizeFunction = SizeFunction(Variable("v"))
+      val vectorDimensionCountFunction = VectorDimensionCountFunction(Variable("v"))
+
+      // when
+      val result1 = sizeFunction.apply(m, QueryStateHelper.empty)
+      val result2 = vectorDimensionCountFunction.apply(m, QueryStateHelper.empty)
+
+      // then
+      result1 should equal(longValue(4))
+      result2 should equal(longValue(4))
+    }
+  }
+
   test("size cannot be used on paths") {
     // given
     val p = PathImpl(mockNode(), mock[Relationship], mockNode())
@@ -75,7 +107,7 @@ class SizeFunctionTest extends CypherFunSuite {
     e should be(functionArgumentGqlException(
       "Invalid input for function 'size()': Expected a String or List, got: Path{(0)-[0]-(0)}",
       "size()",
-      "Expected the value (id=0)-[id=1]->(id=0) to be of type STRING or LIST<ANY>, but was of type PATH NOT NULL."
+      "Expected the value (id=0)-[id=1]->(id=0) to be of type STRING, VECTOR or LIST<ANY>, but was of type PATH NOT NULL."
     ))
   }
 
@@ -89,7 +121,7 @@ class SizeFunctionTest extends CypherFunSuite {
     e should be(functionArgumentGqlException(
       "Invalid input for function 'size()': Expected a String or List, got: Int(33)",
       "size()",
-      "Expected the value 33 to be of type STRING or LIST<ANY>, but was of type INTEGER NOT NULL."
+      "Expected the value 33 to be of type STRING, VECTOR or LIST<ANY>, but was of type INTEGER NOT NULL."
     ))
   }
 

@@ -17,11 +17,13 @@
 package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
+import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.fromContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.DoubleLiteral
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
+import org.neo4j.cypher.internal.expressions.FunctionTypeSignatures
 import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.Literal
 import org.neo4j.cypher.internal.expressions.MapExpression
@@ -29,7 +31,6 @@ import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.TypeSignature
-import org.neo4j.cypher.internal.expressions.TypeSignatures
 import org.neo4j.cypher.internal.expressions.functions.AggregatingFunction
 import org.neo4j.cypher.internal.expressions.functions.Coalesce
 import org.neo4j.cypher.internal.expressions.functions.Collect
@@ -131,152 +132,154 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
     }
 
   protected def semanticCheck(ctx: Expression.SemanticContext, invocation: FunctionInvocation): SemanticCheck =
-    invocation.function match {
-      case Coalesce =>
-        checkMinArgs(invocation, 1, Coalesce.signatures) chain
-          expectType(CTAny.covariant, invocation.arguments) chain
-          specifyType(unionOfTypes(invocation.arguments), invocation)
+    fromContext(semanticCheckContext =>
+      invocation.functionWithScope(semanticCheckContext.cypherVersion) match {
+        case Coalesce =>
+          checkMinArgs(invocation, 1, Coalesce.signatures) chain
+            expectType(CTAny.covariant, invocation.arguments) chain
+            specifyType(unionOfTypes(invocation.arguments), invocation)
 
-      case Collect =>
-        checkTypeSignatures(ctx, Collect, invocation) ifOkChain {
-          specifyType(types(invocation.arguments(0))(_).wrapInList, invocation)
-        }
-
-      case Exists =>
-        checkArgs(invocation, 1, Exists.signatures) ifOkChain {
-          expectType(CTAny.covariant, invocation.arguments.head) chain
-            (invocation.arguments.head match {
-              case _: PatternExpression => None
-              case _: Property | _: ContainerIndex =>
-                Some(SemanticError(
-                  "The property existence syntax `... exists(variable.property)` is no longer supported. Please use `variable.property IS NOT NULL` instead.",
-                  invocation.position
-                ))
-              case e =>
-                Some(SemanticError.invalidEntityType(
-                  "argument",
-                  invocation.name,
-                  List("pattern"),
-                  s"Argument to ${invocation.name}(...) is not a pattern",
-                  e.position
-                ))
-            })
-        } chain specifyType(CTBoolean, invocation)
-
-      case Head =>
-        checkArgs(invocation, 1, Head.signatures) ifOkChain {
-          expectType(CTList(CTAny).covariant, invocation.arguments.head) chain
-            specifyType(possibleTypes(invocation.arguments.head), invocation)
-        }
-
-      case GraphByName =>
-        checkTypeSignatures(ctx, GraphByName, invocation) ifOkChain {
-          if (invocation.calledFromUseClause) {
-            SemanticCheck.success
-          } else {
-            SemanticCheck.error(SemanticError.invalidUseOfGraphFunction("graph.byName", invocation.position))
+        case Collect =>
+          checkFunctionTypeSignatures(semanticCheckContext, Collect, invocation) ifOkChain {
+            specifyType(types(invocation.arguments(0))(_).wrapInList, invocation)
           }
-        }
 
-      case GraphByElementId =>
-        checkTypeSignatures(ctx, GraphByElementId, invocation) ifOkChain {
-          if (invocation.calledFromUseClause) {
-            SemanticCheck.success
-          } else {
-            SemanticCheck.error(SemanticError.invalidUseOfGraphFunction("graph.byElementId", invocation.position))
+        case Exists =>
+          checkArgs(invocation, 1, Exists.signatures) ifOkChain {
+            expectType(CTAny.covariant, invocation.arguments.head) chain
+              (invocation.arguments.head match {
+                case _: PatternExpression => None
+                case _: Property | _: ContainerIndex =>
+                  Some(SemanticError(
+                    "The property existence syntax `... exists(variable.property)` is no longer supported. Please use `variable.property IS NOT NULL` instead.",
+                    invocation.position
+                  ))
+                case e =>
+                  Some(SemanticError.invalidEntityType(
+                    "argument",
+                    invocation.name,
+                    List("pattern"),
+                    s"Argument to ${invocation.name}(...) is not a pattern",
+                    e.position
+                  ))
+              })
+          } chain specifyType(CTBoolean, invocation)
+
+        case Head =>
+          checkArgs(invocation, 1, Head.signatures) ifOkChain {
+            expectType(CTList(CTAny).covariant, invocation.arguments.head) chain
+              specifyType(possibleTypes(invocation.arguments.head), invocation)
           }
-        }
 
-      case Last =>
-        def possibleTypes(expression: Expression): TypeGenerator = s =>
-          (types(expression)(s) constrain CTList(CTAny)).unwrapLists
+        case GraphByName =>
+          checkFunctionTypeSignatures(semanticCheckContext, GraphByName, invocation) ifOkChain {
+            if (invocation.calledFromUseClause) {
+              SemanticCheck.success
+            } else {
+              SemanticCheck.error(SemanticError.invalidUseOfGraphFunction("graph.byName", invocation.position))
+            }
+          }
 
-        checkArgs(invocation, 1, Last.signatures) ifOkChain {
-          expectType(CTList(CTAny).covariant, invocation.arguments.head) chain
-            specifyType(possibleTypes(invocation.arguments.head), invocation)
-        }
+        case GraphByElementId =>
+          checkFunctionTypeSignatures(semanticCheckContext, GraphByElementId, invocation) ifOkChain {
+            if (invocation.calledFromUseClause) {
+              SemanticCheck.success
+            } else {
+              SemanticCheck.error(SemanticError.invalidUseOfGraphFunction("graph.byElementId", invocation.position))
+            }
+          }
 
-      case Max =>
-        checkTypeSignatures(ctx, Max, invocation) ifOkChain {
-          specifyType(types(invocation.arguments(0))(_), invocation)
-        }
+        case Last =>
+          def possibleTypes(expression: Expression): TypeGenerator = s =>
+            (types(expression)(s) constrain CTList(CTAny)).unwrapLists
 
-      case IsEmpty =>
-        checkTypeSignatures(ctx, IsEmpty, invocation)
+          checkArgs(invocation, 1, Last.signatures) ifOkChain {
+            expectType(CTList(CTAny).covariant, invocation.arguments.head) chain
+              specifyType(possibleTypes(invocation.arguments.head), invocation)
+          }
 
-      case Min =>
-        checkTypeSignatures(ctx, Min, invocation) ifOkChain {
-          specifyType(types(invocation.arguments(0))(_), invocation)
-        }
+        case Max =>
+          checkFunctionTypeSignatures(semanticCheckContext, Max, invocation) ifOkChain {
+            specifyType(types(invocation.arguments(0))(_), invocation)
+          }
 
-      case PercentileCont =>
-        checkTypeSignatures(ctx, PercentileCont, invocation) ifOkChain
-          checkPercentileRange(invocation.args(1))
+        case IsEmpty =>
+          checkFunctionTypeSignatures(semanticCheckContext, IsEmpty, invocation)
 
-      case PercentileDisc =>
-        checkTypeSignatures(ctx, PercentileDisc, invocation) ifOkChain
-          checkPercentileRange(invocation.args(1))
+        case Min =>
+          checkFunctionTypeSignatures(semanticCheckContext, Min, invocation) ifOkChain {
+            specifyType(types(invocation.arguments(0))(_), invocation)
+          }
 
-      case Point =>
-        checkTypeSignatures(ctx, Point, invocation) ifOkChain
-          checkPointMap(invocation.args(0))
+        case PercentileCont =>
+          checkFunctionTypeSignatures(semanticCheckContext, PercentileCont, invocation) ifOkChain
+            checkPercentileRange(invocation.args(1))
 
-      case Reverse =>
-        checkArgs(invocation, 1, Reverse.signatures) ifOkChain {
-          expectType(CTList(CTAny).covariant | CTString, invocation.arguments.head) chain
-            specifyType(types(invocation.arguments.head), invocation)
-        }
+        case PercentileDisc =>
+          checkFunctionTypeSignatures(semanticCheckContext, PercentileDisc, invocation) ifOkChain
+            checkPercentileRange(invocation.args(1))
 
-      case Tail =>
-        checkArgs(invocation, 1, Tail.signatures) ifOkChain {
-          expectType(CTList(CTAny).covariant, invocation.arguments(0)) chain
-            specifyType(types(invocation.arguments(0)), invocation)
-        }
+        case Point =>
+          checkFunctionTypeSignatures(semanticCheckContext, Point, invocation) ifOkChain
+            checkPointMap(invocation.args(0))
 
-      case ToBoolean =>
-        checkArgs(invocation, 1, ToBoolean.signatures) ifOkChain
-          checkToSpecifiedTypeOfArgument(invocation, Seq(CTString, CTBoolean, CTInteger)) ifOkChain
-          specifyType(CTBoolean, invocation)
+        case Reverse =>
+          checkArgs(invocation, 1, Reverse.signatures) ifOkChain {
+            expectType(CTList(CTAny).covariant | CTString, invocation.arguments.head) chain
+              specifyType(types(invocation.arguments.head), invocation)
+          }
 
-      case ToString =>
-        checkArgs(invocation, 1, ToString.signatures) ifOkChain
-          checkToSpecifiedTypeOfArgument(invocation, ToString.validInputTypes) ifOkChain
-          specifyType(CTString, invocation)
+        case Tail =>
+          checkArgs(invocation, 1, Tail.signatures) ifOkChain {
+            expectType(CTList(CTAny).covariant, invocation.arguments(0)) chain
+              specifyType(types(invocation.arguments(0)), invocation)
+          }
 
-      // distance has been replaced with point.distance, make sure we provide a nice error message
-      case UnresolvedFunction
-        if invocation.functionName.namespace.parts.isEmpty && invocation.functionName.name.toLowerCase(
-          Locale.ROOT
-        ) == "distance" =>
-        SemanticError(s"'distance' has been replaced by 'point.distance'", invocation.position)
+        case ToBoolean =>
+          checkArgs(invocation, 1, ToBoolean.signatures) ifOkChain
+            checkToSpecifiedTypeOfArgument(invocation, Seq(CTString, CTBoolean, CTInteger)) ifOkChain
+            specifyType(CTBoolean, invocation)
 
-      case Distance =>
-        checkArgs(invocation, 2, Distance.signatures) ifOkChain
-          specifyType(CTFloat, invocation)
+        case ToString =>
+          checkArgs(invocation, 1, ToString.signatures) ifOkChain
+            checkToSpecifiedTypeOfArgument(invocation, ToString.validInputTypes) ifOkChain
+            specifyType(CTString, invocation)
 
-      case WithinBBox =>
-        checkArgs(invocation, 3, WithinBBox.signatures) ifOkChain
-          specifyType(CTBoolean, invocation)
+        // distance has been replaced with point.distance, make sure we provide a nice error message
+        case UnresolvedFunction
+          if invocation.functionName.namespace.parts.isEmpty && invocation.functionName.name.toLowerCase(
+            Locale.ROOT
+          ) == "distance" =>
+          SemanticError(s"'distance' has been replaced by 'point.distance'", invocation.position)
 
-      case UnresolvedFunction =>
-        // We cannot do a full semantic check until we have resolved the function call.
-        SemanticCheck.success
+        case Distance =>
+          checkArgs(invocation, 2, Distance.signatures) ifOkChain
+            specifyType(CTFloat, invocation)
 
-      case x: TypeSignatures =>
-        checkTypeSignatures(ctx, x, invocation)
-    }
+        case WithinBBox =>
+          checkArgs(invocation, 3, WithinBBox.signatures) ifOkChain
+            specifyType(CTBoolean, invocation)
+
+        case UnresolvedFunction =>
+          // We cannot do a full semantic check until we have resolved the function call.
+          SemanticCheck.success
+
+        case x: FunctionTypeSignatures =>
+          checkFunctionTypeSignatures(semanticCheckContext, x, invocation)
+      }
+    )
 
   /**
    * Check that invocation align with one of the functions type signatures
    */
-  def checkTypeSignatures(
-    ctx: Expression.SemanticContext,
-    f: TypeSignatures,
+  def checkFunctionTypeSignatures(
+    ctx: SemanticCheckContext,
+    f: FunctionTypeSignatures,
     invocation: FunctionInvocation
   ): SemanticCheck =
-    checkMinArgs(invocation, f.signatureLengths.min, f.signatures) chain
-      checkMaxArgs(invocation, f.signatureLengths.max, f.signatures) chain
-      checkTypes(invocation, f.signatures)
+    checkMinArgs(invocation, f.signatureLengthsByScope(ctx.cypherVersion).min, f.signatures) chain
+      checkMaxArgs(invocation, f.signatureLengthsByScope(ctx.cypherVersion).max, f.signatures) chain
+      checkTypes(invocation, f.signaturesByScope(ctx.cypherVersion))
 
   protected def checkArgs(
     invocation: FunctionInvocation,

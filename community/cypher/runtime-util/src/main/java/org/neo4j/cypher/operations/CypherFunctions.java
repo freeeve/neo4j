@@ -1845,19 +1845,36 @@ public final class CypherFunctions {
         }
     }
 
+    public static AnyValue vectorDimension(AnyValue item) {
+        if (item == NO_VALUE) {
+            return NO_VALUE;
+        } else if (item instanceof VectorValue vector) {
+            return longValue(vector.dimensions());
+        } else {
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Invalid input for function 'vector_dimension_count()': Expected a VECTOR, got: " + item,
+                    "vector_dimension_count",
+                    item.toString(),
+                    List.of("VECTOR"),
+                    item.getTypeName());
+        }
+    }
+
     public static AnyValue size(AnyValue item) {
         if (item == NO_VALUE) {
             return NO_VALUE;
-        } else if (item instanceof TextValue) {
-            return longValue(((TextValue) item).length());
-        } else if (item instanceof SequenceValue) {
-            return longValue(((SequenceValue) item).actualSize());
+        } else if (item instanceof TextValue textValue) {
+            return longValue(textValue.length());
+        } else if (item instanceof SequenceValue list) {
+            return longValue(list.actualSize());
+        } else if (item instanceof VectorValue vector) {
+            return longValue(vector.dimensions());
         } else {
             throw CypherTypeException.functionArgumentWrongType(
                     "Invalid input for function 'size()': Expected a String or List, got: " + item,
                     "size",
                     item.prettify(),
-                    List.of("STRING", "LIST<ANY>"),
+                    List.of("STRING", "VECTOR", "LIST<ANY>"),
                     CypherTypeValueMapper.valueType(item));
         }
     }
