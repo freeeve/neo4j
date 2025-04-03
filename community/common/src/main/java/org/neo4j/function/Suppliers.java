@@ -131,7 +131,7 @@ public final class Suppliers {
     }
 
     /**
-     * Creates a lazy initialized {@link Supplier} of a single object.
+     * Creates a lazy initialized {@link Supplier} of a single object which could be {@code null}
      * Unlike {@link #lazySingleton(Supplier)} returned object isn't thread safe.
      *
      * @param supplier A supplier that will provide the object when required
@@ -141,11 +141,13 @@ public final class Suppliers {
     public static <T> Supplier<T> lazyInstance(Supplier<T> supplier) {
         return new Supplier<T>() {
             private T instance;
+            private boolean initialized = false;
 
             @Override
             public T get() {
-                if (instance == null) {
+                if (!initialized) {
                     instance = supplier.get();
+                    initialized = true;
                 }
                 return instance;
             }
