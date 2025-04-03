@@ -24,6 +24,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -68,6 +70,12 @@ public class FakeClock extends SystemNanoClock {
     @Override
     public Stopwatch startStopWatch() {
         return new Stopwatch(this::nanos);
+    }
+
+    public FakeClock set(TemporalAccessor time) {
+        nanoTime.set(0);
+        forward(time.getLong(ChronoField.INSTANT_SECONDS), TimeUnit.SECONDS);
+        return forward(time.getLong(ChronoField.NANO_OF_SECOND), TimeUnit.NANOSECONDS);
     }
 
     public FakeClock forward(Duration delta) {

@@ -51,6 +51,7 @@ import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.os.OsBeanUtil;
 import org.neo4j.kernel.impl.pagecache.ConfiguringPageCacheFactory;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.internal.Version;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.log4j.Log4jLogProvider;
@@ -60,6 +61,7 @@ import org.neo4j.memory.MachineMemory;
 import org.neo4j.server.logging.JULBridge;
 import org.neo4j.server.startup.Environment;
 import org.neo4j.server.startup.PidFileHelper;
+import org.neo4j.storageengine.api.StoreIdProvider;
 import org.neo4j.util.FeatureToggles;
 import org.neo4j.util.VisibleForTesting;
 import sun.misc.Signal;
@@ -193,6 +195,13 @@ public abstract class NeoBootstrapper implements Bootstrapper {
                 daemonErr.println(Environment.FULLY_FLEDGED);
             }
             log.info("Started.");
+            Instant databaseCreationDate = Instant.ofEpochMilli(
+                    ((GraphDatabaseAPI) databaseManagementService.database(GraphDatabaseSettings.SYSTEM_DATABASE_NAME))
+                            .getDependencyResolver()
+                            .resolveDependency(StoreIdProvider.class)
+                            .getStoreId()
+                            .getCreationTime());
+            logOnLicenseEvaluation(homeDir, config, databaseCreationDate);
             return OK;
         } catch (ServerStartupException e) {
             e.describeTo(log);
@@ -297,6 +306,8 @@ public abstract class NeoBootstrapper implements Bootstrapper {
             Config config, boolean daemonMode, GraphDatabaseDependencies dependencies);
 
     protected abstract boolean checkLicenseAgreement(Path homeDir, Configuration config, boolean daemonMode);
+
+    protected abstract void logOnLicenseEvaluation(Path homeDir, Configuration config, Instant databaseCreationDate);
 
     private static Log4jLogProvider setupLogging(Config config, boolean daemonMode) {
         Path xmlConfig = config.get(GraphDatabaseSettings.user_logging_config_path);
