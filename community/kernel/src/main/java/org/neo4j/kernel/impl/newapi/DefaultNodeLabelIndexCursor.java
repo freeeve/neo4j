@@ -29,7 +29,7 @@ import org.neo4j.internal.kernel.api.NodeLabelIndexCursor;
 import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.kernel.api.txstate.TransactionState;
 
-class DefaultNodeLabelIndexCursor extends DefaultEntityTokenIndexCursor<DefaultNodeLabelIndexCursor>
+public class DefaultNodeLabelIndexCursor extends DefaultEntityTokenIndexCursor<DefaultNodeLabelIndexCursor>
         implements NodeLabelIndexCursor {
     private final InternalCursorFactory internalCursors;
     private DefaultNodeCursor securityNodeCursor;

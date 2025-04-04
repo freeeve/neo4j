@@ -54,7 +54,6 @@ class DefaultRelationshipTraversalCursorTest {
     private static final int type = 9999;
     private static final int type2 = 9998;
     private static final long relationship = 100;
-    private final DefaultPooledCursors pool = mock(DefaultPooledCursors.class);
     private final InternalCursorFactory internalCursors = MockedInternalCursors.mockedInternalCursors();
 
     // Regular traversal of a sparse chain
@@ -64,7 +63,7 @@ class DefaultRelationshipTraversalCursorTest {
         // given
         StorageRelationshipTraversalCursor storeCursor = storeCursor(100, 102, 104);
         DefaultRelationshipTraversalCursor cursor =
-                new DefaultRelationshipTraversalCursor(pool::accept, storeCursor, internalCursors, false);
+                new DefaultRelationshipTraversalCursor(c -> {}, storeCursor, internalCursors, false);
         var ktx = emptyTxState();
         var read = mockedRead(ktx);
 
@@ -80,7 +79,7 @@ class DefaultRelationshipTraversalCursorTest {
         // given
         StorageRelationshipTraversalCursor storeCursor = storeCursor(100, 102, 104);
         DefaultRelationshipTraversalCursor cursor =
-                new DefaultRelationshipTraversalCursor(pool::accept, storeCursor, internalCursors, false);
+                new DefaultRelationshipTraversalCursor(c -> {}, storeCursor, internalCursors, false);
         var ktx = txState(3, 4);
         var read = mockedRead(ktx);
 
@@ -102,7 +101,7 @@ class DefaultRelationshipTraversalCursorTest {
                 rel(104, node, 52, type));
 
         DefaultRelationshipTraversalCursor cursor =
-                new DefaultRelationshipTraversalCursor(pool::accept, storeCursor, internalCursors, false);
+                new DefaultRelationshipTraversalCursor(c -> {}, storeCursor, internalCursors, false);
         var ktx = txState(
                 rel(3, node, 50, type),
                 rel(4, 50, node, type),
@@ -133,7 +132,7 @@ class DefaultRelationshipTraversalCursorTest {
         StorageRelationshipTraversalCursor storeCursor = emptyStoreCursor();
 
         DefaultRelationshipTraversalCursor cursor =
-                new DefaultRelationshipTraversalCursor(pool::accept, storeCursor, internalCursors, false);
+                new DefaultRelationshipTraversalCursor(c -> {}, storeCursor, internalCursors, false);
         var ktx = txState(
                 rel(3, node, 50, type),
                 rel(4, 50, node, type),
@@ -155,7 +154,7 @@ class DefaultRelationshipTraversalCursorTest {
         StorageRelationshipTraversalCursor storeCursor = emptyStoreCursor();
 
         DefaultRelationshipTraversalCursor cursor =
-                new DefaultRelationshipTraversalCursor(pool::accept, storeCursor, internalCursors, false);
+                new DefaultRelationshipTraversalCursor(c -> {}, storeCursor, internalCursors, false);
         var ktx = txState(
                 rel(3, node, 50, type),
                 rel(4, 50, node, type),
@@ -178,7 +177,7 @@ class DefaultRelationshipTraversalCursorTest {
         StorageRelationshipTraversalCursor storeCursor = emptyStoreCursor();
 
         DefaultRelationshipTraversalCursor cursor =
-                new DefaultRelationshipTraversalCursor(pool::accept, storeCursor, internalCursors, false);
+                new DefaultRelationshipTraversalCursor(c -> {}, storeCursor, internalCursors, false);
         var ktx = txState(
                 rel(3, node, 50, type),
                 rel(2, node, node, type),
@@ -203,7 +202,7 @@ class DefaultRelationshipTraversalCursorTest {
         final var endId = 42;
 
         final var storeCursor = emptyStoreCursor();
-        final var cursor = new DefaultRelationshipTraversalCursor(pool::accept, storeCursor, internalCursors, false);
+        final var cursor = new DefaultRelationshipTraversalCursor(c -> {}, storeCursor, internalCursors, false);
         final var ktx = txState(
                 rel(3, node, 50, type),
                 rel(2, node, node, type),
