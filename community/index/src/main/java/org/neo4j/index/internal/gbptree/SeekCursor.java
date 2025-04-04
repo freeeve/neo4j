@@ -640,13 +640,13 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
     }
 
     private boolean readAndValidateNextKeyValueBatch() throws IOException {
-        //noinspection AssignmentUsedAsCondition
+        boolean retry = concurrentWriteHappened;
         do {
             try {
                 cache.clear();
                 resultOnTrack = false;
 
-                if (concurrentWriteHappened || forceReadHeader || !seekForward) {
+                if (retry || forceReadHeader || !seekForward) {
                     if (!readHeader() || (isInternal && searchLevel == LEAF_LEVEL)) {
                         continue;
                     }
@@ -658,7 +658,7 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
                     (isInternal ? internalNode : leafNode).keyAt(cursor, firstKeyInNode, pos, cursorContext);
                 }
 
-                if (concurrentWriteHappened) {
+                if (retry) {
                     // Keys could have been moved so we need to make sure we are not missing any keys by
                     // moving position back until we find previously returned key
                     KEY key = first ? fromInclusive : prevKey;
@@ -668,12 +668,13 @@ class SeekCursor<KEY, VALUE> implements Seeker<KEY, VALUE> {
 
                     pos = selectPosition(searchResult, first, seekForward, keyCount);
                 }
-
                 cache.fill(pos);
             } catch (Exception e) {
                 cursor.setCursorException(e.getMessage());
             }
-        } while (concurrentWriteHappened = cursor.shouldRetry());
+            retry = true;
+        } while (cursor.shouldRetry());
+        concurrentWriteHappened = false;
         checkOutOfBoundsAndClosed();
         cursor.checkAndClearCursorException();
 
