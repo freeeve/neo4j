@@ -195,6 +195,11 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
+    public boolean allowsTraverseAndReadAllMatchingNodeProperties(int[] labels, int[] propertyKeys) {
+        return allowRead;
+    }
+
+    @Override
     public boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys) {
         return allowRead;
     }

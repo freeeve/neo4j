@@ -213,6 +213,12 @@ public class RestrictedAccessMode extends WrappedAccessMode {
     }
 
     @Override
+    public boolean allowsTraverseAndReadAllMatchingNodeProperties(int[] labels, int[] propertyKeys) {
+        return original.allowsTraverseAndReadAllMatchingNodeProperties(labels, propertyKeys)
+                && wrapping.allowsTraverseAndReadAllMatchingNodeProperties(labels, propertyKeys);
+    }
+
+    @Override
     public boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys) {
         return original.allowsTraverseAndReadAllMatchingRelProperties(relTypes, propertyKeys)
                 && wrapping.allowsTraverseAndReadAllMatchingRelProperties(relTypes, propertyKeys);

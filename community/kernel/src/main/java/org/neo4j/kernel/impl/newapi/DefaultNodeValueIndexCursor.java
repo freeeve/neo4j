@@ -27,7 +27,6 @@ import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
-import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.storageengine.api.PropertySelection;
@@ -59,40 +58,7 @@ public class DefaultNodeValueIndexCursor extends DefaultEntityValueIndexCursor<D
     protected boolean canAccessAllDescribedEntities(IndexDescriptor descriptor) {
         propertyIds = descriptor.schema().getPropertyIds();
         int[] labelIds = descriptor.schema().getEntityTokenIds();
-        AccessMode accessMode = accessModeProvider.getAccessMode();
-
-        for (int label : labelIds) {
-            /*
-             * If there can be nodes in the index that that are disallowed to traverse,
-             * post-filtering is needed.
-             */
-            if (!accessMode.allowsTraverseAllNodesWithLabel(label)) {
-                return false;
-            }
-        }
-
-        for (int propId : propertyIds) {
-            /*
-             * If reading the property is denied for some label,
-             * there can be property values in the index that are disallowed,
-             * so post-filtering is needed.
-             */
-            if (accessMode.disallowsReadPropertyForSomeLabel(propId)) {
-                return false;
-            }
-
-            /*
-             * If reading the property is not granted for all labels of the the index,
-             * there can be property values in the index that are disallowed,
-             * so post-filtering is needed.
-             */
-            for (int label : labelIds) {
-                if (!accessMode.allowsReadNodeProperty(() -> Labels.from(label), propId)) {
-                    return false;
-                }
-            }
-        }
-        return true;
+        return accessMode.allowsTraverseAndReadAllMatchingNodeProperties(labelIds, propertyIds);
     }
 
     @Override

@@ -227,6 +227,11 @@ public interface AccessMode {
         }
 
         @Override
+        public boolean allowsTraverseAndReadAllMatchingNodeProperties(int[] labels, int[] propertyKeys) {
+            return read;
+        }
+
+        @Override
         public boolean allowsReadPropertyAllRelTypes(int propertyKey) {
             return read;
         }
@@ -569,6 +574,16 @@ public interface AccessMode {
      */
     boolean allowsReadNodeProperty(LabelsSupplier labels, int propertyKey);
 
+    /**
+     * Check that the user is allowed to access all nodes and properties described by given labels and properties.
+     * Positive result means specific checks for individual entities can be ommitted, a.k.a. security shortcut.
+     *
+     * @param labels the labels of the nodes in question
+     * @param propertyKeys the properties which the principal is requesting to read
+     * @return {@code true} if there is no restictions affecting described set of entities
+     */
+    boolean allowsTraverseAndReadAllMatchingNodeProperties(int[] labels, int[] propertyKeys);
+
     boolean allowsReadPropertyAllRelTypes(int propertyKey);
 
     boolean allowsReadRelProperty(RelTypeSupplier relType, int propertyKey);
@@ -577,7 +592,7 @@ public interface AccessMode {
      * Check that the user is allowed to access all relationships and properties described by given relationship types and properties.
      * Positive result means specific checks for individual entities can be ommitted, a.k.a. security shortcut.
      *
-     * @param relTypes the types of the relationship in question
+     * @param relTypes the types of the relationships in question
      * @param propertyKeys the properties which the principal is requesting to read
      * @return {@code true} if there is no restictions affecting described set of entities
      */

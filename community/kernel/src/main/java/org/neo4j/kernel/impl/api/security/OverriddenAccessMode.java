@@ -184,6 +184,11 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
+    public boolean allowsTraverseAndReadAllMatchingNodeProperties(int[] labels, int[] propertyKeys) {
+        return wrapping.allowsTraverseAndReadAllMatchingNodeProperties(labels, propertyKeys);
+    }
+
+    @Override
     public boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys) {
         return wrapping.allowsTraverseAndReadAllMatchingRelProperties(relTypes, propertyKeys);
     }
