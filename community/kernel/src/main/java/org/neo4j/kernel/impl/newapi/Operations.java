@@ -249,7 +249,9 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                 GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints);
         this.alwaysUseLatestIndexProvider = config.get(GraphDatabaseInternalSettings.always_use_latest_index_provider);
         this.transactionStateBehaviour = transactionStateBehaviour;
-        this.typeConstraintVectorTypeEnabled = config.get(GraphDatabaseInternalSettings.vector_type_enabled);
+        this.typeConstraintVectorTypeEnabled = config.get(
+                        GraphDatabaseInternalSettings.cypher_enable_extra_semantic_features)
+                .contains("VectorType");
     }
 
     public void initialize(CursorContext cursorContext) {

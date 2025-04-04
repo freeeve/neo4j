@@ -1338,11 +1338,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             newBuilder("internal.dbms.graph_type", BOOL, false).build();
 
     @Internal
-    @Description("A feature toggle behind which vector types are developed")
-    public static final Setting<Boolean> vector_type_enabled =
-            newBuilder("internal.dbms.vector_type_enabled", BOOL, false).build();
-
-    @Internal
     @Description("A feature toggle behind which out of disk space protection feature is developed")
     public static final Setting<Boolean> out_of_disk_space_protection = newBuilder(
                     "internal.dbms.out_of_disk_space_protection", BOOL, false)
