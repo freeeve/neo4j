@@ -195,12 +195,7 @@ public abstract class NeoBootstrapper implements Bootstrapper {
                 daemonErr.println(Environment.FULLY_FLEDGED);
             }
             log.info("Started.");
-            Instant databaseCreationDate = Instant.ofEpochMilli(
-                    ((GraphDatabaseAPI) databaseManagementService.database(GraphDatabaseSettings.SYSTEM_DATABASE_NAME))
-                            .getDependencyResolver()
-                            .resolveDependency(StoreIdProvider.class)
-                            .getStoreId()
-                            .getCreationTime());
+            Instant databaseCreationDate = getDatabaseCreationDate();
             logOnLicenseEvaluation(homeDir, config, databaseCreationDate);
             return OK;
         } catch (ServerStartupException e) {
@@ -217,6 +212,15 @@ public abstract class NeoBootstrapper implements Bootstrapper {
             log.error(format("Failed to start Neo4j on %s.", serverAddress), e);
             return WEB_SERVER_STARTUP_ERROR_CODE;
         }
+    }
+
+    protected Instant getDatabaseCreationDate() {
+        return Instant.ofEpochMilli(
+                ((GraphDatabaseAPI) databaseManagementService.database(GraphDatabaseSettings.SYSTEM_DATABASE_NAME))
+                        .getDependencyResolver()
+                        .resolveDependency(StoreIdProvider.class)
+                        .getStoreId()
+                        .getCreationTime());
     }
 
     private void writePidSilently() {

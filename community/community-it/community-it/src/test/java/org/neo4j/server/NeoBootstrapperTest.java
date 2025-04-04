@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.lang.management.MemoryUsage;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
@@ -253,6 +254,11 @@ class NeoBootstrapperTest {
         protected DatabaseManagementService createNeo(
                 Config config, boolean daemonMode, GraphDatabaseDependencies dependencies) {
             return mock(DatabaseManagementService.class);
+        }
+
+        @Override
+        protected Instant getDatabaseCreationDate() {
+            return Instant.now();
         }
     }
 }
