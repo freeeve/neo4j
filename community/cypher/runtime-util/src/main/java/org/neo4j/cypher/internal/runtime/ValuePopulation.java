@@ -64,7 +64,7 @@ public final class ValuePopulation {
 
     /**
      * Populates nodes and relationships contained in the specified value.
-     *
+     * <p>
      * Note about memory tracking!
      * Population can potentially allocate lots of memory, for example large lists of node references.
      * To try to avoid some OOMs, we sometimes(!) allocate on the provided memory tracker in these methods.
@@ -87,19 +87,16 @@ public final class ValuePopulation {
             RelationshipScanCursor relCursor,
             PropertyCursor propertyCursor,
             MemoryTracker memoryTracker) {
-        if (value instanceof VirtualNodeValue node) {
-            return populate(node, dbAccess, nodeCursor, propertyCursor);
-        } else if (value instanceof VirtualRelationshipValue relationship) {
-            return populate(relationship, dbAccess, relCursor, propertyCursor);
-        } else if (value instanceof VirtualPathValue path) {
-            return populate(path, dbAccess, nodeCursor, relCursor, propertyCursor);
-        } else if (value instanceof ListValue list && needsPopulation(list)) {
-            return populate(list, dbAccess, nodeCursor, relCursor, propertyCursor, memoryTracker);
-        } else if (value instanceof MapValue map) {
-            return populate(map, dbAccess, nodeCursor, relCursor, propertyCursor, memoryTracker);
-        } else {
-            return value;
-        }
+        return switch (value) {
+            case VirtualNodeValue node -> populate(node, dbAccess, nodeCursor, propertyCursor);
+            case VirtualRelationshipValue relationship -> populate(relationship, dbAccess, relCursor, propertyCursor);
+            case VirtualPathValue path -> populate(path, dbAccess, nodeCursor, relCursor, propertyCursor);
+            case ListValue list
+            when needsPopulation(list) ->
+                populate(list, dbAccess, nodeCursor, relCursor, propertyCursor, memoryTracker);
+            case MapValue map -> populate(map, dbAccess, nodeCursor, relCursor, propertyCursor, memoryTracker);
+            case null, default -> value;
+        };
     }
 
     private static boolean needsPopulation(final ListValue list) {
