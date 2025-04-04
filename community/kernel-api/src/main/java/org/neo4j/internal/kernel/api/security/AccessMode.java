@@ -147,8 +147,8 @@ public interface AccessMode {
         }
 
         @Override
-        public boolean allowsTraverseNodeWithPropertyRules(
-                ReadSecurityPropertyProvider propertyProvider, int... labels) {
+        public boolean allowsTraverseNode(
+                LabelsSupplier labels, SelectedPropertiesProvider selectedPropertiesProvider) {
             return read;
         }
 
@@ -453,13 +453,16 @@ public interface AccessMode {
     boolean hasApplicableTraverseNodeAllowPropertyRules(int label);
 
     /**
-     * Uses the {@code propertyProvider} to get the node property values and the {@code labels} to get the relevant property rules,
+     * Checks whether traversal of the node is allowed based on its labels and properties.
+     * Checks labels-based traverse rules and the property based traverse rules.
+     * Uses the {@code propertyProviderFacroty} to get the node property values and the {@code labels} to get the relevant property rules,
      * and then evaluates the property rules to determine whether the node can be traversed. Also checks label-based traverse rules.
-     * @param propertyProvider provider of the scrutinee node's properties
-     * @param labels the labels of the node. Used to determine which property rules need to be checked.
+     *
+     * @param labels                       labels of the node. Used to determine which property rules need to be checked.
+     * @param selectedPropertiesProvider provider of the scrutinee node's properties
      * @return {@code true} if traversal of this node is allowed
      */
-    boolean allowsTraverseNodeWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int... labels);
+    boolean allowsTraverseNode(LabelsSupplier labels, SelectedPropertiesProvider selectedPropertiesProvider);
 
     /**
      * Determines whether there are any property rules controlling node traversal

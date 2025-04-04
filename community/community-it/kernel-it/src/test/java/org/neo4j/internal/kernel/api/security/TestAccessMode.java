@@ -108,7 +108,7 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public boolean allowsTraverseNodeWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int... labels) {
+    public boolean allowsTraverseNode(LabelsSupplier labels, SelectedPropertiesProvider selectedPropertiesProvider) {
         return allowRead;
     }
 

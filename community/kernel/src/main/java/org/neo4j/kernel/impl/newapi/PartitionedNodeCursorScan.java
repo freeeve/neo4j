@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.newapi;
 
-import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.kernel.api.ExecutionContext;
 import org.neo4j.storageengine.api.AllNodeScan;
@@ -37,8 +36,6 @@ final class PartitionedNodeCursorScan extends PartitionedEntityCursorScan<NodeCu
                         executionContext.dataRead(),
                         storageScan,
                         computeBatchSize(),
-                        ImmutableEmptyLongIterator.INSTANCE,
-                        false,
                         executionContext.txStateHolder(),
                         executionContext.accessModeProvider());
     }

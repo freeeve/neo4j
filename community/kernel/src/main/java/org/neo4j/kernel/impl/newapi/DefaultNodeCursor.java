@@ -22,11 +22,11 @@ package org.neo4j.kernel.impl.newapi;
 import static org.neo4j.storageengine.api.LongReference.NULL_REFERENCE;
 
 import org.eclipse.collections.api.iterator.LongIterator;
-import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.eclipse.collections.impl.iterator.ImmutableEmptyLongIterator;
 import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
+import org.eclipse.collections.impl.set.mutable.primitive.LongHashSet;
 import org.neo4j.collection.diffset.IntDiffSets;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
@@ -34,7 +34,6 @@ import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
 import org.neo4j.internal.kernel.api.TokenSet;
 import org.neo4j.internal.kernel.api.security.AccessMode;
-import org.neo4j.internal.kernel.api.security.ReadSecurityPropertyProvider;
 import org.neo4j.kernel.api.AccessModeProvider;
 import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
@@ -46,7 +45,6 @@ import org.neo4j.storageengine.api.Reference;
 import org.neo4j.storageengine.api.RelationshipSelection;
 import org.neo4j.storageengine.api.StorageNodeCursor;
 import org.neo4j.storageengine.api.StorageProperty;
-import org.neo4j.storageengine.api.StoragePropertyCursor;
 import org.neo4j.storageengine.api.txstate.NodeState;
 import org.neo4j.storageengine.util.EagerDegrees;
 import org.neo4j.storageengine.util.SingleDegree;
@@ -54,19 +52,21 @@ import org.neo4j.storageengine.util.SingleDegree;
 public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> implements NodeCursor {
     final StorageNodeCursor storeCursor;
     private final InternalCursorFactory internalCursors;
-    private final boolean applyAccessModeToTxState;
-    Read read;
-    TxStateHolder txStateHolder;
-    AccessModeProvider accessModeProvider;
+
+    protected Read read;
+    private TxStateHolder txStateHolder;
     boolean checkHasChanges;
     boolean hasChanges;
     private LongIterator addedNodes;
-    private boolean singleIsAddedInTx;
-    private StoragePropertyCursor securityPropertyCursor;
-    private DefaultRelationshipTraversalCursor securityRelationshipTraversalCursor;
     private long currentAddedInTx = LongReference.NULL;
     private long single;
     private boolean isSingle;
+
+    private final boolean applyAccessModeToTxState;
+    private AccessModeProvider accessModeProvider;
+    private AccessMode accessMode;
+    private AccessControlDataProvider accessControlDataProvider;
+    private DefaultRelationshipTraversalCursor securityRelationshipTraversalCursor;
 
     protected DefaultNodeCursor(
             CursorPool<DefaultNodeCursor> pool,
@@ -84,6 +84,7 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         this.read = read;
         this.txStateHolder = txStateHolder;
         this.accessModeProvider = accessModeProvider;
+        this.accessMode = accessModeProvider.getAccessMode();
         this.isSingle = false;
         this.currentAddedInTx = LongReference.NULL;
         this.checkHasChanges = true;
@@ -97,20 +98,18 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
             Read read,
             AllNodeScan scan,
             long sizeHint,
-            LongIterator addedNodes,
-            boolean hasChanges,
             TxStateHolder txStateHolder,
             AccessModeProvider accessModeProvider) {
         this.read = read;
         this.txStateHolder = txStateHolder;
         this.accessModeProvider = accessModeProvider;
+        this.accessMode = accessModeProvider.getAccessMode();
         this.isSingle = false;
         this.currentAddedInTx = LongReference.NULL;
         this.checkHasChanges = false;
-        this.hasChanges = hasChanges;
-        this.addedNodes = addedNodes;
-        boolean scanBatch = storeCursor.scanBatch(scan, sizeHint);
-        return addedNodes.hasNext() || scanBatch;
+        this.hasChanges = false;
+        this.addedNodes = ImmutableEmptyLongIterator.INSTANCE;
+        return storeCursor.scanBatch(scan, sizeHint);
     }
 
     void single(long reference, Read read, TxStateHolder txStateHolder, AccessModeProvider accessModeProvider) {
@@ -118,12 +117,12 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         this.read = read;
         this.txStateHolder = txStateHolder;
         this.accessModeProvider = accessModeProvider;
+        this.accessMode = accessModeProvider.getAccessMode();
         this.single = reference;
         this.isSingle = true;
         this.currentAddedInTx = LongReference.NULL;
         this.checkHasChanges = true;
         this.addedNodes = ImmutableEmptyLongIterator.INSTANCE;
-        this.singleIsAddedInTx = false;
     }
 
     protected boolean currentNodeIsAddedInTx() {
@@ -189,59 +188,45 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
 
     @Override
     public boolean hasLabel(int label) {
+        if (tracer != null) {
+            tracer.onHasLabel(label);
+        }
+
         if (hasChanges()) {
             TransactionState txState = txStateHolder.txState();
             IntDiffSets diffSets = txState.nodeStateLabelDiffSets(nodeReference());
             if (diffSets.isAdded(label)) {
-                if (tracer != null) {
-                    tracer.onHasLabel(label);
-                }
                 return true;
             }
             if (currentNodeIsAddedInTx() || diffSets.isRemoved(label)) {
-                if (tracer != null) {
-                    tracer.onHasLabel(label);
-                }
                 return false;
             }
         }
 
-        if (tracer != null) {
-            tracer.onHasLabel(label);
-        }
         return storeCursor.hasLabel(label);
     }
 
     @Override
     public boolean hasLabel() {
+        if (tracer != null) {
+            tracer.onHasLabel();
+        }
         if (hasChanges()) {
             TransactionState txState = txStateHolder.txState();
             IntDiffSets diffSets = txState.nodeStateLabelDiffSets(nodeReference());
             if (diffSets.getAdded().notEmpty()) {
-                if (tracer != null) {
-                    tracer.onHasLabel();
-                }
                 return true;
             }
             if (currentNodeIsAddedInTx()) {
-                if (tracer != null) {
-                    tracer.onHasLabel();
-                }
                 return false;
             }
             // If we remove labels in the transaction we need to do a full check so that we don't remove all of the
             // nodes
             if (diffSets.getRemoved().notEmpty()) {
-                if (tracer != null) {
-                    tracer.onHasLabel();
-                }
                 return labels().numberOfTokens() > 0;
             }
         }
 
-        if (tracer != null) {
-            tracer.onHasLabel();
-        }
         return storeCursor.hasLabel();
     }
 
@@ -357,28 +342,20 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         return securityRelationshipTraversalCursor;
     }
 
-    private boolean allowsTraverse(StorageNodeCursor nodeCursor) {
-        AccessMode accessMode = accessModeProvider.getAccessMode();
-        if (accessMode.allowsTraverseAllLabels()) {
-            return true;
+    private AccessControlDataProvider getSelectedPropertiesProvider() {
+        if (accessControlDataProvider == null) {
+            accessControlDataProvider = new AccessControlDataProvider(
+                    () -> storeCursor::properties,
+                    internalCursors,
+                    applyAccessModeToTxState,
+                    this::txStateProperties,
+                    () -> read);
         }
-
-        var labels = applyAccessModeToTxState ? labels(nodeCursor).all() : nodeCursor.labels();
-        if (accessMode.hasTraverseNodePropertyRules()) {
-            var securityProperties = accessMode.getTraverseNodeSecurityProperties(labels);
-            if (securityProperties.notEmpty()) { // This means there are property-based rules affecting THIS NODE
-                var securityPropertyProvider = getSecurityPropertyProvider(nodeCursor, securityProperties);
-                return accessMode.allowsTraverseNodeWithPropertyRules(securityPropertyProvider, labels);
-            }
-        }
-        return accessMode.allowsTraverseNode(labels);
+        return accessControlDataProvider;
     }
 
-    private StoragePropertyCursor lazyInitAndGetSecurityPropertyCursor() {
-        if (securityPropertyCursor == null) {
-            securityPropertyCursor = internalCursors.allocateStoragePropertyCursor();
-        }
-        return securityPropertyCursor;
+    private Iterable<StorageProperty> txStateProperties() {
+        return txStateHolder.txState().getNodeState(this.nodeReference()).addedAndChangedProperties();
     }
 
     private TokenSet labels(StorageNodeCursor nodeCursor) {
@@ -397,43 +374,16 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         }
     }
 
-    private ReadSecurityPropertyProvider getSecurityPropertyProvider(
-            StorageNodeCursor storageNodeCursor, IntSet securityProperties) {
-        storageNodeCursor.properties(
-                lazyInitAndGetSecurityPropertyCursor(), PropertySelection.selection(securityProperties.toArray()));
-        Iterable<StorageProperty> txStateChangedProperties = applyAccessModeToTxState
-                ? txStateHolder.txState().getNodeState(this.nodeReference()).addedAndChangedProperties()
-                : null;
-
-        return new ReadSecurityPropertyProvider.LazyReadSecurityPropertyProvider(
-                securityPropertyCursor,
-                txStateChangedProperties,
-                PropertySelection.selection(securityProperties.toArray()));
-    }
-
     @Override
     public boolean next() {
         // Check tx state
         boolean hasChanges = hasChanges();
 
         if (hasChanges) {
-            if (isSingle && singleIsAddedInTx) {
-                currentAddedInTx = single;
-                singleIsAddedInTx = false;
-                if (!applyAccessModeToTxState || allowsTraverse()) {
-                    if (tracer != null) {
-                        tracer.onNode(nodeReference());
-                    }
-                    return true;
-                }
-            }
-
             while (addedNodes.hasNext()) {
                 currentAddedInTx = addedNodes.next();
-                if ((!applyAccessModeToTxState || allowsTraverse())) {
-                    if (tracer != null) {
-                        tracer.onNode(nodeReference());
-                    }
+                if (!applyAccessModeToTxState || allowsTraverse()) {
+                    traceNode();
                     return true;
                 }
             }
@@ -441,24 +391,33 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
         }
 
         while (storeCursor.next()) {
-            boolean skip =
-                    hasChanges && txStateHolder.txState().nodeIsDeletedInThisBatch(storeCursor.entityReference());
-            if (!skip && allowsTraverse()) {
-                if (tracer != null) {
-                    tracer.onNode(nodeReference());
-                }
+            if (!deletedInThisBatch(hasChanges) && allowsTraverse()) {
+                traceNode();
                 return true;
             }
         }
         return false;
     }
 
+    private boolean deletedInThisBatch(boolean hasChanges) {
+        return hasChanges && txStateHolder.txState().nodeIsDeletedInThisBatch(storeCursor.entityReference());
+    }
+
+    private void traceNode() {
+        if (tracer != null) {
+            tracer.onNode(nodeReference());
+        }
+    }
+
     protected boolean allowsTraverse() {
-        return allowsTraverse(storeCursor);
+        assert accessMode == accessModeProvider.getAccessMode() : "access mode changed while cursor is in use";
+        return accessMode.allowsTraverseNode(
+                () -> AccessControlDataProvider.nodeLabels(this, applyAccessModeToTxState),
+                getSelectedPropertiesProvider());
     }
 
     protected boolean allowsTraverseAll() {
-        AccessMode accessMode = accessModeProvider.getAccessMode();
+        assert accessMode == accessModeProvider.getAccessMode() : "access mode changed while cursor is in use";
         return accessMode.allowsTraverseAllRelTypes() && accessMode.allowsTraverseAllLabels();
     }
 
@@ -468,15 +427,17 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
             read = null;
             txStateHolder = null;
             accessModeProvider = null;
+            accessMode = null;
             checkHasChanges = true;
             addedNodes = ImmutableEmptyLongIterator.INSTANCE;
             storeCursor.reset();
-            if (securityPropertyCursor != null) {
-                securityPropertyCursor.reset();
-            }
             if (securityRelationshipTraversalCursor != null) {
                 securityRelationshipTraversalCursor.close();
                 securityRelationshipTraversalCursor = null;
+            }
+            if (accessControlDataProvider != null) {
+                accessControlDataProvider.close();
+                accessControlDataProvider = null;
             }
         }
         super.closeInternal();
@@ -493,26 +454,22 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
      */
     boolean hasChanges() {
         if (checkHasChanges) {
-            computeHasChanges();
+            hasChanges = txStateHolder.hasTxStateWithChanges();
+            if (hasChanges) {
+                addedNodes = collextTxStateChanges(txStateHolder);
+            }
+            checkHasChanges = false;
         }
         return hasChanges;
     }
 
-    @SuppressWarnings("AssignmentUsedAsCondition")
-    private void computeHasChanges() {
-        checkHasChanges = false;
-        if (hasChanges = txStateHolder.hasTxStateWithChanges()) {
-            if (this.isSingle) {
-                singleIsAddedInTx = txStateHolder.txState().nodeIsAddedInThisBatch(single);
-            } else {
-                addedNodes = txStateHolder
-                        .txState()
-                        .addedAndRemovedNodes()
-                        .getAdded()
-                        .freeze()
-                        .longIterator();
-            }
+    private LongIterator collextTxStateChanges(TxStateHolder stateHolder) {
+        if (this.isSingle) {
+            return stateHolder.txState().nodeIsAddedInThisBatch(single)
+                    ? LongHashSet.newSetWith(single).longIterator()
+                    : ImmutableEmptyLongIterator.INSTANCE;
         }
+        return stateHolder.txState().addedAndRemovedNodes().getAdded().freeze().longIterator();
     }
 
     @Override
@@ -525,17 +482,19 @@ public class DefaultNodeCursor extends TraceableCursorImpl<DefaultNodeCursor> im
 
     @Override
     public void release() {
-        final var localSecurityPropertyCursor = securityPropertyCursor;
         final var localSecurityRelationshipTraversalCursor = securityRelationshipTraversalCursor;
-        try (localSecurityPropertyCursor;
-                localSecurityRelationshipTraversalCursor;
+        final var localAccessControlDataProvider = accessControlDataProvider;
+        try (localSecurityRelationshipTraversalCursor;
+                localAccessControlDataProvider;
                 storeCursor) {
             // A concise and low-cost way of closing all these cursors w/o the overhead of, say IOUtils.closeAll
             if (localSecurityRelationshipTraversalCursor != null) {
                 localSecurityRelationshipTraversalCursor.release();
             }
+            if (localAccessControlDataProvider != null) {
+                localAccessControlDataProvider.release();
+            }
         } finally {
-            securityPropertyCursor = null;
             securityRelationshipTraversalCursor = null;
         }
     }

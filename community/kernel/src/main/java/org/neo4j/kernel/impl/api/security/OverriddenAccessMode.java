@@ -30,7 +30,6 @@ import org.neo4j.internal.kernel.api.TokenSet;
 import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.PermissionState;
 import org.neo4j.internal.kernel.api.security.PrivilegeAction;
-import org.neo4j.internal.kernel.api.security.ReadSecurityPropertyProvider;
 import org.neo4j.internal.kernel.api.security.SelectedPropertiesProvider;
 import org.neo4j.messages.MessageUtil;
 import org.neo4j.storageengine.api.PropertySelection;
@@ -105,8 +104,8 @@ public class OverriddenAccessMode extends WrappedAccessMode {
     }
 
     @Override
-    public boolean allowsTraverseNodeWithPropertyRules(ReadSecurityPropertyProvider propertyProvider, int... labels) {
-        return wrapping.allowsTraverseNodeWithPropertyRules(propertyProvider, labels);
+    public boolean allowsTraverseNode(LabelsSupplier labels, SelectedPropertiesProvider selectedPropertiesProvider) {
+        return wrapping.allowsTraverseNode(labels, selectedPropertiesProvider);
     }
 
     @Override
