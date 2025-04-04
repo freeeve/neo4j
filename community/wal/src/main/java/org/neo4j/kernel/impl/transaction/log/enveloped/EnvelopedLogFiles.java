@@ -207,6 +207,19 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     }
 
     /**
+     * Truncates the envelope log files after the last written entry.
+     * No written entries are truncated, this should be called only
+     * when we want to free the pre-allocated data in the log.
+     */
+    public void forceRotate() throws IOException {
+        appendingChannel.truncateToPosition(
+                appendingChannel.position(),
+                appendingChannel.currentChecksum(),
+                appendingChannel.currentIndex(),
+                appendingChannel.currentTerm());
+    }
+
+    /**
      * Prunes the envelope files. Only entire files can be removed by prune.
      * @param index the desired index to prune up to (exclusive)
      * @return the highest index that was removed after the prune event, or -1 if there is nothing to prune

@@ -120,6 +120,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .addConstraint(min(0))
             .build();
 
+    @Internal
+    @Description("Trigger the upgrade at the clustering layer. Default is false")
+    public static final Setting<Boolean> use_clustering_upgrade_mechanism = newBuilder(
+                    "internal.dbms.use_clustering_upgrade_mechanism", BOOL, false)
+            .build();
+
     public enum CypherRuntime {
         DEFAULT,
         LEGACY,

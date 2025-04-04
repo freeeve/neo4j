@@ -688,4 +688,8 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     public long currentIndex() {
         return currentIndex;
     }
+
+    public long currentTerm() {
+        return currentTerm;
+    }
 }
