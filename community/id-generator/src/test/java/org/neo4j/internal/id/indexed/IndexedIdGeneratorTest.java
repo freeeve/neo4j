@@ -57,6 +57,7 @@ import static org.neo4j.internal.id.IdUtils.idFromCombinedId;
 import static org.neo4j.internal.id.IdUtils.numberOfIdsFromCombinedId;
 import static org.neo4j.internal.id.IdUtils.usedFromCombinedId;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.IDS_PER_ENTRY;
+import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_ID;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_MONITOR;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.SMALL_CACHE_CAPACITY;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
@@ -122,6 +123,7 @@ import org.neo4j.io.ByteUnit;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
+import org.neo4j.io.pagecache.PageCacheOpenOptions;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
@@ -192,7 +194,7 @@ class IndexedIdGeneratorTest {
                 DEFAULT_DATABASE_NAME,
                 CONTEXT_FACTORY,
                 customization.monitor,
-                getOpenOptions(),
+                getOpenOptions().newWithAll(customization.extraOpenOptions),
                 customization.slotDistribution,
                 PageCacheTracer.NULL,
                 true,
@@ -2194,27 +2196,19 @@ class IndexedIdGeneratorTest {
     }
 
     @Test
-    void shouldMultiVersionIdGGeneratorGood() throws IOException {
-        /*
-           [1, 2, 4, 8]
-           [1]  5, 24, 52
-           [2]  6(2)
-           [4]  //6(5)
-           [8]
-
-
-           - record deletion -> buffering -> IdCache
-           - record deletion -> buffering -> write to tree -> later find via search ->
-
-           [00000000 00000000 00000111 11000000] commit bits used/deleted
-           [00000000 00000000 00000000 00000000] free bits
-           [00000000 00000000 00000000 00000000] reserved bits
-        */
-
-        open(customization().with(slotDistribution(new int[] {1, 2, 3, 4})));
+    void shouldGeneratePageIdRangeSingleSlotted() throws IOException {
+        open(customization()
+                .with(slotDistribution(new int[] {1}))
+                .with(immutable.with(PageCacheOpenOptions.MULTI_VERSIONED)));
         idGenerator.start(NO_FREE_IDS, NULL_CONTEXT);
-        var pageRange = idGenerator.nextPageRange(NULL_CONTEXT, 128);
-        //        pageRange.nextConsecutiveIds(4);
+        int idsPerPage = 128;
+        var pageRange = idGenerator.nextPageRange(NULL_CONTEXT, idsPerPage);
+
+        for (int i = 0; i < 1; i++) {
+            if (pageRange.hasNext()) {
+                assertThat(pageRange.nextId()).isNotEqualTo(NO_ID);
+            }
+        }
     }
 
     private MutableLongList gatherDeleteIds() throws IOException {
@@ -2542,6 +2536,7 @@ class IndexedIdGeneratorTest {
         private IndexedIdGenerator.Monitor monitor = NO_MONITOR;
         private boolean readOnly;
         private IdSlotDistribution slotDistribution = SINGLE_IDS;
+        private ImmutableSet<OpenOption> extraOpenOptions = immutable.empty();
 
         Customization(Path file) {
             this.file = file;
@@ -2574,6 +2569,11 @@ class IndexedIdGeneratorTest {
 
         Customization with(IdSlotDistribution slotDistribution) {
             this.slotDistribution = slotDistribution;
+            return this;
+        }
+
+        Customization with(ImmutableSet<OpenOption> extraOpenOptions) {
+            this.extraOpenOptions = extraOpenOptions;
             return this;
         }
     }
