@@ -1411,6 +1411,32 @@ public final class CypherFunctions {
     }
 
     @CalledFromGeneratedCode
+    public static String[] getDynamicLabels(AnyValue labelName) {
+        if (labelName instanceof TextValue textLabel) {
+            return new String[] {textLabel.stringValue()};
+        } else if (labelName instanceof SequenceValue labelSequence) {
+            var list = new String[labelSequence.intSize()];
+            int i = 0;
+            for (var l : labelSequence) {
+                if (l instanceof TextValue textLabel) {
+                    list[i++] = textLabel.stringValue();
+                } else {
+                    throw CypherTypeException.expectedStringNotNull(
+                            "Expected node label to be a string or list of strings.",
+                            l.prettyPrint(),
+                            CypherTypeValueMapper.valueType(l));
+                }
+            }
+            return list;
+        } else {
+            throw CypherTypeException.expectedStringOrListOfStringsNotNull(
+                    "Expected node label to be a string or list of strings.",
+                    labelName.prettyPrint(),
+                    CypherTypeValueMapper.valueType(labelName));
+        }
+    }
+
+    @CalledFromGeneratedCode
     public static boolean hasALabel(AnyValue entity, DbAccess access, NodeCursor nodeCursor) {
         assert entity != NO_VALUE : "NO_VALUE checks need to happen outside this call";
         if (entity instanceof VirtualNodeValue virtualNodeValue) {

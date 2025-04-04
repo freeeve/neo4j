@@ -259,6 +259,8 @@ import org.neo4j.cypher.internal.logical.plans.DropIndexOnName
 import org.neo4j.cypher.internal.logical.plans.DropRole
 import org.neo4j.cypher.internal.logical.plans.DropServer
 import org.neo4j.cypher.internal.logical.plans.DropUser
+import org.neo4j.cypher.internal.logical.plans.DynamicLabel
+import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.EnableServer
@@ -731,6 +733,40 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(NodeByLabelScan(varFor("  UNNAMED123"), label("X"), Set.empty, IndexOrderNone), 33.0),
       planDescription(id, "NodeByLabelScan", Seq.empty, Seq(details(s"${anonVar("123")}:X")), Set(anonVar("123")))
+    )
+  }
+
+  test("DynamicNodeByLabelsScan") {
+    assertGood(
+      attach(
+        DynamicNodeByLabelsScan(
+          varFor("node"),
+          DynamicLabel.Simple(literal(List("A", "B")), DynamicLabel.All),
+          Set.empty,
+          IndexOrderNone
+        ),
+        33.0
+      ),
+      planDescription(id, "DynamicNodeByLabelsScan", Seq.empty, Seq(details("node:$all([\"A\", \"B\"])")), Set("node"))
+    )
+
+    assertGood(
+      attach(
+        DynamicNodeByLabelsScan(
+          varFor("  UNNAMED123"),
+          DynamicLabel.Simple(varFor("y"), DynamicLabel.Any),
+          Set.empty,
+          IndexOrderNone
+        ),
+        33.0
+      ),
+      planDescription(
+        id,
+        "DynamicNodeByLabelsScan",
+        Seq.empty,
+        Seq(details(s"${anonVar("123")}:$$any(y)")),
+        Set(anonVar("123"))
+      )
     )
   }
 

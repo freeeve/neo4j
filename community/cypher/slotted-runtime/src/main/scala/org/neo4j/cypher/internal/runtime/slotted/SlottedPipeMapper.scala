@@ -70,6 +70,8 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
+import org.neo4j.cypher.internal.logical.plans.DynamicLabel
+import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -270,6 +272,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.DirectedUnionRelationship
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedPrimitivePipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedSinglePrimitivePipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicNodeByLabelsScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.EagerSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.ExpandAllSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.ExpandIntoSlottedPipe
@@ -449,6 +452,18 @@ class SlottedPipeMapper(
       case NodeByLabelScan(column, label, _, indexOrder) =>
         indexRegistrator.registerLabelScan()
         NodesByLabelScanSlottedPipe(column.name, LazyLabel(label)(semanticTable), slots, indexOrder)(id)
+
+      case DynamicNodeByLabelsScan(column, labelExpr, _, indexOrder) =>
+        indexRegistrator.registerLabelScan()
+        labelExpr match {
+          case DynamicLabel.Simple(expr, operator) =>
+            DynamicNodeByLabelsScanSlottedPipe(
+              slots.longOffset(column.name),
+              expressionConverters.toCommandExpression(id, expr),
+              operator,
+              indexOrder
+            )(id = id)
+        }
 
       // Note: this plan shouldn't really be used here, but having it mapped here helps
       //      fallback and makes testing easier

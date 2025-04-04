@@ -3106,6 +3106,44 @@ case class NodeByLabelScan(
     copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
 }
 
+// initially we will only support conjunction/disjunction, but later we want to add support for combinations of the
+// two (and negation), hence the sealed trait with just one implementation at present
+sealed trait DynamicLabel
+
+object DynamicLabel {
+  sealed trait SetOperator
+  case object All extends SetOperator
+  case object Any extends SetOperator
+
+  /** expr must evaluate at runtime to a string or list of strings, representing label names to which the operator is applied */
+  case class Simple(expr: Expression, operator: SetOperator) extends DynamicLabel
+}
+
+/**
+ * Produce one row for every node in the graph that has labels matching the labelExpr predicate. This row contains the node (assigned to 'idName')
+ * and the contents of argument.
+ */
+case class DynamicNodeByLabelsScan(
+  idName: LogicalVariable,
+  labelExpr: DynamicLabel,
+  argumentIds: Set[LogicalVariable],
+  indexOrder: IndexOrder
+)(implicit idGen: IdGen) extends NodeLogicalLeafPlan(idGen) with StableLeafPlan {
+
+  override val localAvailableSymbols: Set[LogicalVariable] = argumentIds + idName
+
+  override def usedVariables: Set[LogicalVariable] = Set.empty
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicNodeByLabelsScan =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): DynamicNodeByLabelsScan =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+}
+
 /**
  * Partitioned version of the NodeByLabelsScan operator, should only be used for parallel runtime.
  */

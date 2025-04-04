@@ -132,6 +132,9 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
+import org.neo4j.cypher.internal.logical.plans.DynamicLabel
+import org.neo4j.cypher.internal.logical.plans.DynamicLabel.SetOperator
+import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -1320,6 +1323,23 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     appendAtCurrentIndent(LeafOperator(NodeByLabelScan(
       varFor(n),
       labelName(label),
+      args.map(a => varFor(VariableParser.unescaped(a))).toSet,
+      indexOrder
+    )(_)))
+  }
+
+  def dynamicNodeByLabelsScan(
+    node: String,
+    labelExpr: String,
+    operator: SetOperator,
+    indexOrder: IndexOrder,
+    args: String*
+  ): IMPL = {
+    val n = VariableParser.unescaped(node)
+    newNode(varFor(n))
+    appendAtCurrentIndent(LeafOperator(DynamicNodeByLabelsScan(
+      varFor(n),
+      DynamicLabel.Simple(parseExpression(labelExpr), operator),
       args.map(a => varFor(VariableParser.unescaped(a))).toSet,
       indexOrder
     )(_)))

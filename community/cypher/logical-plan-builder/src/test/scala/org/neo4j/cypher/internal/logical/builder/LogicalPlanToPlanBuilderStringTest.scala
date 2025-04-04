@@ -63,6 +63,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setR
 import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.Descending
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
+import org.neo4j.cypher.internal.logical.plans.DynamicLabel.All
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
@@ -390,6 +391,14 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
     new TestPlanBuilder()
       .produceResults("x")
       .nodeByLabelScan("x", "X")
+      .build()
+  )
+
+  testPlan(
+    "dynamicNodeByLabelsScan",
+    new TestPlanBuilder()
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "['A', 'B']", All, IndexOrderNone)
       .build()
   )
 

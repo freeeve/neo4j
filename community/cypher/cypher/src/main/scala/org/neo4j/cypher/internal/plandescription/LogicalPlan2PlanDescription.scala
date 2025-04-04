@@ -142,6 +142,8 @@ import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForLookupIndex
 import org.neo4j.cypher.internal.logical.plans.DropConstraintOnName
 import org.neo4j.cypher.internal.logical.plans.DropIndexOnName
+import org.neo4j.cypher.internal.logical.plans.DynamicLabel
+import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -436,6 +438,22 @@ case class LogicalPlan2PlanDescription(
         PlanDescriptionImpl(
           id,
           "NodeByLabelScan",
+          children,
+          Seq(Details(prettyDetails)),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case DynamicNodeByLabelsScan(idName, labelExpr, _, _) =>
+        val label = labelExpr match {
+          case DynamicLabel.Simple(expr, DynamicLabel.All) => pretty"$$all(${asPrettyString(expr)})"
+          case DynamicLabel.Simple(expr, DynamicLabel.Any) => pretty"$$any(${asPrettyString(expr)})"
+        }
+        val prettyDetails = pretty"${asPrettyString(idName)}:$label"
+        PlanDescriptionImpl(
+          id,
+          "DynamicNodeByLabelsScan",
           children,
           Seq(Details(prettyDetails)),
           variables,

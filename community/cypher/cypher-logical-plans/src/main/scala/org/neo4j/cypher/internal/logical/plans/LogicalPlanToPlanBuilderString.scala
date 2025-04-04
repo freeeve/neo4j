@@ -71,6 +71,7 @@ import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimpleMutatingPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
+import org.neo4j.cypher.internal.logical.plans.DynamicLabel.SetOperator
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
@@ -530,6 +531,11 @@ object LogicalPlanToPlanBuilderString {
       case Skip(_, count)            => integerString(count)
       case NodeByLabelScan(idName, label, argumentIds, indexOrder) =>
         params(idName, label, indexOrder, spread(argumentIds))
+      case DynamicNodeByLabelsScan(idName, labelExpr, argumentIds, indexOrder) =>
+        labelExpr match {
+          case DynamicLabel.Simple(expr, operator) =>
+            params(idName, expr.quoted, operator, indexOrder, spread(argumentIds))
+        }
       case PartitionedNodeByLabelScan(idName, label, argumentIds) =>
         params(idName, label, spread(argumentIds))
       case UnionNodeByLabelsScan(idName, labels, argumentIds, indexOrder) =>
@@ -2169,6 +2175,7 @@ object LogicalPlanToPlanBuilderString {
     implicit def fromPropertyKeyToken: ToParam[PropertyKeyToken] = _.name.quoted
     implicit def fromRelTypeName: ToParam[RelTypeName] = _.name.quoted
     implicit def fromRelTypeToken: ToParam[RelationshipTypeToken] = _.name.quoted
+    implicit def fromSetOperator: ToParam[SetOperator] = str(x => s"DynamicLabel.$x")
 
     implicit def fromIndexOrder: ToParam[IndexOrder] = str(objectName)
     implicit def fromTraversalPathMode: ToParam[TraversalPathMode] = str(objectName)
