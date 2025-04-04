@@ -20,12 +20,12 @@
 package org.neo4j.kernel.impl.index.schema;
 
 /**
- * Null-object used by {@link IndexLayout}
+ * Null-object used by {@code IndexLayout}
  */
 public class NullValue {
-    static final int SIZE = 0;
+    public static final int SIZE = 0;
 
-    static final NullValue INSTANCE = new NullValue();
+    public static final NullValue INSTANCE = new NullValue();
 
     @Override
     public String toString() {
