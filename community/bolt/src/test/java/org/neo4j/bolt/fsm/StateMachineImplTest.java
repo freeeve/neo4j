@@ -460,8 +460,8 @@ class StateMachineImplTest {
     @Test
     void shouldRethrowAuthenticationStateTransitionExceptions() throws StateMachineException {
         var responseHandler = Mockito.mock(ResponseHandler.class);
-        var ex = new AuthenticationStateTransitionException(
-                new AuthenticationException(Request.InvalidUsage, "Something went wrong"));
+        var ex = new AuthenticationStateTransitionException(AuthenticationException.internalError(
+                this.getClass().getSimpleName(), "Something went wrong", Request.InvalidUsage));
 
         Mockito.doThrow(ex).when(this.initialState).process(Mockito.any(), Mockito.any(), Mockito.any());
 

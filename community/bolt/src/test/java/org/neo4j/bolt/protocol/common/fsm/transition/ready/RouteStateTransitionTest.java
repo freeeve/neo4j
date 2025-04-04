@@ -140,7 +140,8 @@ class RouteStateTransitionTest extends AbstractStateTransitionTest<RouteMessage,
 
     @Test
     void shouldFailWithAuthenticationStateTransitionExceptionOnAuthenticationError() throws AuthenticationException {
-        Mockito.doThrow(new AuthenticationException(Request.Invalid, "Something went wrong"))
+        Mockito.doThrow(AuthenticationException.internalError(
+                        this.getClass().getSimpleName(), "Something went wrong", Request.Invalid))
                 .when(this.connection)
                 .impersonate("bob");
 

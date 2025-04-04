@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.server.rest.domain.JsonHelper;
 import org.neo4j.server.rest.domain.JsonParseException;
 import org.neo4j.server.rest.repr.formats.MapWrappingWriter;
@@ -50,7 +51,9 @@ class ExceptionRepresentationTest {
     @Test
     void shouldRenderErrorsWithNeo4jStatusCode() throws Exception {
         // Given
-        ExceptionRepresentation rep = new ExceptionRepresentation(new KernelException(UnknownError, "Hello") {});
+        var dummyGql = GqlHelper.get50N00(this.getClass().getSimpleName(), "Hello");
+        ExceptionRepresentation rep =
+                new ExceptionRepresentation(new KernelException(dummyGql, UnknownError, "Hello") {});
 
         // When
         JsonNode out = serialize(rep);
@@ -63,8 +66,9 @@ class ExceptionRepresentationTest {
     @Test
     void shouldExcludeLegacyFormatIfAsked() throws Exception {
         // Given
+        var dummyGql = GqlHelper.get50N00(this.getClass().getSimpleName(), "Hello");
         ExceptionRepresentation rep =
-                new ExceptionRepresentation(new KernelException(UnknownError, "Hello") {}, /*legacy*/ false);
+                new ExceptionRepresentation(new KernelException(dummyGql, UnknownError, "Hello") {}, /*legacy*/ false);
 
         // When
         JsonNode out = serialize(rep);

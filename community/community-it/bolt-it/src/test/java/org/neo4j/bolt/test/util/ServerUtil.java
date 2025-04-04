@@ -104,7 +104,8 @@ public final class ServerUtil {
                         try {
                             Thread.sleep(((IntegralValue) objects[0]).longValue());
                         } catch (InterruptedException e) {
-                            throw new ProcedureException(Status.General.UnknownError, e, "Interrupted");
+                            throw ProcedureException.internalError(
+                                    this.getClass().getSimpleName(), "Interrupted", Status.General.UnknownError, e);
                         }
                         return ResourceRawIterator.empty();
                     }

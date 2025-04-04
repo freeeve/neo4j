@@ -140,7 +140,8 @@ class AuthenticationStateTransitionTest
                     // dynamic tests (see https://github.com/junit-team/junit5/issues/694)
                     this.prepareContext();
 
-                    Mockito.doThrow(new AuthenticationException(Request.Invalid, "Something went wrong"))
+                    Mockito.doThrow(AuthenticationException.internalError(
+                                    this.getClass().getSimpleName(), "Something went wrong", Request.Invalid))
                             .when(this.connection)
                             .logon(Mockito.anyMap());
 

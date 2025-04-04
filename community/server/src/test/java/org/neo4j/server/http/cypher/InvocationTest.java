@@ -848,7 +848,8 @@ class InvocationTest {
     @Test
     void deadlockExceptionHasCorrectStatus() throws Throwable {
         // given
-        when(transaction.run("query", MapValue.EMPTY)).thenThrow(new DeadlockDetectedException("deadlock"));
+        when(transaction.run("query", MapValue.EMPTY))
+                .thenThrow(DeadlockDetectedException.deadlockDetected("deadlock"));
 
         when(registry.begin(any(TransactionHandle.class))).thenReturn(123L);
         TransactionHandle handle = getTransactionHandle(registry);

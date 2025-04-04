@@ -22,6 +22,7 @@ package org.neo4j.bolt.protocol.common.message;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.neo4j.gqlstatus.ErrorClassification.TRANSIENT_ERROR;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -29,7 +30,6 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.exceptions.CypherExecutionException;
 import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.gqlstatus.DiagnosticRecord;
-import org.neo4j.gqlstatus.ErrorClassification;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
@@ -51,7 +51,7 @@ class ErrorTest {
     @Test
     void shouldConvertDeadlockException() {
         // When
-        Error error = Error.from(new DeadlockDetectedException(null));
+        Error error = Error.from(DeadlockDetectedException.deadlockDetected(null));
 
         // Then
         assertEquals(Status.Transaction.DeadlockDetected, error.status());
@@ -107,17 +107,22 @@ class ErrorTest {
         @Test
         void shouldConvertDeadlockException() {
             // When
-            var cause = new DeadlockDetectedException("Dead lock");
+            var cause = DeadlockDetectedException.deadlockDetected("Dead lock");
             Error error = Error.from(cause);
             var metadata = error.asBoltMessage().metadata();
 
             // Then
             assertThat(metadata.status()).isEqualTo(Status.Transaction.DeadlockDetected);
             assertThat(metadata.message()).isEqualTo(cause.getMessage());
-            assertThat(metadata.gqlStatus()).isEqualTo(ErrorGqlStatusObject.DEFAULT_STATUS_CODE);
-            assertThat(metadata.description()).isEqualTo(ErrorGqlStatusObject.DEFAULT_STATUS_DESCRIPTION);
+            assertThat(metadata.gqlStatus()).isEqualTo(GqlStatusInfoCodes.STATUS_50N05.getStatusString());
+            assertThat(metadata.description())
+                    .isEqualTo("error: general processing exception - deadlock detected. "
+                            + "Deadlock detected while trying to acquire locks. See log for more details.");
             assertThat(metadata.diagnosticRecord())
-                    .isEqualTo(DiagnosticRecord.from().build().asMap());
+                    .isEqualTo(DiagnosticRecord.from()
+                            .withClassification(TRANSIENT_ERROR)
+                            .build()
+                            .asMap());
             assertThat(metadata.cause()).isNull();
         }
 
@@ -142,7 +147,7 @@ class ErrorTest {
                             "error: connection exception - database unavailable. The database `MyDb` is currently unavailable. Check the database status. Retry your request at a later time.");
             assertThat(metadata.diagnosticRecord())
                     .isEqualTo(DiagnosticRecord.from()
-                            .withClassification(ErrorClassification.TRANSIENT_ERROR)
+                            .withClassification(TRANSIENT_ERROR)
                             .build()
                             .asMap());
         }
