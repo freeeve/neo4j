@@ -131,7 +131,7 @@ public class ConstraintIndexCreator {
                 // has been created. Now it's just the population left, which can take a long time
                 locks.releaseExclusive(keyType, lockingKeys);
 
-                awaitConstraintIndexPopulation(constraint, proxy, transaction);
+                awaitConstraintIndexPopulation(constraint, proxy, transaction, index);
                 log.debug("Constraint %s populated, starting verification.", constraintString);
 
                 // Index population was successful, but at this point we don't know if the uniqueness constraint holds.
@@ -214,9 +214,12 @@ public class ConstraintIndexCreator {
         }
     }
 
-    private static void awaitConstraintIndexPopulation(
-            IndexBackedConstraintDescriptor constraint, IndexProxy proxy, KernelTransactionImplementation transaction)
-            throws InterruptedException, UniquePropertyValueValidationException {
+    protected void awaitConstraintIndexPopulation(
+            IndexBackedConstraintDescriptor constraint,
+            IndexProxy proxy,
+            KernelTransactionImplementation transaction,
+            IndexDescriptor index)
+            throws InterruptedException, UniquePropertyValueValidationException, IndexNotFoundKernelException {
         try {
             boolean stillGoing;
             do {
