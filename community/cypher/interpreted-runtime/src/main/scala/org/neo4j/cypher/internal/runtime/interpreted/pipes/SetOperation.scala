@@ -377,8 +377,9 @@ case class SetDynamicPropertyOperation(
             state.query.relationshipWriteOps,
             (id: Long) => executionContext.invalidateCachedRelationshipProperties(id)
           )
-        case _ => throw new InvalidArgumentException(
-            s"The expression $entityExpression should have been a node or a relationship, but got $entity"
+        case _ => throw InvalidArgumentException.entityShouldBeNodeOrRel(
+            String.valueOf(entityExpression),
+            String.valueOf(entity)
           )
       }
 
@@ -418,8 +419,9 @@ case class SetPropertiesOperation(entityExpr: Expression, keys: Array[LazyProper
             state.query.relationshipWriteOps,
             (id: Long) => executionContext.invalidateCachedRelationshipProperties(id)
           )
-        case _ => throw new InvalidArgumentException(
-            s"The expression $entityExpr should have been a node or a relationship, but got $resolvedEntity"
+        case _ => throw InvalidArgumentException.entityShouldBeNodeOrRel(
+            String.valueOf(entityExpr),
+            String.valueOf(resolvedEntity)
           )
       }
     } else {
@@ -614,8 +616,9 @@ case class SetPropertyFromMapOperation(entityExpr: Expression, expression: Expre
             state.cursors.relationshipScanCursor,
             (id: Long) => executionContext.invalidateCachedRelationshipProperties(id)
           )
-        case _ => throw new InvalidArgumentException(
-            s"The expression $entityExpr should have been a node or a relationship, but got $resolvedEntity"
+        case _ => throw InvalidArgumentException.entityShouldBeNodeOrRel(
+            String.valueOf(entityExpr),
+            String.valueOf(resolvedEntity)
           )
       }
     } else {
