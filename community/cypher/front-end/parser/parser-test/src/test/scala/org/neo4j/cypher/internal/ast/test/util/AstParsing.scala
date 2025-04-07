@@ -16,6 +16,8 @@
  */
 package org.neo4j.cypher.internal.ast.test.util
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import org.antlr.v4.runtime.Vocabulary
 import org.neo4j.cypher.internal.ast.CallClause
 import org.neo4j.cypher.internal.ast.Clause
@@ -58,6 +60,10 @@ import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.internal.helpers.Exceptions
 
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.StandardOpenOption
+
 import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
@@ -67,7 +73,9 @@ import scala.util.Try
 trait AstParsing extends Parsers.Implicit {
 
   def parseAst[T <: ASTNode : ClassTag](cypher: String)(implicit parsers: Parsers[T]): ParseResults[T] = {
-    ParseResults[T](cypher, ParserInTest.AllParsers.map(p => p -> parseAst[T](p, cypher)).toMap)
+    val result = ParseResults[T](cypher, ParserInTest.AllParsers.map(p => p -> parseAst[T](p, cypher)).toMap)
+    if (LogParserTestQueries.enable) LogParserTestQueries.log(result)
+    result
   }
 
   private def parseAst[T <: ASTNode : ClassTag](
@@ -253,5 +261,49 @@ object Parsers {
     override def variable(): Parser[Variable] = parse(_.variable())
     override def literal(): Parser[Literal] = parse(_.literal())
     override def quantifiedPath(): Parser[QuantifiedPath] = parse(_.parenthesizedPath())
+  }
+}
+
+case class LogConf(mapper: ObjectMapper, path: Path)
+
+// Hack to dump parser test queries
+// 1. Set enable = true
+// 2. Run all parser tests.
+// 3. All queries and their results will be written to a temp file (search for "Writing parser test queries" in output)
+object LogParserTestQueries {
+  final val enable = false
+  var conf: LogConf = _
+  val newLine = "\n".getBytes
+
+  def log[AstClass <: ASTNode](result: ParseResults[AstClass])(implicit astCt: ClassTag[AstClass]): Unit = if (enable) {
+    if (conf == null) {
+      conf = LogConf(new ObjectMapper(), Files.createTempFile("parser-test-queries", ".jsonl"))
+      System.err.println("Writing parser test queries to file: " + conf.path)
+    }
+    Files.write(
+      conf.path,
+      conf.mapper.writeValueAsBytes(toJson(result)),
+      StandardOpenOption.WRITE,
+      StandardOpenOption.APPEND
+    )
+    Files.write(conf.path, newLine, StandardOpenOption.WRITE, StandardOpenOption.APPEND)
+  }
+
+  private def toJson[AstClass <: ASTNode](
+    result: ParseResults[AstClass]
+  )(implicit astCt: ClassTag[AstClass]): ObjectNode = {
+    val parseResults = conf.mapper.createArrayNode()
+    result.result.foreach { case (parser, parseResult) =>
+      val parseTry = parseResult.toTry
+      val resultNode = conf.mapper.createObjectNode()
+        .put("parser", parser.getClass.getSimpleName)
+        .put("isSuccess", parseTry.isSuccess)
+      parseTry.failed.foreach(t => resultNode.put("error", t.getMessage))
+      parseResults.add(resultNode)
+    }
+    conf.mapper.createObjectNode()
+      .put("cypher", result.cypher)
+      .put("targetAst", astCt.runtimeClass.getSimpleName)
+      .set("parseResults", parseResults)
   }
 }
