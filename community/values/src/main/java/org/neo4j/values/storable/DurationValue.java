@@ -966,7 +966,8 @@ public final class DurationValue extends ScalarValue implements TemporalAmount, 
             String prettyVal = unit instanceof Value v ? v.prettyPrint() : String.valueOf(unit);
             throw UnsupportedTemporalUnitException.cannotProcess(prettyVal, e);
         } catch (DateTimeException e) {
-            throw new InvalidArgumentException(e.getMessage(), e);
+            String prettyVal = to instanceof Value v ? v.prettyPrint() : String.valueOf(to);
+            throw InvalidArgumentException.cannotProcessTemporal(prettyVal, e);
         }
     }
 
