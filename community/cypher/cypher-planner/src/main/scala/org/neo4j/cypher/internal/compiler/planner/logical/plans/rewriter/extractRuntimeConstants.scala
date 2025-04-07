@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.extractRuntimeConstants.STOPPER
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.extractRuntimeConstants.isConstant
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.MapExpression
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -71,8 +72,12 @@ case class extractRuntimeConstants(anonymousVariableNameGenerator: AnonymousVari
       Variable(anonymousVariableNameGenerator.nextName)(InputPosition.NONE, Variable.isIsolatedDefault),
       e
     )
+}
 
-  private def isConstant(arg: Expression): Boolean = arg match {
+object extractRuntimeConstants {
+  val STOPPER: RewriterStopper = (a: AnyRef) => a.isInstanceOf[RuntimeConstant]
+
+  def isConstant(arg: Expression): Boolean = arg match {
     // this is not supported semantically, but here just in case
     case MapExpression(Seq()) => false
     // {timezone: TZ} is like the no arg case, that is not necessarily constant
@@ -80,10 +85,6 @@ case class extractRuntimeConstants(anonymousVariableNameGenerator: AnonymousVari
     case MapExpression(items) => items.forall { case (_, value) => value.isConstantForQuery }
     case _                    => arg.isConstantForQuery
   }
-}
-
-object extractRuntimeConstants {
-  val STOPPER: RewriterStopper = (a: AnyRef) => a.isInstanceOf[RuntimeConstant]
 }
 
 trait FunctionMatcher extends Product {

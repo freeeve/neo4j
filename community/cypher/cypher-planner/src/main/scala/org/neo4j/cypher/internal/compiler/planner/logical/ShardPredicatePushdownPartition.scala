@@ -22,6 +22,13 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.PredicateHelper.coercePredicatesWithAnds
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.Date
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.Datetime
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.Duration
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.LocalDatetime
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.LocalTime
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.Time
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.extractRuntimeConstants.isConstant
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Contains
@@ -44,8 +51,6 @@ import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.StartsWith
-import org.neo4j.cypher.internal.frontend.phases.QualifiedName
-import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
@@ -338,9 +343,19 @@ object ShardPredicatePushdownPartition {
             findAllSupportedPropertyAccesses(nextExpressions ++ inequalities, knownUncachedPropertyAccesses)
           case _: Parameter => findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
           case _: Literal   => findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
-          case ResolvedFunctionInvocation(QualifiedName(_, name), _, args)
-            if args.nonEmpty && (name == "date" || name == "datetime" || name == "localdatetime" || name == "localtime" || name == "time" || name == "duration") =>
+          case Datetime(Seq(arg)) if isConstant(arg) =>
             findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
+          case LocalDatetime(Seq(arg)) if isConstant(arg) =>
+            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
+          case Date(Seq(arg)) if isConstant(arg) =>
+            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
+          case LocalTime(Seq(arg)) if isConstant(arg) =>
+            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
+          case Time(Seq(arg)) if isConstant(arg) =>
+            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
+          case Duration(Seq(arg)) if isConstant(arg) =>
+            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
+
           case _ => Left(PredicatePushdownUnsupported)
         }
     }
