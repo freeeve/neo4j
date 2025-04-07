@@ -26,10 +26,6 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class RuntimeUnsupportedException extends Neo4jException {
-    @Deprecated
-    public RuntimeUnsupportedException(String message, Throwable cause) {
-        super(message, cause);
-    }
 
     private RuntimeUnsupportedException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
@@ -37,6 +33,10 @@ public class RuntimeUnsupportedException extends Neo4jException {
 
     private RuntimeUnsupportedException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
+    }
+
+    public static RuntimeUnsupportedException wrapError(CantCompileQueryException cause) {
+        return new RuntimeUnsupportedException(cause, cause.getMessage(), cause);
     }
 
     public static RuntimeUnsupportedException unsupportedRuntimeInThisVersion(String runtime) {

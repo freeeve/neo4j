@@ -206,8 +206,8 @@ class FallbackRuntime[CONTEXT <: RuntimeContext](
     case r if r.correspondingRuntimeOption.isDefined => r.correspondingRuntimeOption.get
   }
 
-  private def publicCannotCompile(originalException: Exception) = {
-    throw new RuntimeUnsupportedException(originalException.getMessage, originalException)
+  private def publicCannotCompile(originalException: CantCompileQueryException) = {
+    throw RuntimeUnsupportedException.wrapError(originalException)
   }
 
   override def compileToExecutable(
