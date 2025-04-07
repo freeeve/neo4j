@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.attribution.Id
 
 case class DirectedRelationshipIndexScanSlottedPipe(
-  offset: Int,
+  offset: Option[Int],
   startNode: Option[Int],
   endNode: Option[Int],
   relType: RelationshipTypeToken,

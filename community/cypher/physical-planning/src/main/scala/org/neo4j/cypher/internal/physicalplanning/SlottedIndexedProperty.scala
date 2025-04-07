@@ -24,6 +24,18 @@ import org.neo4j.cypher.internal.logical.plans.IndexedProperty
 
 object SlottedIndexedProperty {
 
+  def apply(
+    node: Option[LogicalVariable],
+    property: IndexedProperty,
+    slots: SlotConfiguration
+  ): SlottedIndexedProperty = {
+    val maybeOffset = node match {
+      case Some(n) if property.shouldGetValue => Some(slots.cachedPropOffset(property.asCachedProperty(n).runtimeKey))
+      case _                                  => None
+    }
+    SlottedIndexedProperty(property.propertyKeyToken.nameId.id, maybeOffset)
+  }
+
   def apply(node: LogicalVariable, property: IndexedProperty, slots: SlotConfiguration): SlottedIndexedProperty = {
     val maybeOffset =
       if (property.shouldGetValue) {

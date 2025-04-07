@@ -239,42 +239,42 @@ object VariableRefRewriter extends Rewriter {
                 case plan: RelationshipIndexSeekLeafPlan => plan match {
                     case s @ DirectedRelationshipIndexSeek(rel, start, end, _, _, _, args, _, _, _) =>
                       s.copy(
-                        idName = varRef(rel),
+                        idName = rel.map(varRef),
                         startNode = start.map(varRef),
                         endNode = end.map(varRef),
                         argumentIds = args.map(varRef)
                       )(SameId(s.id))
                     case s @ PartitionedDirectedRelationshipIndexSeek(rel, start, end, _, _, _, args, _) =>
                       s.copy(
-                        idName = varRef(rel),
+                        idName = rel.map(varRef),
                         startNode = start.map(varRef),
                         endNode = end.map(varRef),
                         argumentIds = args.map(varRef)
                       )(SameId(s.id))
                     case s @ DirectedRelationshipUniqueIndexSeek(rel, start, end, _, _, _, args, _, _) =>
                       s.copy(
-                        idName = varRef(rel),
+                        idName = rel.map(varRef),
                         startNode = start.map(varRef),
                         endNode = end.map(varRef),
                         argumentIds = args.map(varRef)
                       )(SameId(s.id))
                     case s @ UndirectedRelationshipIndexSeek(rel, left, right, _, _, _, args, _, _, _) =>
                       s.copy(
-                        idName = varRef(rel),
+                        idName = rel.map(varRef),
                         leftNode = left.map(varRef),
                         rightNode = right.map(varRef),
                         argumentIds = args.map(varRef)
                       )(SameId(s.id))
                     case s @ PartitionedUndirectedRelationshipIndexSeek(rel, left, right, _, _, _, args, _) =>
                       s.copy(
-                        idName = varRef(rel),
+                        idName = rel.map(varRef),
                         leftNode = left.map(varRef),
                         rightNode = right.map(varRef),
                         argumentIds = args.map(varRef)
                       )(SameId(s.id))
                     case s @ UndirectedRelationshipUniqueIndexSeek(rel, left, right, _, _, _, args, _, _) =>
                       s.copy(
-                        idName = varRef(rel),
+                        idName = rel.map(varRef),
                         leftNode = left.map(varRef),
                         rightNode = right.map(varRef),
                         argumentIds = args.map(varRef)
@@ -282,56 +282,56 @@ object VariableRefRewriter extends Rewriter {
                   }
                 case s @ DirectedRelationshipIndexContainsScan(rel, start, end, _, _, _, args, _, _) =>
                   s.copy(
-                    idName = varRef(rel),
+                    idName = rel.map(varRef),
                     startNode = start.map(varRef),
                     endNode = end.map(varRef),
                     argumentIds = args.map(varRef)
                   )(SameId(s.id))
                 case s @ DirectedRelationshipIndexEndsWithScan(rel, start, end, _, _, _, args, _, _) =>
                   s.copy(
-                    idName = varRef(rel),
+                    idName = rel.map(varRef),
                     startNode = start.map(varRef),
                     endNode = end.map(varRef),
                     argumentIds = args.map(varRef)
                   )(SameId(s.id))
                 case s @ DirectedRelationshipIndexScan(rel, start, end, _, _, args, _, _, _) =>
                   s.copy(
-                    idName = varRef(rel),
+                    idName = rel.map(varRef),
                     startNode = start.map(varRef),
                     endNode = end.map(varRef),
                     argumentIds = args.map(varRef)
                   )(SameId(s.id))
                 case s @ PartitionedDirectedRelationshipIndexScan(rel, start, end, _, _, args, _) =>
                   s.copy(
-                    idName = varRef(rel),
+                    idName = rel.map(varRef),
                     startNode = start.map(varRef),
                     endNode = end.map(varRef),
                     argumentIds = args.map(varRef)
                   )(SameId(s.id))
                 case s @ UndirectedRelationshipIndexContainsScan(rel, left, right, _, _, _, args, _, _) =>
                   s.copy(
-                    idName = varRef(rel),
+                    idName = rel.map(varRef),
                     leftNode = left.map(varRef),
                     rightNode = right.map(varRef),
                     argumentIds = args.map(varRef)
                   )(SameId(s.id))
                 case s @ UndirectedRelationshipIndexEndsWithScan(rel, left, right, _, _, _, args, _, _) =>
                   s.copy(
-                    idName = varRef(rel),
+                    idName = rel.map(varRef),
                     leftNode = left.map(varRef),
                     rightNode = right.map(varRef),
                     argumentIds = args.map(varRef)
                   )(SameId(s.id))
                 case s @ UndirectedRelationshipIndexScan(rel, left, right, _, _, args, _, _, _) =>
                   s.copy(
-                    idName = varRef(rel),
+                    idName = rel.map(varRef),
                     leftNode = left.map(varRef),
                     rightNode = right.map(varRef),
                     argumentIds = args.map(varRef)
                   )(SameId(s.id))
                 case s @ PartitionedUndirectedRelationshipIndexScan(rel, left, right, _, _, args, _) =>
                   s.copy(
-                    idName = varRef(rel),
+                    idName = rel.map(varRef),
                     leftNode = left.map(varRef),
                     rightNode = right.map(varRef),
                     argumentIds = args.map(varRef)
@@ -339,118 +339,118 @@ object VariableRefRewriter extends Rewriter {
               }
             case s @ AssertingMultiRelationshipIndexSeek(rel, left, right, _, _) =>
               s.copy(
-                relationship = varRef(rel),
+                relationship = rel.map(varRef),
                 leftNode = left.map(varRef),
                 rightNode = right.map(varRef)
               )(SameId(s.id))
             case s @ DirectedAllRelationshipsScan(rel, start, end, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 startNode = start.map(varRef),
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ PartitionedDirectedAllRelationshipsScan(rel, start, end, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 startNode = start.map(varRef),
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ DirectedRelationshipByElementIdSeek(rel, _, start, end, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 startNode = start.map(varRef),
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ DirectedRelationshipByIdSeek(rel, _, start, end, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 startNode = start.map(varRef),
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ DirectedRelationshipTypeScan(rel, start, _, end, args, _) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 startNode = start.map(varRef),
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ PartitionedDirectedRelationshipTypeScan(rel, start, _, end, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 startNode = start.map(varRef),
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ DirectedUnionRelationshipTypesScan(rel, start, _, end, args, _) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 startNode = start.map(varRef),
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ PartitionedDirectedUnionRelationshipTypesScan(rel, start, _, end, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 startNode = start.map(varRef),
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ UndirectedAllRelationshipsScan(rel, left, right, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 leftNode = left.map(varRef),
                 rightNode = right.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ PartitionedUndirectedAllRelationshipsScan(rel, left, right, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 leftNode = left.map(varRef),
                 rightNode = right.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ UndirectedRelationshipByElementIdSeek(rel, _, left, right, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 leftNode = left.map(varRef),
                 rightNode = right.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ UndirectedRelationshipByIdSeek(rel, _, left, right, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 leftNode = left.map(varRef),
                 rightNode = right.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ UndirectedRelationshipTypeScan(rel, left, _, right, args, _) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 leftNode = left.map(varRef),
                 rightNode = right.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ PartitionedUndirectedRelationshipTypeScan(rel, left, _, right, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 leftNode = left.map(varRef),
                 rightNode = right.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ UndirectedUnionRelationshipTypesScan(rel, start, _, end, args, _) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 startNode = start.map(varRef),
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)
               )(SameId(s.id))
             case s @ PartitionedUndirectedUnionRelationshipTypesScan(rel, start, _, end, args) =>
               s.copy(
-                idName = varRef(rel),
+                idName = rel.map(varRef),
                 startNode = start.map(varRef),
                 endNode = end.map(varRef),
                 argumentIds = args.map(varRef)

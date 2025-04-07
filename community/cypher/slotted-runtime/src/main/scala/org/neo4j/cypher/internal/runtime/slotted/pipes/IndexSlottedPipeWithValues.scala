@@ -32,7 +32,7 @@ import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor
 trait IndexSlottedPipeWithValues extends Pipe {
 
   // Offset of the long slot of node variable
-  val offset: Int
+  val offset: Option[Int]
   // the indices of the index properties where we will get values
   val indexPropertyIndices: Array[Int]
   // the offsets of the cached node property slots where we will set values
@@ -44,7 +44,7 @@ trait IndexSlottedPipeWithValues extends Pipe {
     override protected def fetchNext(): CypherRow = {
       if (cursor.next()) {
         val slottedContext = state.newRowWithArgument(rowFactory)
-        slottedContext.setLongAt(offset, cursor.nodeReference())
+        offset.foreach(o => slottedContext.setLongAt(o, cursor.nodeReference()))
         var i = 0
         while (i < indexPropertyIndices.length) {
           val value = cursor.propertyValue(indexPropertyIndices(i))

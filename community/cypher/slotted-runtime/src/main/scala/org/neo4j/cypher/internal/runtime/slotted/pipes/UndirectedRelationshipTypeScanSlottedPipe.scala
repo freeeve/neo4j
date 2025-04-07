@@ -33,7 +33,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.UndirectedRelationshipTyp
 import org.neo4j.cypher.internal.util.attribution.Id
 
 case class UndirectedRelationshipTypeScanSlottedPipe(
-  relOffset: Int,
+  relOffset: Option[Int],
   fromOffset: Option[Int],
   typ: LazyTypeStatic,
   toOffset: Option[Int],
@@ -55,7 +55,7 @@ object UndirectedRelationshipTypeScanSlottedPipe {
 
   class UndirectedIterator(
     relIterator: ClosingLongIterator with RelationshipIterator,
-    relOffset: Int,
+    relOffset: Option[Int],
     fromOffset: Option[Int],
     toOffset: Option[Int],
     rowFactory: CypherRowFactory,

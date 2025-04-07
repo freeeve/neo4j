@@ -34,7 +34,7 @@ import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor
 import org.neo4j.values.storable.TextValue
 
 abstract class AbstractRelationshipIndexStringScanSlottedPipe(
-  offset: Int,
+  offset: Option[Int],
   startNode: Option[Int],
   endNode: Option[Int],
   property: SlottedIndexedProperty,
@@ -110,7 +110,7 @@ trait Undirected {
 }
 
 case class DirectedRelationshipIndexContainsScanSlottedPipe(
-  offset: Int,
+  offset: Option[Int],
   startNode: Option[Int],
   endNode: Option[Int],
   property: SlottedIndexedProperty,
@@ -137,7 +137,7 @@ case class DirectedRelationshipIndexContainsScanSlottedPipe(
 }
 
 case class UndirectedRelationshipIndexContainsScanSlottedPipe(
-  offset: Int,
+  offset: Option[Int],
   startNode: Option[Int],
   endNode: Option[Int],
   property: SlottedIndexedProperty,
@@ -164,7 +164,7 @@ case class UndirectedRelationshipIndexContainsScanSlottedPipe(
 }
 
 case class DirectedRelationshipIndexEndsWithScanSlottedPipe(
-  offset: Int,
+  offset: Option[Int],
   startNode: Option[Int],
   endNode: Option[Int],
   property: SlottedIndexedProperty,
@@ -191,7 +191,7 @@ case class DirectedRelationshipIndexEndsWithScanSlottedPipe(
 }
 
 case class UndirectedRelationshipIndexEndsWithScanSlottedPipe(
-  offset: Int,
+  offset: Option[Int],
   startNode: Option[Int],
   endNode: Option[Int],
   property: SlottedIndexedProperty,

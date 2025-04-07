@@ -39,7 +39,7 @@ case class NodeIndexScanSlottedPipe(
 )(val id: Id = Id.INVALID_ID)
     extends Pipe with IndexSlottedPipeWithValues {
 
-  override val offset: Int = slots.longOffset(ident)
+  override val offset: Option[Int] = Some(slots.longOffset(ident))
 
   override val indexPropertySlotOffsets: Array[Int] = properties.flatMap(_.maybeCachedEntityPropertySlot).toArray
 

@@ -30,7 +30,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.attribution.Id
 
 case class DirectedRelationshipTypeScanSlottedPipe(
-  relOffset: Int,
+  relOffset: Option[Int],
   fromOffset: Option[Int],
   typ: LazyTypeStatic,
   toOffset: Option[Int],

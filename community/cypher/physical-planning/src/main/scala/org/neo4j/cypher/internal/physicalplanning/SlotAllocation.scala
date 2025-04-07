@@ -711,7 +711,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         leaf.cachedProperties.foreach(cp => slots.newCachedProperty(cp.runtimeKey))
 
       case leaf: RelationshipIndexLeafPlan =>
-        slots.newLong(leaf.idName, nullable, CTRelationship)
+        leaf.idName.foreach(r => slots.newLong(r, nullable, CTRelationship))
         leaf.leftNode.foreach(n => slots.newLong(n, nullable, CTNode))
         leaf.rightNode.foreach(n => slots.newLong(n, nullable, CTNode))
         leaf.cachedProperties.foreach(cp => slots.newCachedProperty(cp.runtimeKey))
@@ -720,7 +720,7 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         slots.newLong(leaf.idName, nullable, CTNode)
 
       case leaf: RelationshipLogicalLeafPlan =>
-        slots.newLong(leaf.idName, nullable, CTRelationship)
+        leaf.idName.foreach(r => slots.newLong(r, nullable, CTRelationship))
         leaf.leftNode.foreach(n => slots.newLong(n, nullable, CTNode))
         leaf.rightNode.foreach(n => slots.newLong(n, nullable, CTNode))
 

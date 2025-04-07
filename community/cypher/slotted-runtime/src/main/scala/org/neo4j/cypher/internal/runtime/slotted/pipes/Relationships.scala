@@ -29,47 +29,63 @@ object Relationships {
 
   private object RelationshipWriter {
 
-    case class WriteAll(relOffset: Int, startOffset: Int, endOffset: Int) extends RelationshipWriter {
-
-      override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
-        row.setLongAt(relOffset, rel)
-        row.setLongAt(startOffset, startNode)
-        row.setLongAt(endOffset, endNode)
-      }
-    }
-
-    case class WriteStart(relOffset: Int, startOffset: Int) extends RelationshipWriter {
-
-      override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
-        row.setLongAt(relOffset, rel)
-        row.setLongAt(startOffset, startNode)
-      }
-    }
-
-    case class WriteEnd(relOffset: Int, endOffset: Int) extends RelationshipWriter {
-
-      override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
-        row.setLongAt(relOffset, rel)
-        row.setLongAt(endOffset, endNode)
-      }
-    }
-
-    case class WriteRelationshipOnly(relOffset: Int) extends RelationshipWriter {
-
-      override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
-        row.setLongAt(relOffset, rel)
-      }
+    case object DoNothing extends RelationshipWriter {
+      override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {}
     }
   }
 
   def compileRelationshipWriter(
-    relOffset: Int,
+    maybeRel: Option[Int],
     maybeStartNode: Option[Int],
     maybeEndNode: Option[Int]
-  ): RelationshipWriter = (maybeStartNode, maybeEndNode) match {
-    case (Some(start), Some(end)) => RelationshipWriter.WriteAll(relOffset, start, end)
-    case (None, Some(end))        => RelationshipWriter.WriteEnd(relOffset, end)
-    case (Some(start), None)      => RelationshipWriter.WriteStart(relOffset, start)
-    case (None, None)             => RelationshipWriter.WriteRelationshipOnly(relOffset)
+  ): RelationshipWriter = (maybeRel, maybeStartNode, maybeEndNode) match {
+    case (Some(relOffset), Some(startOffset), Some(endOffset)) =>
+      new RelationshipWriter {
+        override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
+          row.setLongAt(relOffset, rel)
+          row.setLongAt(startOffset, startNode)
+          row.setLongAt(endOffset, endNode)
+        }
+      }
+    case (Some(relOffset), None, Some(endOffset)) =>
+      new RelationshipWriter {
+        override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
+          row.setLongAt(relOffset, rel)
+          row.setLongAt(endOffset, endNode)
+        }
+      }
+    case (Some(relOffset), Some(startOffset), None) =>
+      new RelationshipWriter {
+        override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
+          row.setLongAt(relOffset, rel)
+          row.setLongAt(startOffset, startNode)
+        }
+      }
+    case (Some(relOffset), None, None) =>
+      new RelationshipWriter {
+        override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
+          row.setLongAt(relOffset, rel)
+        }
+      }
+    case (None, Some(startOffset), Some(endOffset)) =>
+      new RelationshipWriter {
+        override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
+          row.setLongAt(startOffset, startNode)
+          row.setLongAt(endOffset, endNode)
+        }
+      }
+    case (None, None, Some(endOffset)) =>
+      new RelationshipWriter {
+        override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
+          row.setLongAt(endOffset, endNode)
+        }
+      }
+    case (None, Some(startOffset), None) =>
+      new RelationshipWriter {
+        override def writeRow(row: CypherRow, rel: Long, startNode: Long, endNode: Long): Unit = {
+          row.setLongAt(startOffset, startNode)
+        }
+      }
+    case (None, None, None) => RelationshipWriter.DoNothing
   }
 }

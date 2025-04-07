@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.attribution.Id
 
 case class UndirectedUnionRelationshipTypesScanSlottedPipe(
-  relOffset: Int,
+  relOffset: Option[Int],
   fromOffset: Option[Int],
   types: Seq[LazyTypeStatic],
   toOffset: Option[Int],

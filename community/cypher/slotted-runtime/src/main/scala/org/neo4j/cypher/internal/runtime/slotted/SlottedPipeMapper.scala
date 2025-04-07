@@ -541,7 +541,7 @@ class SlottedPipeMapper(
         ) =>
         val indexSeekMode = IndexSeekModeFactory(unique = true, readOnly = readOnly).fromQueryExpression(valueExpr)
         DirectedRelationshipIndexSeekSlottedPipe(
-          slots.longOffset(column.name),
+          column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
           rightNode.map(n => slots.longOffset(n)),
           typeToken,
@@ -566,7 +566,7 @@ class SlottedPipeMapper(
         ) =>
         val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
         DirectedRelationshipIndexSeekSlottedPipe(
-          slots.longOffset(column.name),
+          column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
           rightNode.map(n => slots.longOffset(n)),
           typeToken,
@@ -589,7 +589,7 @@ class SlottedPipeMapper(
         ) =>
         val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
         DirectedRelationshipIndexSeekSlottedPipe(
-          slots.longOffset(column.name),
+          column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
           rightNode.map(n => slots.longOffset(n)),
           typeToken,
@@ -613,7 +613,7 @@ class SlottedPipeMapper(
         ) =>
         val indexSeekMode = IndexSeekModeFactory(unique = true, readOnly = readOnly).fromQueryExpression(valueExpr)
         UndirectedRelationshipIndexSeekSlottedPipe(
-          slots.longOffset(column.name),
+          column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
           rightNode.map(n => slots.longOffset(n)),
           typeToken,
@@ -638,7 +638,7 @@ class SlottedPipeMapper(
         ) =>
         val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
         UndirectedRelationshipIndexSeekSlottedPipe(
-          slots.longOffset(column.name),
+          column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
           rightNode.map(n => slots.longOffset(n)),
           typeToken,
@@ -661,7 +661,7 @@ class SlottedPipeMapper(
         ) =>
         val indexSeekMode = IndexSeekModeFactory(unique = false, readOnly = readOnly).fromQueryExpression(valueExpr)
         UndirectedRelationshipIndexSeekSlottedPipe(
-          slots.longOffset(column.name),
+          column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
           rightNode.map(n => slots.longOffset(n)),
           typeToken,
@@ -684,7 +684,7 @@ class SlottedPipeMapper(
           _
         ) =>
         DirectedRelationshipIndexScanSlottedPipe(
-          slots.longOffset(column.name),
+          column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
           rightNode.map(n => slots.longOffset(n)),
           typeToken,
@@ -705,7 +705,7 @@ class SlottedPipeMapper(
           _
         ) =>
         UndirectedRelationshipIndexScanSlottedPipe(
-          slots.longOffset(column.name),
+          column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
           rightNode.map(n => slots.longOffset(n)),
           typeToken,
@@ -724,7 +724,7 @@ class SlottedPipeMapper(
           indexType
         ) =>
         DirectedRelationshipIndexScanSlottedPipe(
-          slots.longOffset(column.name),
+          column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
           rightNode.map(n => slots.longOffset(n)),
           typeToken,
@@ -743,7 +743,7 @@ class SlottedPipeMapper(
           indexType
         ) =>
         UndirectedRelationshipIndexScanSlottedPipe(
-          slots.longOffset(column.name),
+          column.map(r => slots.longOffset(r.name)),
           leftNode.map(n => slots.longOffset(n)),
           rightNode.map(n => slots.longOffset(n)),
           typeToken,
@@ -754,28 +754,28 @@ class SlottedPipeMapper(
 
       case DirectedAllRelationshipsScan(name, start, end, _) =>
         DirectedAllRelationshipsScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           end.map(n => slots.longOffset(n))
         )(id)
 
       case UndirectedAllRelationshipsScan(name, start, end, _) =>
         UndirectedAllRelationshipsScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           end.map(n => slots.longOffset(n))
         )(id)
 
       case PartitionedDirectedAllRelationshipsScan(name, start, end, _) =>
         DirectedAllRelationshipsScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           end.map(n => slots.longOffset(n))
         )(id)
 
       case PartitionedUndirectedAllRelationshipsScan(name, start, end, _) =>
         UndirectedAllRelationshipsScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           end.map(n => slots.longOffset(n))
         )(id)
@@ -783,7 +783,7 @@ class SlottedPipeMapper(
       case DirectedRelationshipTypeScan(name, start, typ, end, _, indexOrder) =>
         indexRegistrator.registerTypeScan()
         DirectedRelationshipTypeScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           LazyType(typ),
           end.map(n => slots.longOffset(n)),
@@ -808,7 +808,7 @@ class SlottedPipeMapper(
       case UndirectedRelationshipTypeScan(name, start, typ, end, _, indexOrder) =>
         indexRegistrator.registerTypeScan()
         UndirectedRelationshipTypeScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           LazyType(typ),
           end.map(n => slots.longOffset(n)),
@@ -833,7 +833,7 @@ class SlottedPipeMapper(
       case PartitionedDirectedRelationshipTypeScan(name, start, typ, end, _) =>
         indexRegistrator.registerTypeScan()
         DirectedRelationshipTypeScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           LazyType(typ),
           end.map(n => slots.longOffset(n)),
@@ -843,7 +843,7 @@ class SlottedPipeMapper(
       case PartitionedUndirectedRelationshipTypeScan(name, start, typ, end, _) =>
         indexRegistrator.registerTypeScan()
         UndirectedRelationshipTypeScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           LazyType(typ),
           end.map(n => slots.longOffset(n)),
@@ -853,7 +853,7 @@ class SlottedPipeMapper(
       case DirectedUnionRelationshipTypesScan(name, start, types, end, _, indexOrder) =>
         indexRegistrator.registerTypeScan()
         DirectedUnionRelationshipTypesScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           types.map(t => LazyType(t)(semanticTable)),
           end.map(n => slots.longOffset(n)),
@@ -863,7 +863,7 @@ class SlottedPipeMapper(
       case UndirectedUnionRelationshipTypesScan(name, start, types, end, _, indexOrder) =>
         indexRegistrator.registerTypeScan()
         UndirectedUnionRelationshipTypesScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           types.map(t => LazyType(t)(semanticTable)),
           end.map(n => slots.longOffset(n)),
@@ -873,7 +873,7 @@ class SlottedPipeMapper(
       case PartitionedDirectedUnionRelationshipTypesScan(name, start, types, end, _) =>
         indexRegistrator.registerTypeScan()
         DirectedUnionRelationshipTypesScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           types.map(t => LazyType(t)(semanticTable)),
           end.map(n => slots.longOffset(n)),
@@ -883,7 +883,7 @@ class SlottedPipeMapper(
       case PartitionedUndirectedUnionRelationshipTypesScan(name, start, types, end, _) =>
         indexRegistrator.registerTypeScan()
         UndirectedUnionRelationshipTypesScanSlottedPipe(
-          slots.longOffset(name),
+          name.map(r => slots.longOffset(r)),
           start.map(n => slots.longOffset(n)),
           types.map(t => LazyType(t)(semanticTable)),
           end.map(n => slots.longOffset(n)),
@@ -902,7 +902,7 @@ class SlottedPipeMapper(
           indexType
         ) =>
         DirectedRelationshipIndexContainsScanSlottedPipe(
-          slots.longOffset(name.name),
+          name.map(r => slots.longOffset(r)),
           startNode.map(n => slots.longOffset(n)),
           endNode.map(n => slots.longOffset(n)),
           SlottedIndexedProperty(name, property, slots),
@@ -924,7 +924,7 @@ class SlottedPipeMapper(
           indexType
         ) =>
         UndirectedRelationshipIndexContainsScanSlottedPipe(
-          slots.longOffset(name.name),
+          name.map(r => slots.longOffset(r)),
           startNode.map(n => slots.longOffset(n)),
           endNode.map(n => slots.longOffset(n)),
           SlottedIndexedProperty(name, property, slots),
@@ -946,7 +946,7 @@ class SlottedPipeMapper(
           indexType
         ) =>
         DirectedRelationshipIndexEndsWithScanSlottedPipe(
-          slots.longOffset(name.name),
+          name.map(r => slots.longOffset(r)),
           startNode.map(n => slots.longOffset(n)),
           endNode.map(n => slots.longOffset(n)),
           SlottedIndexedProperty(name, property, slots),
@@ -968,7 +968,7 @@ class SlottedPipeMapper(
           indexType
         ) =>
         UndirectedRelationshipIndexEndsWithScanSlottedPipe(
-          slots.longOffset(name.name),
+          name.map(r => slots.longOffset(r)),
           startNode.map(n => slots.longOffset(n)),
           endNode.map(n => slots.longOffset(n)),
           SlottedIndexedProperty(name, property, slots),
