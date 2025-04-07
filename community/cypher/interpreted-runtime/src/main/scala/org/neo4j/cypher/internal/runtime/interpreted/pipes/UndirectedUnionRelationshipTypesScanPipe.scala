@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedUnionRelation
 import org.neo4j.cypher.internal.util.attribution.Id
 
 case class UndirectedUnionRelationshipTypesScanPipe(
-  ident: String,
+  ident: Option[String],
   fromNode: Option[String],
   types: Seq[LazyTypeStatic],
   toNode: Option[String],

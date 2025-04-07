@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.values.virtual.VirtualValues
 
 case class DirectedRelationshipTypeScanPipe(
-  ident: String,
+  ident: Option[String],
   fromNode: Option[String],
   typ: LazyTypeStatic,
   toNode: Option[String],

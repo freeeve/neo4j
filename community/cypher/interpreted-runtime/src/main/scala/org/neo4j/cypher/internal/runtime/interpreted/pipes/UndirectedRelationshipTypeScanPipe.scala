@@ -31,7 +31,7 @@ import org.neo4j.values.virtual.VirtualRelationshipValue
 import org.neo4j.values.virtual.VirtualValues
 
 case class UndirectedRelationshipTypeScanPipe(
-  ident: String,
+  ident: Option[String],
   fromNode: Option[String],
   typ: LazyTypeStatic,
   toNode: Option[String],
@@ -53,7 +53,7 @@ object UndirectedRelationshipTypeScanPipe {
 
   class UndirectedIterator(
     relIterator: ClosingLongIterator with RelationshipIterator,
-    relName: String,
+    relName: Option[String],
     fromNode: Option[String],
     toNode: Option[String],
     rowFactory: CypherRowFactory,

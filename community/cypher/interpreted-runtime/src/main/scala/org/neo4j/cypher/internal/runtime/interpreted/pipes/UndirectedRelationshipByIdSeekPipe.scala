@@ -26,7 +26,7 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.values.virtual.VirtualValues
 
 case class UndirectedRelationshipByIdSeekPipe(
-  ident: String,
+  ident: Option[String],
   relIdExpr: SeekArgs,
   toNode: Option[String],
   fromNode: Option[String]
@@ -45,7 +45,7 @@ case class UndirectedRelationshipByIdSeekPipe(
     )
     PrimitiveLongHelper.map(
       relationships,
-      r => {
+      _ => {
         relationshipWriter.writeRow(
           rowFactory,
           ctx,

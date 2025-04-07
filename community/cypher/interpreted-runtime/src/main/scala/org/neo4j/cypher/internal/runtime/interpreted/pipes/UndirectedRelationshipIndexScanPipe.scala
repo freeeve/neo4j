@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.util.attribution.Id
 
 case class UndirectedRelationshipIndexScanPipe(
-  ident: String,
+  ident: Option[String],
   startNode: Option[String],
   endNode: Option[String],
   relType: RelationshipTypeToken,
@@ -39,8 +39,11 @@ case class UndirectedRelationshipIndexScanPipe(
 
   override val indexPropertyIndices: Array[Int] = properties.indices.filter(properties(_).shouldGetValue).toArray
 
-  override val indexCachedProperties: Array[CachedProperty] =
-    indexPropertyIndices.map(offset => properties(offset).asCachedProperty(ident))
+  override val indexCachedProperties: Array[CachedProperty] = ident match {
+    case Some(value) => indexPropertyIndices.map(offset => properties(offset).asCachedProperty(value))
+    case None        => Array.empty
+  }
+
   private val needsValues: Boolean = indexPropertyIndices.nonEmpty
 
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {

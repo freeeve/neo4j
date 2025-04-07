@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedAllRelationsh
 import org.neo4j.cypher.internal.util.attribution.Id
 
 case class UndirectedAllRelationshipsScanPipe(
-  ident: String,
+  ident: Option[String],
   fromNode: Option[String],
   toNode: Option[String]
 )(val id: Id = Id.INVALID_ID) extends Pipe {

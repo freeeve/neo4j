@@ -64,14 +64,16 @@ abstract class AbstractNodeIndexStringScanPipe(
 }
 
 case class NodeIndexContainsScanPipe(
-  ident: String,
+  node: String,
   label: LabelToken,
   property: IndexedProperty,
   queryIndexId: Int,
   valueExpr: Expression,
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID)
-    extends AbstractNodeIndexStringScanPipe(ident, property, queryIndexId, valueExpr) {
+    extends AbstractNodeIndexStringScanPipe(node, property, queryIndexId, valueExpr) {
+
+  override val ident: Option[String] = Some(node)
 
   override protected def queryContextCall(
     state: QueryState,
@@ -82,14 +84,15 @@ case class NodeIndexContainsScanPipe(
 }
 
 case class NodeIndexEndsWithScanPipe(
-  ident: String,
+  node: String,
   label: LabelToken,
   property: IndexedProperty,
   queryIndexId: Int,
   valueExpr: Expression,
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID)
-    extends AbstractNodeIndexStringScanPipe(ident, property, queryIndexId, valueExpr) {
+    extends AbstractNodeIndexStringScanPipe(node, property, queryIndexId, valueExpr) {
+  override val ident: Option[String] = Some(node)
 
   override protected def queryContextCall(
     state: QueryState,

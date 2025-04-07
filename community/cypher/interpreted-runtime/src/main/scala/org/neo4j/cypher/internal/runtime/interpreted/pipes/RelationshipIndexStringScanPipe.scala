@@ -32,7 +32,7 @@ import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor
 import org.neo4j.values.storable.TextValue
 
 abstract class AbstractRelationshipIndexStringScanPipe(
-  ident: String,
+  ident: Option[String],
   startNode: Option[String],
   endNode: Option[String],
   property: IndexedProperty,
@@ -41,7 +41,7 @@ abstract class AbstractRelationshipIndexStringScanPipe(
 ) extends Pipe with IndexPipeWithValues {
 
   override val indexPropertyIndices: Array[Int] = if (property.shouldGetValue) Array(0) else Array.empty
-  override val indexCachedProperties: Array[CachedProperty] = Array(property.asCachedProperty(ident))
+  override val indexCachedProperties: Array[CachedProperty] = ident.map(property.asCachedProperty).toArray
   protected val needsValues: Boolean = indexPropertyIndices.nonEmpty
 
   override protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
@@ -105,7 +105,7 @@ trait Undirected {
 }
 
 case class DirectedRelationshipIndexContainsScanPipe(
-  ident: String,
+  ident: Option[String],
   startNode: Option[String],
   endNode: Option[String],
   typeToken: RelationshipTypeToken,
@@ -126,7 +126,7 @@ case class DirectedRelationshipIndexContainsScanPipe(
 }
 
 case class UndirectedRelationshipIndexContainsScanPipe(
-  ident: String,
+  ident: Option[String],
   startNode: Option[String],
   endNode: Option[String],
   typeToken: RelationshipTypeToken,
@@ -147,7 +147,7 @@ case class UndirectedRelationshipIndexContainsScanPipe(
 }
 
 case class DirectedRelationshipIndexEndsWithScanPipe(
-  ident: String,
+  ident: Option[String],
   startNode: Option[String],
   endNode: Option[String],
   typeToken: RelationshipTypeToken,
@@ -168,7 +168,7 @@ case class DirectedRelationshipIndexEndsWithScanPipe(
 }
 
 case class UndirectedRelationshipIndexEndsWithScanPipe(
-  ident: String,
+  ident: Option[String],
   startNode: Option[String],
   endNode: Option[String],
   typeToken: RelationshipTypeToken,

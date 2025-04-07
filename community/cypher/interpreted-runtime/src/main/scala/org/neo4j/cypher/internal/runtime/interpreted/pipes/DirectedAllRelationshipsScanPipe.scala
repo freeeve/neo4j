@@ -29,7 +29,7 @@ import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.values.virtual.VirtualValues
 
 case class DirectedAllRelationshipsScanPipe(
-  ident: String,
+  ident: Option[String],
   fromNode: Option[String],
   toNode: Option[String]
 )(val id: Id = Id.INVALID_ID) extends Pipe {

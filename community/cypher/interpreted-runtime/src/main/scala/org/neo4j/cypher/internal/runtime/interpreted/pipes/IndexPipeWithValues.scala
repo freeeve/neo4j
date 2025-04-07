@@ -35,7 +35,7 @@ import org.neo4j.values.virtual.VirtualValues
 trait IndexPipeWithValues extends Pipe {
 
   // Name of the entity variable
-  val ident: String
+  val ident: Option[String]
   // all indices where the index can provide values
   val indexPropertyIndices: Array[Int]
   // the cached properties where we will get values
@@ -48,9 +48,15 @@ trait IndexPipeWithValues extends Pipe {
     cursor: NodeValueIndexCursor
   ) extends IndexIteratorBase[CypherRow](cursor) {
 
+    private val newRow: NodeValueIndexCursor => CypherRow = ident match {
+      case Some(node) => cursor: NodeValueIndexCursor =>
+          rowFactory.copyWith(baseContext, node, queryContext.nodeById(cursor.nodeReference()))
+      case None => (_: NodeValueIndexCursor) => baseContext
+    }
+
     override protected def fetchNext(): CypherRow = {
       if (cursor.next()) {
-        val newContext = rowFactory.copyWith(baseContext, ident, queryContext.nodeById(cursor.nodeReference()))
+        val newContext = newRow(cursor)
         var i = 0
         while (i < indexPropertyIndices.length) {
           newContext.setCachedProperty(

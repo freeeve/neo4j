@@ -36,90 +36,136 @@ object Relationships {
     ): CypherRow
   }
 
-  private object RelationshipWriter {
-
-    case class WriteAll(ident: String, start: String, end: String) extends RelationshipWriter {
-
-      override def writeRow(
-        rowFactory: CypherRowFactory,
-        row: CypherRow,
-        rel: VirtualRelationshipValue,
-        startNode: VirtualNodeValue,
-        endNode: VirtualNodeValue
-      ): CypherRow =
-        rowFactory.copyWith(
-          row,
-          ident,
-          rel,
-          start,
-          startNode,
-          end,
-          endNode
-        )
-    }
-
-    case class WriteStart(ident: String, start: String) extends RelationshipWriter {
-
-      override def writeRow(
-        rowFactory: CypherRowFactory,
-        row: CypherRow,
-        rel: VirtualRelationshipValue,
-        startNode: VirtualNodeValue,
-        endNode: VirtualNodeValue
-      ): CypherRow =
-        rowFactory.copyWith(
-          row,
-          ident,
-          rel,
-          start,
-          startNode
-        )
-    }
-
-    case class WriteEnd(ident: String, end: String) extends RelationshipWriter {
-
-      override def writeRow(
-        rowFactory: CypherRowFactory,
-        row: CypherRow,
-        rel: VirtualRelationshipValue,
-        startNode: VirtualNodeValue,
-        endNode: VirtualNodeValue
-      ): CypherRow =
-        rowFactory.copyWith(
-          row,
-          ident,
-          rel,
-          end,
-          endNode
-        )
-    }
-
-    case class WriteOnlyRelationship(ident: String) extends RelationshipWriter {
-
-      override def writeRow(
-        rowFactory: CypherRowFactory,
-        row: CypherRow,
-        rel: VirtualRelationshipValue,
-        startNode: VirtualNodeValue,
-        endNode: VirtualNodeValue
-      ): CypherRow =
-        rowFactory.copyWith(
-          row,
-          ident,
-          rel
-        )
-    }
-
-  }
-
   def compileRelationshipWriter(
-    ident: String,
+    maybeRelationship: Option[String],
     maybeFromNode: Option[String],
     maybeToNode: Option[String]
-  ): RelationshipWriter = (maybeFromNode, maybeToNode) match {
-    case (Some(from), Some(to)) => RelationshipWriter.WriteAll(ident, from, to)
-    case (None, Some(to))       => RelationshipWriter.WriteEnd(ident, to)
-    case (Some(from), None)     => RelationshipWriter.WriteStart(ident, from)
-    case (None, None)           => RelationshipWriter.WriteOnlyRelationship(ident)
+  ): RelationshipWriter = (maybeRelationship, maybeFromNode, maybeToNode) match {
+    case (Some(relName), Some(startName), Some(endName)) =>
+      new RelationshipWriter {
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          rel: VirtualRelationshipValue,
+          startNode: VirtualNodeValue,
+          endNode: VirtualNodeValue
+        ): CypherRow =
+          rowFactory.copyWith(
+            row,
+            relName,
+            rel,
+            startName,
+            startNode,
+            endName,
+            endNode
+          )
+      }
+    case (Some(relName), None, Some(endName)) =>
+      new RelationshipWriter {
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          rel: VirtualRelationshipValue,
+          startNode: VirtualNodeValue,
+          endNode: VirtualNodeValue
+        ): CypherRow =
+          rowFactory.copyWith(
+            row,
+            relName,
+            rel,
+            endName,
+            endNode
+          )
+      }
+    case (Some(relName), Some(startName), None) =>
+      new RelationshipWriter {
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          rel: VirtualRelationshipValue,
+          startNode: VirtualNodeValue,
+          endNode: VirtualNodeValue
+        ): CypherRow =
+          rowFactory.copyWith(
+            row,
+            relName,
+            rel,
+            startName,
+            startNode
+          )
+      }
+    case (Some(relName), None, None) =>
+      new RelationshipWriter {
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          rel: VirtualRelationshipValue,
+          startNode: VirtualNodeValue,
+          endNode: VirtualNodeValue
+        ): CypherRow =
+          rowFactory.copyWith(
+            row,
+            relName,
+            rel
+          )
+      }
+
+    case (None, Some(startName), Some(endName)) =>
+      new RelationshipWriter {
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          rel: VirtualRelationshipValue,
+          startNode: VirtualNodeValue,
+          endNode: VirtualNodeValue
+        ): CypherRow =
+          rowFactory.copyWith(
+            row,
+            startName,
+            startNode,
+            endName,
+            endNode
+          )
+      }
+    case (None, None, Some(endName)) =>
+      new RelationshipWriter {
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          rel: VirtualRelationshipValue,
+          startNode: VirtualNodeValue,
+          endNode: VirtualNodeValue
+        ): CypherRow =
+          rowFactory.copyWith(
+            row,
+            endName,
+            endNode
+          )
+      }
+    case (None, Some(startName), None) =>
+      new RelationshipWriter {
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          rel: VirtualRelationshipValue,
+          startNode: VirtualNodeValue,
+          endNode: VirtualNodeValue
+        ): CypherRow =
+          rowFactory.copyWith(
+            row,
+            startName,
+            startNode
+          )
+      }
+    case (None, None, None) => new RelationshipWriter {
+
+        override def writeRow(
+          rowFactory: CypherRowFactory,
+          row: CypherRow,
+          rel: VirtualRelationshipValue,
+          startNode: VirtualNodeValue,
+          endNode: VirtualNodeValue
+        ): CypherRow = row
+      }
   }
 }

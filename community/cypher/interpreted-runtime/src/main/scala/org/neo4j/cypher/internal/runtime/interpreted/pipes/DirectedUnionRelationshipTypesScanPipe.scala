@@ -38,7 +38,7 @@ import org.neo4j.io.IOUtils
 import org.neo4j.values.virtual.VirtualValues
 
 case class DirectedUnionRelationshipTypesScanPipe(
-  ident: String,
+  ident: Option[String],
   fromNode: Option[String],
   types: Seq[LazyTypeStatic],
   toNode: Option[String],
