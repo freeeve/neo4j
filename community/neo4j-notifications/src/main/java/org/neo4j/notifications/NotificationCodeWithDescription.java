@@ -88,10 +88,6 @@ public enum NotificationCodeWithDescription {
             Status.Procedure.ProcedureWarning,
             GqlStatusInfoCodes.STATUS_01N62,
             "The query used a procedure that generated a warning. (%s)"),
-    DEPRECATED_PROCEDURE_RETURN_FIELD(
-            Status.Statement.FeatureDeprecationWarning,
-            GqlStatusInfoCodes.STATUS_01N03,
-            "The query used a deprecated field from a procedure. (%s)"),
     DEPRECATED_PROCEDURE_FIELD(
             Status.Statement.FeatureDeprecationWarning,
             GqlStatusInfoCodes.STATUS_01N00,
@@ -481,8 +477,9 @@ public enum NotificationCodeWithDescription {
 
     public static NotificationImplementation deprecatedProcedureReturnField(
             InputPosition position, String param, String procedure, String field) {
-        return DEPRECATED_PROCEDURE_RETURN_FIELD.notificationWithParameters(
-                position, new String[] {param}, new String[] {field, procedure});
+        return DEPRECATED_PROCEDURE_FIELD.notificationWithParameters(position, new String[] {param}, new String[] {
+            String.format("`%s` returned by the procedure `%s` is deprecated.", field, procedure)
+        });
     }
 
     public static NotificationImplementation deprecatedProcedureField(

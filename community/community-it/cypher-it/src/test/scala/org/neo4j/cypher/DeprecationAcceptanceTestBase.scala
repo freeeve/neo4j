@@ -27,7 +27,6 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N00
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N01
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N02
-import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N03
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N50
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N51
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_01N52
@@ -160,8 +159,8 @@ abstract class DeprecationAcceptanceTestBase extends CypherFunSuite with BeforeA
       (pos, detail) => deprecatedProcedureReturnField(pos, detail, "changedProc", "oldField"),
       List(
         TestGqlStatusObject(
-          STATUS_01N03.getStatusString,
-          "warn: procedure field deprecated. The field `oldField` of procedure changedProc() is deprecated.",
+          STATUS_01N00.getStatusString,
+          "warn: feature deprecated. `oldField` returned by the procedure `changedProc` is deprecated.",
           SeverityLevel.WARNING,
           NotificationClassification.DEPRECATION
         ),

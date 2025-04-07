@@ -219,15 +219,6 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.WARNING,
             "feature deprecated without replacement",
             NotificationClassification.DEPRECATION),
-    STATUS_01N03(
-            new GqlStatus("01N03"),
-            """
-                    The field { %s } of procedure { %s } is deprecated.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.procField, GqlParams.StringParam.proc},
-            emptyMap(),
-            Condition.WARNING,
-            "procedure field deprecated",
-            NotificationClassification.DEPRECATION),
     STATUS_01N30(
             new GqlStatus("01N30"),
             """

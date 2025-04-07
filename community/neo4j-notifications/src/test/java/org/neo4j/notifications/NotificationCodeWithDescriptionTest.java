@@ -49,7 +49,6 @@ import static org.neo4j.notifications.NotificationCodeWithDescription.deprecated
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedOptionInOptionMap;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedParsedDatabaseName;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedPrecedenceOfLabelExpressionPredicate;
-import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedProcedureReturnField;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedProcedureWithReplacement;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedProcedureWithoutReplacement;
 import static org.neo4j.notifications.NotificationCodeWithDescription.deprecatedPropertyReferenceInCreate;
@@ -514,31 +513,6 @@ class NotificationCodeWithDescriptionTest {
                                 Map.of("proc", "my.proc", "msg", "Warning from procedure."))
                         .asMap(),
                 "warn: procedure or function execution warning. Execution of the procedure my.proc() generated the warning Warning from procedure.");
-    }
-
-    @Test
-    void shouldConstructNotificationsFor_DEPRECATED_PROCEDURE_RETURN_FIELD() {
-        NotificationImplementation notification = deprecatedProcedureReturnField(
-                InputPosition.empty, "'field' returned by 'proc' is deprecated.", "proc", "field");
-
-        verifyNotification(
-                notification,
-                "This feature is deprecated and will be removed in future versions.",
-                SeverityLevel.WARNING,
-                "Neo.ClientNotification.Statement.FeatureDeprecationWarning",
-                "The query used a deprecated field from a procedure. ('field' returned by 'proc' is deprecated.)",
-                NotificationCategory.DEPRECATION,
-                NotificationClassification.DEPRECATION,
-                "01N03",
-                new DiagnosticRecord(
-                                warning,
-                                NotificationClassification.DEPRECATION,
-                                -1,
-                                -1,
-                                -1,
-                                Map.of("procField", "field", "proc", "proc"))
-                        .asMap(),
-                "warn: procedure field deprecated. The field `field` of procedure proc() is deprecated.");
     }
 
     @Test
@@ -2179,8 +2153,8 @@ class NotificationCodeWithDescriptionTest {
         byte[] notificationHash = DigestUtils.sha256(notificationBuilder.toString());
 
         byte[] expectedHash = new byte[] {
-            48, 8, 100, 5, 21, 13, 115, -121, -94, -69, -1, 22, 110, 75, -123, -93, -71, 44, -83, -77, -49, 42, 47, -70,
-            -92, 25, -72, 87, 81, 75, -77, -91
+            -97, 47, 97, -67, 58, 52, 5, -124, 31, 79, -15, 113, 111, 88, -58, 60, 49, -66, 1, -49, 32, 119, 37, 25,
+            -77, 24, -4, -69, 105, 14, 73, 52
         };
 
         if (!Arrays.equals(notificationHash, expectedHash)) {

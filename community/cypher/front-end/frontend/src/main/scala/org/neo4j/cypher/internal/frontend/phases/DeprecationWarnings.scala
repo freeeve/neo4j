@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.frontend.phases
 
-import org.neo4j.cypher.internal.ast.ProcedureResultItem
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnresolvedCall
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
@@ -47,64 +46,58 @@ case object ProcedureAndFunctionDeprecationWarnings extends VisitorPhase[BaseCon
   private def findDeprecations(statement: Statement): Set[InternalNotification] =
     statement.folder.treeFold(Set.empty[InternalNotification]) {
       case f @ ResolvedCall(
-          ProcedureSignature(name, inputFields, _, Some(DeprecationInfo(true, deprecatedBy)), _, _, _, _, _, _, _, _),
+          ProcedureSignature(name, inputFields, maybeOutput, maybeDeprecatedInfo, _, _, _, _, _, _, _, _),
           _,
-          _,
-          _,
-          _,
-          _,
-          _
-        ) =>
-        seq =>
-          TraverseChildren(
-            seq ++ inputFields.filter(_.deprecated).map(inputField =>
-              DeprecatedProcedureFieldNotification(f.position, name.toString, inputField.name)
-            ).toSet
-              + DeprecatedProcedureNotification(f.position, name.toString, deprecatedBy)
-          )
-      case f @ ResolvedCall(
-          ProcedureSignature(name, inputFields, _, _, _, _, _, _, _, _, _, _),
-          _,
-          _,
+          results,
           _,
           _,
           _,
           _
-        ) if inputFields.exists(_.deprecated) =>
-        seq =>
+        ) => seq =>
           TraverseChildren(
-            seq ++ inputFields.filter(_.deprecated).map(inputField =>
-              DeprecatedProcedureFieldNotification(f.position, name.toString, inputField.name)
-            ).toSet
+            seq // Deprecated input fields
+              ++ inputFields.filter(_.deprecated).map(inputField =>
+                DeprecatedProcedureFieldNotification(f.position, name.toString, inputField.name)
+              ).toSet
+              // Deprecated Procedure
+              ++ (maybeDeprecatedInfo match {
+                case _ @Some(DeprecationInfo(true, deprecatedBy)) =>
+                  Set(DeprecatedProcedureNotification(f.position, name.toString, deprecatedBy))
+                case _ => Set.empty
+              })
+              // Deprecated output fields
+              ++ (maybeOutput match {
+                case _ @Some(output) if output.exists(_.deprecated) =>
+                  results.filter(r => output.exists(o => o.name == r.outputName && o.deprecated)).map(r =>
+                    DeprecatedProcedureReturnFieldNotification(r.position, name.toString, r.outputName)
+                  )
+                case _ => Set.empty
+              })
           )
       case f @ ResolvedFunctionInvocation(
           _,
-          Some(UserFunctionSignature(name, inputFields, _, Some(DeprecationInfo(true, deprecatedBy)), _, _, _, _, _)),
+          Some(UserFunctionSignature(name, inputFields, _, maybeDeprecatedInfo, _, _, _, _, _)),
           _
         ) =>
         seq =>
-          TraverseChildren(seq ++ inputFields.filter(_.deprecated).map(inputField =>
-            DeprecatedFunctionFieldNotification(f.position, name.toString, inputField.name)
-          ).toSet + DeprecatedFunctionNotification(
-            f.position,
-            name.toString,
-            deprecatedBy
-          ))
-      case f @ ResolvedFunctionInvocation(
-          name,
-          Some(UserFunctionSignature(_, inputFields, _, _, _, _, _, _, _)),
-          _
-        ) if inputFields.exists(_.deprecated) =>
-        seq =>
-          TraverseChildren(seq ++ inputFields.filter(_.deprecated).map(inputField =>
-            DeprecatedFunctionFieldNotification(f.position, name.toString, inputField.name)
-          ).toSet)
+          TraverseChildren(seq
+          // Deprecated input fields
+            ++ inputFields.filter(_.deprecated).map(inputField =>
+              DeprecatedFunctionFieldNotification(f.position, name.toString, inputField.name)
+            ).toSet
+            // Deprecated Function
+            ++ (maybeDeprecatedInfo match {
+              case _ @Some(DeprecationInfo(true, deprecatedBy)) =>
+                Set(DeprecatedFunctionNotification(f.position, name.toString, deprecatedBy))
+              case _ => Set.empty
+            }))
       case f: FunctionInvocation =>
+        // Deprecated Built-In Function
         val deprecationWarnings: Seq[DeprecatedFunctionNotification] = f.function.signatures.filter {
           case FunctionTypeSignature(_, _, _, _, _, argumentTypes, _, deprecated, _, _, _, _, _, _) =>
             deprecated && argumentTypes.length == f.arguments.length
           case _ => false
-        }.map(_.asInstanceOf[FunctionTypeSignature]).map(fts =>
+        }.map(fts =>
           DeprecatedFunctionNotification(
             f.position,
             f.function.name,
@@ -129,42 +122,41 @@ case object ProcedureAndFunctionDeprecationWarnings extends VisitorPhase[BaseCon
 case object ProcedureWarnings extends VisitorPhase[BaseContext, BaseState] {
 
   override def visit(value: BaseState, context: BaseContext): Unit = {
-    val warnings = findWarnings(value.statement()) ++ findWarningsForOptionals(value.statement())
+    val warnings = findWarnings(value.statement())
 
     warnings.foreach(context.notificationLogger.log)
   }
 
   private def findWarnings(statement: Statement): Set[InternalNotification] =
     statement.folder.treeFold(Set.empty[InternalNotification]) {
-      case f @ ResolvedCall(ProcedureSignature(name, _, _, _, _, _, Some(warning), _, _, _, _, _), _, _, _, _, _, _) =>
-        seq => TraverseChildren(seq + ProcedureWarningNotification(f.position, name.toString, warning))
-      case ResolvedCall(ProcedureSignature(name, _, Some(output), _, _, _, _, _, _, _, _, _), _, results, _, _, _, _)
-        if output.exists(_.deprecated) =>
-        set => TraverseChildren(set ++ usedDeprecatedFields(name.toString, results, output))
-      case _: UnresolvedCall =>
-        throw InternalException.internalError(
-          this.getClass.getSimpleName,
-          "Expected procedures to have been resolved already"
-        )
-    }
-
-  private def findWarningsForOptionals(statement: Statement): Set[InternalNotification] =
-    statement.folder.treeFold(Set.empty[InternalNotification]) {
-      case f @ ResolvedCall(signature, _, Seq(), _, _, _, true) =>
+      case f @ ResolvedCall(
+          ProcedureSignature(name, _, _, _, _, _, maybeWarning, _, _, _, _, _),
+          _,
+          result,
+          _,
+          _,
+          _,
+          optional
+        ) =>
         seq =>
-          TraverseChildren(seq + RedundantOptionalProcedure(f.position, signature.name.toString))
+          TraverseChildren(
+            seq // A warning message the procedure wants us to generate
+              ++ (maybeWarning match {
+                case _ @Some(warning) => Set(ProcedureWarningNotification(f.position, name.toString, warning))
+                case _                => Set.empty
+              }) // Redundant usage of optional (on void proc)
+              ++ (if (optional && result.isEmpty) {
+                    Set(RedundantOptionalProcedure(f.position, name.toString))
+                  } else {
+                    Set.empty
+                  })
+          )
       case _: UnresolvedCall =>
         throw InternalException.internalError(
           this.getClass.getSimpleName,
           "Expected procedures to have been resolved already"
         )
     }
-
-  private def usedDeprecatedFields(procedure: String, used: Seq[ProcedureResultItem], available: Seq[FieldSignature]) =
-    used.filter(r => available.exists(o => o.name == r.outputName && o.deprecated)).map(r =>
-      DeprecatedProcedureReturnFieldNotification(r.position, procedure, r.outputName)
-    )
 
   override def phase = DEPRECATION_WARNINGS
-
 }
