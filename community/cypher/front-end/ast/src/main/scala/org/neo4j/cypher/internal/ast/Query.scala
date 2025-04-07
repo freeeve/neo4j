@@ -217,8 +217,8 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
       None
     else
       partitionedClauses.clausesExceptImportingWithAndLeadingGraphSelection.headOption match {
-        case Some(nonImportingWith: With) => Some(nonImportingWith)
-        case _                            => None
+        case Some(nonImportingWith @ With(_, _, _, _, _, _, _: MayBeImportingWithType)) => Some(nonImportingWith)
+        case _                                                                          => None
       }
 
   private def semanticCheckAbstractInScopeSubquery(
@@ -323,7 +323,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
         val aliasString = if (value.alias.nonEmpty) s" AS ${value.alias.get.name}" else ""
         val expression = ExpressionStringifier.apply().apply(value.expression)
         val input = expression + aliasString
-        error(SemanticError.invalidImportingWithAlisOrExpression(input, wth.position))
+        error(SemanticError.invalidImportingWithAliasOrExpression(input, wth.position))
       }
     }
 
@@ -346,8 +346,9 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
           x.withComputedScopeDependencies(dependencies.map(_.asVariable))
       })
 
-      val hasImports = wth.returnItems.includeExisting || wth.returnItems.items.exists { item =>
-        rewriter.apply(item.expression).asInstanceOf[Expression].dependencies.nonEmpty
+      val hasImports = wth.returnItems.includeExisting || wth.returnItems.items.exists {
+        item =>
+          rewriter.apply(item.expression).asInstanceOf[Expression].dependencies.nonEmpty
       }
       when(hasImports) {
         checkReturnItems chain
@@ -735,7 +736,8 @@ object SingleQuery {
 
   private def extractImportingWith(clauses: Seq[Clause]): Option[(With, Seq[Clause])] =
     clauses.headOption.collect {
-      case withClause @ With(false, ri, None, None, None, None, _) if ri.items.forall(_.isPassThrough) =>
+      case withClause @ With(false, ri, None, None, None, None, _: MayBeImportingWithType)
+        if ri.items.forall(_.isPassThrough) =>
         (withClause, clauses.tail)
     }
 

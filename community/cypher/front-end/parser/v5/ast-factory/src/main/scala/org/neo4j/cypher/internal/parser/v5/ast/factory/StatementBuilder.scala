@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.CatalogName
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.Create
+import org.neo4j.cypher.internal.ast.DefaultWith
 import org.neo4j.cypher.internal.ast.Delete
 import org.neo4j.cypher.internal.ast.DescSortItem
 import org.neo4j.cypher.internal.ast.Finish
@@ -37,6 +38,9 @@ import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.OnCreate
 import org.neo4j.cypher.internal.ast.OnMatch
 import org.neo4j.cypher.internal.ast.OrderBy
+import org.neo4j.cypher.internal.ast.ParsedAsLimit
+import org.neo4j.cypher.internal.ast.ParsedAsOrderBy
+import org.neo4j.cypher.internal.ast.ParsedAsSkip
 import org.neo4j.cypher.internal.ast.ProcedureResult
 import org.neo4j.cypher.internal.ast.ProcedureResultItem
 import org.neo4j.cypher.internal.ast.Query
@@ -608,13 +612,22 @@ trait StatementBuilder extends Cypher5ParserListener {
   }
 
   override def exitOrderBySkipLimitClause(ctx: Cypher5Parser.OrderBySkipLimitClauseContext): Unit = {
+    val orderBy = astOpt[OrderBy](ctx.orderBy())
+    val skip = astOpt[Skip](ctx.skip())
+    val limit = astOpt[Limit](ctx.limit())
     ctx.ast = With(
       distinct = false,
       ReturnItems(includeExisting = true, Seq.empty)(pos(ctx)),
-      astOpt[OrderBy](ctx.orderBy()),
-      astOpt[Skip](ctx.skip()),
-      astOpt[Limit](ctx.limit()),
-      None
+      orderBy,
+      skip,
+      limit,
+      where = None,
+      withType = orderBy.orElse(skip).orElse(limit).map {
+        case _: OrderBy => ParsedAsOrderBy
+        case _: Skip    => ParsedAsSkip
+        case _: Limit   => ParsedAsLimit
+        case _          => DefaultWith // to make the match exhaustive and the compiler happy
+      }.getOrElse(DefaultWith)
     )(pos(ctx))
   }
 

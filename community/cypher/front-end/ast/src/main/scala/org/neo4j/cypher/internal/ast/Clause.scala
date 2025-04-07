@@ -1863,16 +1863,18 @@ sealed trait ProjectionClause extends HorizonClause {
 
 // used for SHOW/TERMINATE commands (and procedure calls against system)
 sealed trait WithType
-case object DefaultWith extends WithType
-case object ParsedAsOrderBy extends WithType
-case object ParsedAsSkip extends WithType
-case object ParsedAsLimit extends WithType
-case object ParsedAsFilter extends WithType
-case object ParsedAsLet extends WithType
-case object ParsedAsYield extends WithType
-case object AddedInRewriteShowCommands extends WithType
-case object AddedInRewriteProcCall extends WithType
-case object AddedInRewriteGeneral extends WithType
+sealed trait MayBeImportingWithType extends WithType
+sealed trait NotImportingWithType extends WithType
+case object DefaultWith extends MayBeImportingWithType
+case object ParsedAsOrderBy extends NotImportingWithType
+case object ParsedAsSkip extends NotImportingWithType
+case object ParsedAsLimit extends NotImportingWithType
+case object ParsedAsFilter extends NotImportingWithType
+case object ParsedAsLet extends NotImportingWithType
+case object ParsedAsYield extends NotImportingWithType
+case object AddedInRewriteShowCommands extends MayBeImportingWithType
+case object AddedInRewriteProcCall extends MayBeImportingWithType
+case object AddedInRewriteGeneral extends MayBeImportingWithType
 
 object With {
 

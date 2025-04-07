@@ -131,47 +131,22 @@ class PrettifierIT extends CypherFunSuite {
     "mAtch SHORTeST path group (a)-->(b)     rETuRN a" ->
       """MATCH SHORTEST 1 PATH GROUPS (a)-->(b)
         |RETURN a""".stripMargin,
-    ChangedBetween5And25(
-      "ORDER BY a.prop SKIP 1 LIMIT 1",
-      """WITH *
-        |  ORDER BY a.prop ASCENDING
-        |  SKIP 1
-        |  LIMIT 1""".stripMargin,
+    "ORDER BY a.prop SKIP 1 LIMIT 1" ->
       """ORDER BY a.prop ASCENDING
         |  SKIP 1
-        |  LIMIT 1""".stripMargin
-    ),
-    ChangedBetween5And25(
-      "ORDER BY a.prop OFFSET 1 LIMIT 1",
-      """WITH *
-        |  ORDER BY a.prop ASCENDING
-        |  SKIP 1
         |  LIMIT 1""".stripMargin,
+    "ORDER BY a.prop OFFSET 1 LIMIT 1" ->
       """ORDER BY a.prop ASCENDING
         |  SKIP 1
-        |  LIMIT 1""".stripMargin
-    ),
-    ChangedBetween5And25(
-      "ORDER BY a.prop LIMIT 1",
-      """WITH *
-        |  ORDER BY a.prop ASCENDING
         |  LIMIT 1""".stripMargin,
+    "ORDER BY a.prop LIMIT 1" ->
       """ORDER BY a.prop ASCENDING
-        |  LIMIT 1""".stripMargin
-    ),
-    ChangedBetween5And25(
-      "LIMIT 10 ORDER BY a.prop OFFSET 1 LIMIT 1",
-      """WITH *
-        |  LIMIT 10
-        |WITH *
-        |  ORDER BY a.prop ASCENDING
-        |  SKIP 1
         |  LIMIT 1""".stripMargin,
+    "LIMIT 10 ORDER BY a.prop OFFSET 1 LIMIT 1" ->
       """LIMIT 10
         |ORDER BY a.prop ASCENDING
         |  SKIP 1
-        |  LIMIT 1""".stripMargin
-    ),
+        |  LIMIT 1""".stripMargin,
     FailsInCypher5("filter 1 = 1", "FILTER WHERE 1 = 1"),
     FailsInCypher5("filter where 1 = 1", "FILTER WHERE 1 = 1"),
     "CALL nsp.proc()" ->

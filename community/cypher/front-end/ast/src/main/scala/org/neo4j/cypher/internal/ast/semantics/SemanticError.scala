@@ -1538,7 +1538,7 @@ object SemanticError {
     )
   }
 
-  def invalidImportingWithAlisOrExpression(input: String, position: InputPosition): SemanticError = {
+  def invalidImportingWithAliasOrExpression(input: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42I28(input, position.offset, position.line, position.column)
     SemanticError(
       gql,
