@@ -157,6 +157,13 @@ class LeafPlanSelectorHeuristic(context: LogicalPlanningContext) extends Selecto
   }
 
   private def hasAggregatingProperties(
+    variable: Option[LogicalVariable],
+    properties: Seq[IndexedProperty],
+    context: LogicalPlanningContext
+  ): Boolean =
+    variable.fold(false)(hasAggregatingProperties(_, properties, context))
+
+  private def hasAggregatingProperties(
     variable: LogicalVariable,
     properties: Seq[IndexedProperty],
     context: LogicalPlanningContext
@@ -167,6 +174,13 @@ class LeafPlanSelectorHeuristic(context: LogicalPlanningContext) extends Selecto
         prop.propertyKeyToken.name
       ))
     )
+
+  private def hasAccessedProperties(
+    variable: Option[LogicalVariable],
+    properties: Seq[IndexedProperty],
+    context: LogicalPlanningContext
+  ): Boolean =
+    variable.fold(false)(hasAccessedProperties(_, properties, context))
 
   private def hasAccessedProperties(
     variable: LogicalVariable,

@@ -340,7 +340,7 @@ case class CardinalityCostModel(executionModel: ExecutionModel, cancellationChec
       // Always consider AllNodesScan + Expand more expensive than RelationshipTypeScan
       case exp @ Expand(AllNodesScanIsh(), _, _, types, _, _, ExpandAll) if types.size == 1 =>
         val rowCost =
-          CostPerRow(1.1 * hackyRelTypeScanCost(propertyAccess, exp.relName, exp.dir != SemanticDirection.BOTH))
+          CostPerRow(1.1 * hackyRelTypeScanCost(propertyAccess, Some(exp.relName), exp.dir != SemanticDirection.BOTH))
         // Note: we use the outputCardinality to compute the cost
         val costForThisPlan = effectiveCardinalities.outputCardinality * rowCost
         costForThisPlan + lhsCost + rhsCost
@@ -447,17 +447,18 @@ object CardinalityCostModel {
 
   def hackyRelTypeScanCost(
     propertyAccess: Set[PropertyAccess],
-    relVariable: LogicalVariable,
+    relVariable: Option[LogicalVariable],
     directed: Boolean
   ): Double = {
-    // A workaround for cases where we might get value from an index scan instead. Using the same cost means we will use leaf plan heuristic to decide.
-    if (propertyAccess.exists(_.variable == relVariable)) {
-      // If undirected only every second row needs to access the index and the store
-      val multiplier = if (directed) 1.0 else 0.5
-      DIRECTED_RELATIONSHIP_INDEX_SCAN_COST_PER_ROW * multiplier
-    } else {
-      val allNodeScanCostMultiplier = if (directed) 2.2 else 1.3
-      ALL_SCAN_COST_PER_ROW * allNodeScanCostMultiplier
+    relVariable match {
+      // A workaround for cases where we might get value from an index scan instead. Using the same cost means we will use leaf plan heuristic to decide.
+      case Some(value) if propertyAccess.exists(_.variable == value) =>
+        // If undirected only every second row needs to access the index and the store
+        val multiplier = if (directed) 1.0 else 0.5
+        DIRECTED_RELATIONSHIP_INDEX_SCAN_COST_PER_ROW * multiplier
+      case _ =>
+        val allNodeScanCostMultiplier = if (directed) 2.2 else 1.3
+        ALL_SCAN_COST_PER_ROW * allNodeScanCostMultiplier
     }
   }
 

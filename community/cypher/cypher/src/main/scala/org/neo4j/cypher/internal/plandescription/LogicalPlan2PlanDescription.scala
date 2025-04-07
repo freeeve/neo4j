@@ -3343,7 +3343,7 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def getRelIndexDescriptions(
-    idName: LogicalVariable,
+    idName: Option[LogicalVariable],
     start: Option[LogicalVariable],
     typeToken: RelationshipTypeToken,
     end: Option[LogicalVariable],
@@ -3524,7 +3524,7 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def relationshipByIdSeekInfo(
-    idName: LogicalVariable,
+    idName: Option[LogicalVariable],
     relIds: SeekableArgs,
     startNode: Option[LogicalVariable],
     endNode: Option[LogicalVariable],
@@ -3709,7 +3709,7 @@ case class LogicalPlan2PlanDescription(
   }
 
   private def relIndexInfoString(
-    idName: LogicalVariable,
+    idName: Option[LogicalVariable],
     start: Option[LogicalVariable],
     relType: NameToken[_],
     end: Option[LogicalVariable],

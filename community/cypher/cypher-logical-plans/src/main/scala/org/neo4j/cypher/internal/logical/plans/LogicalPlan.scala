@@ -341,19 +341,19 @@ sealed abstract class LogicalPlan(idGen: IdGen)
         acc => acc :+ SchemaIndexLookupUsage(idName, EntityType.NODE)
       case PartitionedNodeByLabelScan(idName, _, _) =>
         acc => acc :+ SchemaIndexLookupUsage(idName, EntityType.NODE)
-      case DirectedRelationshipTypeScan(idName, _, _, _, _, _) =>
+      case DirectedRelationshipTypeScan(Some(idName), _, _, _, _, _) =>
         acc => acc :+ SchemaIndexLookupUsage(idName, EntityType.RELATIONSHIP)
-      case UndirectedRelationshipTypeScan(idName, _, _, _, _, _) =>
+      case UndirectedRelationshipTypeScan(Some(idName), _, _, _, _, _) =>
         acc => acc :+ SchemaIndexLookupUsage(idName, EntityType.RELATIONSHIP)
-      case PartitionedDirectedRelationshipTypeScan(idName, _, _, _, _) =>
+      case PartitionedDirectedRelationshipTypeScan(Some(idName), _, _, _, _) =>
         acc => acc :+ SchemaIndexLookupUsage(idName, EntityType.RELATIONSHIP)
-      case PartitionedUndirectedRelationshipTypeScan(idName, _, _, _, _) =>
+      case PartitionedUndirectedRelationshipTypeScan(Some(idName), _, _, _, _) =>
         acc => acc :+ SchemaIndexLookupUsage(idName, EntityType.RELATIONSHIP)
-      case relIndexScan: RelationshipIndexLeafPlan =>
+      case relIndexScan: RelationshipIndexLeafPlan if relIndexScan.idName.isDefined =>
         acc =>
           acc :+
             SchemaRelationshipIndexUsage(
-              relIndexScan.idName,
+              relIndexScan.idName.get,
               relIndexScan.typeToken.nameId.id,
               relIndexScan.typeToken.name,
               relIndexScan.properties.map(_.propertyKeyToken)
@@ -407,7 +407,7 @@ sealed trait UpdatingPlan extends LogicalUnaryPlan {
 
 // Marker trait for relationship type scans
 sealed trait RelationshipTypeScan {
-  def idName: LogicalVariable
+  def idName: Option[LogicalVariable]
 }
 
 sealed abstract class LogicalBinaryPlan(idGen: IdGen) extends LogicalPlan(idGen) {
@@ -473,7 +473,7 @@ sealed abstract class NodeLogicalLeafPlan(idGen: IdGen) extends LogicalLeafPlan(
 }
 
 sealed abstract class RelationshipLogicalLeafPlan(idGen: IdGen) extends LogicalLeafPlan(idGen) {
-  def idName: LogicalVariable
+  def idName: Option[LogicalVariable]
   def leftNode: Option[LogicalVariable]
   def rightNode: Option[LogicalVariable]
   def directed: Boolean
@@ -483,8 +483,12 @@ sealed abstract class RelationshipLogicalLeafPlan(idGen: IdGen) extends LogicalL
     rightNode: Option[LogicalVariable]
   ): RelationshipLogicalLeafPlan
 
-  override val distinctness: Distinctness = if (directed) DistinctColumns(idName) else NotDistinct
-  override val localAvailableSymbols: Set[LogicalVariable] = (argumentIds + idName) ++ leftNode ++ rightNode
+  override val distinctness: Distinctness = (directed, idName) match {
+    case (true, Some(rel)) => DistinctColumns(rel)
+    case _                 => NotDistinct
+  }
+
+  override val localAvailableSymbols: Set[LogicalVariable] = argumentIds ++ idName ++ leftNode ++ rightNode
 
 }
 
@@ -545,7 +549,10 @@ sealed abstract class RelationshipIndexLeafPlan(idGen: IdGen) extends Relationsh
     with IndexedPropertyProvidingPlan {
   def typeToken: RelationshipTypeToken
 
-  override def cachedProperties: Seq[CachedProperty] = properties.flatMap(_.maybeCachedProperty(idName))
+  override def cachedProperties: Seq[CachedProperty] = idName match {
+    case Some(rel) => properties.flatMap(_.maybeCachedProperty(rel))
+    case _         => Seq.empty
+  }
 
   override def withMappedProperties(f: IndexedProperty => IndexedProperty): RelationshipIndexLeafPlan
 
@@ -1016,7 +1023,7 @@ case class AssertingMultiNodeIndexSeek(node: LogicalVariable, nodeIndexSeeks: Se
  * relationship is guaranteed per seek.
  */
 case class AssertingMultiRelationshipIndexSeek(
-  relationship: LogicalVariable,
+  relationship: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   directed: Boolean,
@@ -1073,9 +1080,9 @@ case class AssertingMultiRelationshipIndexSeek(
     this
 
   override def idNames: Set[LogicalVariable] =
-    relIndexSeeks.map(_.idName).toSet
+    relIndexSeeks.flatMap(_.idName).toSet
 
-  override def idName: LogicalVariable = relationship
+  override def idName: Option[LogicalVariable] = relationship
 
   override val distinctness: Distinctness = AtMostOneRow
 
@@ -1426,7 +1433,7 @@ case class DetachDeletePath(override val source: LogicalPlan, expression: Expres
  *  - `{idName: relationship, startNode: relationship.startNode, endNode: relationship.endNode}`
  */
 case class DirectedAllRelationshipsScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
   argumentIds: Set[LogicalVariable]
@@ -1447,7 +1454,7 @@ case class DirectedAllRelationshipsScan(
 
   override def directed: Boolean = true
 
-  override val distinctness: Distinctness = DistinctColumns(idName)
+  override val distinctness: Distinctness = idName.fold[Distinctness](NotDistinct)(DistinctColumns(_))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
     copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
@@ -1467,11 +1474,11 @@ object DirectedAllRelationshipsScan {
     endNode: LogicalVariable,
     argumentIds: Set[LogicalVariable]
   )(implicit idGen: IdGen): DirectedAllRelationshipsScan =
-    new DirectedAllRelationshipsScan(idName, Some(startNode), Some(endNode), argumentIds)(idGen)
+    new DirectedAllRelationshipsScan(Some(idName), Some(startNode), Some(endNode), argumentIds)(idGen)
 }
 
 case class PartitionedDirectedAllRelationshipsScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
   argumentIds: Set[LogicalVariable]
@@ -1492,7 +1499,7 @@ case class PartitionedDirectedAllRelationshipsScan(
 
   override def directed: Boolean = true
 
-  override val distinctness: Distinctness = DistinctColumns(idName)
+  override val distinctness: Distinctness = idName.fold[Distinctness](NotDistinct)(DistinctColumns(_))
 
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
     copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
@@ -1513,7 +1520,7 @@ case class PartitionedDirectedAllRelationshipsScan(
  *   - the end node as 'endNode'
  */
 case class DirectedRelationshipByElementIdSeek(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   relIds: SeekableArgs,
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
@@ -1554,7 +1561,7 @@ object DirectedRelationshipByElementIdSeek {
     endNode: LogicalVariable,
     argumentIds: Set[LogicalVariable]
   )(implicit idGen: IdGen): DirectedRelationshipByElementIdSeek =
-    new DirectedRelationshipByElementIdSeek(idName, relIds, Some(startNode), Some(endNode), argumentIds)
+    new DirectedRelationshipByElementIdSeek(Some(idName), relIds, Some(startNode), Some(endNode), argumentIds)
 }
 
 /**
@@ -1566,7 +1573,7 @@ object DirectedRelationshipByElementIdSeek {
  *   - the end node as 'endNode'
  */
 case class DirectedRelationshipByIdSeek(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   relIds: SeekableArgs,
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
@@ -1607,7 +1614,7 @@ object DirectedRelationshipByIdSeek {
     endNode: LogicalVariable,
     argumentIds: Set[LogicalVariable]
   )(implicit idGen: IdGen): DirectedRelationshipByIdSeek =
-    new DirectedRelationshipByIdSeek(idName, relIds, Some(startNode), Some(endNode), argumentIds)(idGen)
+    new DirectedRelationshipByIdSeek(Some(idName), relIds, Some(startNode), Some(endNode), argumentIds)(idGen)
 }
 
 /**
@@ -1618,7 +1625,7 @@ object DirectedRelationshipByIdSeek {
  *  - `{idName: relationship, startNode: relationship.startNode, endNode: relationship.endNode}`
  */
 case class DirectedRelationshipIndexContainsScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -1675,7 +1682,7 @@ object DirectedRelationshipIndexContainsScan {
     indexOrder: IndexOrder,
     indexType: IndexType
   )(implicit idGen: IdGen) = new DirectedRelationshipIndexContainsScan(
-    idName,
+    Some(idName),
     Some(startNode),
     Some(endNode),
     typeToken,
@@ -1696,7 +1703,7 @@ object DirectedRelationshipIndexContainsScan {
  *  - `{idName: relationship, startNode: relationship.startNode, endNode: relationship.endNode}`
  */
 case class DirectedRelationshipIndexEndsWithScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -1753,7 +1760,7 @@ object DirectedRelationshipIndexEndsWithScan {
     indexOrder: IndexOrder,
     indexType: IndexType
   )(implicit idGen: IdGen) = new DirectedRelationshipIndexEndsWithScan(
-    idName,
+    Some(idName),
     Some(startNode),
     Some(endNode),
     typeToken,
@@ -1772,7 +1779,7 @@ object DirectedRelationshipIndexEndsWithScan {
  *  - `{idName: relationship, startNode: relationship.startNode, endNode: relationship.endNode}`
  */
 case class DirectedRelationshipIndexScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -1828,7 +1835,7 @@ object DirectedRelationshipIndexScan {
     supportPartitionedScan: Boolean
   )(implicit idGen: IdGen) =
     new DirectedRelationshipIndexScan(
-      idName,
+      Some(idName),
       Some(startNode),
       Some(endNode),
       typeToken,
@@ -1841,7 +1848,7 @@ object DirectedRelationshipIndexScan {
 }
 
 case class PartitionedDirectedRelationshipIndexScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -1891,7 +1898,7 @@ case class PartitionedDirectedRelationshipIndexScan(
  *  - `{idName: relationship, startNode: relationship.startNode, endNode: relationship.endNode}`
  */
 case class DirectedRelationshipIndexSeek(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -1936,7 +1943,7 @@ case class DirectedRelationshipIndexSeek(
 }
 
 case class PartitionedDirectedRelationshipIndexSeek(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -2001,7 +2008,7 @@ object DirectedRelationshipIndexSeek extends IndexSeekNames {
     supportPartitionedScan: Boolean
   )(implicit idGen: IdGen): DirectedRelationshipIndexSeek =
     new DirectedRelationshipIndexSeek(
-      idName,
+      Some(idName),
       Some(startNode),
       Some(endNode),
       typeToken,
@@ -2022,7 +2029,7 @@ object DirectedRelationshipIndexSeek extends IndexSeekNames {
  *  - `{idName: relationship, startNode: relationship.startNode, endNode: relationship.endNode}`
  */
 case class DirectedRelationshipTypeScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   relType: RelTypeName,
   endNode: Option[LogicalVariable],
@@ -2065,11 +2072,11 @@ object DirectedRelationshipTypeScan {
     argumentIds: Set[LogicalVariable],
     indexOrder: IndexOrder
   )(implicit idGen: IdGen): DirectedRelationshipTypeScan =
-    new DirectedRelationshipTypeScan(idName, Some(startNode), relType, Some(endNode), argumentIds, indexOrder)
+    new DirectedRelationshipTypeScan(Some(idName), Some(startNode), relType, Some(endNode), argumentIds, indexOrder)
 }
 
 case class DynamicDirectedRelationshipTypeScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   relType: DynamicElement,
   endNode: Option[LogicalVariable],
@@ -2103,7 +2110,7 @@ case class DynamicDirectedRelationshipTypeScan(
 }
 
 case class PartitionedDirectedRelationshipTypeScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   relType: RelTypeName,
   endNode: Option[LogicalVariable],
@@ -2145,7 +2152,7 @@ case class PartitionedDirectedRelationshipTypeScan(
  *  - `{idName: relationship, startNode: relationship.startNode, endNode: relationship.endNode}`
  */
 case class DirectedRelationshipUniqueIndexSeek(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   endNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -2202,7 +2209,7 @@ object DirectedRelationshipUniqueIndexSeek {
     indexType: IndexType
   )(implicit idGen: IdGen): DirectedRelationshipUniqueIndexSeek =
     new DirectedRelationshipUniqueIndexSeek(
-      idName,
+      Some(idName),
       Some(startNode),
       Some(endNode),
       typeToken,
@@ -2219,7 +2226,7 @@ object DirectedRelationshipUniqueIndexSeek {
  * This row contains the relationship (assigned to 'idName') and the contents of argument.
  */
 case class DirectedUnionRelationshipTypesScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   types: Seq[RelTypeName],
   endNode: Option[LogicalVariable],
@@ -2262,11 +2269,11 @@ object DirectedUnionRelationshipTypesScan {
     argumentIds: Set[LogicalVariable],
     indexOrder: IndexOrder
   )(implicit idGen: IdGen): DirectedUnionRelationshipTypesScan =
-    new DirectedUnionRelationshipTypesScan(idName, Some(startNode), types, Some(endNode), argumentIds, indexOrder)
+    new DirectedUnionRelationshipTypesScan(Some(idName), Some(startNode), types, Some(endNode), argumentIds, indexOrder)
 }
 
 case class PartitionedDirectedUnionRelationshipTypesScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   types: Seq[RelTypeName],
   endNode: Option[LogicalVariable],
@@ -4838,7 +4845,7 @@ case class TriadicFilter(
  *  - `{idName: relationship, leftNode: relationship.endNode, relationship.startNode}`
  */
 case class UndirectedAllRelationshipsScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   argumentIds: Set[LogicalVariable]
@@ -4874,11 +4881,11 @@ object UndirectedAllRelationshipsScan {
     endNode: LogicalVariable,
     argumentIds: Set[LogicalVariable]
   )(implicit idGen: IdGen): UndirectedAllRelationshipsScan =
-    new UndirectedAllRelationshipsScan(idName, Some(startNode), Some(endNode), argumentIds)(idGen)
+    new UndirectedAllRelationshipsScan(Some(idName), Some(startNode), Some(endNode), argumentIds)(idGen)
 }
 
 case class PartitionedUndirectedAllRelationshipsScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   argumentIds: Set[LogicalVariable]
@@ -4912,7 +4919,7 @@ case class PartitionedUndirectedAllRelationshipsScan(
  * row has the end node as 'leftNode' = endNode and the start node as 'rightNode'.
  */
 case class UndirectedRelationshipByElementIdSeek(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   relIds: SeekableArgs,
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
@@ -4949,7 +4956,7 @@ object UndirectedRelationshipByElementIdSeek {
     rightNode: LogicalVariable,
     argumentIds: Set[LogicalVariable]
   )(implicit idGen: IdGen): UndirectedRelationshipByElementIdSeek =
-    new UndirectedRelationshipByElementIdSeek(idName, relIds, Some(leftNode), Some(rightNode), argumentIds)(idGen)
+    new UndirectedRelationshipByElementIdSeek(Some(idName), relIds, Some(leftNode), Some(rightNode), argumentIds)(idGen)
 }
 
 /**
@@ -4959,7 +4966,7 @@ object UndirectedRelationshipByElementIdSeek {
  * row has the end node as 'leftNode' = endNode and the start node as 'rightNode'.
  */
 case class UndirectedRelationshipByIdSeek(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   relIds: SeekableArgs,
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
@@ -4996,7 +5003,7 @@ object UndirectedRelationshipByIdSeek {
     rightNode: LogicalVariable,
     argumentIds: Set[LogicalVariable]
   )(implicit idGen: IdGen): UndirectedRelationshipByIdSeek =
-    new UndirectedRelationshipByIdSeek(idName, relIds, Some(leftNode), Some(rightNode), argumentIds)(idGen)
+    new UndirectedRelationshipByIdSeek(Some(idName), relIds, Some(leftNode), Some(rightNode), argumentIds)(idGen)
 }
 
 /**
@@ -5008,7 +5015,7 @@ object UndirectedRelationshipByIdSeek {
  *  - `{idName: relationship, leftNode: relationship.endNode, relationship.startNode}`
  */
 case class UndirectedRelationshipIndexContainsScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -5061,7 +5068,7 @@ object UndirectedRelationshipIndexContainsScan {
     indexOrder: IndexOrder,
     indexType: IndexType
   )(implicit idGen: IdGen) = new UndirectedRelationshipIndexContainsScan(
-    idName,
+    Some(idName),
     Some(startNode),
     Some(endNode),
     typeToken,
@@ -5083,7 +5090,7 @@ object UndirectedRelationshipIndexContainsScan {
  *  - `{idName: relationship, leftNode: relationship.endNode, relationship.startNode}`
  */
 case class UndirectedRelationshipIndexEndsWithScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -5136,7 +5143,7 @@ object UndirectedRelationshipIndexEndsWithScan {
     indexOrder: IndexOrder,
     indexType: IndexType
   )(implicit idGen: IdGen) = new UndirectedRelationshipIndexEndsWithScan(
-    idName,
+    Some(idName),
     Some(startNode),
     Some(endNode),
     typeToken,
@@ -5157,7 +5164,7 @@ object UndirectedRelationshipIndexEndsWithScan {
  *  - `{idName: relationship, leftNode: relationship.endNode, relationship.startNode}`
  */
 case class UndirectedRelationshipIndexScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -5209,7 +5216,7 @@ object UndirectedRelationshipIndexScan {
     supportPartitionedScan: Boolean
   )(implicit idGen: IdGen) =
     new UndirectedRelationshipIndexScan(
-      idName,
+      Some(idName),
       Some(startNode),
       Some(endNode),
       typeToken,
@@ -5222,7 +5229,7 @@ object UndirectedRelationshipIndexScan {
 }
 
 case class PartitionedUndirectedRelationshipIndexScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -5269,7 +5276,7 @@ case class PartitionedUndirectedRelationshipIndexScan(
  *  - `{idName: relationship, leftNode: relationship.endNode, relationship.startNode}`
  */
 case class UndirectedRelationshipIndexSeek(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -5310,7 +5317,7 @@ case class UndirectedRelationshipIndexSeek(
 }
 
 case class PartitionedUndirectedRelationshipIndexSeek(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -5371,7 +5378,7 @@ object UndirectedRelationshipIndexSeek extends IndexSeekNames {
     supportPartitionedScan: Boolean
   )(implicit idGen: IdGen): UndirectedRelationshipIndexSeek =
     new UndirectedRelationshipIndexSeek(
-      idName,
+      Some(idName),
       Some(leftNode),
       Some(rightNode),
       typeToken,
@@ -5394,7 +5401,7 @@ object UndirectedRelationshipIndexSeek extends IndexSeekNames {
  *  - `{idName: relationship, leftNode: relationship.endNode, relationship.startNode}`
  */
 case class UndirectedRelationshipTypeScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   relType: RelTypeName,
   rightNode: Option[LogicalVariable],
@@ -5433,11 +5440,11 @@ object UndirectedRelationshipTypeScan {
     argumentIds: Set[LogicalVariable],
     indexOrder: IndexOrder
   )(implicit idGen: IdGen): UndirectedRelationshipTypeScan =
-    new UndirectedRelationshipTypeScan(idName, Some(startNode), relType, Some(endNode), argumentIds, indexOrder)
+    new UndirectedRelationshipTypeScan(Some(idName), Some(startNode), relType, Some(endNode), argumentIds, indexOrder)
 }
 
 case class DynamicUndirectedRelationshipTypeScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   relType: DynamicElement,
   rightNode: Option[LogicalVariable],
@@ -5467,7 +5474,7 @@ case class DynamicUndirectedRelationshipTypeScan(
 }
 
 case class PartitionedUndirectedRelationshipTypeScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   relType: RelTypeName,
   rightNode: Option[LogicalVariable],
@@ -5506,7 +5513,7 @@ case class PartitionedUndirectedRelationshipTypeScan(
  *  - `{idName: relationship, leftNode: relationship.endNode, relationship.startNode}`
  */
 case class UndirectedRelationshipUniqueIndexSeek(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   leftNode: Option[LogicalVariable],
   rightNode: Option[LogicalVariable],
   override val typeToken: RelationshipTypeToken,
@@ -5559,7 +5566,7 @@ object UndirectedRelationshipUniqueIndexSeek {
     indexType: IndexType
   )(implicit idGen: IdGen): UndirectedRelationshipUniqueIndexSeek =
     new UndirectedRelationshipUniqueIndexSeek(
-      idName,
+      Some(idName),
       Some(leftNode),
       Some(rightNode),
       typeToken,
@@ -5576,7 +5583,7 @@ object UndirectedRelationshipUniqueIndexSeek {
  * This row contains the relationship (assigned to 'idName') and the contents of argument.
  */
 case class UndirectedUnionRelationshipTypesScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   types: Seq[RelTypeName],
   endNode: Option[LogicalVariable],
@@ -5620,7 +5627,7 @@ object UndirectedUnionRelationshipTypesScan {
     indexOrder: IndexOrder
   )(implicit idGen: IdGen) =
     new UndirectedUnionRelationshipTypesScan(
-      idName,
+      Some(idName),
       Some(startNode),
       types,
       Some(endNode),
@@ -5630,7 +5637,7 @@ object UndirectedUnionRelationshipTypesScan {
 }
 
 case class PartitionedUndirectedUnionRelationshipTypesScan(
-  idName: LogicalVariable,
+  idName: Option[LogicalVariable],
   startNode: Option[LogicalVariable],
   types: Seq[RelTypeName],
   endNode: Option[LogicalVariable],

@@ -77,10 +77,10 @@ case object OrderedIndexPlansUseCachedProperties extends ValidatingCondition {
         x.properties.view
           .filter(_.getValueFromIndex != GetValue)
           .map(x -> indexedPropertyToProperty(x.idName)(_))
-      case x: RelationshipIndexLeafPlan if x.indexOrder != IndexOrderNone && returnedEntities.contains(x.idName) =>
+      case x: RelationshipIndexLeafPlan if x.indexOrder != IndexOrderNone && returnedEntities.contains(x.idName.get) =>
         x.properties.view
           .filter(_.getValueFromIndex != GetValue)
-          .map(x -> indexedPropertyToProperty(x.idName)(_))
+          .map(x -> indexedPropertyToProperty(x.idName.get)(_))
     }.flatten.map {
       case (indexPlan, property) =>
         s"$indexPlan does not cache ${expressionStringifier(property)}, but the entity is returned in ProduceResult."
@@ -90,7 +90,7 @@ case object OrderedIndexPlansUseCachedProperties extends ValidatingCondition {
       case x: NodeIndexLeafPlan if x.indexOrder != IndexOrderNone =>
         x.properties.map(indexedPropertyToProperty(x.idName))
       case x: RelationshipIndexLeafPlan if x.indexOrder != IndexOrderNone =>
-        x.properties.map(indexedPropertyToProperty(x.idName))
+        x.properties.map(indexedPropertyToProperty(x.idName.get))
     }.flatten.toSet
 
     // If an index is ordered, then the properties of the index must not appear non-cached anywhere in the plan.

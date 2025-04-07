@@ -646,7 +646,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       config,
       query,
       {
-        case DirectedRelationshipTypeScan(LogicalVariable("r"), _, _, _, _, _) => true
+        case DirectedRelationshipTypeScan(Some(LogicalVariable("r")), _, _, _, _, _) => true
       },
       aCardinality * rCardinality
     )
@@ -677,7 +677,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       config,
       query,
       {
-        case DirectedRelationshipTypeScan(LogicalVariable("r"), _, _, _, _, _) => true
+        case DirectedRelationshipTypeScan(Some(LogicalVariable("r")), _, _, _, _, _) => true
       },
       rCardinality
     )
@@ -710,7 +710,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       config,
       query,
       {
-        case DirectedRelationshipByIdSeek(LogicalVariable("r"), _, _, _, _) => true
+        case DirectedRelationshipByIdSeek(Some(LogicalVariable("r")), _, _, _, _) => true
       },
       aCardinality
     )
@@ -740,7 +740,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       config,
       query,
       {
-        case DirectedRelationshipByIdSeek(LogicalVariable("r"), _, _, _, _) => true
+        case DirectedRelationshipByIdSeek(Some(LogicalVariable("r")), _, _, _, _) => true
       },
       1
     )

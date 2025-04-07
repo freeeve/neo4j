@@ -289,15 +289,8 @@ object ReadFinder {
       )
     }
 
-    def withIntroducedNodeVariable(variable: Option[LogicalVariable]): PlanReads = {
-      variable match {
-        case Some(value) => withIntroducedNodeVariable(value)
-        case None => throw InternalException.internalError(
-            this.getClass.getSimpleName,
-            "Node variable must exist for eager analysis to work correctly."
-          )
-      }
-    }
+    def withIntroducedNodeVariable(variable: Option[LogicalVariable]): PlanReads =
+      withIntroducedNodeVariable(nodeVariable(variable))
 
     def withIntroducedRelationshipVariable(variable: LogicalVariable): PlanReads = {
       val newExpressions = relationshipFilterExpressions.getOrElse(variable, Seq.empty)
@@ -306,6 +299,9 @@ object ReadFinder {
         referencedRelationshipVariables = referencedRelationshipVariables + variable
       )
     }
+
+    def withIntroducedRelationshipVariable(variable: Option[LogicalVariable]): PlanReads =
+      withIntroducedRelationshipVariable(relationshipVariable(variable))
 
     def withAddedNodeFilterExpression(variable: LogicalVariable, filterExpression: Expression): PlanReads = {
       val newExpressions = nodeFilterExpressions.getOrElse(variable, Seq.empty) :+ filterExpression
@@ -504,10 +500,10 @@ object ReadFinder {
         processRelationshipRead(relationship, leftNode, rightNode)
 
       case UndirectedRelationshipTypeScan(relationship, leftNode, relType, rightNode, _, _) =>
-        processRelTypeRead(relationship, leftNode, relType, rightNode)
+        processRelTypeRead(relationshipVariable(relationship), leftNode, relType, rightNode)
 
       case DirectedRelationshipTypeScan(relationship, leftNode, relType, rightNode, _, _) =>
-        processRelTypeRead(relationship, leftNode, relType, rightNode)
+        processRelTypeRead(relationshipVariable(relationship), leftNode, relType, rightNode)
 
       case DirectedRelationshipIndexScan(
           relationship,
@@ -520,7 +516,7 @@ object ReadFinder {
           _,
           _
         ) =>
-        processRelationshipIndexPlan(relationship, typeName, properties, leftNode, rightNode)
+        processRelationshipIndexPlan(relationshipVariable(relationship), typeName, properties, leftNode, rightNode)
 
       case DirectedRelationshipIndexSeek(
           relationship,
@@ -534,7 +530,7 @@ object ReadFinder {
           _,
           _
         ) =>
-        processRelationshipIndexPlan(relationship, typeName, properties, leftNode, rightNode)
+        processRelationshipIndexPlan(relationshipVariable(relationship), typeName, properties, leftNode, rightNode)
 
       case UndirectedRelationshipIndexScan(
           relationship,
@@ -547,7 +543,7 @@ object ReadFinder {
           _,
           _
         ) =>
-        processRelationshipIndexPlan(relationship, typeName, properties, leftNode, rightNode)
+        processRelationshipIndexPlan(relationshipVariable(relationship), typeName, properties, leftNode, rightNode)
 
       case UndirectedRelationshipIndexSeek(
           relationship,
@@ -561,7 +557,7 @@ object ReadFinder {
           _,
           _
         ) =>
-        processRelationshipIndexPlan(relationship, typeName, properties, leftNode, rightNode)
+        processRelationshipIndexPlan(relationshipVariable(relationship), typeName, properties, leftNode, rightNode)
 
       case UndirectedRelationshipUniqueIndexSeek(
           relationship,
@@ -574,7 +570,7 @@ object ReadFinder {
           _,
           _
         ) =>
-        processRelationshipIndexPlan(relationship, typeName, properties, leftNode, rightNode)
+        processRelationshipIndexPlan(relationshipVariable(relationship), typeName, properties, leftNode, rightNode)
 
       case DirectedRelationshipUniqueIndexSeek(
           relationship,
@@ -587,7 +583,7 @@ object ReadFinder {
           _,
           _
         ) =>
-        processRelationshipIndexPlan(relationship, typeName, properties, leftNode, rightNode)
+        processRelationshipIndexPlan(relationshipVariable(relationship), typeName, properties, leftNode, rightNode)
 
       case UndirectedRelationshipIndexContainsScan(
           relationship,
@@ -600,7 +596,7 @@ object ReadFinder {
           _,
           _
         ) =>
-        processRelationshipIndexPlan(relationship, typeName, Seq(property), leftNode, rightNode)
+        processRelationshipIndexPlan(relationshipVariable(relationship), typeName, Seq(property), leftNode, rightNode)
 
       case DirectedRelationshipIndexContainsScan(
           relationship,
@@ -613,7 +609,7 @@ object ReadFinder {
           _,
           _
         ) =>
-        processRelationshipIndexPlan(relationship, typeName, Seq(property), leftNode, rightNode)
+        processRelationshipIndexPlan(relationshipVariable(relationship), typeName, Seq(property), leftNode, rightNode)
 
       case UndirectedRelationshipIndexEndsWithScan(
           relationship,
@@ -626,7 +622,7 @@ object ReadFinder {
           _,
           _
         ) =>
-        processRelationshipIndexPlan(relationship, typeName, Seq(property), leftNode, rightNode)
+        processRelationshipIndexPlan(relationshipVariable(relationship), typeName, Seq(property), leftNode, rightNode)
 
       case DirectedRelationshipIndexEndsWithScan(
           relationship,
@@ -639,7 +635,7 @@ object ReadFinder {
           _,
           _
         ) =>
-        processRelationshipIndexPlan(relationship, typeName, Seq(property), leftNode, rightNode)
+        processRelationshipIndexPlan(relationshipVariable(relationship), typeName, Seq(property), leftNode, rightNode)
 
       case UndirectedRelationshipByIdSeek(relationship, _, leftNode, rightNode, _) =>
         processRelationshipRead(relationship, leftNode, rightNode)
@@ -654,10 +650,10 @@ object ReadFinder {
         processRelationshipRead(relationship, leftNode, rightNode)
 
       case UndirectedUnionRelationshipTypesScan(relationship, leftNode, relTypes, rightNode, _, _) =>
-        processUnionRelTypeScan(relationship, leftNode, relTypes, rightNode)
+        processUnionRelTypeScan(relationshipVariable(relationship), leftNode, relTypes, rightNode)
 
       case DirectedUnionRelationshipTypesScan(relationship, leftNode, relTypes, rightNode, _, _) =>
-        processUnionRelTypeScan(relationship, leftNode, relTypes, rightNode)
+        processUnionRelTypeScan(relationshipVariable(relationship), leftNode, relTypes, rightNode)
 
       case Selection(predicate, _) =>
         processFilterExpression(PlanReads(), predicate, semanticTable)
@@ -1314,7 +1310,7 @@ object ReadFinder {
   }
 
   private def processRelationshipRead(
-    relationshipVariable: LogicalVariable,
+    relationshipVariable: Option[LogicalVariable],
     leftVariable: Option[LogicalVariable],
     rightVariable: Option[LogicalVariable]
   ): PlanReads = {
@@ -1388,5 +1384,23 @@ object ReadFinder {
       case lv: LogicalVariable => Some(lv)
       case _                   => None
     }
+  }
+
+  def nodeVariable(variable: Option[LogicalVariable]): LogicalVariable = {
+    variable.getOrElse(
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Node variable must exist for eager analysis to work correctly."
+      )
+    )
+  }
+
+  def relationshipVariable(variable: Option[LogicalVariable]): LogicalVariable = {
+    variable.getOrElse(
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Relationship variable must exist for eager analysis to work correctly."
+      )
+    )
   }
 }

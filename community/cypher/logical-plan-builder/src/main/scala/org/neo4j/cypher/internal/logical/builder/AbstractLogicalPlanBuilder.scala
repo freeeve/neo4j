@@ -1484,7 +1484,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     p.dir match {
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(DirectedUnionRelationshipTypesScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           p.relTypes,
           varFor(p.maybeTo),
@@ -1493,7 +1493,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(DirectedUnionRelationshipTypesScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeTo),
           p.relTypes,
           varFor(p.maybeFrom),
@@ -1502,7 +1502,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(UndirectedUnionRelationshipTypesScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           p.relTypes,
           varFor(p.maybeTo),
@@ -1522,7 +1522,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     p.dir match {
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedUnionRelationshipTypesScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           p.relTypes,
           varFor(p.maybeTo),
@@ -1530,7 +1530,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedUnionRelationshipTypesScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeTo),
           p.relTypes,
           varFor(p.maybeFrom),
@@ -1538,7 +1538,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(PartitionedUndirectedUnionRelationshipTypesScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           p.relTypes,
           varFor(p.maybeTo),
@@ -1556,7 +1556,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   private def directedRelationshipByIdSeekSolver(
-    relationship: String,
+    relationship: Option[String],
     from: Option[String],
     to: Option[String],
     args: Set[String],
@@ -1591,11 +1591,11 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
     p.dir match {
       case SemanticDirection.OUTGOING =>
-        directedRelationshipByIdSeekSolver(p.relName, p.maybeFrom, p.maybeTo, args, idExpressions)
+        directedRelationshipByIdSeekSolver(p.maybeRelName, p.maybeFrom, p.maybeTo, args, idExpressions)
       case SemanticDirection.INCOMING =>
-        directedRelationshipByIdSeekSolver(p.relName, p.maybeTo, p.maybeFrom, args, idExpressions)
+        directedRelationshipByIdSeekSolver(p.maybeRelName, p.maybeTo, p.maybeFrom, args, idExpressions)
       case SemanticDirection.BOTH =>
-        undirectedRelationshipByIdSeekSolver(p.relName, p.maybeFrom, p.maybeTo, args, idExpressions)
+        undirectedRelationshipByIdSeekSolver(p.maybeRelName, p.maybeFrom, p.maybeTo, args, idExpressions)
     }
   }
 
@@ -1606,11 +1606,11 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     args: Set[String],
     expr: Expression*
   ): IMPL = {
-    directedRelationshipByIdSeekExpr(relationship, Some(from), Some(to), args, expr: _*)
+    directedRelationshipByIdSeekExpr(Some(relationship), Some(from), Some(to), args, expr: _*)
   }
 
   def directedRelationshipByIdSeekExpr(
-    relationship: String,
+    relationship: Option[String],
     from: Option[String],
     to: Option[String],
     args: Set[String],
@@ -1620,7 +1620,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   private def undirectedRelationshipByIdSeekSolver(
-    relationship: String,
+    relationship: Option[String],
     from: Option[String],
     to: Option[String],
     args: Set[String],
@@ -1647,11 +1647,11 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     args: Set[String],
     expr: Expression*
   ): IMPL = {
-    undirectedRelationshipByIdSeekExpr(relationship, Some(from), Some(to), args, expr: _*)
+    undirectedRelationshipByIdSeekExpr(Some(relationship), Some(from), Some(to), args, expr: _*)
   }
 
   def undirectedRelationshipByIdSeekExpr(
-    relationship: String,
+    relationship: Option[String],
     from: Option[String],
     to: Option[String],
     args: Set[String],
@@ -1675,7 +1675,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   ): IMPL = {
     val p = patternParser.parse(pattern)
     if (!p.length.isSimple) throw new UnsupportedOperationException("Cannot do a scan from a variable pattern")
-    val (relationship, from, to) = (p.relName, p.maybeFrom, p.maybeTo)
+    val (relationship, from, to) = (p.maybeRelName, p.maybeFrom, p.maybeTo)
     newRelationship(varFor(relationship))
     newNode(varFor(from))
     newNode(varFor(to))
@@ -1743,21 +1743,21 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     p.dir match {
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(DirectedAllRelationshipsScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           varFor(p.maybeTo),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(DirectedAllRelationshipsScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeTo),
           varFor(p.maybeFrom),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(UndirectedAllRelationshipsScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           varFor(p.maybeTo),
           args.map(varFor).toSet
@@ -1775,21 +1775,21 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     p.dir match {
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedAllRelationshipsScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           varFor(p.maybeTo),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedAllRelationshipsScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeTo),
           varFor(p.maybeFrom),
           args.map(varFor).toSet
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(PartitionedUndirectedAllRelationshipsScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           varFor(p.maybeTo),
           args.map(varFor).toSet
@@ -1814,7 +1814,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     p.dir match {
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(DirectedRelationshipTypeScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           typ,
           varFor(p.maybeTo),
@@ -1823,7 +1823,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(DirectedRelationshipTypeScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeTo),
           typ,
           varFor(p.maybeFrom),
@@ -1832,7 +1832,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(UndirectedRelationshipTypeScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           typ,
           varFor(p.maybeTo),
@@ -1943,7 +1943,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     p.dir match {
       case SemanticDirection.OUTGOING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedRelationshipTypeScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           typ,
           varFor(p.maybeTo),
@@ -1951,7 +1951,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         )(_)))
       case SemanticDirection.INCOMING =>
         appendAtCurrentIndent(LeafOperator(PartitionedDirectedRelationshipTypeScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeTo),
           typ,
           varFor(p.maybeFrom),
@@ -1959,7 +1959,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         )(_)))
       case SemanticDirection.BOTH =>
         appendAtCurrentIndent(LeafOperator(PartitionedUndirectedRelationshipTypeScan(
-          varFor(p.relName),
+          varFor(p.maybeRelName),
           varFor(p.maybeFrom),
           typ,
           varFor(p.maybeTo),
@@ -2189,7 +2189,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         indexType,
         supportPartitionedScan
       )(idGen)
-      newRelationship(varFor(plan.idName.name))
+      plan.idName.foreach(r => newRelationship(varFor(r.name)))
       plan.leftNode.foreach(l => newNode(varFor(l.name)))
       plan.rightNode.foreach(r => newNode(varFor(r.name)))
       plan
@@ -2220,7 +2220,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         customQueryExpression,
         indexType
       )(idGen)
-      newRelationship(varFor(plan.idName.name))
+      plan.rightNode.foreach(r => newRelationship(varFor(r.name)))
       plan.leftNode.foreach(n => newNode(varFor(n.name)))
       plan.rightNode.foreach(n => newNode(varFor(n.name)))
       plan
@@ -2463,7 +2463,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         indexType = indexType,
         supportPartitionedScan = false
       )(idGen)
-      newRelationship(varFor(plan.idName.name))
+      plan.idName.foreach(r => newRelationship(varFor(r.name)))
       plan.leftNode.foreach(l => newNode(varFor(l.name)))
       plan.rightNode.foreach(r => newNode(varFor(r.name)))
       plan
@@ -2525,7 +2525,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         indexType = indexType,
         supportPartitionedScan = false
       )(idGen)
-      newRelationship(varFor(plan.idName.name))
+      plan.rightNode.foreach(r => newRelationship(varFor(r.name)))
       plan.leftNode.foreach(l => newNode(varFor(l.name)))
       plan.rightNode.foreach(r => newNode(varFor(r.name)))
       plan
@@ -3266,9 +3266,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   def newNode(maybeNode: Option[LogicalVariable]): Unit = {
-    maybeNode.foreach(node => {
-      semanticTable = semanticTable.addNode(node.asInstanceOf[Variable])
-    })
+    maybeNode.foreach(newNode)
   }
 
   /**
@@ -3276,6 +3274,10 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
    */
   def newRelationship(relationship: LogicalVariable): Unit = {
     semanticTable = semanticTable.addRelationship(relationship.asInstanceOf[Variable])
+  }
+
+  def newRelationship(maybeRel: Option[LogicalVariable]): Unit = {
+    maybeRel.foreach(newRelationship)
   }
 
   /**

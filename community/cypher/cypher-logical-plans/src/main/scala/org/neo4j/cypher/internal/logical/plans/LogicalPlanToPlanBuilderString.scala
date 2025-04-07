@@ -618,7 +618,7 @@ object LogicalPlanToPlanBuilderString {
         spread(protectedSymbols)
       case OptionalExpand(_, from, dir, types, to, relName, _, predicate) =>
         params(
-          renderSimplePath(relName, Some(from), types.map(_.name), Some(to), dir),
+          renderSimplePath(Some(relName), Some(from), types.map(_.name), Some(to), dir),
           optional(predicate.map(_.quoted.some))
         )
 
@@ -818,13 +818,13 @@ object LogicalPlanToPlanBuilderString {
         params(idName, argumentIds, ids)
       case UndirectedRelationshipByIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
         params(
-          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.name}]-(${rightNode.map(_.name).getOrElse("")})".quoted,
+          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}]-(${rightNode.map(_.name).getOrElse("")})".quoted,
           argumentIds,
           ids
         )
       case UndirectedRelationshipByElementIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
         params(
-          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.name}]-(${rightNode.map(_.name).getOrElse("")})".quoted,
+          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}]-(${rightNode.map(_.name).getOrElse("")})".quoted,
           argumentIds,
           ids
         )
@@ -1581,7 +1581,7 @@ object LogicalPlanToPlanBuilderString {
     }
 
   private def renderSimplePath(
-    idName: LogicalVariable,
+    idName: Option[LogicalVariable],
     start: Option[LogicalVariable],
     relType: Seq[String],
     end: Option[LogicalVariable],
@@ -1593,7 +1593,7 @@ object LogicalPlanToPlanBuilderString {
       case typeList => typeList.mkString(":", "|", "")
     }
 
-    s"(${start.map(_.name).getOrElse("")})$dirA[${idName.name}$relTypes]$dirB(${end.map(_.name).getOrElse("")})".quoted
+    s"(${start.map(_.name).getOrElse("")})$dirA[${idName.map(_.name).getOrElse("")}$relTypes]$dirB(${end.map(_.name).getOrElse("")})".quoted
   }
 
   /**
@@ -1905,7 +1905,7 @@ object LogicalPlanToPlanBuilderString {
     )
 
   private def relationshipIndexOperator(
-    idName: LogicalVariable,
+    idName: Option[LogicalVariable],
     start: Option[LogicalVariable],
     end: Option[LogicalVariable],
     typeToken: RelationshipTypeToken,
@@ -1921,7 +1921,7 @@ object LogicalPlanToPlanBuilderString {
   ) = {
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       "indexOrder" -> indexOrder,
       "paramExpr" -> paramExpr,
       "argumentIds" -> argumentIds,
@@ -1933,7 +1933,7 @@ object LogicalPlanToPlanBuilderString {
   }
 
   private def partitionedRelationshipIndexOperator(
-    idName: LogicalVariable,
+    idName: Option[LogicalVariable],
     start: Option[LogicalVariable],
     end: Option[LogicalVariable],
     typeToken: RelationshipTypeToken,
@@ -1945,7 +1945,7 @@ object LogicalPlanToPlanBuilderString {
   ) = {
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}:${typeToken.name}($parenthesesContent)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       "argumentIds" -> argumentIds,
       "getValue" -> Param.mapParam(properties)(_.propertyKeyToken, _.getValueFromIndex),
       "indexType" -> indexType
@@ -1999,7 +1999,7 @@ object LogicalPlanToPlanBuilderString {
     )
 
   private def pointBoundingBoxRelationshipIndexSeek(
-    idName: LogicalVariable,
+    idName: Option[LogicalVariable],
     start: Option[LogicalVariable],
     end: Option[LogicalVariable],
     typeToken: RelationshipTypeToken,
@@ -2014,7 +2014,7 @@ object LogicalPlanToPlanBuilderString {
     val propName = properties.map(_.propertyKeyToken.name).head
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       lowerLeft.quoted,
       upperRight.quoted,
       "indexOrder" -> indexOrder,
@@ -2025,7 +2025,7 @@ object LogicalPlanToPlanBuilderString {
   }
 
   private def pointDistanceRelationshipIndexSeek(
-    idName: LogicalVariable,
+    idName: Option[LogicalVariable],
     start: Option[LogicalVariable],
     end: Option[LogicalVariable],
     typeToken: RelationshipTypeToken,
@@ -2041,7 +2041,7 @@ object LogicalPlanToPlanBuilderString {
     val propName = properties.map(_.propertyKeyToken.name).head
     val rarrow = if (directed) "->" else "-"
     params(
-      s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
+      s"(${start.map(_.name).getOrElse("")})-[${idName.map(_.name).getOrElse("")}:${typeToken.name}($propName)]$rarrow(${end.map(_.name).getOrElse("")})".quoted,
       point.quoted,
       distance,
       "inclusive" -> inclusive,

@@ -310,7 +310,7 @@ object IndexSeek {
         def makeDirected() =
           if (unique)
             DirectedRelationshipUniqueIndexSeek(
-              varFor(rel),
+              varFor(toOption(rel)),
               varFor(startNode),
               varFor(endNode),
               typeToken,
@@ -322,7 +322,7 @@ object IndexSeek {
             )
           else
             DirectedRelationshipIndexSeek(
-              varFor(rel),
+              varFor(toOption(rel)),
               varFor(startNode),
               varFor(endNode),
               typeToken,
@@ -339,7 +339,7 @@ object IndexSeek {
         def makeUndirected() =
           if (unique)
             UndirectedRelationshipUniqueIndexSeek(
-              varFor(rel),
+              varFor(toOption(rel)),
               varFor(startNode),
               varFor(endNode),
               typeToken,
@@ -351,7 +351,7 @@ object IndexSeek {
             )
           else
             UndirectedRelationshipIndexSeek(
-              varFor(rel),
+              varFor(toOption(rel)),
               varFor(startNode),
               varFor(endNode),
               typeToken,
@@ -370,7 +370,7 @@ object IndexSeek {
     def createEndsWithScan(property: IndexedProperty, valueExpr: Expression): RelationshipIndexLeafPlan = {
       if (directed) {
         DirectedRelationshipIndexEndsWithScan(
-          varFor(rel),
+          varFor(toOption(rel)),
           varFor(startNode),
           varFor(endNode),
           typeToken,
@@ -382,7 +382,7 @@ object IndexSeek {
         )
       } else {
         UndirectedRelationshipIndexEndsWithScan(
-          varFor(rel),
+          varFor(toOption(rel)),
           varFor(startNode),
           varFor(endNode),
           typeToken,
@@ -398,7 +398,7 @@ object IndexSeek {
     def createContainsScan(property: IndexedProperty, valueExpr: Expression): RelationshipIndexLeafPlan = {
       if (directed) {
         DirectedRelationshipIndexContainsScan(
-          varFor(rel),
+          varFor(toOption(rel)),
           varFor(startNode),
           varFor(endNode),
           typeToken,
@@ -410,7 +410,7 @@ object IndexSeek {
         )
       } else {
         UndirectedRelationshipIndexContainsScan(
-          varFor(rel),
+          varFor(toOption(rel)),
           varFor(startNode),
           varFor(endNode),
           typeToken,
@@ -426,7 +426,7 @@ object IndexSeek {
     def createScan(properties: Seq[IndexedProperty]): RelationshipIndexLeafPlan = {
       if (directed) {
         DirectedRelationshipIndexScan(
-          varFor(rel),
+          varFor(toOption(rel)),
           varFor(startNode),
           varFor(endNode),
           typeToken,
@@ -438,7 +438,7 @@ object IndexSeek {
         )
       } else {
         UndirectedRelationshipIndexScan(
-          varFor(rel),
+          varFor(toOption(rel)),
           varFor(startNode),
           varFor(endNode),
           typeToken,
@@ -482,10 +482,11 @@ object IndexSeek {
           (leftNode, incoming, rel, typeStr, predicateStr, outgoing, rightNode)
         case _ => throw new IllegalStateException("Expected index seek string, got " + indexSeekString)
       }
+    def toOption(in: String) = if (in == null || in.isEmpty) None else Some(in)
     val (startNode, endNode, directed) = (incoming, outgoing) match {
-      case ("<", "") => (rightNode, leftNode, true)
-      case ("", ">") => (leftNode, rightNode, true)
-      case ("", "")  => (leftNode, rightNode, false)
+      case ("<", "") => (toOption(rightNode), toOption(leftNode), true)
+      case ("", ">") => (toOption(leftNode), toOption(rightNode), true)
+      case ("", "")  => (toOption(leftNode), toOption(rightNode), false)
       case _         => throw new UnsupportedOperationException(s"Direction $incoming-$outgoing not supported")
     }
     val typeToken = RelationshipTypeToken(typeStr, RelTypeId(typeId))
@@ -497,9 +498,9 @@ object IndexSeek {
     ): RelationshipIndexLeafPlan = {
       if (directed) {
         PartitionedDirectedRelationshipIndexSeek(
-          varFor(rel),
-          Some(varFor(startNode)),
-          Some(varFor(endNode)),
+          varFor(toOption(rel)),
+          varFor(startNode),
+          varFor(endNode),
           typeToken,
           properties,
           valueExpr,
@@ -508,9 +509,9 @@ object IndexSeek {
         )
       } else {
         PartitionedUndirectedRelationshipIndexSeek(
-          varFor(rel),
-          Some(varFor(startNode)),
-          Some(varFor(endNode)),
+          varFor(toOption(rel)),
+          varFor(startNode),
+          varFor(endNode),
           typeToken,
           properties,
           valueExpr,
@@ -524,7 +525,7 @@ object IndexSeek {
     def createEndsWithScan(property: IndexedProperty, valueExpr: Expression): RelationshipIndexLeafPlan = {
       if (directed) {
         DirectedRelationshipIndexEndsWithScan(
-          varFor(rel),
+          varFor(toOption(rel)),
           varFor(startNode),
           varFor(endNode),
           typeToken,
@@ -536,7 +537,7 @@ object IndexSeek {
         )
       } else {
         UndirectedRelationshipIndexEndsWithScan(
-          varFor(rel),
+          varFor(toOption(rel)),
           varFor(startNode),
           varFor(endNode),
           typeToken,
@@ -553,7 +554,7 @@ object IndexSeek {
     def createContainsScan(property: IndexedProperty, valueExpr: Expression): RelationshipIndexLeafPlan = {
       if (directed) {
         DirectedRelationshipIndexContainsScan(
-          varFor(rel),
+          varFor(toOption(rel)),
           varFor(startNode),
           varFor(endNode),
           typeToken,
@@ -565,7 +566,7 @@ object IndexSeek {
         )
       } else {
         UndirectedRelationshipIndexContainsScan(
-          varFor(rel),
+          varFor(toOption(rel)),
           varFor(startNode),
           varFor(endNode),
           typeToken,
@@ -581,9 +582,9 @@ object IndexSeek {
     def createScan(properties: Seq[IndexedProperty]): RelationshipIndexLeafPlan = {
       if (directed) {
         PartitionedDirectedRelationshipIndexScan(
-          varFor(rel),
-          Some(varFor(startNode)),
-          Some(varFor(endNode)),
+          varFor(toOption(rel)),
+          varFor(startNode),
+          varFor(endNode),
           typeToken,
           properties,
           argumentIds.map(varFor),
@@ -591,9 +592,9 @@ object IndexSeek {
         )
       } else {
         PartitionedUndirectedRelationshipIndexScan(
-          varFor(rel),
-          Some(varFor(startNode)),
-          Some(varFor(endNode)),
+          varFor(toOption(rel)),
+          varFor(startNode),
+          varFor(endNode),
           typeToken,
           properties,
           argumentIds.map(varFor),

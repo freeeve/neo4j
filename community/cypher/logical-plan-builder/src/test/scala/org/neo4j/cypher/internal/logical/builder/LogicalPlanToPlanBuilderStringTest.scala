@@ -1868,6 +1868,16 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
   )
 
   testPlan(
+    "allRelationshipsScan without relationships",
+    new TestPlanBuilder()
+      .produceResults("y")
+      .apply()
+      .|.allRelationshipsScan("()-[]-()", "x1", "r", "y")
+      .allRelationshipsScan("()-[]->(y)")
+      .build()
+  )
+
+  testPlan(
     "partitionedAllRelationshipsScan",
     new TestPlanBuilder()
       .produceResults("x1", "y1")

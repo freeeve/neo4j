@@ -31,12 +31,6 @@ class PatternParser {
   private val ID = "([a-zA-Z0-9` @_]*)"
   private val REL_TYPES = "([a-zA-Z0-9_|]*)"
   private val regex = s"\\($ID\\)(<?)-\\[?$ID:?$REL_TYPES(\\*?)([0-9]*)(\\.?\\.?)([0-9]*)\\]?-(>?)\\($ID\\)".r
-  private var unnamedCount = 0
-
-  private def nextUnnamed(): String = {
-    unnamedCount += 1
-    "UNNAMED" + unnamedCount
-  }
 
   def parse(pattern: String): Pattern = {
     pattern match {
@@ -62,16 +56,16 @@ class PatternParser {
                 s"$star, $min, $max is not a supported variable length identifier"
               )
           }
-        val relNameOrUnnamed = {
+        val maybeRelName = {
           if (relName.isEmpty) {
-            nextUnnamed()
+            None
           } else {
-            VariableParser.unescaped(relName)
+            Some(VariableParser.unescaped(relName))
           }
         }
         val maybeFrom = if (from.nonEmpty) Some(VariableParser.unescaped(from)) else None
         val maybeTo = if (to.nonEmpty) Some(VariableParser.unescaped(to)) else None
-        Pattern(maybeFrom, dir, relTypes, relNameOrUnnamed, maybeTo, length)
+        Pattern(maybeFrom, dir, relTypes, maybeRelName, maybeTo, length)
       case _ => throw new IllegalArgumentException(s"'$pattern' cannot be parsed as a pattern")
     }
   }
@@ -83,12 +77,13 @@ object PatternParser {
     maybeFrom: Option[String],
     dir: SemanticDirection,
     relTypes: Seq[RelTypeName],
-    relName: String,
+    maybeRelName: Option[String],
     maybeTo: Option[String],
     length: PatternLength
   ) {
     def from: String = maybeFrom.getOrElse("")
     def to: String = maybeTo.getOrElse("")
+    def relName: String = maybeRelName.getOrElse("")
   }
 
   object Pattern {
@@ -101,7 +96,7 @@ object PatternParser {
       to: String,
       length: PatternLength
     ): Pattern = {
-      Pattern(Some(from), direction, relTypes, relName, Some(to), length)
+      Pattern(Some(from), direction, relTypes, Some(relName), Some(to), length)
     }
   }
 }

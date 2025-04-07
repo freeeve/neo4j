@@ -896,7 +896,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         PartitionedDirectedUnionRelationshipTypesScan(
-          varFor("r"),
+          Some(varFor("r")),
           Some(varFor("x")),
           Seq(relType("A"), relType("B"), relType("C")),
           Some(varFor("y")),
@@ -916,7 +916,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         PartitionedUndirectedUnionRelationshipTypesScan(
-          varFor("r"),
+          Some(varFor("r")),
           Some(varFor("x")),
           Seq(relType("A"), relType("B"), relType("C")),
           Some(varFor("y")),
@@ -1866,7 +1866,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
-        DirectedAllRelationshipsScan(varFor("r"), None, Some(varFor("y")), Set.empty),
+        DirectedAllRelationshipsScan(Some(varFor("r")), None, Some(varFor("y")), Set.empty),
         23.0
       ),
       planDescription(
@@ -1880,7 +1880,35 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
-        UndirectedAllRelationshipsScan(varFor("r"), None, None, Set.empty),
+        DirectedAllRelationshipsScan(None, None, Some(varFor("y")), Set.empty),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DirectedAllRelationshipsScan",
+        Seq.empty,
+        Seq(details("()-[]->(y)")),
+        Set("y")
+      )
+    )
+
+    assertGood(
+      attach(
+        UndirectedAllRelationshipsScan(Some(varFor("r")), None, None, Set.empty),
+        23.0
+      ),
+      planDescription(
+        id,
+        "UndirectedAllRelationshipsScan",
+        Seq.empty,
+        Seq(details("()-[r]-()")),
+        Set("r")
+      )
+    )
+
+    assertGood(
+      attach(
+        UndirectedAllRelationshipsScan(Some(varFor("r")), None, None, Set.empty),
         23.0
       ),
       planDescription(
@@ -1939,7 +1967,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         DirectedRelationshipTypeScan(
-          varFor("r"),
+          Some(varFor("r")),
           None,
           RelTypeName("R")(pos),
           None,
@@ -1959,8 +1987,29 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
+        DirectedRelationshipTypeScan(
+          None,
+          None,
+          RelTypeName("R")(pos),
+          None,
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("()-[:R]->()")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
         UndirectedRelationshipTypeScan(
-          varFor("r"),
+          Some(varFor("r")),
           Some(varFor("x")),
           RelTypeName("R")(pos),
           None,
@@ -1975,6 +2024,27 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq.empty,
         Seq(details("(x)-[r:R]-()")),
         Set("r", "x")
+      )
+    )
+
+    assertGood(
+      attach(
+        UndirectedRelationshipTypeScan(
+          None,
+          Some(varFor("x")),
+          RelTypeName("R")(pos),
+          None,
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "UndirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("(x)-[:R]-()")),
+        Set("x")
       )
     )
   }
@@ -2090,7 +2160,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         PartitionedDirectedRelationshipTypeScan(
-          varFor("r"),
+          Some(varFor("r")),
           Some(varFor("x")),
           RelTypeName("R")(pos),
           Some(varFor("y")),
@@ -2110,7 +2180,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         PartitionedUndirectedRelationshipTypeScan(
-          varFor("r"),
+          Some(varFor("r")),
           Some(varFor("x")),
           RelTypeName("R")(pos),
           Some(varFor("y")),
@@ -2129,8 +2199,28 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
+        PartitionedUndirectedRelationshipTypeScan(
+          None,
+          Some(varFor("x")),
+          RelTypeName("R")(pos),
+          Some(varFor("y")),
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "PartitionedUndirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("(x)-[:R]-(y)")),
+        Set("x", "y")
+      )
+    )
+
+    assertGood(
+      attach(
         PartitionedDirectedRelationshipTypeScan(
-          varFor("r"),
+          Some(varFor("r")),
           None,
           RelTypeName("R")(pos),
           None,
@@ -2150,7 +2240,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         PartitionedUndirectedRelationshipTypeScan(
-          varFor("r"),
+          Some(varFor("r")),
           None,
           RelTypeName("R")(pos),
           None,
@@ -2164,6 +2254,26 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq.empty,
         Seq(details("()-[r:R]-()")),
         Set("r")
+      )
+    )
+
+    assertGood(
+      attach(
+        PartitionedUndirectedRelationshipTypeScan(
+          None,
+          None,
+          RelTypeName("R")(pos),
+          None,
+          Set.empty
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "PartitionedUndirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("()-[:R]-()")),
+        Set.empty
       )
     )
   }
@@ -2227,7 +2337,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         DirectedRelationshipByIdSeek(
-          varFor("r"),
+          Some(varFor("r")),
           SingleSeekableArg(number("1")),
           Some(varFor("a")),
           Some(varFor("b")),
@@ -2286,7 +2396,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
-        DirectedRelationshipByIdSeek(varFor("r"), SingleSeekableArg(number("1")), None, None, Set.empty),
+        DirectedRelationshipByIdSeek(Some(varFor("r")), SingleSeekableArg(number("1")), None, None, Set.empty),
         70.0
       ),
       planDescription(
@@ -2295,6 +2405,19 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq.empty,
         Seq(details("()-[r]->() WHERE id(r) = 1")),
         Set("r")
+      )
+    )
+    assertGood(
+      attach(
+        DirectedRelationshipByIdSeek(None, SingleSeekableArg(number("1")), None, None, Set.empty),
+        70.0
+      ),
+      planDescription(
+        id,
+        "DirectedRelationshipByIdSeek",
+        Seq.empty,
+        Seq(details("()-[]->() WHERE id() = 1")),
+        Set.empty
       )
     )
 
@@ -2462,7 +2585,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         UndirectedRelationshipByIdSeek(
-          varFor("r"),
+          Some(varFor("r")),
           SingleSeekableArg(number("1")),
           None,
           None,
@@ -2476,6 +2599,26 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq.empty,
         Seq(details("()-[r]-() WHERE id(r) = 1")),
         Set("r", "x")
+      )
+    )
+
+    assertGood(
+      attach(
+        UndirectedRelationshipByIdSeek(
+          None,
+          SingleSeekableArg(number("1")),
+          None,
+          None,
+          Set(varFor("x"))
+        ),
+        70.0
+      ),
+      planDescription(
+        id,
+        "UndirectedRelationshipByIdSeek",
+        Seq.empty,
+        Seq(details("()-[]-() WHERE id() = 1")),
+        Set("x")
       )
     )
   }

@@ -686,7 +686,7 @@ case class LogicalPlanProducer(
         case (SemanticDirection.BOTH, ContainsSearchMode) =>
 
           UndirectedRelationshipIndexContainsScan(
-            variable,
+            Some(variable),
             Some(patternForLeafPlan.inOrder._1),
             Some(patternForLeafPlan.inOrder._2),
             relationshipType,
@@ -698,7 +698,7 @@ case class LogicalPlanProducer(
           )
         case (SemanticDirection.BOTH, EndsWithSearchMode) =>
           UndirectedRelationshipIndexEndsWithScan(
-            variable,
+            Some(variable),
             Some(patternForLeafPlan.inOrder._1),
             Some(patternForLeafPlan.inOrder._2),
             relationshipType,
@@ -710,7 +710,7 @@ case class LogicalPlanProducer(
           )
         case (SemanticDirection.INCOMING | SemanticDirection.OUTGOING, ContainsSearchMode) =>
           DirectedRelationshipIndexContainsScan(
-            variable,
+            Some(variable),
             Some(patternForLeafPlan.inOrder._1),
             Some(patternForLeafPlan.inOrder._2),
             relationshipType,
@@ -722,7 +722,7 @@ case class LogicalPlanProducer(
           )
         case (SemanticDirection.INCOMING | SemanticDirection.OUTGOING, EndsWithSearchMode) =>
           DirectedRelationshipIndexEndsWithScan(
-            variable,
+            Some(variable),
             Some(patternForLeafPlan.inOrder._1),
             Some(patternForLeafPlan.inOrder._2),
             relationshipType,

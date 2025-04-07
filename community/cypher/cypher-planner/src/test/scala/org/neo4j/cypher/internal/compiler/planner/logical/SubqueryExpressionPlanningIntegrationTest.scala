@@ -1183,7 +1183,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
       planner.subPlanBuilder()
         .apply()
         .|.directedRelationshipByIdSeekExpr(
-          "r",
+          Some("r"),
           None,
           None,
           Set("anon_2"),
@@ -1210,7 +1210,7 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     plan should equal(
       planner.subPlanBuilder()
         .apply()
-        .|.undirectedRelationshipByIdSeekExpr("r", None, None, Set("anon_2"), reduceExpr(2))
+        .|.undirectedRelationshipByIdSeekExpr(Some("r"), None, None, Set("anon_2"), reduceExpr(2))
         .rollUpApply("anon_2", "anon_0")
         .|.projection("b.age AS anon_0")
         .|.allRelationshipsScan("()-[anon_1]->(b)")

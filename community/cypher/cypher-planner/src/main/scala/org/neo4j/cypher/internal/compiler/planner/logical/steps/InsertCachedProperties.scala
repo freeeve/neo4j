@@ -229,12 +229,12 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
               (innerAcc, indexedProp) =>
                 innerAcc.addIndexNodeProperty(property(indexPlan.idName, indexedProp.propertyKeyToken.name))
             }
-          case indexPlan: RelationshipIndexLeafPlan =>
+          case indexPlan: RelationshipIndexLeafPlan if indexPlan.idName.isDefined =>
             indexPlan.properties.filter(_.getValueFromIndex == CanGetValue).foldLeft(
-              accWithProps.registerIndexedEntity(indexPlan.idName.name)
+              accWithProps.registerIndexedEntity(indexPlan.idName.get.name)
             ) {
               (innerAcc, indexedProp) =>
-                innerAcc.addIndexRelationshipProperty(property(indexPlan.idName, indexedProp.propertyKeyToken.name))
+                innerAcc.addIndexRelationshipProperty(property(indexPlan.idName.get, indexedProp.propertyKeyToken.name))
             }
 
           case _ => accWithProps
@@ -425,13 +425,13 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
         )
         cachedPropertiesTracker.addMany(indexPlan.idName, rewrittenIndexPlan.cachedProperties)
         rewrittenIndexPlan
-      case indexPlan: RelationshipIndexLeafPlan =>
+      case indexPlan: RelationshipIndexLeafPlan if indexPlan.idName.isDefined =>
         val rewrittenIndexPlan = rewriteIndexPlan(
           acc,
           indexPlan,
-          indexPlan.idName
+          indexPlan.idName.get
         )
-        cachedPropertiesTracker.addMany(indexPlan.idName, rewrittenIndexPlan.cachedProperties)
+        cachedPropertiesTracker.addMany(indexPlan.idName.get, rewrittenIndexPlan.cachedProperties)
         rewrittenIndexPlan
     })
 
