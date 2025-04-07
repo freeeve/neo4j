@@ -900,8 +900,8 @@ class AstGenerator(
 
   def _filterScope: Gen[FilterScope] = for {
     variable <- _variable
-    innerPredicate <- option(_expression)
-  } yield FilterScope(variable, innerPredicate)(pos)
+    innerPredicate <- _expression
+  } yield FilterScope(variable, Some(innerPredicate))(pos)
 
   def _extractScope: Gen[ExtractScope] = for {
     variable <- _variable

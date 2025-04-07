@@ -92,7 +92,7 @@ returnClause
    ;
 
 returnBody
-   : DISTINCT? returnItems orderBy? skip? limit?
+   : (DISTINCT | ALL)? returnItems orderBy? skip? limit?
    ;
 
 returnItem

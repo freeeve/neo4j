@@ -17,6 +17,7 @@
 package org.neo4j.cypher.internal.ast.factory.expression
 
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.Expression
 
@@ -70,11 +71,18 @@ class ConcatenationParserTest extends AstParsingTestBase {
   }
 
   test("RETURN || b") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '||': expected an expression, '*' or 'DISTINCT' (line 1, column 8 (offset: 7))
-        |"RETURN || b"
-        |        ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '||': expected an expression, '*' or 'DISTINCT' (line 1, column 8 (offset: 7))
+            |"RETURN || b"
+            |        ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '||': expected an expression, '*', 'ALL' or 'DISTINCT' (line 1, column 8 (offset: 7))
+            |"RETURN || b"
+            |        ^""".stripMargin
+        )
+    }
   }
 
   test("RETURN a ||| b") {

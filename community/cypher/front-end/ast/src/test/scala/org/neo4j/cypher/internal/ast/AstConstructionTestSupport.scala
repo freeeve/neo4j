@@ -1122,6 +1122,9 @@ trait AstConstructionTestSupport {
   def withAll(items: ReturnItem*): With =
     With(ReturnItems(includeExisting = true, items)(pos))(pos)
 
+  def withDistinct(items: ReturnItem*): With =
+    With(distinct = true, ReturnItems(includeExisting = false, items)(pos), None, None, None, None)(pos)
+
   def withAdditionalItemsTyped(withType: WithType, items: ReturnItem*): With =
     With(distinct = false, returnAdditionalItems(items: _*), None, None, None, None, withType = withType)(pos)
 

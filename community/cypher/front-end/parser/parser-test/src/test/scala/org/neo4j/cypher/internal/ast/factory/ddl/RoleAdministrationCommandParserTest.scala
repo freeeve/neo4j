@@ -274,11 +274,18 @@ class RoleAdministrationCommandParserTest extends AdministrationAndSchemaCommand
   }
 
   test("SHOW ALL ROLES YIELD role RETURN") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid input '': expected an expression, '*' or 'DISTINCT' (line 1, column 33 (offset: 32))
-        |"SHOW ALL ROLES YIELD role RETURN"
-        |                                 ^""".stripMargin
-    )
+    parsesIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '': expected an expression, '*' or 'DISTINCT' (line 1, column 33 (offset: 32))
+            |"SHOW ALL ROLES YIELD role RETURN"
+            |                                 ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected an expression, '*', 'ALL' or 'DISTINCT' (line 1, column 33 (offset: 32))
+            |"SHOW ALL ROLES YIELD role RETURN"
+            |                                 ^""".stripMargin
+        )
+    }
   }
 
   test("SHOW ROLES WITH USER user") {

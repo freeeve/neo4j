@@ -1314,7 +1314,6 @@ public class Cypher25Parser extends Parser {
 		public ReturnItemsContext returnItems() {
 			return getRuleContext(ReturnItemsContext.class,0);
 		}
-		public TerminalNode DISTINCT() { return getToken(Cypher25Parser.DISTINCT, 0); }
 		public OrderByContext orderBy() {
 			return getRuleContext(OrderByContext.class,0);
 		}
@@ -1324,6 +1323,8 @@ public class Cypher25Parser extends Parser {
 		public LimitContext limit() {
 			return getRuleContext(LimitContext.class,0);
 		}
+		public TerminalNode DISTINCT() { return getToken(Cypher25Parser.DISTINCT, 0); }
+		public TerminalNode ALL() { return getToken(Cypher25Parser.ALL, 0); }
 		public ReturnBodyContext(ParserRuleContext parent, int invokingState) {
 			super(parent, invokingState);
 		}
@@ -1333,6 +1334,7 @@ public class Cypher25Parser extends Parser {
 	public final ReturnBodyContext returnBody() throws RecognitionException {
 		ReturnBodyContext _localctx = new ReturnBodyContext(_ctx, getState());
 		enterRule(_localctx, 26, RULE_returnBody);
+		int _la;
 		try {
 			enterOuterAlt(_localctx, 1);
 			{
@@ -1342,7 +1344,15 @@ public class Cypher25Parser extends Parser {
 			case 1:
 				{
 				setState(786);
-				match(DISTINCT);
+				_la = _input.LA(1);
+				if ( !(_la==ALL || _la==DISTINCT) ) {
+				_errHandler.recoverInline(this);
+				}
+				else {
+					if ( _input.LA(1)==Token.EOF ) matchedEOF = true;
+					_errHandler.reportMatch(this);
+					consume();
+				}
 				}
 				break;
 			}
@@ -32220,7 +32230,7 @@ public class Cypher25Parser extends Parser {
 		"\u0000\u0000\u0000\u030b\u030a\u0001\u0000\u0000\u0000\u030c\u0015\u0001"+
 		"\u0000\u0000\u0000\u030d\u030e\u0005l\u0000\u0000\u030e\u0017\u0001\u0000"+
 		"\u0000\u0000\u030f\u0310\u0005\u00f4\u0000\u0000\u0310\u0311\u0003\u001a"+
-		"\r\u0000\u0311\u0019\u0001\u0000\u0000\u0000\u0312\u0314\u0005N\u0000"+
+		"\r\u0000\u0311\u0019\u0001\u0000\u0000\u0000\u0312\u0314\u0007\u0000\u0000"+
 		"\u0000\u0313\u0312\u0001\u0000\u0000\u0000\u0313\u0314\u0001\u0000\u0000"+
 		"\u0000\u0314\u0315\u0001\u0000\u0000\u0000\u0315\u0317\u0003\u001e\u000f"+
 		"\u0000\u0316\u0318\u0003&\u0013\u0000\u0317\u0316\u0001\u0000\u0000\u0000"+

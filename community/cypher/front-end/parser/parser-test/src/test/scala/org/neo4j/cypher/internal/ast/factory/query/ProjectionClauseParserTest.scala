@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.AscSortItem
 import org.neo4j.cypher.internal.ast.Clause
 import org.neo4j.cypher.internal.ast.OrderBy
 import org.neo4j.cypher.internal.ast.Statements
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 
 class ProjectionClauseParserTest extends AstParsingTestBase {
@@ -98,11 +99,18 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
   }
 
   test("WITH ") {
-    failsParsing[Statements].withMessage(
-      """Invalid input '': expected an expression, '*' or 'DISTINCT' (line 1, column 5 (offset: 4))
-        |"WITH"
-        |     ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '': expected an expression, '*' or 'DISTINCT' (line 1, column 5 (offset: 4))
+            |"WITH"
+            |     ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected an expression, '*', 'ALL' or 'DISTINCT' (line 1, column 5 (offset: 4))
+            |"WITH"
+            |     ^""".stripMargin
+        )
+    }
   }
 
   test("RETURN *") {
@@ -188,11 +196,18 @@ class ProjectionClauseParserTest extends AstParsingTestBase {
   }
 
   test("RETURN ") {
-    failsParsing[Statements].withMessage(
-      """Invalid input '': expected an expression, '*' or 'DISTINCT' (line 1, column 7 (offset: 6))
-        |"RETURN"
-        |       ^""".stripMargin
-    )
+    parseIn[Statements] {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '': expected an expression, '*' or 'DISTINCT' (line 1, column 7 (offset: 6))
+            |"RETURN"
+            |       ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '': expected an expression, '*', 'ALL' or 'DISTINCT' (line 1, column 7 (offset: 6))
+            |"RETURN"
+            |       ^""".stripMargin
+        )
+    }
   }
 
   test("RETURN GRAPH *") {

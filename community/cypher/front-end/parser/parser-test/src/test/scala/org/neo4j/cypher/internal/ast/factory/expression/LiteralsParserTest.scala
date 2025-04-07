@@ -122,7 +122,7 @@ class LiteralsParserTest extends AstParsingTestBase
             |          ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input '0_': expected an expression, '*' or 'DISTINCT' (line 1, column 8 (offset: 7))
+          """Invalid input '0_': expected an expression, '*', 'ALL' or 'DISTINCT' (line 1, column 8 (offset: 7))
             |"RETURN 0_.0"
             |        ^""".stripMargin
         )
@@ -130,11 +130,18 @@ class LiteralsParserTest extends AstParsingTestBase
     "RETURN 1_._1" should parseTo[Statements](
       Statements(Seq(singleQuery(return_(returnItem(prop(SignedDecimalIntegerLiteral("1_")(pos), "_1"), "1_._1")))))
     )
-    "RETURN ._2" should notParse[Statements].withSyntaxError(
-      """Invalid input '.': expected an expression, '*' or 'DISTINCT' (line 1, column 8 (offset: 7))
-        |"RETURN ._2"
-        |        ^""".stripMargin
-    )
+    "RETURN ._2" should notParse[Statements].in {
+      case Cypher5 => _.withSyntaxError(
+          """Invalid input '.': expected an expression, '*' or 'DISTINCT' (line 1, column 8 (offset: 7))
+            |"RETURN ._2"
+            |        ^""".stripMargin
+        )
+      case _ => _.withSyntaxError(
+          """Invalid input '.': expected an expression, '*', 'ALL' or 'DISTINCT' (line 1, column 8 (offset: 7))
+            |"RETURN ._2"
+            |        ^""".stripMargin
+        )
+    }
     "RETURN 1_.0001" should notParse[Statements].withMessageStart("Invalid input '.0001'")
     "RETURN 1._0001" should parseTo[Statements](
       Statements(Seq(singleQuery(return_(returnItem(prop(SignedDecimalIntegerLiteral("1")(pos), "_0001"), "1._0001")))))

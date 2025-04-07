@@ -77,12 +77,26 @@ class SyntaxErrorParserTest extends AstParsingTestBase {
         )
     })
   }
-  test("return") { invalid("", "an expression, '*' or 'DISTINCT'", 6) }
+
+  test("return") {
+    invalid({
+      case Cypher5 => ("", "an expression, '*' or 'DISTINCT'", 6)
+      // ≥ Cypher25
+      case _ => ("", "an expression, '*', 'ALL' or 'DISTINCT'", 6)
+    })
+  }
   test("insert") { invalid("", "'('", 6) }
   test("delete") { invalid("", "an expression", 6) }
   test("set") { invalid("", "an expression", 3) }
   test("remove") { invalid("", "an expression", 6) }
-  test("with") { invalid("", "an expression, '*' or 'DISTINCT'", 4) }
+
+  test("with") {
+    invalid({
+      case Cypher5 => ("", "an expression, '*' or 'DISTINCT'", 4)
+      // ≥ Cypher25
+      case _ => ("", "an expression, '*', 'ALL' or 'DISTINCT'", 4)
+    })
+  }
   test("unwind") { invalid("", "an expression", 6) }
   test("call") { invalid("", "an identifier, '(' or '{'", 4) }
   test("load csv") { invalid("", "'FROM' or 'WITH HEADERS'", 8) }
