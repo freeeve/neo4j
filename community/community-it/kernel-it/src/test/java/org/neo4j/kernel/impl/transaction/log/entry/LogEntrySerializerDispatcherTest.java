@@ -211,8 +211,12 @@ class LogEntrySerializerDispatcherTest {
         expectedChecksums.put(KernelVersion.V5_23, 2128235111);
         if (version.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
             expectedChecksums.put(KernelVersion.V5_25, -361070784);
+            expectedChecksums.put(
+                    KernelVersion.V2025_04,
+                    1 /* Picked by fair 6-sided die (these are not used by the envelope logs). */);
         } else {
             expectedChecksums.put(KernelVersion.V5_25, -460838645);
+            expectedChecksums.put(KernelVersion.V2025_04, -1150487212);
         }
 
         final LogEntryCommit commit = newCommitEntry(version, 42, 21, expectedChecksums.get(version));

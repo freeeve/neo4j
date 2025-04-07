@@ -49,6 +49,7 @@ public class RecordStorageCommandReaderFactory implements CommandReaderFactory {
             case V5_22 -> LogCommandSerializationV5_22.INSTANCE;
             case V5_23 -> LogCommandSerializationV5_23.INSTANCE;
             case V5_25 -> LogCommandSerializationV5_25.INSTANCE;
+            case V2025_04 -> LogCommandSerializationV2025_04.INSTANCE;
             case GLORIOUS_FUTURE -> LogCommandSerializationVGloriousFuture.INSTANCE;
         };
     }

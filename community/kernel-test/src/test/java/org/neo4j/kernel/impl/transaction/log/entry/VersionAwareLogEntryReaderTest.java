@@ -103,8 +103,10 @@ recreatedStart = %s,
         checksums.put(KernelVersion.V5_23, -1549805679);
         if (kernelVersion.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
             checksums.put(KernelVersion.V5_25, 1467784593);
+            checksums.put(KernelVersion.V2025_04, 1467784593);
         } else {
             checksums.put(KernelVersion.V5_25, -1887381184);
+            checksums.put(KernelVersion.V2025_04, -2132157589);
         }
         final LogEntryCommit commit = newCommitEntry(kernelVersion, 42, 21, checksums.get(kernelVersion));
         final InMemoryClosableChannel channel = new InMemoryClosableChannel(true);
