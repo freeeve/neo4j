@@ -22,11 +22,9 @@ package org.neo4j.io.layout;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
-import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileUtils;
 
 /**
@@ -101,6 +99,4 @@ public interface DatabaseLayout {
     Path file(DatabaseFile databaseFile);
 
     Stream<Path> allFiles(DatabaseFile databaseFile);
-
-    Path[] listDatabaseFiles(FileSystemAbstraction fs, Predicate<? super Path> filter);
 }

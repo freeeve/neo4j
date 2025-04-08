@@ -22,7 +22,6 @@ package org.neo4j.kernel.impl.transaction.state;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -95,7 +94,6 @@ class StoreFileListingTest {
         DatabaseLayout databaseLayout = mock(DatabaseLayout.class);
         when(databaseLayout.pathForStore(eq(CommonDatabaseStores.METADATA))).thenReturn(mock(Path.class));
         LogFiles logFiles = mock(LogFiles.class);
-        filesInStoreDirAre(databaseLayout, indexDir);
         StorageEngine storageEngine = mock(StorageEngine.class);
         StoreFileListing fileListing = new StoreFileListing(databaseLayout, logFiles, indexingService, storageEngine);
 
@@ -213,56 +211,6 @@ class StoreFileListingTest {
                 path.getFileName().toString(),
                 logFiles.logFilesDirectory().getParent().getFileName().toString());
         managementService.shutdown();
-    }
-
-    private static void filesInStoreDirAre(DatabaseLayout databaseLayout, String indexDir) {
-        final String[] mockDbFiles = new String[] {
-            "biff",
-            "baff",
-            "boff.log",
-            "mockstore",
-            "mockstore.id",
-            "mockstore.counts.db",
-            "mockstore.labeltokenstore.db",
-            "mockstore.labeltokenstore.db.id",
-            "mockstore.labeltokenstore.db.names",
-            "mockstore.labeltokenstore.db.names.id",
-            "mockstore.nodestore.db",
-            "mockstore.nodestore.db.id",
-            "mockstore.nodestore.db.labels",
-            "mockstore.nodestore.db.labels.id",
-            "mockstore.propertystore.db",
-            "mockstore.propertystore.db.arrays",
-            "mockstore.propertystore.db.arrays.id",
-            "mockstore.propertystore.db.id",
-            "mockstore.propertystore.db.index",
-            "mockstore.propertystore.db.index.id",
-            "mockstore.propertystore.db.index.keys",
-            "mockstore.propertystore.db.index.keys.id",
-            "mockstore.propertystore.db.strings",
-            "mockstore.propertystore.db.strings.id",
-            "mockstore.relationshipgroupstore.db",
-            "mockstore.relationshipgroupstore.db.id",
-            "mockstore.relationshipstore.db",
-            "mockstore.relationshipstore.db.id",
-            "mockstore.relationshiptypestore.db",
-            "mockstore.relationshiptypestore.db.id",
-            "mockstore.relationshiptypestore.db.names",
-            "mockstore.relationshiptypestore.db.names.id",
-            "mockstore.schemastore.db",
-            "mockstore.schemastore.db.id",
-            "mockstore.transaction.db.0",
-            "mockstore.transaction.db.1",
-            "mockstore.transaction.db.2",
-            "mockstore_lock"
-        };
-
-        final String[] mockDirectories = new String[] {"foo", "bar", "baz", indexDir};
-
-        List<Path> files = new ArrayList<>();
-        mockFiles(mockDbFiles, files, false);
-        mockFiles(mockDirectories, files, true);
-        when(databaseLayout.listDatabaseFiles(any(), any())).thenReturn(files.toArray(new Path[0]));
     }
 
     private static ResourceIterator<Path> indexFilesAre(IndexingService indexingService, String[] fileNames)

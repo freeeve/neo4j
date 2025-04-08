@@ -19,8 +19,6 @@
  */
 package org.neo4j.io.layout;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,7 +26,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
 
@@ -165,15 +162,6 @@ public class PlainDatabaseLayout implements DatabaseLayout {
     @Override
     public Stream<Path> allFiles(DatabaseFile databaseFile) {
         return Stream.concat(idFile(databaseFile).stream(), Stream.of(file(databaseFile)));
-    }
-
-    @Override
-    public Path[] listDatabaseFiles(FileSystemAbstraction fs, Predicate<? super Path> filter) {
-        try {
-            return fs.listFiles(databaseDirectory, filter::test);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 
     protected boolean isRecoverableStore(DatabaseFile file) {
