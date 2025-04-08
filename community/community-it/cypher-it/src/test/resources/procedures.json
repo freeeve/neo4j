@@ -332,6 +332,43 @@
     "cypherVersionScope": [5, 25]
   },
   {
+    "name": "db.cdc.translateId",
+    "description": "Translate any provided change identifier to match the queried database.",
+    "mode": "READ",
+    "worksOnSystem": false,
+    "signature": "db.cdc.translateId(from :: STRING) :: (id :: STRING)",
+    "argumentDescription": [
+      {
+        "name": "from",
+        "description": "The change identifier to translate.",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription" : [
+      {
+        "name": "id",
+        "description": "The change identifier.",
+        "type": "STRING",
+        "isDeprecated": false
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5, 25]
+  },
+  {
     "name": "db.checkpoint",
     "description": "Initiate and wait for a new check point, or wait any already on-going check point to complete. Note that this temporarily disables the `db.checkpoint.iops.limit` setting in order to make the check point complete faster. This might cause transaction throughput to degrade slightly, due to increased IO load.",
     "mode": "DBMS",

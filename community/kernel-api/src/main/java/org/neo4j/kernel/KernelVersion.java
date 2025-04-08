@@ -64,7 +64,7 @@ public enum KernelVersion {
     V5_22((byte) 18), // 5.22. Checkpoint entry with the earliest not completed position
     V5_23((byte) 19), // 5.23. Introduce quantization for vector index. Also partitions large int arrays in block format
     V5_25((byte) 20), // 5.25. MVCC index commands schema rules. Also introduce token length limit.
-    V2025_04((byte) 21), // Placeholder
+    V2025_04((byte) 21), // 2025_04. CDC ID switch to DB name instead of UUID
 
     // An unreleased future version.
     // This version is meant to be used when developing a new feature
@@ -102,6 +102,7 @@ public enum KernelVersion {
     public static final KernelVersion VERSION_PARTITIONED_BLOCK_INDEX_RULE_VALUES = V5_23;
     public static final KernelVersion VERSION_PARTITIONED_BLOCK_TOKENS = V5_25;
     public static final KernelVersion VERSION_SPDFORMAT_INTRODUCED = V5_25;
+    public static final KernelVersion VERSION_CDC_USE_NAME_INTRODUCED = V2025_04;
     public static final KernelVersion VERSION_VECTOR_TYPE_INTRODUCED = GLORIOUS_FUTURE;
     // Keep updated each time there is an new schema rule added
     // related to IntegrityValidator
