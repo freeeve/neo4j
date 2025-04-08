@@ -23,8 +23,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import org.neo4j.common.DependencyResolver;
-import org.neo4j.dbms.api.DatabaseNotFoundException;
-import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.fabric.bookmark.LocalGraphTransactionIdTracker;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
@@ -68,7 +66,7 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
             ConstituentTransactionFactory constituentTransactionFactory) {
         var databaseContext = databaseContextProvider
                 .getDatabaseContext(location.databaseReference().databaseId())
-                .orElseThrow(databaseNotFound(location.getDatabaseName()));
+                .orElseThrow(databaseUnavailable(location.getDatabaseName()));
 
         var databaseApi = databaseContext.databaseFacade();
         var resolver = databaseContext.dependencies();
@@ -155,8 +153,16 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
         throw TransactionFailureHelper.genericFailure(e);
     }
 
-    protected static Supplier<DatabaseNotFoundException> databaseNotFound(String databaseNameRaw) {
-        return () -> DatabaseNotFoundHelper.databaseNameNotFoundWithoutDot(databaseNameRaw);
+    protected static Supplier<QueryRouterException> databaseUnavailable(String databaseNameRaw) {
+        return () -> {
+            var unavailableException = UnavailableException.databaseUnavailable(
+                    databaseNameRaw, String.format("Database %s not available", databaseNameRaw));
+            return new QueryRouterException(
+                    unavailableException.gqlStatusObject(),
+                    unavailableException.status(),
+                    unavailableException.legacyMessage(),
+                    unavailableException);
+        };
     }
 
     private TransactionalContext.DatabaseMode dbMode(Location.Local location) {
