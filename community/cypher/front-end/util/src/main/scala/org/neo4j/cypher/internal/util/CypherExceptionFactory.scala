@@ -25,6 +25,8 @@ import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
+import scala.jdk.CollectionConverters.SeqHasAsJava
+
 trait CypherExceptionFactory {
   def syntaxException(message: String, pos: InputPosition): RuntimeException
   def syntaxException(gqlStatusObject: ErrorGqlStatusObject, message: String, pos: InputPosition): RuntimeException
@@ -56,7 +58,7 @@ trait CypherExceptionFactory {
         ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N04)
           .withParam(GqlParams.StringParam.input, wrongInput)
           .withParam(GqlParams.StringParam.context, forField)
-          .withParam(GqlParams.ListParam.inputList, java.util.List.of(expectedInput))
+          .withParam(GqlParams.ListParam.inputList, expectedInput.asJava)
           .build()
       )
       .build()

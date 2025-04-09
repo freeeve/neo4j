@@ -873,11 +873,16 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
   }
 
   test("ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 22") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid Cypher version '22'. Valid Cypher versions are: 5, 25 (line 1, column 48 (offset: 47))
-        |"ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 22"
-        |                                                ^""".stripMargin
-    )
+    failsParsing[Statements]
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input '22' for Cypher version. Expected 'CYPHER 5' or 'CYPHER 25'."
+      ))
+      .withSyntaxError(
+        """Invalid Cypher version '22'. Valid Cypher versions are: 5, 25 (line 1, column 48 (offset: 47))
+          |"ALTER DATABASE foo SET DEFAULT LANGUAGE CYPHER 22"
+          |                                                ^""".stripMargin
+      )
   }
 
   test("ALTER DATABASE foo REMOVE OPTION txLogEnrichment SET DEFAULT LANGUAGE CYPHER 25") {

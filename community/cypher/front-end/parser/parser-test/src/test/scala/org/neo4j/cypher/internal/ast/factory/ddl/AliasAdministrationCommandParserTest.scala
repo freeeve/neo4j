@@ -977,21 +977,31 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("""CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 42""") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 102 (offset: 101))
-        |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 42"
-        |                                                                                                      ^""".stripMargin
-    )
+    failsParsing[Statements]
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input '42' for Cypher version. Expected 'CYPHER 5' or 'CYPHER 25'."
+      ))
+      .withSyntaxError(
+        """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 102 (offset: 101))
+          |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 42"
+          |                                                                                                      ^""".stripMargin
+      )
   }
 
   test(
     """CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 42*10"""
   ) {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 102 (offset: 101))
-        |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 42*10"
-        |                                                                                                      ^""".stripMargin
-    )
+    failsParsing[Statements]
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input '42' for Cypher version. Expected 'CYPHER 5' or 'CYPHER 25'."
+      ))
+      .withSyntaxError(
+        """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 102 (offset: 101))
+          |"CREATE ALIAS name FOR DATABASE target AT "url" USER user PASSWORD 'password' DEFAULT LANGUAGE CYPHER 42*10"
+          |                                                                                                      ^""".stripMargin
+      )
   }
 
   // DROP ALIAS
@@ -1779,19 +1789,29 @@ class AliasAdministrationCommandParserTest extends AdministrationAndSchemaComman
   }
 
   test("ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 42") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 55 (offset: 54))
-        |"ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 42"
-        |                                                       ^""".stripMargin
-    )
+    failsParsing[Statements]
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input '42' for Cypher version. Expected 'CYPHER 5' or 'CYPHER 25'."
+      ))
+      .withSyntaxError(
+        """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 55 (offset: 54))
+          |"ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 42"
+          |                                                       ^""".stripMargin
+      )
   }
 
   test("ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 42*10") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 55 (offset: 54))
-        |"ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 42*10"
-        |                                                       ^""".stripMargin
-    )
+    failsParsing[Statements]
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input '42' for Cypher version. Expected 'CYPHER 5' or 'CYPHER 25'."
+      ))
+      .withSyntaxError(
+        """Invalid Cypher version '42'. Valid Cypher versions are: 5, 25 (line 1, column 55 (offset: 54))
+          |"ALTER ALIAS name SET DATABASE DEFAULT LANGUAGE CYPHER 42*10"
+          |                                                       ^""".stripMargin
+      )
   }
 
   // SHOW ALIAS

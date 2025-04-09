@@ -32,6 +32,8 @@ import org.neo4j.cypher.internal.ast.Restrict
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TimeoutAfter
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTestBase {
 
@@ -310,11 +312,16 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
   }
 
   test("CREATE COMPOSITE DATABASE foo DEFAULT LANGUAGE CYPHER 77") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid Cypher version '77'. Valid Cypher versions are: 5, 25 (line 1, column 55 (offset: 54))
-        |"CREATE COMPOSITE DATABASE foo DEFAULT LANGUAGE CYPHER 77"
-        |                                                       ^""".stripMargin
-    )
+    failsParsing[Statements]
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input '77' for Cypher version. Expected 'CYPHER 5' or 'CYPHER 25'."
+      ))
+      .withSyntaxError(
+        """Invalid Cypher version '77'. Valid Cypher versions are: 5, 25 (line 1, column 55 (offset: 54))
+          |"CREATE COMPOSITE DATABASE foo DEFAULT LANGUAGE CYPHER 77"
+          |                                                       ^""".stripMargin
+      )
   }
 
   // drop

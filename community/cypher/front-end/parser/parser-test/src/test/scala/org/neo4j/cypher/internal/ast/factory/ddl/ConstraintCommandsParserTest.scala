@@ -45,6 +45,7 @@ import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
@@ -2868,24 +2869,40 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   test("CREATE CONSTRAINT FOR ()-[r1:REL]-() REQUIRE (r2.prop) IS NODE KEY") {
     failsParsing[ast.Statements]
       .withMessageStart(ASTExceptionFactory.relationshipPatternNotAllowed(ConstraintType.NODE_KEY))
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input 'relationship pattern' for IS NODE KEY. Expected 'node patterns'."
+      ))
       .throws[SyntaxException]
   }
 
   test("CREATE CONSTRAINT FOR ()-[r1:REL]-() REQUIRE (r2.prop) IS NODE UNIQUE") {
     failsParsing[ast.Statements]
       .withMessageStart(ASTExceptionFactory.relationshipPatternNotAllowed(ConstraintType.NODE_UNIQUE))
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input 'relationship pattern' for IS NODE UNIQUE. Expected 'node patterns'."
+      ))
       .throws[SyntaxException]
   }
 
   test("CREATE CONSTRAINT FOR (node:Label) REQUIRE (r.prop) IS RELATIONSHIP KEY") {
     failsParsing[ast.Statements]
       .withMessageStart(ASTExceptionFactory.nodePatternNotAllowed(ConstraintType.REL_KEY))
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input 'node pattern' for IS RELATIONSHIP KEY. Expected 'relationship patterns'."
+      ))
       .throws[SyntaxException]
   }
 
   test("CREATE CONSTRAINT FOR (node:Label) REQUIRE (r.prop) IS REL KEY") {
     failsParsing[ast.Statements]
       .withMessageStart(ASTExceptionFactory.nodePatternNotAllowed(ConstraintType.REL_KEY))
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input 'node pattern' for IS RELATIONSHIP KEY. Expected 'relationship patterns'."
+      ))
       .throws[SyntaxException]
   }
 
@@ -2894,12 +2911,20 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
   ) {
     failsParsing[ast.Statements]
       .withMessageStart(ASTExceptionFactory.nodePatternNotAllowed(ConstraintType.REL_UNIQUE))
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input 'node pattern' for IS RELATIONSHIP UNIQUE. Expected 'relationship patterns'."
+      ))
       .throws[SyntaxException]
   }
 
   test("CREATE CONSTRAINT FOR (node:Label) REQUIRE (r.prop) IS REL UNIQUE") {
     failsParsing[ast.Statements]
       .withMessageStart(ASTExceptionFactory.nodePatternNotAllowed(ConstraintType.REL_UNIQUE))
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input 'node pattern' for IS RELATIONSHIP UNIQUE. Expected 'relationship patterns'."
+      ))
       .throws[SyntaxException]
   }
 

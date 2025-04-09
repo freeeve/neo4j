@@ -1078,11 +1078,16 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 92") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid Cypher version '92'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
-        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 92"
-        |                                             ^""".stripMargin
-    )
+    failsParsing[Statements]
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input '92' for Cypher version. Expected 'CYPHER 5' or 'CYPHER 25'."
+      ))
+      .withSyntaxError(
+        """Invalid Cypher version '92'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
+          |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 92"
+          |                                             ^""".stripMargin
+      )
   }
 
   test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER $param") {
@@ -1096,19 +1101,29 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   // If you take the view that the version number is a Cypher number, then this should probably pass, but
   // we treat it as a word here, as it's part of the name.
   test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 2_5") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid Cypher version '2_5'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
-        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 2_5"
-        |                                             ^""".stripMargin
-    )
+    failsParsing[Statements]
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input '2_5' for Cypher version. Expected 'CYPHER 5' or 'CYPHER 25'."
+      ))
+      .withSyntaxError(
+        """Invalid Cypher version '2_5'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
+          |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 2_5"
+          |                                             ^""".stripMargin
+      )
   }
 
   test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 24 + 1") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid Cypher version '24'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
-        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 24 + 1"
-        |                                             ^""".stripMargin
-    )
+    failsParsing[Statements]
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input '24' for Cypher version. Expected 'CYPHER 5' or 'CYPHER 25'."
+      ))
+      .withSyntaxError(
+        """Invalid Cypher version '24'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
+          |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 24 + 1"
+          |                                             ^""".stripMargin
+      )
   }
 
   test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25 - 0") {
@@ -1127,11 +1142,16 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 9_2t") {
-    failsParsing[Statements].withSyntaxError(
-      """Invalid Cypher version '9_2t'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
-        |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 9_2t"
-        |                                             ^""".stripMargin
-    )
+    failsParsing[Statements]
+      .withSyntaxErrorGqlStatus(gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N04,
+        "error: data exception - invalid input value. Invalid input '9_2t' for Cypher version. Expected 'CYPHER 5' or 'CYPHER 25'."
+      ))
+      .withSyntaxError(
+        """Invalid Cypher version '9_2t'. Valid Cypher versions are: 5, 25 (line 1, column 45 (offset: 44))
+          |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 9_2t"
+          |                                             ^""".stripMargin
+      )
   }
 
   test("CREATE DATABASE foo GRAPH SHARD {}") {
