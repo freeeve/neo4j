@@ -191,6 +191,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
             }
             return position() - HEADER_SIZE;
         } catch (ReadPastEndException e) {
+            buffer.position(payloadEndOffset);
             return position();
         }
     }

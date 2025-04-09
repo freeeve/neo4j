@@ -1369,6 +1369,42 @@ class EnvelopeReadChannelTest {
     }
 
     @Test
+    void shouldAlignPositionAtTheEndIfNoNewEntriesAndPartialEndEnvelope() throws IOException {
+        int segmentSize = 256;
+
+        final var fullSegmentPayload = segmentSize - HEADER_SIZE;
+        final var partialSegmentPayload = segmentSize - HEADER_SIZE - 10;
+
+        final var fullBytesPayload = bytes(random, fullSegmentPayload);
+        final var partialBytesPayload = bytes(random, partialSegmentPayload);
+
+        final var fullEntrySize = fullSegmentPayload + HEADER_SIZE;
+        final var partialEntrySize = partialSegmentPayload + HEADER_SIZE;
+
+        writeSomeData(buffer -> {
+            writeZeroSegment(buffer, segmentSize);
+            int checksum =
+                    writeHeaderAndPayload(buffer, EnvelopeType.MIDDLE, BASE_TX_CHECKSUM, fullBytesPayload, START_INDEX);
+            checksum = writeHeaderAndPayload(buffer, EnvelopeType.MIDDLE, checksum, fullBytesPayload, START_INDEX);
+            writeHeaderAndPayload(buffer, EnvelopeType.END, checksum, partialBytesPayload, START_INDEX);
+
+            // pad the rest of the segment with zeros
+            int remaining = segmentSize - buffer.position() % segmentSize;
+            if (remaining > 0) {
+                buffer.put(new byte[remaining]);
+            }
+        });
+
+        try (var channel = new EnvelopeReadChannel(
+                logChannel(), segmentSize, NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            assertThat(channel.alignWithStartEntry()).isEqualTo(segmentSize + fullEntrySize * 2 + partialEntrySize);
+            assertThat(channel.position()).isEqualTo(segmentSize + fullEntrySize * 2 + partialEntrySize);
+            var readData = new byte[1];
+            assertThatThrownBy(() -> channel.get(readData, readData.length)).isInstanceOf(ReadPastEndException.class);
+        }
+    }
+
+    @Test
     void markAndGetVersionShouldReturnPreEnvelopePosition() throws IOException {
         int segmentSize = 256;
         final var bytes = bytes(random, TEST_DATA_SIZE);
