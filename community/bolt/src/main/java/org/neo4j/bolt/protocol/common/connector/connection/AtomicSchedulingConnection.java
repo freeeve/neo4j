@@ -429,6 +429,7 @@ public class AtomicSchedulingConnection extends AbstractConnection {
 
     @Override
     public void interrupt() {
+        this.admissionControlTracker.onReset();
         // increment the interrupt timer internally in order to keep track on when we are supposed
         // to reset to a valid state
         var previous = this.remainingInterrupts.getAndIncrement();

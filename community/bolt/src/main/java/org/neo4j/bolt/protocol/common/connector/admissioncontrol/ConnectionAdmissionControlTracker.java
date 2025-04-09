@@ -33,4 +33,9 @@ public interface ConnectionAdmissionControlTracker {
      * @return an admission control token to be awaited before the processing of the given message.
      */
     AdmissionControlToken onMessage(RequestMessage message);
+
+    /**
+     * Notifies the state machine of a reset event.
+     */
+    void onReset();
 }

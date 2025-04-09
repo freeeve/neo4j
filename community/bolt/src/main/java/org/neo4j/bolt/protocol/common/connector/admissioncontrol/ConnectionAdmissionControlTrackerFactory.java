@@ -19,11 +19,24 @@
  */
 package org.neo4j.bolt.protocol.common.connector.admissioncontrol;
 
+import org.neo4j.bolt.protocol.common.message.request.RequestMessage;
+import org.neo4j.dbms.admissioncontrol.AdmissionControlToken;
+
 @FunctionalInterface
 public interface ConnectionAdmissionControlTrackerFactory {
     ConnectionAdmissionControlTracker createNewTracker();
 
     static ConnectionAdmissionControlTrackerFactory noop() {
-        return () -> (ConnectionAdmissionControlTracker) message -> null;
+        return () -> new ConnectionAdmissionControlTracker() {
+            @Override
+            public void onReset() {
+                // No operation
+            }
+
+            @Override
+            public AdmissionControlToken onMessage(RequestMessage ignored) {
+                return null;
+            }
+        };
     }
 }
