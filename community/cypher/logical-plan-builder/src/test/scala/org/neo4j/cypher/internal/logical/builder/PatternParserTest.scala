@@ -26,6 +26,8 @@ import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.logical.builder.PatternParser.Pattern
+import org.neo4j.cypher.internal.logical.builder.PatternParser.Unused
+import org.neo4j.cypher.internal.logical.builder.PatternParser.Used
 import org.neo4j.cypher.internal.util.InputPosition.NONE
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.internal.util.test_helpers.TestName
@@ -34,27 +36,34 @@ class PatternParserTest extends CypherFunSuite with TestName {
   private def patternParser = new PatternParser
 
   test("(a)--(b)") {
-    patternParser.parse(testName) should be(Pattern(Some("a"), BOTH, Seq.empty, None, Some("b"), SimplePatternLength))
+    patternParser.parse(testName) should be(Pattern(
+      Used("a"),
+      BOTH,
+      Seq.empty,
+      Unused("UNNAMED1"),
+      Used("b"),
+      SimplePatternLength
+    ))
   }
 
   test("(a)-->(b)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       OUTGOING,
       Seq.empty,
-      None,
-      Some("b"),
+      Unused("UNNAMED1"),
+      Used("b"),
       SimplePatternLength
     ))
   }
 
   test("(a)<--(b)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       INCOMING,
       Seq.empty,
-      None,
-      Some("b"),
+      Unused("UNNAMED1"),
+      Used("b"),
       SimplePatternLength
     ))
   }
@@ -65,11 +74,11 @@ class PatternParserTest extends CypherFunSuite with TestName {
 
   test("(a)-[:R]-(b)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       BOTH,
       Seq(RelTypeName("R")(NONE)),
-      None,
-      Some("b"),
+      Unused("UNNAMED1"),
+      Used("b"),
       SimplePatternLength
     ))
   }
@@ -120,143 +129,143 @@ class PatternParserTest extends CypherFunSuite with TestName {
 
   test("(a)-[*]-(b)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       BOTH,
       Seq.empty,
-      None,
-      Some("b"),
+      Unused("UNNAMED1"),
+      Used("b"),
       VarPatternLength(1, None)
     ))
   }
 
   test("(a)-[:R*]-(b)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       BOTH,
       Seq(RelTypeName("R")(NONE)),
-      None,
-      Some("b"),
+      Unused("UNNAMED1"),
+      Used("b"),
       VarPatternLength(1, None)
     ))
   }
 
   test("(a)-[:R*2]-(b)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       BOTH,
       Seq(RelTypeName("R")(NONE)),
-      None,
-      Some("b"),
+      Unused("UNNAMED1"),
+      Used("b"),
       VarPatternLength(2, Some(2))
     ))
   }
 
   test("(a)-[:R*1..2]-(b)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       BOTH,
       Seq(RelTypeName("R")(NONE)),
-      None,
-      Some("b"),
+      Unused("UNNAMED1"),
+      Used("b"),
       VarPatternLength(1, Some(2))
     ))
   }
 
   test("(a)-[:R*..2]-(b)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       BOTH,
       Seq(RelTypeName("R")(NONE)),
-      None,
-      Some("b"),
+      Unused("UNNAMED1"),
+      Used("b"),
       VarPatternLength(1, Some(2))
     ))
   }
 
   test("(a)-[:R*2..]-(b)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       BOTH,
       Seq(RelTypeName("R")(NONE)),
-      None,
-      Some("b"),
+      Unused("UNNAMED1"),
+      Used("b"),
       VarPatternLength(2, None)
     ))
   }
 
   test("(`anon_32`)--(anon_45)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("anon_32"),
+      Used("anon_32"),
       BOTH,
       Seq.empty,
-      None,
-      Some("anon_45"),
+      Unused("UNNAMED1"),
+      Used("anon_45"),
       SimplePatternLength
     ))
   }
 
   test("()-[r2:R2]->(x2)") {
     patternParser.parse(testName) should be(Pattern(
-      None,
+      Unused("UNNAMED1"),
       OUTGOING,
       Seq(RelTypeName("R2")(NONE)),
-      Some("r2"),
-      Some("x2"),
+      Used("r2"),
+      Used("x2"),
       SimplePatternLength
     ))
   }
 
   test("(a)-[r2:R2]->()") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       OUTGOING,
       Seq(RelTypeName("R2")(NONE)),
-      Some("r2"),
-      None,
+      Used("r2"),
+      Unused("UNNAMED1"),
       SimplePatternLength
     ))
   }
 
   test("()-[r2:R2]->()") {
     patternParser.parse(testName) should be(Pattern(
-      None,
+      Unused("UNNAMED1"),
       OUTGOING,
       Seq(RelTypeName("R2")(NONE)),
-      Some("r2"),
-      None,
+      Used("r2"),
+      Unused("UNNAMED2"),
       SimplePatternLength
     ))
   }
 
   test("(a)-[:R2]->(b)") {
     patternParser.parse(testName) should be(Pattern(
-      Some("a"),
+      Used("a"),
       OUTGOING,
       Seq(RelTypeName("R2")(NONE)),
-      None,
-      Some("b"),
+      Unused("UNNAMED1"),
+      Used("b"),
       SimplePatternLength
     ))
   }
 
   test("()-[:R2]->(b)") {
     patternParser.parse(testName) should be(Pattern(
-      None,
+      Unused("UNNAMED1"),
       OUTGOING,
       Seq(RelTypeName("R2")(NONE)),
-      None,
-      Some("b"),
+      Unused("UNNAMED2"),
+      Used("b"),
       SimplePatternLength
     ))
   }
 
   test("()-[:R2]->()") {
     patternParser.parse(testName) should be(Pattern(
-      None,
+      Unused("UNNAMED1"),
       OUTGOING,
       Seq(RelTypeName("R2")(NONE)),
-      None,
-      None,
+      Unused("UNNAMED2"),
+      Unused("UNNAMED3"),
       SimplePatternLength
     ))
   }

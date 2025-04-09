@@ -25,12 +25,21 @@ import org.neo4j.cypher.internal.ir.PatternLength
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
 import org.neo4j.cypher.internal.logical.builder.PatternParser.Pattern
+import org.neo4j.cypher.internal.logical.builder.PatternParser.Unused
+import org.neo4j.cypher.internal.logical.builder.PatternParser.Used
+import org.neo4j.cypher.internal.logical.builder.PatternParser.VariableWithUsage
 import org.neo4j.cypher.internal.util.InputPosition.NONE
 
 class PatternParser {
   private val ID = "([a-zA-Z0-9` @_]*)"
   private val REL_TYPES = "([a-zA-Z0-9_|]*)"
   private val regex = s"\\($ID\\)(<?)-\\[?$ID:?$REL_TYPES(\\*?)([0-9]*)(\\.?\\.?)([0-9]*)\\]?-(>?)\\($ID\\)".r
+  private var unnamedCount = 0
+
+  private def nextUnnamed(): String = {
+    unnamedCount += 1
+    "UNNAMED" + unnamedCount
+  }
 
   def parse(pattern: String): Pattern = {
     pattern match {
@@ -56,34 +65,45 @@ class PatternParser {
                 s"$star, $min, $max is not a supported variable length identifier"
               )
           }
-        val maybeRelName = {
-          if (relName.isEmpty) {
-            None
-          } else {
-            Some(VariableParser.unescaped(relName))
-          }
-        }
-        val maybeFrom = if (from.nonEmpty) Some(VariableParser.unescaped(from)) else None
-        val maybeTo = if (to.nonEmpty) Some(VariableParser.unescaped(to)) else None
-        Pattern(maybeFrom, dir, relTypes, maybeRelName, maybeTo, length)
+        Pattern(fromName(from), dir, relTypes, fromName(relName), fromName(to), length)
       case _ => throw new IllegalArgumentException(s"'$pattern' cannot be parsed as a pattern")
     }
   }
+
+  def fromName(name: String): VariableWithUsage =
+    if (name.isEmpty) Unused(nextUnnamed()) else Used(VariableParser.unescaped(name))
 }
 
 object PatternParser {
 
+  sealed trait VariableWithUsage {
+    def name: String
+    def toOption: Option[String]
+  }
+
+  case class Unused(name: String) extends VariableWithUsage {
+    override def toOption: Option[String] = None
+  }
+
+  case class Used(name: String) extends VariableWithUsage {
+    override def toOption: Option[String] = Some(name)
+  }
+
   case class Pattern(
-    maybeFrom: Option[String],
+    private val fromNode: VariableWithUsage,
     dir: SemanticDirection,
     relTypes: Seq[RelTypeName],
-    maybeRelName: Option[String],
-    maybeTo: Option[String],
+    private val relationship: VariableWithUsage,
+    private val toNode: VariableWithUsage,
     length: PatternLength
   ) {
-    def from: String = maybeFrom.getOrElse("")
-    def to: String = maybeTo.getOrElse("")
-    def relName: String = maybeRelName.getOrElse("")
+    def from: String = fromNode.name
+    def to: String = toNode.name
+    def relName: String = relationship.name
+
+    def maybeFrom: Option[String] = fromNode.toOption
+    def maybeTo: Option[String] = toNode.toOption
+    def maybeRelName: Option[String] = relationship.toOption
   }
 
   object Pattern {
@@ -96,7 +116,7 @@ object PatternParser {
       to: String,
       length: PatternLength
     ): Pattern = {
-      Pattern(Some(from), direction, relTypes, Some(relName), Some(to), length)
+      Pattern(Used(from), direction, relTypes, Used(relName), Used(to), length)
     }
   }
 }
