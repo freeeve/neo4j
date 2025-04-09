@@ -299,6 +299,13 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           )
         }
 
+        val projectRemoteProperties: LogicalPlan => LogicalPlan = (plan: LogicalPlan) => {
+          // Not passing the rewritten expressions is correct, as we will look up cached properties later on.
+          // If we find that we could use rewritten expressions as performance improvement, we can still add them later on.
+          val (_, remoteBatchPropertiesPlan) = planRemoteBatchProperties(regularProjection.projections.values, plan)
+          remoteBatchPropertiesPlan
+        }
+
         val planProjection: LogicalPlan => LogicalPlan = (p: LogicalPlan) =>
           if (regularProjection.projections.isEmpty && query.tail.isEmpty) {
             if (context.plannerState.isInSubquery) {
@@ -321,8 +328,9 @@ case object PlanEventHorizon extends EventHorizonPlanner {
           planProjection,
           planWhere(regularProjection.selections)
         ))
-        def projectSubqueryExpressionsFirst = Function.chain(Seq(
+        def projectNonOrderPreservingExpressionsFirst = Function.chain(Seq(
           projectSubqueryExpressions,
+          projectRemoteProperties,
           sortFirst
         ))
 
@@ -332,16 +340,16 @@ case object PlanEventHorizon extends EventHorizonPlanner {
             case InterestingOrder.FullSatisfaction() => sortedPlan
             case _                                   =>
               // Some subquery expression invalidated the ordering, start over.
-              projectSubqueryExpressionsFirst(initialPlan)
+              projectNonOrderPreservingExpressionsFirst(initialPlan)
           }
         }
 
-        // Normally, we will first sort and then apply projections. This is cheaper in the the case of a LIMIT,
+        // Normally, we will first sort and then apply projections. This is cheaper in the case of a LIMIT,
         // where the projection only needs to be applied to fewer rows.
-        // If the runtime is not order preserving, we should do subquery expression projections (which can break an incoming order)
-        // before sorting.
+        // If the runtime is not order preserving, we should do subquery expression projections and remote batch property
+        // projections (which can invalidate an incoming order) before sorting.
         if (context.settings.executionModel.providedOrderPreserving) sortFirstWithFallback(selectedPlan)
-        else projectSubqueryExpressionsFirst(selectedPlan)
+        else projectNonOrderPreservingExpressionsFirst(selectedPlan)
 
       case distinctProjection: DistinctQueryProjection =>
         def planDistinct(rewrittenExpressions: RewrittenExpressions): LogicalPlan => LogicalPlan =
