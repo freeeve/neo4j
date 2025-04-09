@@ -86,13 +86,13 @@ import org.neo4j.exceptions.Neo4jException
 import org.neo4j.gqlstatus.PrivilegeGqlCodeEntity
 import org.neo4j.graphdb.security.AuthorizationViolationException
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog
-import org.neo4j.internal.kernel.api.security.AccessMode
 import org.neo4j.internal.kernel.api.security.AdminActionOnResource
 import org.neo4j.internal.kernel.api.security.AdminActionOnResource.DatabaseScope
 import org.neo4j.internal.kernel.api.security.PermissionState
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.internal.kernel.api.security.SecurityContext
 import org.neo4j.internal.kernel.api.security.Segment
+import org.neo4j.internal.kernel.api.security.StaticAccessMode
 import org.neo4j.kernel.api.exceptions.Status
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
 import org.neo4j.kernel.impl.api.security.RestrictedAccessMode
@@ -487,7 +487,7 @@ case class CommunityAdministrationCommandRuntime(
           // If we have a non admin command executing in the system database, forbid it to make reads / writes
           // from the system graph. This is to prevent queries such as SHOW PROCEDURES YIELD * RETURN ()--()
           // from leaking nodes from the system graph: the ()--() would return empty results
-          modeConverter = s => s.withMode(new RestrictedAccessMode(s.mode(), AccessMode.Static.ACCESS)),
+          modeConverter = s => s.withMode(new RestrictedAccessMode(s.mode(), StaticAccessMode.ACCESS)),
           // While running against system will override most pre-parser options.
           // However, we shouldn't override the Cypher version,
           // so let's prepend the inner query with the relevant Cypher version.

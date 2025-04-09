@@ -43,11 +43,11 @@ import org.neo4j.graphdb.event.LabelEntry;
 import org.neo4j.graphdb.event.PropertyEntry;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.exceptions.PropertyKeyIdNotFoundKernelException;
-import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
 import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.security.AnonymousContext;
 import org.neo4j.kernel.api.txstate.TransactionState;
@@ -299,7 +299,7 @@ class TxStateTransactionDataViewTest {
         AuthSubject authSubject = mock(AuthSubject.class);
         when(authSubject.executingUser()).thenReturn("Christof");
         when(transaction.securityContext())
-                .thenReturn(new SecurityContext(authSubject, AccessMode.Static.FULL, EMBEDDED_CONNECTION, null));
+                .thenReturn(new SecurityContext(authSubject, StaticAccessMode.FULL, EMBEDDED_CONNECTION, null));
 
         TxStateTransactionDataSnapshot transactionDataSnapshot = snapshot();
         assertEquals("Christof", transactionDataSnapshot.username());

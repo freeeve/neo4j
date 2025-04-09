@@ -70,11 +70,10 @@ import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException;
 import org.neo4j.internal.kernel.api.exceptions.schema.ConstraintValidationException;
 import org.neo4j.internal.kernel.api.helpers.StubNodeCursor;
 import org.neo4j.internal.kernel.api.helpers.TestRelationshipChain;
-import org.neo4j.internal.kernel.api.security.AccessMode;
-import org.neo4j.internal.kernel.api.security.AccessMode.Static;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.IndexDescriptor;
@@ -976,7 +975,7 @@ public class PlainOperationsTest extends OperationsTest {
                 mock(IndexingProvidersService.class),
                 Config.defaults(),
                 EmptyMemoryTracker.INSTANCE,
-                () -> Static.FULL,
+                () -> StaticAccessMode.FULL,
                 TransactionStateBehaviour.DEFAULT_BEHAVIOUR);
 
         // when
@@ -1024,7 +1023,7 @@ public class PlainOperationsTest extends OperationsTest {
                 mock(IndexingProvidersService.class),
                 Config.defaults(),
                 EmptyMemoryTracker.INSTANCE,
-                () -> Static.FULL,
+                () -> StaticAccessMode.FULL,
                 TransactionStateBehaviour.DEFAULT_BEHAVIOUR);
         operations.initialize(NULL_CONTEXT);
 
@@ -1069,7 +1068,7 @@ public class PlainOperationsTest extends OperationsTest {
                 mock(IndexingProvidersService.class),
                 Config.defaults(),
                 EmptyMemoryTracker.INSTANCE,
-                () -> Static.FULL,
+                () -> StaticAccessMode.FULL,
                 TransactionStateBehaviour.DEFAULT_BEHAVIOUR);
 
         // when
@@ -1121,7 +1120,7 @@ public class PlainOperationsTest extends OperationsTest {
                 indexingProvidersService,
                 Config.defaults(),
                 EmptyMemoryTracker.INSTANCE,
-                () -> Static.FULL,
+                () -> StaticAccessMode.FULL,
                 TransactionStateBehaviour.DEFAULT_BEHAVIOUR);
 
         // when
@@ -1226,32 +1225,32 @@ public class PlainOperationsTest extends OperationsTest {
 
     @Test
     void nodeAddLabelShouldSucceedWriteOnly() throws Exception {
-        runForSecurityLevel(() -> operations.nodeAddLabel(1L, 2), AccessMode.Static.WRITE_ONLY, true);
+        runForSecurityLevel(() -> operations.nodeAddLabel(1L, 2), StaticAccessMode.WRITE_ONLY, true);
     }
 
     @Test
     void nodeAddLabelShouldSucceedWrite() throws Exception {
-        runForSecurityLevel(() -> operations.nodeAddLabel(1L, 2), AccessMode.Static.WRITE, true);
+        runForSecurityLevel(() -> operations.nodeAddLabel(1L, 2), StaticAccessMode.WRITE, true);
     }
 
     @Test
     void nodeAddLabelShouldSucceedWriteFull() throws Exception {
-        runForSecurityLevel(() -> operations.nodeAddLabel(1L, 2), AccessMode.Static.FULL, true);
+        runForSecurityLevel(() -> operations.nodeAddLabel(1L, 2), StaticAccessMode.FULL, true);
     }
 
     @Test
     void nodeRemoveLabelShouldSucceedWriteOnly() throws Exception {
-        runForSecurityLevel(() -> operations.nodeRemoveLabel(1L, 3), AccessMode.Static.WRITE_ONLY, true);
+        runForSecurityLevel(() -> operations.nodeRemoveLabel(1L, 3), StaticAccessMode.WRITE_ONLY, true);
     }
 
     @Test
     void nodeRemoveLabelShouldSucceedWrite() throws Exception {
-        runForSecurityLevel(() -> operations.nodeRemoveLabel(1L, 3), AccessMode.Static.WRITE, true);
+        runForSecurityLevel(() -> operations.nodeRemoveLabel(1L, 3), StaticAccessMode.WRITE, true);
     }
 
     @Test
     void nodeRemoveLabelShouldSucceedWriteFull() throws Exception {
-        runForSecurityLevel(() -> operations.nodeRemoveLabel(1L, 3), AccessMode.Static.FULL, true);
+        runForSecurityLevel(() -> operations.nodeRemoveLabel(1L, 3), StaticAccessMode.FULL, true);
     }
 
     private static Iterator<ConstraintDescriptor> asIterator(ConstraintDescriptor constraint) {

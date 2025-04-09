@@ -33,7 +33,7 @@ import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.TokenRead;
-import org.neo4j.internal.kernel.api.security.AccessMode.Static;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.api.AssertOpen;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
@@ -83,11 +83,11 @@ class DefaultNodeBasedRelationshipTypeIndexCursorTest {
                 EmptyMemoryTracker.INSTANCE,
                 false,
                 mock(AssertOpen.class),
-                () -> Static.FULL,
+                () -> StaticAccessMode.FULL,
                 false,
                 NullLogProvider.getInstance());
 
-        cursor.initState(read, mock(TxStateHolder.class), () -> Static.FULL);
+        cursor.initState(read, mock(TxStateHolder.class), () -> StaticAccessMode.FULL);
         int numNodes = 10;
         int numRelationships = 5;
         int type = 1;

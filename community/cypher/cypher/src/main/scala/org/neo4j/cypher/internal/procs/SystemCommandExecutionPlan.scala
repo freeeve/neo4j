@@ -31,9 +31,9 @@ import org.neo4j.cypher.internal.runtime.ProfileMode
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.graphdb.QueryStatistics
-import org.neo4j.internal.kernel.api.security.AccessMode
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.internal.kernel.api.security.SecurityContext
+import org.neo4j.internal.kernel.api.security.StaticAccessMode
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.values.AnyValue
@@ -53,7 +53,7 @@ case class SystemCommandExecutionPlan(
   source: Option[ExecutionPlan] = None,
   checkCredentialsExpired: Boolean = true,
   parameterTransformer: ParameterTransformerFunction = ParameterTransformer(),
-  modeConverter: SecurityContext => SecurityContext = s => s.withMode(AccessMode.Static.READ),
+  modeConverter: SecurityContext => SecurityContext = s => s.withMode(StaticAccessMode.READ),
   cypherVersion: Option[CypherVersion] = None
 ) extends AdministrationChainedExecutionPlan(source) {
 

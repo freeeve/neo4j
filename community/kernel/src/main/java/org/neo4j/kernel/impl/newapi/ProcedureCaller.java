@@ -35,6 +35,7 @@ import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.AdminAccessMode;
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.api.ExecutionContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.procedure.Context;
@@ -80,8 +81,8 @@ public abstract class ProcedureCaller {
         }
 
         final SecurityContext securityContext = mode.shouldBoostFunction(id).allowsAccess()
-                ? securityContext().withMode(new OverriddenAccessMode(mode, AccessMode.Static.READ))
-                : securityContext().withMode(new RestrictedAccessMode(mode, AccessMode.Static.READ));
+                ? securityContext().withMode(new OverriddenAccessMode(mode, StaticAccessMode.READ))
+                : securityContext().withMode(new RestrictedAccessMode(mode, StaticAccessMode.READ));
 
         try (var ignore = overrideSecurityContext(securityContext)) {
             return procedureView.callFunction(prepareContext(securityContext, context), id, input);
@@ -109,8 +110,8 @@ public abstract class ProcedureCaller {
             boolean overrideAccessMode, AccessMode mode, int functionId, ProcedureCallContext context)
             throws ProcedureException {
         final SecurityContext securityContext = overrideAccessMode
-                ? securityContext().withMode(new OverriddenAccessMode(mode, AccessMode.Static.READ))
-                : securityContext().withMode(new RestrictedAccessMode(mode, AccessMode.Static.READ));
+                ? securityContext().withMode(new OverriddenAccessMode(mode, StaticAccessMode.READ))
+                : securityContext().withMode(new RestrictedAccessMode(mode, StaticAccessMode.READ));
 
         try (var ignore = overrideSecurityContext(securityContext)) {
             UserAggregationReducer aggregator =
@@ -167,7 +168,7 @@ public abstract class ProcedureCaller {
     }
 
     public ResourceRawIterator<AnyValue[], ProcedureException> callProcedure(
-            int id, AnyValue[] input, AccessMode.Static procedureMode, ProcedureCallContext procedureCallContext)
+            int id, AnyValue[] input, StaticAccessMode procedureMode, ProcedureCallContext procedureCallContext)
             throws ProcedureException {
         performCheckBeforeOperation();
 
@@ -346,7 +347,7 @@ public abstract class ProcedureCaller {
             AccessMode mode = checkAggregationFunctionAccessMode(id);
             // The FULL access mode returns true on all shouldBoost-calls,
             // but it doesn't need any boost here since it already supports all read operations.
-            boolean overrideAccessMode = mode != AccessMode.Static.FULL
+            boolean overrideAccessMode = mode != StaticAccessMode.FULL
                     && mode.shouldBoostAggregatingFunction(id).allowsAccess();
             if (overrideAccessMode) {
                 return createGenericAggregator(true, mode, id, context);

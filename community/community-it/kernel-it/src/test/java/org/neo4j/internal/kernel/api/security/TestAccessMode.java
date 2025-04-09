@@ -23,8 +23,6 @@ import java.net.InetAddress;
 import java.net.URI;
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
-import org.eclipse.collections.api.set.primitive.IntSet;
-import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.neo4j.internal.kernel.api.LabelsSupplier;
 import org.neo4j.internal.kernel.api.RelTypeSupplier;
 import org.neo4j.internal.kernel.api.TokenSet;
@@ -98,11 +96,6 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public IntSet getTraverseNodeSecurityProperties(int[] labels) {
-        return IntSets.immutable.empty();
-    }
-
-    @Override
     public boolean hasApplicableTraverseNodeAllowPropertyRules(int label) {
         return allowRead;
     }
@@ -110,11 +103,6 @@ public class TestAccessMode implements AccessMode {
     @Override
     public boolean allowsTraverseNode(LabelsSupplier labels, SelectedPropertiesProvider selectedPropertiesProvider) {
         return allowRead;
-    }
-
-    @Override
-    public boolean hasTraverseNodePropertyRules() {
-        return false;
     }
 
     @Override
@@ -138,11 +126,6 @@ public class TestAccessMode implements AccessMode {
     }
 
     @Override
-    public IntSet getTraverseRelSecurityProperties(int type) {
-        return IntSets.immutable.empty();
-    }
-
-    @Override
     public boolean hasApplicableTraverseRelAllowPropertyRules(int type) {
         return allowRead;
     }
@@ -150,21 +133,6 @@ public class TestAccessMode implements AccessMode {
     @Override
     public boolean allowsTraverseRelationship(int type, SelectedPropertiesProvider propertyProviderSupplier) {
         return allowRead;
-    }
-
-    @Override
-    public boolean hasTraverseRelPropertyRules() {
-        return false;
-    }
-
-    @Override
-    public boolean allowsReadPropertyAllLabels(int propertyKey) {
-        return allowReadAll;
-    }
-
-    @Override
-    public boolean disallowsReadPropertyForSomeLabel(int propertyKey) {
-        return !allowReadAll;
     }
 
     @Override
@@ -177,21 +145,6 @@ public class TestAccessMode implements AccessMode {
     public IntPredicate allowedToReadNodeProperties(
             LabelsSupplier labels, Supplier<SelectedPropertiesProvider> propertyProvider, PropertySelection selection) {
         return key -> allowRead;
-    }
-
-    @Override
-    public boolean allowsReadNodeProperty(LabelsSupplier labels, int propertyKey) {
-        return allowRead;
-    }
-
-    @Override
-    public boolean allowsReadPropertyAllRelTypes(int propertyKey) {
-        return allowReadAll;
-    }
-
-    @Override
-    public boolean allowsReadRelProperty(RelTypeSupplier relType, int propertyKey) {
-        return allowRead;
     }
 
     @Override
@@ -221,56 +174,6 @@ public class TestAccessMode implements AccessMode {
     @Override
     public boolean allowsSeePropertyKeyToken(int propertyKey) {
         return allowRead;
-    }
-
-    @Override
-    public boolean hasNodePropertyReadRules() {
-        return false;
-    }
-
-    @Override
-    public boolean hasNodePropertyReadRules(int... propertyKeys) {
-        return false;
-    }
-
-    @Override
-    public IntSet getNodeReadSecurityProperties(int propertyKey) {
-        return IntSets.immutable.empty();
-    }
-
-    @Override
-    public IntSet getAllNodeReadSecurityProperties() {
-        return IntSets.immutable.empty();
-    }
-
-    @Override
-    public PropertySelection getNodeSecurityPropertySelection(PropertySelection selection) {
-        return PropertySelection.NO_PROPERTIES;
-    }
-
-    @Override
-    public boolean hasRelPropertyReadRules() {
-        return false;
-    }
-
-    @Override
-    public boolean hasRelPropertyReadRules(int... propertyKeys) {
-        return false;
-    }
-
-    @Override
-    public IntSet getRelReadSecurityProperties(int propertyKey) {
-        return IntSets.immutable.empty();
-    }
-
-    @Override
-    public IntSet getAllRelReadSecurityProperties() {
-        return IntSets.immutable.empty();
-    }
-
-    @Override
-    public PropertySelection getRelSecurityPropertySelection(PropertySelection selection) {
-        return PropertySelection.NO_PROPERTIES;
     }
 
     @Override

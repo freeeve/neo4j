@@ -30,10 +30,10 @@ import static org.neo4j.server.security.auth.SecurityTestUtils.credentialFor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
-import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
 import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.database.PrivilegeDatabaseReference;
 import org.neo4j.kernel.database.PrivilegeDatabaseReferenceImpl;
 import org.neo4j.kernel.impl.api.security.OverriddenAccessMode;
@@ -67,19 +67,19 @@ class SecurityContextDescriptionTest {
 
     @Test
     void shouldMakeNiceDescriptionWithMode() {
-        SecurityContext modified = context.withMode(AccessMode.Static.WRITE);
+        SecurityContext modified = context.withMode(StaticAccessMode.WRITE);
         assertThat(modified.description()).isEqualTo("user 'johan' with WRITE");
     }
 
     @Test
     void shouldMakeNiceDescriptionRestricted() {
-        SecurityContext restricted = context.withMode(new RestrictedAccessMode(context.mode(), AccessMode.Static.READ));
+        SecurityContext restricted = context.withMode(new RestrictedAccessMode(context.mode(), StaticAccessMode.READ));
         assertThat(restricted.description()).isEqualTo("user 'johan' with FULL restricted to READ");
     }
 
     @Test
     void shouldMakeNiceDescriptionOverridden() {
-        SecurityContext overridden = context.withMode(new OverriddenAccessMode(context.mode(), AccessMode.Static.READ));
+        SecurityContext overridden = context.withMode(new OverriddenAccessMode(context.mode(), StaticAccessMode.READ));
         assertThat(overridden.description()).isEqualTo("user 'johan' with FULL overridden by READ");
     }
 
@@ -93,7 +93,7 @@ class SecurityContextDescriptionTest {
     void shouldMakeNiceDescriptionAuthDisabledAndRestricted() {
         SecurityContext disabled = SecurityContext.AUTH_DISABLED;
         SecurityContext restricted =
-                disabled.withMode(new RestrictedAccessMode(disabled.mode(), AccessMode.Static.READ));
+                disabled.withMode(new RestrictedAccessMode(disabled.mode(), StaticAccessMode.READ));
         assertThat(restricted.description()).isEqualTo("AUTH_DISABLED with FULL restricted to READ");
     }
 }

@@ -32,6 +32,7 @@ import org.neo4j.internal.kernel.api.security.AuthSubject;
 import org.neo4j.internal.kernel.api.security.AuthenticationResult;
 import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.database.PrivilegeDatabaseReference;
 import org.neo4j.kernel.impl.security.User;
 
@@ -44,13 +45,13 @@ public class BasicLoginContext extends LoginContext {
 
         switch (authenticationResult) {
             case SUCCESS:
-                accessMode = AccessMode.Static.FULL;
+                accessMode = StaticAccessMode.FULL;
                 break;
             case PASSWORD_CHANGE_REQUIRED:
-                accessMode = AccessMode.Static.CREDENTIALS_EXPIRED;
+                accessMode = StaticAccessMode.CREDENTIALS_EXPIRED;
                 break;
             default:
-                accessMode = AccessMode.Static.ACCESS;
+                accessMode = StaticAccessMode.ACCESS;
         }
     }
 

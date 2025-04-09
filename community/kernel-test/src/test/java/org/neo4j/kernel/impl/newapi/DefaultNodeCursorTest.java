@@ -32,8 +32,8 @@ import org.neo4j.internal.kernel.api.Locks;
 import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.TokenRead;
-import org.neo4j.internal.kernel.api.security.AccessMode.Static;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.api.AssertOpen;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.index.IndexingService;
@@ -54,7 +54,7 @@ class DefaultNodeCursorTest {
 
         var storageCursor = mock(StorageNodeCursor.class);
         try (var defaultCursor = new DefaultNodeCursor((c) -> {}, storageCursor, internalCursors, false)) {
-            defaultCursor.single(NODEID, read, ktx, () -> Static.FULL);
+            defaultCursor.single(NODEID, read, ktx, () -> StaticAccessMode.FULL);
             final TestKernelReadTracer tracer = addTracerAndReturn(defaultCursor);
 
             assertTrue(defaultCursor.next());
@@ -77,7 +77,7 @@ class DefaultNodeCursorTest {
         var storageCursor = mock(StorageNodeCursor.class);
         try (var defaultCursor = new DefaultNodeCursor((c) -> {}, storageCursor, internalCursors, false)) {
             final TestKernelReadTracer tracer = addTracerAndReturn(defaultCursor);
-            defaultCursor.single(NODEID, read, ktx, () -> Static.FULL);
+            defaultCursor.single(NODEID, read, ktx, () -> StaticAccessMode.FULL);
             assertTrue(defaultCursor.next());
             tracer.clear();
 
@@ -103,7 +103,7 @@ class DefaultNodeCursorTest {
                 EmptyMemoryTracker.INSTANCE,
                 false,
                 mock(AssertOpen.class),
-                () -> Static.FULL,
+                () -> StaticAccessMode.FULL,
                 false,
                 NullLogProvider.getInstance());
     }

@@ -34,8 +34,8 @@ import org.neo4j.graphdb.QueryStatistics
 import org.neo4j.graphdb.Transaction
 import org.neo4j.graphdb.TransientFailureException
 import org.neo4j.graphdb.security.AuthorizationViolationException
-import org.neo4j.internal.kernel.api.security.AccessMode
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
+import org.neo4j.internal.kernel.api.security.StaticAccessMode
 import org.neo4j.kernel.api.exceptions.Status.HasStatus
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.kernel.impl.query.TransactionalContext
@@ -149,7 +149,7 @@ abstract class UpdatingSystemCommandExecutionPlanBase(
       throw AuthorizationViolationException.updatesWhenImpersonating()
     }
     if (checkCredentialsExpired) securityContext.assertCredentialsNotExpired(securityAuthorizationHandler)
-    Using.resource(tc.kernelTransaction().overrideWith(securityContext.withMode(AccessMode.Static.FULL))) { _ =>
+    Using.resource(tc.kernelTransaction().overrideWith(securityContext.withMode(StaticAccessMode.FULL))) { _ =>
       elevatedWork()
     }
   }

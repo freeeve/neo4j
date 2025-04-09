@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.api.security;
 
 import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.PermissionState;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 
 /**
  * Access mode that wraps an access mode with a wrapping access mode. The resulting access mode allows things based
@@ -28,12 +29,12 @@ import org.neo4j.internal.kernel.api.security.PermissionState;
  */
 abstract class WrappedAccessMode implements AccessMode {
     protected final AccessMode original;
-    protected final Static wrapping;
+    protected final StaticAccessMode wrapping;
 
-    WrappedAccessMode(AccessMode original, Static wrapping) {
+    WrappedAccessMode(AccessMode original, StaticAccessMode wrapping) {
         this.original = original;
         if (original instanceof WrappedAccessMode) {
-            Static originalWrapping = ((WrappedAccessMode) original).wrapping;
+            StaticAccessMode originalWrapping = ((WrappedAccessMode) original).wrapping;
             this.wrapping = originalWrapping.ordinal() < wrapping.ordinal() ? originalWrapping : wrapping;
         } else {
             this.wrapping = wrapping;

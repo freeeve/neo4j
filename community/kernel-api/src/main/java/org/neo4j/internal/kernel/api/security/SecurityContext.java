@@ -119,7 +119,7 @@ public class SecurityContext extends LoginContext {
     }
 
     /** Allows all operations. */
-    public static final SecurityContext AUTH_DISABLED = authDisabled(AccessMode.Static.FULL, EMBEDDED_CONNECTION, null);
+    public static final SecurityContext AUTH_DISABLED = authDisabled(StaticAccessMode.FULL, EMBEDDED_CONNECTION, null);
 
     public static SecurityContext authDisabled(AccessMode mode, ClientConnectionInfo connectionInfo, String database) {
         return new SecurityContext(AuthSubject.AUTH_DISABLED, mode, connectionInfo, database) {

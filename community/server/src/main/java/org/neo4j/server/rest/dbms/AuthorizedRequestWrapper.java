@@ -24,10 +24,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
-import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
 import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.database.PrivilegeDatabaseReference;
 import org.neo4j.server.rest.web.HttpConnectionInfoFactory;
 
@@ -49,7 +49,7 @@ public class AuthorizedRequestWrapper extends HttpServletRequestWrapper {
             @Override
             public SecurityContext authorize(
                     IdLookup idLookup, PrivilegeDatabaseReference dbReference, AbstractSecurityLog securityLog) {
-                return new SecurityContext(subject(), AccessMode.Static.ACCESS, connectionInfo(), dbReference.name());
+                return new SecurityContext(subject(), StaticAccessMode.ACCESS, connectionInfo(), dbReference.name());
             }
         };
     }

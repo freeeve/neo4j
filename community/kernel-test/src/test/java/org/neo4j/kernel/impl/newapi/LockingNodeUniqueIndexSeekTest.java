@@ -40,7 +40,7 @@ import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.SchemaRead;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
-import org.neo4j.internal.kernel.api.security.AccessMode.Static;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptors;
@@ -144,7 +144,7 @@ class LockingNodeUniqueIndexSeekTest {
                 EmptyMemoryTracker.INSTANCE,
                 false,
                 mock(AssertOpen.class),
-                () -> Static.FULL,
+                () -> StaticAccessMode.FULL,
                 false,
                 NullLogProvider.getInstance());
     }

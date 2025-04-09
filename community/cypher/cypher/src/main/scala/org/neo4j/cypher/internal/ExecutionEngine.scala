@@ -40,7 +40,7 @@ import org.neo4j.cypher.internal.util.RecordingNotificationLogger
 import org.neo4j.dbms.systemgraph.DefaultQueryLanguageLookup
 import org.neo4j.exceptions.ParameterNotFoundException
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
-import org.neo4j.internal.kernel.api.security.AccessMode
+import org.neo4j.internal.kernel.api.security.StaticAccessMode
 import org.neo4j.kernel.GraphDatabaseQueryService
 import org.neo4j.kernel.api.QueryLanguage
 import org.neo4j.kernel.api.exceptions.Status
@@ -374,7 +374,7 @@ abstract class ExecutionEngine(
 
     // create transaction and query context
     val tc = context.getOrBeginNewIfClosed()
-    val compilerAuthorization = tc.restrictCurrentTransaction(tc.securityContext.withMode(AccessMode.Static.READ))
+    val compilerAuthorization = tc.restrictCurrentTransaction(tc.securityContext.withMode(StaticAccessMode.READ))
     var forceReplan = false
     var inputQuery = initialInputQuery
 

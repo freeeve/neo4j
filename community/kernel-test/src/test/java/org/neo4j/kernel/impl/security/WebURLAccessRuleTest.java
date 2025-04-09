@@ -45,11 +45,11 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.graphdb.security.URLAccessValidationError;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.security.AbstractSecurityLog;
-import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.logging.NullLog;
 
 class WebURLAccessRuleTest {
@@ -321,7 +321,7 @@ class WebURLAccessRuleTest {
     private SecurityContext fullSecurityContext() {
         return new SecurityContext(
                 AuthSubject.ANONYMOUS,
-                AccessMode.Static.FULL,
+                StaticAccessMode.FULL,
                 ClientConnectionInfo.EMBEDDED_CONNECTION,
                 DEFAULT_DATABASE_NAME);
     }

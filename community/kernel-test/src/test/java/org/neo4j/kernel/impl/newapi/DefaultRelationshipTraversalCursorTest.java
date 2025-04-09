@@ -34,8 +34,8 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.internal.kernel.api.Locks;
 import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.SchemaRead;
-import org.neo4j.internal.kernel.api.security.AccessMode.Static;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.impl.api.KernelTransactionImplementation;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.state.TxState;
@@ -69,7 +69,7 @@ class DefaultRelationshipTraversalCursorTest {
         var read = mockedRead(ktx);
 
         // when
-        cursor.init(node, relationship, ALL_RELATIONSHIPS, read, ktx, () -> Static.FULL);
+        cursor.init(node, relationship, ALL_RELATIONSHIPS, read, ktx, () -> StaticAccessMode.FULL);
 
         // then
         assertRelationships(cursor, 100, 102, 104);
@@ -85,7 +85,7 @@ class DefaultRelationshipTraversalCursorTest {
         var read = mockedRead(ktx);
 
         // when
-        cursor.init(node, relationship, ALL_RELATIONSHIPS, read, ktx, () -> Static.FULL);
+        cursor.init(node, relationship, ALL_RELATIONSHIPS, read, ktx, () -> StaticAccessMode.FULL);
 
         // then
         assertRelationships(cursor, 3, 4, 100, 102, 104);
@@ -119,7 +119,7 @@ class DefaultRelationshipTraversalCursorTest {
                 selection(type, Direction.OUTGOING),
                 read,
                 ktx,
-                () -> Static.FULL);
+                () -> StaticAccessMode.FULL);
 
         // then
         assertRelationships(cursor, 3, 7, 6, 100, 102, 104);
@@ -143,7 +143,7 @@ class DefaultRelationshipTraversalCursorTest {
         var read = mockedRead(ktx);
 
         // when
-        cursor.init(node, relationship, selection(type, Direction.OUTGOING), read, ktx, () -> Static.FULL);
+        cursor.init(node, relationship, selection(type, Direction.OUTGOING), read, ktx, () -> StaticAccessMode.FULL);
 
         // then
         assertRelationships(cursor, 3, 7, 6);
@@ -166,7 +166,7 @@ class DefaultRelationshipTraversalCursorTest {
         var read = mockedRead(ktx);
 
         // when
-        cursor.init(node, relationship, selection(type, Direction.INCOMING), read, ktx, () -> Static.FULL);
+        cursor.init(node, relationship, selection(type, Direction.INCOMING), read, ktx, () -> StaticAccessMode.FULL);
 
         // then
         assertRelationships(cursor, 4, 7, 6);
@@ -189,7 +189,7 @@ class DefaultRelationshipTraversalCursorTest {
         var read = mockedRead(ktx);
 
         // when
-        cursor.init(node, relationship, selection(type, Direction.BOTH), read, ktx, () -> Static.FULL);
+        cursor.init(node, relationship, selection(type, Direction.BOTH), read, ktx, () -> StaticAccessMode.FULL);
 
         // then
         assertRelationships(cursor, 3, 8, 7, 2, 6);
@@ -214,7 +214,7 @@ class DefaultRelationshipTraversalCursorTest {
         var read = mockedRead(ktx);
 
         // when
-        cursor.init(relId, read, ktx, () -> Static.FULL);
+        cursor.init(relId, read, ktx, () -> StaticAccessMode.FULL);
 
         // then
         assertThat(cursor.next()).isTrue();

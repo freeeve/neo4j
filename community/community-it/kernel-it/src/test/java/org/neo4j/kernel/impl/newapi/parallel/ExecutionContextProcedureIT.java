@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.neo4j.graphdb.RelationshipType.withName;
-import static org.neo4j.internal.kernel.api.security.AccessMode.Static.FULL;
+import static org.neo4j.internal.kernel.api.security.StaticAccessMode.FULL;
 import static org.neo4j.values.storable.Values.intValue;
 import static org.neo4j.values.virtual.VirtualValues.relationship;
 
@@ -50,6 +50,7 @@ import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.api.ExecutionContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.QueryLanguage;
@@ -291,7 +292,7 @@ class ExecutionContextProcedureIT {
             AnyValue result = invokeSimpleProcedure(executionContext, "accessMode");
             assertThat(result)
                     .isEqualTo(Values.stringValue(
-                            new OverriddenAccessMode(originalAccessMode, AccessMode.Static.READ).name()));
+                            new OverriddenAccessMode(originalAccessMode, StaticAccessMode.READ).name()));
 
             // ... and restored to FULL again after the call.
             assertThat(executionContext.securityContext().mode()).isEqualTo(FULL);

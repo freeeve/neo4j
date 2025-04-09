@@ -33,8 +33,8 @@ import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.internal.kernel.api.procs.UserAggregationReducer;
 import org.neo4j.internal.kernel.api.procs.UserFunctionHandle;
 import org.neo4j.internal.kernel.api.procs.UserFunctionSignature;
-import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.api.AssertOpen;
 import org.neo4j.kernel.api.ExecutionContext;
 import org.neo4j.kernel.api.QueryLanguage;
@@ -132,25 +132,25 @@ public abstract class KernelProcedures implements Procedures {
     @Override
     public ResourceRawIterator<AnyValue[], ProcedureException> procedureCallRead(
             int id, AnyValue[] arguments, ProcedureCallContext context) throws ProcedureException {
-        return getProcedureCaller().callProcedure(id, arguments, AccessMode.Static.READ, context);
+        return getProcedureCaller().callProcedure(id, arguments, StaticAccessMode.READ, context);
     }
 
     @Override
     public ResourceRawIterator<AnyValue[], ProcedureException> procedureCallWrite(
             int id, AnyValue[] arguments, ProcedureCallContext context) throws ProcedureException {
-        return getProcedureCaller().callProcedure(id, arguments, AccessMode.Static.TOKEN_WRITE, context);
+        return getProcedureCaller().callProcedure(id, arguments, StaticAccessMode.TOKEN_WRITE, context);
     }
 
     @Override
     public ResourceRawIterator<AnyValue[], ProcedureException> procedureCallSchema(
             int id, AnyValue[] arguments, ProcedureCallContext context) throws ProcedureException {
-        return getProcedureCaller().callProcedure(id, arguments, AccessMode.Static.SCHEMA, context);
+        return getProcedureCaller().callProcedure(id, arguments, StaticAccessMode.SCHEMA, context);
     }
 
     @Override
     public ResourceRawIterator<AnyValue[], ProcedureException> procedureCallDbms(
             int id, AnyValue[] arguments, ProcedureCallContext context) throws ProcedureException {
-        return getProcedureCaller().callProcedure(id, arguments, AccessMode.Static.ACCESS, context);
+        return getProcedureCaller().callProcedure(id, arguments, StaticAccessMode.ACCESS, context);
     }
 
     @Override

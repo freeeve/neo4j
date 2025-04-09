@@ -26,6 +26,7 @@ import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
 import org.neo4j.internal.kernel.api.security.LoginContext;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.database.PrivilegeDatabaseReference;
 
 /** Controls the capabilities of a KernelTransaction. */
@@ -38,27 +39,27 @@ public class AnonymousContext extends LoginContext {
     }
 
     public static AnonymousContext access() {
-        return new AnonymousContext(AccessMode.Static.ACCESS);
+        return new AnonymousContext(StaticAccessMode.ACCESS);
     }
 
     public static AnonymousContext read() {
-        return new AnonymousContext(AccessMode.Static.READ);
+        return new AnonymousContext(StaticAccessMode.READ);
     }
 
     public static AnonymousContext write() {
-        return new AnonymousContext(AccessMode.Static.WRITE);
+        return new AnonymousContext(StaticAccessMode.WRITE);
     }
 
     public static AnonymousContext writeToken() {
-        return new AnonymousContext(AccessMode.Static.TOKEN_WRITE);
+        return new AnonymousContext(StaticAccessMode.TOKEN_WRITE);
     }
 
     public static AnonymousContext writeOnly() {
-        return new AnonymousContext(AccessMode.Static.WRITE_ONLY);
+        return new AnonymousContext(StaticAccessMode.WRITE_ONLY);
     }
 
     public static AnonymousContext full() {
-        return new AnonymousContext(AccessMode.Static.FULL);
+        return new AnonymousContext(StaticAccessMode.FULL);
     }
 
     @Override

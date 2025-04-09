@@ -21,8 +21,8 @@ package org.neo4j.harness;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.neo4j.internal.kernel.api.security.AccessMode.Static.FULL;
-import static org.neo4j.internal.kernel.api.security.AccessMode.Static.READ;
+import static org.neo4j.internal.kernel.api.security.StaticAccessMode.FULL;
+import static org.neo4j.internal.kernel.api.security.StaticAccessMode.READ;
 import static org.neo4j.messages.MessageUtil.authDisabled;
 import static org.neo4j.messages.MessageUtil.createNodeWithLabelsDenied;
 import static org.neo4j.messages.MessageUtil.overriddenMode;

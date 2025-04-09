@@ -25,8 +25,6 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.function.IntPredicate;
 import java.util.function.Supplier;
-import org.eclipse.collections.api.set.primitive.IntSet;
-import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.neo4j.internal.kernel.api.LabelsSupplier;
 import org.neo4j.internal.kernel.api.RelTypeSupplier;
 import org.neo4j.internal.kernel.api.TokenSet;
@@ -36,375 +34,6 @@ import org.neo4j.storageengine.api.PropertySelection;
  * Controls the capabilities of a KernelTransaction.
  */
 public interface AccessMode {
-
-    enum Static implements AccessMode {
-        /**
-         * No reading or writing allowed.
-         */
-        ACCESS(false, false, false, false, false),
-        /**
-         * No reading or writing allowed because of expired credentials.
-         */
-        CREDENTIALS_EXPIRED(false, false, false, false, false),
-
-        /**
-         * Allows reading data and schema, but not writing.
-         */
-        READ(true, false, false, false, false),
-        /**
-         * Allows writing data
-         */
-        WRITE_ONLY(false, true, false, false, false),
-        /**
-         * Allows reading and writing data, but not schema.
-         */
-        WRITE(true, true, false, false, false),
-        /**
-         * Allows reading and writing data and creating new tokens, but not schema.
-         */
-        TOKEN_WRITE(true, true, true, false, false),
-        /**
-         * Allows reading and writing data and creating new tokens and changing schema.
-         */
-        SCHEMA(true, true, true, true, false),
-        /**
-         * Allows all operations.
-         */
-        FULL(true, true, true, true, true);
-
-        private final boolean read;
-        private final boolean write;
-        private final boolean token;
-        private final boolean schema;
-        private final boolean procedureBoost;
-
-        Static(boolean read, boolean write, boolean token, boolean schema, boolean procedureBoost) {
-            this.read = read;
-            this.write = write;
-            this.token = token;
-            this.schema = schema;
-            this.procedureBoost = procedureBoost;
-        }
-
-        @Override
-        public boolean allowsWrites() {
-            return write;
-        }
-
-        @Override
-        public PermissionState allowsTokenCreates(PrivilegeAction action) {
-            return PermissionState.fromAllowList(token);
-        }
-
-        @Override
-        public boolean allowsSchemaWrites() {
-            return schema;
-        }
-
-        @Override
-        public PermissionState allowsSchemaWrites(PrivilegeAction action) {
-            return PermissionState.fromAllowList(schema);
-        }
-
-        @Override
-        public boolean allowsShowIndex() {
-            return schema;
-        }
-
-        @Override
-        public boolean allowsShowConstraint() {
-            return schema;
-        }
-
-        @Override
-        public boolean allowsTraverseAllLabels() {
-            return read;
-        }
-
-        @Override
-        public boolean allowsTraverseAllNodesWithLabel(int label) {
-            return read;
-        }
-
-        @Override
-        public boolean disallowsTraverseLabel(int label) {
-            return false;
-        }
-
-        @Override
-        public boolean allowsTraverseNode(int... labels) {
-            return read;
-        }
-
-        @Override
-        public IntSet getTraverseNodeSecurityProperties(int[] labels) {
-            return IntSets.immutable.empty();
-        }
-
-        @Override
-        public boolean hasApplicableTraverseNodeAllowPropertyRules(int label) {
-            return read;
-        }
-
-        @Override
-        public boolean allowsTraverseNode(
-                LabelsSupplier labels, SelectedPropertiesProvider selectedPropertiesProvider) {
-            return read;
-        }
-
-        @Override
-        public boolean hasTraverseNodePropertyRules() {
-            return false;
-        }
-
-        @Override
-        public boolean allowsTraverseAllRelTypes() {
-            return read;
-        }
-
-        @Override
-        public boolean allowsTraverseRelType(int relType) {
-            return read;
-        }
-
-        @Override
-        public boolean allowsTraverseAllRelsWithType(int relType) {
-            return read;
-        }
-
-        @Override
-        public boolean disallowsTraverseRelType(int relType) {
-            return false;
-        }
-
-        @Override
-        public IntSet getTraverseRelSecurityProperties(int type) {
-            return IntSets.immutable.empty();
-        }
-
-        @Override
-        public boolean hasApplicableTraverseRelAllowPropertyRules(int type) {
-            return read;
-        }
-
-        @Override
-        public boolean allowsTraverseRelationship(int type, SelectedPropertiesProvider propertyProviderSupplier) {
-            return read;
-        }
-
-        @Override
-        public boolean hasTraverseRelPropertyRules() {
-            return false;
-        }
-
-        @Override
-        public boolean allowsReadPropertyAllLabels(int propertyKey) {
-            return read;
-        }
-
-        @Override
-        public boolean disallowsReadPropertyForSomeLabel(int propertyKey) {
-            return false;
-        }
-
-        @Override
-        public boolean allowsReadNodeProperties(
-                LabelsSupplier labels, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
-            return read;
-        }
-
-        @Override
-        public IntPredicate allowedToReadNodeProperties(
-                LabelsSupplier labels,
-                Supplier<SelectedPropertiesProvider> propertyProvider,
-                PropertySelection selection) {
-            return key -> read;
-        }
-
-        @Override
-        public boolean allowsReadNodeProperty(LabelsSupplier labels, int propertyKey) {
-            return read;
-        }
-
-        @Override
-        public boolean allowsTraverseAndReadAllMatchingNodeProperties(int[] labels, int[] propertyKeys) {
-            return read;
-        }
-
-        @Override
-        public boolean allowsReadPropertyAllRelTypes(int propertyKey) {
-            return read;
-        }
-
-        @Override
-        public boolean allowsReadRelProperty(RelTypeSupplier relType, int propertyKey) {
-            return read;
-        }
-
-        @Override
-        public boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys) {
-            return read;
-        }
-
-        @Override
-        public boolean allowsReadRelProperties(
-                RelTypeSupplier relType, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
-            return read;
-        }
-
-        @Override
-        public IntPredicate allowedToReadRelationshipProperties(
-                RelTypeSupplier relType,
-                Supplier<SelectedPropertiesProvider> propertyProvider,
-                PropertySelection selection) {
-            return key -> read;
-        }
-
-        @Override
-        public IntSet getAllNodeReadSecurityProperties() {
-            return IntSets.immutable.empty();
-        }
-
-        @Override
-        public PropertySelection getNodeSecurityPropertySelection(PropertySelection selection) {
-            return PropertySelection.NO_PROPERTIES;
-        }
-
-        @Override
-        public boolean hasRelPropertyReadRules() {
-            return false;
-        }
-
-        @Override
-        public boolean hasRelPropertyReadRules(int... propertyKeys) {
-            return false;
-        }
-
-        @Override
-        public IntSet getRelReadSecurityProperties(int propertyKey) {
-            return IntSets.immutable.empty();
-        }
-
-        @Override
-        public IntSet getAllRelReadSecurityProperties() {
-            return IntSets.immutable.empty();
-        }
-
-        @Override
-        public PropertySelection getRelSecurityPropertySelection(PropertySelection selection) {
-            return PropertySelection.NO_PROPERTIES;
-        }
-
-        @Override
-        public boolean allowsSeePropertyKeyToken(int propertyKey) {
-            return read;
-        }
-
-        @Override
-        public boolean hasNodePropertyReadRules() {
-            return false;
-        }
-
-        @Override
-        public boolean hasNodePropertyReadRules(int... propertyKeys) {
-            return false;
-        }
-
-        @Override
-        public IntSet getNodeReadSecurityProperties(int propertyKey) {
-            return IntSets.immutable.empty();
-        }
-
-        @Override
-        public PermissionState allowsExecuteProcedure(int procedureId) {
-            return PermissionState.EXPLICIT_GRANT;
-        }
-
-        @Override
-        public PermissionState allowExecuteAdminProcedures() {
-            return PermissionState.EXPLICIT_GRANT;
-        }
-
-        @Override
-        public PermissionState shouldBoostProcedure(int procedureId) {
-            return PermissionState.fromAllowList(procedureBoost);
-        }
-
-        @Override
-        public PermissionState allowsExecuteFunction(int id) {
-            return PermissionState.EXPLICIT_GRANT;
-        }
-
-        @Override
-        public PermissionState shouldBoostFunction(int id) {
-            return PermissionState.fromAllowList(procedureBoost);
-        }
-
-        @Override
-        public PermissionState allowsExecuteAggregatingFunction(int id) {
-            return PermissionState.EXPLICIT_GRANT;
-        }
-
-        @Override
-        public PermissionState shouldBoostAggregatingFunction(int id) {
-            return PermissionState.fromAllowList(procedureBoost);
-        }
-
-        @Override
-        public PermissionState allowsShowSetting(String setting) {
-            return PermissionState.EXPLICIT_GRANT;
-        }
-
-        @Override
-        public boolean allowsSetLabel(int labelId) {
-            return write;
-        }
-
-        @Override
-        public boolean allowsRemoveLabel(int labelId) {
-            return write;
-        }
-
-        @Override
-        public boolean allowsCreateNode(int[] labelIds) {
-            return write;
-        }
-
-        @Override
-        public boolean allowsDeleteNode(Supplier<TokenSet> labelSupplier) {
-            return write;
-        }
-
-        @Override
-        public boolean allowsCreateRelationship(int relType) {
-            return write;
-        }
-
-        @Override
-        public boolean allowsDeleteRelationship(int relType) {
-            return write;
-        }
-
-        @Override
-        public boolean allowsSetProperty(LabelsSupplier labels, int propertyKey) {
-            return write;
-        }
-
-        @Override
-        public boolean allowsSetProperty(RelTypeSupplier relType, int propertyKey) {
-            return write;
-        }
-
-        @Override
-        public PermissionState allowsLoadAllData() {
-            return PermissionState.fromAllowList(read);
-        }
-
-        @Override
-        public PermissionState allowsLoadUri(URI uri, InetAddress inetAddress) {
-            return PermissionState.fromAllowList(read);
-        }
-    }
 
     boolean allowsWrites();
 
@@ -442,14 +71,6 @@ public interface AccessMode {
     boolean allowsTraverseNode(int... labels);
 
     /**
-     * Gets the keys of the operand properties (aka Security Properties) whose
-     * values are to be checked by the property rules of nodes having the {@code labels} supplied
-     * @param labels - the node labels which may have security rules on them
-     * @return the set of operand properties
-     */
-    IntSet getTraverseNodeSecurityProperties(int[] labels);
-
-    /**
      * checks whether there is potential for nodes with this label to be traversed subject of property-based
      * GRANTS evaluating to true and not being precluded by label-based DENYs.
      * @param label - the label to check permissions for
@@ -468,12 +89,6 @@ public interface AccessMode {
      * @return {@code true} if traversal of this node is allowed
      */
     boolean allowsTraverseNode(LabelsSupplier labels, SelectedPropertiesProvider selectedPropertiesProvider);
-
-    /**
-     * Determines whether there are any property rules controlling node traversal
-     * @return {@code true} when the authenticated principal's ability to traverse nodes could be subject to property rules
-     */
-    boolean hasTraverseNodePropertyRules();
 
     /**
      * true if all relationships can be traversed
@@ -504,14 +119,6 @@ public interface AccessMode {
     boolean disallowsTraverseRelType(int relType);
 
     /**
-     * Gets the keys of the operand properties (aka Security Properties) whose
-     * values are to be checked by the property rules of relationships having the {@code type} supplied
-     * @param type - the relationship type which may have security rules on them
-     * @return the set of operand properties
-     */
-    IntSet getTraverseRelSecurityProperties(int type);
-
-    /**
      * checks whether there is potential for relationships with this type to be traversed subject of property-based
      * GRANTS evaluating to true and not being precluded by type-based DENYs.
      * @param type - the type to check permissions for
@@ -530,16 +137,6 @@ public interface AccessMode {
      * @return {@code true} if traversal of this relationship is allowed
      */
     boolean allowsTraverseRelationship(int type, SelectedPropertiesProvider selectedPropertiesProvider);
-
-    /**
-     * Determines whether there are any property rules controlling traversal of any relationship types
-     * @return {@code true} when the authenticated principal's ability to traverse relationships could be subject to property rules
-     */
-    boolean hasTraverseRelPropertyRules();
-
-    boolean allowsReadPropertyAllLabels(int propertyKey);
-
-    boolean disallowsReadPropertyForSomeLabel(int propertyKey);
 
     /**
      * determines whether the authenticated principal is allowed to read the specified {@code propertyKeys} according
@@ -565,16 +162,6 @@ public interface AccessMode {
             LabelsSupplier labels, Supplier<SelectedPropertiesProvider> propertyProvider, PropertySelection selection);
 
     /**
-     * determines whether the authenticated principal is allowed to read the specified {@code propertyKey} according
-     * to the label-based RBAC rules. For use in contexts where there are no property-based RBAC rules.
-     * Optimised for a single-property reads.
-     * @param labels the labels of the node in question. Used to determine which RBAC rules are applicable.
-     * @param propertyKey the property which the principal is requesting to read
-     * @return {@code true} if the principal is allowed to read  the requested {@code propertyKey}
-     */
-    boolean allowsReadNodeProperty(LabelsSupplier labels, int propertyKey);
-
-    /**
      * Check that the user is allowed to access all nodes and properties described by given labels and properties.
      * Positive result means specific checks for individual entities can be ommitted, a.k.a. security shortcut.
      *
@@ -583,10 +170,6 @@ public interface AccessMode {
      * @return {@code true} if there is no restictions affecting described set of entities
      */
     boolean allowsTraverseAndReadAllMatchingNodeProperties(int[] labels, int[] propertyKeys);
-
-    boolean allowsReadPropertyAllRelTypes(int propertyKey);
-
-    boolean allowsReadRelProperty(RelTypeSupplier relType, int propertyKey);
 
     /**
      * Check that the user is allowed to access all relationships and properties described by given relationship types and properties.
@@ -624,72 +207,6 @@ public interface AccessMode {
             PropertySelection selection);
 
     boolean allowsSeePropertyKeyToken(int propertyKey);
-
-    /**
-     * Determines whether there are any property rules controlling the ability to read node properties.
-     * @return {@code true} when the authenticated principal's ability to read node properties could be subject to property rules
-     */
-    boolean hasNodePropertyReadRules();
-
-    /**
-     * Determines whether there are any property rules controlling the ability to read the specified node {@code propertyKeys}.
-     * @return {@code true} when the authenticated principal's ability to read any of the specified node {@code propertyKeys}
-     * could be subject to property rules (further dependent on the labels of the node in question).
-     */
-    boolean hasNodePropertyReadRules(int... propertyKeys);
-
-    /**
-     * Get the keys of the properties which are used as operands for rules controlling the ability to read node {@code propertyKey}
-     * @param propertyKey the key of the property whose reading is being restricted
-     * @return the list of keys of the properties which will be scrutinised in determining whether {@code propertyKey} can be read
-     */
-    IntSet getNodeReadSecurityProperties(int propertyKey);
-
-    /**
-     * Get all keys of the properties which are used as operands for rules controlling the ability to read certain node properties
-     * @return the list of keys of the properties which will be scrutinised in determining whether certain properties can be read
-     */
-    IntSet getAllNodeReadSecurityProperties();
-
-    /**
-     * Given a PropertySelection get the PropertySelection for the corresponding node security properties
-     * @param selection the properties to get the security properties for
-     * @return the security properties which are operands to the relevant property rules
-     */
-    PropertySelection getNodeSecurityPropertySelection(PropertySelection selection);
-
-    /**
-     * Determines whether there are any property rules controlling the ability to read relationship properties.
-     * @return {@code true} when the authenticated principal's ability to read relationship properties could be subject to property rules
-     */
-    boolean hasRelPropertyReadRules();
-
-    /**
-     * Determines whether there are any property rules controlling the ability to read the specified relationship {@code propertyKeys}.
-     * @return {@code true} when the authenticated principal's ability to read any of the specified {@code propertyKeys}
-     * could be subject to property rules (further dependent on the type of the relationship in question).
-     */
-    boolean hasRelPropertyReadRules(int... propertyKeys);
-
-    /**
-     * Get the keys of the properties which are used as operands for rules controlling the ability to read relationship {@code propertyKey}
-     * @param propertyKey the key of the property whose reading is being restricted
-     * @return the list of keys of the properties which will be scrutinised in determining whether {@code propertyKey} can be read
-     */
-    IntSet getRelReadSecurityProperties(int propertyKey);
-
-    /**
-     * Get all keys of the properties which are used as operands for rules controlling the ability to read certain relationship properties
-     * @return the list of keys of the properties which will be scrutinised in determining whether certain properties can be read
-     */
-    IntSet getAllRelReadSecurityProperties();
-
-    /**
-     * Given a PropertySelection get the PropertySelection for the corresponding relationship security properties
-     * @param selection the properties to get the security properties for
-     * @return the security properties which are operands to the relevant property rules
-     */
-    PropertySelection getRelSecurityPropertySelection(PropertySelection selection);
 
     /**
      * Check if execution of a procedure is allowed

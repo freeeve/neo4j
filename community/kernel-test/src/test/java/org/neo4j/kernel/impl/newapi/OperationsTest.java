@@ -70,10 +70,10 @@ import org.neo4j.internal.kernel.api.helpers.StubRead;
 import org.neo4j.internal.kernel.api.helpers.StubRelationshipCursor;
 import org.neo4j.internal.kernel.api.helpers.TestRelationshipChain;
 import org.neo4j.internal.kernel.api.security.AccessMode;
-import org.neo4j.internal.kernel.api.security.AccessMode.Static;
 import org.neo4j.internal.kernel.api.security.CommunitySecurityLog;
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.EndpointType;
@@ -162,7 +162,7 @@ abstract class OperationsTest {
         when(transaction.txState()).thenReturn(txState);
         when(transaction.storeCursors()).thenReturn(storeCursors);
         when(transaction.securityContext())
-                .thenReturn(SecurityContext.authDisabled(AccessMode.Static.FULL, EMBEDDED_CONNECTION, DB_NAME));
+                .thenReturn(SecurityContext.authDisabled(StaticAccessMode.FULL, EMBEDDED_CONNECTION, DB_NAME));
         logHelper = new SecurityLogHelper(getFormat());
         securityLog = new CommunitySecurityLog(logHelper.getLogProvider().getLog(this.getClass()));
         when(transaction.securityAuthorizationHandler()).thenReturn(new SecurityAuthorizationHandler(securityLog));
@@ -199,7 +199,7 @@ abstract class OperationsTest {
                 transaction,
                 indexingService,
                 mock(AssertOpen.class),
-                () -> Static.FULL);
+                () -> StaticAccessMode.FULL);
         kernelRead = new KernelRead(
                 storageReader,
                 kernelToken,
@@ -213,7 +213,7 @@ abstract class OperationsTest {
                 INSTANCE,
                 false,
                 mock(AssertOpen.class),
-                () -> Static.FULL,
+                () -> StaticAccessMode.FULL,
                 false,
                 NullLogProvider.getInstance());
         constraintIndexCreator = mock(ConstraintIndexCreator.class);
@@ -264,7 +264,7 @@ abstract class OperationsTest {
                         GraphDatabaseInternalSettings.relationship_endpoint_label_and_node_label_existence_constraints,
                         true)),
                 INSTANCE,
-                () -> Static.FULL,
+                () -> StaticAccessMode.FULL,
                 TransactionStateBehaviour.DEFAULT_BEHAVIOUR);
         operations.initialize(NULL_CONTEXT);
 
@@ -278,7 +278,7 @@ abstract class OperationsTest {
 
     @Test
     void nodeAddLabelShouldFailReadOnly() throws Exception {
-        String message = runForSecurityLevel(() -> operations.nodeAddLabel(1L, 2), AccessMode.Static.READ, false);
+        String message = runForSecurityLevel(() -> operations.nodeAddLabel(1L, 2), StaticAccessMode.READ, false);
         String expected = String.format(
                 "Set label for label 'Label' on database '%s' is not allowed for AUTH_DISABLED with READ.", DB_NAME);
         assertThat(message).contains(expected);
@@ -292,7 +292,7 @@ abstract class OperationsTest {
 
     @Test
     void nodeAddLabelShouldFailAccess() throws Exception {
-        String message = runForSecurityLevel(() -> operations.nodeAddLabel(1L, 2), AccessMode.Static.ACCESS, false);
+        String message = runForSecurityLevel(() -> operations.nodeAddLabel(1L, 2), StaticAccessMode.ACCESS, false);
         String expected = String.format(
                 "Set label for label 'Label' on database '%s' is not allowed for AUTH_DISABLED with ACCESS.", DB_NAME);
         assertThat(message).contains(expected);
@@ -306,7 +306,7 @@ abstract class OperationsTest {
 
     @Test
     void nodeRemoveLabelShouldFailReadOnly() throws Exception {
-        String message = runForSecurityLevel(() -> operations.nodeRemoveLabel(1L, 3), AccessMode.Static.READ, false);
+        String message = runForSecurityLevel(() -> operations.nodeRemoveLabel(1L, 3), StaticAccessMode.READ, false);
         String expected = String.format(
                 "Remove label for label 'Label' on database '%s' is not allowed for AUTH_DISABLED with READ.", DB_NAME);
         assertThat(message).contains(expected);
@@ -320,7 +320,7 @@ abstract class OperationsTest {
 
     @Test
     void nodeRemoveLabelShouldFailAccess() throws Exception {
-        String message = runForSecurityLevel(() -> operations.nodeRemoveLabel(1L, 3), AccessMode.Static.ACCESS, false);
+        String message = runForSecurityLevel(() -> operations.nodeRemoveLabel(1L, 3), StaticAccessMode.ACCESS, false);
         String expected = String.format(
                 "Remove label for label 'Label' on database '%s' is not allowed for AUTH_DISABLED with ACCESS.",
                 DB_NAME);

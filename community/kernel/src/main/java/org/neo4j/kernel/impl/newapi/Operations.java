@@ -98,7 +98,7 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelE
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.internal.kernel.api.exceptions.schema.SchemaKernelException;
 import org.neo4j.internal.kernel.api.helpers.RelationshipSelections;
-import org.neo4j.internal.kernel.api.security.AccessMode.Static;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.internal.schema.AllIndexProviderDescriptors;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.EndpointType;
@@ -797,7 +797,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         // all
         // existing data even from non visible transactions
         var unboundedRelatedContext = ktx.cursorContext().createUnboundedRelatedContext();
-        try (var r = ktx.overrideWith(ktx.securityContext().withMode(Static.FULL));
+        try (var r = ktx.overrideWith(ktx.securityContext().withMode(StaticAccessMode.FULL));
                 var valueCursor = cursors.allocateNodeValueIndexCursor(unboundedRelatedContext, memoryTracker)) {
             assertOnlineAndLock(constraint, index, propertyValues);
 
@@ -898,7 +898,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         // all
         // existing data even from non visible transactions
         var unboundedRelatedContext = ktx.cursorContext().createUnboundedRelatedContext();
-        try (var r = ktx.overrideWith(ktx.securityContext().withMode(Static.FULL));
+        try (var r = ktx.overrideWith(ktx.securityContext().withMode(StaticAccessMode.FULL));
                 var valueCursor =
                         cursors.allocateRelationshipValueIndexCursor(unboundedRelatedContext, memoryTracker)) {
             assertOnlineAndLock(constraint, index, propertyValues);

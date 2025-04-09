@@ -81,7 +81,7 @@ public abstract class LoginContext {
             @Override
             public SecurityContext authorize(
                     IdLookup idLookup, PrivilegeDatabaseReference dbReference, AbstractSecurityLog securityLog) {
-                return SecurityContext.authDisabled(AccessMode.Static.FULL, connectionInfo(), dbReference.name());
+                return SecurityContext.authDisabled(StaticAccessMode.FULL, connectionInfo(), dbReference.name());
             }
         };
     }

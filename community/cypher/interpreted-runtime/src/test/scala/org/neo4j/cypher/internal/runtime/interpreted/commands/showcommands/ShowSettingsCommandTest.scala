@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.internal.kernel.api.security.AccessMode
 import org.neo4j.internal.kernel.api.security.PermissionState
+import org.neo4j.internal.kernel.api.security.StaticAccessMode
 import org.neo4j.kernel.impl.index.schema.config.CrsConfig
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.CoordinateReferenceSystem
@@ -84,7 +85,7 @@ class ShowSettingsCommandTest extends ShowCommandTestBase {
     when(ctx.getConfig).thenReturn(config)
     when(ctx.transactionalContext).thenReturn(txContext)
     when(txContext.securityContext).thenReturn(securityContext)
-    when(securityContext.mode()).thenReturn(AccessMode.Static.FULL)
+    when(securityContext.mode()).thenReturn(StaticAccessMode.FULL)
   }
 
   // Only checks the given parameters

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.api.security;
+package org.neo4j.internal.kernel.api.security;
 
 import java.net.InetAddress;
 import java.net.URI;
@@ -26,139 +26,173 @@ import java.util.function.Supplier;
 import org.neo4j.internal.kernel.api.LabelsSupplier;
 import org.neo4j.internal.kernel.api.RelTypeSupplier;
 import org.neo4j.internal.kernel.api.TokenSet;
-import org.neo4j.internal.kernel.api.security.AccessMode;
-import org.neo4j.internal.kernel.api.security.PermissionState;
-import org.neo4j.internal.kernel.api.security.PrivilegeAction;
-import org.neo4j.internal.kernel.api.security.SelectedPropertiesProvider;
-import org.neo4j.internal.kernel.api.security.StaticAccessMode;
-import org.neo4j.messages.MessageUtil;
 import org.neo4j.storageengine.api.PropertySelection;
 
-/**
- * Access mode that overrides the original access mode with the overriding mode. Allows exactly what the overriding
- * mode allows, while retaining the meta data of the original mode only.
- */
-public class OverriddenAccessMode extends WrappedAccessMode {
-    public OverriddenAccessMode(AccessMode original, StaticAccessMode overriding) {
-        super(original, overriding);
+public enum StaticAccessMode implements AccessMode {
+    /**
+     * No reading or writing allowed.
+     */
+    ACCESS(false, false, false, false, false),
+    /**
+     * No reading or writing allowed because of expired credentials.
+     */
+    CREDENTIALS_EXPIRED(false, false, false, false, false),
+
+    /**
+     * Allows reading data and schema, but not writing.
+     */
+    READ(true, false, false, false, false),
+    /**
+     * Allows writing data
+     */
+    WRITE_ONLY(false, true, false, false, false),
+    /**
+     * Allows reading and writing data, but not schema.
+     */
+    WRITE(true, true, false, false, false),
+    /**
+     * Allows reading and writing data and creating new tokens, but not schema.
+     */
+    TOKEN_WRITE(true, true, true, false, false),
+    /**
+     * Allows reading and writing data and creating new tokens and changing schema.
+     */
+    SCHEMA(true, true, true, true, false),
+    /**
+     * Allows all operations.
+     */
+    FULL(true, true, true, true, true);
+
+    private final boolean read;
+    private final boolean write;
+    private final boolean token;
+    private final boolean schema;
+    private final boolean procedureBoost;
+
+    StaticAccessMode(boolean read, boolean write, boolean token, boolean schema, boolean procedureBoost) {
+        this.read = read;
+        this.write = write;
+        this.token = token;
+        this.schema = schema;
+        this.procedureBoost = procedureBoost;
     }
 
     @Override
     public boolean allowsWrites() {
-        return wrapping.allowsWrites();
+        return write;
     }
 
     @Override
     public PermissionState allowsTokenCreates(PrivilegeAction action) {
-        return wrapping.allowsTokenCreates(action);
+        return PermissionState.fromAllowList(token);
     }
 
     @Override
     public boolean allowsSchemaWrites() {
-        return wrapping.allowsSchemaWrites();
+        return schema;
     }
 
     @Override
     public PermissionState allowsSchemaWrites(PrivilegeAction action) {
-        return wrapping.allowsSchemaWrites(action);
+        return PermissionState.fromAllowList(schema);
     }
 
     @Override
     public boolean allowsShowIndex() {
-        return wrapping.allowsShowIndex();
+        return schema;
     }
 
     @Override
     public boolean allowsShowConstraint() {
-        return wrapping.allowsShowConstraint();
+        return schema;
     }
 
     @Override
     public boolean allowsTraverseAllLabels() {
-        return wrapping.allowsTraverseAllLabels();
+        return read;
     }
 
     @Override
     public boolean allowsTraverseAllNodesWithLabel(int label) {
-        return wrapping.allowsTraverseAllNodesWithLabel(label);
+        return read;
     }
 
     @Override
     public boolean disallowsTraverseLabel(int label) {
-        return wrapping.disallowsTraverseLabel(label);
+        return false;
     }
 
     @Override
     public boolean allowsTraverseNode(int... labels) {
-        return wrapping.allowsTraverseNode(labels);
+        return read;
     }
 
     @Override
     public boolean hasApplicableTraverseNodeAllowPropertyRules(int label) {
-        return wrapping.hasApplicableTraverseNodeAllowPropertyRules(label);
+        return read;
     }
 
     @Override
     public boolean allowsTraverseNode(LabelsSupplier labels, SelectedPropertiesProvider selectedPropertiesProvider) {
-        return wrapping.allowsTraverseNode(labels, selectedPropertiesProvider);
+        return read;
     }
 
     @Override
     public boolean allowsTraverseAllRelTypes() {
-        return wrapping.allowsTraverseAllRelTypes();
+        return read;
     }
 
     @Override
     public boolean allowsTraverseRelType(int relType) {
-        return wrapping.allowsTraverseRelType(relType);
+        return read;
     }
 
     @Override
     public boolean allowsTraverseAllRelsWithType(int relType) {
-        return wrapping.allowsTraverseAllRelsWithType(relType);
+        return read;
     }
 
     @Override
     public boolean disallowsTraverseRelType(int relType) {
-        return wrapping.disallowsTraverseRelType(relType);
+        return false;
     }
 
     @Override
     public boolean hasApplicableTraverseRelAllowPropertyRules(int type) {
-        return wrapping.hasApplicableTraverseRelAllowPropertyRules(type);
+        return read;
     }
 
     @Override
     public boolean allowsTraverseRelationship(int type, SelectedPropertiesProvider propertyProviderSupplier) {
-        return wrapping.allowsTraverseRelationship(type, propertyProviderSupplier);
+        return read;
     }
 
     @Override
     public boolean allowsReadNodeProperties(
             LabelsSupplier labels, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
-        return wrapping.allowsReadNodeProperties(labels, propertyKeys, propertyProvider);
-    }
-
-    @Override
-    public boolean allowsTraverseAndReadAllMatchingNodeProperties(int[] labels, int[] propertyKeys) {
-        return wrapping.allowsTraverseAndReadAllMatchingNodeProperties(labels, propertyKeys);
-    }
-
-    @Override
-    public boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys) {
-        return wrapping.allowsTraverseAndReadAllMatchingRelProperties(relTypes, propertyKeys);
-    }
-
-    @Override
-    public boolean allowsReadRelProperties(
-            RelTypeSupplier relType, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
-        return wrapping.allowsReadRelProperties(relType, propertyKeys, propertyProvider);
+        return read;
     }
 
     @Override
     public IntPredicate allowedToReadNodeProperties(
             LabelsSupplier labels, Supplier<SelectedPropertiesProvider> propertyProvider, PropertySelection selection) {
-        return wrapping.allowedToReadNodeProperties(labels, propertyProvider, selection);
+        return key -> read;
+    }
+
+    @Override
+    public boolean allowsTraverseAndReadAllMatchingNodeProperties(int[] labels, int[] propertyKeys) {
+        return read;
+    }
+
+    @Override
+    public boolean allowsTraverseAndReadAllMatchingRelProperties(int[] relTypes, int[] propertyKeys) {
+        return read;
+    }
+
+    @Override
+    public boolean allowsReadRelProperties(
+            RelTypeSupplier relType, int[] propertyKeys, Supplier<SelectedPropertiesProvider> propertyProvider) {
+        return read;
     }
 
     @Override
@@ -166,71 +200,101 @@ public class OverriddenAccessMode extends WrappedAccessMode {
             RelTypeSupplier relType,
             Supplier<SelectedPropertiesProvider> propertyProvider,
             PropertySelection selection) {
-        return wrapping.allowedToReadRelationshipProperties(relType, propertyProvider, selection);
+        return key -> read;
     }
 
     @Override
     public boolean allowsSeePropertyKeyToken(int propertyKey) {
-        return wrapping.allowsSeePropertyKeyToken(propertyKey);
+        return read;
+    }
+
+    @Override
+    public PermissionState allowsExecuteProcedure(int procedureId) {
+        return PermissionState.EXPLICIT_GRANT;
+    }
+
+    @Override
+    public PermissionState allowExecuteAdminProcedures() {
+        return PermissionState.EXPLICIT_GRANT;
+    }
+
+    @Override
+    public PermissionState shouldBoostProcedure(int procedureId) {
+        return PermissionState.fromAllowList(procedureBoost);
+    }
+
+    @Override
+    public PermissionState allowsExecuteFunction(int id) {
+        return PermissionState.EXPLICIT_GRANT;
+    }
+
+    @Override
+    public PermissionState shouldBoostFunction(int id) {
+        return PermissionState.fromAllowList(procedureBoost);
+    }
+
+    @Override
+    public PermissionState allowsExecuteAggregatingFunction(int id) {
+        return PermissionState.EXPLICIT_GRANT;
+    }
+
+    @Override
+    public PermissionState shouldBoostAggregatingFunction(int id) {
+        return PermissionState.fromAllowList(procedureBoost);
     }
 
     @Override
     public PermissionState allowsShowSetting(String setting) {
-        return wrapping.allowsShowSetting(setting);
+        return PermissionState.EXPLICIT_GRANT;
     }
 
     @Override
     public boolean allowsSetLabel(int labelId) {
-        return wrapping.allowsSetLabel(labelId);
+        return write;
     }
 
     @Override
     public boolean allowsRemoveLabel(int labelId) {
-        return wrapping.allowsRemoveLabel(labelId);
+        return write;
     }
 
     @Override
     public boolean allowsCreateNode(int[] labelIds) {
-        return wrapping.allowsCreateNode(labelIds);
+        return write;
     }
 
     @Override
     public boolean allowsDeleteNode(Supplier<TokenSet> labelSupplier) {
-        return wrapping.allowsDeleteNode(labelSupplier);
+        return write;
     }
 
     @Override
     public boolean allowsCreateRelationship(int relType) {
-        return wrapping.allowsCreateRelationship(relType);
+        return write;
     }
 
     @Override
     public boolean allowsDeleteRelationship(int relType) {
-        return wrapping.allowsDeleteRelationship(relType);
+        return write;
     }
 
     @Override
     public boolean allowsSetProperty(LabelsSupplier labels, int propertyKey) {
-        return wrapping.allowsSetProperty(labels, propertyKey);
+        return write;
     }
 
     @Override
     public boolean allowsSetProperty(RelTypeSupplier relType, int propertyKey) {
-        return wrapping.allowsSetProperty(relType, propertyKey);
+        return write;
     }
 
     @Override
     public PermissionState allowsLoadAllData() {
-        return wrapping.allowsLoadAllData();
+        return PermissionState.fromAllowList(read);
     }
 
     @Override
-    public PermissionState allowsLoadUri(URI url, InetAddress inetAddress) {
-        return wrapping.allowsLoadUri(url, inetAddress);
-    }
-
-    @Override
-    public String name() {
-        return MessageUtil.overriddenMode(original.name(), wrapping.name());
+    public PermissionState allowsLoadUri(URI uri, InetAddress inetAddress) {
+        return PermissionState.fromAllowList(read);
     }
 }
