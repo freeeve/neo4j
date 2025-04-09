@@ -40,8 +40,12 @@ import org.neo4j.cypher.internal.physicalplanning.ast.NodePropertyExistsLate
 import org.neo4j.cypher.internal.physicalplanning.ast.NodePropertyLate
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheck
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckProperty
+import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckReferenceProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NullCheckVariable
+import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveAnds
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveEquals
+import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveNotEquals
+import org.neo4j.cypher.internal.physicalplanning.ast.ReferenceFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipPropertyExists
@@ -50,6 +54,7 @@ import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipPropertyLate
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipTypeFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.SlottedCachedProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifier.nameFromLongSlot
+import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifier.nameFromRefSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifier.nameFromSlotOrAlias
 import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
 import org.neo4j.cypher.internal.runtime.ast.ParameterFromSlot
@@ -83,14 +88,19 @@ case class RuntimeExpressionStringifier(tokenContext: ReadTokenContext, slots: S
       val varName = expressions.Variable(nameFromLongSlot(slots, r.offset, ctx))(InputPosition.NONE, isIsolated = false)
       Type.asInvocation(varName)(InputPosition.NONE).asCanonicalStringVal
     case e: PrimitiveEquals => nameFromLongSlot(slots, e.offset1, ctx) + " = " + nameFromLongSlot(slots, e.offset2, ctx)
-    case e: NodeFromSlot    => nameFromLongSlot(slots, e.offset, ctx)
-    case e: RelationshipFromSlot => nameFromLongSlot(slots, e.offset, ctx)
-    case e: IsPrimitiveNull      => nameFromLongSlot(slots, e.offset, ctx) + " IS NULL"
-    case e: RuntimeConstant      => ctx.apply(e.inner)
-    case e: NullCheck            => ctx.apply(e.inner)
-    case e: NullCheckVariable    => ctx.apply(e.inner)
-    case e: NullCheckProperty    => ctx.apply(e.inner)
-    case e                       => throw new UnsupportedOperationException(s"Don't know how to stringify $e")
+    case e: PrimitiveNotEquals =>
+      "NOT " + nameFromLongSlot(slots, e.offset1, ctx) + " = " + nameFromLongSlot(slots, e.offset2, ctx)
+    case e: PrimitiveAnds              => e.predicates.map(p => ctx.apply(p)).mkString(" AND ")
+    case e: NodeFromSlot               => nameFromLongSlot(slots, e.offset, ctx)
+    case e: RelationshipFromSlot       => nameFromLongSlot(slots, e.offset, ctx)
+    case e: ReferenceFromSlot          => nameFromRefSlot(slots, e.offset, ctx)
+    case e: IsPrimitiveNull            => nameFromLongSlot(slots, e.offset, ctx) + " IS NULL"
+    case e: RuntimeConstant            => ctx.apply(e.inner)
+    case e: NullCheck                  => ctx.apply(e.inner)
+    case e: NullCheckVariable          => ctx.apply(e.inner)
+    case e: NullCheckProperty          => ctx.apply(e.inner)
+    case e: NullCheckReferenceProperty => ctx.apply(e.inner)
+    case e                             => throw new UnsupportedOperationException(s"Don't know how to stringify $e")
   }
 
   private def backtickPropertyAccess(ctx: ExpressionStringifier, ee: LogicalProperty) = {
@@ -124,17 +134,16 @@ object RuntimeExpressionStringifier {
   }
 
   def nameFromLongSlot(slots: SlotConfiguration, offset: Int, ctx: ExpressionStringifier): String = {
-    if (offset >= slots.numberOfLongs) {
-      throw new IllegalArgumentException(s"No LongSlot with offset $offset, last offset is ${slots.numberOfLongs - 1}")
+    slots.nameOfSlot(offset, longSlot = true) match {
+      case Some(value) => ctx.backtick(value)
+      case None        => throw new IllegalArgumentException(s"No LongSlot with offset $offset.")
     }
+  }
 
-    slots.slots.find(s => s.isLongSlot && s.offset == offset) match {
-      case Some(KeyedSlot(VariableSlotKey(name), _, _)) => ctx.backtick(name)
-      case Some(KeyedSlot(key, _, _)) =>
-        throw new IllegalStateException(s"Expected a VariableSlotKey at offset $offset but found $key")
-      case None => throw new IllegalArgumentException(
-          s"No LongSlot with offset $offset, last offset is ${slots.numberOfLongs - 1}"
-        )
+  def nameFromRefSlot(slots: SlotConfiguration, offset: Int, ctx: ExpressionStringifier): String = {
+    slots.nameOfSlot(offset, longSlot = false) match {
+      case Some(value) => ctx.backtick(value)
+      case None        => throw new IllegalArgumentException(s"No RefSlot with offset $offset.")
     }
   }
 }

@@ -107,6 +107,7 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     .addAlias("rAlias", "r")
     .newArgument(Id(1))
     .newLong("  x@10", nullable = true, typ = CTNode)
+    .newReference("y", nullable = true, CTNode)
     .build()
 
   private val readTokenContext: ReadTokenContext =
@@ -187,6 +188,8 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     (LabelsFromSlot(0), "labels(x)"),
     (RelationshipTypeFromSlot(1), "type(r)"),
     (PrimitiveEquals(0, 1), "x = r"),
+    (PrimitiveNotEquals(0, 1), "NOT x = r"),
+    (PrimitiveAnds(Seq(PrimitiveEquals(0, 1), PrimitiveNotEquals(1, 2))), "x = r AND NOT r = a"),
     (IsPrimitiveNull(0), "x IS NULL"),
     (NullCheck(0, varFor("x")), "x"),
     (NullCheck(0, varFor("z")), "z")
@@ -201,8 +204,6 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     HasDegreeLessThanOrEqualPrimitive(0, None, OUTGOING, literalInt(1)),
     HasDegreePrimitive(0, None, OUTGOING, literalInt(1)),
     HasDegreeGreaterThanOrEqualPrimitive(0, None, OUTGOING, literalInt(1)),
-    PrimitiveNotEquals(0, 1),
-    PrimitiveAnds(Seq(PrimitiveEquals(0, 1), PrimitiveNotEquals(0, 1))),
     HasALabelFromSlot(1),
     HasDegreeGreaterThanPrimitive(1, None, INCOMING, literalInt(1)),
     IdFromSlot(1),
@@ -225,26 +226,43 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     (RelationshipPropertyExists(0, 1, "x.prop")(prop("x", "prop", InputPosition.NONE)), "x.prop IS NOT NULL"),
     (RelationshipPropertyExistsLate(0, "prop", "x.prop")(prop("x", "prop", InputPosition.NONE)), "x.prop IS NOT NULL"),
     (NullCheckProperty(0, prop("x", "prop", InputPosition.NONE)), "x.prop"),
-    (NullCheckProperty(0, NodePropertyLate(0, "prop", "x.prop")(prop("x", "prop", InputPosition.NONE))), "x.prop")
+    (NullCheckProperty(0, NodePropertyLate(0, "prop", "x.prop")(prop("x", "prop", InputPosition.NONE))), "x.prop"),
+    (
+      NullCheckReferenceProperty(
+        0,
+        SlottedCachedPropertyWithPropertyToken.create(
+          "y",
+          propName("prop"),
+          0,
+          offsetIsForLongSlot = false,
+          2,
+          3,
+          NODE_TYPE,
+          nullable = false,
+          needsValue = true,
+          failOnMissingEntity = true
+        )
+      ),
+      "y.prop"
+    )
   )
 
-  private val unsupportedRuntimeProperties = Table(
-    "runtime property",
-    NullCheckReferenceProperty(0, cachedNodeProp("n", "prop"))
+  private val unsupportedRuntimeProperties = Table[RuntimeProperty](
+    "runtime property"
   )
 
   private val supportedRuntimeVariables = Table(
     ("runtime variable", "stringified"),
     (NodeFromSlot(0, "x"), "x"),
     (RelationshipFromSlot(1, "r"), "r"),
-    (NullCheckVariable(0, varFor("x")), "x")
+    (NullCheckVariable(0, varFor("x")), "x"),
+    (ReferenceFromSlot(0, "y"), "y")
   )
 
   private val unsupportedRuntimeVariables = Table(
     "runtime variable",
     VariableRef("x"),
-    ExpressionVariable(0, "x"),
-    ReferenceFromSlot(0, "x")
+    ExpressionVariable(0, "x")
   )
 
   test("should stringify runtime expression") {
@@ -363,17 +381,25 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     }
   }
 
-  test("should throw for slot offset out of bounds") {
+  test("should throw for long slot offset out of bounds") {
     val oob = slots.numberOfLongs
     val offsetOOB = HasAnyLabelFromSlot(offset = oob, Seq(0), Seq.empty)
     val ex = intercept[IllegalArgumentException](stringifier(ctx)(offsetOOB))
-    ex.getMessage shouldEqual s"No LongSlot with offset $oob, last offset is ${oob - 1}"
+    ex.getMessage shouldEqual s"No LongSlot with offset $oob."
   }
 
-  test("should throw for unexptected slot key type") {
+  test("should throw for ref slot offset out of bounds") {
+    val oob = slots.numberOfReferences
+    val offsetOOB = ReferenceFromSlot(offset = oob, "y")
+    val ex = intercept[IllegalArgumentException](stringifier(ctx)(offsetOOB))
+    ex.getMessage shouldEqual s"No RefSlot with offset $oob."
+  }
+
+  test("should throw for unexpected slot key type") {
     val notVariableSlotOffset = HasAnyLabelFromSlot(3, Seq(0), Seq.empty)
-    val ex = intercept[IllegalStateException](stringifier(ctx)(notVariableSlotOffset))
-    ex.getMessage should equal("Expected a VariableSlotKey at offset 3 but found ApplyPlanSlotKey(Id(1))")
+    val ex = intercept[IllegalArgumentException](stringifier(ctx)(notVariableSlotOffset))
+    ex.getMessage shouldEqual s"No LongSlot with offset 3."
+
   }
 
   test("should test all RuntimeProperties") {
