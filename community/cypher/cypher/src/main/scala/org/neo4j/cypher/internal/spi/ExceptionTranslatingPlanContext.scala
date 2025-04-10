@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
 import org.neo4j.cypher.internal.planning.ExceptionTranslationSupport
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 
 class ExceptionTranslatingPlanContext(inner: PlanContext) extends PlanContext with ExceptionTranslationSupport {
@@ -206,6 +207,28 @@ class ExceptionTranslatingPlanContext(inner: PlanContext) extends PlanContext wi
       tokenNameLookup,
       inner.hasRelationshipPropertyTypeConstraint(relTypeName, propertyKey, cypherType)
     )
+
+  override def hasRelationshipEndpointLabelConstraint(
+    relTypeName: String,
+    labelName: String,
+    endpointType: EndpointType
+  ): Boolean =
+    translateException(
+      tokenNameLookup,
+      inner.hasRelationshipEndpointLabelConstraint(relTypeName, labelName, endpointType)
+    )
+
+  override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] =
+    translateException(
+      tokenNameLookup,
+      inner.getRelationshipEndpointLabelConstraints(relTypeName)
+    )
+
+  override def hasNodeLabelConstraint(constrainedLabel: String, impliedLabel: String): Boolean =
+    translateException(tokenNameLookup, inner.hasNodeLabelConstraint(constrainedLabel, impliedLabel))
+
+  override def getNodeLabelConstraints(constrainedLabel: String): Set[String] =
+    translateException(tokenNameLookup, inner.getNodeLabelConstraints(constrainedLabel))
 
   override def procedureSignatureVersion: Long = translateException(tokenNameLookup, inner.procedureSignatureVersion)
 

@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.options.CypherDebugOption
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.internal.schema.AllIndexProviderDescriptors
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.IndexCapability
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
@@ -467,5 +468,50 @@ class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunS
     planner.cardinalities.getRelCount(
       RelDef(None, Some("works_with"), None)
     ) shouldEqual (worksWithCountAdditionalValue)
+  }
+
+  test("should consider the second time a cardinality is set") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setAllNodesCardinality(200)
+      .build()
+
+    planner.planContext.statistics.nodesAllCardinality().amount shouldEqual 200
+  }
+
+  test("should provide relationship endpoint label constraints if specified in the configuration") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .addRelationshipEndpointLabelConstraint("()-[:REL]-(:StartAndEnd)")
+      .addRelationshipEndpointLabelConstraint("()<-[:REL]-(:Start)")
+      .build()
+
+    planner.planContext.getRelationshipEndpointLabelConstraints("REL") shouldEqual
+      Map(
+        // second constraint overrides the first one
+        EndpointType.START -> "Start",
+        EndpointType.END -> "StartAndEnd"
+      )
+  }
+
+  test("should fail on invalid relationship endpoint label constraints") {
+    val exception = the[IllegalArgumentException] thrownBy {
+      plannerBuilder()
+        .addRelationshipEndpointLabelConstraint("(:End)<-[:REL]-(:Start)")
+    }
+    exception.getMessage should equal(
+      "Invalid relationship pattern `(:Start)-[:REL]->(:End)` for relationship endpoint constraint. Expected relationship type and exactly one of the labels to be set."
+    )
+  }
+
+  test("should provide node label constraints if specified in the configuration") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .addNodeLabelConstraint("Constrained", "Implied")
+      .addNodeLabelConstraint("Constrained", "Implied2")
+      .build()
+
+    planner.planContext.getNodeLabelConstraints("Constrained") shouldEqual Set("Implied", "Implied2")
+    planner.planContext.hasNodeLabelConstraint("Constrained", "Implied") shouldEqual true
   }
 }

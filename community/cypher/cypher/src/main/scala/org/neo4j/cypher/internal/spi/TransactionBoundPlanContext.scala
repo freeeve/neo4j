@@ -57,6 +57,7 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelExcept
 import org.neo4j.internal.kernel.api.procs
 import org.neo4j.internal.schema
 import org.neo4j.internal.schema.ConstraintDescriptor
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.SchemaDescriptor
 import org.neo4j.internal.schema.SchemaDescriptors
 import org.neo4j.internal.schema.constraints.ConstrainableType
@@ -519,6 +520,48 @@ class TransactionBoundPlanContext(
       case _: KernelException => Map.empty
     }
   }
+
+  override def hasRelationshipEndpointLabelConstraint(
+    relTypeName: String,
+    labelName: String,
+    endpointType: EndpointType
+  ): Boolean =
+    getRelationshipEndpointLabelConstraints(relTypeName).get(endpointType).contains(labelName)
+
+  override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] = {
+    try {
+      val relTypeId = getRelTypeId(relTypeName)
+
+      tc.schemaRead
+        .constraintsGetForRelationshipTypeNonLocking(relTypeId).asScala
+        .filter(_.isRelationshipEndpointLabelConstraint)
+        .map(_.asRelationshipEndpointLabelConstraint())
+        .map { constraint =>
+          constraint.endpointType() -> getLabelName(constraint.endpointLabelId())
+        }
+        .toMap
+    } catch {
+      case _: KernelException => Map.empty
+    }
+  }
+
+  override def hasNodeLabelConstraint(constrainedLabel: String, impliedLabel: String): Boolean =
+    getNodeLabelConstraints(constrainedLabel).contains(impliedLabel)
+
+  override def getNodeLabelConstraints(constrainedLabel: String): Set[String] =
+    try {
+      val labelName = getLabelId(constrainedLabel)
+
+      tc.schemaRead
+        .constraintsGetForLabelNonLocking(labelName).asScala
+        .filter(_.isNodeLabelExistenceConstraint)
+        .map(_.asNodeLabelExistenceConstraint())
+        .map(_.requiredLabelId())
+        .map(getLabelName)
+        .toSet
+    } catch {
+      case _: KernelException => Set.empty
+    }
 
   override val statistics: InstrumentedGraphStatistics = graphStatistics
 

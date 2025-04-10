@@ -48,6 +48,7 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.devNullLogger
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 import org.neo4j.kernel.api.query.QueryObfuscator
 import org.neo4j.procedure.impl.GlobalProceduresRegistry
@@ -152,6 +153,15 @@ class CypherQueryObfuscatorFactory {
     ): Nothing = fail()
     override def getRelationshipPropertiesWithExistenceConstraint(relationshipTypeName: String): Nothing = fail()
     override def getPropertiesWithExistenceConstraint: Nothing = fail()
+
+    override def hasRelationshipEndpointLabelConstraint(
+      relTypeName: String,
+      labelName: String,
+      endpointType: EndpointType
+    ): Boolean = fail()
+    override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] = fail()
+    override def hasNodeLabelConstraint(constrainedLabel: String, impliedLabel: String): Boolean = fail()
+    override def getNodeLabelConstraints(constrainedLabel: String): Set[String] = fail()
     override def lastCommittedTxIdProvider: Nothing = fail()
     override def statistics: Nothing = fail()
     override def notificationLogger(): Nothing = fail()

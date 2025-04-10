@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.planner.spi
 
 import org.neo4j.cypher.internal.frontend.phases.ScopedProcedureSignatureResolver
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 
 /**
@@ -183,6 +184,18 @@ trait PlanContext extends ReadTokenContext with ScopedProcedureSignatureResolver
     propertyKey: String,
     cypherType: ConstrainableType
   ): Boolean
+
+  def hasRelationshipEndpointLabelConstraint(
+    relTypeName: String,
+    labelName: String,
+    endpointType: EndpointType
+  ): Boolean
+
+  def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String]
+
+  def hasNodeLabelConstraint(constrainedLabel: String, impliedLabel: String): Boolean
+
+  def getNodeLabelConstraints(constrainedLabel: String): Set[String]
 
   /**
    * @return a provider for the highest seen committed transaction id.

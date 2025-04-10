@@ -30,6 +30,7 @@ import org.neo4j.cypher.internal.planner.spi.InstrumentedGraphStatistics
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.constraints.ConstrainableType
 
 //noinspection NotImplementedCode
@@ -83,6 +84,18 @@ class NotImplementedPlanContext extends PlanContext {
     ???
 
   override def getPropertiesWithExistenceConstraint: Set[String] = ???
+
+  override def hasRelationshipEndpointLabelConstraint(
+    relTypeName: String,
+    labelName: String,
+    endpointType: EndpointType
+  ): Boolean = ???
+
+  override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] = ???
+
+  override def hasNodeLabelConstraint(constrainedLabel: String, impliedLabel: String): Boolean = ???
+
+  override def getNodeLabelConstraints(constrainedLabel: String): Set[String] = ???
 
   override def lastCommittedTxIdProvider: () => Long = ???
 

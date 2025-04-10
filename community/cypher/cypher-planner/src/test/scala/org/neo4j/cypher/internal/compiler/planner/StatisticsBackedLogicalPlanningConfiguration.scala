@@ -49,6 +49,10 @@ import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlannin
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.Options
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.PropertyTypeDefinition
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelDef
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelationshipEndpointLabelConstraintDefinition
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelationshipEndpointLabelConstraintDefinition.EndPoint
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelationshipEndpointLabelConstraintDefinition.EndPoint.End
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelationshipEndpointLabelConstraintDefinition.EndPoint.Start
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.defaultSettingsOverrides
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryGraphSolver
 import org.neo4j.cypher.internal.compiler.planner.logical.SimpleMetricsFactory
@@ -103,6 +107,7 @@ import org.neo4j.cypher.internal.util.symbols.CTTime
 import org.neo4j.graphdb
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.internal.schema.ConstraintType
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.IndexCapability
 import org.neo4j.internal.schema.IndexCapability.NO_CAPABILITY
 import org.neo4j.internal.schema.IndexType
@@ -118,6 +123,7 @@ import org.neo4j.notifications.NotificationWrapping
 import org.neo4j.values.storable.Values.NO_VALUE
 import org.neo4j.values.storable.Values.stringValue
 
+import scala.Console.err
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 trait StatisticsBackedLogicalPlanningSupport {
@@ -272,6 +278,21 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
     propertyType: ConstrainableType
   )
 
+  case class RelationshipEndpointLabelConstraintDefinition(
+    relType: String,
+    label: String,
+    endPoint: EndPoint
+  )
+
+  object RelationshipEndpointLabelConstraintDefinition {
+    sealed trait EndPoint
+
+    object EndPoint {
+      case object Start extends EndPoint
+      case object End extends EndPoint
+    }
+  }
+
   def getProvidesOrder(indexType: IndexType): IndexOrderCapability = indexType match {
     case FULLTEXT => IndexOrderCapability.NONE
     case LOOKUP   => IndexOrderCapability.BOTH
@@ -317,6 +338,8 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
   histograms: Set[Histogram] = Set.empty,
   existenceConstraints: Seq[ExistenceConstraintDefinition] = Seq.empty,
   propertyTypeConstraints: Seq[PropertyTypeDefinition] = Seq.empty,
+  relationshipEndpointLabelConstraints: Seq[RelationshipEndpointLabelConstraintDefinition] = Seq.empty,
+  nodeLabelConstraints: Map[String, Set[String]] = Map.empty,
   procedures: Set[ProcedureSignature] = Set.empty,
   functions: Set[UserFunctionSignature] = Set.empty,
   settings: Map[Setting[_], AnyRef] = Map.empty,
@@ -550,6 +573,58 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     addRelType(relType).addProperty(property).copy(
       propertyTypeConstraints = propertyTypeConstraints :+ constraintDef
     )
+  }
+
+  def addRelationshipEndpointLabelConstraint(
+    relType: String,
+    label: String,
+    endPoint: EndPoint
+  ): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    val constraintDef = RelationshipEndpointLabelConstraintDefinition(relType, label, endPoint)
+
+    if (
+      relationshipEndpointLabelConstraints.exists { c =>
+        c.relType == relType && c.endPoint == endPoint
+      }
+    ) {
+      err.println(
+        s"""---------
+           |WARNING: Duplicate relationship endpoint label constraint for `$relType` and `$endPoint`
+           |---------""".stripMargin
+      )
+    }
+
+    addRelType(relType)
+      .addLabel(label)
+      .copy(
+        relationshipEndpointLabelConstraints = relationshipEndpointLabelConstraints :+ constraintDef
+      )
+  }
+
+  def addRelationshipEndpointLabelConstraint(relDef: String): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    RelDef.fromString(relDef).foldLeft(this) {
+      case (builder, RelDef(Some(startLabel), Some(relType), None)) =>
+        builder.addRelationshipEndpointLabelConstraint(relType, startLabel, Start)
+      case (builder, RelDef(None, Some(relType), Some(endLabel))) =>
+        builder.addRelationshipEndpointLabelConstraint(relType, endLabel, End)
+
+      case (_, pat) =>
+        throw new IllegalArgumentException(
+          s"Invalid relationship pattern `$pat` for relationship endpoint constraint. Expected relationship type and exactly one of the labels to be set."
+        )
+    }
+  }
+
+  def addNodeLabelConstraint(
+    constrainedLabel: String,
+    impliedLabel: String
+  ): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    addLabel(constrainedLabel)
+      .addLabel(impliedLabel)
+      .copy(nodeLabelConstraints = nodeLabelConstraints.updatedWith(constrainedLabel) {
+        case Some(labels) => Some(labels + impliedLabel)
+        case None         => Some(Set(impliedLabel))
+      })
   }
 
   def addProcedure(signature: ProcedureSignature): StatisticsBackedLogicalPlanningConfigurationBuilder = {
@@ -1303,6 +1378,45 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         }.toMap
       }
 
+      def convertEndpointType(endpointType: EndpointType): EndPoint = {
+        endpointType match {
+          case EndpointType.START => Start
+          case EndpointType.END   => End
+        }
+      }
+
+      def convertEndpoint(endPoint: EndPoint): EndpointType = {
+        endPoint match {
+          case Start => EndpointType.START
+          case End   => EndpointType.END
+        }
+      }
+
+      override def hasRelationshipEndpointLabelConstraint(
+        relTypeName: String,
+        labelName: String,
+        endpointType: EndpointType
+      ): Boolean =
+        relationshipEndpointLabelConstraints.contains(RelationshipEndpointLabelConstraintDefinition(
+          relTypeName,
+          labelName,
+          convertEndpointType(endpointType)
+        ))
+
+      override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] =
+        relationshipEndpointLabelConstraints
+          .filter(_.relType == relTypeName)
+          .map { constraint =>
+            convertEndpoint(constraint.endPoint) -> constraint.label
+          }
+          .toMap
+
+      override def hasNodeLabelConstraint(constrainedLabel: String, impliedLabel: String): Boolean =
+        nodeLabelConstraints.get(constrainedLabel).exists(_.contains(impliedLabel))
+
+      override def getNodeLabelConstraints(constrainedLabel: String): Set[String] =
+        nodeLabelConstraints.getOrElse(constrainedLabel, Set.empty)
+
       override def procedureSignature(name: QualifiedName): ProcedureSignature = {
         procedures.find(_.name == name).getOrElse(fail(s"No procedure signature for $name"))
       }
@@ -1454,7 +1568,8 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
 class StatisticsBackedLogicalPlanningConfiguration(
   resolver: LogicalPlanResolver,
-  planContext: PlanContext,
+  // We want to be able to inspect the planContext in tests, which is why it is public
+  val planContext: PlanContext,
   options: StatisticsBackedLogicalPlanningConfigurationBuilder.Options,
   settings: Map[Setting[_], AnyRef]
 ) extends LogicalPlanConstructionTestSupport
