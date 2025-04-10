@@ -139,7 +139,7 @@ class CreateNodePlanningIntegrationTest extends CypherFunSuite with LogicalPlann
       .create(createNodeWithProperties("o", Seq(), "{p: anon_0}"))
       .eager(ListSet(ReadCreateConflict.withConflict(Conflict(Id(2), Id(5)))))
       .letSemiApply("anon_0")
-      .|.allRelationshipsScan("()-[anon_1]-()")
+      .|.allRelationshipsScan("()-[]-()")
       .eager(ListSet(
         ReadCreateConflict.withConflict(Conflict(Id(7), Id(5))),
         TypeReadSetConflict(relTypeName("REL")).withConflict(Conflict(Id(7), Id(5)))

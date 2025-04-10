@@ -1264,7 +1264,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
         planner.planBuilder()
           .produceResults("a")
           .filter("b:B")
-          .relationshipIndexOperator("(a)-[r:R(prop)]->(b)", indexType = IndexType.TEXT, supportPartitionedScan = false)
+          .relationshipIndexOperator("(a)-[:R(prop)]->(b)", indexType = IndexType.TEXT, supportPartitionedScan = false)
           .build()
       )
   }
@@ -1322,7 +1322,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
         planner.planBuilder()
           .produceResults("a")
           .relationshipIndexOperator(
-            "(a)-[r:R(prop)]->()",
+            "(a)-[:R(prop)]->()",
             indexType = IndexType.POINT,
             customQueryExpression = nodePointIndexHints.pointQueryExpression,
             supportPartitionedScan = false
@@ -1676,7 +1676,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       .projection("id(m) AS `id(m)`")
       .top(20, "r ASC")
       .projection("rand() AS r")
-      .relationshipTypeScan("()-[anon_0:REL]->(m)", IndexOrderNone)
+      .relationshipTypeScan("()-[:REL]->(m)", IndexOrderNone)
       .build()
 
     plan shouldEqual expectedPlan
@@ -1701,10 +1701,10 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
       .top(1, "r ASC")
       .projection("rand() AS r")
       .filter("NOT i = k")
-      .expandAll("(i)<-[anon_1:REL]-(k)")
+      .expandAll("(i)<-[anon_0:REL]-(k)")
       .sort("r ASC")
       .projection("rand() AS r")
-      .relationshipTypeScan("(i)-[anon_0:REL]->()", IndexOrderNone)
+      .relationshipTypeScan("(i)-[:REL]->()", IndexOrderNone)
       .build()
 
     plan shouldEqual expectedPlan
@@ -1856,7 +1856,7 @@ class LeafPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningTes
 
     val plan = planner.plan(query).stripProduceResults
     plan shouldBe planner.subPlanBuilder()
-      .relationshipTypeScan("(a)-[r:REL]->()")
+      .relationshipTypeScan("(a)-[:REL]->()")
       .build()
   }
 

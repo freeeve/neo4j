@@ -77,7 +77,8 @@ case object OrderedIndexPlansUseCachedProperties extends ValidatingCondition {
         x.properties.view
           .filter(_.getValueFromIndex != GetValue)
           .map(x -> indexedPropertyToProperty(x.idName)(_))
-      case x: RelationshipIndexLeafPlan if x.indexOrder != IndexOrderNone && returnedEntities.contains(x.idName.get) =>
+      case x: RelationshipIndexLeafPlan
+        if x.indexOrder != IndexOrderNone && (x.idName.isDefined && returnedEntities.contains(x.idName.get)) =>
         x.properties.view
           .filter(_.getValueFromIndex != GetValue)
           .map(x -> indexedPropertyToProperty(x.idName.get)(_))
@@ -89,7 +90,7 @@ case object OrderedIndexPlansUseCachedProperties extends ValidatingCondition {
     val propertiesThatMustBeCached = a.folder(cancellationChecker).treeCollect {
       case x: NodeIndexLeafPlan if x.indexOrder != IndexOrderNone =>
         x.properties.map(indexedPropertyToProperty(x.idName))
-      case x: RelationshipIndexLeafPlan if x.indexOrder != IndexOrderNone =>
+      case x: RelationshipIndexLeafPlan if x.indexOrder != IndexOrderNone && x.idName.isDefined =>
         x.properties.map(indexedPropertyToProperty(x.idName.get))
     }.flatten.toSet
 

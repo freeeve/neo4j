@@ -423,10 +423,10 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         .cartesianProduct()
         .|.projection("2 AS dummy2")
         .|.projection("1 AS dummy")
-        .|.projection("NULL AS a", "NULL AS anon_1", "NULL AS b", "NULL AS r")
+        .|.projection("NULL AS a", "NULL AS anon_0", "NULL AS b", "NULL AS r")
         .|.limit(0)
         .|.argument()
-        .allRelationshipsScan("(c)-[anon_0]->(d)")
+        .allRelationshipsScan("(c)-[]->(d)")
         .build()
     )
   }
@@ -453,11 +453,11 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         .produceResults("a", "b", "c", "d", "dummy", "dummy2", "r")
         .projection("2 AS dummy2")
         .projection("1 AS dummy")
-        .projection("NULL AS a", "NULL AS anon_1", "NULL AS b", "NULL AS r")
+        .projection("NULL AS a", "NULL AS anon_0", "NULL AS b", "NULL AS r")
         .apply()
         .|.limit(0)
         .|.argument("c", "d")
-        .allRelationshipsScan("(c)-[anon_0]->(d)")
+        .allRelationshipsScan("(c)-[]->(d)")
         .build()
     )
   }
@@ -481,10 +481,10 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         .produceResults("a", "b")
         // we could improve and simplify the RHS to WHERE false and then convert this to limit 0 again
         .semiApply()
-        .|.projection("NULL AS anon_1", "NULL AS r")
+        .|.projection("NULL AS anon_0", "NULL AS r")
         .|.limit(0)
         .|.argument("a", "b")
-        .allRelationshipsScan("(a)-[anon_0]->(b)")
+        .allRelationshipsScan("(a)-[]->(b)")
         .build()
     )
   }
@@ -511,10 +511,10 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         .semiApply()
         .|.projection("2 AS dummy2")
         .|.projection("1 AS dummy")
-        .|.projection("NULL AS anon_1", "NULL AS r")
+        .|.projection("NULL AS anon_0", "NULL AS r")
         .|.limit(0)
         .|.argument("a", "b")
-        .allRelationshipsScan("(a)-[anon_0]->(b)")
+        .allRelationshipsScan("(a)-[]->(b)")
         .build()
     )
   }
@@ -537,10 +537,10 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         .produceResults("a", "b")
         // we could improve and simplify the RHS to WHERE false and then convert this to limit 0 again
         .semiApply()
-        .|.projection("NULL AS anon_1", "NULL AS r")
+        .|.projection("NULL AS anon_0", "NULL AS r")
         .|.limit(0)
         .|.argument("a", "b")
-        .allRelationshipsScan("(a)-[anon_0]->(b)")
+        .allRelationshipsScan("(a)-[]->(b)")
         .build()
     )
   }
@@ -564,10 +564,10 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         // we could improve and simplify the RHS to `WITH 0 AS count`
         .apply()
         .|.aggregation(Seq(), Seq("count(*) AS count"))
-        .|.projection("NULL AS anon_1", "NULL AS r")
+        .|.projection("NULL AS anon_0", "NULL AS r")
         .|.limit(0)
         .|.argument("a", "b")
-        .allRelationshipsScan("(a)-[anon_0]->(b)")
+        .allRelationshipsScan("(a)-[]->(b)")
         .build()
     )
   }
@@ -593,10 +593,10 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         .apply()
         .|.aggregation(Seq(), Seq("count(*) AS count"))
         .|.projection("1 AS dummy")
-        .|.projection("NULL AS anon_1", "NULL AS r")
+        .|.projection("NULL AS anon_0", "NULL AS r")
         .|.limit(0)
         .|.argument("a", "b")
-        .allRelationshipsScan("(a)-[anon_0]->(b)")
+        .allRelationshipsScan("(a)-[]->(b)")
         .build()
     )
   }
@@ -619,10 +619,10 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         // we could improve and simplify the RHS to `WITH 0 AS count`
         .apply()
         .|.aggregation(Seq(), Seq("count(*) AS count"))
-        .|.projection("NULL AS anon_1", "NULL AS r")
+        .|.projection("NULL AS anon_0", "NULL AS r")
         .|.limit(0)
         .|.argument("a", "b")
-        .allRelationshipsScan("(a)-[anon_0]->(b)")
+        .allRelationshipsScan("(a)-[]->(b)")
         .build()
     )
   }
@@ -642,10 +642,10 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
     planner.plan(query) should equal(
       planner.planBuilder()
         .produceResults("a", "b", "dummy", "r")
-        .projection("NULL AS anon_1", "NULL AS r")
+        .projection("NULL AS anon_0", "NULL AS r")
         .limit(0)
         .projection("1 AS dummy")
-        .allRelationshipsScan("(a)-[anon_0]->(b)")
+        .allRelationshipsScan("(a)-[]->(b)")
         .build()
     )
   }
@@ -804,7 +804,7 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         .produceResults("division", "x")
         .sort("division DESC")
         .projection("y.prop / 2 AS division")
-        .relationshipTypeScan("(x)-[anon_0:HAS_ATTRIBUTE]->(y)")
+        .relationshipTypeScan("(x)-[:HAS_ATTRIBUTE]->(y)")
         .build()
     )
   }
@@ -828,7 +828,7 @@ class ExpandPlanningIntegrationTest extends CypherFunSuite with LogicalPlanningI
         .produceResults("division", "x")
         .sort("division DESC")
         .projection("y.prop / 2 AS division")
-        .allRelationshipsScan("(x)-[anon_0]->(y)")
+        .allRelationshipsScan("(x)-[]->(y)")
         .build()
     )
   }

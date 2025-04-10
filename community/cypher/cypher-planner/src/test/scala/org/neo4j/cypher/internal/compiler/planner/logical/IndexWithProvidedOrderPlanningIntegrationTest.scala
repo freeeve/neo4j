@@ -927,9 +927,10 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
         .projection("cacheR[r.prop] AS `r.prop`")
         .apply()
         .|.relationshipIndexOperator(
-          "()-[r2:REL2(prop = ???)]-()",
+          "()-[:REL2(prop = ???)]-()",
           paramExpr = Some(cachedRelProp("r", "prop")),
           argumentIds = Set("a", "r", "b"),
+          getValue = _ => DoNotGetValue,
           indexType = IndexType.RANGE
         )
         .relationshipIndexOperator(
@@ -982,7 +983,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
         planner.subPlanBuilder()
           .apply()
           .|.relationshipIndexOperator(
-            "()-[r2:REL2(prop = ???)]-()",
+            "()-[:REL2(prop = ???)]-()",
             paramExpr = Some(prop("r", "prop")),
             argumentIds = Set("a", "r", "b"),
             indexType = IndexType.RANGE

@@ -40,19 +40,20 @@ case object RemoveUnusedVariablesRewriter extends Rewriter {
           })
     }
 
-    def shouldRemove(maybeVariable: Option[LogicalVariable]): Boolean =
+    def remove(maybeVariable: Option[LogicalVariable]): Option[LogicalVariable] =
       maybeVariable match {
-        case Some(v) => variableUsage(v) <= 1
-        case None    => false
+        case Some(v) if variableUsage(v) > 1 => maybeVariable
+        case _                               => None
       }
 
     topDown(Rewriter.lift {
-      case leaf: RelationshipLogicalLeafPlan if shouldRemove(leaf.leftNode) && shouldRemove(leaf.rightNode) =>
-        leaf.withNewLeftAndRightNodes(None, None)
-      case leaf: RelationshipLogicalLeafPlan if shouldRemove(leaf.leftNode) =>
-        leaf.withNewLeftAndRightNodes(None, leaf.rightNode)
-      case leaf: RelationshipLogicalLeafPlan if shouldRemove(leaf.rightNode) =>
-        leaf.withNewLeftAndRightNodes(leaf.leftNode, None)
+
+      case leaf: RelationshipLogicalLeafPlan =>
+        leaf.updateVariables(
+          idName = remove(leaf.idName),
+          leftNode = remove(leaf.leftNode),
+          rightNode = remove(leaf.rightNode)
+        )
     })(value)
   }
 }

@@ -638,6 +638,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
         |MATCH (a:A)
         |WITH a, 1 AS foo
         |MATCH (a)-[r:R]->() USING SCAN r:R
+        |WITH type(r) AS t
         |""".stripMargin
 
     // The leaf plan does not yet check that r's start node is a,
@@ -669,7 +670,7 @@ class CardinalityIntegrationTest extends CypherFunSuite with CardinalityIntegrat
       .setRelationshipCardinality("(:A)-[:R]->()", araCardinality * 5)
       .build()
 
-    val query = "MATCH (a:A)-[r:R]->(a)"
+    val query = "MATCH (a:A)-[r:R]->(a) WITH type(r) AS t"
 
     // The leaf plan does not yet check that r's start node is a,
     // so we want cardinality estimation to take that into account.

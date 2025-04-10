@@ -128,7 +128,7 @@ class LimitPropagationPlanningIntegrationTest
         .nodeHashJoin("b")
         .|.filterExpression(hasLabels("c", "C"))
         .|.relationshipIndexOperator(
-          "(c)-[cb:REL_CB(id)]->(b)",
+          "(c)-[:REL_CB(id)]->(b)",
           indexOrder = IndexOrderAscending,
           indexType = IndexType.RANGE
         )
@@ -154,7 +154,7 @@ class LimitPropagationPlanningIntegrationTest
         .nodeHashJoin("b")
         .|.filterExpression(hasLabels("c", "C"))
         .|.relationshipIndexOperator(
-          "(c)-[cb:REL_CB(id > 123)]->(b)",
+          "(c)-[:REL_CB(id > 123)]->(b)",
           indexOrder = IndexOrderAscending,
           indexType = IndexType.RANGE
         )

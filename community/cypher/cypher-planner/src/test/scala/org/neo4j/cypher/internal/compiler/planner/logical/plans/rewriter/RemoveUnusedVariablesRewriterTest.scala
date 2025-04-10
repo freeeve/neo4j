@@ -67,6 +67,16 @@ class RemoveUnusedVariablesRewriterTest extends CypherFunSuite with LogicalPlann
         .allRelationshipsScan("(a)-[r]->(b)")
     ) should notBeRewritten
   }
+
+  test("remove relationship") {
+    thePlan(
+      _.produceResults("a", "b")
+        .allRelationshipsScan("(a)-[r]->(b)")
+    ) should beRewrittenTo(
+      _.produceResults("a", "b")
+        .allRelationshipsScan("(a)-[]->(b)")
+    )
+  }
 }
 
 object RemoveUnusedVariablesRewriterTest extends CypherFunSuite {

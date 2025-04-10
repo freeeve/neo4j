@@ -343,7 +343,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
       .|.allRelationshipsScan("()-[r]-()", "count")
       .aggregation(Seq(), Seq("count(*) AS count"))
       .relationshipIndexOperator(
-        "()-[r:REL(prop1 = 123)]-()",
+        "()-[:REL(prop1 = 123)]-()",
         getValue = _ => DoNotGetValue,
         indexType = RANGE
       )
@@ -913,7 +913,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
       .apply()
       .|.allRelationshipsScan("()-[r]-()", "count")
       .aggregation(Seq(), Seq("count(*) AS count"))
-      .relationshipIndexOperator("()-[r:REL(prop1)]-()", getValue = _ => DoNotGetValue)
+      .relationshipIndexOperator("()-[:REL(prop1)]-()", getValue = _ => DoNotGetValue)
       .build())
   }
 

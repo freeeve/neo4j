@@ -5121,7 +5121,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         Some(5),
         Walk
       )
-      .allRelationshipsScan("(b)-[r2]->(c)")
+      .allRelationshipsScan("(b)-[]->(c)")
       .build()
   }
 

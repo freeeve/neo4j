@@ -1169,7 +1169,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
           "p:Person"
         )
       )
-      .relationshipTypeScan("(u)-[f:FRIEND]->(p)")
+      .relationshipTypeScan("(u)-[:FRIEND]->(p)")
       .build())
   }
 
@@ -2793,7 +2793,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan shouldEqual planner.subPlanBuilder()
       .sort("common ASC")
       .aggregation(Seq("x AS x"), Seq("count(y) AS common"))
-      .relationshipTypeScan("(x)-[anon_0:HAS_ATTRIBUTE]->(y)", IndexOrderNone)
+      .relationshipTypeScan("(x)-[:HAS_ATTRIBUTE]->(y)", IndexOrderNone)
       .build()
   }
 
