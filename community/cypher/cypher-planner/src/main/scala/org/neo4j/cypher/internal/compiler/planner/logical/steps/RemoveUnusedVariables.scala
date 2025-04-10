@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.LogicalPlanRewritten
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.RemoveUnusedVariablesRewriter
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.LogicalPlanContainsEagerIfNeeded
+import org.neo4j.cypher.internal.compiler.planner.logical.steps.InsertCachedProperties.CachedPropertiesInserted
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase.LOGICAL_PLANNING
 import org.neo4j.cypher.internal.frontend.phases.Phase
@@ -45,7 +46,8 @@ case object RemoveUnusedVariables extends Phase[PlannerContext, LogicalPlanState
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     LogicalPlanRewritten,
-    LogicalPlanContainsEagerIfNeeded
+    LogicalPlanContainsEagerIfNeeded,
+    CachedPropertiesInserted
   )
 
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set.empty

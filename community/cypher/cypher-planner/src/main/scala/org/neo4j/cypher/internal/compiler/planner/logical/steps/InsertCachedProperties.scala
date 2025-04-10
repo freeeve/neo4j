@@ -229,7 +229,7 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
               (innerAcc, indexedProp) =>
                 innerAcc.addIndexNodeProperty(property(indexPlan.idName, indexedProp.propertyKeyToken.name))
             }
-          case indexPlan: RelationshipIndexLeafPlan if indexPlan.idName.isDefined =>
+          case indexPlan: RelationshipIndexLeafPlan =>
             indexPlan.properties.filter(_.getValueFromIndex == CanGetValue).foldLeft(
               accWithProps.registerIndexedEntity(indexPlan.idName.get.name)
             ) {
@@ -425,7 +425,7 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
         )
         cachedPropertiesTracker.addMany(indexPlan.idName, rewrittenIndexPlan.cachedProperties)
         rewrittenIndexPlan
-      case indexPlan: RelationshipIndexLeafPlan if indexPlan.idName.isDefined =>
+      case indexPlan: RelationshipIndexLeafPlan =>
         val rewrittenIndexPlan = rewriteIndexPlan(
           acc,
           indexPlan,
@@ -479,6 +479,7 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
 
 case object InsertCachedProperties extends StepSequencer.Step with DefaultPostCondition
     with PlanPipelineTransformerFactory {
+  case object CachedPropertiesInserted extends StepSequencer.Condition
 
   override def preConditions: Set[StepSequencer.Condition] = Set(
     // This rewriter operates on the LogicalPlan
@@ -503,7 +504,7 @@ case object InsertCachedProperties extends StepSequencer.Step with DefaultPostCo
   )
 
   override def postConditions: Set[StepSequencer.Condition] =
-    super.postConditions + LogicalPlanCondition(OrderedIndexPlansUseCachedProperties)
+    super.postConditions ++ Seq(LogicalPlanCondition(OrderedIndexPlansUseCachedProperties), CachedPropertiesInserted)
 
   override def getTransformer(
     pushdownPropertyReads: Boolean,
