@@ -6513,7 +6513,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       ),
       planDescription(
         id,
-        "StatefulShortestPath(All)",
+        "StatefulShortestPath(All, Trail)",
         Seq(lhsPD),
         Seq(details(
           """SHORTEST 5 PATHS (a)-[`anon_0`]->*(`b`)
@@ -6545,7 +6545,38 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       ),
       planDescription(
         id,
-        "StatefulShortestPath(Into)",
+        "StatefulShortestPath(Into, Trail)",
+        Seq(lhsPD),
+        Seq(details(
+          """SHORTEST 5 PATHS (a)-[`anon_0`]->*(`b`)""".stripMargin
+        )),
+        Set("a")
+      )
+    )
+    assertGood(
+      attach(
+        StatefulShortestPath(
+          lhsLP,
+          varFor("a"),
+          varFor("b"),
+          nfa,
+          ExpandInto,
+          None,
+          Set.empty,
+          Set.empty,
+          Set.empty,
+          Set.empty,
+          Selector.Shortest(CountInteger(5)),
+          solvedExpressionStr,
+          reverseGroupVariableProjections = false,
+          LengthBounds.none,
+          TraversalPathMode.Walk
+        ),
+        2345.0
+      ),
+      planDescription(
+        id,
+        "StatefulShortestPath(Into, Walk)",
         Seq(lhsPD),
         Seq(details(
           """SHORTEST 5 PATHS (a)-[`anon_0`]->*(`b`)""".stripMargin
@@ -6612,7 +6643,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       ),
       planDescription(
         id,
-        "StatefulShortestPath(All)",
+        "StatefulShortestPath(All, Trail)",
         Seq(lhsPD),
         Seq(details(
           s"""$solvedExpressionStr
@@ -6699,7 +6730,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       ),
       planDescription(
         id,
-        "StatefulShortestPath(All)",
+        "StatefulShortestPath(All, Trail)",
         Seq(lhsPD),
         Seq(details(
           s"""$solvedExpressionStr
@@ -8490,7 +8521,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       ),
       planDescription(
         id,
-        "Repeat(Into,Trail)",
+        "Repeat(Into, Trail)",
         Seq(lhsPD, rhsPD),
         List(details("(start) (...){0, } (end)")),
         Set("r", "a", "anon_2", "start", "end")
@@ -8522,7 +8553,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       ),
       planDescription(
         id,
-        "Repeat(All,Trail)",
+        "Repeat(All, Trail)",
         Seq(lhsPD, rhsPD),
         List(details("(anon_0) (...){0, } (end)")),
         Set("r", "a", "anon_2", "anon_0", "end")
@@ -8596,7 +8627,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       ),
       planDescription(
         id,
-        "Repeat(Into,Walk)",
+        "Repeat(Into, Walk)",
         Seq(lhsPD, rhsPD),
         List(details("(start) (...){0, } (end)")),
         Set("r", "a", "anon_2", "start", "end")
@@ -8626,7 +8657,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       ),
       planDescription(
         id,
-        "Repeat(All,Walk)",
+        "Repeat(All, Walk)",
         Seq(lhsPD, rhsPD),
         List(details("(anon_0) (...){0, } (end)")),
         Set("r", "a", "anon_2", "anon_0", "end")

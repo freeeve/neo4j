@@ -2027,7 +2027,7 @@ case class LogicalPlan2PlanDescription(
           sourceNode,
           _,
           nfa,
-          mode,
+          expansionMode,
           nonInlinedPreFilters,
           _,
           _,
@@ -2037,7 +2037,7 @@ case class LogicalPlan2PlanDescription(
           solvedExpressionString,
           _,
           _,
-          _
+          pathMode
         ) =>
         def predicateLines(preds: Seq[PrettyString], prefix: PrettyString): PrettyString = {
           preds.tail
@@ -2049,9 +2049,9 @@ case class LogicalPlan2PlanDescription(
             )
         }
 
-        val modeDescr = expandModeDescription(mode)
+        val modeDescr = expandModeDescription(expansionMode)
         val patternStr = asPrettyString.solvedExpressionString(solvedExpressionString)
-        val expandDirStr = mode match {
+        val expandDirStr = expansionMode match {
           case ExpandAll  => pretty"\n        expanding from: ${asPrettyString(sourceNode)}"
           case ExpandInto => pretty"" // We expand from both ends in ExpandInto
         }
@@ -2090,7 +2090,7 @@ case class LogicalPlan2PlanDescription(
           pretty"$patternStr$expandDirStr$inlinedPredicatesStr$compoundPredicates$nonInlinedPredicatesStr"
         PlanDescriptionImpl(
           id = id,
-          name = s"StatefulShortestPath($modeDescr)",
+          name = s"StatefulShortestPath($modeDescr, $pathMode)",
           children = children,
           arguments = Seq(Details(detailsStr)),
           variables = variables,
@@ -3161,7 +3161,7 @@ case class LogicalPlan2PlanDescription(
       case RepeatTrail(_, _, repetition, start, end, _, _, _, _, _, _, _, _, mode) =>
         PlanDescriptionImpl(
           id = plan.id,
-          s"Repeat(${expandModeDescription(mode)},Trail)",
+          s"Repeat(${expandModeDescription(mode)}, Trail)",
           children,
           Seq(Details(repeatDetails(repetition, start, end))),
           variables,
@@ -3194,7 +3194,7 @@ case class LogicalPlan2PlanDescription(
       case RepeatWalk(_, _, repetition, start, end, _, _, _, _, _, _, mode) =>
         PlanDescriptionImpl(
           id = plan.id,
-          s"Repeat(${expandModeDescription(mode)},Walk)",
+          s"Repeat(${expandModeDescription(mode)}, Walk)",
           children,
           Seq(Details(repeatDetails(repetition, start, end))),
           variables,
