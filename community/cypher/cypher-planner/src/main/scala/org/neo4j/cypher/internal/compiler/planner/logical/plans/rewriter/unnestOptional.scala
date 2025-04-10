@@ -68,5 +68,6 @@ case object unnestOptional extends Rewriter {
   })
 
   private def optionalExpand(e: Expand, lhs: LogicalPlan): Option[Expression] => IdGen => OptionalExpand =
-    predicate => idGen => OptionalExpand(lhs, e.from, e.dir, e.types, e.to, e.relName, e.mode, predicate)(idGen)
+    predicate =>
+      idGen => OptionalExpand(lhs, e.from, e.dir, e.types, e.maybeTo, e.maybeRelName, e.mode, predicate)(idGen)
 }

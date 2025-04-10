@@ -340,7 +340,7 @@ case class CardinalityCostModel(executionModel: ExecutionModel, cancellationChec
       // Always consider AllNodesScan + Expand more expensive than RelationshipTypeScan
       case exp @ Expand(AllNodesScanIsh(), _, _, types, _, _, ExpandAll) if types.size == 1 =>
         val rowCost =
-          CostPerRow(1.1 * hackyRelTypeScanCost(propertyAccess, Some(exp.relName), exp.dir != SemanticDirection.BOTH))
+          CostPerRow(1.1 * hackyRelTypeScanCost(propertyAccess, exp.maybeRelName, exp.dir != SemanticDirection.BOTH))
         // Note: we use the outputCardinality to compute the cost
         val costForThisPlan = effectiveCardinalities.outputCardinality * rowCost
         costForThisPlan + lhsCost + rhsCost

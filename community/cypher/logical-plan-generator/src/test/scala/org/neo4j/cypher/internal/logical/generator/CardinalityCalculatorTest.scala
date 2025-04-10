@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipByIdSeek
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.Expand
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -263,7 +264,15 @@ class CardinalityCalculatorTest extends CypherFunSuite with AstConstructionTestS
         val relCount = if (relTypes.isEmpty) rels.size else relTypes.size
         val avgRelsPerNode = (relCount * individualRelCount) / allNodesCount.toDouble
 
-        val plan = Expand(Argument(), varFor("from"), SemanticDirection.OUTGOING, relTypes, varFor("to"), varFor("rel"))
+        val plan = Expand(
+          Argument(),
+          varFor("from"),
+          SemanticDirection.OUTGOING,
+          relTypes,
+          varFor("to"),
+          varFor("rel"),
+          ExpandAll
+        )
 
         val expectedAmountApprox = avgRelsPerNode * defaultSourceCardinality.amount
         val Cardinality(actualAmount) =
@@ -323,7 +332,15 @@ class CardinalityCalculatorTest extends CypherFunSuite with AstConstructionTestS
         val relCount = if (relTypes.isEmpty) rels.size else relTypes.size
         val avgRelsPerLabeledNode = (relCount * individualRelCount) / labeledNodesCount.toDouble
 
-        val plan = Expand(Argument(), varFor("from"), SemanticDirection.OUTGOING, relTypes, varFor("to"), varFor("rel"))
+        val plan = Expand(
+          Argument(),
+          varFor("from"),
+          SemanticDirection.OUTGOING,
+          relTypes,
+          varFor("to"),
+          varFor("rel"),
+          ExpandAll
+        )
 
         val expectedAmountApprox = avgRelsPerLabeledNode * defaultSourceCardinality.amount
         val Cardinality(actualAmount) =

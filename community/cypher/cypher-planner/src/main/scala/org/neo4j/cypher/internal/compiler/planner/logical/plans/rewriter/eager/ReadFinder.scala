@@ -659,10 +659,10 @@ object ReadFinder {
         processFilterExpression(PlanReads(), predicate, semanticTable)
 
       case Expand(_, _, _, relTypes, to, relName, mode) =>
-        processExpand(relTypes, to, relName, mode)
+        processExpand(relTypes, nodeVariable(to), relationshipVariable(relName), mode)
 
       case OptionalExpand(_, _, _, relTypes, to, relName, mode, _) =>
-        processExpand(relTypes, to, relName, mode)
+        processExpand(relTypes, nodeVariable(to), relationshipVariable(relName), mode)
 
       case VarExpand(_, _, _, _, relTypes, to, relName, _, mode, _, _, _) =>
         // Note: nodePredicates and relPredicates are matched further down already, since

@@ -6345,6 +6345,28 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Set("a", "y", anonVar("1"))
       )
     )
+
+    assertGood(
+      attach(Expand(lhsLP, varFor("a"), OUTGOING, Seq.empty, None, Some(varFor("r1")), ExpandAll), 95.0),
+      planDescription(
+        id,
+        "Expand(All)",
+        Seq(lhsPD),
+        Seq(details(s"(a)-[r1]->()")),
+        Set("a", "r1")
+      )
+    )
+
+    assertGood(
+      attach(Expand(lhsLP, varFor("a"), OUTGOING, Seq.empty, None, None, ExpandAll), 95.0),
+      planDescription(
+        id,
+        "Expand(All)",
+        Seq(lhsPD),
+        Seq(details(s"(a)-->()")),
+        Set("a")
+      )
+    )
   }
 
   test("Limit") {
@@ -6378,8 +6400,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           varFor("a"),
           INCOMING,
           Seq(relType("R")),
-          varFor("  UNNAMED5"),
-          varFor("r"),
+          Some(varFor("  UNNAMED5")),
+          Some(varFor("r")),
           ExpandAll,
           None
         ),
@@ -6397,7 +6419,16 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     // With predicate and no relationship types
     assertGood(
       attach(
-        OptionalExpand(lhsLP, varFor("a"), OUTGOING, Seq(), varFor("to"), varFor("r"), ExpandAll, Some(predicate1)),
+        OptionalExpand(
+          lhsLP,
+          varFor("a"),
+          OUTGOING,
+          Seq(),
+          Some(varFor("to")),
+          Some(varFor("r")),
+          ExpandAll,
+          Some(predicate1)
+        ),
         12.0
       ),
       planDescription(
@@ -6417,8 +6448,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           varFor("a"),
           BOTH,
           Seq(relType("R")),
-          varFor("to"),
-          varFor("r"),
+          Some(varFor("to")),
+          Some(varFor("r")),
           ExpandAll,
           Some(And(predicate1, predicate2)(pos))
         ),
@@ -6441,8 +6472,8 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           varFor("a"),
           INCOMING,
           Seq(relType("R1"), relType("R2")),
-          varFor("to"),
-          varFor("r"),
+          Some(varFor("to")),
+          Some(varFor("r")),
           ExpandAll,
           None
         ),
@@ -6454,6 +6485,78 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq(lhsPD),
         Seq(details("(a)<-[r:R1|R2]-(to)")),
         Set("a", "to", "r")
+      )
+    )
+
+    // with removed end node
+    assertGood(
+      attach(
+        OptionalExpand(
+          lhsLP,
+          varFor("a"),
+          INCOMING,
+          Seq(relType("R")),
+          None,
+          Some(varFor("r")),
+          ExpandAll,
+          None
+        ),
+        12.0
+      ),
+      planDescription(
+        id,
+        "OptionalExpand(All)",
+        Seq(lhsPD),
+        Seq(details(s"(a)<-[r:R]-()")),
+        Set("a", "r")
+      )
+    )
+
+    // with removed relationship
+    assertGood(
+      attach(
+        OptionalExpand(
+          lhsLP,
+          varFor("a"),
+          INCOMING,
+          Seq(relType("R")),
+          Some(varFor("  UNNAMED5")),
+          None,
+          ExpandAll,
+          None
+        ),
+        12.0
+      ),
+      planDescription(
+        id,
+        "OptionalExpand(All)",
+        Seq(lhsPD),
+        Seq(details(s"(a)<-[:R]-(${anonVar("5")})")),
+        Set("a", anonVar("5"))
+      )
+    )
+
+    // with removed end node and relationship
+    assertGood(
+      attach(
+        OptionalExpand(
+          lhsLP,
+          varFor("a"),
+          INCOMING,
+          Seq(relType("R")),
+          None,
+          None,
+          ExpandAll,
+          None
+        ),
+        12.0
+      ),
+      planDescription(
+        id,
+        "OptionalExpand(All)",
+        Seq(lhsPD),
+        Seq(details(s"(a)<-[:R]-()")),
+        Set("a")
       )
     )
   }

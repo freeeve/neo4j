@@ -362,8 +362,8 @@ object LogicalPlanToPlanBuilderString {
         val (dirStrA, dirStrB) = arrows(dir)
         val typeStr = relTypeStr(types)
         val fromName = escapeIdentifier(from.name)
-        val relName = escapeIdentifier(rel.name)
-        val toName = escapeIdentifier(to.name)
+        val relName = rel.map(n => escapeIdentifier(n.name)).getOrElse("")
+        val toName = to.map(n => escapeIdentifier(n.name)).getOrElse("")
         s"($fromName)$dirStrA[$relName$typeStr]$dirStrB($toName)".quoted
 
       case VarExpand(
@@ -618,7 +618,7 @@ object LogicalPlanToPlanBuilderString {
         spread(protectedSymbols)
       case OptionalExpand(_, from, dir, types, to, relName, _, predicate) =>
         params(
-          renderSimplePath(Some(relName), Some(from), types.map(_.name), Some(to), dir),
+          renderSimplePath(relName, Some(from), types.map(_.name), to, dir),
           optional(predicate.map(_.quoted.some))
         )
 

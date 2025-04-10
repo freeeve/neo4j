@@ -159,7 +159,8 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
           SemanticDirection.INCOMING,
           Seq.empty,
           v"a",
-          v"r"
+          v"r",
+          ExpandAll
         )
       )
 
@@ -204,7 +205,8 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
             SemanticDirection.OUTGOING,
             Seq.empty,
             v"b",
-            v"r"
+            v"r",
+            ExpandAll
           )
         )
       )
@@ -254,7 +256,8 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
             SemanticDirection.OUTGOING,
             Seq.empty,
             v"c",
-            v"r1"
+            v"r1",
+            ExpandAll
           ),
           Expand(
             NodeByLabelScan(v"b", labelName("B"), Set.empty, IndexOrderNone),
@@ -262,7 +265,8 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
             SemanticDirection.INCOMING,
             Seq.empty,
             v"c",
-            v"r2"
+            v"r2",
+            ExpandAll
           )
         )
       )
@@ -320,7 +324,8 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
               SemanticDirection.OUTGOING,
               Seq.empty,
               v"c",
-              v"r1"
+              v"r1",
+              ExpandAll
             ),
             Expand(
               NodeByLabelScan(v"b", labelName("B"), Set.empty, IndexOrderNone),
@@ -328,7 +333,8 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
               SemanticDirection.INCOMING,
               Seq.empty,
               v"c",
-              v"r2"
+              v"r2",
+              ExpandAll
             )
           )
         )
@@ -853,7 +859,7 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
       val allNodeScanA: AllNodesScan = AllNodesScan(v"a", Set.empty)
       val allRelScan = DirectedAllRelationshipsScan(v"r", v"a", v"b", Set.empty)
       val expandAtoB =
-        Expand(Argument(Set(v"a")), v"a", SemanticDirection.OUTGOING, Seq.empty, v"b", v"r")
+        Expand(Argument(Set(v"a")), v"a", SemanticDirection.OUTGOING, Seq.empty, v"b", v"r", ExpandAll)
       val plan = queryGraphSolver.plan(cfg.qg, InterestingOrderConfig.empty, ctx).result
       plan should equal(
         OptionalExpand(
@@ -862,7 +868,9 @@ class IDPQueryGraphSolverTest extends CypherFunSuite with LogicalPlanningTestSup
           SemanticDirection.OUTGOING,
           Seq.empty,
           v"b",
-          v"r"
+          v"r",
+          ExpandAll,
+          None
         )
       )
 

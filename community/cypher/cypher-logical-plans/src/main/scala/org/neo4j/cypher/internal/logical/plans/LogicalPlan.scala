@@ -63,6 +63,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.DisallowSameNode
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.SameNodeMode
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan.VERBOSE_TO_STRING
+import org.neo4j.cypher.internal.logical.plans.LogicalPlan.safeGet
 import org.neo4j.cypher.internal.logical.plans.Prober.Probe
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.LengthBounds
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath.Mapping
@@ -142,6 +143,14 @@ trait IndexSeekNames {
 object LogicalPlan {
   val LOWEST_TX_LAYER = 0
   val VERBOSE_TO_STRING = false
+
+  def safeGet(maybe: Option[LogicalVariable]): LogicalVariable =
+    maybe.getOrElse(
+      throw InternalException.internalError(
+        this.getClass.getSimpleName,
+        "Variable was removed too early."
+      )
+    )
 }
 
 /**
@@ -2434,6 +2443,25 @@ object Expand {
   case object ExpandInto extends ExpansionMode
 
   case class VariablePredicate(variable: LogicalVariable, predicate: Expression)
+
+  def apply(
+    source: LogicalPlan,
+    from: LogicalVariable,
+    dir: SemanticDirection,
+    types: Seq[RelTypeName],
+    to: LogicalVariable,
+    relName: LogicalVariable,
+    mode: ExpansionMode
+  )(implicit idGen: IdGen) =
+    new Expand(
+      source,
+      from,
+      dir,
+      types,
+      Some(to),
+      Some(relName),
+      mode
+    )
 }
 
 /**
@@ -2446,14 +2474,17 @@ case class Expand(
   from: LogicalVariable,
   dir: SemanticDirection,
   types: Seq[RelTypeName],
-  to: LogicalVariable,
-  relName: LogicalVariable,
+  maybeTo: Option[LogicalVariable],
+  maybeRelName: Option[LogicalVariable],
   mode: ExpansionMode = ExpandAll
 )(implicit idGen: IdGen)
     extends LogicalUnaryPlan(idGen) {
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
-  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + relName + to
+  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols ++ maybeRelName ++ maybeTo
   override val distinctness: Distinctness = NotDistinct
+
+  def to: LogicalVariable = LogicalPlan.safeGet(maybeTo)
+  def relName: LogicalVariable = safeGet(maybeRelName)
 }
 
 /**
@@ -2466,16 +2497,42 @@ case class OptionalExpand(
   from: LogicalVariable,
   dir: SemanticDirection,
   types: Seq[RelTypeName],
-  to: LogicalVariable,
-  relName: LogicalVariable,
+  maybeTo: Option[LogicalVariable],
+  maybeRelName: Option[LogicalVariable],
   mode: ExpansionMode = ExpandAll,
   predicate: Option[Expression] = None
 )(implicit idGen: IdGen)
     extends LogicalUnaryPlan(idGen) {
 
   override def withLhs(newLHS: LogicalPlan)(idGen: IdGen): LogicalUnaryPlan = copy(source = newLHS)(idGen)
-  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols + relName + to
+  override val localAvailableSymbols: Set[LogicalVariable] = source.localAvailableSymbols ++ maybeRelName ++ maybeTo
   override val distinctness: Distinctness = NotDistinct
+  def to: LogicalVariable = LogicalPlan.safeGet(maybeTo)
+  def relName: LogicalVariable = safeGet(maybeRelName)
+}
+
+object OptionalExpand {
+
+  def apply(
+    source: LogicalPlan,
+    from: LogicalVariable,
+    dir: SemanticDirection,
+    types: Seq[RelTypeName],
+    to: LogicalVariable,
+    relName: LogicalVariable,
+    mode: ExpansionMode,
+    predicate: Option[Expression]
+  )(implicit idGen: IdGen) =
+    new OptionalExpand(
+      source,
+      from,
+      dir,
+      types,
+      Some(to),
+      Some(relName),
+      mode,
+      predicate
+    )
 }
 
 /**

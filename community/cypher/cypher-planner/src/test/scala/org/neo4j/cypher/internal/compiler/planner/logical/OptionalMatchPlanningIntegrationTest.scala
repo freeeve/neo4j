@@ -102,7 +102,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           SemanticDirection.OUTGOING,
           Seq(),
           v"b",
-          v"r1"
+          v"r1",
+          ExpandAll
         ),
         Expand(
           NodeByLabelScan(v"c", labelName("Y"), Set.empty, IndexOrderNone),
@@ -110,7 +111,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           SemanticDirection.INCOMING,
           Seq(),
           v"b",
-          v"r2"
+          v"r2",
+          ExpandAll
         )
       )
     )
@@ -136,7 +138,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           SemanticDirection.INCOMING,
           Seq(),
           v"b",
-          v"r2"
+          v"r2",
+          ExpandAll
         ),
         Expand(
           NodeByLabelScan(v"a", labelName("X"), Set.empty, IndexOrderNone),
@@ -144,7 +147,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           SemanticDirection.OUTGOING,
           Seq(),
           v"b",
-          v"r1"
+          v"r1",
+          ExpandAll
         )
       )
     )
@@ -183,7 +187,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           SemanticDirection.OUTGOING,
           Seq(),
           v"b",
-          v"r1"
+          v"r1",
+          ExpandAll
         ),
         Expand(
           NodeByLabelScan(v"c", labelName("Y"), Set.empty, IndexOrderNone),
@@ -191,7 +196,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           SemanticDirection.INCOMING,
           Seq(),
           v"b",
-          v"r2"
+          v"r2",
+          ExpandAll
         )
       )
     )
@@ -230,7 +236,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           SemanticDirection.INCOMING,
           Seq(),
           v"b",
-          v"r2"
+          v"r2",
+          ExpandAll
         ),
         Expand(
           NodeByLabelScan(v"a", labelName("X"), Set.empty, IndexOrderNone),
@@ -238,7 +245,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           SemanticDirection.OUTGOING,
           Seq(),
           v"b",
-          v"r1"
+          v"r1",
+          ExpandAll
         )
       )
     )
@@ -275,7 +283,7 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           LogicalVariable("n"),
           SemanticDirection.OUTGOING,
           _,
-          LogicalVariable("x"),
+          Some(LogicalVariable("x")),
           _,
           _,
           _

@@ -43,7 +43,7 @@ class UnnestOptionalTest extends CypherFunSuite with LogicalPlanningTestSupport 
     val argument: LogicalPlan = Argument(Set(v"a"))
     val rhs: LogicalPlan =
       Optional(
-        Expand(argument, v"a", SemanticDirection.OUTGOING, Seq.empty, v"b", v"r")
+        Expand(argument, v"a", SemanticDirection.OUTGOING, Seq.empty, v"b", v"r", ExpandAll)
       )
     val lhs = newMockedLogicalPlan("a")
     val input = Apply(lhs, rhs)
@@ -79,7 +79,7 @@ class UnnestOptionalTest extends CypherFunSuite with LogicalPlanningTestSupport 
     val argument: LogicalPlan = Argument(Set(v"a"))
     val rhs: LogicalPlan =
       Optional(
-        Expand(argument, v"a", SemanticDirection.OUTGOING, Seq.empty, v"b", v"r")
+        Expand(argument, v"a", SemanticDirection.OUTGOING, Seq.empty, v"b", v"r", ExpandAll)
       )
     val lhs = newMockedLogicalPlan("a")
     val apply = Apply(lhs, rhs)

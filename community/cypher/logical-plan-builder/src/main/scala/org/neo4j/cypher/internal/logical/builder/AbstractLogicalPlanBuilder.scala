@@ -564,7 +564,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     p.length match {
       case SimplePatternLength =>
         appendAtCurrentIndent(UnaryOperator(lp =>
-          Expand(lp, varFor(p.from), p.dir, p.relTypes, varFor(p.to), varFor(p.relName), expandMode)(_)
+          Expand(lp, varFor(p.from), p.dir, p.relTypes, varFor(p.maybeTo), varFor(p.maybeRelName), expandMode)(_)
         ))
       case varPatternLength: VarPatternLength =>
         appendAtCurrentIndent(UnaryOperator(lp =>
@@ -939,8 +939,8 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
             varFor(pattern.from),
             pattern.dir,
             pattern.relTypes,
-            varFor(pattern.to),
-            varFor(pattern.relName),
+            varFor(pattern.maybeTo),
+            varFor(pattern.maybeRelName),
             ExpandAll,
             rewrittenPredicate
           )(_)
@@ -957,7 +957,16 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
       case SimplePatternLength =>
         val pred = predicate.map(parseExpression).map(p => Ands(ListSet(p))(p.position))
         appendAtCurrentIndent(UnaryOperator(lp =>
-          OptionalExpand(lp, varFor(p.from), p.dir, p.relTypes, varFor(p.to), varFor(p.relName), ExpandInto, pred)(_)
+          OptionalExpand(
+            lp,
+            varFor(p.from),
+            p.dir,
+            p.relTypes,
+            varFor(p.maybeTo),
+            varFor(p.maybeRelName),
+            ExpandInto,
+            pred
+          )(_)
         ))
       case _ =>
         throw new IllegalArgumentException("Cannot have optional expand with variable length pattern")

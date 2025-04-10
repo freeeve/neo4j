@@ -2201,7 +2201,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
 
     plan should beLike {
       case OrderedAggregation(
-          Expand(Sort(Projection(_: Expand, _), _), _, _, _, _, LogicalVariable("wideRel"), _),
+          Expand(Sort(Projection(_: Expand, _), _), _, _, _, _, Some(LogicalVariable("wideRel")), _),
           _,
           _,
           Seq(Variable("p1"))

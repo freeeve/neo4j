@@ -63,6 +63,7 @@ import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.ExhaustiveLimit
 import org.neo4j.cypher.internal.logical.plans.Expand
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
@@ -375,7 +376,7 @@ class LogicalPlanGenerator(
     WithState(rel, state) <- newVariable(state)
     state <- state.newRelationship(rel)
   } yield {
-    val plan = Expand(source, from, dir, relTypes, to, rel)(state.idGen)
+    val plan = Expand(source, from, dir, relTypes, to, rel, ExpandAll)(state.idGen)
     annotate(plan, state)
   }
 

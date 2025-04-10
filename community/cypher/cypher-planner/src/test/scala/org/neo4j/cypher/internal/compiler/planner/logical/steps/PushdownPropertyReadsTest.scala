@@ -381,7 +381,7 @@ class PushdownPropertyReadsTest
       .produceResults("n")
       .filter("m.prop > 10", "m2.prop > 10").withEffectiveCardinality(50)
       .apply().withEffectiveCardinality(20)
-      .|.expandAll("(n)-->(q)").withEffectiveCardinality(20)
+      .|.expandAll("(n)-[r]->(q)").withEffectiveCardinality(20)
       .|.filter("n.prop > 10").withEffectiveCardinality(2)
       .|.allNodeScan("n", "m").withEffectiveCardinality(100) // m is an argument, m2 is not
       .cartesianProduct().withEffectiveCardinality(10)
@@ -401,7 +401,7 @@ class PushdownPropertyReadsTest
       .produceResults("n")
       .filter("m.prop > 10", "m2.prop > 10")
       .apply()
-      .|.expandAll("(n)-[UNNAMED1]->(q)")
+      .|.expandAll("(n)-[r]->(q)")
       .|.cacheProperties("m.prop") // pushed down to RHS
       .|.filter("n.prop > 10")
       .|.allNodeScan("n", "m")
