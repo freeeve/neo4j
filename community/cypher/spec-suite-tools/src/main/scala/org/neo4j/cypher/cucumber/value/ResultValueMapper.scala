@@ -19,6 +19,8 @@
  */
 package org.neo4j.cypher.cucumber.value
 
+import org.eclipse.collections.impl.factory.Bags
+import org.eclipse.collections.impl.factory.Maps
 import org.neo4j.cypher.cucumber.value.ValueRepresentation.Connection
 import org.neo4j.cypher.cucumber.value.ValueRepresentation.NoIdNode
 import org.neo4j.cypher.cucumber.value.ValueRepresentation.NoIdPath
@@ -43,11 +45,9 @@ import java.time.temporal.Temporal
 import java.time.temporal.TemporalAmount
 import java.util
 import java.util.function
-import java.util.stream.Collectors
 import java.util.stream.StreamSupport
 
 import scala.jdk.CollectionConverters.IteratorHasAsScala
-import scala.jdk.CollectionConverters.ListHasAsScala
 
 /** Maps result values to work with Cucumber test assertions. */
 final object ResultValueMapper extends ValueMapper {
@@ -179,10 +179,12 @@ final object ResultValueMapper extends ValueMapper {
     private def withUnorderedLists(value: AnyRef): AnyRef = value match {
       case list: util.List[_] =>
         new UnorderedList(list.stream().map(v => withUnorderedLists(v.asInstanceOf[AnyRef])).toList)
-      case map: util.Map[_, _] => map.entrySet().stream().collect(Collectors.toMap(
-          (e: java.util.Map.Entry[_, _]) => e.getKey.asInstanceOf[String],
-          (e: java.util.Map.Entry[_, _]) => withUnorderedLists(e.getValue.asInstanceOf[AnyRef])
-        ))
+      case map: util.Map[_, _] =>
+        val result = Maps.mutable.ofInitialCapacity[String, AnyRef](map.size())
+        map.entrySet().forEach { e =>
+          result.put(e.getKey.asInstanceOf[String], withUnorderedLists(e.getValue.asInstanceOf[AnyRef]))
+        }
+        result
       case node: NoIdNode =>
         node.copy(properties = withUnorderedLists(node.properties).asInstanceOf[java.util.Map[String, AnyRef]])
       case rel: NoIdRel =>
@@ -193,14 +195,14 @@ final object ResultValueMapper extends ValueMapper {
   }
 
   class UnorderedList[T](private val inner: util.List[T]) {
-    private lazy val itemCounts = inner.asScala.groupBy(identity).view.mapValues(_.size).toMap
+    private lazy val itemBag = Bags.immutable.ofAll(inner)
 
     override def equals(obj: Any): Boolean = obj match {
-      case other: UnorderedList[_] => inner == other.inner || itemCounts == other.itemCounts
+      case other: UnorderedList[_] => inner == other.inner || itemBag == other.itemBag
       case _                       => false
     }
 
-    override def hashCode(): Int = itemCounts.hashCode()
+    override def hashCode(): Int = itemBag.hashCode()
     override def toString: String = inner.toString
   }
 }

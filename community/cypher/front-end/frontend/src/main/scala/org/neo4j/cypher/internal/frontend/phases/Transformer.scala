@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend.phases
 import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogChangedFields
+import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatements
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatementsAsQueries
 import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.rewriting.ValidatingCondition
@@ -54,7 +55,7 @@ trait Transformer[-C <: BaseContext, -FROM, +TO] {
     fromState: Any,
     toState: Any
   ): Unit =
-    Transformer.printDebugInfo(name, fromState, toState)
+    if (Transformer.Debug.Enabled) Transformer.printDebugInfo(name, fromState, toState)
 }
 
 object Transformer {
@@ -62,7 +63,9 @@ object Transformer {
   object Debug {
     // Debug flags, requires that assertions are enabled to have effect (jvm option -ea)
     final val LogStatementsAsQueries = false
+    final val LogStatements = false
     final val LogChangedFields = false
+    final val Enabled = LogStatementsAsQueries || LogStatements || LogChangedFields
   }
 
   /**
@@ -116,12 +119,13 @@ object Transformer {
       }
     }
 
-    if (LogStatementsAsQueries) {
+    if (LogStatementsAsQueries || LogStatements) {
       (fromState, toState) match {
         case (from: BaseState, to: BaseState)
           if to.maybeStatement.isDefined && from.maybeStatement != to.maybeStatement =>
           println(s"######## DEBUG $transformerName, statement changed:")
-          println(Prettifier(ExpressionStringifier()).asString(to.statement()))
+          if (LogStatementsAsQueries) println(Prettifier(ExpressionStringifier()).asString(to.statement()))
+          if (LogStatements) println(to.statement())
           println("\n")
         case _ =>
       }

@@ -162,6 +162,10 @@ object PrettifierSteps {
     "acceptance/features/GpmSyntaxMixingAcceptance.feature" -> "Mixing QPP and var-length relationship quantifiers in pattern expressions in same statement - syntax error",
     "acceptance/features/GpmSyntaxMixingAcceptance.feature" -> "Explicit match mode DIFFERENT NODES with shortestPath - syntax error",
     "acceptance/features/GpmSyntaxMixingAcceptance.feature" -> "Explicit match mode DIFFERENT NODES with allShortestPaths - syntax error",
+    "acceptance/features/GpmSyntaxMixingAllowedAcceptance.feature" -> "DIFFERENT NODES with var-length relationship - OK",
+    "acceptance/features/GpmSyntaxMixingAllowedAcceptance.feature" -> "Mixing QPP and var-length relationship quantifiers in pattern expressions in same statement - syntax error",
+    "acceptance/features/GpmSyntaxMixingAllowedAcceptance.feature" -> "Explicit match mode DIFFERENT NODES with shortestPath - syntax error",
+    "acceptance/features/GpmSyntaxMixingAllowedAcceptance.feature" -> "Explicit match mode DIFFERENT NODES with allShortestPaths - syntax error",
     "acceptance/features/QuantifiedPathPatternAcceptance.feature" -> "Quantifier {-1} lower bound must be less than or equal to upper bound, upper bound needs to be positive",
     "acceptance/features/MiscAcceptance.feature" -> "Syntax error has correct code",
     "acceptance/features/MiscAcceptance.feature" -> "Syntax error has correct code and message"

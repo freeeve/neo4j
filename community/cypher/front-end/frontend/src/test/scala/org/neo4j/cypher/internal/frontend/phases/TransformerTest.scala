@@ -148,7 +148,9 @@ class TransformerTest extends CypherFunSuite with CypherVersionTestSupport {
   }
 
   test("debug is off") {
+    Transformer.Debug.Enabled shouldBe false
     Transformer.Debug.LogChangedFields shouldBe false
     Transformer.Debug.LogStatementsAsQueries shouldBe false
+    Transformer.Debug.LogStatements shouldBe false
   }
 }
