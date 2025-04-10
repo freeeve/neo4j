@@ -19,9 +19,11 @@
  */
 package org.neo4j.dbms.systemgraph;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -30,25 +32,57 @@ import static org.mockito.Mockito.when;
 import static org.neo4j.kernel.database.NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID;
 
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.collection.Dependencies;
 import org.neo4j.dbms.database.DatabaseContext;
 import org.neo4j.dbms.database.DatabaseContextProvider;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.monitoring.DatabaseEventListeners;
 import org.neo4j.logging.NullLog;
+import org.neo4j.storageengine.api.TransactionIdStore;
 
 class ContextBasedSystemDatabaseProviderTest {
+    private DatabaseContext context;
+    private GraphDatabaseAPI database;
+    private DatabaseContextProvider<DatabaseContext> contextProvider;
+    private ContextBasedSystemDatabaseProvider provider;
+    private DatabaseEventListeners listeners;
+
+    @BeforeEach
+    void setup() {
+        context = mock(DatabaseContext.class);
+        database = mock(GraphDatabaseAPI.class);
+        when(context.dependencies()).thenReturn(Dependencies.dependenciesOf(database));
+
+        when(context.databaseFacade()).thenReturn(database);
+        contextProvider = mock(DatabaseContextProvider.class);
+        when(contextProvider.getDatabaseContext(any(NamedDatabaseId.class))).thenReturn(Optional.of(context));
+        listeners = new DatabaseEventListeners(NullLog.getInstance());
+        provider = new ContextBasedSystemDatabaseProvider(contextProvider, listeners);
+    }
+
+    @Test
+    void shouldUseContextDependencies() {
+        // when
+        assertThat(provider.dependency(GraphDatabaseAPI.class)).hasValue(database);
+
+        // then
+        verify(database, never()).getDependencyResolver();
+        verify(context).dependencies();
+        clearInvocations(context, database);
+
+        // when
+        assertThat(provider.dependency(TransactionIdStore.class)).isEmpty();
+
+        // then
+        verify(database, never()).getDependencyResolver();
+        verify(context).dependencies();
+    }
+
     @Test
     void shouldResetWhenDatabaseCreated() {
-        var context = mock(DatabaseContext.class);
-        var databaseFacade = mock(GraphDatabaseAPI.class);
-        when(context.databaseFacade()).thenReturn(databaseFacade);
-        var contextProvider = mock(DatabaseContextProvider.class);
-        when(contextProvider.getDatabaseContext(any(NamedDatabaseId.class))).thenReturn(Optional.of(context));
-        var listeners = new DatabaseEventListeners(NullLog.getInstance());
-        var provider = new ContextBasedSystemDatabaseProvider(contextProvider, listeners);
-
         // when
         provider.database();
         provider.database();

@@ -32,8 +32,7 @@ import org.neo4j.kernel.monitoring.DatabaseEventListeners;
 public class ContextBasedSystemDatabaseProvider extends DatabaseEventListenerAdapter implements SystemDatabaseProvider {
     private final DatabaseContextProvider<? extends DatabaseContext> databaseContextProvider;
 
-    private volatile Suppliers.Lazy<DatabaseContext> contextCache;
-    private volatile Suppliers.Lazy<GraphDatabaseAPI> databaseCache;
+    private volatile Suppliers.Lazy<Optional<Cache>> cache;
 
     public ContextBasedSystemDatabaseProvider(
             DatabaseContextProvider<? extends DatabaseContext> databaseContextProvider,
@@ -44,13 +43,16 @@ public class ContextBasedSystemDatabaseProvider extends DatabaseEventListenerAda
     }
 
     @Override
-    public GraphDatabaseAPI database() throws SystemDatabaseUnavailableException {
-        return databaseCache.get();
+    public Optional<GraphDatabaseAPI> optionalDatabase() {
+        return cache.get().map(Cache::db);
     }
 
     @Override
     public <T> Optional<T> dependency(Class<T> type) throws SystemDatabaseUnavailableException {
-        return SystemDatabaseProvider.dependency(contextCache.get().dependencies(), type);
+        return cache.get()
+                .map(Cache::context)
+                .map(DatabaseContext::dependencies)
+                .flatMap(dep -> dep.resolveOptionalDependency(type));
     }
 
     @Override
@@ -61,13 +63,14 @@ public class ContextBasedSystemDatabaseProvider extends DatabaseEventListenerAda
     }
 
     private void resetCache() {
-        contextCache = Suppliers.lazySingleton(this::databaseContext);
-        databaseCache = Suppliers.lazySingleton(() -> contextCache.get().databaseFacade());
+        cache = Suppliers.lazySingleton(this::fetch);
     }
 
-    private DatabaseContext databaseContext() {
+    private Optional<Cache> fetch() {
         return databaseContextProvider
                 .getDatabaseContext(NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID)
-                .orElseThrow(SystemDatabaseUnavailableException::new);
+                .map(ctx -> new Cache(ctx, ctx.databaseFacade()));
     }
+
+    private record Cache(DatabaseContext context, GraphDatabaseAPI db) {}
 }
