@@ -319,7 +319,8 @@ class SlotAllocationTest extends CypherFunSuite with LogicalPlanningTestSupport2
       Seq.empty,
       varFor("z"),
       varFor("r"),
-      ExpandAll
+      ExpandAll,
+      None
     )
 
     // when
@@ -358,7 +359,8 @@ class SlotAllocationTest extends CypherFunSuite with LogicalPlanningTestSupport2
       Seq.empty,
       varFor("x"),
       varFor("r"),
-      ExpandInto
+      ExpandInto,
+      None
     )
 
     // when

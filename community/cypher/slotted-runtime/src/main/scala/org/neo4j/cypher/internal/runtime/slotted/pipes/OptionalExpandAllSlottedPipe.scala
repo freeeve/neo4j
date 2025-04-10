@@ -42,8 +42,8 @@ import org.neo4j.values.storable.Values
 abstract class OptionalExpandAllSlottedPipe(
   source: Pipe,
   fromSlot: Slot,
-  relOffset: Int,
-  toOffset: Int,
+  relOffset: Option[Int],
+  toOffset: Option[Int],
   dir: SemanticDirection,
   types: RelationshipTypes,
   slots: SlotConfiguration
@@ -86,8 +86,8 @@ abstract class OptionalExpandAllSlottedPipe(
                   override protected def createOutputRow(relationship: Long, otherNode: Long): SlottedRow = {
                     val outputRow = SlottedRow(slots)
                     outputRow.copyAllFrom(inputRow)
-                    outputRow.setLongAt(relOffset, relationship)
-                    outputRow.setLongAt(toOffset, otherNode)
+                    relOffset.foreach(outputRow.setLongAt(_, relationship))
+                    toOffset.foreach(outputRow.setLongAt(_, otherNode))
                     outputRow
                   }
                 },
@@ -110,8 +110,8 @@ abstract class OptionalExpandAllSlottedPipe(
   private def withNulls(inputRow: CypherRow): SlottedRow = {
     val outputRow = SlottedRow(slots)
     outputRow.copyAllFrom(inputRow)
-    outputRow.setLongAt(relOffset, -1)
-    outputRow.setLongAt(toOffset, -1)
+    relOffset.foreach(outputRow.setLongAt(_, -1))
+    toOffset.foreach(outputRow.setLongAt(_, -1))
     outputRow
   }
 }
@@ -121,8 +121,8 @@ object OptionalExpandAllSlottedPipe {
   def apply(
     source: Pipe,
     fromSlot: Slot,
-    relOffset: Int,
-    toOffset: Int,
+    relOffset: Option[Int],
+    toOffset: Option[Int],
     dir: SemanticDirection,
     types: RelationshipTypes,
     slots: SlotConfiguration,
@@ -137,8 +137,8 @@ object OptionalExpandAllSlottedPipe {
 case class NonFilteringOptionalExpandAllSlottedPipe(
   source: Pipe,
   fromSlot: Slot,
-  relOffset: Int,
-  toOffset: Int,
+  relOffset: Option[Int],
+  toOffset: Option[Int],
   dir: SemanticDirection,
   types: RelationshipTypes,
   slots: SlotConfiguration
@@ -151,8 +151,8 @@ case class NonFilteringOptionalExpandAllSlottedPipe(
 case class FilteringOptionalExpandAllSlottedPipe(
   source: Pipe,
   fromSlot: Slot,
-  relOffset: Int,
-  toOffset: Int,
+  relOffset: Option[Int],
+  toOffset: Option[Int],
   dir: SemanticDirection,
   types: RelationshipTypes,
   slots: SlotConfiguration,

@@ -484,8 +484,12 @@ object VariableRefRewriter extends Rewriter {
           )(SameId(p.id))
         case p @ ConditionalApply(_, _, items) =>
           p.copy(items = items.map(varRef))(SameId(p.id))
-        case p @ Expand(_, from, _, _, to, rel, _) =>
-          p.copy(from = varRef(from), to = varRef(to), relName = varRef(rel))(SameId(p.id))
+        case p @ Expand(_, from, _, _, maybeTo, maybeRelName, _) =>
+          p.copy(
+            from = varRef(from),
+            maybeTo = maybeTo.map(varRef),
+            maybeRelName = maybeRelName.map(varRef)
+          )(SameId(p.id))
         case p @ Foreach(_, variable, _, _) =>
           p.copy(variable = varRef(variable))(SameId(p.id))
         case p @ ForeachApply(_, _, variable, _) =>
@@ -510,8 +514,12 @@ object VariableRefRewriter extends Rewriter {
           p.copy(nodes = nodes.map(varRef))(SameId(p.id))
         case p @ Optional(_, protectedVars) =>
           p.copy(protectedSymbols = protectedVars.map(varRef))(SameId(p.id))
-        case p @ OptionalExpand(_, from, _, _, to, rel, _, _) =>
-          p.copy(from = varRef(from), to = varRef(to), relName = varRef(rel))(SameId(p.id))
+        case p @ OptionalExpand(_, from, _, _, maybeTo, maybeRelName, _, _) =>
+          p.copy(
+            from = varRef(from),
+            maybeTo = maybeTo.map(varRef),
+            maybeRelName = maybeRelName.map(varRef)
+          )(SameId(p.id))
         case p @ PathPropagatingBFS(_, _, from, _, _, _, to, rel, _, _, _) =>
           p.copy(from = varRef(from), to = varRef(to), relName = varRef(rel))(SameId(p.id))
         case p @ ProduceResult(_, columns) =>

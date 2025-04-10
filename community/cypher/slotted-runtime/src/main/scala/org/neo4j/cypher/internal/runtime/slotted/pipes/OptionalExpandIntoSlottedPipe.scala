@@ -45,7 +45,7 @@ import org.neo4j.values.storable.Values
 abstract class OptionalExpandIntoSlottedPipe(
   source: Pipe,
   fromSlot: Slot,
-  relOffset: Int,
+  relOffset: Option[Int],
   toSlot: Slot,
   dir: SemanticDirection,
   lazyTypes: RelationshipTypes,
@@ -115,7 +115,7 @@ abstract class OptionalExpandIntoSlottedPipe(
   private def withNulls(inputRow: CypherRow) = {
     val outputRow = SlottedRow(slots)
     outputRow.copyAllFrom(inputRow)
-    outputRow.setLongAt(relOffset, -1)
+    relOffset.foreach(outputRow.setLongAt(_, -1))
     outputRow
   }
 
@@ -126,7 +126,7 @@ object OptionalExpandIntoSlottedPipe {
   def apply(
     source: Pipe,
     fromSlot: Slot,
-    relOffset: Int,
+    relOffset: Option[Int],
     toSlot: Slot,
     dir: SemanticDirection,
     lazyTypes: RelationshipTypes,
@@ -143,7 +143,7 @@ object OptionalExpandIntoSlottedPipe {
 case class NonFilteringOptionalExpandIntoSlottedPipe(
   source: Pipe,
   fromSlot: Slot,
-  relOffset: Int,
+  relOffset: Option[Int],
   toSlot: Slot,
   dir: SemanticDirection,
   lazyTypes: RelationshipTypes,
@@ -161,7 +161,7 @@ case class NonFilteringOptionalExpandIntoSlottedPipe(
       relId => {
         val outputRow = SlottedRow(slots)
         outputRow.copyAllFrom(inputRow)
-        outputRow.setLongAt(relOffset, relId)
+        relOffset.foreach(outputRow.setLongAt(_, relId))
         outputRow
       }
     )
@@ -171,7 +171,7 @@ case class NonFilteringOptionalExpandIntoSlottedPipe(
 case class FilteringOptionalExpandIntoSlottedPipe(
   source: Pipe,
   fromSlot: Slot,
-  relOffset: Int,
+  relOffset: Option[Int],
   toSlot: Slot,
   dir: SemanticDirection,
   lazyTypes: RelationshipTypes,
@@ -190,7 +190,7 @@ case class FilteringOptionalExpandIntoSlottedPipe(
       relId => {
         val outputRow = SlottedRow(slots)
         outputRow.copyAllFrom(inputRow)
-        outputRow.setLongAt(relOffset, relId)
+        relOffset.foreach(outputRow.setLongAt(_, relId))
         outputRow
       }
     ).filter(ctx => predicate(ctx, state) eq Values.TRUE)

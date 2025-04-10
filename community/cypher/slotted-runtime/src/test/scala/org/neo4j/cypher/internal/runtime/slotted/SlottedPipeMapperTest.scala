@@ -297,8 +297,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
     pipe should equal(ExpandAllSlottedPipe(
       AllNodesScanSlottedPipe("x", X_NODE_SLOTS)(),
       xNodeSlot,
-      rRelSlot.offset,
-      zNodeSlot.offset,
+      Some(rRelSlot.offset),
+      Some(zNodeSlot.offset),
       SemanticDirection.INCOMING,
       RelationshipTypes.empty,
       SlotConfigurationBuilder.empty
@@ -324,7 +324,7 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
     pipe should equal(ExpandIntoSlottedPipe(
       AllNodesScanSlottedPipe("x", X_NODE_SLOTS)(),
       nodeSlot,
-      relSlot.offset,
+      Some(relSlot.offset),
       nodeSlot,
       SemanticDirection.INCOMING,
       RelationshipTypes.empty,
@@ -364,8 +364,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
           Array(xNodeSlot)
         )(),
         xNodeSlot,
-        rRelSlot.offset,
-        zNodeSlot.offset,
+        Some(rRelSlot.offset),
+        Some(zNodeSlot.offset),
         SemanticDirection.INCOMING,
         RelationshipTypes.empty,
         expandSlots
@@ -400,7 +400,7 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
           Array(nodeSlot)
         )(),
         nodeSlot,
-        relSlot.offset,
+        Some(relSlot.offset),
         nodeSlot,
         SemanticDirection.INCOMING,
         RelationshipTypes.empty,
@@ -458,7 +458,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
       Seq.empty,
       varFor("z"),
       varFor("r"),
-      ExpandAll
+      ExpandAll,
+      None
     )
 
     // when
@@ -468,8 +469,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
     pipe should equal(OptionalExpandAllSlottedPipe(
       AllNodesScanSlottedPipe("x", X_NODE_SLOTS)(),
       X_NODE_SLOTS("x").slot,
-      1,
-      2,
+      Some(1),
+      Some(2),
       SemanticDirection.INCOMING,
       RelationshipTypes.empty,
       SlotConfigurationBuilder.empty
@@ -491,7 +492,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
       Seq.empty,
       varFor("x"),
       varFor("r"),
-      ExpandInto
+      ExpandInto,
+      None
     )
 
     // when
@@ -501,7 +503,7 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
     pipe should equal(OptionalExpandIntoSlottedPipe(
       AllNodesScanSlottedPipe("x", X_NODE_SLOTS)(),
       X_NODE_SLOTS("x").slot,
-      1,
+      Some(1),
       X_NODE_SLOTS("x").slot,
       SemanticDirection.INCOMING,
       RelationshipTypes.empty,
@@ -614,8 +616,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
         ExpandAllSlottedPipe(
           AllNodesScanSlottedPipe("x", allNodeScanSlots)(),
           xNodeSlot,
-          rRelSlot.offset,
-          zNodeSlot.offset,
+          Some(rRelSlot.offset),
+          Some(zNodeSlot.offset),
           SemanticDirection.OUTGOING,
           RelationshipTypes.empty,
           expandSlots
@@ -811,8 +813,8 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
       ExpandAllSlottedPipe(
         ArgumentSlottedPipe()(),
         rhsSlots("x").slot,
-        1,
-        2,
+        Some(1),
+        Some(2),
         SemanticDirection.INCOMING,
         RelationshipTypes.empty,
         rhsSlots
@@ -959,25 +961,42 @@ class SlottedPipeMapperTest extends CypherFunSuite with LogicalPlanningTestSuppo
 
     def commonSubTree = {
       val leaf = NodeByLabelScan(varFor("node1"), LabelName("label")(pos), Set.empty, IndexOrderNone)
-      val expand1 = Expand(leaf, varFor("node1"), SemanticDirection.INCOMING, Seq.empty, varFor("node2"), varFor("r"))
+      val expand1 =
+        Expand(leaf, varFor("node1"), SemanticDirection.INCOMING, Seq.empty, varFor("node2"), varFor("r"), ExpandAll)
       val expand2 =
-        Expand(expand1, varFor("node2"), SemanticDirection.INCOMING, Seq.empty, varFor("node3"), varFor("r"))
-      Expand(expand2, varFor("node3"), SemanticDirection.INCOMING, Seq.empty, varFor("node4"), varFor("r"))
+        Expand(expand1, varFor("node2"), SemanticDirection.INCOMING, Seq.empty, varFor("node3"), varFor("r"), ExpandAll)
+      Expand(expand2, varFor("node3"), SemanticDirection.INCOMING, Seq.empty, varFor("node4"), varFor("r"), ExpandAll)
     }
 
     val expand4a =
-      Expand(commonSubTree, varFor("node3"), SemanticDirection.INCOMING, Seq.empty, varFor("node7"), varFor("r"))
+      Expand(
+        commonSubTree,
+        varFor("node3"),
+        SemanticDirection.INCOMING,
+        Seq.empty,
+        varFor("node7"),
+        varFor("r"),
+        ExpandAll
+      )
     val expand5a =
-      Expand(expand4a, varFor("node4"), SemanticDirection.INCOMING, Seq.empty, varFor("node5"), varFor("r"))
+      Expand(expand4a, varFor("node4"), SemanticDirection.INCOMING, Seq.empty, varFor("node5"), varFor("r"), ExpandAll)
     val expand6a =
-      Expand(expand5a, varFor("node5"), SemanticDirection.INCOMING, Seq.empty, varFor("node6"), varFor("r"))
+      Expand(expand5a, varFor("node5"), SemanticDirection.INCOMING, Seq.empty, varFor("node6"), varFor("r"), ExpandAll)
 
     val expand4b =
-      Expand(commonSubTree, varFor("node4"), SemanticDirection.OUTGOING, Seq.empty, varFor("node6"), varFor("r"))
+      Expand(
+        commonSubTree,
+        varFor("node4"),
+        SemanticDirection.OUTGOING,
+        Seq.empty,
+        varFor("node6"),
+        varFor("r"),
+        ExpandAll
+      )
     val expand5b =
-      Expand(expand4b, varFor("node6"), SemanticDirection.OUTGOING, Seq.empty, varFor("node5"), varFor("r"))
+      Expand(expand4b, varFor("node6"), SemanticDirection.OUTGOING, Seq.empty, varFor("node5"), varFor("r"), ExpandAll)
     val expand6b =
-      Expand(expand5b, varFor("node6"), SemanticDirection.OUTGOING, Seq.empty, varFor("node8"), varFor("r"))
+      Expand(expand5b, varFor("node6"), SemanticDirection.OUTGOING, Seq.empty, varFor("node8"), varFor("r"), ExpandAll)
 
     val nodes = Set("node1", "node2", "node3", "node4", "node5", "node6")
     val plan = NodeHashJoin(nodes.map(varFor), expand6a, expand6b)

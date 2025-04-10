@@ -1153,20 +1153,20 @@ class SlottedPipeMapper(
 
       case Expand(_, from, dir, types, to, relName, ExpandAll) =>
         val fromSlot = slots(from).slot
-        val relOffset = slots.longOffset(relName)
-        val toOffset = slots.longOffset(to)
+        val relOffset = relName.map(slots.longOffset)
+        val toOffset = to.map(slots.longOffset)
         ExpandAllSlottedPipe(source, fromSlot, relOffset, toOffset, dir, RelationshipTypes(types.toArray), slots)(id)
 
-      case Expand(_, from, dir, types, to, relName, ExpandInto) =>
+      case Expand(_, from, dir, types, Some(to), relName, ExpandInto) =>
         val fromSlot = slots(from).slot
-        val relOffset = slots.longOffset(relName)
+        val relOffset = relName.map(slots.longOffset)
         val toSlot = slots(to).slot
         ExpandIntoSlottedPipe(source, fromSlot, relOffset, toSlot, dir, RelationshipTypes(types.toArray), slots)(id)
 
       case OptionalExpand(_, fromName, dir, types, toName, relName, ExpandAll, predicate) =>
         val fromSlot = slots(fromName).slot
-        val relOffset = slots.longOffset(relName)
-        val toOffset = slots.longOffset(toName)
+        val relOffset = relName.map(slots.longOffset)
+        val toOffset = toName.map(slots.longOffset)
         OptionalExpandAllSlottedPipe(
           source,
           fromSlot,
@@ -1178,9 +1178,9 @@ class SlottedPipeMapper(
           predicate.map(convertExpressions)
         )(id)
 
-      case OptionalExpand(_, fromName, dir, types, toName, relName, ExpandInto, predicate) =>
+      case OptionalExpand(_, fromName, dir, types, Some(toName), relName, ExpandInto, predicate) =>
         val fromSlot = slots(fromName).slot
-        val relOffset = slots.longOffset(relName)
+        val relOffset = relName.map(slots.longOffset)
         val toSlot = slots(toName).slot
 
         OptionalExpandIntoSlottedPipe(

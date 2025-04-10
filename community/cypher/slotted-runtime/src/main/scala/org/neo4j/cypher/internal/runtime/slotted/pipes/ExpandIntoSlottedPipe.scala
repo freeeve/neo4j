@@ -51,7 +51,7 @@ import org.neo4j.internal.kernel.api.helpers.CachingExpandInto
 case class ExpandIntoSlottedPipe(
   source: Pipe,
   fromSlot: Slot,
-  relOffset: Int,
+  relOffset: Option[Int],
   toSlot: Slot,
   dir: SemanticDirection,
   lazyTypes: RelationshipTypes,
@@ -107,7 +107,7 @@ case class ExpandIntoSlottedPipe(
               (relId: Long) => {
                 val outputRow = SlottedRow(slots)
                 outputRow.copyAllFrom(inputRow)
-                outputRow.setLongAt(relOffset, relId)
+                relOffset.foreach(outputRow.setLongAt(_, relId))
                 outputRow
               }
             )

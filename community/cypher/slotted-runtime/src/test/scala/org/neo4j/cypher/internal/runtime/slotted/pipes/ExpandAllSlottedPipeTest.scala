@@ -53,7 +53,15 @@ class ExpandAllSlottedPipeTest extends CypherFunSuite {
 
     val input = FakeSlottedPipe(Seq(Map("a" -> 10)), slots)
     val pipe =
-      ExpandAllSlottedPipe(input, slots("a").slot, 1, 2, SemanticDirection.OUTGOING, new EagerTypes(Array(0)), slots)()
+      ExpandAllSlottedPipe(
+        input,
+        slots("a").slot,
+        Some(1),
+        Some(2),
+        SemanticDirection.OUTGOING,
+        new EagerTypes(Array(0)),
+        slots
+      )()
     // exhaust
     pipe.createResults(state).toList
     input.wasClosed shouldBe true
@@ -77,7 +85,15 @@ class ExpandAllSlottedPipeTest extends CypherFunSuite {
 
     val input = FakeSlottedPipe(Seq(Map("a" -> 10)), slots)
     val pipe =
-      ExpandAllSlottedPipe(input, slots("a").slot, 1, 2, SemanticDirection.OUTGOING, new EagerTypes(Array(0)), slots)()
+      ExpandAllSlottedPipe(
+        input,
+        slots("a").slot,
+        Some(1),
+        Some(2),
+        SemanticDirection.OUTGOING,
+        new EagerTypes(Array(0)),
+        slots
+      )()
     val result = pipe.createResults(state)
     result.hasNext shouldBe true // Need to initialize to get cursor registered
     result.close()

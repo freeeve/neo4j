@@ -784,11 +784,11 @@ class SingleQuerySlotAllocator private[physicalplanning] (
         recordArgument(lp)
 
       case Expand(_, _, _, _, to, relName, ExpandAll) =>
-        slots.newLong(relName, nullable, CTRelationship)
-        slots.newLong(to, nullable, CTNode)
+        relName.foreach(r => slots.newLong(r, nullable, CTRelationship))
+        to.foreach(t => slots.newLong(t, nullable, CTNode))
 
       case Expand(_, _, _, _, _, relName, ExpandInto) =>
-        slots.newLong(relName, nullable, CTRelationship)
+        relName.foreach(r => slots.newLong(r, nullable, CTRelationship))
 
       case SimulatedExpand(_, _, rel, to, _) =>
         slots.newLong(rel, nullable, CTRelationship)
@@ -859,13 +859,13 @@ class SingleQuerySlotAllocator private[physicalplanning] (
       case OptionalExpand(_, _, _, _, to, rel, ExpandAll, _) =>
         // Note that OptionalExpand only is optional on the expand and not on incoming rows, so
         // we do not need to record the argument here.
-        slots.newLong(rel, nullable = true, CTRelationship)
-        slots.newLong(to, nullable = true, CTNode)
+        rel.foreach(r => slots.newLong(r, nullable = true, CTRelationship))
+        to.foreach(t => slots.newLong(t, nullable = true, CTNode))
 
       case OptionalExpand(_, _, _, _, _, rel, ExpandInto, _) =>
         // Note that OptionalExpand only is optional on the expand and not on incoming rows, so
         // we do not need to record the argument here.
-        slots.newLong(rel, nullable = true, CTRelationship)
+        rel.foreach(r => slots.newLong(r, nullable = true, CTRelationship))
 
       case VarExpand(_, _, _, _, _, to, relationship, _, expansionMode, _, _, _) =>
         if (expansionMode == ExpandAll) {

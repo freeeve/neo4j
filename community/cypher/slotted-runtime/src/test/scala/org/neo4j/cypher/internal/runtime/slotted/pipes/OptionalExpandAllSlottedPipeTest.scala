@@ -55,8 +55,8 @@ class OptionalExpandAllSlottedPipeTest extends CypherFunSuite {
     val pipe = OptionalExpandAllSlottedPipe(
       input,
       slots("a").slot,
-      1,
-      2,
+      Some(1),
+      Some(2),
       SemanticDirection.OUTGOING,
       new EagerTypes(Array(0)),
       slots,
@@ -87,8 +87,8 @@ class OptionalExpandAllSlottedPipeTest extends CypherFunSuite {
     val pipe = OptionalExpandAllSlottedPipe(
       input,
       slots("a").slot,
-      1,
-      2,
+      Some(1),
+      Some(2),
       SemanticDirection.OUTGOING,
       new EagerTypes(Array(0)),
       slots,
