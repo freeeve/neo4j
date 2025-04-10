@@ -64,7 +64,11 @@ public class SecurityGraphHelper {
      * @return user record containing user and auth information
      */
     public User getUserByName(String username) {
-        securityLog.debug(String.format("Looking up user '%s'", username));
+        if (securityLog.isDebugEnabled()) securityLog.debug(String.format("Looking up user '%s'", username));
+        if (username == null) {
+            securityLog.debug("Cannot look up user 'null'");
+            return null;
+        }
         try (var tx = systemSupplier.get().beginTx()) {
             Node userNode = tx.findNode(USER_LABEL, USER_NAME_PROPERTY, username);
             if (userNode == null) {
@@ -75,32 +79,6 @@ public class SecurityGraphHelper {
         } catch (NotFoundException n) {
             // Can occur if the user was dropped by another thread after the null check.
             securityLog.debug(String.format("User '%s' not found", username));
-            return null;
-        }
-    }
-
-    /**
-     * Lookup a user information from user id, returns null if the user does not exist.
-     *
-     * @param uuid user id
-     * @return user record containing user and auth information
-     */
-    public User getUserById(String uuid) {
-        securityLog.debug(String.format("Looking up user with id '%s'", uuid));
-        if (uuid == null) {
-            securityLog.debug("Cannot look up user with id = null");
-            return null;
-        }
-        try (var tx = systemSupplier.get().beginTx()) {
-            Node userNode = tx.findNode(USER_LABEL, USER_ID_PROPERTY, uuid);
-            if (userNode == null) {
-                securityLog.debug(String.format("User with id '%s' not found", uuid));
-                return null;
-            }
-            return getUser(userNode);
-        } catch (NotFoundException n) {
-            // Can occur if the user was dropped by another thread after the null check.
-            securityLog.debug(String.format("User with id '%s' not found", uuid));
             return null;
         }
     }

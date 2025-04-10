@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_EXPIRED_PROPERTY;
 import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_CREDENTIALS_PROPERTY;
 import static org.neo4j.dbms.systemgraph.SecurityGraphDbmsModel.USER_ID_PROPERTY;
@@ -62,17 +63,19 @@ public class SecurityGraphHelperTest {
         securityLog = mock(AbstractSecurityLog.class);
         securityGraphHelper =
                 new SecurityGraphHelper(Suppliers.lazySingleton(() -> system), new SecureHasher(), securityLog);
+        when(securityLog.isDebugEnabled()).thenReturn(true);
     }
 
     @Test
-    void getUserByIdShouldReturnNullUserIdIsNull() {
+    void getUserByNameShouldReturnNullUserIdIsNull() {
         // WHEN
-        User result = securityGraphHelper.getUserById(null);
+        User result = securityGraphHelper.getUserByName(null);
 
         // THEN
         assertThat(result).isNull();
-        verify(securityLog).debug("Looking up user with id 'null'");
-        verify(securityLog).debug("Cannot look up user with id = null");
+        verify(securityLog).debug("Looking up user 'null'");
+        verify(securityLog).debug("Cannot look up user 'null'");
+        verify(securityLog).isDebugEnabled();
         verifyNoMoreInteractions(securityLog);
     }
 
@@ -83,16 +86,17 @@ public class SecurityGraphHelperTest {
         createUser(new User("alice", "userId", credential, false, false));
 
         // WHEN
-        User result = securityGraphHelper.getUserById("userId");
+        User result = securityGraphHelper.getUserByName("alice");
 
         // THEN
         assertThat(result.id()).isEqualTo("userId");
         assertThat(result.name()).isEqualTo("alice");
         assertThat(result.auth()).isEqualTo(Set.of(new User.Auth(NATIVE_AUTH, "userId")));
-        verify(securityLog).debug("Looking up user with id 'userId'");
+        verify(securityLog).debug("Looking up user 'alice'");
         verify(securityLog)
                 .debug(
                         "Found user: User[name=alice, id=userId, credential=*****, passwordChangeRequired=false, suspended=false, auth=[Auth[provider=native, id=userId]]]");
+        verify(securityLog).isDebugEnabled();
         verifyNoMoreInteractions(securityLog);
     }
 
@@ -102,28 +106,30 @@ public class SecurityGraphHelperTest {
         createUser(new User("alice", "userId", null, false, false));
 
         // WHEN
-        User result = securityGraphHelper.getUserById("userId");
+        User result = securityGraphHelper.getUserByName("alice");
 
         // THEN
         assertThat(result.id()).isEqualTo("userId");
         assertThat(result.name()).isEqualTo("alice");
         assertThat(result.auth()).isEqualTo(Set.of());
-        verify(securityLog).debug("Looking up user with id 'userId'");
+        verify(securityLog).debug("Looking up user 'alice'");
         verify(securityLog)
                 .debug(
                         "Found user: User[name=alice, id=userId, credential=null, passwordChangeRequired=false, suspended=false, auth=[]]");
+        verify(securityLog).isDebugEnabled();
         verifyNoMoreInteractions(securityLog);
     }
 
     @Test
     void getUserByIdShouldReturnNullWhenUserDoesNotExist() {
         // WHEN
-        User result = securityGraphHelper.getUserById("userId");
+        User result = securityGraphHelper.getUserByName("alice");
 
         // THEN
         assertThat(result).isNull();
-        verify(securityLog).debug("Looking up user with id 'userId'");
-        verify(securityLog).debug("User with id 'userId' not found");
+        verify(securityLog).debug("Looking up user 'alice'");
+        verify(securityLog).debug("User 'alice' not found");
+        verify(securityLog).isDebugEnabled();
         verifyNoMoreInteractions(securityLog);
     }
 
