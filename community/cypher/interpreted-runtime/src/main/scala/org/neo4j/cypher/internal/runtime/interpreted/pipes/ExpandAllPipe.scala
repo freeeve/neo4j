@@ -34,11 +34,13 @@ import org.neo4j.values.virtual.VirtualValues
 case class ExpandAllPipe(
   source: Pipe,
   fromName: String,
-  relName: String,
-  toName: String,
+  relName: Option[String],
+  toName: Option[String],
   dir: SemanticDirection,
   types: RelationshipTypes
 )(val id: Id = Id.INVALID_ID) extends PipeWithSource(source) {
+
+  private val writer = Expands.compileWriter(relName, toName)
 
   protected def internalCreateResults(
     input: ClosingIterator[CypherRow],
@@ -53,19 +55,17 @@ case class ExpandAllPipe(
               relationships,
               relId => {
                 val other = relationships.otherNodeId(n.id())
-                rowFactory.copyWith(
+                writer.writeRow(
+                  rowFactory,
                   row,
-                  relName,
                   VirtualValues.relationship(
                     relId,
                     relationships.startNodeId(),
                     relationships.endNodeId(),
                     relationships.typeId()
                   ),
-                  toName,
                   VirtualValues.node(other)
                 )
-
               }
             )
           case IsNoValue() => ClosingIterator.empty

@@ -38,11 +38,12 @@ import org.neo4j.values.virtual.VirtualValues
 abstract class OptionalExpandAllPipe(
   source: Pipe,
   fromName: String,
-  relName: String,
-  toName: String,
+  relName: Option[String],
+  toName: Option[String],
   dir: SemanticDirection,
   types: RelationshipTypes
 ) extends PipeWithSource(source) {
+  protected val writer = Expands.compileWriter(relName, toName)
 
   protected def internalCreateResults(
     input: ClosingIterator[CypherRow],
@@ -89,8 +90,7 @@ abstract class OptionalExpandAllPipe(
   ): ClosingIterator[CypherRow]
 
   private def withNulls(row: CypherRow) = {
-    row.set(relName, Values.NO_VALUE, toName, Values.NO_VALUE)
-    row
+    writer.writeRow(rowFactory, row, Values.NO_VALUE, Values.NO_VALUE)
   }
 
   def getFromNode(row: CypherRow): AnyValue = row.getByName(fromName)
@@ -101,8 +101,8 @@ object OptionalExpandAllPipe {
   def apply(
     source: Pipe,
     fromName: String,
-    relName: String,
-    toName: String,
+    relName: Option[String],
+    toName: Option[String],
     dir: SemanticDirection,
     types: RelationshipTypes,
     maybePredicate: Option[Expression]
@@ -115,8 +115,8 @@ object OptionalExpandAllPipe {
 case class NonFilteringOptionalExpandAllPipe(
   source: Pipe,
   fromName: String,
-  relName: String,
-  toName: String,
+  relName: Option[String],
+  toName: Option[String],
   dir: SemanticDirection,
   types: RelationshipTypes
 )(val id: Id = Id.INVALID_ID)
@@ -132,11 +132,10 @@ case class NonFilteringOptionalExpandAllPipe(
       relationships,
       r => {
         val other = relationships.otherNodeId(n.id())
-        rowFactory.copyWith(
+        writer.writeRow(
+          rowFactory,
           row,
-          relName,
           VirtualValues.relationship(r, relationships.startNodeId(), relationships.endNodeId(), relationships.typeId()),
-          toName,
           VirtualValues.node(other)
         )
       }
@@ -147,8 +146,8 @@ case class NonFilteringOptionalExpandAllPipe(
 case class FilteringOptionalExpandAllPipe(
   source: Pipe,
   fromName: String,
-  relName: String,
-  toName: String,
+  relName: Option[String],
+  toName: Option[String],
   dir: SemanticDirection,
   types: RelationshipTypes,
   predicate: Expression
@@ -166,11 +165,10 @@ case class FilteringOptionalExpandAllPipe(
       relationships,
       r => {
         val other = relationships.otherNodeId(n.id())
-        rowFactory.copyWith(
+        writer.writeRow(
+          rowFactory,
           row,
-          relName,
           VirtualValues.relationship(r, relationships.startNodeId(), relationships.endNodeId(), relationships.typeId()),
-          toName,
           VirtualValues.node(other)
         )
       }

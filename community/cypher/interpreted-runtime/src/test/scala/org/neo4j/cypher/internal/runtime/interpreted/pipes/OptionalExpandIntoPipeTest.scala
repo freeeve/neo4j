@@ -48,7 +48,7 @@ class OptionalExpandIntoPipeTest extends CypherFunSuite {
 
     val input = FakePipe(Seq(Map("a" -> nodeValue, "b" -> nodeValue)))
     val pipe =
-      OptionalExpandIntoPipe(input, "a", "r", "b", SemanticDirection.OUTGOING, new EagerTypes(Array(0)), None)()
+      OptionalExpandIntoPipe(input, "a", Some("r"), "b", SemanticDirection.OUTGOING, new EagerTypes(Array(0)), None)()
     // exhaust
     pipe.createResults(state).toList
     input.wasClosed shouldBe true
@@ -71,7 +71,7 @@ class OptionalExpandIntoPipeTest extends CypherFunSuite {
 
     val input = FakePipe(Seq(Map("a" -> nodeValue, "b" -> nodeValue)))
     val pipe =
-      OptionalExpandIntoPipe(input, "a", "r", "b", SemanticDirection.OUTGOING, new EagerTypes(Array(0)), None)()
+      OptionalExpandIntoPipe(input, "a", Some("r"), "b", SemanticDirection.OUTGOING, new EagerTypes(Array(0)), None)()
     val result = pipe.createResults(state)
     result.hasNext shouldBe true // Need to initialize to get cursor registered
     result.close()

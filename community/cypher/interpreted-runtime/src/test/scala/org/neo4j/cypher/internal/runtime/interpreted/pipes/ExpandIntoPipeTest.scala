@@ -45,7 +45,7 @@ class ExpandIntoPipeTest extends CypherFunSuite {
     Mockito.when(state.query.nodeCursor()).thenReturn(nodeCursor)
 
     val input = new FakePipe(Seq(Map("a" -> newMockedNode(10), "b" -> newMockedNode(20))))
-    val pipe = ExpandIntoPipe(input, "a", "r", "b", SemanticDirection.OUTGOING, new EagerTypes(Array(0)))()
+    val pipe = ExpandIntoPipe(input, "a", Some("r"), "b", SemanticDirection.OUTGOING, new EagerTypes(Array(0)))()
     // exhaust
     pipe.createResults(state).toList
     input.wasClosed shouldBe true
@@ -65,7 +65,7 @@ class ExpandIntoPipeTest extends CypherFunSuite {
     Mockito.when(state.query.nodeCursor()).thenReturn(nodeCursor)
 
     val input = new FakePipe(Seq(Map("a" -> newMockedNode(10), "b" -> newMockedNode(20))))
-    val pipe = ExpandIntoPipe(input, "a", "r", "b", SemanticDirection.OUTGOING, new EagerTypes(Array(0)))()
+    val pipe = ExpandIntoPipe(input, "a", Some("r"), "b", SemanticDirection.OUTGOING, new EagerTypes(Array(0)))()
     val result = pipe.createResults(state)
     result.hasNext shouldBe true // Need to initialize to get cursor registered
     result.close()

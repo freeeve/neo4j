@@ -34,6 +34,7 @@ import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.CartesianProduct
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipByIdSeek
 import org.neo4j.cypher.internal.logical.plans.Expand
+import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -239,15 +240,16 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
       SemanticDirection.INCOMING,
       Seq(),
       varFor("b"),
-      varFor("r1")
+      varFor("r1"),
+      ExpandAll
     )(idGen)
     val pipe = build(logicalPlan)
 
     pipe should equal(ExpandAllPipe(
       AllNodesScanPipe("a")(),
       "a",
-      "r1",
-      "b",
+      Some("r1"),
+      Some("b"),
       SemanticDirection.INCOMING,
       RelationshipTypes.empty
     )())
@@ -267,7 +269,14 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
     val pipe = build(logicalPlan)
 
     val inner: Pipe =
-      ExpandIntoPipe(AllNodesScanPipe("a")(), "a", "r", "a", SemanticDirection.INCOMING, RelationshipTypes.empty)()
+      ExpandIntoPipe(
+        AllNodesScanPipe("a")(),
+        "a",
+        Some("r"),
+        "a",
+        SemanticDirection.INCOMING,
+        RelationshipTypes.empty
+      )()
 
     pipe should equal(inner)
   }
@@ -281,7 +290,8 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
         Seq(),
         varFor("a"),
         varFor("r"),
-        ExpandInto
+        ExpandInto,
+        None
       )(idGen)
     val pipe = build(logicalPlan)
 
@@ -289,7 +299,7 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
       OptionalExpandIntoPipe(
         AllNodesScanPipe("a")(),
         "a",
-        "r",
+        Some("r"),
         "a",
         SemanticDirection.INCOMING,
         RelationshipTypes.empty,
@@ -308,7 +318,8 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
           SemanticDirection.INCOMING,
           Seq(),
           varFor("b"),
-          varFor("r1")
+          varFor("r1"),
+          ExpandAll
         ),
         Expand(
           AllNodesScan(varFor("c"), Set.empty),
@@ -316,15 +327,30 @@ class InterpretedPipeMapperIT extends CypherFunSuite with AstConstructionTestSup
           SemanticDirection.INCOMING,
           Seq(),
           varFor("b"),
-          varFor("r2")
+          varFor("r2"),
+          ExpandAll
         )
       )
     val pipe = build(logicalPlan)
 
     pipe should equal(NodeHashJoinPipe(
       Set("b"),
-      ExpandAllPipe(AllNodesScanPipe("a")(), "a", "r1", "b", SemanticDirection.INCOMING, RelationshipTypes.empty)(),
-      ExpandAllPipe(AllNodesScanPipe("c")(), "c", "r2", "b", SemanticDirection.INCOMING, RelationshipTypes.empty)()
+      ExpandAllPipe(
+        AllNodesScanPipe("a")(),
+        "a",
+        Some("r1"),
+        Some("b"),
+        SemanticDirection.INCOMING,
+        RelationshipTypes.empty
+      )(),
+      ExpandAllPipe(
+        AllNodesScanPipe("c")(),
+        "c",
+        Some("r2"),
+        Some("b"),
+        SemanticDirection.INCOMING,
+        RelationshipTypes.empty
+      )()
     )())
   }
 

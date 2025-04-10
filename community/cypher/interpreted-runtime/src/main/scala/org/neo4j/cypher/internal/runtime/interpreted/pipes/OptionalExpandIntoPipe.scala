@@ -41,7 +41,7 @@ import scala.collection.mutable.ListBuffer
 case class OptionalExpandIntoPipe(
   source: Pipe,
   fromName: String,
-  relName: String,
+  maybeRelName: Option[String],
   toName: String,
   dir: SemanticDirection,
   types: RelationshipTypes,
@@ -71,7 +71,7 @@ case class OptionalExpandIntoPipe(
 
             toNode match {
               case IsNoValue() =>
-                row.set(relName, Values.NO_VALUE)
+                maybeRelName.foreach(relName => row.set(relName, Values.NO_VALUE))
                 ClosingIterator.single(row)
               case n: VirtualNodeValue =>
                 val traversalCursor = query.traversalCursor()
@@ -96,22 +96,26 @@ case class OptionalExpandIntoPipe(
                   // This is exhausting relationships directly, thus we do not need to return
                   // a ClosingIterator in this flatMap.
                   while (relationships.hasNext) {
-                    val candidateRow = rowFactory.copyWith(
-                      row,
-                      relName,
-                      VirtualValues.relationship(
-                        relationships.next(),
-                        relationships.startNodeId(),
-                        relationships.endNodeId(),
-                        relationships.typeId()
+                    val nextRel = relationships.next()
+                    val candidateRow = maybeRelName.map(relName =>
+                      rowFactory.copyWith(
+                        row,
+                        relName,
+                        VirtualValues.relationship(
+                          nextRel,
+                          relationships.startNodeId(),
+                          relationships.endNodeId(),
+                          relationships.typeId()
+                        )
                       )
-                    )
+                    ).getOrElse(rowFactory.copyWith(row))
+
                     if (predicate.forall(p => p(candidateRow, state) eq Values.TRUE)) {
                       filteredRows += candidateRow
                     }
                   }
                   if (filteredRows.isEmpty) {
-                    row.set(relName, Values.NO_VALUE)
+                    maybeRelName.foreach(relName => row.set(relName, Values.NO_VALUE))
                     ClosingIterator.single(row)
                   } else filteredRows.asClosingIterator
                 } finally {
@@ -120,7 +124,7 @@ case class OptionalExpandIntoPipe(
             }
 
           case IsNoValue() =>
-            row.set(relName, Values.NO_VALUE)
+            maybeRelName.foreach(relName => row.set(relName, Values.NO_VALUE))
             ClosingIterator.single(row)
         }
     }.closing(expandInto)

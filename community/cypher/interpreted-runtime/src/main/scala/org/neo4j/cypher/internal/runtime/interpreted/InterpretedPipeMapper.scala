@@ -1264,28 +1264,58 @@ case class InterpretedPipeMapper(
       case RemoteBatchProperties(_, _) =>
         source // TODO: implement
 
-      case Expand(_, fromName, dir, types: Seq[internal.expressions.RelTypeName], toName, relName, ExpandAll) =>
-        ExpandAllPipe(source, fromName.name, relName.name, toName.name, dir, RelationshipTypes(types.toArray))(id = id)
+      case Expand(
+          _,
+          fromName,
+          dir,
+          types: Seq[internal.expressions.RelTypeName],
+          maybeToName,
+          maybeRelName,
+          ExpandAll
+        ) =>
+        ExpandAllPipe(
+          source,
+          fromName.name,
+          maybeRelName.map(_.name),
+          maybeToName.map(_.name),
+          dir,
+          RelationshipTypes(types.toArray)
+        )(id = id)
 
-      case Expand(_, fromName, dir, types: Seq[internal.expressions.RelTypeName], toName, relName, ExpandInto) =>
-        ExpandIntoPipe(source, fromName.name, relName.name, toName.name, dir, RelationshipTypes(types.toArray))(id = id)
+      case Expand(
+          _,
+          fromName,
+          dir,
+          types: Seq[internal.expressions.RelTypeName],
+          Some(toName),
+          maybeRelName,
+          ExpandInto
+        ) =>
+        ExpandIntoPipe(
+          source,
+          fromName.name,
+          maybeRelName.map(_.name),
+          toName.name,
+          dir,
+          RelationshipTypes(types.toArray)
+        )(id = id)
 
-      case OptionalExpand(_, fromName, dir, types, toName, relName, ExpandAll, predicate) =>
+      case OptionalExpand(_, fromName, dir, types, maybeToName, maybeRelName, ExpandAll, predicate) =>
         OptionalExpandAllPipe(
           source,
           fromName.name,
-          relName.name,
-          toName.name,
+          maybeRelName.map(_.name),
+          maybeToName.map(_.name),
           dir,
           RelationshipTypes(types.toArray),
           predicate.map(buildExpression)
         )(id = id)
 
-      case OptionalExpand(_, fromName, dir, types, toName, relName, ExpandInto, predicate) =>
+      case OptionalExpand(_, fromName, dir, types, Some(toName), maybeRelName, ExpandInto, predicate) =>
         OptionalExpandIntoPipe(
           source,
           fromName.name,
-          relName.name,
+          maybeRelName.map(_.name),
           toName.name,
           dir,
           RelationshipTypes(types.toArray),

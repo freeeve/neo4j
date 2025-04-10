@@ -56,7 +56,7 @@ import org.neo4j.values.virtual.VirtualValues
 case class ExpandIntoPipe(
   source: Pipe,
   fromName: String,
-  relName: String,
+  maybeRelName: Option[String],
   toName: String,
   dir: SemanticDirection,
   lazyTypes: RelationshipTypes
@@ -111,16 +111,18 @@ case class ExpandIntoPipe(
                   else PrimitiveLongHelper.map(
                     relationships,
                     r =>
-                      rowFactory.copyWith(
-                        row,
-                        relName,
-                        VirtualValues.relationship(
-                          r,
-                          relationships.startNodeId(),
-                          relationships.endNodeId(),
-                          relationships.typeId()
+                      maybeRelName.map(relName =>
+                        rowFactory.copyWith(
+                          row,
+                          relName,
+                          VirtualValues.relationship(
+                            r,
+                            relationships.startNodeId(),
+                            relationships.endNodeId(),
+                            relationships.typeId()
+                          )
                         )
-                      )
+                      ).getOrElse(row)
                   )
                 } finally {
                   nodeCursor.close()
