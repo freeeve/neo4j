@@ -20,16 +20,10 @@
 package org.neo4j.kernel.impl.transaction.log.entry;
 
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.impl.transaction.log.entry.vGloriousFuture.StartLogEntrySerializerVGloriousFuture;
 
 class LogEntrySerializationSetV5_25 extends LogEntrySerializationSetV5_23 {
     LogEntrySerializationSetV5_25() {
         this(KernelVersion.V5_25);
-
-        // When using the envelope profile to test before GA
-        if (KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED.version() == KernelVersion.V5_25.version()) {
-            register(new StartLogEntrySerializerVGloriousFuture(), true);
-        }
     }
 
     LogEntrySerializationSetV5_25(KernelVersion kernelVersion) {
