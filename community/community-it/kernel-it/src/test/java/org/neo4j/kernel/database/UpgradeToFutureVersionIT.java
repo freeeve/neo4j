@@ -59,10 +59,14 @@ import org.neo4j.test.Race;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.UpgradeTestUtil;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.util.concurrent.BinaryLatch;
 
+@SkipOnSpd(
+        reason =
+                "Assertions revolve around a single 'upgrade' command. In SPD commands are wrapped and there's one per shard too")
 @TestDirectoryExtension
 class UpgradeToFutureVersionIT {
     @Inject
