@@ -42,6 +42,7 @@ import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension
 class ReadTracingIT {
@@ -54,6 +55,7 @@ class ReadTracingIT {
     private final String indexName = "indexName";
     private final RelationshipType type = RelationshipType.withName("type");
 
+    @SkipOnSpd(reason = "Index page pins will happen on property shards, not graph shard")
     @Test
     void tracePageCacheAccessOnNodeIndexSeek() throws KernelException {
         createNodeConstraint();
@@ -126,6 +128,7 @@ class ReadTracingIT {
         }
     }
 
+    @SkipOnSpd(reason = "Index page pins will happen on property shards, not graph shard")
     @Test
     void tracePageCacheAccessOnNodeIndexScan() throws KernelException {
         createNodeConstraint();
