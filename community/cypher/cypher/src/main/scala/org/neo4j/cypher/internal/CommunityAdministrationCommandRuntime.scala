@@ -462,7 +462,7 @@ case class CommunityAdministrationCommandRuntime(
             }
             .handleResult((_, value, _) => {
               if (value eq BooleanValue.TRUE) Continue
-              else ThrowException(new AuthorizationViolationException("`ALTER CURRENT USER` is not permitted."))
+              else ThrowException(AuthorizationViolationException.alterCurrentUserNotAllowed())
             }),
           parameterTransformer = ParameterTransformer((_, securityContext, _) =>
             VirtualValues.map(

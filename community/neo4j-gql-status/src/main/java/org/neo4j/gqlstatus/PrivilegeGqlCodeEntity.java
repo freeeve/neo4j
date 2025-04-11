@@ -19,6 +19,8 @@
  */
 package org.neo4j.gqlstatus;
 
+import java.util.List;
+
 /*
  Represents those privilege entities for which GQL codes exist for these error scenarios:
  |              | already exists | doesn't exist |
@@ -64,6 +66,13 @@ public enum PrivilegeGqlCodeEntity {
         };
     }
 
+    public static ErrorGqlStatusObject databasesAlreadyExists(List<String> names) {
+        var cause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N11)
+                .withParam(GqlParams.ListParam.dbList, names)
+                .build();
+        return invalidReference(cause);
+    }
+
     private static ErrorGqlStatusObject invalidReference(ErrorGqlStatusObject cause) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
                 .withCause(cause)
@@ -102,7 +111,7 @@ public enum PrivilegeGqlCodeEntity {
 
     private static ErrorGqlStatusObject databaseAlreadyExists(String name) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N11)
-                .withParam(GqlParams.StringParam.db, name)
+                .withParam(GqlParams.ListParam.dbList, List.of(name))
                 .build();
     }
 }

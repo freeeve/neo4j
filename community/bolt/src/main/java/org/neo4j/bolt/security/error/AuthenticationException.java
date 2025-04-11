@@ -36,14 +36,6 @@ public class AuthenticationException extends IOException implements Status.HasSt
         this(gqlStatusObject, status, status.code().description(), null);
     }
 
-    @Deprecated
-    public AuthenticationException(Status status, String message) {
-        super(message, null);
-        this.status = status;
-        gqlStatusObject = null;
-        oldMessage = message;
-    }
-
     public AuthenticationException(ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
         this(gqlStatusObject, status, message, null);
     }

@@ -46,11 +46,6 @@ public final class ErrorValue extends VirtualValue {
             shallowSizeOfInstance(ErrorValue.class) + INVALID_ARGUMENT_EXCEPTION_SHALLOW_SIZE;
     private final InvalidArgumentException e;
 
-    @Deprecated
-    ErrorValue(Exception e) {
-        this.e = new InvalidArgumentException(e.getMessage());
-    }
-
     ErrorValue(ErrorGqlStatusObject gqlStatusObject, Exception e) {
         this.e = new InvalidArgumentException(gqlStatusObject, e.getMessage());
     }

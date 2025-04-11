@@ -114,11 +114,6 @@ public final class VirtualValues {
         return new MapValue.MapWrappingMapValue(map, mapSize, payloadSize);
     }
 
-    @Deprecated
-    public static ErrorValue error(Exception e) {
-        return new ErrorValue(e);
-    }
-
     public static ErrorValue error(ErrorGqlStatusObject gqlStatusObject, Exception e) {
         return new ErrorValue(gqlStatusObject, e);
     }

@@ -3197,8 +3197,8 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             new GqlStatus("42N11"),
             """
                     A graph reference with the name { %s } already exists.""",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.db},
-            emptyMap(),
+            new GqlParams.GqlParam[] {GqlParams.ListParam.dbList},
+            Map.of(GqlParams.ListParam.dbList, GqlParams.JoinStyle.ORED),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "graph reference already exists",
             ErrorClassification.CLIENT_ERROR),

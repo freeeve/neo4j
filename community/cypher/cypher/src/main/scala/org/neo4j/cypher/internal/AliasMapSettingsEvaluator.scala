@@ -83,9 +83,7 @@ class AliasMapSettingsEvaluator(procedures: Procedures, cypherVersion: CypherVer
       evaluateMap(params).applyOrElse(
         settings.map(param => params.get(param.name)),
         (param: ExpressionMapOrParamValue) =>
-          throw new InvalidArgumentsException(
-            s"Failed to $operation: Invalid properties '${param.toOption.get}'. Expected a map value."
-          )
+          throw InvalidArgumentsException.invalidPropertiesExpectedMap(operation, param.toOption.get)
       )
     )
   }

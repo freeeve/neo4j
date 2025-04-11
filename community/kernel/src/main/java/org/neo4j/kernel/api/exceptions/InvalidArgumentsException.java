@@ -19,7 +19,9 @@
  */
 package org.neo4j.kernel.api.exceptions;
 
+import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.gqlstatus.GqlHelper.getGql22G03_22N27;
+import static org.neo4j.gqlstatus.PrivilegeGqlCodeEntity.databasesAlreadyExists;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,9 +59,20 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         this.status = Status.General.InvalidArguments;
     }
 
+    @Override
+    public Status status() {
+        return status;
+    }
+
     public static InvalidArgumentsException internalError(String msgTitle, String message) {
         var gql = GqlHelper.get50N00(msgTitle, message);
         return new InvalidArgumentsException(gql, message);
+    }
+
+    public static InvalidArgumentsException databaseAlreadyExistsInSystemDb(String defaultName) {
+        return new InvalidArgumentsException(
+                databasesAlreadyExists(List.of(defaultName, SYSTEM_DATABASE_NAME)),
+                "The specified database '" + defaultName + "' or '" + SYSTEM_DATABASE_NAME + "' already exists.");
     }
 
     public static InvalidArgumentsException invalidProcedureArgument(
@@ -119,11 +132,6 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
                 .withParam(GqlParams.StringParam.item, field)
                 .build();
         return new InvalidArgumentsException(gql, String.format("The provided %s is empty.", field.toLowerCase()));
-    }
-
-    @Override
-    public Status status() {
-        return status;
     }
 
     private static ErrorGqlStatusObject getIdxGql(MapValue itemsMap, java.util.List<String> validConfigSettingNames) {
@@ -386,6 +394,11 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         var oldMsg =
                 String.format("Failed to %s: Invalid driver settings '%s'. Expected a map value.", operation, input);
         return invalidInput(input, GqlParams.StringParam.cmd.process("DRIVER"), List.of("MAP"), oldMsg);
+    }
+
+    public static InvalidArgumentsException invalidPropertiesExpectedMap(String operation, AnyValue input) {
+        var oldMsg = String.format("Failed to %s: Invalid properties '%s'. Expected a map value.", operation, input);
+        return invalidInput(input, GqlParams.StringParam.cmd.process("PROPERTIES"), List.of("MAP"), oldMsg);
     }
 
     public static InvalidArgumentsException unexpectedDriverSettingValue(

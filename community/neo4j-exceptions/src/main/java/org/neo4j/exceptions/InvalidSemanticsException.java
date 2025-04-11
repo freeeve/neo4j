@@ -33,11 +33,6 @@ public class InvalidSemanticsException extends Neo4jException {
         super(gqlStatusObject, message, cause);
     }
 
-    @Deprecated
-    public InvalidSemanticsException(String message) {
-        super(message);
-    }
-
     private InvalidSemanticsException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }

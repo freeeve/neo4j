@@ -42,12 +42,6 @@ public class AuthorizationViolationException extends GqlRuntimeException impleme
         this.statusCode = statusCode;
     }
 
-    @Deprecated
-    public AuthorizationViolationException(String message) {
-        super(message);
-        statusCode = Status.Security.Forbidden;
-    }
-
     private AuthorizationViolationException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
         statusCode = Status.Security.Forbidden;
@@ -66,6 +60,12 @@ public class AuthorizationViolationException extends GqlRuntimeException impleme
                 .build();
 
         return new AuthorizationViolationException(gql, oldMessage, Status.Security.CredentialsExpired);
+    }
+
+    public static AuthorizationViolationException alterCurrentUserNotAllowed() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .build();
+        return new AuthorizationViolationException(gql, "`ALTER CURRENT USER` is not permitted.");
     }
 
     public static AuthorizationViolationException impersonationDisallowed(String oldMessage) {

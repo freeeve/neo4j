@@ -116,8 +116,7 @@ public class DefaultSystemGraphComponent extends AbstractSystemGraphComponent {
             createDatabaseNode(tx, SYSTEM_DATABASE_NAME, SYSTEM_DATABASE_ID.uuid(), now, languageVersion);
             tx.commit();
         } catch (ConstraintViolationException e) {
-            throw new InvalidArgumentsException("The specified database '" + defaultDbName.name() + "' or '"
-                    + SYSTEM_DATABASE_NAME + "' already exists.");
+            throw InvalidArgumentsException.databaseAlreadyExistsInSystemDb(defaultDbName.name());
         }
     }
 

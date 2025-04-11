@@ -290,4 +290,17 @@ object GqlExceptionMatchers extends GqlExceptionMatchers {
       )
     )
   }
+
+  def typeExceptionGqlException(legacyMsg: String, msgPart: String): BeMatcher[Exception] = {
+    gqlException(
+      legacyMsg,
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22G03,
+        "error: data exception - invalid value type"
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_22N27,
+        s"error: data exception - invalid entity type. $msgPart"
+      )
+    )
+  }
 }
