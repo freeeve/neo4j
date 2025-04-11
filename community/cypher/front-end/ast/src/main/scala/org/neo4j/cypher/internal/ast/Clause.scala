@@ -997,7 +997,7 @@ case class Match(
   private val patternStringifier = PatternStringifier(expressionStringifier)
 
   /**
-   * A selective path pattern is not allowed to have predicates referencing element variables that are declared in another path pattern in the same graph pattern.
+   * A selective path pattern is not allowed to have predicates referencing element variables that are defined in another path pattern in the same graph pattern.
    * It is allowed when the referenced variable is already bound by a previous clause.
    */
   private def checkSelectivePathPatternPredicates(
@@ -1010,32 +1010,46 @@ case class Match(
 
     val variablesDefinedInPreviousClauses = symbolDefinitions.filterNot(variablesInPattern.map(SymbolUse(_)))
     val selectivePatternPartWithReferences = pattern.patternParts.collect {
-      case patternPart if patternPart.selector.isSelective =>
-        val singletons = patternPart.folder.treeCollect {
-          case QuantifiedPath(_, _, _, groupings) => groupings.map(_.singleton)
+      case patternPart if patternPart.isSelective =>
+        // `patternPart` is a selective path pattern therefore, we must make sure that all its dependencies are either internal or defined in previous clauses
+
+        val variablesDefinedInsideThisPatternPart = {
+          val singletons = patternPart.folder.treeCollect {
+            case QuantifiedPath(_, _, _, groupings) => groupings.map(_.singleton)
+          }
+
+          // allVariables contains all variables defined in this path pattern that are accessible from outside the path pattern
+          patternPart.allVariables ++
+            // ... whereas dependencies of the path pattern could also stem from inside a QPP and might reference the QPP's singletons.
+            // We therefore also include the singletons in the comparison.
+            // While singletons look the same as the grouping variables when writing the query, the Namespacer separates the two.
+            // Checks that the singletons are disjoint among each other and are not referenced from outside the QPP are done as part of other semantic checks.
+            singletons.flatten
         }
+
         PatternPartWithReferences(
           patternStringifier(patternPart),
-          patternPart.dependencies
-          // allowed: references to current pattern variables are allowed
-          -- patternPart.allVariables
-          // allowed: references inside QPPs to variables inside the QPP. Disallowing accessing these from outside is handled elsewhere.
-          -- singletons.flatten
-          // allowed: references to previously bounded variables
-          -- variablesDefinedInPreviousClauses.map(_.asVariable)
+          invalidReferences =
+            patternPart.dependencies
+              // allowed: references to variables in current path pattern
+              .filterNot(variablesDefinedInsideThisPatternPart)
+              // allowed: references to previously bounded variables
+              .filterNot(variablesDefinedInPreviousClauses.map(_.asVariable))
         )
     }
 
-    selectivePatternPartWithReferences.filter(_.invalidReferences.nonEmpty).map(errorDetails => {
-      val invalidVars = errorDetails.invalidReferences.map(_.name)
-      SemanticError.invalidReferenceInParenthesizedPathPatternPredicate(
-        errorDetails.patternString,
-        invalidVars,
-        errorDetails.invalidReferences.head.position,
-        s"""From within a selective path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
-           |In this case, `${invalidVars.head}` is defined in the same `MATCH` clause as ${errorDetails.patternString}.""".stripMargin
-      )
-    })
+    selectivePatternPartWithReferences
+      .filter(_.invalidReferences.nonEmpty)
+      .map { errorDetails =>
+        val invalidVars = errorDetails.invalidReferences.map(_.name)
+        SemanticError.invalidReferenceInParenthesizedPathPatternPredicate(
+          errorDetails.patternString,
+          invalidVars,
+          errorDetails.invalidReferences.head.position,
+          s"""From within a selective path pattern, one may only reference variables, that are already bound in a previous `MATCH` clause.
+             |In this case, `${invalidVars.head}` is defined in the same `MATCH` clause as ${errorDetails.patternString}.""".stripMargin
+        )
+      }
   }
 
   /**
