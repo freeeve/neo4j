@@ -479,7 +479,7 @@ class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunS
     planner.planContext.statistics.nodesAllCardinality().amount shouldEqual 200
   }
 
-  test("should provide relationship endpoint label constraints if specified in the configuration") {
+  test("should allow relationship endpoint label constraints to be overridden") {
     val planner = plannerBuilder()
       .setAllNodesCardinality(100)
       .addRelationshipEndpointLabelConstraint("()-[:REL]-(:StartAndEnd)")
@@ -494,13 +494,33 @@ class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunS
       )
   }
 
+  test("should allow start and end relationship endpoint label constraints to be specified at once") {
+
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .addRelationshipEndpointLabelConstraint("(:End)<-[:REL]-(:Start)")
+      .build()
+
+    planner.planContext.getRelationshipEndpointLabelConstraints("REL") shouldEqual
+      Map(
+        EndpointType.START -> "Start",
+        EndpointType.END -> "End"
+      )
+  }
+
   test("should fail on invalid relationship endpoint label constraints") {
-    val exception = the[IllegalArgumentException] thrownBy {
+    (the[IllegalArgumentException] thrownBy {
       plannerBuilder()
-        .addRelationshipEndpointLabelConstraint("(:End)<-[:REL]-(:Start)")
-    }
-    exception.getMessage should equal(
-      "Invalid relationship pattern `(:Start)-[:REL]->(:End)` for relationship endpoint constraint. Expected relationship type and exactly one of the labels to be set."
+        .addRelationshipEndpointLabelConstraint("()<-[:REL]-()")
+    }).getMessage should equal(
+      "Invalid relationship pattern `()-[:REL]->()` for relationship endpoint constraint. Expected relationship type and at least one of the labels to be set."
+    )
+
+    (the[IllegalArgumentException] thrownBy {
+      plannerBuilder()
+        .addRelationshipEndpointLabelConstraint("(:End)<-[]-()")
+    }).getMessage should equal(
+      "Invalid relationship pattern `()-[]->(:End)` for relationship endpoint constraint. Expected relationship type and at least one of the labels to be set."
     )
   }
 
@@ -513,5 +533,6 @@ class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunS
 
     planner.planContext.getNodeLabelConstraints("Constrained") shouldEqual Set("Implied", "Implied2")
     planner.planContext.hasNodeLabelConstraint("Constrained", "Implied") shouldEqual true
+    planner.planContext.hasNodeLabelConstraint("Constrained", "Implied2") shouldEqual true
   }
 }

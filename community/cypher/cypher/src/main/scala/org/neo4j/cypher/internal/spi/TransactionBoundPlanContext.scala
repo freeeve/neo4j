@@ -550,10 +550,10 @@ class TransactionBoundPlanContext(
 
   override def getNodeLabelConstraints(constrainedLabel: String): Set[String] =
     try {
-      val labelName = getLabelId(constrainedLabel)
+      val labelId = getLabelId(constrainedLabel)
 
       tc.schemaRead
-        .constraintsGetForLabelNonLocking(labelName).asScala
+        .constraintsGetForLabelNonLocking(labelId).asScala
         .filter(_.isNodeLabelExistenceConstraint)
         .map(_.asNodeLabelExistenceConstraint())
         .map(_.requiredLabelId())

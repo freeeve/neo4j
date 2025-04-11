@@ -50,9 +50,6 @@ import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlannin
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.PropertyTypeDefinition
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelDef
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelationshipEndpointLabelConstraintDefinition
-import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelationshipEndpointLabelConstraintDefinition.EndPoint
-import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelationshipEndpointLabelConstraintDefinition.EndPoint.End
-import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelationshipEndpointLabelConstraintDefinition.EndPoint.Start
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.defaultSettingsOverrides
 import org.neo4j.cypher.internal.compiler.planner.logical.QueryGraphSolver
 import org.neo4j.cypher.internal.compiler.planner.logical.SimpleMetricsFactory
@@ -281,17 +278,8 @@ object StatisticsBackedLogicalPlanningConfigurationBuilder {
   case class RelationshipEndpointLabelConstraintDefinition(
     relType: String,
     label: String,
-    endPoint: EndPoint
+    endPoint: EndpointType
   )
-
-  object RelationshipEndpointLabelConstraintDefinition {
-    sealed trait EndPoint
-
-    object EndPoint {
-      case object Start extends EndPoint
-      case object End extends EndPoint
-    }
-  }
 
   def getProvidesOrder(indexType: IndexType): IndexOrderCapability = indexType match {
     case FULLTEXT => IndexOrderCapability.NONE
@@ -578,7 +566,7 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
   def addRelationshipEndpointLabelConstraint(
     relType: String,
     label: String,
-    endPoint: EndPoint
+    endPoint: EndpointType
   ): StatisticsBackedLogicalPlanningConfigurationBuilder = {
     val constraintDef = RelationshipEndpointLabelConstraintDefinition(relType, label, endPoint)
 
@@ -604,13 +592,17 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
   def addRelationshipEndpointLabelConstraint(relDef: String): StatisticsBackedLogicalPlanningConfigurationBuilder = {
     RelDef.fromString(relDef).foldLeft(this) {
       case (builder, RelDef(Some(startLabel), Some(relType), None)) =>
-        builder.addRelationshipEndpointLabelConstraint(relType, startLabel, Start)
+        builder.addRelationshipEndpointLabelConstraint(relType, startLabel, EndpointType.START)
       case (builder, RelDef(None, Some(relType), Some(endLabel))) =>
-        builder.addRelationshipEndpointLabelConstraint(relType, endLabel, End)
+        builder.addRelationshipEndpointLabelConstraint(relType, endLabel, EndpointType.END)
+      case (builder, RelDef(Some(startLabel), Some(relType), Some(endLabel))) =>
+        builder
+          .addRelationshipEndpointLabelConstraint(relType, startLabel, EndpointType.START)
+          .addRelationshipEndpointLabelConstraint(relType, endLabel, EndpointType.END)
 
       case (_, pat) =>
         throw new IllegalArgumentException(
-          s"Invalid relationship pattern `$pat` for relationship endpoint constraint. Expected relationship type and exactly one of the labels to be set."
+          s"Invalid relationship pattern `$pat` for relationship endpoint constraint. Expected relationship type and at least one of the labels to be set."
         )
     }
   }
@@ -1378,20 +1370,6 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         }.toMap
       }
 
-      def convertEndpointType(endpointType: EndpointType): EndPoint = {
-        endpointType match {
-          case EndpointType.START => Start
-          case EndpointType.END   => End
-        }
-      }
-
-      def convertEndpoint(endPoint: EndPoint): EndpointType = {
-        endPoint match {
-          case Start => EndpointType.START
-          case End   => EndpointType.END
-        }
-      }
-
       override def hasRelationshipEndpointLabelConstraint(
         relTypeName: String,
         labelName: String,
@@ -1400,14 +1378,14 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         relationshipEndpointLabelConstraints.contains(RelationshipEndpointLabelConstraintDefinition(
           relTypeName,
           labelName,
-          convertEndpointType(endpointType)
+          endpointType
         ))
 
       override def getRelationshipEndpointLabelConstraints(relTypeName: String): Map[EndpointType, String] =
         relationshipEndpointLabelConstraints
           .filter(_.relType == relTypeName)
           .map { constraint =>
-            convertEndpoint(constraint.endPoint) -> constraint.label
+            constraint.endPoint -> constraint.label
           }
           .toMap
 
