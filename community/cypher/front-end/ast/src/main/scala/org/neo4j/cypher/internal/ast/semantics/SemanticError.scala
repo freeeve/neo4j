@@ -165,10 +165,12 @@ object SemanticError {
       pos
     )
   }
-  val existsErrorMessage = "The EXISTS expression is not valid in driver settings."
-  val countErrorMessage = "The COUNT expression is not valid in driver settings."
-  val collectErrorMessage = "The COLLECT expression is not valid in driver settings."
-  val genericErrorMessage = "This expression is not valid in driver settings."
+  private val existsErrorMessage = "The EXISTS expression is not valid in driver settings."
+  private val countErrorMessage = "The COUNT expression is not valid in driver settings."
+  private val collectErrorMessage = "The COLLECT expression is not valid in driver settings."
+  private val patternExpressionErrorMessage = "Pattern expressions are not valid in driver settings."
+  private val patternComprehensionErrorMessage = "Pattern comprehensions are not valid in driver settings."
+  private val genericErrorMessage = "This expression is not valid in driver settings."
 
   def existsInDriverSettings(position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql22N81(
@@ -203,9 +205,31 @@ object SemanticError {
     SemanticError(gql, collectErrorMessage, position)
   }
 
+  def patternExpressionInDriverSettings(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql22N81(
+      GqlParams.StringParam.cmd.process("pattern expression"),
+      "driver settings",
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(gql, patternExpressionErrorMessage, position)
+  }
+
+  def patternComprehensionInDriverSettings(position: InputPosition): SemanticError = {
+    val gql = GqlHelper.getGql22N81(
+      GqlParams.StringParam.cmd.process("pattern comprehension"),
+      "driver settings",
+      position.offset,
+      position.line,
+      position.column
+    )
+    SemanticError(gql, patternComprehensionErrorMessage, position)
+  }
+
   def genericDriverSettingsFail(position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql22N81(
-      GqlParams.StringParam.cmd.process("EXISTS"),
+      GqlParams.StringParam.cmd.process("subquery expression"),
       "driver settings",
       position.offset,
       position.line,

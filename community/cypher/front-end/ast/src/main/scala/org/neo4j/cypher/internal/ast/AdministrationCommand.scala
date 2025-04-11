@@ -153,37 +153,37 @@ sealed trait ReadAdministrationCommand extends AdministrationCommand {
       invalid.map {
         case exp: ExistsExpression =>
           AdministrationCommandSemanticAnalysis.unsupportedRequestErrorOnSystemDatabase(
-            "EXISTS expression on SHOW commands",
+            "EXISTS expression",
             "The EXISTS expression is not valid on SHOW commands.",
             exp.position
           )
         case exp: CollectExpression =>
           AdministrationCommandSemanticAnalysis.unsupportedRequestErrorOnSystemDatabase(
-            "COLLECT expression on SHOW commands",
+            "COLLECT expression",
             "The COLLECT expression is not valid on SHOW commands.",
             exp.position
           )
         case exp: CountExpression =>
           AdministrationCommandSemanticAnalysis.unsupportedRequestErrorOnSystemDatabase(
-            "COUNT expression on SHOW commands",
+            "COUNT expression",
             "The COUNT expression is not valid on SHOW commands.",
             exp.position
           )
         case exp: PatternExpression =>
           AdministrationCommandSemanticAnalysis.unsupportedRequestErrorOnSystemDatabase(
-            "Pattern expressions on SHOW commands",
+            "Pattern expression",
             "Pattern expressions are not valid on SHOW commands.",
             exp.position
           )
         case exp: PatternComprehension =>
           AdministrationCommandSemanticAnalysis.unsupportedRequestErrorOnSystemDatabase(
-            "Pattern comprehensions on SHOW commands",
+            "Pattern comprehension",
             "Pattern comprehensions are not valid on SHOW commands.",
             exp.position
           )
         case exp =>
           AdministrationCommandSemanticAnalysis.unsupportedRequestErrorOnSystemDatabase(
-            "Subquery expressions on SHOW commands",
+            "Subquery expression",
             "Subquery expressions are not valid on SHOW commands.",
             exp.position
           )
@@ -1755,9 +1755,7 @@ object AliasDriverSettingsCheck {
       case Some(Left(settings)) =>
         settings.values.flatMap(s =>
           s.folder.treeFind[Expression] {
-            case _: ExistsExpression  => true
-            case _: CollectExpression => true
-            case _: CountExpression   => true
+            case _: SubqueryExpression => true
           }
         ).headOption
       case _ => None
@@ -1834,8 +1832,11 @@ final case class CreateRemoteDatabaseAlias(
           SemanticCheck.error(SemanticError.countInDriverSettings(expr.position))
         case Some(expr: CollectExpression) =>
           SemanticCheck.error(SemanticError.collectInDriverSettings(expr.position))
+        case Some(expr: PatternExpression) =>
+          SemanticCheck.error(SemanticError.patternExpressionInDriverSettings(expr.position))
+        case Some(expr: PatternComprehension) =>
+          SemanticCheck.error(SemanticError.patternComprehensionInDriverSettings(expr.position))
         case Some(expr) =>
-          // Apparently this should not happen, but if you have a better message do tell
           SemanticCheck.error(SemanticError.genericDriverSettingsFail(expr.position))
         case _ => super.semanticCheck chain
             checkIsStringLiteralOrParameter("username", username) chain
@@ -1882,6 +1883,10 @@ final case class AlterRemoteDatabaseAlias(
             SemanticCheck.error(SemanticError.countInDriverSettings(expr.position))
           case _: CollectExpression =>
             SemanticCheck.error(SemanticError.collectInDriverSettings(expr.position))
+          case _: PatternExpression =>
+            SemanticCheck.error(SemanticError.patternExpressionInDriverSettings(expr.position))
+          case _: PatternComprehension =>
+            SemanticCheck.error(SemanticError.patternComprehensionInDriverSettings(expr.position))
           case _ =>
             SemanticCheck.error(SemanticError.genericDriverSettingsFail(expr.position))
         }
