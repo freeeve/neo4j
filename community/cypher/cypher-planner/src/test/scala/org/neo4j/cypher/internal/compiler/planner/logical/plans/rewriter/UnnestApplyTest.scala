@@ -655,7 +655,7 @@ class UnnestApplyTest extends CypherFunSuite with LogicalPlanningAttributesTestS
 
     val expected = new LogicalPlanBuilder()
       .produceResults("n", "m", "o")
-      .expandAll("(n)-[UNNAMED1]->(m)")
+      .expandAll("(n)-->(m)")
       .filter("n.prop = 42")
       .nodeByLabelScan("n", "N")
       .build()

@@ -96,14 +96,14 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
     val plan = planner.plan(query)
 
     val nestedPlan = planner.subPlanBuilder()
-      .filter("`  UNNAMED1`:N")
-      .expand("(`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED1`)")
+      .filter("`  UNNAMED0`:N")
+      .expand("(`  m@2`)-[]->(`  UNNAMED0`)")
       .argument("  m@2")
       .build()
 
     val solvedNestedExpressionAsString =
-      """EXISTS { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED1`)
-        |  WHERE `  UNNAMED1`:N }""".stripMargin
+      """EXISTS { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
+        |  WHERE `  UNNAMED0`:N }""".stripMargin
     val nestedPlanExpression = NestedPlanExistsExpression(
       plan = nestedPlan,
       solvedExpressionAsString =
@@ -405,7 +405,7 @@ class MultiRelationshipExpansionIntegrationTest extends CypherFunSuite with Logi
       .build()
 
     val nestedPlan = planner.subPlanBuilder()
-      .expandInto("(`  c@5`)-[`  UNNAMED0`]->(`  a@1`)")
+      .expandInto("(`  c@5`)-[]->(`  a@1`)")
       .argument("  a@1", "  c@5")
       .build()
 

@@ -192,7 +192,7 @@ class CachedPropertiesPlanningIntegrationTest extends CypherFunSuite with Logica
       .produceResults("foo")
       .projection("cacheN[n.prop] AS foo") // 10 rows
       .limit(10) // 10 rows
-      .expandAll("(n)-[rel]->(m)") // 1000 rows, effective 10
+      .expandAll("(n)-[]->()") // 1000 rows, effective 10
       .cacheProperties("cacheNFromStore[n.prop]")
       .nodeByLabelScan("n", "N") // 500 rows, effective 5
       .build()

@@ -1387,7 +1387,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         ))
         .|.projection("var1 AS var1")
         .|.setNodePropertiesFromMap("var0", "$param2", removeOtherProps = false)
-        .|.expandAll("(var1)-[anon_2]-(var0)")
+        .|.expandAll("(var1)-[]-(var0)")
         .|.nodeByLabelScan("var1", "L0", IndexOrderNone)
         .projection("var1 AS var1")
         .create(
@@ -1433,7 +1433,7 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
         ))
         .|.projection("var1 AS var1")
         .|.setNodePropertiesFromMap("var0", "$param2", removeOtherProps = false)
-        .|.expandAll("(var1)-[anon_2]-(var0)")
+        .|.expandAll("(var1)-[]-(var0)")
         .|.nodeByLabelScan("var1", "L0", IndexOrderNone)
         .projection("var1 AS var1")
         .create(

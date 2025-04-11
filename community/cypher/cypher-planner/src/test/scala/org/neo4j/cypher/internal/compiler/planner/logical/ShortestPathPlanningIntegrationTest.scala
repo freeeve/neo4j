@@ -1966,14 +1966,15 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       planner.plan(query).stripProduceResults
 
     val nestedPlan = planner.subPlanBuilder()
-      .filter("anon_1:N")
-      .expand("(v)-[anon_0]->(anon_1)")
+      .filter("anon_0:N")
+      .expand("(v)-[]->(anon_0)")
       .argument("v")
       .build()
 
+    // NOTE: this string is weird but it is a test artifact
     val solvedNestedExpressionAsString =
-      """EXISTS { MATCH (v)-[`anon_0`]->(`anon_1`)
-        |  WHERE `anon_1`:N }""".stripMargin
+      """EXISTS { MATCH (v)-[`anon_0`]->(`anon_0`)
+        |  WHERE `anon_0`:N }""".stripMargin
     val patternExpressionPredicate = NestedPlanExistsExpression(
       plan = nestedPlan,
       solvedExpressionAsString = solvedNestedExpressionAsString
@@ -2025,14 +2026,15 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val plan = planner.plan(query)
 
     val nestedPlan = planner.subPlanBuilder()
-      .filter("`  UNNAMED1`:N")
-      .expand("(`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED1`)")
+      .filter("`  UNNAMED0`:N")
+      .expand("(`  m@2`)-[]->(`  UNNAMED0`)")
       .argument("  m@2")
       .build()
 
+    // NOTE: this string is weird but it is a test artifact
     val solvedNestedExpressionAsString =
-      """EXISTS { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED1`)
-        |  WHERE `  UNNAMED1`:N }""".stripMargin
+      """EXISTS { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
+        |  WHERE `  UNNAMED0`:N }""".stripMargin
     val nestedPlanExpression = NestedPlanExistsExpression(
       plan = nestedPlan,
       solvedExpressionAsString =
@@ -2087,15 +2089,16 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     val plan = planner.plan(query)
 
     val nestedPlan = planner.subPlanBuilder()
-      .filter("`  UNNAMED1`:N")
-      .expand("(`  m@7`)-[`  UNNAMED0`]->(`  UNNAMED1`)")
-      .projection("`  m@5`[`  UNNAMED2`] AS `  m@7`")
-      .argument("  m@5", "  UNNAMED2")
+      .filter("`  UNNAMED0`:N")
+      .expand("(`  m@7`)-[]->(`  UNNAMED0`)")
+      .projection("`  m@5`[`  UNNAMED1`] AS `  m@7`")
+      .argument("  m@5", "  UNNAMED1")
       .build()
 
+    // NOTE: this string is weird but it is a test artifact
     val solvedNestedExpressionAsString =
-      """EXISTS { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED1`)
-        |  WHERE `  UNNAMED1`:N }""".stripMargin
+      """EXISTS { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
+        |  WHERE `  UNNAMED0`:N }""".stripMargin
     val nestedPlanExpression = NestedPlanExistsExpression(
       plan = nestedPlan,
       solvedExpressionAsString =
@@ -2103,7 +2106,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     )(pos)
 
     val nonInlineablePredicate = allInList(
-      v"  UNNAMED2",
+      v"  UNNAMED1",
       function("range", literalInt(0), subtract(function("size", v"  m@5"), literalInt(1))),
       caseExpression(
         None,
@@ -2111,8 +2114,8 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         (
           nestedPlanExpression,
           greaterThan(
-            propExpression(containerIndex(v"  n@3", v"  UNNAMED2"), "prop"),
-            propExpression(containerIndex(v"  m@5", v"  UNNAMED2"), "prop")
+            propExpression(containerIndex(v"  n@3", v"  UNNAMED1"), "prop"),
+            propExpression(containerIndex(v"  m@5", v"  UNNAMED1"), "prop")
           )
         )
       )
@@ -2166,18 +2169,19 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
 
     // THEN
     val nestedPlan = planner.subPlanBuilder()
-      .aggregation(Seq.empty, Seq("count(*) AS `  UNNAMED2`"))
-      .filter("`  UNNAMED1`:N")
-      .expand("(`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED1`)")
+      .aggregation(Seq.empty, Seq("count(*) AS `  UNNAMED1`"))
+      .filter("`  UNNAMED0`:N")
+      .expand("(`  m@2`)-[]->(`  UNNAMED0`)")
       .argument("  m@2")
       .build()
 
+    // NOTE: this string is weird but it is a test artifact
     val solvedNestedExpressionAsString =
-      """COUNT { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED1`)
-        |  WHERE `  UNNAMED1`:N }""".stripMargin
+      """COUNT { MATCH (`  m@2`)-[`  UNNAMED0`]->(`  UNNAMED0`)
+        |  WHERE `  UNNAMED0`:N }""".stripMargin
     val nestedPlanExpression = NestedPlanGetByNameExpression(
       plan = nestedPlan,
-      v"  UNNAMED2",
+      v"  UNNAMED1",
       solvedExpressionAsString = solvedNestedExpressionAsString
     )(pos)
     val eq2 = equals(nestedPlanExpression, literalInt(2))
@@ -2224,7 +2228,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       planner.plan(query).stripProduceResults
 
     val nestedPlan = planner.subPlanBuilder()
-      .expandInto("(v)<-[anon_0]-(w)")
+      .expandInto("(v)<-[]-(w)")
       .argument("v", "w")
       .build()
 
@@ -2871,14 +2875,15 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       "MATCH ANY SHORTEST ((u:User)((n)-[r]->(m))+(v)-[r2]->(w) WHERE EXISTS { (v)-->({prop: v.prop + r2.prop + w.prop}) } ) RETURN *"
 
     val expectedNestedPlan = planner.subPlanBuilder()
-      .filter("anon_1.prop = v.prop + r2.prop + w.prop")
-      .expandAll("(v)-[anon_0]->(anon_1)")
+      .filter("anon_0.prop = v.prop + r2.prop + w.prop")
+      .expandAll("(v)-[]->(anon_0)")
       .argument("w", "r2", "v")
       .build()
 
+    // NOTE: this string is weird but it is a test artifact
     val solvedNestedExpressionAsString =
-      """EXISTS { MATCH (v)-[`anon_0`]->(`anon_1`)
-        |  WHERE `anon_1`.prop IN [(v.prop + r2.prop) + w.prop] }""".stripMargin
+      """EXISTS { MATCH (v)-[`anon_0`]->(`anon_0`)
+        |  WHERE `anon_0`.prop IN [(v.prop + r2.prop) + w.prop] }""".stripMargin
     val nestedPlanExpression = NestedPlanExistsExpression(
       plan = expectedNestedPlan,
       solvedExpressionAsString =
@@ -4418,10 +4423,10 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
       .enableDeduplicateNames(false)
       .build()
 
-    val indexVar = "  UNNAMED1"
+    val indexVar = "  UNNAMED0"
 
     val nestedPlan = planner.subPlanBuilder()
-      .expandInto("(`  c@13`)-[`  UNNAMED0`]->(`  a@12`)")
+      .expandInto("(`  c@13`)-[]->(`  a@12`)")
       .projection(s"`  a@6`[`$indexVar`] AS `  a@12`", s"`  c@7`[`$indexVar`] AS `  c@13`")
       .argument("  a@6", "  c@7", indexVar)
       .build()

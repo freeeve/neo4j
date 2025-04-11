@@ -77,6 +77,78 @@ class RemoveUnusedVariablesRewriterTest extends CypherFunSuite with LogicalPlann
         .allRelationshipsScan("(a)-[]->(b)")
     )
   }
+
+  test("remove end-node and relationship from expand") {
+    thePlan(
+      _.produceResults("a")
+        .expand("(a)-[r]->(b)")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a")
+        .expand("(a)-[]->()")
+        .allNodeScan("a")
+    )
+  }
+
+  test("remove relationship from expand") {
+    thePlan(
+      _.produceResults("a", "b")
+        .expand("(a)-[r]->(b)")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a", "b")
+        .expand("(a)-[]->(b)")
+        .allNodeScan("a")
+    )
+  }
+
+  test("remove end-node from expand") {
+    thePlan(
+      _.produceResults("a", "r")
+        .expand("(a)-[r]->(b)")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a", "r")
+        .expand("(a)-[r]->()")
+        .allNodeScan("a")
+    )
+  }
+
+  test("remove end-node and relationship from optional expand") {
+    thePlan(
+      _.produceResults("a")
+        .optionalExpandAll("(a)-[r]->(b)")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a")
+        .optionalExpandAll("(a)-[]->()")
+        .allNodeScan("a")
+    )
+  }
+
+  test("remove relationship from optional expand") {
+    thePlan(
+      _.produceResults("a", "b")
+        .optionalExpandAll("(a)-[r]->(b)")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a", "b")
+        .optionalExpandAll("(a)-[]->(b)")
+        .allNodeScan("a")
+    )
+  }
+
+  test("remove end-node from optional expand") {
+    thePlan(
+      _.produceResults("a", "r")
+        .optionalExpandAll("(a)-[r]->(b)")
+        .allNodeScan("a")
+    ) should beRewrittenTo(
+      _.produceResults("a", "r")
+        .optionalExpandAll("(a)-[r]->()")
+        .allNodeScan("a")
+    )
+  }
 }
 
 object RemoveUnusedVariablesRewriterTest extends CypherFunSuite {

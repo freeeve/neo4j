@@ -101,8 +101,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           v"a",
           SemanticDirection.OUTGOING,
           Seq(),
-          v"b",
-          v"r1",
+          Some(v"b"),
+          None,
           ExpandAll
         ),
         Expand(
@@ -110,8 +110,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           v"c",
           SemanticDirection.INCOMING,
           Seq(),
-          v"b",
-          v"r2",
+          Some(v"b"),
+          None,
           ExpandAll
         )
       )
@@ -137,8 +137,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           v"c",
           SemanticDirection.INCOMING,
           Seq(),
-          v"b",
-          v"r2",
+          Some(v"b"),
+          None,
           ExpandAll
         ),
         Expand(
@@ -146,8 +146,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           v"a",
           SemanticDirection.OUTGOING,
           Seq(),
-          v"b",
-          v"r1",
+          Some(v"b"),
+          None,
           ExpandAll
         )
       )
@@ -186,8 +186,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           v"a",
           SemanticDirection.OUTGOING,
           Seq(),
-          v"b",
-          v"r1",
+          Some(v"b"),
+          None,
           ExpandAll
         ),
         Expand(
@@ -195,8 +195,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           v"c",
           SemanticDirection.INCOMING,
           Seq(),
-          v"b",
-          v"r2",
+          Some(v"b"),
+          None,
           ExpandAll
         )
       )
@@ -235,8 +235,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           v"c",
           SemanticDirection.INCOMING,
           Seq(),
-          v"b",
-          v"r2",
+          Some(v"b"),
+          None,
           ExpandAll
         ),
         Expand(
@@ -244,8 +244,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
           v"a",
           SemanticDirection.OUTGOING,
           Seq(),
-          v"b",
-          v"r1",
+          Some(v"b"),
+          None,
           ExpandAll
         )
       )
@@ -277,7 +277,7 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
   }
 
   test("should build simple optional expand") {
-    planFor("MATCH (n) OPTIONAL MATCH (n)-[:NOT_EXIST]->(x) RETURN n")._1.endoRewrite(unnestOptional) match {
+    planFor("MATCH (n) OPTIONAL MATCH (n)-[:NOT_EXIST]->(x) RETURN n, x")._1.endoRewrite(unnestOptional) match {
       case OptionalExpand(
           AllNodesScan(LogicalVariable("n"), _),
           LogicalVariable("n"),
@@ -372,13 +372,13 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
     val plan =
       planFor("MATCH (a) OPTIONAL MATCH (a)-[r1:R1]->(x1) OPTIONAL MATCH (a)-[r2:R2]->(x2) RETURN a, x1, x2")._1
     val alternative1 = new LogicalPlanBuilder(wholePlan = false)
-      .optionalExpandAll("(a)-[r2:R2]->(x2)")
-      .optionalExpandAll("(a)-[r1:R1]->(x1)")
+      .optionalExpandAll("(a)-[:R2]->(x2)")
+      .optionalExpandAll("(a)-[:R1]->(x1)")
       .allNodeScan("a")
       .build()
     val alternative2 = new LogicalPlanBuilder(wholePlan = false)
-      .optionalExpandAll("(a)-[r1:R1]->(x1)")
-      .optionalExpandAll("(a)-[r2:R2]->(x2)")
+      .optionalExpandAll("(a)-[:R1]->(x1)")
+      .optionalExpandAll("(a)-[:R2]->(x2)")
       .allNodeScan("a")
       .build()
     plan should (equal(alternative1) or equal(alternative2))
@@ -403,8 +403,8 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
         v"n",
         SemanticDirection.BOTH,
         Seq.empty,
-        v"m",
-        v"r",
+        Some(v"m"),
+        None,
         ExpandAll,
         Some(Ands.create(ListSet(hasLabels("m", "Y"), equals(prop("m", "prop"), literalInt(42)))))
       )
@@ -545,12 +545,12 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
         .aggregation(Seq(), Seq("count(a) AS `count(a)`"))
         .apply()
         .|.optional("a", "anon_1", "anon_0").withCardinality(1)
-        .|.filterExpressionOrString("anon_7:C", andsReorderable("anon_6.bool = false", "anon_7.some = 'prop'"))
-        .|.expandAll("(anon_5)-[anon_6:R3]->(anon_7)")
-        .|.filter("anon_5:B")
-        .|.expandAll("(anon_3)-[anon_4:R2]->(anon_5)")
-        .|.filter("anon_3:D")
-        .|.expandAll("(a)-[anon_2:R1]->(anon_3)")
+        .|.filterExpressionOrString("anon_5:C", andsReorderable("anon_4.bool = false", "anon_5.some = 'prop'"))
+        .|.expandAll("(anon_3)-[anon_4:R3]->(anon_5)")
+        .|.filter("anon_3:B")
+        .|.expandAll("(anon_2)-[:R2]->(anon_3)")
+        .|.filter("anon_2:D")
+        .|.expandAll("(a)-[:R1]->(anon_2)")
         .|.argument("a", "anon_1", "anon_0").withCardinality(1)
         .filter("anon_0:D")
         .expandAll("(a)-[anon_1:R1]->(anon_0)")
@@ -708,9 +708,9 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
       .limit(0)
       .apply()
       .|.optional("n0", "n1")
-      .|.expandInto("(n0)-[anon_0]-(anon_1)")
+      .|.expandInto("(n0)-[]-(anon_0)")
       .|.filterExpression(assertIsNode("n1"))
-      .|.nodeByLabelScan("anon_1", "L0", IndexOrderNone, "n0", "n1")
+      .|.nodeByLabelScan("anon_0", "L0", IndexOrderNone, "n0", "n1")
       .cartesianProduct()
       .|.allNodeScan("n1")
       .allNodeScan("n0")
@@ -741,7 +741,7 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
       .limit(0)
       .apply()
       .|.optional("n0", "n1")
-      .|.expandInto("(n0)-[anon_0]-(n2)")
+      .|.expandInto("(n0)-[]-(n2)")
       .|.filterExpression(assertIsNode("n1"))
       .|.nodeIndexOperator(
         "n2:L0(prop = 42)",
@@ -760,7 +760,7 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
       .limit(0)
       .apply()
       .|.optional("n0", "n1")
-      .|.expandInto("(n0)-[anon_0]-(n2)")
+      .|.expandInto("(n0)-[]-(n2)")
       .|.filterExpression(propEquality("n2", "prop", 42), assertIsNode("n1"))
       .|.nodeIndexOperator(
         "n2:L0(prop)",
@@ -933,7 +933,7 @@ abstract class OptionalMatchPlanningIntegrationTest(queryGraphSolverSetup: Query
       .limit(0)
       .apply()
       .|.optional("n0", "n1")
-      .|.expandInto("(n0)-[anon_0]-(x)")
+      .|.expandInto("(n0)-[]-(x)")
       .|.filterExpression(assertIsNode("n1"))
       .|.nodeByIdSeek("x", Set("n0", "n1"), 0)
       .cartesianProduct()

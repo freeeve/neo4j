@@ -20,10 +20,13 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter
 
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.logical.plans.Expand
+import org.neo4j.cypher.internal.logical.plans.OptionalExpand
 import org.neo4j.cypher.internal.logical.plans.RelationshipLogicalLeafPlan
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.Foldable.TraverseChildren
 import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.attribution.SameId
 import org.neo4j.cypher.internal.util.topDown
 
 /**
@@ -47,13 +50,17 @@ case object RemoveUnusedVariablesRewriter extends Rewriter {
       }
 
     topDown(Rewriter.lift {
-
       case leaf: RelationshipLogicalLeafPlan =>
         leaf.updateVariables(
           idName = remove(leaf.idName),
           leftNode = remove(leaf.leftNode),
           rightNode = remove(leaf.rightNode)
         )
+      case expand: Expand =>
+        expand.copy(maybeTo = remove(expand.maybeTo), maybeRelName = remove(expand.maybeRelName))(SameId(expand.id))
+      case expand: OptionalExpand =>
+        expand.copy(maybeTo = remove(expand.maybeTo), maybeRelName = remove(expand.maybeRelName))(SameId(expand.id))
+
     })(value)
   }
 }

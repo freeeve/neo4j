@@ -452,7 +452,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
         planner.subPlanBuilder()
           .sortColumns(Seq(sortOrder("c")))
           .aggregation(Seq("m AS mm"), Seq("count(n) AS c"))
-          .expandAll("(n)-[r]-(m)")
+          .expandAll("(n)-[]-(m)")
           .nodeByLabelScan("n", "Awesome", IndexOrderNone)
           .build()
       )
@@ -472,7 +472,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
 
       plan should equal(
         planner.subPlanBuilder()
-          .expandAll("(nnn)<-[r]-(m)")
+          .expandAll("(nnn)<-[]-()")
           .projection("n AS nnn")
           .nodeByLabelScan("n", "Awesome", plannedOrder)
           .build()
@@ -555,7 +555,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
         planner.subPlanBuilder()
           .projection("cacheN[n.prop] AS p")
           .projection("1 AS foo")
-          .expandAll("(n)-[r]->(m)")
+          .expandAll("(n)-[]->()")
           .nodeIndexOperator(
             "n:Awesome(prop > 'foo')",
             getValue = _ => GetValue,
@@ -672,7 +672,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
 
       plan should equal(planner.subPlanBuilder()
         .projection(Map("nnn.prop" -> cachedNodeProp("n", "prop", "nnn")))
-        .expandAll("(nnn)<-[r]-(m)")
+        .expandAll("(nnn)<-[]-()")
         .projection("n AS nnn")
         .nodeIndexOperator("n:Awesome(prop > 'foo')", indexOrder = plannedOrder, getValue = _ => GetValue)
         .build())
@@ -1012,7 +1012,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
           .produceResults(column("a", "cacheN[a.prop]"))
           .filter("cacheN[a.prop] > b.prop - c.prop")
           .cartesianProduct()
-          .|.expandAll("(b)-[r]->(c)")
+          .|.expandAll("(b)-[]->(c)")
           .|.nodeByLabelScan("b", "B", IndexOrderNone)
           .cacheProperties("cacheNFromStore[a.prop]")
           .nodeByLabelScan("a", "A", plannedOrder)
@@ -1082,7 +1082,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
 
       plan should equal(planner.subPlanBuilder()
         .orderedAggregation(Seq("cacheN[a.prop] AS `a.prop`"), Seq("count(b) AS `count(b)`"), Seq("cacheN[a.prop]"))
-        .expandAll("(a)-[r]->(b)")
+        .expandAll("(a)-[]->(b)")
         .nodeIndexOperator("a:A(prop > 'foo')", indexOrder = plannedOrder, getValue = _ => GetValue)
         .build())
     }
@@ -1107,7 +1107,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
         .partialSortColumns(Seq(sortOrder("a.prop")), Seq(Ascending(v"b.prop")))
         .projection("b.prop AS `b.prop`")
         .projection("cacheN[a.prop] AS `a.prop`")
-        .expandAll("(a)-[r]->(b)")
+        .expandAll("(a)-[]->(b)")
         .nodeIndexOperator("a:A(prop > 'foo')", indexOrder = plannedOrder, getValue = _ => GetValue)
         .build())
     }
@@ -1129,7 +1129,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
 
       plan should equal(planner.subPlanBuilder()
         .filter("NOT q = r")
-        .expandAll("(b)-[q]->(c)")
+        .expandAll("(b)-[q]->()")
         .partialSortColumns(Seq(sortOrder("a.prop")), Seq(Ascending(v"b.prop")))
         .projection("b.prop AS `b.prop`")
         .projection("cacheN[a.prop] AS `a.prop`")
@@ -1154,7 +1154,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
 
       plan should equal(planner.subPlanBuilder()
         .orderedDistinct(Seq("cacheN[a.prop]"), "cacheN[a.prop] AS `a.prop`")
-        .expandAll("(a)-[r]->(b)")
+        .expandAll("(a)-[]->()")
         .nodeIndexOperator("a:A(prop > 'foo')", indexOrder = plannedOrder, getValue = _ => GetValue)
         .build())
     }
@@ -1222,7 +1222,7 @@ abstract class IndexWithProvidedOrderPlanningIntegrationTest(queryGraphSolverSet
       plan should equal(planner.subPlanBuilder()
         .projection("cacheN[a.prop] AS `a.prop`")
         .leftOuterHashJoin("b")
-        .|.expandAll("(a)-[r]->(b)")
+        .|.expandAll("(a)-[]->(b)")
         .|.nodeIndexOperator("a:A(prop > 'foo')", indexOrder = plannedOrder, getValue = _ => GetValue)
         .nodeByLabelScan("b", "B")
         .build())

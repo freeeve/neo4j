@@ -556,9 +556,9 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     pathMode: TraversalPathMode = TraversalPathMode.Trail
   ): IMPL = {
     val p = patternParser.parse(pattern)
-    newRelationship(varFor(p.relName))
+    newRelationship(varFor(p.maybeRelName))
     if (expandMode == ExpandAll) {
-      newNode(varFor(p.to))
+      newNode(varFor(p.maybeTo))
     }
 
     p.length match {

@@ -108,7 +108,7 @@ class OrderedUnionPlanningIntegrationTest extends CypherFunSuite with LogicalPla
     plan should equal(
       planner.subPlanBuilder()
         .filter("o.prop = 0")
-        .expand("(m)-[r]-(o)")
+        .expand("(m)-[]-(o)")
         .unionNodeByLabelsScan("m", Seq("A", "B"))
         .build()
     )(SymmetricalLogicalPlanEquality)

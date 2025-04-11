@@ -52,7 +52,7 @@ class ByIdSeekPlanningIntegrationTest extends CypherFunSuite
       planner.planBuilder()
         .produceResults("relationships")
         .aggregation(Seq(), Seq("count(*) AS relationships"))
-        .expandInto("(src)-[anon_0:REL]-(dst)")
+        .expandInto("(src)-[:REL]-(dst)")
         .cartesianProduct()
         .|.nodeByIdSeek("dst", Set(), 630950)
         .nodeByIdSeek("src", Set(), 359340)

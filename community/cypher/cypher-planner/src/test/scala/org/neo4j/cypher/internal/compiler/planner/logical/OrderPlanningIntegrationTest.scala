@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.expressions.FunctionInvocation.ArgumentAsc
 import org.neo4j.cypher.internal.expressions.LiteralEntry
 import org.neo4j.cypher.internal.expressions.LogicalProperty
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.SemanticDirection
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.functions.PercentileDisc
@@ -531,8 +532,8 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(planner.subPlanBuilder()
       .aggregation(Seq("foo AS foo"), Seq("count(foo) AS `count(foo)`"))
       .semiApply()
-      .|.filter("anon_1.prop = foo")
-      .|.expandAll("(a)-[anon_0:R]->(anon_1)")
+      .|.filter("anon_0.prop = foo")
+      .|.expandAll("(a)-[:R]->(anon_0)")
       .|.argument("a", "foo")
       .skip(0)
       .sort("foo ASC")
@@ -733,8 +734,8 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(planner.subPlanBuilder()
       .distinct("foo AS foo")
       .semiApply()
-      .|.filter("anon_1.prop = foo")
-      .|.expandAll("(a)-[anon_0:R]->(anon_1)")
+      .|.filter("anon_0.prop = foo")
+      .|.expandAll("(a)-[:R]->(anon_0)")
       .|.argument("a", "foo")
       .skip(0)
       .sort("foo ASC")
@@ -1037,9 +1038,9 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(sortEarlyConfig.subPlanBuilder()
       .projection("b.title AS `b.title`")
       .filter("b:Book")
-      .expandAll("(p)-[r:READ]->(b)")
+      .expandAll("(p)-[:READ]->(b)")
       .filter("p:Person")
-      .expandAll("(u)-[f:FRIEND]->(p)")
+      .expandAll("(u)-[:FRIEND]->(p)")
       .sort("`u.name` ASC")
       .projection("cacheN[u.name] AS `u.name`")
       .filter("cacheNFromStore[u.name] STARTS WITH 'Joe'")
@@ -1060,9 +1061,9 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan shouldEqual sortEarlyConfig.subPlanBuilder()
       .projection("cacheN[u.name] AS `u.name`", "b.title AS `b.title`")
       .filter("b:Book")
-      .expandAll("(p)-[r:READ]->(b)")
+      .expandAll("(p)-[:READ]->(b)")
       .filter("p:Person")
-      .expandAll("(u)-[f:FRIEND]->(p)")
+      .expandAll("(u)-[:FRIEND]->(p)")
       .sort("u ASC")
       .filter("cacheNFromStore[u.name] STARTS WITH 'Joe'")
       .allNodeScan("u")
@@ -1080,9 +1081,9 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(sortEarlyConfig.subPlanBuilder()
       .projection("b.title AS `b.title`")
       .filter("b:Book")
-      .expandAll("(p)-[r:READ]->(b)")
+      .expandAll("(p)-[:READ]->(b)")
       .filter("p:Person")
-      .expandAll("(u)-[f:FRIEND]->(p)")
+      .expandAll("(u)-[:FRIEND]->(p)")
       .sort("name ASC")
       .projection("cacheN[u.name] AS name")
       .filter("cacheNFromStore[u.name] STARTS WITH 'Joe'")
@@ -1101,9 +1102,9 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(sortEarlyConfig.subPlanBuilder()
       .projection("b.title AS `b.title`")
       .filter("b:Book")
-      .expandAll("(p)-[r:READ]->(b)")
+      .expandAll("(p)-[:READ]->(b)")
       .filter("p:Person")
-      .expandAll("(u)-[f:FRIEND]->(p)")
+      .expandAll("(u)-[:FRIEND]->(p)")
       .sort("name ASC")
       .projection("cacheN[u.name] AS name")
       .filter("cacheNFromStore[u.name] STARTS WITH 'Joe'")
@@ -1122,9 +1123,9 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(sortEarlyConfig.subPlanBuilder()
       .projection("b.title AS `b.title`")
       .filter("b:Book")
-      .expandAll("(p)-[r:READ]->(b)")
+      .expandAll("(p)-[:READ]->(b)")
       .filter("p:Person")
-      .expandAll("(u)-[f:FRIEND]->(p)")
+      .expandAll("(u)-[:FRIEND]->(p)")
       .sort("`v.name` ASC")
       .projection(Map("v.name" -> cachedNodeProp("u", "name", "v")))
       .projection("u AS v")
@@ -1159,7 +1160,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(planner.subPlanBuilder()
       .projection("b.title AS `b.title`")
       .filter("b:Book")
-      .expandAll("(p)-[r:READ]->(b)")
+      .expandAll("(p)-:READ]->(b)")
       .sort("`u.name` ASC")
       .projection("cacheN[u.name] AS `u.name`")
       .filterExpression(
@@ -1615,11 +1616,11 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(sortEarlyConfig.subPlanBuilder()
       .projection("b.title AS `b.title`")
       .filter("b:Book")
-      .expandAll("(p)-[r:READ]->(b)")
+      .expandAll("(p)-[:READ]->(b)")
       .sort("add ASC")
       .projection("cacheN[u.name] + p.name AS add")
       .filter("p:Person")
-      .expandAll("(u)-[f:FRIEND]->(p)")
+      .expandAll("(u)-[:FRIEND]->(p)")
       .filter("cacheNFromStore[u.name] STARTS WITH 'Joe'")
       .nodeByLabelScan("u", "Person", IndexOrderNone)
       .build())
@@ -1638,11 +1639,11 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(sortEarlyConfig.subPlanBuilder()
       .projection("b.title AS `b.title`")
       .filter("b:Book")
-      .expandAll("(p)-[r:READ]->(b)")
+      .expandAll("(p)-[:READ]->(b)")
       .sort("`u.name + p.name` ASC")
       .projection("cacheN[u.name] + p.name AS `u.name + p.name`")
       .filter("p:Person")
-      .expandAll("(u)-[f:FRIEND]->(p)")
+      .expandAll("(u)-[:FRIEND]->(p)")
       .filter("cacheNFromStore[u.name] STARTS WITH 'Joe'")
       .nodeByLabelScan("u", "Person", IndexOrderNone)
       .build())
@@ -1661,12 +1662,12 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(sortEarlyConfig.subPlanBuilder()
       .projection("b.title AS `b.title`")
       .filter("b:Book")
-      .expandAll("(p)-[r:READ]->(b)")
+      .expandAll("(p)-[:READ]->(b)")
       .sort("`uname + pname` ASC")
       .projection("uname + pname AS `uname + pname`")
       .projection("cacheN[u.name] AS uname", "p.name AS pname")
       .filter("p:Person")
-      .expandAll("(u)-[f:FRIEND]->(p)")
+      .expandAll("(u)-[:FRIEND]->(p)")
       .filter("cacheNFromStore[u.name] STARTS WITH 'Joe'")
       .nodeByLabelScan("u", "Person")
       .build())
@@ -2201,7 +2202,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
 
     plan should beLike {
       case OrderedAggregation(
-          Expand(Sort(Projection(_: Expand, _), _), _, _, _, _, Some(LogicalVariable("wideRel")), _),
+          Expand(Sort(Projection(_: Expand, _), _), _, _, Seq(RelTypeName("Q")), None, None, _),
           _,
           _,
           Seq(Variable("p1"))
@@ -2222,7 +2223,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     planner.plan(query).stripProduceResults should equal(
       planner.subPlanBuilder()
         .orderedDistinct(Seq("a"), "a AS a")
-        .expandAll("(a)-[anon_0]-(anon_1)")
+        .expandAll("(a)-]-()")
         .nodeByLabelScan("a", "A", indexOrder = IndexOrderAscending)
         .build()
     )
@@ -2251,7 +2252,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expand("(a)-[r]->(b)")
+      .expand("(a)-[]->(b)")
       .skip(0)
       .sort("`a.prop` ASC")
       .projection("a.prop AS `a.prop`")
@@ -2275,7 +2276,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expandAll("(d)-[r4:R]->(e)")
+      .expandAll("(d)-[:R]->(e)")
       .sort("`a.prop` ASC")
       .projection("a.prop AS `a.prop`")
       .distinct("a AS a", "b AS b", "c AS c", "d AS d")
@@ -2283,7 +2284,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .expandAll("(c)-[r3:NARROW]->(d)")
       .expandAll("(b)-[r2:NARROW]->(c)")
       .distinct("a AS a", "b AS b")
-      .expandAll("(a)-[r1:NARROW]->(b)")
+      .expandAll("(a)-[:NARROW]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -2302,11 +2303,11 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expandAll("(b)-[r2:R]->(c)")
+      .expandAll("(b)-[:R]->(c)")
       .sort("`a.prop` ASC")
       .projection("a.prop AS `a.prop`")
       .distinct("a AS a", "b AS b")
-      .expandAll("(a)-[r1:NARROW]->(b)")
+      .expandAll("(a)-[:NARROW]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -2326,10 +2327,10 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expandAll("(b)-[r2:R]->(c)")
+      .expandAll("(b)-[:R]->(c)")
       .sort("a ASC")
       .foreach("x", "[1, 2, 3]", Seq(setNodeProperty("a", "prop", "x")))
-      .expandAll("(a)-[r1:NARROW]->(b)")
+      .expandAll("(a)-[:NARROW]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -2348,9 +2349,9 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expandAll("(b)-[r2:R]->(c)")
+      .expandAll("(b)-[:R]->(c)")
       .unwind("[1, 2, 3] AS i")
-      .expandAll("(a)-[r1:R]->(b)")
+      .expandAll("(a)-[:R]->(b)")
       .sort("`a.prop` ASC")
       .projection("a.prop AS `a.prop`")
       .allNodeScan("a")
@@ -2371,11 +2372,11 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expandAll("(b)-[r2:R]->(c)")
+      .expandAll("(b)-[:R]->(c)")
       .unwind("[1, 2, 3] AS i")
       .sort("`a.prop` ASC")
       .projection("a.prop AS `a.prop`")
-      .expandAll("(a)-[r1:NARROW]->(b)")
+      .expandAll("(a)-[:NARROW]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -2396,12 +2397,12 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expandAll("(b)-[r2:R]->(c)")
+      .expandAll("(b)-[:R]->(c)")
       .cartesianProduct()
       .|.allNodeScan("d")
       .sort("`a.prop` ASC")
       .projection("a.prop AS `a.prop`")
-      .expandAll("(a)-[r1:NARROW]->(b)")
+      .expandAll("(a)-[:NARROW]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -2420,11 +2421,11 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expandAll("(b)-[r2:R]->(c)")
+      .expandAll("(b)-[:R]->(c)")
       .procedureCall("my.proc()")
       .sort("`a.prop` ASC")
       .projection("a.prop AS `a.prop`")
-      .expandAll("(a)-[r1:NARROW]->(b)")
+      .expandAll("(a)-[:NARROW]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -2443,11 +2444,11 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expandAll("(b)-[r2:R]->(c)")
+      .expandAll("(b)-[:R]->(c)")
       .loadCSV("'url'", "line", NoHeaders, None)
       .sort("`a.prop` ASC")
       .projection("a.prop AS `a.prop`")
-      .expandAll("(a)-[r1:NARROW]->(b)")
+      .expandAll("(a)-[:NARROW]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -2466,12 +2467,12 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expandAll("(b)-[r2:R]->(c)")
+      .expandAll("(b)-[:R]->(c)")
       .apply()
       .|.allNodeScan("b", "count")
       .sort("count ASC")
       .aggregation(Seq(), Seq("count(distinct a) AS count"))
-      .expandAll("(a)-[r1:NARROW]->(aa)")
+      .expandAll("(a)-[:NARROW]->()")
       .allNodeScan("a")
       .build()
 
@@ -2490,7 +2491,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .stripProduceResults
 
     val expectedPlan = wideningExpandConfig.subPlanBuilder()
-      .expandAll("(b)-[r2:R]->(c)")
+      .expandAll("(b)-[:R]->(c)")
       .apply()
       .|.allNodeScan("b", "count")
       .sort("count ASC")
@@ -2521,9 +2522,9 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
         ReadCreateConflict.withConflict(Conflict(Id(3), Id(5))),
         ReadCreateConflict.withConflict(Conflict(Id(3), Id(7)))
       ))
-      .expandAll("(b)-[r2:R]->(c)")
+      .expandAll("(b)-[:R]->(c)")
       .distinct("a AS a", "b AS b")
-      .expandAll("(a)-[r1:NARROW]->(b)")
+      .expandAll("(a)-[:NARROW]->(b)")
       .allNodeScan("a")
       .build()
 
@@ -2948,7 +2949,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
     plan should equal(planner.subPlanBuilder()
       .sort("foo ASC", "`b.bar` ASC")
       .projection("b.bar AS `b.bar`")
-      .expandAll("(a)-[anon_0:R]->(b)")
+      .expandAll("(a)-[:R]->(b)")
       .sort("foo ASC")
       .projection("a.foo AS foo")
       .nodeByLabelScan("a", "A", IndexOrderNone)
@@ -3071,7 +3072,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .projection("a.prop AS `a.prop`")
       .rollUpApply("bprops", "anon_0")
       .|.projection("b.prop AS anon_0")
-      .|.expandAll("(a)-[anon_1]->(b)")
+      .|.expandAll("(a)-[]->(b)")
       .|.argument("a")
       .nodeByLabelScan("a", "A")
       .build())
@@ -3124,7 +3125,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .projection("a.prop AS `a.prop`")
       .rollUpApply("bprops", "anon_0")
       .|.projection("b.prop AS anon_0")
-      .|.expandAll("(a)-[anon_1]->(b)")
+      .|.expandAll("(a)-[]->(b)")
       .|.argument("a")
       .nodeByLabelScan("a", "A", IndexOrderNone)
       .build())
@@ -3165,10 +3166,10 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .|.distinct("b AS b", "a AS a")
       .|.union()
       .|.|.projection("b AS b")
-      .|.|.expandAll("(a)-[r:OTHER_REL]->(b)")
+      .|.|.expandAll("(a)-[:OTHER_REL]->(b)")
       .|.|.argument("a")
       .|.projection("b AS b")
-      .|.expandAll("(a)-[r:REL]->(b)")
+      .|.expandAll("(a)-[:REL]->(b)")
       .|.argument("a")
       .sort("`a.prop` ASC")
       .projection("cacheNFromStore[a.prop] AS `a.prop`")
@@ -3203,7 +3204,7 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .apply()
       .|.aggregation(Seq(), Seq("count(*) AS anon_0"))
       .|.filter("NOT a = b")
-      .|.expandAll("(a)-[r:REL]->(b)")
+      .|.expandAll("(a)-[:REL]->(b)")
       .|.argument("a")
       .sort("`a.prop` ASC")
       .projection("cacheNFromStore[a.prop] AS `a.prop`")
@@ -3247,10 +3248,10 @@ abstract class OrderPlanningIntegrationTest(queryGraphSolverSetup: QueryGraphSol
       .|.distinct("result AS result", "b AS b", "a AS a")
       .|.union()
       .|.|.projection("b AS b")
-      .|.|.expandAll("(a)-[r:OTHER_REL]->(b)")
+      .|.|.expandAll("(a)-[:OTHER_REL]->(b)")
       .|.|.argument("result", "a")
       .|.projection("b AS b")
-      .|.expandAll("(a)-[r:REL]->(b)")
+      .|.expandAll("(a)-[:REL]->(b)")
       .|.argument("result", "a")
       .projection("a.name AS result")
       .sort("`a.prop` ASC")

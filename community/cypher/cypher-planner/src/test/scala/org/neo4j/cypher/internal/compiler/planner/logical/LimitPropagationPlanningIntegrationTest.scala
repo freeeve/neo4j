@@ -99,7 +99,7 @@ class LimitPropagationPlanningIntegrationTest
         .produceResults(column("a", "cacheN[a.id]"), column("c", "cacheN[c.id]"))
         .limit(10)
         .nodeHashJoin("b")
-        .|.expandAll("(c)-[cb:REL_CB]->(b)")
+        .|.expandAll("(c)-[:REL_CB]->(b)")
         .|.nodeIndexOperator(
           "c:C(id STARTS WITH '')",
           _ => GetValue,
@@ -107,7 +107,7 @@ class LimitPropagationPlanningIntegrationTest
           indexType = IndexType.RANGE
         )
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -133,7 +133,7 @@ class LimitPropagationPlanningIntegrationTest
           indexType = IndexType.RANGE
         )
         .filterExpression(hasLabels("b", "B"))
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -159,7 +159,7 @@ class LimitPropagationPlanningIntegrationTest
           indexType = IndexType.RANGE
         )
         .filterExpression(hasLabels("b", "B"))
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -178,10 +178,10 @@ class LimitPropagationPlanningIntegrationTest
         .produceResults(column("a", "cacheN[a.id]"), column("c", "cacheN[c.id]"))
         .limit(10)
         .nodeHashJoin("b")
-        .|.expandAll("(c)-[cb:REL_CB]->(b)")
+        .|.expandAll("(c)-[:REL_CB]->(b)")
         .|.nodeIndexOperator("c:C(id)", _ => GetValue, indexOrder = IndexOrderAscending, indexType = IndexType.RANGE)
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -201,7 +201,7 @@ class LimitPropagationPlanningIntegrationTest
         .produceResults(column("a", "cacheN[a.id]"), column("c", "cacheN[c.id]"))
         .limit(10)
         .nodeHashJoin("b")
-        .|.expandAll("(c)-[cb:REL_CB]->(b)")
+        .|.expandAll("(c)-[:REL_CB]->(b)")
         .|.nodeIndexOperator(
           "c:C(id STARTS WITH '')",
           _ => GetValue,
@@ -209,7 +209,7 @@ class LimitPropagationPlanningIntegrationTest
           indexType = IndexType.RANGE
         )
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -230,7 +230,7 @@ class LimitPropagationPlanningIntegrationTest
         .limit(10)
         .distinct("a AS a", "c AS c")
         .nodeHashJoin("b")
-        .|.expandAll("(c)-[cb:REL_CB]->(b)")
+        .|.expandAll("(c)-[:REL_CB]->(b)")
         .|.nodeIndexOperator(
           "c:C(id STARTS WITH '')",
           _ => GetValue,
@@ -238,7 +238,7 @@ class LimitPropagationPlanningIntegrationTest
           indexType = IndexType.RANGE
         )
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -268,7 +268,7 @@ class LimitPropagationPlanningIntegrationTest
         .projection("1 AS foo")
         .distinct("a AS a", "c AS c")
         .nodeHashJoin("b")
-        .|.expandAll("(c)-[cb:REL_CB]->(b)")
+        .|.expandAll("(c)-[:REL_CB]->(b)")
         .|.nodeIndexOperator(
           "c:C(id STARTS WITH '')",
           _ => GetValue,
@@ -276,7 +276,7 @@ class LimitPropagationPlanningIntegrationTest
           indexType = IndexType.RANGE
         )
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -297,10 +297,10 @@ class LimitPropagationPlanningIntegrationTest
         .aggregation(Seq.empty, Seq("count(*) AS count"))
         .limit(10)
         .nodeHashJoin("b")
-        .|.expandAll("(c)-[cb:REL_CB]->(b)")
+        .|.expandAll("(c)-[:REL_CB]->(b)")
         .|.nodeIndexOperator("c:C(id STARTS WITH '')", indexOrder = IndexOrderAscending, indexType = IndexType.RANGE)
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", indexType = IndexType.RANGE)
         .build()
     }
@@ -321,7 +321,7 @@ class LimitPropagationPlanningIntegrationTest
         .skip(7)
         .limit(add(literalInt(10), literalInt(7)))
         .nodeHashJoin("b")
-        .|.expandAll("(c)-[cb:REL_CB]->(b)")
+        .|.expandAll("(c)-[:REL_CB]->(b)")
         .|.nodeIndexOperator(
           "c:C(id STARTS WITH '')",
           _ => GetValue,
@@ -329,7 +329,7 @@ class LimitPropagationPlanningIntegrationTest
           indexType = IndexType.RANGE
         )
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -351,9 +351,9 @@ class LimitPropagationPlanningIntegrationTest
         .top(Seq(Ascending(v"c.id")), add(literalInt(10), literalInt(100000)))
         .projection("cache[c.id] AS `c.id`")
         .filter("c:C", "cacheNFromStore[c.id] STARTS WITH ''")
-        .expandAll("(b)<-[cb:REL_CB]-(c)")
+        .expandAll("(b)<-[:REL_CB]-(c)")
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -380,7 +380,7 @@ class LimitPropagationPlanningIntegrationTest
         )
         .expandAll("(b)<-[cb:REL_CB]-(c)")
         .filterExpression(hasLabels("b", "B"))
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -403,9 +403,9 @@ class LimitPropagationPlanningIntegrationTest
         .projection("cache[c.id] AS `c.id`")
         .setNodeProperty("b", "prop", "5")
         .filter("c:C", "cacheNFromStore[c.id] STARTS WITH ''")
-        .expandAll("(b)<-[cb:REL_CB]-(c)")
+        .expandAll("(b)<-[:REL_CB]-(c)")
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -428,7 +428,7 @@ class LimitPropagationPlanningIntegrationTest
         .limit(add(literalInt(10), literalInt(7)))
         .distinct("a AS a", "c AS c")
         .nodeHashJoin("b")
-        .|.expandAll("(c)-[cb:REL_CB]->(b)")
+        .|.expandAll("(c)-[:REL_CB]->(b)")
         .|.nodeIndexOperator(
           "c:C(id STARTS WITH '')",
           _ => GetValue,
@@ -436,7 +436,7 @@ class LimitPropagationPlanningIntegrationTest
           indexType = IndexType.RANGE
         )
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -460,9 +460,9 @@ class LimitPropagationPlanningIntegrationTest
         .projection("cache[c.id] AS `c.id`")
         .distinct("a AS a", "c AS c")
         .filter("c:C", "cacheNFromStore[c.id] STARTS WITH ''")
-        .expandAll("(b)<-[cb:REL_CB]-(c)")
+        .expandAll("(b)<-[:REL_CB]-(c)")
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -488,7 +488,7 @@ class LimitPropagationPlanningIntegrationTest
         .skip(7)
         .distinct("a AS a", "c AS c")
         .nodeHashJoin("b")
-        .|.expandAll("(c)-[cb:REL_CB]->(b)")
+        .|.expandAll("(c)-[:REL_CB]->(b)")
         .|.nodeIndexOperator(
           "c:C(id STARTS WITH '')",
           _ => GetValue,
@@ -496,7 +496,7 @@ class LimitPropagationPlanningIntegrationTest
           indexType = IndexType.RANGE
         )
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }
@@ -523,9 +523,9 @@ class LimitPropagationPlanningIntegrationTest
         .skip(100000)
         .distinct("a AS a", "c AS c")
         .filter("c:C", "cacheNFromStore[c.id] STARTS WITH ''")
-        .expandAll("(b)<-[cb:REL_CB]-(c)")
+        .expandAll("(b)<-[:REL_CB]-(c)")
         .filter("b:B")
-        .expandAll("(a)-[ab:REL_AB]->(b)")
+        .expandAll("(a)-[:REL_AB]->(b)")
         .nodeIndexOperator("a:A(id = 123)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
     }

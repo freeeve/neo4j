@@ -486,7 +486,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     plan should equal(
       planner.subPlanBuilder()
         .filter("not anon_1 in anon_3")
-        .expandAll("(a)-[anon_1]-(b)")
+        .expandAll("(a)-[anon_1]-()")
         .repeatTrail(`((n)-[]->(m))+(a)`)
         .|.filterExpression(isRepeatTrailUnique("anon_2"))
         .|.expandAll("(n)-[anon_2]->(m)")
@@ -2439,7 +2439,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .|.repeatTrail(trailParameters)
       .|.|.filterExpression(isRepeatTrailUnique("r"))
       .|.|.semiApply()
-      .|.|.|.expandInto("(m)-[mzRel]-(z)")
+      .|.|.|.expandInto("(m)-[]-(z)")
       .|.|.|.argument("m", "z")
       .|.|.expandAll("(n)-[r]->(m)")
       .|.|.argument("n", "z")
@@ -2474,7 +2474,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
         .filter("NOT t IN s", "NOT u IN s")
         .expand("(d)-[s*1..]-(i)", projectedDir = OUTGOING)
         .filter("NOT t = u")
-        .expandAll("(d)-[t]-(e)")
+        .expandAll("(d)-[t]-()")
         .relationshipTypeScan("()-[u:R]-(d)")
         .build()
     )
@@ -2661,7 +2661,7 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
     )
 
     val nestedPlan = planner.subPlanBuilder()
-      .expandInto("(a)-[rr]->(`  d@5`)")
+      .expandInto("(a)-[]->(`  d@5`)")
       .projection("`  d@4`[`  UNNAMED0`] AS `  d@5`")
       .argument("  d@4", "  UNNAMED0", "a")
       .build()
@@ -2748,13 +2748,13 @@ trait QuantifiedPathPatternPlanningIntegrationTestBase extends CypherFunSuite wi
       .|.filterExpression(isRepeatTrailUnique("p"))
       .|.semiApply()
       .|.|.filter("x.prop > cacheR[p.prop]")
-      .|.|.expandAll("(place)<-[q:TO_PLACE]-(x)").withCardinality(relsPerPlace) // <-- testing this
+      .|.|.expandAll("(place)<-[:TO_PLACE]-(x)").withCardinality(relsPerPlace) // <-- testing this
       .|.|.cacheProperties("cacheRFromStore[p.prop]")
       .|.|.argument("place", "p")
       .|.expandAll("(b)-[p]->(c)")
       .|.argument("b", "place")
       .filter("place:Place")
-      .expandAll("(start)-[r:TO_PLACE]->(place)")
+      .expandAll("(start)-[:TO_PLACE]->(place)")
       .nodeByLabelScan("start", "Start")
 
     plan should haveSamePlanAndCardinalitiesAsBuilder(

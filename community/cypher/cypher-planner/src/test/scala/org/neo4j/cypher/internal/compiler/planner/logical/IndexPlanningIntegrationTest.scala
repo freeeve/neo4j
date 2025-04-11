@@ -101,7 +101,7 @@ class IndexPlanningIntegrationTest
       val plan =
         cfg.plan(s"WITH 'foo' AS foo MATCH (a)-[r]->(b:Label) WHERE b.prop $op foo RETURN a").stripProduceResults
       plan shouldEqual cfg.subPlanBuilder()
-        .expandAll("(b)<-[r]-(a)")
+        .expandAll("(b)<-[]-(a)")
         .apply()
         .|.nodeIndexOperator(
           s"b:Label(prop $op ???)",
@@ -280,7 +280,7 @@ class IndexPlanningIntegrationTest
 
       val planWithIndexScan = cfg.subPlanBuilder()
         .filter(s"cacheN[b.prop] $op a.prop")
-        .expandAll("(b)<-[r]-(a)")
+        .expandAll("(b)<-[]-(a)")
         .nodeIndexOperator("b:Label(prop)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
 
@@ -295,7 +295,7 @@ class IndexPlanningIntegrationTest
       val plan =
         cfg.plan(s"WITH 'foo' AS foo MATCH (a)-[r]->(b:Label) WHERE b.prop $op foo RETURN a").stripProduceResults
       plan shouldEqual cfg.subPlanBuilder()
-        .expandAll("(b)<-[r]-(a)")
+        .expandAll("(b)<-[]-(a)")
         .apply()
         .|.nodeIndexOperator(
           s"b:Label(prop $op ???)",
@@ -317,7 +317,7 @@ class IndexPlanningIntegrationTest
         s"WITH {prop: 'foo'} AS foo MATCH (a)-[r]->(b:Label) WHERE b.prop $op foo.prop RETURN a"
       ).stripProduceResults
       plan shouldEqual cfg.subPlanBuilder()
-        .expandAll("(b)<-[r]-(a)")
+        .expandAll("(b)<-[]-(a)")
         .apply()
         .|.nodeIndexOperator(
           s"b:Label(prop $op ???)",
@@ -338,7 +338,7 @@ class IndexPlanningIntegrationTest
       val plan = cfg.plan(s"MATCH (a)-[r]->(b:Label) WHERE b.prop $op 'test' RETURN a").stripProduceResults
 
       val planWithLabelScan = cfg.subPlanBuilder()
-        .expandAll("(b)<-[r]-(a)")
+        .expandAll("(b)<-[]-(a)")
         .filter(s"cacheN[b.prop] $op 'test'")
         .nodeIndexOperator("b:Label(prop)", _ => GetValue, indexType = IndexType.RANGE)
         .build()
@@ -383,7 +383,7 @@ class IndexPlanningIntegrationTest
         "x.maxDistance >= point.distance(cacheN[p.location], point({x: 0, y: 0, crs: 'cartesian'}))",
         "x:Preference"
       )
-      .expandAll("(p)-[r]->(x)")
+      .expandAll("(p)-[]->(x)")
       .nodeIndexOperator(
         "p:Place(location)",
         _ => GetValue,
@@ -589,7 +589,7 @@ class IndexPlanningIntegrationTest
 
     plan shouldEqual cfg.subPlanBuilder()
       .semiApply()
-      .|.expandInto("(a)-[anon_0]-(b)")
+      .|.expandInto("(a)-[]-(b)")
       .|.filter("cacheN[a.prop] = $param", "a:Label")
       .|.argument("a", "b")
       .cartesianProduct()
@@ -1164,7 +1164,7 @@ class IndexPlanningIntegrationTest
     plan shouldBe cfg.subPlanBuilder()
       .rollUpApply("result", "anon_0")
       .|.projection("[a, cacheN[a.prop]] AS anon_0")
-      .|.expandAll("(a)-[r]->(b)")
+      .|.expandAll("(a)-[]->()")
       .|.nodeIndexOperator("a:Label(prop)", _ => GetValue, indexType = IndexType.RANGE)
       .argument()
       .build()
@@ -1178,7 +1178,7 @@ class IndexPlanningIntegrationTest
     plan shouldBe cfg.subPlanBuilder()
       .rollUpApply("result", "anon_0")
       .|.projection("[a, cacheN[a.prop]] AS anon_0")
-      .|.expandAll("(a)-[r]->(b)")
+      .|.expandAll("(a)-[]->()")
       .|.nodeIndexOperator("a:Label(prop)", _ => GetValue, indexType = IndexType.RANGE)
       .argument()
       .build()
@@ -2242,7 +2242,7 @@ class IndexPlanningIntegrationTest
     val plan = cfg.plan(q).stripProduceResults
     plan shouldBe cfg.subPlanBuilder()
       .aggregation(Seq.empty, Seq("count(*) AS result"))
-      .expandAll("(n)-[r]->(b)")
+      .expandAll("(n)-[]->()")
       .nodeIndexOperator("n:A(3 < prop < 10)", indexType = IndexType.RANGE)
       .build()
 

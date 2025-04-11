@@ -213,7 +213,7 @@ class RemoteBatchPropertiesPlanningIntegrationTest
         .|.filter("cacheN[person.firstName] = cacheN[dog.name]")
         .|.remoteBatchProperties("cacheNFromStore[dog.name]")
         .|.filter("dog:Dog")
-        .|.expandAll("(person)-[anon_0:HAS_DOG]->(dog)")
+        .|.expandAll("(person)-[:HAS_DOG]->(dog)")
         .|.argument("person")
         .remoteBatchProperties("cacheNFromStore[person.firstName]")
         .nodeByLabelScan("person", "Person", IndexOrderAscending)
@@ -490,7 +490,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .planBuilder()
       .produceResults("expandIntoProp", "standaloneProp")
       .projection("cacheN[a.prop] AS expandIntoProp", "cacheN[n0.prop] AS standaloneProp")
-      .expandInto("(a)-[r2]->(n1)")
+      .expandInto("(a)-[]->(n1)")
       .filterExpression(assertIsNode("n0"))
       .apply()
       .|.nodeIndexOperator(
@@ -499,7 +499,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         getValue = Map("prop" -> GetValue)
       )
       .optional()
-      .expandAll("(n0)-[r1]->(n1)")
+      .expandAll("(n0)-[]->(n1)")
       .remoteBatchPropertiesWithFilter("cacheNFromStore[n0.prop]")("n0.prop = 42")
       .allNodeScan("n0")
       .build()
@@ -626,7 +626,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .|.remoteBatchPropertiesWithFilter("cacheNFromStore[message.creationDate]", "cacheNFromStore[message.id]")(
           "message.creationDate IS NOT NULL"
         )
-        .|.expandAll("(friend)<-[has_creator:POST_HAS_CREATOR|COMMENT_HAS_CREATOR]-(message)")
+        .|.expandAll("(friend)<-[:POST_HAS_CREATOR|COMMENT_HAS_CREATOR]-(message)")
         .|.argument("friend")
         .filter("cacheN[person.firstName] = cacheN[friend.firstName]")
         .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
@@ -705,8 +705,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "p.creationDate < $max_creation_date"
       )
       .|.filter("p:Message")
-      .|.expandAll("(anon_1)<-[anon_0:POST_HAS_CREATOR]-(p)")
-      .|.nodeIndexOperator("anon_1:Person(firstName = 'Smith')", getValue = Map("firstName" -> DoNotGetValue))
+      .|.expandAll("(anon_0)<-[:POST_HAS_CREATOR]-(p)")
+      .|.nodeIndexOperator("anon_0:Person(firstName = 'Smith')", getValue = Map("firstName" -> DoNotGetValue))
       .projection("p AS p")
       .remoteBatchPropertiesWithFilter("cacheNFromStore[p.creationDate]")("p.creationDate > $max_creation_date")
       .nodeIndexOperator("p:Person(firstName = 'Smith')", getValue = Map("firstName" -> DoNotGetValue))
@@ -748,7 +748,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         cachedNodeProp("friend", "lastName", "friend", knownToAccessStore = true)
       ))
       .filter("friend:Person")
-      .expandAll("(earlyAdopter)-[knows:KNOWS]->(friend)")
+      .expandAll("(earlyAdopter)-[:KNOWS]->(friend)")
       .projection("person AS earlyAdopter")
       .top(10, "earlyAdopterSince ASC")
       .projection("cacheN[person.creationDate] AS earlyAdopterSince")
@@ -772,7 +772,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .planBuilder()
       .produceResults("person", "friend")
       .filter("person:Person")
-      .expandAll("(friend)<-[knows:KNOWS]-(person)")
+      .expandAll("(friend)<-[:KNOWS]-(person)")
       .nodeByLabelScan("friend", "Person")
       .build()
   }
@@ -861,7 +861,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "cacheNFromStore[message.content]",
         "cacheNFromStore[message.id]"
       )("message.creationDate < $Date0")
-      .expandAll("(friend)<-[anon_0:POST_HAS_CREATOR|COMMENT_HAS_CREATOR]-(message)")
+      .expandAll("(friend)<-[:POST_HAS_CREATOR|COMMENT_HAS_CREATOR]-(message)")
       .projection("friend AS friend")
       .filter("NOT person = friend")
       .bfsPruningVarExpand(
@@ -920,9 +920,9 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .___CONDITION_END___()
       .aggregation(Seq("person AS person"), Seq("count(post) AS threadCount", "count(reply) AS messageCount"))
       .remoteBatchPropertiesWithFilter("cacheNFromStore[reply.creationDate]")("reply.creationDate <= $endDate")
-      .expand("(post)<-[anon_1:REPLY_OF*0..]-(reply)", expandMode = ExpandAll, projectedDir = INCOMING)
+      .expand("(post)<-[anon_0:REPLY_OF*0..]-(reply)", expandMode = ExpandAll, projectedDir = INCOMING)
       .filter("person:Person")
-      .expandAll("(post)-[anon_0:POST_HAS_CREATOR]->(person)")
+      .expandAll("(post)-[:POST_HAS_CREATOR]->(person)")
       .nodeIndexOperator(
         "post:Message(creationDate <= ???)",
         paramExpr = Some(parameter("endDate", CTAny)),
@@ -1073,7 +1073,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .rollUpApply("title", "anon_0")
       .|.projection("cacheN[message.name] AS anon_0")
       .|.remoteBatchProperties("cacheNFromStore[message.name]")
-      .|.expandAll("(p)<-[r:COMMENT_HAS_CREATOR]-(message)")
+      .|.expandAll("(p)<-[:COMMENT_HAS_CREATOR]-(message)")
       .|.argument("p")
       .nodeByLabelScan("p", "Person")
       .build()
@@ -1093,7 +1093,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .filter("cacheN[friend.lastName] = foo")
       .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
       .filter("friend:Person")
-      .expandAll("(n)-[anon_0:KNOWS]-(friend)")
+      .expandAll("(n)-[:KNOWS]-(friend)")
       .unwind("[cacheN[n.firstName]] AS foo")
       .remoteBatchProperties("cacheNFromStore[n.firstName]")
       .nodeByLabelScan("n", "Person")
@@ -1125,13 +1125,13 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[a.firstName] AS `a.firstName`", "cacheN[a.age] AS `a.age`")
-      .selectOrSemiApply("anon_4")
-      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_3.lastName]")("anon_3.lastName = 'Smith'")
-      .|.filter("anon_3:Person")
-      .|.expandAll("(a)-[anon_2:KNOWS]-(anon_3)")
+      .selectOrSemiApply("anon_2")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_1.lastName]")("anon_1.lastName = 'Smith'")
+      .|.filter("anon_1:Person")
+      .|.expandAll("(a)-[:KNOWS]-(anon_1)")
       .|.argument("a")
-      .letSelectOrAntiSemiApply("anon_4", "cacheN[a.age] > 30")
-      .|.expandAll("(anon_0)-[anon_1:POST_HAS_CREATOR]->(n)")
+      .letSelectOrAntiSemiApply("anon_2", "cacheN[a.age] > 30")
+      .|.expandAll("(anon_0)-[:POST_HAS_CREATOR]->()")
       .|.nodeByLabelScan("anon_0", "Post")
       .remoteBatchProperties("cacheNFromStore[a.firstName]", "cacheNFromStore[a.age]")
       .nodeByLabelScan("a", "Person")
@@ -1151,16 +1151,16 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       planner.subPlanBuilder()
         .projection("cacheN[a.firstName] AS `a.firstName`", "cacheN[a.lastName] AS `a.lastName`")
         .remoteBatchProperties("cacheNFromStore[a.firstName]")
-        .selectOrAntiSemiApply("anon_4")
-        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_3.lastName]")("anon_3.lastName = 'Smith'")
-        .|.filter("anon_3:Person")
-        .|.expandAll("(a)-[anon_2:KNOWS]-(anon_3)")
+        .selectOrAntiSemiApply("anon_2")
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_1.lastName]")("anon_1.lastName = 'Smith'")
+        .|.filter("anon_1:Person")
+        .|.expandAll("(a)-[:KNOWS]-(anon_1)")
         .|.filter("cacheN[a.lastName] = 'Smyth'")
         .|.argument("a")
-        .letSemiApply("anon_4")
-        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_1.lastName]")("anon_1.lastName = 'Smyth'")
-        .|.filter("anon_1:Person")
-        .|.expandAll("(a)-[anon_0:KNOWS]-(anon_1)")
+        .letSemiApply("anon_2")
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_0.lastName]")("anon_0.lastName = 'Smyth'")
+        .|.filter("anon_0:Person")
+        .|.expandAll("(a)-[:KNOWS]-(anon_0)")
         .|.remoteBatchPropertiesWithFilter("cacheNFromStore[a.lastName]")("a.lastName = 'Smith'")
         .|.argument("a")
         .nodeByLabelScan("a", "Person")
@@ -1183,9 +1183,9 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         .cartesianProduct()
         .|.nodeByLabelScan("a", "Person")
         .antiSemiApply()
-        .|.expandInto("(b)-[anon_0:KNOWS]->(anon_1)")
+        .|.expandInto("(b)-[:KNOWS]->(anon_0)")
         .|.nodeIndexOperator(
-          "anon_1:Person(firstName = 'Jon')",
+          "anon_0:Person(firstName = 'Jon')",
           argumentIds = Set("b"),
           getValue = Map("firstName" -> DoNotGetValue)
         )
@@ -1211,7 +1211,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .|.filter("NOT cacheN[s.firstName] = cacheN[p.firstName]")
       .|.remoteBatchProperties("cacheNFromStore[s.firstName]")
       .|.filter("s:Person")
-      .|.expandAll("(p)-[anon_0:KNOWS]-(s)")
+      .|.expandAll("(p)-[:KNOWS]-(s)")
       .|.argument("p")
       .nodeIndexOperator("p:Person(firstName = 'foo')", getValue = Map("firstName" -> GetValue))
       .build())
@@ -1230,7 +1230,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
       .filter("NOT cacheN[s.firstName] = cacheN[p.firstName]")
       .remoteBatchProperties("cacheNFromStore[p.firstName]")
-      .expandAll("(s)-[anon_0:KNOWS]-(p)")
+      .expandAll("(s)-[:KNOWS]-(p)")
       .nodeIndexOperator("s:Person(firstName)", getValue = Map("firstName" -> GetValue))
       .build())
   }
@@ -1389,7 +1389,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .|.projection("cacheN[b.name] AS `b.name`")
       .|.filter("cacheN[b.name] = cacheN[a.firstName]")
       .|.remoteBatchProperties("cacheNFromStore[b.name]")
-      .|.expandAll("(a)-[anon_0:KNOWS]->(b)")
+      .|.expandAll("(a)-[:KNOWS]->(b)")
       .|.remoteBatchProperties("cacheNFromStore[a.firstName]")
       .|.argument("a")
       .nodeByLabelScan("a", "Person")
@@ -1607,7 +1607,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
       .filter("NOT cacheN[s.lastName] = cacheN[p.lastName]")
       .remoteBatchProperties("cacheNFromStore[p.lastName]", "cacheNFromStore[p.firstName]")
-      .expandAll("(s)-[anon_0:KNOWS]-(p)")
+      .expandAll("(s)-[:KNOWS]-(p)")
       .remoteBatchProperties("cacheNFromStore[s.lastName]", "cacheNFromStore[s.firstName]")
       .nodeByLabelScan("s", "Person")
       .build())
@@ -1638,25 +1638,25 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       )
       .remoteBatchProperties("cacheNFromStore[expertCandidatePerson.id]", "cacheNFromStore[tag.name]")
       .filter("tag:Tag")
-      .expandAll("(message)-[anon_9:MESSAGE_HAS_TAG]-(tag)")
+      .expandAll("(message)-[:MESSAGE_HAS_TAG]-(tag)")
       .filter("message:Message")
       .semiApply()
-      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_8.name]")("anon_8.name = $tagClass")
-      .|.filter("anon_8:TagClass")
-      .|.expandAll("(anon_6)-[anon_7:HAS_TYPE]->(anon_8)")
-      .|.filter("anon_6:Tag")
-      .|.expandAll("(message)-[anon_5:MESSAGE_HAS_TAG]->(anon_6)")
+      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[anon_3.name]")("anon_3.name = $tagClass")
+      .|.filter("anon_3:TagClass")
+      .|.expandAll("(anon_2)-[:HAS_TYPE]->(anon_3)")
+      .|.filter("anon_2:Tag")
+      .|.expandAll("(message)-[:MESSAGE_HAS_TAG]->(anon_2)")
       .|.argument("message")
-      .expandAll("(expertCandidatePerson)<-[anon_4:POST_HAS_CREATOR]-(message)")
+      .expandAll("(expertCandidatePerson)<-[:POST_HAS_CREATOR]-(message)")
       .filter("shortestPathDistance >= 3")
-      .aggregation(Seq("expertCandidatePerson AS expertCandidatePerson"), Seq("min(anon_10) AS shortestPathDistance"))
-      .nodeHashJoin("anon_1")
-      .|.expandAll("(expertCandidatePerson)-[anon_0:IS_LOCATED_IN]->(anon_1)")
+      .aggregation(Seq("expertCandidatePerson AS expertCandidatePerson"), Seq("min(anon_4) AS shortestPathDistance"))
+      .nodeHashJoin("anon_0")
+      .|.expandAll("(expertCandidatePerson)-[:IS_LOCATED_IN]->(anon_0)")
       .|.filter("expertCandidatePerson:Person")
       // we are testing that we run this operator
       .|.bfsPruningVarExpand(
         "(startPerson)-[:KNOWS*1..4]-(expertCandidatePerson)",
-        depthName = Some("anon_10"),
+        depthName = Some("anon_4"),
         mode = ExpandAll
       ) // we are testing that we run this operator
       .|.nodeIndexOperator(
@@ -1665,10 +1665,10 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         getValue = Map("id" -> DoNotGetValue),
         unique = true
       )
-      .filter("anon_1:City")
-      .expandAll("(anon_3)<-[anon_2:IS_PART_OF]-(anon_1)")
+      .filter("anon_0:City")
+      .expandAll("(anon_1)<-[:IS_PART_OF]-(anon_0)")
       .nodeIndexOperator(
-        "anon_3:Country(name = ???)",
+        "anon_1:Country(name = ???)",
         paramExpr = Some(parameter("country", CTAny)),
         getValue = Map("name" -> DoNotGetValue)
       )
@@ -1695,16 +1695,16 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .projection("cacheN[message.creationDate] < $date AS isInFirstWindow")
       .remoteBatchProperties("cacheNFromStore[message.creationDate]")
       .leftOuterHashJoin("tag")
-      .|.expandAll("(message)-[anon_2:MESSAGE_HAS_TAG]->(tag)")
+      .|.expandAll("(message)-[:MESSAGE_HAS_TAG]->(tag)")
       .|.nodeIndexOperator(
         "message:Message(creationDate >= ???)",
         paramExpr = Some(parameter("date", CTAny)),
         getValue = Map("creationDate" -> GetValue)
       )
       .filter("tag:Tag")
-      .expandAll("(anon_1)<-[anon_0:HAS_TYPE]-(tag)")
+      .expandAll("(anon_0)<-[:HAS_TYPE]-(tag)")
       .nodeIndexOperator(
-        "anon_1:TagClass(name = ???)",
+        "anon_0:TagClass(name = ???)",
         paramExpr = Some(parameter("tagClass", CTAny)),
         getValue = Map("name" -> DoNotGetValue)
       )
@@ -1732,9 +1732,9 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .|.cartesianProduct()
       .|.|.remoteBatchProperties("cacheNFromStore[tag.name]")
       .|.|.filter("tag:Tag")
-      .|.|.expandAll("(anon_1)<-[anon_0:HAS_TYPE]-(tag)")
+      .|.|.expandAll("(anon_0)<-[:HAS_TYPE]-(tag)")
       .|.|.nodeIndexOperator(
-        "anon_1:TagClass(name = ???)",
+        "anon_0:TagClass(name = ???)",
         paramExpr = Some(parameter("tagClass", CTAny)),
         getValue = Map("name" -> DoNotGetValue)
       )
@@ -1742,9 +1742,9 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "message.creationDate >= $date"
       )
       .|.filter("message:Message")
-      .|.expandAll("(anon_3)<-[anon_2:MESSAGE_HAS_TAG]-(message)")
+      .|.expandAll("(anon_1)<-[:MESSAGE_HAS_TAG]-(message)")
       .|.nodeIndexOperator(
-        "anon_3:Tag(name = ???)",
+        "anon_1:Tag(name = ???)",
         paramExpr = Some(parameter("tagClass", CTAny)),
         getValue = Map("name" -> DoNotGetValue)
       )
@@ -1836,7 +1836,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .remoteBatchProperties("cacheNFromStore[post.status]", "cacheNFromStore[post.createdAt]")
       .limit(10)
       .filter("post:Message")
-      .expandAll("(poster)<-[anon_1:POST_HAS_CREATOR]-(post)")
+      .expandAll("(poster)<-[:POST_HAS_CREATOR]-(post)")
       .remoteBatchProperties("cacheNFromStore[poster.name]")
       .filter("poster:Person")
       .expand("(p)-[anon_0:KNOWS*1..3]-(poster)")
@@ -1866,10 +1866,10 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       )("friend.year = 2000")
       .aggregation(Seq("p AS p", "friend AS friend"), Seq("max(cacheN[reply.creationDate]) AS latestReply"))
       .remoteBatchProperties("cacheNFromStore[reply.creationDate]")
-      .filter("NOT anon_3 = anon_0", "friend:Person")
-      .expandAll("(reply)-[anon_3:POST_HAS_CREATOR]->(friend)")
+      .filter("NOT anon_2 = anon_0", "friend:Person")
+      .expandAll("(reply)-[anon_2:POST_HAS_CREATOR]->(friend)")
       .filter("reply:Message")
-      .expandAll("(anon_1)<-[anon_2:REPLY_OF]-(reply)")
+      .expandAll("(anon_1)<-[:REPLY_OF]-(reply)")
       .expandAll("(p)<-[anon_0:POST_HAS_CREATOR]-(anon_1)")
       .nodeIndexOperator(
         "p:Person(id = ???)",

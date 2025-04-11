@@ -671,7 +671,7 @@ class OrLeafPlanningIntegrationTest
     plan should equal(
       planner.planBuilder()
         .produceResults("b")
-        .expandAll("(a)-[anon_0:REL1|REL1]->(b)")
+        .expandAll("(a)-[:REL1|REL1]->(b)")
         .nodeByLabelScan("a", "L")
         .build()
     )

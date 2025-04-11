@@ -277,7 +277,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .projection(Map("m.prop1" -> cachedNodeProp("n", "prop1", "m")))
-      .expandAll("(m)-[r]-(o)")
+      .expandAll("(m)-[]-()")
       .projection("n AS m")
       .nodeIndexOperator("n:Awesome(prop1 = 42)", _ => GetValue)
       .build())
@@ -316,7 +316,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .projection("n.prop1 AS `n.prop1`")
-      .expandAll("(m)-[r]-(n)")
+      .expandAll("(m)-[]-(n)")
       .projection("n AS m")
       .nodeIndexOperator("n:Awesome(prop1 = 42)", _ => DoNotGetValue)
       .build())
@@ -358,7 +358,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
 
     plan should equal(planner.subPlanBuilder()
       .projection("cache[n.prop1] AS `n.prop1`")
-      .expandAll("(n)-[r]-(m)")
+      .expandAll("(n)-[]-()")
       .nodeIndexOperator("n:Awesome(prop1 = 42)", _ => GetValue)
       .build())
   }
@@ -515,7 +515,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
     plan should equal(planner.subPlanBuilder()
       .projection("n.prop2 AS `n.prop2`")
       .filter("cache[n.prop1] % m.prop2 = 0")
-      .expandAll("(n)-[r]->(m)")
+      .expandAll("(n)-[]->(m)")
       .nodeIndexOperator("n:Awesome(prop1 <= 42)", _ => GetValue)
       .build())
   }
@@ -527,7 +527,7 @@ class IndexWithValuesPlanningIntegrationTest extends CypherFunSuite with Logical
       .stripProduceResults
 
     plan should equal(planner.subPlanBuilder()
-      .expandAll("(m)-[r]-(o)")
+      .expandAll("(m)-[]-(o)")
       .filterExpression(lessThan(cachedNodeProp("n", "prop1", "m"), literalInt(50)))
       .projection("n AS m")
       .nodeIndexOperator("n:Awesome(prop1 > 42)", _ => GetValue)
