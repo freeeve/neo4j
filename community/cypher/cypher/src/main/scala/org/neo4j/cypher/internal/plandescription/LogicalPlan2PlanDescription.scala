@@ -61,6 +61,8 @@ import org.neo4j.cypher.internal.expressions.RelTypeExpression
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
+import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.UnPositionedVariable.varFor
 import org.neo4j.cypher.internal.expressions.functions.Labels
@@ -1154,65 +1156,55 @@ case class LogicalPlan2PlanDescription(
         )
 
       case DirectedAllRelationshipsScan(idName, start, end, _) =>
-        val prettyDetails =
-          pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}]->(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
           "DirectedAllRelationshipsScan",
           children,
-          Seq(Details(prettyDetails)),
+          Seq(Details(relationshipPattern(start, idName, Seq.empty, end, OUTGOING))),
           variables,
           withRawCardinalities,
           withDistinctness
         )
 
       case PartitionedDirectedAllRelationshipsScan(idName, start, end, _) =>
-        val prettyDetails =
-          pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}]->(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
           "PartitionedDirectedAllRelationshipsScan",
           children,
-          Seq(Details(prettyDetails)),
+          Seq(Details(relationshipPattern(start, idName, Seq.empty, end, OUTGOING))),
           variables,
           withRawCardinalities,
           withDistinctness
         )
 
       case UndirectedAllRelationshipsScan(idName, start, end, _) =>
-        val prettyDetails =
-          pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}]-(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
           "UndirectedAllRelationshipsScan",
           children,
-          Seq(Details(prettyDetails)),
+          Seq(Details(relationshipPattern(start, idName, Seq.empty, end, BOTH))),
           variables,
           withRawCardinalities,
           withDistinctness
         )
 
       case PartitionedUndirectedAllRelationshipsScan(idName, start, end, _) =>
-        val prettyDetails =
-          pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}]-(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
           "PartitionedUndirectedAllRelationshipsScan",
           children,
-          Seq(Details(prettyDetails)),
+          Seq(Details(relationshipPattern(start, idName, Seq.empty, end, BOTH))),
           variables,
           withRawCardinalities,
           withDistinctness
         )
 
       case DirectedRelationshipTypeScan(idName, start, typeName, end, _, _) =>
-        val prettyDetails =
-          pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${asPrettyString(typeName.name)}]->(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
           "DirectedRelationshipTypeScan",
           children,
-          Seq(Details(prettyDetails)),
+          Seq(Details(relationshipPattern(start, idName, Seq(typeName), end, OUTGOING))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -1232,13 +1224,11 @@ case class LogicalPlan2PlanDescription(
         )
 
       case UndirectedRelationshipTypeScan(idName, start, typeName, end, _, _) =>
-        val prettyDetails =
-          pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${asPrettyString(typeName.name)}]-(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
           "UndirectedRelationshipTypeScan",
           children,
-          Seq(Details(prettyDetails)),
+          Seq(Details(relationshipPattern(start, idName, Seq(typeName), end, BOTH))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -1258,26 +1248,22 @@ case class LogicalPlan2PlanDescription(
         )
 
       case PartitionedDirectedRelationshipTypeScan(idName, start, typeName, end, _) =>
-        val prettyDetails =
-          pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${asPrettyString(typeName.name)}]->(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
           "PartitionedDirectedRelationshipTypeScan",
           children,
-          Seq(Details(prettyDetails)),
+          Seq(Details(relationshipPattern(start, idName, Seq(typeName), end, OUTGOING))),
           variables,
           withRawCardinalities,
           withDistinctness
         )
 
       case PartitionedUndirectedRelationshipTypeScan(idName, start, typeName, end, _) =>
-        val prettyDetails =
-          pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${asPrettyString(typeName.name)}]-(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
           "PartitionedUndirectedRelationshipTypeScan",
           children,
-          Seq(Details(prettyDetails)),
+          Seq(Details(relationshipPattern(start, idName, Seq(typeName), end, BOTH))),
           variables,
           withRawCardinalities,
           withDistinctness
@@ -3535,9 +3521,10 @@ case class LogicalPlan2PlanDescription(
     val predicate = seekableArgsInfo(relIds)
     val directionString = if (isDirectional) pretty">" else pretty""
     val prettyStartNode = asPrettyString(startNode)
-    val prettyIdName = asPrettyString(idName)
+    val prettyIdName = idName.map(n => asPrettyString(n)).getOrElse(pretty"_")
+    val prettyRelationship = idName.map(n => pretty"[${asPrettyString(n)}]").getOrElse(pretty"")
     val prettyEndNode = asPrettyString(endNode)
-    pretty"(${prettyStartNode})-[$prettyIdName]-$directionString($prettyEndNode) WHERE ${asPrettyString(functionName)}($prettyIdName) $predicate"
+    pretty"($prettyStartNode)-$prettyRelationship-$directionString($prettyEndNode) WHERE ${asPrettyString(functionName)}($prettyIdName) $predicate"
   }
 
   private def seekableArgsInfo(seekableArgs: SeekableArgs): PrettyString = seekableArgs match {
@@ -3628,6 +3615,15 @@ case class LogicalPlan2PlanDescription(
 
   private def conflictInfo(conflict: EagernessReason.Conflict): String =
     s"Operator: ${conflict.first.x} vs ${conflict.second.x}"
+
+  private def relationshipPattern(
+    from: Option[LogicalVariable],
+    maybeRelName: Option[LogicalVariable],
+    relTypes: Seq[RelTypeExpression],
+    to: Option[LogicalVariable],
+    direction: SemanticDirection
+  ): PrettyString =
+    expandExpressionDescription(from, maybeRelName, relTypes, to, direction, SimplePatternLength)
 
   private def expandExpressionDescription(
     from: Option[LogicalVariable],

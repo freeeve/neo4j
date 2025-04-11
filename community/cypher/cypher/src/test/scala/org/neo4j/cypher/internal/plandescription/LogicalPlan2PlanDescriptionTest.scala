@@ -1887,7 +1887,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         id,
         "DirectedAllRelationshipsScan",
         Seq.empty,
-        Seq(details("()-[]->(y)")),
+        Seq(details("()-->(y)")),
         Set("y")
       )
     )
@@ -2416,7 +2416,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         id,
         "DirectedRelationshipByIdSeek",
         Seq.empty,
-        Seq(details("()-[]->() WHERE id() = 1")),
+        Seq(details("()-->() WHERE id(_) = 1")),
         Set.empty
       )
     )
@@ -2617,7 +2617,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         id,
         "UndirectedRelationshipByIdSeek",
         Seq.empty,
-        Seq(details("()-[]-() WHERE id() = 1")),
+        Seq(details("()--() WHERE id(_) = 1")),
         Set("x")
       )
     )
