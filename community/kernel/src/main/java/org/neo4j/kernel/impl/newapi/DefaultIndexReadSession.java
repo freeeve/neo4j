@@ -23,4 +23,4 @@ import org.neo4j.internal.kernel.api.IndexReadSession;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 
-record DefaultIndexReadSession(ValueIndexReader reader, IndexDescriptor reference) implements IndexReadSession {}
+public record DefaultIndexReadSession(ValueIndexReader reader, IndexDescriptor reference) implements IndexReadSession {}

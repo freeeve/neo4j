@@ -33,7 +33,7 @@ public class PartitionedValueIndexCursorSeek<Cursor extends org.neo4j.internal.k
     private final PropertyIndexQuery[] query;
     private final IndexDescriptor descriptor;
 
-    PartitionedValueIndexCursorSeek(
+    public PartitionedValueIndexCursorSeek(
             IndexDescriptor descriptor, PartitionedValueSeek valueSeek, PropertyIndexQuery... query) {
         this.descriptor = descriptor;
         this.valueSeek = valueSeek;
