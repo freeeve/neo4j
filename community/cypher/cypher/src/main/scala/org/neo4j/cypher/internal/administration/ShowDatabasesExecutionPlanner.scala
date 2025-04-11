@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.translateDefaultLanguagePropertyToShowOutput
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.AdministrationShowCommandUtils
-import org.neo4j.cypher.internal.CypherVersion.Cypher5
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
 import org.neo4j.cypher.internal.administration.ShowDatabaseExecutionPlanner.accessibleDbsKey
@@ -74,7 +73,6 @@ import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY
-import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.QUOTED_DISPLAY_NAME_PROPERTY
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler
 import org.neo4j.kernel.database.DatabaseReferenceRepository
@@ -137,22 +135,17 @@ case class ShowDatabasesExecutionPlanner(
       }
     val returnClause = AdministrationShowCommandUtils.generateReturnClause(symbols, yields, returns, Seq("name"))
 
-    val displayNameProperty = context.runtimeContext.cypherVersion match {
-      case Cypher5 => DISPLAY_NAME_PROPERTY
-      case _       => QUOTED_DISPLAY_NAME_PROPERTY
-    }
-
     val query = Predef.augmentString(
       s"""UNWIND $$`$accessibleDbsKey` AS props
            |MATCH (d:$DATABASE)<-[:$TARGETS]-(dn:$DATABASE_NAME {$NAME_PROPERTY: props.name, $NAMESPACE_PROPERTY: '$DEFAULT_NAMESPACE'})
            |WITH d, dn, props
            |OPTIONAL MATCH (d)<-[:$TARGETS]-(a:$DATABASE_NAME&!$GRAPH_SHARD)
-           |WITH a, d, dn, props ORDER BY a.$displayNameProperty
+           |WITH a, d, dn, props ORDER BY a.$DISPLAY_NAME_PROPERTY
            |OPTIONAL MATCH (constituent:$DATABASE_NAME {$NAMESPACE_PROPERTY: dn.$NAME_PROPERTY})
            |WHERE d:$COMPOSITE_DATABASE AND constituent <> dn
-           |WITH dn.$displayNameProperty as name,
+           |WITH dn.$DISPLAY_NAME_PROPERTY as name,
            |collect(a) as aliases,
-           |collect(constituent.$displayNameProperty) as constituents,
+           |collect(constituent.$DISPLAY_NAME_PROPERTY) as constituents,
            |props.$ACCESS_COL as $ACCESS_COL,
            |props.$ADDRESS_COL as $ADDRESS_COL,
            |props.$ROLE_COL as $ROLE_COL,
@@ -170,7 +163,7 @@ case class ShowDatabasesExecutionPlanner(
            |
            |WITH name AS $NAME_COL,
            |type,
-           |[alias in aliases WHERE NOT (dbNameProperty = alias.$NAME_PROPERTY AND alias.$NAMESPACE_PROPERTY = '$DEFAULT_NAMESPACE') | alias.$displayNameProperty] as $ALIASES_COL,
+           |[alias in aliases WHERE NOT (dbNameProperty = alias.$NAME_PROPERTY AND alias.$NAMESPACE_PROPERTY = '$DEFAULT_NAMESPACE') | alias.$DISPLAY_NAME_PROPERTY] as $ALIASES_COL,
            |$ACCESS_COL,
            |$ADDRESS_COL,
            |$ROLE_COL,
