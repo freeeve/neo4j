@@ -26,4 +26,6 @@ import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
 @SkipTestExtension.Skip(key = FACTORY_SUPPLIER_KEY, value = "spd")
-public @interface SkipOnSpd {}
+public @interface SkipOnSpd {
+    String reason() default "";
+}
