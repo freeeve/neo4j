@@ -29,6 +29,7 @@ import org.neo4j.graphdb.schema.IndexType;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.RelationshipValueIndexCursor;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.test.extension.SkipOnSpd;
 
 public class RelationshipValueIndexCursorRange10Test
         extends EntityValueIndexCursorTestBase<RelationshipValueIndexCursor> {
@@ -48,6 +49,7 @@ public class RelationshipValueIndexCursorRange10Test
         return IndexType.RANGE;
     }
 
+    @SkipOnSpd(reason = "Index range queries works differently in SPD")
     @Test
     void shouldReadRelationshipOnReadFromStore() throws Exception {
         // given
@@ -110,6 +112,7 @@ public class RelationshipValueIndexCursorRange10Test
         }
     }
 
+    @SkipOnSpd(reason = "Index range queries works differently in SPD")
     @Test
     void shouldNotLoadDeletedRelationshipOnReadFromStore() throws Exception {
         // given
@@ -169,7 +172,7 @@ public class RelationshipValueIndexCursorRange10Test
             // when
             // do the seek
             entityParams.entityIndexSeek(
-                    tx, index, cursor, constraints, PropertyIndexQuery.range(prop, "one", true, "three", true));
+                    tx, index, cursor, constraints, PropertyIndexQuery.range(prop, "one", true, "one", true));
             // and go to the first entry, which is the strOne
             assertThat(cursor.next()).isTrue();
 
