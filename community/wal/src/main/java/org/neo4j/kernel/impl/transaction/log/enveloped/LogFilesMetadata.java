@@ -33,8 +33,12 @@ public class LogFilesMetadata implements RawIterator<LogFileMetadata, IOExceptio
     private LogFileMetadata nextMetadata = null;
 
     LogFilesMetadata(LogsRepository logsRepository) throws IOException {
+        this(logsRepository, false);
+    }
+
+    LogFilesMetadata(LogsRepository logsRepository, boolean reversed) throws IOException {
         this.logsRepository = logsRepository;
-        this.versions = logsRepository.logVersions(false);
+        this.versions = logsRepository.logVersions(reversed);
     }
 
     @Override

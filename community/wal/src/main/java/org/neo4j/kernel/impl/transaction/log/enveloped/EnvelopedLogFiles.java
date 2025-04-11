@@ -376,7 +376,11 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     }
 
     public LogFilesMetadata logFilesMetadata() throws IOException {
-        return new LogFilesMetadata(logsRepository);
+        return logFilesMetadata(false);
+    }
+
+    public LogFilesMetadata logFilesMetadata(boolean reversed) throws IOException {
+        return new LogFilesMetadata(logsRepository, reversed);
     }
 
     private static class EnvelopedLogRotation implements LogRotation {
