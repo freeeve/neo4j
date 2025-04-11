@@ -31,6 +31,10 @@ class ErrorMessagesTest extends ExecutionEngineWithoutRestartFunSuite {
   test("noReturnColumns") {
     expectError(
       "match (s) where id(s) = 0 return",
+      // CYPHER 25
+      "Invalid input '': expected \"*\", \"ALL\", \"DISTINCT\" or an expression (line 1, column 33 (offset: 32))",
+      "Invalid input '': expected an expression, '*', 'ALL' or 'DISTINCT' (line 1, column 33 (offset: 32))",
+      // CYPHER 5
       "Invalid input '': expected \"*\", \"DISTINCT\" or an expression (line 1, column 33 (offset: 32))",
       "Invalid input '': expected an expression, '*' or 'DISTINCT' (line 1, column 33 (offset: 32))"
     )
