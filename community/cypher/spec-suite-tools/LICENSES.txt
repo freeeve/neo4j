@@ -1624,7 +1624,6 @@ version.
 
 ------------------------------------------------------------------------------
 MIT License
-  Checker Qual
   Cucumber CiEnvironment
   Cucumber Expressions
   Cucumber HTML Formatter

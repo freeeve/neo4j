@@ -223,7 +223,6 @@ GNU General Public License, version 2 with the Classpath Exception
   ServiceLocator Default Implementation
 
 MIT License
-  Checker Qual
   Cucumber CiEnvironment
   Cucumber Expressions
   Cucumber HTML Formatter
