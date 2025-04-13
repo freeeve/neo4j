@@ -114,13 +114,18 @@ final class TimeBasedTaskScheduler implements Runnable {
 
     @Override
     public void run() {
-        timeKeeper = Thread.currentThread();
-        while (!stopped) {
-            long timeToNextTickNanos = tick();
-            if (stopped) {
-                return;
+        try {
+            timeKeeper = Thread.currentThread();
+            while (!stopped) {
+                long timeToNextTickNanos = tick();
+                if (stopped) {
+                    return;
+                }
+                LockSupport.parkNanos(this, timeToNextTickNanos);
             }
-            LockSupport.parkNanos(this, timeToNextTickNanos);
+        } finally {
+            delayedTasks.clear();
+            canceledTasks.clear();
         }
     }
 
