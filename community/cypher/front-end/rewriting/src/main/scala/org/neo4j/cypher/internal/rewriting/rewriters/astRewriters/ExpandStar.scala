@@ -19,7 +19,6 @@ package org.neo4j.cypher.internal.rewriting.rewriters.astRewriters
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AliasedReturnItem
 import org.neo4j.cypher.internal.ast.Clause
-import org.neo4j.cypher.internal.ast.Query
 import org.neo4j.cypher.internal.ast.Return
 import org.neo4j.cypher.internal.ast.ReturnItem
 import org.neo4j.cypher.internal.ast.ReturnItems
@@ -66,7 +65,7 @@ case class ExpandStar(state: SemanticState) extends Rewriter {
 
     case clause @ ScopeClauseSubqueryCall(iq, true, _, _, _) =>
       val innerQuery = iq.endoRewrite(this)
-      val expandedItems = importVariables(clause, innerQuery)
+      val expandedItems = importVariables(clause)
       clause.copy(innerQuery = innerQuery, isImportingAll = false, importedVariables = expandedItems)(clause.position)
 
     case expandedAstNode =>
@@ -104,28 +103,13 @@ case class ExpandStar(state: SemanticState) extends Rewriter {
     ReturnItems(includeExisting = false, newItems)(clausePos)
   }
 
-  private def importVariables(
-    call: SubqueryCall,
-    innerQuery: Query
-  ): Seq[Variable] = {
-    val scope = state.scope(call).getOrElse {
-      throw new IllegalStateException(s"${call.name} should note its Scope in the SemanticState")
-    }
-
-    // Checks if there are imported variables in outer state of the subquery that should be included.
-    val outerScopeSymbols = state.recordedScopes.getOrElse(
+  private def importVariables(call: SubqueryCall): Seq[Variable] = {
+    val imports = state.recordedScopes.getOrElse(
       call,
       throw new IllegalStateException(s"${call.name} should note its Scope in the SemanticState")
-    ).parent.get.scope.symbolNames
-
+    ).scope.symbolNames
     val clausePos = call.position
-    val returnVariables = innerQuery.returnVariables.explicitVariables.map(_.name)
-    val reportVariable = for {
-      tps <- call.inTransactionsParameters
-      report <- tps.reportParams
-    } yield report.reportAs.name
-    val symbolNames = scope.symbolNames ++ outerScopeSymbols -- returnVariables -- reportVariable
-    symbolNames.map { id =>
+    imports.map { id =>
       Variable(id)(clausePos, Variable.isIsolatedDefault)
     }.toSeq
   }

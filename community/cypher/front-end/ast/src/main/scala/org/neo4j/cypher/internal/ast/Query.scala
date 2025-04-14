@@ -524,12 +524,14 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
     val lastIndex = clauses.size - 1
     clauses.zipWithIndex.foldSemanticCheck {
       case (clause, idx) =>
-        val next = SemanticCheck.fromState { state =>
+        SemanticCheck.fromState { state =>
           clause match {
             case c: Return =>
-              checkReturn(c, outerScope, context)
-            case c: HorizonClause =>
+              checkReturn(c, outerScope, context) chain recordCurrentScope(clause)
+            case c: ScopeClauseSubqueryCall =>
               checkHorizon(c, outerScope)
+            case c: HorizonClause =>
+              checkHorizon(c, outerScope) chain recordCurrentScope(clause)
             case _ =>
               clause.semanticCheck.map { checked =>
                 val resultState = clause match {
@@ -542,11 +544,9 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
                     checked.state
                 }
                 checked.copy(state = resultState)
-              }
+              } chain recordCurrentScope(clause)
           }
         }
-
-        next chain recordCurrentScope(clause)
     }
   }
 
@@ -674,10 +674,7 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
 
     val shadowingErrors = shadowedSymbols.map {
       case (varName, pos) =>
-        SemanticError(
-          s"The variable `$varName` is shadowing an imported variable with the same name and needs to be renamed",
-          pos
-        )
+        SemanticError.variableShadowingOuterScope(varName, pos)
     }.toSeq
 
     SemanticCheckResult(inner, shadowingErrors)

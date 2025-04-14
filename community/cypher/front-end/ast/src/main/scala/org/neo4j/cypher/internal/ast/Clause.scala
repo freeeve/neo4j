@@ -1837,18 +1837,24 @@ sealed trait ProjectionClause extends HorizonClause {
           }
 
         (isReturn, outerScope) match {
-          case (true, Some(outer)) => check.map { result =>
-              val outerScopeSymbolNames = outer.symbolNames
-              val outputSymbolNames = result.state.currentScope.scope.symbolNames
-              val alreadyDeclaredNames = outputSymbolNames.intersect(outerScopeSymbolNames)
-              val explicitReturnVariablesByName =
-                returnItems.returnVariables.explicitVariables.map(v => v.name -> v).toMap
-              val errors = alreadyDeclaredNames.map { name =>
-                val position = explicitReturnVariablesByName.getOrElse(name, returnItems).position
-                SemanticError.variableAlreadyDeclaredInOuterScope(name, position)
+          case (true, Some(outer)) => check.flatMap { result =>
+              val inImportingWith = this match {
+                case r: Return => r.context == ImportingWithSubqueryCall
+                case _         => true
               }
+              when(inImportingWith) { (_: SemanticState) =>
+                val outerScopeSymbolNames = outer.symbolNames
+                val outputSymbolNames = result.state.currentScope.scope.symbolNames
+                val alreadyDeclaredNames = outputSymbolNames.intersect(outerScopeSymbolNames)
+                val explicitReturnVariablesByName =
+                  returnItems.returnVariables.explicitVariables.map(v => v.name -> v).toMap
+                val errors = alreadyDeclaredNames.map { name =>
+                  val position = explicitReturnVariablesByName.getOrElse(name, returnItems).position
+                  SemanticError.variableAlreadyDeclaredInOuterScope(name, position)
+                }
 
-              SemanticCheckResult(result.state, result.errors ++ errors)
+                SemanticCheckResult(result.state, result.errors ++ errors)
+              }
             }
 
           case _ =>
@@ -2147,7 +2153,7 @@ sealed trait SubqueryCall extends HorizonClause with SemanticAnalysisTooling {
 
   def checkSubquery: SemanticCheck
 
-  final protected def returnToOuterScope(outerScopeLocation: SemanticState.ScopeLocation): SemanticCheck = {
+  final protected def returnToOuterScope(outerScopeLocation: SemanticState.ScopeLocation): SemanticCheck =
     SemanticCheck.fromFunction { innerState =>
       val innerCurrentScope = innerState.currentScope.scope
 
@@ -2163,7 +2169,6 @@ sealed trait SubqueryCall extends HorizonClause with SemanticAnalysisTooling {
 
       SemanticCheckResult.success(after)
     }
-  }
 
   // Used to throw the correct error message if the subquery is used to wrap an optional procedure call
   // See wrapOptionalCallProcedure.scala for more information.
@@ -2276,20 +2281,15 @@ case class ScopeClauseSubqueryCall(
     for {
       // Get current state
       current <- SemanticCheck.getState
-      // Checks for errors in imported variables
-      stateWithImports <- SemanticExpressionCheck.simple(importedVariables)
-      // Create empty scope under root
-      _ <- SemanticCheck.setState(current.state.newBaseScope)
-      // Import variables from outer to new scope
-      innerWithImports <- importVariables(stateWithImports.state)
+      // Checks for errors in imported variables and import into new baseScope
+      innerWithImports <- importVariables
       // Check inner query
       innerChecked <- innerQuery.semanticCheckInSubqueryContext(innerWithImports.state, current.state)
-      // Return to outer scope
-      returned <- returnToOuterScope(current.state.currentScope)
+      _ <- recordCurrentScope(this)
       // Declare output variables from inner query in outer scope
-      merged <- declareOutputVariablesInOuterScope(returned.state, innerChecked.state)
+      merged <- declareOutputVariablesInOuterScope(current.state)
     } yield {
-      val importingScopeErrors = (stateWithImports.errors ++ innerChecked.errors).distinct
+      val importingScopeErrors = (innerWithImports.errors ++ innerChecked.errors).distinct
 
       // Avoid double errors if inner has errors
       val allErrors = if (importingScopeErrors.nonEmpty) importingScopeErrors else merged.errors
@@ -2299,57 +2299,49 @@ case class ScopeClauseSubqueryCall(
     }
   }
 
-  def declareOutputVariablesInOuterScope(
-    returned: SemanticState,
-    inner: SemanticState
-  ): SemanticCheck = {
-    when(innerQuery.isReturning) {
-      val outerScopeSymbolNames = returned.currentScope.scope.symbolNames
-      val outputSymbolNames = innerQuery.finalScope(inner.currentScope.scope).symbolNames
-      val intersect = outputSymbolNames.intersect(outerScopeSymbolNames)
+  private def declareOutputVariablesInOuterScope(
+    outer: SemanticState
+  ): SemanticCheck = fromState { inner =>
+    val innerScope = inner.currentScope.scope
+    val importedSymbolNames = innerScope.symbolNames
 
-      innerQuery.getReturns.flatMap(v => intersect.map((v, _))).foldSemanticCheck { case (ret, name) =>
-        val position = ret.returnItems.items.find(_.name == name) match {
-          case _ @Some(AliasedReturnItem(_, variable)) => variable.position
-          case _                                       => ret.position
-        }
-
-        SemanticError(s"Variable `$name` already declared in outer scope", position)
-      }
-    } ifOkChain
+    returnToOuterScope(outer.currentScope) chain
       when(innerQuery.isReturning) {
-        val scopeForDeclaringVariables = innerQuery.finalScope(inner.currentScope.scope)
-        declareVariables(scopeForDeclaringVariables.symbolTable.values)
+        val outerScopeSymbolNames = outer.currentScope.symbolNames
+        val outputSymbolNames = innerQuery.finalScope(innerScope).symbolNames
+        val intersect = outputSymbolNames.intersect(outerScopeSymbolNames).diff(importedSymbolNames)
+
+        val scopeForDeclaringVariables = innerQuery.finalScope(innerScope)
+        val filteredVariables =
+          scopeForDeclaringVariables.symbolTable.values.filter(x => !importedSymbolNames.contains(x.name))
+
+        innerQuery.getReturns.flatMap(v => intersect.map((v, _))).foldSemanticCheck { case (ret, name) =>
+          val position = ret.returnItems.items.find(_.name == name) match {
+            case _ @Some(AliasedReturnItem(_, variable)) => variable.position
+            case _                                       => ret.position
+          }
+          SemanticError.variableAlreadyDeclaredInOuterScope(name, position)
+        } ifOkChain declareVariables(filteredVariables)
       }
   }
 
-  def declareVariables(previousState: SemanticState): SemanticCheck =
-    if (isImportingAll) {
-      val previous = previousState.currentScope
-      (s: SemanticState) =>
-        val intermediate = s.importValuesFromScope(previous.parent.get.scope)
-          .importValuesFromScope(previous.scope)
-        SemanticCheckResult.success(intermediate)
-    } else {
-      importedVariables.foldSemanticCheck(item =>
-        declareVariable(item, previousState.expressionType(item).actual, previousState.symbol(item.name))
-      )
-    }
-
-  def importVariables(previousState: SemanticState): SemanticCheck = {
-    SemanticCheck.fromState {
-      (state: SemanticState) =>
-        /**
-         * scopeToImportVariablesFrom will provide the scope to bring over only the variables that are needed from the
-         * previous scope
-         */
-        for {
-          checksResult <- declareVariables(previousState)
-        } yield {
-          SemanticCheckResult(checksResult.state, Seq.empty)
+  private def importVariables: SemanticCheck =
+    SemanticExpressionCheck.simple(importedVariables) chain
+      fromState(previousState => {
+        SemanticCheck.setState(previousState.newBaseScope).flatMap { _ =>
+          val previous = previousState.currentScope
+          if (isImportingAll) {
+            (s: SemanticState) =>
+              val intermediate =
+                s.importValuesFromScope(previous.parent.get.scope).importValuesFromScope(previous.scope)
+              SemanticCheckResult.success(intermediate)
+          } else {
+            importedVariables.foldSemanticCheck(item =>
+              declareVariable(item, previousState.expressionType(item).actual, previousState.symbol(item.name))
+            )
+          }
         }
-    }
-  }
+      })
 }
 
 // Show and terminate command clauses

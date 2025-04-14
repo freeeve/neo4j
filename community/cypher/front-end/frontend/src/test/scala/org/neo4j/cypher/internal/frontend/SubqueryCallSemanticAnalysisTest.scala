@@ -57,7 +57,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    run(query).hasError("Variable `i` already declared in outer scope", p(45, 4, 10))
+    run(query).hasError(getGql42001_42N07("i", 45, 4, 10), "Variable `i` already declared in outer scope", p(45, 4, 10))
   }
 
   test("Returning a variable that is already bound outside should give a useful error") {
@@ -107,7 +107,7 @@ class SubqueryCallSemanticAnalysisTest
         |RETURN i
         |""".stripMargin
 
-    run(query).hasError("Variable `i` already declared in outer scope", p(38, 4, 3))
+    run(query).hasError(getGql42001_42N07("i", 38, 4, 3), "Variable `i` already declared in outer scope", p(38, 4, 3))
   }
 
   test("Returning a variable implicitly that is already bound outside should give a useful error") {
@@ -350,16 +350,17 @@ class SubqueryCallSemanticAnalysisTest
 
   test("Should not allow redeclaration of imported variable in a scoped subquery") {
     val query =
-      """MATCH (notShadowed)
-        |CALL (notShadowed) {
-        |  MATCH (notShadowed)-[:REL]->(m)
-        |  WITH m AS notShadowed
-        |  RETURN notShadowed AS x
+      """MATCH (shadowed)
+        |CALL (shadowed) {
+        |  MATCH (shadowed)-[:REL]->(m)
+        |  WITH m AS shadowed
+        |  RETURN shadowed AS x
         |}
         |RETURN *""".stripMargin
     run(query).hasError(
-      "The variable `notShadowed` is shadowing an imported variable with the same name and needs to be renamed",
-      p(87, 4, 13)
+      getGql42001_42N07("shadowed", 78, 4, 13),
+      "The variable `shadowed` is shadowing a variable with the same name from the outer scope and needs to be renamed",
+      p(78, 4, 13)
     )
   }
 
