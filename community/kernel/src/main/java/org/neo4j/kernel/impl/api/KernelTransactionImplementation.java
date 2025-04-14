@@ -95,6 +95,7 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaState;
+import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
@@ -188,7 +189,8 @@ import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.values.ElementIdMapper;
 
-public class KernelTransactionImplementation implements KernelTransaction, TxStateHolder, ExecutionStatistics {
+public class KernelTransactionImplementation
+        implements KernelTransaction, TxStateHolder, ExecutionStatistics, KernelTransactionResourceFactory {
     /*
      * IMPORTANT:
      * This class is pooled and re-used. If you add *any* state to it, you *must* make sure that:
@@ -227,7 +229,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private final ConstraintSemantics constraintSemantics;
     private final TransactionMemoryPool transactionMemoryPool;
     protected final LogProvider logProvider;
-    protected final CursorContextFactory contextFactory;
+    private final CursorContextFactory contextFactory;
     private final EntityLocks entityLocks;
     private final KernelProcedures.ForTransactionScope procedures;
     private final SchemaRead schemaRead;
@@ -282,7 +284,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
     private final ExecutionContextFactory executionContextFactory;
     private ProcedureView procedureView;
     private boolean needsHighIdTracking;
-    private DefaultQueryLanguageScope defaultQueryLanguageScope = DefaultQueryLanguageScope.create();
+    private final DefaultQueryLanguageScope defaultQueryLanguageScope = DefaultQueryLanguageScope.create();
 
     /**
      * Lock prevents transaction {@link #markForTermination(Status)}  transaction termination} from interfering with
@@ -295,7 +297,6 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
 
     private Monitor monitor;
     private final StoreCursors transactionalCursors;
-    private final DefaultPooledCursors cursorFactory;
 
     private final AvailabilityGuard availabilityGuard;
 
@@ -401,17 +402,31 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         this.transactionalCursors = storageEngine.createStorageCursors(CursorContext.NULL_CONTEXT);
         this.lockClient = ParallelAccessCheck.maybeWrapLockClient(lockManager.newClient());
         StorageLocks storageLocks = storageEngine.createStorageLocks(lockClient);
-        cursorFactory = createCursors(storageReader, transactionalCursors, config, storageEngine, multiVersioned);
-        this.securityAuthorizationHandler = new SecurityAuthorizationHandler(securityLog);
         var kernelToken = new KernelToken(storageReader, commandCreationContext, this, tokenHolders, logProvider);
+        DefaultPooledCursors cursorFactory = createCursors(
+                storageReader, transactionalCursors, config, storageEngine.indexingBehaviour(), multiVersioned);
+        this.securityAuthorizationHandler = new SecurityAuthorizationHandler(securityLog);
+        TxStateHolder txStateHolder = this;
         this.queryContext = new TransactionQueryContext(
-                this::dataRead, cursorFactory, this, this::cursorContext, memoryTracker, indexingService.getMonitor());
-        this.entityLocks = new EntityLocks(
-                storageLocks, currentStatement::lockTracer, lockClient, this::assertOpenWithParallelAccessCheck);
-        this.procedures = createProcedures(dependencies, this::assertOpenWithParallelAccessCheck);
+                this::dataRead,
+                cursorFactory,
+                txStateHolder,
+                this::cursorContext,
+                memoryTracker,
+                indexingService.getMonitor());
+        AssertOpen assertOpen = this::assertOpenWithParallelAccessCheck;
+        this.entityLocks = new EntityLocks(storageLocks, currentStatement::lockTracer, lockClient, assertOpen);
+        this.procedures = createProcedures(this, dependencies, assertOpen);
         AccessModeProvider accessModeProvider = () -> securityContext().mode();
         this.schemaRead = createSchemaRead(
-                schemaState, indexStatisticsStore, storageReader, entityLocks, indexingService, accessModeProvider);
+                schemaState,
+                indexStatisticsStore,
+                storageReader,
+                entityLocks,
+                txStateHolder,
+                indexingService,
+                assertOpen,
+                accessModeProvider);
         this.kernelRead = createKernelRead(
                 storageReader,
                 kernelToken,
@@ -419,10 +434,12 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 transactionalCursors,
                 entityLocks,
                 queryContext,
+                txStateHolder,
                 schemaRead,
                 indexingService,
                 memoryTracker,
                 multiVersioned,
+                assertOpen,
                 accessModeProvider,
                 false,
                 logProvider);
@@ -441,11 +458,12 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                 securityAuthorizationHandler,
                 elementIdMapper,
                 multiVersioned,
-                logProvider);
+                logProvider,
+                this);
         this.operations = new Operations(
                 kernelRead,
                 storageReader,
-                new IndexTxStateUpdater(storageReader, indexingService, this, transactionStateBehaviour),
+                new IndexTxStateUpdater(storageReader, indexingService, txStateHolder, transactionStateBehaviour),
                 commandCreationContext,
                 dbmsRuntimeVersionProvider,
                 kernelVersionProvider,
@@ -477,72 +495,79 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
         registerConfigChangeListeners(config);
     }
 
-    protected KernelProcedures.ForTransactionScope createProcedures(
-            Dependencies databaseDependencies, AssertOpen assertOpen) {
-        return new KernelProcedures.ForTransactionScope(this, databaseDependencies, assertOpen);
+    @Override
+    public KernelProcedures.ForTransactionScope createProcedures(
+            KernelTransactionImplementation ktx, Dependencies databaseDependencies, AssertOpen assertOpen) {
+        return new KernelProcedures.ForTransactionScope(ktx, databaseDependencies, assertOpen);
     }
 
-    protected DefaultPooledCursors createCursors(
+    @Override
+    public DefaultPooledCursors createCursors(
             StorageReader storageReader,
             StoreCursors transactionalCursors,
-            LocalConfig config,
-            StorageEngine storageEngine,
+            Config config,
+            StorageEngineIndexingBehaviour indexingBehaviour,
             boolean multiVersioned) {
-        return new DefaultPooledCursors(
-                storageReader, transactionalCursors, config, storageEngine.indexingBehaviour(), multiVersioned);
+        return new DefaultPooledCursors(storageReader, transactionalCursors, config, indexingBehaviour, multiVersioned);
     }
 
-    protected SchemaRead createSchemaRead(
+    @Override
+    public SchemaRead createSchemaRead(
             SchemaState schemaState,
             IndexStatisticsStore indexStatisticsStore,
             StorageReader storageReader,
             EntityLocks entityLocks,
+            TxStateHolder txStateHolder,
             IndexingService indexingService,
+            AssertOpen assertOpen,
             AccessModeProvider accessModeProvider) {
         return new KernelSchemaRead(
                 schemaState,
                 indexStatisticsStore,
                 storageReader,
                 entityLocks,
-                this,
+                txStateHolder,
                 indexingService,
-                this::assertOpenWithParallelAccessCheck,
+                assertOpen,
                 accessModeProvider);
     }
 
-    protected KernelRead createKernelRead(
+    @Override
+    public KernelRead createKernelRead(
             StorageReader storageReader,
-            KernelToken kernelToken,
+            TokenRead tokenRead,
             CursorFactory cursorFactory,
             StoreCursors storeCursors,
             EntityLocks entityLocks,
             QueryContext queryContext,
+            TxStateHolder txStateHolder,
             SchemaRead schemaRead,
             IndexingService indexingService,
             MemoryTracker memoryTracker,
             boolean multiVersioned,
+            AssertOpen assertOpen,
             AccessModeProvider accessModeProvider,
             boolean parallel,
             LogProvider logProvider) {
         return new KernelRead(
                 storageReader,
-                kernelToken,
+                tokenRead,
                 cursorFactory,
                 storeCursors,
                 entityLocks,
                 queryContext,
-                this,
+                txStateHolder,
                 schemaRead,
                 indexingService,
                 memoryTracker,
                 multiVersioned,
-                this::assertOpenWithParallelAccessCheck,
+                assertOpen,
                 accessModeProvider,
                 parallel,
                 logProvider);
     }
 
-    protected void assertOpenWithParallelAccessCheck() {
+    private void assertOpenWithParallelAccessCheck() {
         if (ParallelAccessCheck.shouldPerformCheck()) {
             ParallelAccessCheck.checkNotCypherWorkerThread();
         }
@@ -620,7 +645,8 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
             SecurityAuthorizationHandler securityAuthorizationHandler,
             ElementIdMapper elementIdMapper,
             boolean multiVersioned,
-            LogProvider logProvider) {
+            LogProvider logProvider,
+            KernelTransactionResourceFactory resourceFactory) {
         return (securityContext,
                 transactionId,
                 transactionCursorContext,
@@ -636,7 +662,7 @@ public class KernelTransactionImplementation implements KernelTransaction, TxSta
                     kernelTransaction.createExecutionContextMemoryTracker(heapEstimatorCacheConfig);
             StoreCursors executionContextStoreCursors =
                     storageEngine.createStorageCursors(executionContextCursorContext);
-            DefaultPooledCursors executionContextPooledCursors = new DefaultPooledCursors(
+            DefaultPooledCursors executionContextPooledCursors = resourceFactory.createCursors(
                     executionContextStorageReader,
                     executionContextStoreCursors,
                     config,
