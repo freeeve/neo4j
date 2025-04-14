@@ -33,6 +33,7 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.UncloseableDelegatingFileSystemAbstraction;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -78,10 +79,12 @@ public class TestExceptionTypeOnInvalidIds {
 
     @AfterEach
     void destroyDatabase() {
-        readOnlyService.shutdown();
-        writableService.shutdown();
-        writableDb = null;
-        readOnlyDb = null;
+        try {
+            IOUtils.closeAllUnchecked(readOnlyService, writableService);
+        } finally {
+            writableDb = null;
+            readOnlyDb = null;
+        }
     }
 
     private static Stream<Long> inputValues() {
