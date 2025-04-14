@@ -25,6 +25,7 @@ import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.graphcounts.Constraint
 import org.neo4j.cypher.graphcounts.GraphCountData
+import org.neo4j.cypher.graphcounts.GraphCountsJson
 import org.neo4j.cypher.graphcounts.Index
 import org.neo4j.cypher.graphcounts.NodeCount
 import org.neo4j.cypher.graphcounts.RelationshipCount
@@ -121,6 +122,8 @@ import org.neo4j.kernel.database.DatabaseReferenceRepository
 import org.neo4j.notifications.NotificationWrapping
 import org.neo4j.values.storable.Values.NO_VALUE
 import org.neo4j.values.storable.Values.stringValue
+
+import java.io.File
 
 import scala.Console.err
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -1002,6 +1005,11 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
         id = nextId(),
         builtIn = true
       ))
+  }
+
+  def processGraphCountFile(fileName: String): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    val graphCountData = GraphCountsJson.getGraphCounts(new File(fileName))
+    processGraphCounts(graphCountData)
   }
 
   /**
