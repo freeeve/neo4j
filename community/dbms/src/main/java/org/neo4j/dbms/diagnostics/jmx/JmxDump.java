@@ -58,6 +58,7 @@ import org.neo4j.kernel.diagnostics.DiagnosticsReportSources;
  * Encapsulates remoting functionality for collecting diagnostics information on running instances.
  */
 public class JmxDump implements AutoCloseable {
+    private static final String HOTSPOT_BEAN_NAME = "com.sun.management:type=HotSpotDiagnostic";
     private final JMXConnector connector;
     private final MBeanServerConnection mBeanServer;
     private final long pid;
@@ -83,15 +84,34 @@ public class JmxDump implements AutoCloseable {
     }
 
     /**
-     * Captures a thread dump of the running instance.
+     * Captures a thread dump in the plain test format of the running instance.
      *
      * @return a diagnostics source the will emit a thread dump.
      */
-    public DiagnosticsReportSource threadDumpSource() {
-        return DiagnosticsReportSources.newDiagnosticsString("threaddump.txt", this::threadDump);
+    public DiagnosticsReportSource legacyThreadDumpSource() {
+        return DiagnosticsReportSources.newDiagnosticsString("threaddump.txt", this::legacyThreadDump);
     }
 
-    public String threadDump() {
+    /**
+     * Captures a thread dump in the json format of the running instance.
+     *
+     * @return a diagnostics source the will emit a thread dump.
+     */
+    public DiagnosticsReportSource jsonThreadDumpSource() {
+        return DiagnosticsReportSources.newDiagnosticsString("threaddump.json", this::jsonThreadDump);
+    }
+
+    private String jsonThreadDump() {
+        try {
+            var hotspotBean = ManagementFactory.newPlatformMXBeanProxy(
+                    mBeanServer, HOTSPOT_BEAN_NAME, HotSpotDiagnosticMXBean.class);
+            return DumpUtils.threadDump(hotspotBean);
+        } catch (IOException e) {
+            return THREAD_DUMP_FAILURE;
+        }
+    }
+
+    public String legacyThreadDump() {
         String result;
         try {
             // Try to invoke real thread dump
@@ -125,8 +145,7 @@ public class JmxDump implements AutoCloseable {
         } catch (IOException e) {
             return THREAD_DUMP_FAILURE;
         }
-
-        return DumpUtils.threadDump(threadMxBean, systemProperties);
+        return DumpUtils.legacyThreadDump(threadMxBean, systemProperties);
     }
 
     public String vmArguments() {

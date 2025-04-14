@@ -47,7 +47,7 @@ class JstackProfiler extends PeriodicProfiler {
 
     @Override
     protected void tick() {
-        String threadDump = dump.threadDump();
+        String threadDump = dump.legacyThreadDump();
         if (threadDump.equals(JmxDump.THREAD_DUMP_FAILURE)) {
             throw new IllegalStateException("Failed to retrieve thread dump");
         }
@@ -62,7 +62,7 @@ class JstackProfiler extends PeriodicProfiler {
     @Override
     protected boolean available() {
         try {
-            dump.threadDump();
+            dump.legacyThreadDump();
             return true;
         } catch (RuntimeException e) {
             return false;

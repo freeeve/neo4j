@@ -29,13 +29,19 @@ import static org.junit.platform.testkit.engine.TestExecutionResultConditions.me
 import java.util.Arrays;
 import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.junit.jupiter.api.parallel.Resources;
 import org.junit.platform.testkit.engine.EngineTestKit;
 import org.junit.platform.testkit.engine.Events;
+import org.neo4j.test.extension.SuppressOutputExtension;
 import org.neo4j.test.extension.timeout.DumpThreadDumpOnTimeout.After;
 import org.neo4j.test.extension.timeout.DumpThreadDumpOnTimeout.Before;
 import org.neo4j.test.extension.timeout.DumpThreadDumpOnTimeout.IncludeThreadsCleanedOnAfter;
 import org.neo4j.test.extension.timeout.DumpThreadDumpOnTimeout.ThreadDumpingDisabled;
 
+@ExtendWith(SuppressOutputExtension.class)
+@ResourceLock(Resources.SYSTEM_OUT)
 class VerboseTimeoutExceptionExtensionTest {
     @Test
     void shouldDumpThreadsOnTimeout() {
