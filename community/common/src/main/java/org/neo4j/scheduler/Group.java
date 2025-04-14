@@ -70,15 +70,10 @@ public enum Group {
     /** Thread pool for anyone who want some help doing file IO in parallel. */
     FILE_IO_HELPER("FileIOHelper"),
     LOG_WRITER("LOG_WRITER"),
-    NATIVE_SECURITY("NativeSecurity"),
     METRICS_CSV_WRITE("MetricsCsvWrite"),
     METRICS_GRAPHITE_WRITE("MetricsGraphiteWrite"),
     /** Threads that perform database manager operations necessary to bring databases to their desired states. */
     DATABASE_RECONCILER("DatabaseReconciler"),
-    /** Ensures DatabaseId lookup is not run from an outer transaction that will be tied to a database */
-    DATABASE_ID_REPOSITORY("DatabaseIdRepository"),
-
-    BUFFER_POOL_MAINTENANCE("BufferPoolMaintenance"),
 
     UDC("UserDataCollector", ExecutorServiceFactory.singleThread()),
 
@@ -125,13 +120,10 @@ public enum Group {
     DOWNLOAD_SNAPSHOT("DownloadSnapshot"),
     CATCHUP_CHANNEL_POOL("CatchupChannelPool"),
     CATCHUP_CLIENT("CatchupClient"),
-    CATCHUP_PROCESS("CatchupProcess"),
     CATCHUP_SERVER("CatchupServer"),
-    DATABASE_INFO_SERVICE("DatabaseInfoService"),
     STORE_COPY_CLIENT("StoreCopyClient"),
     THROUGHPUT_MONITOR("ThroughputMonitor"),
     PANIC_SERVICE("PanicService"),
-    CLUSTER_STATUS_CHECK_SERVICE("ClusterStatusService"),
     TOPOLOGY_NOTIFIER("TopologyNotifier"),
     TOPOLOGY_MAINTENANCE("TopologyMaintenance"),
     TOPOLOGY_GRAPH_DBMS_MODEL("TopologyGraphDbmsModel", ExecutorServiceFactory.singleThread()),
@@ -139,7 +131,6 @@ public enum Group {
     RAFTED_STATUS_CHECKS("RaftedStatusChecks"),
     COMMIT_COORDINATOR("CommitCoordinator"),
     METADATA_SCRIPT_PROVIDER("MetadataScriptProvider"),
-    PROCEDURE_ASYNC_CALLER("ProceduresAsyncCaller"),
 
     /** Rolls back idle transactions on the server. */
     SERVER_TRANSACTION_TIMEOUT("ServerTransactionTimeout"),
