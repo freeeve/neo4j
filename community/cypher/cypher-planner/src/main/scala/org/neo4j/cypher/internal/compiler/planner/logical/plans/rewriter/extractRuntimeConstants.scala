@@ -54,12 +54,7 @@ case class extractRuntimeConstants(anonymousVariableNameGenerator: AnonymousVari
   override def apply(input: AnyRef): AnyRef = {
     val rewriter = bottomUp(
       Rewriter.lift {
-        case d @ Datetime(Seq(arg)) if isConstant(arg)        => constant(d)
-        case d @ LocalDatetime(Seq(arg)) if isConstant(arg)   => constant(d)
-        case d @ Date(Seq(arg)) if isConstant(arg)            => constant(d)
-        case d @ LocalTime(Seq(arg)) if isConstant(arg)       => constant(d)
-        case d @ Time(Seq(arg)) if isConstant(arg)            => constant(d)
-        case d @ Duration(Seq(arg)) if arg.isConstantForQuery => constant(d)
+        case ConstantTemporalFunction(expr) => constant(expr)
       },
       stopper = STOPPER
     )
@@ -107,3 +102,16 @@ case object LocalDatetime extends FunctionMatcher
 case object Time extends FunctionMatcher
 case object LocalTime extends FunctionMatcher
 case object Duration extends FunctionMatcher
+
+case object ConstantTemporalFunction {
+
+  def unapply(arg: Expression): Option[Expression] = arg match {
+    case d @ Datetime(Seq(arg)) if isConstant(arg)        => Some(d)
+    case d @ LocalDatetime(Seq(arg)) if isConstant(arg)   => Some(d)
+    case d @ Date(Seq(arg)) if isConstant(arg)            => Some(d)
+    case d @ LocalTime(Seq(arg)) if isConstant(arg)       => Some(d)
+    case d @ Time(Seq(arg)) if isConstant(arg)            => Some(d)
+    case d @ Duration(Seq(arg)) if arg.isConstantForQuery => Some(d)
+    case _                                                => None
+  }
+}

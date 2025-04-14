@@ -22,13 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.PredicateHelper.coercePredicatesWithAnds
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.Date
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.Datetime
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.Duration
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.LocalDatetime
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.LocalTime
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.Time
-import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.extractRuntimeConstants.isConstant
+import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.ConstantTemporalFunction
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Contains
@@ -343,17 +337,7 @@ object ShardPredicatePushdownPartition {
             findAllSupportedPropertyAccesses(nextExpressions ++ inequalities, knownUncachedPropertyAccesses)
           case _: Parameter => findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
           case _: Literal   => findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
-          case Datetime(Seq(arg)) if isConstant(arg) =>
-            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
-          case LocalDatetime(Seq(arg)) if isConstant(arg) =>
-            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
-          case Date(Seq(arg)) if isConstant(arg) =>
-            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
-          case LocalTime(Seq(arg)) if isConstant(arg) =>
-            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
-          case Time(Seq(arg)) if isConstant(arg) =>
-            findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
-          case Duration(Seq(arg)) if isConstant(arg) =>
+          case ConstantTemporalFunction(_) =>
             findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
 
           case _ => Left(PredicatePushdownUnsupported)
