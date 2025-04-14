@@ -2204,9 +2204,13 @@ class IndexedIdGeneratorTest {
         int idsPerPage = 128;
         var pageRange = idGenerator.nextPageRange(NULL_CONTEXT, idsPerPage);
 
-        for (int i = 0; i < 1; i++) {
+        long prev = NO_ID;
+        for (int i = 0; i < idsPerPage; i++) {
             if (pageRange.hasNext()) {
-                assertThat(pageRange.nextId()).isNotEqualTo(NO_ID);
+                long nextVal = pageRange.nextId();
+                assertThat(nextVal).isNotEqualTo(NO_ID);
+                assertThat(nextVal).isGreaterThan(prev);
+                prev = nextVal;
             }
         }
     }
