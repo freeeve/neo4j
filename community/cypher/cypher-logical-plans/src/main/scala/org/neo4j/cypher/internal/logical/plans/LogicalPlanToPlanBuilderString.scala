@@ -1808,7 +1808,8 @@ object LogicalPlanToPlanBuilderString {
       case ListType(underlying, _) =>
         s"CTList(${typeValue(underlying)})"
       case _ =>
-        throw new IllegalArgumentException(s"Unsupported Cypher type: $cypherType")
+        // While this may not be correct in all cases, this function is only used for making it easier for developers to write tests
+        s"CT$cypherType"
     }
   }
 
