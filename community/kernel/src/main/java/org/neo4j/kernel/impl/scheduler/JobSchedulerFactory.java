@@ -29,7 +29,11 @@ public final class JobSchedulerFactory {
     private JobSchedulerFactory() {}
 
     public static JobScheduler createScheduler() {
-        return createCentralScheduler(Clocks.nanoClock(), NullLogProvider.getInstance());
+        return createScheduler(Clocks.nanoClock(), NullLogProvider.getInstance());
+    }
+
+    public static JobScheduler createScheduler(SystemNanoClock clock, InternalLogProvider logProvider) {
+        return createCentralScheduler(clock, logProvider);
     }
 
     public static JobScheduler createInitialisedScheduler() {

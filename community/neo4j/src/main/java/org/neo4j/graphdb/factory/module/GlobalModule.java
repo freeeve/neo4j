@@ -25,6 +25,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.filewatcher_enabled;
 import static org.neo4j.configuration.GraphDatabaseSettings.memory_tracking;
 import static org.neo4j.configuration.GraphDatabaseSettings.memory_transaction_global_max_size;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
+import static org.neo4j.kernel.lifecycle.LifecycleAdapter.onInit;
 import static org.neo4j.logging.log4j.LogConfig.createLoggerFromXmlConfig;
 
 import java.nio.file.Path;
@@ -231,7 +232,7 @@ public class GlobalModule {
         dbmsDiagnosticsManager = new DbmsDiagnosticsManager(globalDependencies, logService);
         globalDependencies.satisfyDependency(dbmsDiagnosticsManager);
 
-        dbmsDiagnosticsManager.dumpSystemDiagnostics();
+        globalLife.add(onInit(dbmsDiagnosticsManager::dumpSystemDiagnostics));
 
         fileSystemWatcher = createFileSystemWatcherService(fileSystem, logService, jobScheduler, globalConfig);
         globalLife.add(fileSystemWatcher);
@@ -378,7 +379,7 @@ public class GlobalModule {
 
     private JobScheduler createJobScheduler() {
         JobScheduler jobScheduler =
-                JobSchedulerFactory.createInitialisedScheduler(globalClock, logService.getInternalLogProvider());
+                JobSchedulerFactory.createScheduler(globalClock, logService.getInternalLogProvider());
         jobScheduler.setParallelism(
                 Group.INDEX_SAMPLING, globalConfig.get(GraphDatabaseInternalSettings.index_sampling_parallelism));
         jobScheduler.setParallelism(
