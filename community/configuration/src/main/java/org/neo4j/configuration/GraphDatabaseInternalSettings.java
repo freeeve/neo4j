@@ -282,7 +282,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
 
     public enum ParallelRuntimeConfig {
         NONE,
-        LEVERAGE_ORDER
+        LEVERAGEORDER
     }
 
     @Internal
