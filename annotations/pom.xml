@@ -47,8 +47,6 @@
                 <configuration>
                     <compilerArgs>
                         <arg>-proc:none</arg>
-                        <arg>--add-exports</arg>
-                        <arg>jdk.javadoc/jdk.javadoc.internal.tool=ALL-UNNAMED</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
