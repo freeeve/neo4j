@@ -51,7 +51,7 @@ import org.neo4j.kernel.impl.newapi.KernelRead;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
-import org.neo4j.storageengine.api.StorageLocks;
+import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.values.ElementIdMapper;
@@ -104,13 +104,12 @@ public interface KernelTransactionResourceFactory {
             ProcedureView procedureView);
 
     ExecutionContext createExecutionContext(
-            DefaultPooledCursors cursors,
+            StorageEngine storageEngine,
             CursorContext context,
             OverridableSecurityContext overridableSecurityContext,
             ExecutionContextCursorTracer cursorTracer,
             CursorContext ktxContext,
             TokenRead tokenRead,
-            StoreCursors storageCursors,
             IndexMonitor monitor,
             MemoryTracker contextTracker,
             SecurityAuthorizationHandler securityAuthorizationHandler,
@@ -119,7 +118,6 @@ public interface KernelTransactionResourceFactory {
             IndexingService indexingService,
             IndexStatisticsStore indexStatisticsStore,
             Dependencies databaseDependencies,
-            StorageLocks storageLocks,
             LockManager.Client lockClient,
             LockTracer lockTracer,
             ElementIdMapper elementIdMapper,
@@ -128,5 +126,6 @@ public interface KernelTransactionResourceFactory {
             List<AutoCloseable> otherResources,
             ProcedureView procedureView,
             boolean multiVersioned,
-            LogProvider logProvider);
+            LogProvider logProvider,
+            Config config);
 }

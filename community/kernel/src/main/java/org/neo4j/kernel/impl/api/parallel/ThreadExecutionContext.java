@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
 import org.neo4j.collection.Dependencies;
+import org.neo4j.configuration.Config;
 import org.neo4j.internal.kernel.api.EntityLocks;
 import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.Locks;
@@ -58,7 +59,7 @@ import org.neo4j.kernel.impl.newapi.KernelRead;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
-import org.neo4j.storageengine.api.StorageLocks;
+import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.values.ElementIdMapper;
@@ -98,13 +99,12 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
     private final AccessModeProvider accessModeProvider;
 
     public ThreadExecutionContext(
-            DefaultPooledCursors cursors,
+            StorageEngine storageEngine,
             CursorContext context,
             OverridableSecurityContext overridableSecurityContext,
             ExecutionContextCursorTracer cursorTracer,
             CursorContext ktxContext,
             TokenRead tokenRead,
-            StoreCursors storageCursors,
             IndexMonitor monitor,
             MemoryTracker contextTracker,
             SecurityAuthorizationHandler securityAuthorizationHandler,
@@ -113,7 +113,6 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
             IndexingService indexingService,
             IndexStatisticsStore indexStatisticsStore,
             Dependencies databaseDependencies,
-            StorageLocks storageLocks,
             Client lockClient,
             LockTracer lockTracer,
             ElementIdMapper elementIdMapper,
@@ -123,21 +122,24 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
             ProcedureView procedureView,
             boolean multiVersioned,
             LogProvider logProvider,
-            KernelTransactionResourceFactory resourceFactory) {
-        this.cursors = cursors;
+            KernelTransactionResourceFactory resourceFactory,
+            Config config) {
         this.context = context;
         this.overridableSecurityContext = overridableSecurityContext;
         this.cursorTracer = cursorTracer;
         this.ktxContext = ktxContext;
         this.tokenRead = tokenRead;
-        this.storageCursors = storageCursors;
+        this.storageCursors = storageEngine.createStorageCursors(context);
         this.contextTracker = contextTracker;
         this.securityAuthorizationHandler = securityAuthorizationHandler;
         this.otherResources = otherResources;
         this.elementIdMapper = elementIdMapper;
         this.ktx = new ExecutionContextProcedureKernelTransaction(ktx, this);
+        this.cursors = resourceFactory.createCursors(
+                storageReader, storageCursors, config, storageEngine.indexingBehaviour(), multiVersioned);
         this.queryContext = new ThreadExecutionQueryContext(this::dataRead, cursors, context, contextTracker, monitor);
-        this.entityLocks = new EntityLocks(storageLocks, singleton(lockTracer), lockClient, this.ktx);
+        this.entityLocks = new EntityLocks(
+                storageEngine.createStorageLocks(lockClient), singleton(lockTracer), lockClient, this.ktx);
         this.procedures = resourceFactory.createProcedures(
                 this,
                 databaseDependencies,

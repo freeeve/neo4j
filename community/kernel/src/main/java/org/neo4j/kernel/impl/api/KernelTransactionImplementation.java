@@ -445,7 +445,6 @@ public class KernelTransactionImplementation
                 false,
                 logProvider);
         this.executionContextFactory = createExecutionContextFactory(
-                contextFactory,
                 storageEngine,
                 config,
                 lockManager,
@@ -588,13 +587,12 @@ public class KernelTransactionImplementation
 
     @Override
     public ExecutionContext createExecutionContext(
-            DefaultPooledCursors cursors,
+            StorageEngine storageEngine,
             CursorContext context,
             OverridableSecurityContext overridableSecurityContext,
             ExecutionContextCursorTracer cursorTracer,
             CursorContext ktxContext,
             TokenRead tokenRead,
-            StoreCursors storageCursors,
             IndexMonitor monitor,
             MemoryTracker contextTracker,
             SecurityAuthorizationHandler securityAuthorizationHandler,
@@ -603,7 +601,6 @@ public class KernelTransactionImplementation
             IndexingService indexingService,
             IndexStatisticsStore indexStatisticsStore,
             Dependencies databaseDependencies,
-            StorageLocks storageLocks,
             LockManager.Client lockClient,
             LockTracer lockTracer,
             ElementIdMapper elementIdMapper,
@@ -612,15 +609,15 @@ public class KernelTransactionImplementation
             List<AutoCloseable> otherResources,
             ProcedureView procedureView,
             boolean multiVersioned,
-            LogProvider logProvider) {
+            LogProvider logProvider,
+            Config config) {
         return new ThreadExecutionContext(
-                cursors,
+                storageEngine,
                 context,
                 overridableSecurityContext,
                 cursorTracer,
                 ktxContext,
                 tokenRead,
-                storageCursors,
                 monitor,
                 contextTracker,
                 securityAuthorizationHandler,
@@ -629,7 +626,6 @@ public class KernelTransactionImplementation
                 indexingService,
                 indexStatisticsStore,
                 databaseDependencies,
-                storageLocks,
                 lockClient,
                 lockTracer,
                 elementIdMapper,
@@ -639,7 +635,8 @@ public class KernelTransactionImplementation
                 procedureView,
                 multiVersioned,
                 logProvider,
-                this);
+                this,
+                config);
     }
 
     private void assertOpenWithParallelAccessCheck() {
@@ -706,7 +703,6 @@ public class KernelTransactionImplementation
     }
 
     private ExecutionContextFactory createExecutionContextFactory(
-            CursorContextFactory contextFactory,
             StorageEngine storageEngine,
             Config config,
             LockManager lockManager,
@@ -734,14 +730,7 @@ public class KernelTransactionImplementation
             StorageReader executionContextStorageReader = storageEngine.newReader();
             MemoryTracker executionContextMemoryTracker =
                     kernelTransaction.createExecutionContextMemoryTracker(heapEstimatorCacheConfig);
-            StoreCursors executionContextStoreCursors =
-                    storageEngine.createStorageCursors(executionContextCursorContext);
-            DefaultPooledCursors executionContextPooledCursors = createCursors(
-                    executionContextStorageReader,
-                    executionContextStoreCursors,
-                    config,
-                    storageEngine.indexingBehaviour(),
-                    multiVersioned);
+
             LockManager.Client executionContextLockClient = lockManager.newClient();
             executionContextLockClient.initialize(
                     leaseService.newClient(), transactionId, executionContextMemoryTracker, config);
@@ -750,13 +739,12 @@ public class KernelTransactionImplementation
                     executionContextStorageReader, tokenHolders, overridableSecurityContext, kernelTransaction);
 
             return createExecutionContext(
-                    executionContextPooledCursors,
+                    storageEngine,
                     executionContextCursorContext,
                     overridableSecurityContext,
                     executionContextCursorTracer,
                     transactionCursorContext,
                     executionContextTokenRead,
-                    executionContextStoreCursors,
                     indexingService.getMonitor(),
                     executionContextMemoryTracker,
                     securityAuthorizationHandler,
@@ -765,7 +753,6 @@ public class KernelTransactionImplementation
                     indexingService,
                     indexStatisticsStore,
                     dependencies,
-                    storageEngine.createStorageLocks(executionContextLockClient),
                     executionContextLockClient,
                     tracers.getLockTracer(),
                     elementIdMapper,
@@ -774,7 +761,8 @@ public class KernelTransactionImplementation
                     List.of(executionContextStorageReader, executionContextLockClient),
                     procedureView,
                     multiVersioned,
-                    logProvider);
+                    logProvider,
+                    config);
         };
     }
 

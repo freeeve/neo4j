@@ -19,6 +19,9 @@
  */
 package org.neo4j.kernel.impl.api.parallel;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.neo4j.collection.Dependencies.dependenciesOf;
@@ -27,6 +30,7 @@ import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_C
 import java.util.List;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.Test;
+import org.neo4j.configuration.Config;
 import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.kernel.api.security.SecurityAuthorizationHandler;
@@ -45,7 +49,7 @@ import org.neo4j.kernel.impl.security.URIAccessRules;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.MemoryTracker;
-import org.neo4j.storageengine.api.StorageLocks;
+import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.values.ElementIdMapper;
@@ -59,15 +63,20 @@ class ThreadExecutionContextTest {
         var lockClient = mock(LockManager.Client.class);
 
         var storeCursors = mock(StoreCursors.class);
+        var engine = mock(StorageEngine.class);
+        doReturn(storeCursors).when(engine).createStorageCursors(any());
+        var resourceFactory = mock(KernelTransactionResourceFactory.class);
+        doReturn(mock(DefaultPooledCursors.class))
+                .when(resourceFactory)
+                .createCursors(any(), any(), any(), any(), anyBoolean());
 
         try (var executionContext = new ThreadExecutionContext(
-                mock(DefaultPooledCursors.class),
+                engine,
                 contextFactory.create("tag"),
                 mock(OverridableSecurityContext.class),
                 new ExecutionContextCursorTracer(mock(PageCacheTracer.class), "test"),
                 contextFactory.create("tx-tag"),
                 mock(TokenRead.class),
-                storeCursors,
                 mock(IndexMonitor.class),
                 mock(MemoryTracker.class),
                 mock(SecurityAuthorizationHandler.class),
@@ -76,7 +85,6 @@ class ThreadExecutionContextTest {
                 mock(IndexingService.class),
                 mock(IndexStatisticsStore.class),
                 dependenciesOf(mock(URIAccessRules.class)),
-                mock(StorageLocks.class),
                 mock(LockManager.Client.class),
                 mock(LockTracer.class),
                 mock(ElementIdMapper.class),
@@ -86,7 +94,8 @@ class ThreadExecutionContextTest {
                 mock(ProcedureView.class),
                 false,
                 NullLogProvider.getInstance(),
-                mock(KernelTransactionResourceFactory.class))) {
+                resourceFactory,
+                mock(Config.class))) {
             executionContext.complete();
         }
 
