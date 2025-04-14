@@ -2258,7 +2258,7 @@ trait NonParallelProfileRowsTestBase[CONTEXT <: RuntimeContext] {
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
-      .orderedDistinct(Seq("x"), "x AS x", "y AS y")
+      .orderedDistinct(Seq("x"), "x AS x", "y AS y").withLeveragedOrder()
       .input(nodes = Seq("x", "y"))
       .build()
 

@@ -618,7 +618,7 @@ abstract class MemoryManagementTestBase[CONTEXT <: RuntimeContext](
     // given
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .orderedDistinct(Seq("x"), "x AS x", "y AS y")
+      .orderedDistinct(Seq("x"), "x AS x", "y AS y").withLeveragedOrder()
       .input(variables = Seq("x", "y"))
       .build()
 
@@ -635,7 +635,7 @@ abstract class MemoryManagementTestBase[CONTEXT <: RuntimeContext](
     // given
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
-      .orderedDistinct(Seq("x"), "x AS x", "y AS y")
+      .orderedDistinct(Seq("x"), "x AS x", "y AS y").withLeveragedOrder()
       .input(variables = Seq("x", "y"))
       .build()
 

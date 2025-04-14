@@ -263,7 +263,7 @@ abstract class ProfileMemoryTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .orderedDistinct(Seq("x"), "x AS x", "y AS y")
+      .orderedDistinct(Seq("x"), "x AS x", "y AS y").withLeveragedOrder()
       .input(variables = Seq("x", "y"))
       .build()
 

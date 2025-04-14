@@ -46,7 +46,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .orderedDistinct(Seq("x"), "x AS x")
+      .orderedDistinct(Seq("x"), "x AS x").withLeveragedOrder()
       .input(variables = Seq("x"))
       .build()
 
@@ -63,7 +63,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .orderedDistinct(Seq("x"), "x AS x")
+      .orderedDistinct(Seq("x"), "x AS x").withLeveragedOrder()
       .input(variables = Seq("x"))
       .build()
 
@@ -75,14 +75,16 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
 
   test("should work on input with no projection, one primitive column, sorted") {
     // given
-    val nodes = givenGraph { nodeGraph(10) }
+    val nodes = givenGraph {
+      nodeGraph(10)
+    }
     val input =
       inputValues((0 until sizeHint).map(i => Array[Any](nodes(i % 10))).sortBy(_.head.asInstanceOf[Node].getId): _*)
 
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .orderedDistinct(Seq("x"), "x AS x")
+      .orderedDistinct(Seq("x"), "x AS x").withLeveragedOrder()
       .input(nodes = Seq("x"), nullable = false)
       .build()
 
@@ -99,7 +101,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
-      .orderedDistinct(Seq("x"), "x AS y")
+      .orderedDistinct(Seq("x"), "x AS y").withLeveragedOrder()
       .input(variables = Seq("x"))
       .build()
 
@@ -117,7 +119,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x1", "y1")
-      .orderedDistinct(Seq("x"), "x AS x1", "1 + y AS y1")
+      .orderedDistinct(Seq("x"), "x AS x1", "1 + y AS y1").withLeveragedOrder()
       .input(variables = Seq("x", "y"))
       .build()
 
@@ -137,7 +139,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x1", "y1")
-      .orderedDistinct(Seq("x", "y"), "x AS x1", "y AS y1")
+      .orderedDistinct(Seq("x", "y"), "x AS x1", "y AS y1").withLeveragedOrder()
       .input(variables = Seq("x", "y"))
       .build()
 
@@ -150,7 +152,9 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
 
   test("should work on input with projection, two primitive columns, one sorted") {
     // given
-    val nodes = givenGraph { nodeGraph(110) }
+    val nodes = givenGraph {
+      nodeGraph(110)
+    }
     val input = inputValues((0 until sizeHint).map(i => Array[Any](nodes(i % 5), nodes(100 + (i % 10)))).sortBy(
       _.head.asInstanceOf[Node].getId
     ): _*)
@@ -158,7 +162,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x1", "y1")
-      .orderedDistinct(Seq("x"), "x AS x1", "y AS y1")
+      .orderedDistinct(Seq("x"), "x AS x1", "y AS y1").withLeveragedOrder()
       .input(nodes = Seq("x", "y"), nullable = false)
       .build()
 
@@ -171,7 +175,9 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
 
   test("should work on input with projection, two primitive columns, both sorted") {
     // given
-    val nodes = givenGraph { nodeGraph(110) }
+    val nodes = givenGraph {
+      nodeGraph(110)
+    }
     val input = inputValues((0 until sizeHint).map(i => Array[Any](nodes(i % 5), nodes(100 + (i % 10)))).sortBy(a =>
       (a(0).asInstanceOf[Node].getId, a(1).asInstanceOf[Node].getId)
     ): _*)
@@ -179,7 +185,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x1", "y1")
-      .orderedDistinct(Seq("x", "y"), "x AS x1", "y AS y1")
+      .orderedDistinct(Seq("x", "y"), "x AS x1", "y AS y1").withLeveragedOrder()
       .input(nodes = Seq("x", "y"), nullable = false)
       .build()
 
@@ -192,7 +198,9 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
 
   test("should work on input with projection, three columns, one sorted") {
     // given
-    val nodes = givenGraph { nodeGraph(110) }
+    val nodes = givenGraph {
+      nodeGraph(110)
+    }
     val input = inputValues((0 until sizeHint).map(i =>
       Array[Any](nodes(i % 5), nodes(100 + (i % 10)), nodes(i % 20))
     ).sortBy(_.head.asInstanceOf[Node].getId): _*)
@@ -200,7 +208,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x1", "y1", "z1")
-      .orderedDistinct(Seq("x"), "x AS x1", "y AS y1", "z AS z1")
+      .orderedDistinct(Seq("x"), "x AS x1", "y AS y1", "z AS z1").withLeveragedOrder()
       .input(nodes = Seq("x", "y", "z"), nullable = false)
       .build()
 
@@ -213,7 +221,9 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
 
   test("should work on input with projection, four columns, two sorted") {
     // given
-    val nodes = givenGraph { nodeGraph(110) }
+    val nodes = givenGraph {
+      nodeGraph(110)
+    }
     val input = inputValues((0 until sizeHint).map(i =>
       Array[Any](nodes(i % 5), nodes(100 + (i % 10)), nodes(i % 20), nodes(i % 4))
     ).sortBy(a => (a(0).asInstanceOf[Node].getId, a(3).asInstanceOf[Node].getId)): _*)
@@ -221,7 +231,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x1", "y1", "z1", "w1")
-      .orderedDistinct(Seq("x", "w"), "x AS x1", "y AS y1", "z AS z1", "w AS w1")
+      .orderedDistinct(Seq("x", "w"), "x AS x1", "y AS y1", "z AS z1", "w AS w1").withLeveragedOrder()
       .input(nodes = Seq("x", "y", "z", "w"), nullable = false)
       .build()
 
@@ -240,7 +250,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x1", "y1")
-      .orderedDistinct(Seq("x", "y"), "x AS x1", "y AS y1")
+      .orderedDistinct(Seq("x", "y"), "x AS x1", "y AS y1").withLeveragedOrder()
       .input(variables = Seq("x", "y"))
       .build()
 
@@ -259,7 +269,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y")
-      .orderedDistinct(Seq("x"), "x AS x", "y AS y")
+      .orderedDistinct(Seq("x"), "x AS x", "y AS y").withLeveragedOrder()
       .input(variables = Seq("x", "y"))
       .build()
 
@@ -285,7 +295,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("prop")
-      .orderedDistinct(Seq("cache[x.prop]"), "cache[x.prop] AS prop")
+      .orderedDistinct(Seq("cache[x.prop]"), "cache[x.prop] AS prop").withLeveragedOrder()
       .nodeIndexOperator(s"x:A(prop > ${sizeHint / 2})", _ => GetValue, indexOrder = IndexOrderAscending)
       .build()
 
@@ -304,9 +314,9 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
       .apply()
-      .|.orderedDistinct(Seq("y"), "y AS y")
-      .|.unwind("[1,1,2,2,3,3] AS y")
-      .|.argument("x")
+      .|.orderedDistinct(Seq("y"), "y AS y").withLeveragedOrder()
+      .|.unwind("[1,1,2,2,3,3] AS y").withLeveragedOrder()
+      .|.argument("x").withLeveragedOrder()
       .input(variables = Seq("x"))
       .build()
 
@@ -329,7 +339,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "a", "b")
       .apply()
-      .|.orderedDistinct(Seq("x"), "x AS a", "y AS b")
+      .|.orderedDistinct(Seq("x"), "x AS a", "y AS b").withLeveragedOrder()
       .|.unwind("[1,2,3,1,2,3] AS y")
       .|.argument("x")
       .input(variables = Seq("x"))
@@ -354,7 +364,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "a", "b")
       .apply()
-      .|.orderedDistinct(Seq("x", "y"), "x AS a", "y AS b")
+      .|.orderedDistinct(Seq("x", "y"), "x AS a", "y AS b").withLeveragedOrder()
       .|.unwind("[1,1,2,2,3,3] AS y")
       .|.argument("x")
       .input(variables = Seq("x"))
@@ -382,7 +392,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .orderedDistinct(Seq("x"), "x AS x")
+      .orderedDistinct(Seq("x"), "x AS x").withLeveragedOrder()
       .limit(1)
       .input(nodes = Seq("x"), nullable = false)
       .build()
@@ -405,7 +415,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
       .limit(1)
-      .orderedDistinct(Seq("x"), "x AS x")
+      .orderedDistinct(Seq("x"), "x AS x").withLeveragedOrder()
       .input(nodes = Seq("x"), nullable = false)
       .build()
 
@@ -426,8 +436,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x3")
-      .orderedDistinct(Seq("x2"), "x2 as x3")
-      .orderedDistinct(Seq("x"), "x AS x2")
+      .orderedDistinct(Seq("x2"), "x2 as x3").withLeveragedOrder()
+      .orderedDistinct(Seq("x"), "x AS x2").withLeveragedOrder()
       .input(nodes = Seq("x"), nullable = false)
       .build()
 
@@ -444,8 +454,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x3", "y3")
-      .orderedDistinct(Seq("x2"), "x2 as x3", "y2 as y3")
-      .orderedDistinct(Seq("x"), "x AS x2", "y as y2")
+      .orderedDistinct(Seq("x2"), "x2 as x3", "y2 as y3").withLeveragedOrder()
+      .orderedDistinct(Seq("x"), "x AS x2", "y as y2").withLeveragedOrder()
       .unwind("[1,2,3,1,2,3] as y")
       .input(variables = Seq("x"))
       .build()
@@ -468,8 +478,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x3", "y3")
-      .orderedDistinct(Seq("x2", "y2"), "x2 as x3", "y2 as y3")
-      .orderedDistinct(Seq("x", "y"), "x AS x2", "y as y2")
+      .orderedDistinct(Seq("x2", "y2"), "x2 as x3", "y2 as y3").withLeveragedOrder()
+      .orderedDistinct(Seq("x", "y"), "x AS x2", "y as y2").withLeveragedOrder()
       .unwind("[1,1,2,2,3,3] as y")
       .input(variables = Seq("x"))
       .build()
@@ -492,11 +502,11 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x3", "y3", "z2")
-      .orderedDistinct(Seq("x2", "y2"), "x2 as x3", "y2 as y3", "z as z2")
+      .orderedDistinct(Seq("x2", "y2"), "x2 as x3", "y2 as y3", "z as z2").withLeveragedOrder()
       .unwind("[4,5,6,4,5,6] as z")
-      .orderedDistinct(Seq("x", "y"), "x AS x2", "y as y2")
+      .orderedDistinct(Seq("x", "y"), "x AS x2", "y as y2").withLeveragedOrder()
       .unwind("[1,1,2,2,3,3] as y")
-      .orderedDistinct(Seq("x"), "x as x")
+      .orderedDistinct(Seq("x"), "x as x").withLeveragedOrder()
       .input(variables = Seq("x"))
       .build()
 
@@ -520,7 +530,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("group", "c")
       .aggregation(Seq("x as group"), Seq("count(y) as c"))
-      .orderedDistinct(Seq("x", "y"), "x as x", "y AS y")
+      .orderedDistinct(Seq("x", "y"), "x as x", "y AS y").withLeveragedOrder()
       .unwind("[1,1,2,2,3,3] AS y")
       .input(variables = Seq("x"))
       .build()
@@ -552,7 +562,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
             .produceResults("x", "y")
             .apply()
             .|.limit(limit)
-            .|.orderedDistinct(Seq("y"), "y AS y")
+            .|.orderedDistinct(Seq("y"), "y AS y").withLeveragedOrder()
+            .planIf(isParallel)(_.|.sort("y ASC").withLeveragedOrder())
             .|.unwind("[1,1,2,2,3,3] AS y")
             .|.argument("x")
             .input(variables = Seq("x"))
@@ -578,7 +589,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
             .produceResults("x", "a", "b")
             .apply()
             .|.limit(limit)
-            .|.orderedDistinct(Seq("x"), "x AS a", "y AS b")
+            .|.orderedDistinct(Seq("x"), "x AS a", "y AS b").withLeveragedOrder()
+            .planIf(isParallel)(_.|.sort("y ASC").withLeveragedOrder())
             .|.unwind("[1,2,3,1,2,3] AS y")
             .|.argument("x")
             .input(variables = Seq("x"))
@@ -604,7 +616,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
             .produceResults("x", "a", "b")
             .apply()
             .|.limit(limit)
-            .|.orderedDistinct(Seq("x", "y"), "x AS a", "y AS b")
+            .|.orderedDistinct(Seq("x", "y"), "x AS a", "y AS b").withLeveragedOrder()
+            .planIf(isParallel)(_.|.sort("y ASC").withLeveragedOrder())
             .|.unwind("[1,1,2,2,3,3] AS y")
             .|.argument("x")
             .input(variables = Seq("x"))
@@ -630,7 +643,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
             .produceResults("x", "y")
             .limit(limit)
             .apply()
-            .|.orderedDistinct(Seq("y"), "y AS y")
+            .|.orderedDistinct(Seq("y"), "y AS y").withLeveragedOrder()
+            .planIf(isParallel)(_.|.sort("y ASC").withLeveragedOrder())
             .|.unwind("[1,1,2,2,3,3] AS y")
             .|.argument("x")
             .input(variables = Seq("x"))
@@ -656,7 +670,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
             .produceResults("x", "a", "b")
             .limit(limit)
             .apply()
-            .|.orderedDistinct(Seq("x"), "x AS a", "y AS b")
+            .|.orderedDistinct(Seq("x"), "x AS a", "y AS b").withLeveragedOrder()
+            .planIf(isParallel)(_.|.sort("y ASC").withLeveragedOrder())
             .|.unwind("[1,2,3,1,2,3] AS y")
             .|.argument("x")
             .input(variables = Seq("x"))
@@ -682,7 +697,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
             .produceResults("x", "a", "b")
             .limit(limit)
             .apply()
-            .|.orderedDistinct(Seq("x", "y"), "x AS a", "y AS b")
+            .|.orderedDistinct(Seq("x", "y"), "x AS a", "y AS b").withLeveragedOrder()
+            .planIf(isParallel)(_.|.sort("y ASC").withLeveragedOrder())
             .|.unwind("[1,1,2,2,3,3] AS y")
             .|.argument("x")
             .input(variables = Seq("x"))
@@ -709,7 +725,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
             .limit(limit)
             .apply()
             .|.limit(limit)
-            .|.orderedDistinct(Seq("y"), "y AS y")
+            .|.orderedDistinct(Seq("y"), "y AS y").withLeveragedOrder()
+            .planIf(isParallel)(_.|.sort("y ASC").withLeveragedOrder())
             .|.unwind("[1,1,2,2,3,3] AS y")
             .|.argument("x")
             .input(variables = Seq("x"))
@@ -736,7 +753,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
             .limit(limit)
             .apply()
             .|.limit(limit)
-            .|.orderedDistinct(Seq("x"), "x AS a", "y AS b")
+            .|.orderedDistinct(Seq("x"), "x AS a", "y AS b").withLeveragedOrder()
+            .planIf(isParallel)(_.|.sort("y ASC").withLeveragedOrder())
             .|.unwind("[1,2,3,1,2,3] AS y")
             .|.argument("x")
             .input(variables = Seq("x"))
@@ -763,7 +781,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
             .limit(limit)
             .apply()
             .|.limit(limit)
-            .|.orderedDistinct(Seq("x", "y"), "x AS a", "y AS b")
+            .|.orderedDistinct(Seq("x", "y"), "x AS a", "y AS b").withLeveragedOrder()
+            .planIf(isParallel)(_.|.sort("y ASC").withLeveragedOrder())
             .|.unwind("[1,1,2,2,3,3] AS y")
             .|.argument("x")
             .input(variables = Seq("x"))
@@ -788,9 +807,10 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
           val logicalQuery = new LogicalQueryBuilder(this)
             .produceResults("a", "b")
             .apply()
-            .|.sort("a ASC", "b ASC")
+            .|.sort("a ASC", "b ASC").withLeveragedOrder()
             .|.limit(limit)
-            .|.orderedDistinct(Seq("x"), "x AS a", "y AS b")
+            .|.orderedDistinct(Seq("x"), "x AS a", "y AS b").withLeveragedOrder()
+            .planIf(isParallel)(_.|.sort("y ASC").withLeveragedOrder())
             .|.unwind("[1,2,3,1,2,3] AS y")
             .|.argument("x")
             .input(variables = Seq("x"))
@@ -819,15 +839,15 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
           val logicalQuery = new LogicalQueryBuilder(this)
             .produceResults("n", "a", "b", "c")
             .apply().withLeveragedOrder()
-            .|.orderedDistinct(Seq("y"), "y as a", "z as b", "c as c")
+            .|.orderedDistinct(Seq("y"), "y as a", "z as b", "c as c").withLeveragedOrder()
             .|.top(Seq(Ascending(varFor("y"))), limit)
             .|.aggregation(Seq("y as y", "z as z"), Seq("collect(u) as c"))
             .|.apply()
-            .|.|.orderedDistinct(Seq("z"), "z as z", "u as u")
+            .|.|.orderedDistinct(Seq("z"), "z as z", "u as u").withLeveragedOrder()
             .|.|.limit(limit)
             .|.|.unwind("[1,2,3] as u")
             .|.|.apply()
-            .|.|.|.orderedDistinct(Seq("z"), "z as z")
+            .|.|.|.orderedDistinct(Seq("z"), "z as z").withLeveragedOrder()
             .|.|.|.top(Seq(Ascending(varFor("z"))), limit)
             .|.|.|.aggregation(Seq.empty, Seq("collect(y) as z"))
             .|.|.|.filter("y:Y")
@@ -869,7 +889,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a", "b", "r")
       .apply()
-      .|.orderedDistinct(Seq("x"), "x AS a", "y AS b", "r as r")
+      .|.orderedDistinct(Seq("x"), "x AS a", "y AS b", "r as r").withLeveragedOrder()
       .|.optional("x")
       .|.nodeHashJoin("x")
       .|.|.filter("x:LABEL_2")
@@ -892,6 +912,8 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("should work on nested ordered unions") {
+    // TODO: remove once orderedUnion is supported
+    assume(!isParallel)
     // given
     val nodes = givenGraph {
       nodeGraph(sizeHint, "X", "Y", "Z")
@@ -900,11 +922,11 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     // when
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("a")
-      .orderedDistinct(Seq("x"), "x AS a")
+      .orderedDistinct(Seq("x"), "x AS a").withLeveragedOrder()
       .orderedUnion("x ASC")
-      .|.orderedDistinct(Seq("y"), "y as x")
+      .|.orderedDistinct(Seq("y"), "y as x").withLeveragedOrder()
       .|.orderedUnion("y ASC")
-      .|.|.orderedDistinct(Seq("z"), "z as y")
+      .|.|.orderedDistinct(Seq("z"), "z as y").withLeveragedOrder()
       .|.|.sort("z ASC")
       .|.|.allNodeScan("z")
       .|.sort("y ASC")
@@ -932,7 +954,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
       .apply()
-      .|.orderedDistinct(Seq("x"), "x as x", "y as y")
+      .|.orderedDistinct(Seq("x"), "x as x", "y as y").withLeveragedOrder()
       .|.conditionalApply("y")
       .|.|.nodeByLabelScan("z", "Z", IndexOrderAscending)
       .|.skip(4)
@@ -966,7 +988,7 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
       .apply()
-      .|.orderedDistinct(Seq("x"), "x as x", "y as y")
+      .|.orderedDistinct(Seq("x"), "x as x", "y as y").withLeveragedOrder()
       .|.selectOrAntiSemiApply("x > 5").withLeveragedOrder()
       .|.|.projection("1 as a")
       .|.|.argument()
