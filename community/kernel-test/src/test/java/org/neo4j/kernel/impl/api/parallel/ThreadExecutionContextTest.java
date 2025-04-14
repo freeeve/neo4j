@@ -35,6 +35,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.procedure.ProcedureView;
+import org.neo4j.kernel.impl.api.KernelTransactionResourceFactory;
 import org.neo4j.kernel.impl.api.OverridableSecurityContext;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
@@ -84,7 +85,8 @@ class ThreadExecutionContextTest {
                 List.of(storageReader, lockClient),
                 mock(ProcedureView.class),
                 false,
-                NullLogProvider.getInstance())) {
+                NullLogProvider.getInstance(),
+                mock(KernelTransactionResourceFactory.class))) {
             executionContext.complete();
         }
 

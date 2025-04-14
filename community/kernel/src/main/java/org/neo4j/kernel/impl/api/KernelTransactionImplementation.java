@@ -50,6 +50,7 @@ import java.util.function.Supplier;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.collection.factory.CollectionsFactory;
 import org.neo4j.collection.pool.Pool;
+import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.LocalConfig;
@@ -68,6 +69,7 @@ import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.CursorFactory;
 import org.neo4j.internal.kernel.api.EntityLocks;
 import org.neo4j.internal.kernel.api.ExecutionStatistics;
+import org.neo4j.internal.kernel.api.IndexMonitor;
 import org.neo4j.internal.kernel.api.Locks;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.Procedures;
@@ -127,6 +129,7 @@ import org.neo4j.kernel.impl.api.commit.TransactionCommitter;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.api.parallel.ExecutionContextCursorTracer;
+import org.neo4j.kernel.impl.api.parallel.ExecutionContextProcedureKernelTransaction;
 import org.neo4j.kernel.impl.api.parallel.ParallelAccessCheck;
 import org.neo4j.kernel.impl.api.parallel.ThreadExecutionContext;
 import org.neo4j.kernel.impl.api.state.ConstraintIndexCreator;
@@ -209,7 +212,7 @@ public class KernelTransactionImplementation
     // Logic
     private final TransactionEventListeners transactionEventListeners;
     private final ConstraintIndexCreator constraintIndexCreator;
-    protected final StorageEngine storageEngine;
+    private final StorageEngine storageEngine;
     private final TransactionTracer transactionTracer;
     private final Pool<KernelTransactionImplementation> pool;
 
@@ -228,7 +231,7 @@ public class KernelTransactionImplementation
     private final AccessCapabilityFactory accessCapabilityFactory;
     private final ConstraintSemantics constraintSemantics;
     private final TransactionMemoryPool transactionMemoryPool;
-    protected final LogProvider logProvider;
+    private final LogProvider logProvider;
     private final CursorContextFactory contextFactory;
     private final EntityLocks entityLocks;
     private final KernelProcedures.ForTransactionScope procedures;
@@ -313,7 +316,6 @@ public class KernelTransactionImplementation
     private final DatabaseSerialGuard databaseSerialGuard;
     private final SerialExecutionGuard serialExecutionGuard;
     private boolean failedCleanup = false;
-    protected final boolean multiVersioned;
 
     public KernelTransactionImplementation(
             Config externalConfig,
@@ -360,7 +362,6 @@ public class KernelTransactionImplementation
             TopologyGraphDbmsModel.HostedOnMode mode,
             AvailabilityGuard availabilityGuard) {
         this.logProvider = logProvider;
-        this.multiVersioned = multiVersioned;
         this.availabilityGuard = availabilityGuard;
         this.closed = true;
         this.timeout = TransactionTimeout.NO_TIMEOUT;
@@ -458,8 +459,7 @@ public class KernelTransactionImplementation
                 securityAuthorizationHandler,
                 elementIdMapper,
                 multiVersioned,
-                logProvider,
-                this);
+                logProvider);
         this.operations = new Operations(
                 kernelRead,
                 storageReader,
@@ -567,6 +567,81 @@ public class KernelTransactionImplementation
                 logProvider);
     }
 
+    @Override
+    public KernelProcedures.ForThreadExecutionContextScope createProcedures(
+            ExecutionContext executionContext,
+            DependencyResolver databaseDependencies,
+            OverridableSecurityContext overridableSecurityContext,
+            ExecutionContextProcedureKernelTransaction kernelTransaction,
+            SecurityAuthorizationHandler securityAuthorizationHandler,
+            Supplier<ClockContext> clockContextSupplier,
+            ProcedureView procedureView) {
+        return new KernelProcedures.ForThreadExecutionContextScope(
+                executionContext,
+                databaseDependencies,
+                overridableSecurityContext,
+                kernelTransaction,
+                securityAuthorizationHandler,
+                clockContextSupplier,
+                procedureView);
+    }
+
+    @Override
+    public ExecutionContext createExecutionContext(
+            DefaultPooledCursors cursors,
+            CursorContext context,
+            OverridableSecurityContext overridableSecurityContext,
+            ExecutionContextCursorTracer cursorTracer,
+            CursorContext ktxContext,
+            TokenRead tokenRead,
+            StoreCursors storageCursors,
+            IndexMonitor monitor,
+            MemoryTracker contextTracker,
+            SecurityAuthorizationHandler securityAuthorizationHandler,
+            StorageReader storageReader,
+            SchemaState schemaState,
+            IndexingService indexingService,
+            IndexStatisticsStore indexStatisticsStore,
+            Dependencies databaseDependencies,
+            StorageLocks storageLocks,
+            LockManager.Client lockClient,
+            LockTracer lockTracer,
+            ElementIdMapper elementIdMapper,
+            KernelTransaction ktx,
+            Supplier<ClockContext> clockContextSupplier,
+            List<AutoCloseable> otherResources,
+            ProcedureView procedureView,
+            boolean multiVersioned,
+            LogProvider logProvider) {
+        return new ThreadExecutionContext(
+                cursors,
+                context,
+                overridableSecurityContext,
+                cursorTracer,
+                ktxContext,
+                tokenRead,
+                storageCursors,
+                monitor,
+                contextTracker,
+                securityAuthorizationHandler,
+                storageReader,
+                schemaState,
+                indexingService,
+                indexStatisticsStore,
+                databaseDependencies,
+                storageLocks,
+                lockClient,
+                lockTracer,
+                elementIdMapper,
+                ktx,
+                clockContextSupplier,
+                otherResources,
+                procedureView,
+                multiVersioned,
+                logProvider,
+                this);
+    }
+
     private void assertOpenWithParallelAccessCheck() {
         if (ParallelAccessCheck.shouldPerformCheck()) {
             ParallelAccessCheck.checkNotCypherWorkerThread();
@@ -630,7 +705,7 @@ public class KernelTransactionImplementation
         return this;
     }
 
-    private static ExecutionContextFactory createExecutionContextFactory(
+    private ExecutionContextFactory createExecutionContextFactory(
             CursorContextFactory contextFactory,
             StorageEngine storageEngine,
             Config config,
@@ -645,8 +720,7 @@ public class KernelTransactionImplementation
             SecurityAuthorizationHandler securityAuthorizationHandler,
             ElementIdMapper elementIdMapper,
             boolean multiVersioned,
-            LogProvider logProvider,
-            KernelTransactionResourceFactory resourceFactory) {
+            LogProvider logProvider) {
         return (securityContext,
                 transactionId,
                 transactionCursorContext,
@@ -662,7 +736,7 @@ public class KernelTransactionImplementation
                     kernelTransaction.createExecutionContextMemoryTracker(heapEstimatorCacheConfig);
             StoreCursors executionContextStoreCursors =
                     storageEngine.createStorageCursors(executionContextCursorContext);
-            DefaultPooledCursors executionContextPooledCursors = resourceFactory.createCursors(
+            DefaultPooledCursors executionContextPooledCursors = createCursors(
                     executionContextStorageReader,
                     executionContextStoreCursors,
                     config,
@@ -675,7 +749,7 @@ public class KernelTransactionImplementation
             var executionContextTokenRead = new KernelTokenRead.ForThreadExecutionContextScope(
                     executionContextStorageReader, tokenHolders, overridableSecurityContext, kernelTransaction);
 
-            return new ThreadExecutionContext(
+            return createExecutionContext(
                     executionContextPooledCursors,
                     executionContextCursorContext,
                     overridableSecurityContext,

@@ -47,15 +47,14 @@ import org.neo4j.kernel.api.txstate.TransactionState;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.kernel.impl.api.ClockContext;
 import org.neo4j.kernel.impl.api.CloseableResourceManager;
+import org.neo4j.kernel.impl.api.KernelTransactionResourceFactory;
 import org.neo4j.kernel.impl.api.OverridableSecurityContext;
 import org.neo4j.kernel.impl.api.index.IndexingService;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.locking.LockManager.Client;
 import org.neo4j.kernel.impl.newapi.DefaultPooledCursors;
 import org.neo4j.kernel.impl.newapi.KernelProcedures;
-import org.neo4j.kernel.impl.newapi.KernelProcedures.ForThreadExecutionContextScope;
 import org.neo4j.kernel.impl.newapi.KernelRead;
-import org.neo4j.kernel.impl.newapi.KernelSchemaRead;
 import org.neo4j.lock.LockTracer;
 import org.neo4j.logging.LogProvider;
 import org.neo4j.memory.MemoryTracker;
@@ -65,8 +64,7 @@ import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.values.ElementIdMapper;
 
 public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
-
-    public static final TxStateHolder THREAD_EXECUTION_STATE_HOLDER = new TxStateHolder() {
+    private static final TxStateHolder THREAD_EXECUTION_STATE_HOLDER = new TxStateHolder() {
         @Override
         public TransactionState txState() {
             throw new UnsupportedOperationException(
@@ -88,14 +86,12 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
     private final KernelRead kernelRead;
     private final KernelProcedures.ForThreadExecutionContextScope procedures;
     private final TokenRead tokenRead;
-    private final StorageReader storageReader;
     private final StoreCursors storageCursors;
     private final MemoryTracker contextTracker;
     private final SecurityAuthorizationHandler securityAuthorizationHandler;
     private final ElementIdMapper elementIdMapper;
     private final List<AutoCloseable> otherResources;
     private final ExecutionContextProcedureKernelTransaction ktx;
-    private final Supplier<ClockContext> clockContextSupplier;
     private final QueryContext queryContext;
     private final EntityLocks entityLocks;
     private final SchemaRead schemaRead;
@@ -126,24 +122,23 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
             List<AutoCloseable> otherResources,
             ProcedureView procedureView,
             boolean multiVersioned,
-            LogProvider logProvider) {
+            LogProvider logProvider,
+            KernelTransactionResourceFactory resourceFactory) {
         this.cursors = cursors;
         this.context = context;
         this.overridableSecurityContext = overridableSecurityContext;
         this.cursorTracer = cursorTracer;
         this.ktxContext = ktxContext;
         this.tokenRead = tokenRead;
-        this.storageReader = storageReader;
         this.storageCursors = storageCursors;
         this.contextTracker = contextTracker;
         this.securityAuthorizationHandler = securityAuthorizationHandler;
         this.otherResources = otherResources;
         this.elementIdMapper = elementIdMapper;
         this.ktx = new ExecutionContextProcedureKernelTransaction(ktx, this);
-        this.clockContextSupplier = clockContextSupplier;
         this.queryContext = new ThreadExecutionQueryContext(this::dataRead, cursors, context, contextTracker, monitor);
         this.entityLocks = new EntityLocks(storageLocks, singleton(lockTracer), lockClient, this.ktx);
-        this.procedures = new ForThreadExecutionContextScope(
+        this.procedures = resourceFactory.createProcedures(
                 this,
                 databaseDependencies,
                 overridableSecurityContext,
@@ -153,7 +148,7 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
                 procedureView);
         this.accessModeProvider =
                 () -> overridableSecurityContext.currentSecurityContext().mode();
-        this.schemaRead = new KernelSchemaRead(
+        this.schemaRead = resourceFactory.createSchemaRead(
                 schemaState,
                 indexStatisticsStore,
                 storageReader,
@@ -162,7 +157,7 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
                 indexingService,
                 this.ktx,
                 accessModeProvider);
-        this.kernelRead = new KernelRead(
+        this.kernelRead = resourceFactory.createKernelRead(
                 storageReader,
                 this.tokenRead(),
                 cursors,
@@ -178,22 +173,6 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
                 accessModeProvider,
                 true,
                 logProvider);
-    }
-
-    public Supplier<ClockContext> clockContextSupplier() {
-        return clockContextSupplier;
-    }
-
-    public OverridableSecurityContext overridableSecurityContext() {
-        return overridableSecurityContext;
-    }
-
-    public StoreCursors storeCursors() {
-        return storageCursors;
-    }
-
-    public StorageReader storageReader() {
-        return storageReader;
     }
 
     @Override
