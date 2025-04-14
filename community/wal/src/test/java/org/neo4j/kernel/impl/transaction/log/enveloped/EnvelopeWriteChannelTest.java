@@ -19,11 +19,13 @@
  */
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
+import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Arrays.copyOfRange;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.KERNEL_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_CONTENT_TYPE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.UNSPECIFIED_TERM;
 import static org.neo4j.kernel.impl.transaction.log.rotation.LogRotation.NO_ROTATION;
@@ -56,6 +58,7 @@ import org.neo4j.kernel.impl.transaction.log.LogFileFlushEvent;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvent;
 import org.neo4j.kernel.impl.transaction.log.LogForceWaitEvent;
 import org.neo4j.kernel.impl.transaction.log.LogTracers;
+import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
@@ -64,6 +67,7 @@ import org.neo4j.kernel.impl.transaction.log.rotation.CountingLogRotateEvent;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvent;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvents;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -2097,6 +2101,81 @@ class EnvelopeWriteChannelTest {
                     .hasMessageContaining(
                             "Failed to write entry to replication log, the entry's term was less than the "
                                     + "last appended term, terms must be monotonically increasing.");
+        }
+    }
+
+    @Test
+    void writeDataThatHasZeroChecksums() throws IOException {
+        final var segmentSize = 256;
+        final var term = 24L;
+
+        final var fileChannel = storeChannel();
+        final var buffer = buffer(segmentSize);
+        byte[] payload1 = new byte[32];
+        ByteBuffer.wrap(payload1)
+                .order(BIG_ENDIAN)
+                .position(payload1.length - Integer.BYTES)
+                .putInt(0x73c30ece);
+        byte[] payload2 = new byte[17];
+        ByteBuffer.wrap(payload2)
+                .order(BIG_ENDIAN)
+                .position(payload2.length - Integer.BYTES)
+                .putInt(0xd4a2e6e3);
+        byte[] payload3 = new byte[364];
+        ByteBuffer.wrap(payload3)
+                .order(BIG_ENDIAN)
+                .position(110)
+                .putInt(0xefa6f5e1)
+                .position(335)
+                .putInt(0xc48f50e7)
+                .position(360)
+                .putInt(0x3bb12318);
+        try (var channel = writeChannel(fileChannel, segmentSize, buffer)) {
+            // write a simple FULL envelope which leads to zero checksum
+            channel.beginChecksumForWriting();
+            channel.putVersion(KernelVersion.V5_25.version());
+            channel.putTerm(term);
+            channel.putContentType(KERNEL_CONTENT_TYPE);
+            channel.put(payload1, payload1.length);
+            assertThat(channel.putChecksum()).isEqualTo(0);
+
+            // write a second simple FULL envelope which leads to zero checksum
+            channel.beginChecksumForWriting();
+            channel.putVersion(KernelVersion.V5_25.version());
+            channel.putTerm(term);
+            channel.putContentType(KERNEL_CONTENT_TYPE);
+            channel.put(payload2, payload2.length);
+            assertThat(channel.putChecksum()).isEqualTo(0);
+
+            // Write a multi-segment payload that will have zero checksum for each constituent envelope
+            channel.beginChecksumForWriting();
+            channel.putVersion(KernelVersion.V5_25.version());
+            channel.putTerm(term);
+            channel.putContentType(KERNEL_CONTENT_TYPE);
+            channel.put(payload3, payload3.length);
+            assertThat(channel.putChecksum()).isEqualTo(0);
+        }
+
+        try (var readChannel = new EnvelopeReadChannel(
+                storeChannel(), segmentSize, LogVersionBridge.NO_MORE_CHANNELS, EmptyMemoryTracker.INSTANCE, false)) {
+            // Validate first envelope
+            var readBack1 = ByteBuffer.allocate(payload1.length);
+            readChannel.beginChecksum();
+            readChannel.read(readBack1);
+            assertThat(readChannel.endChecksumAndValidate()).isEqualTo(0);
+            assertThat(readBack1.array()).isEqualTo(payload1);
+            // Validate second envelope
+            var readBack2 = ByteBuffer.allocate(payload2.length);
+            readChannel.beginChecksum();
+            readChannel.read(readBack2);
+            assertThat(readChannel.endChecksumAndValidate()).isEqualTo(0);
+            assertThat(readBack2.array()).isEqualTo(payload2);
+            // Validate third multi-segment payload
+            var readBack3 = ByteBuffer.allocate(payload3.length);
+            readChannel.beginChecksum();
+            readChannel.read(readBack3);
+            assertThat(readChannel.endChecksumAndValidate()).isEqualTo(0);
+            assertThat(readBack3.array()).isEqualTo(payload3);
         }
     }
 

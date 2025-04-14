@@ -20,6 +20,7 @@
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
 import static java.lang.Math.toIntExact;
+import static java.nio.ByteOrder.BIG_ENDIAN;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 import static java.util.Arrays.copyOfRange;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,7 +29,6 @@ import static org.neo4j.io.ByteUnit.KibiByte;
 import static org.neo4j.io.fs.ChecksumWriter.CHECKSUM_FACTORY;
 import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.HEADER_SIZE;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.IGNORE_KERNEL_VERSION;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.MAX_ZERO_PADDING_SIZE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 
@@ -52,6 +52,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.memory.NativeScopedBuffer;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.ChannelNativeAccessor;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
@@ -1723,6 +1724,177 @@ class EnvelopeReadChannelTest {
         }
     }
 
+    @Test
+    void readFileWithZeroChecksumEnvelope() throws IOException {
+        var segmentSize = 256;
+        var fit = (segmentSize / 3) - HEADER_SIZE;
+        final var bytes1 = new byte[fit];
+        ByteBuffer.wrap(bytes1)
+                .order(BIG_ENDIAN)
+                .position(bytes1.length - Integer.BYTES)
+                .putInt(0x19cb1879);
+        final var bytes2 = new byte[fit];
+        ByteBuffer.wrap(bytes2)
+                .order(BIG_ENDIAN)
+                .position(bytes2.length - Integer.BYTES)
+                .putInt(0x906538bf);
+        final var bytes3 = new byte[fit];
+        ByteBuffer.wrap(bytes3)
+                .order(BIG_ENDIAN)
+                .position(bytes3.length - Integer.BYTES)
+                .putInt(0x2ab24cf5);
+        final var bytes4 = new byte[segmentSize - HEADER_SIZE];
+        ByteBuffer.wrap(bytes4)
+                .order(BIG_ENDIAN)
+                .position(bytes4.length - Integer.BYTES)
+                .putInt(0xa0ab58e9);
+        final var bytes5 = new byte[segmentSize - HEADER_SIZE];
+        ByteBuffer.wrap(bytes5)
+                .order(BIG_ENDIAN)
+                .position(bytes5.length - Integer.BYTES)
+                .putInt(0x2680b850);
+        final var bytes6 = new byte[10];
+        ByteBuffer.wrap(bytes6)
+                .order(BIG_ENDIAN)
+                .position(bytes6.length - Integer.BYTES)
+                .putInt(0x734b7ab5);
+        final var bytes7 = new byte[TEST_DATA_SIZE];
+        ByteBuffer.wrap(bytes7)
+                .order(BIG_ENDIAN)
+                .position(bytes7.length - Integer.BYTES)
+                .putInt(0x7c19290f);
+        writeSomeData(buffer -> {
+            int checksum = BASE_TX_CHECKSUM;
+            writeZeroSegment(buffer, segmentSize);
+            checksum = writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.FULL,
+                    checksum,
+                    KernelVersion.V5_25.version(),
+                    bytes1,
+                    START_INDEX,
+                    CONTENT_TYPE);
+            assertThat(checksum).isEqualTo(0);
+            checksum = writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.FULL,
+                    checksum,
+                    KernelVersion.V5_25.version(),
+                    bytes2,
+                    START_INDEX + 1,
+                    CONTENT_TYPE);
+            assertThat(checksum).isEqualTo(0);
+            checksum = writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.FULL,
+                    checksum,
+                    KernelVersion.V5_25.version(),
+                    bytes3,
+                    START_INDEX + 2,
+                    CONTENT_TYPE);
+            assertThat(checksum).isEqualTo(0);
+            // zero pad
+            while (buffer.position() % segmentSize != 0) {
+                buffer.put((byte) 0);
+            }
+            // write multiple envelope data that spans several segments
+            checksum = writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.BEGIN,
+                    checksum,
+                    KernelVersion.V5_25.version(),
+                    bytes4,
+                    START_INDEX + 3,
+                    CONTENT_TYPE);
+            assertThat(checksum).isEqualTo(0);
+            checksum = writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.MIDDLE,
+                    checksum,
+                    KernelVersion.V5_25.version(),
+                    bytes5,
+                    START_INDEX + 3,
+                    CONTENT_TYPE);
+            assertThat(checksum).isEqualTo(0);
+            checksum = writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.END,
+                    checksum,
+                    KernelVersion.V5_25.version(),
+                    bytes6,
+                    START_INDEX + 3,
+                    CONTENT_TYPE);
+            assertThat(checksum).isEqualTo(0);
+        });
+
+        var path2 = file(1);
+        writeSomeData(path2, buffer -> {
+            int checksum = 0;
+            writeZeroSegment(buffer, segmentSize, checksum);
+            checksum = writeHeaderAndPayload(
+                    buffer,
+                    EnvelopeType.FULL,
+                    checksum,
+                    KernelVersion.V5_25.version(),
+                    bytes7,
+                    START_INDEX + 4,
+                    CONTENT_TYPE);
+            assertThat(checksum).isEqualTo(0);
+            // 'preallocate' some trailing zeros
+            while (buffer.position() % segmentSize != 0) {
+                buffer.put((byte) 0);
+            }
+            buffer.put((byte) 0);
+            while (buffer.position() % segmentSize != 0) {
+                buffer.put((byte) 0);
+            }
+        });
+
+        var logChannel = logChannel();
+        try (var channel = new EnvelopeReadChannel(
+                logChannel, segmentSize, new TwoFileLogVersionBridge(path2), EmptyMemoryTracker.INSTANCE, false)) {
+            // Read first full envelope in first data segment
+            var readBytes1 = ByteBuffer.allocate(bytes1.length);
+            channel.beginChecksum();
+            channel.read(readBytes1);
+            assertThat(channel.endChecksumAndValidate()).isEqualTo(0);
+            assertThat(readBytes1.array()).isEqualTo(bytes1);
+            // Read second full envelope in first data segment
+            var readBytes2 = ByteBuffer.allocate(bytes2.length);
+            channel.beginChecksum();
+            channel.read(readBytes2);
+            assertThat(channel.endChecksumAndValidate()).isEqualTo(0);
+            assertThat(readBytes2.array()).isEqualTo(bytes2);
+            // Read third full envelope in first data segment
+            var readBytes3 = ByteBuffer.allocate(bytes3.length);
+            channel.beginChecksum();
+            channel.read(readBytes3);
+            assertThat(channel.endChecksumAndValidate()).isEqualTo(0);
+            assertThat(readBytes3.array()).isEqualTo(bytes3);
+            // Read data that spans multiple envelopes and segments as one and also skips past padding
+            byte[] concat = new byte[bytes4.length + bytes5.length + bytes6.length];
+            System.arraycopy(bytes4, 0, concat, 0, bytes4.length);
+            System.arraycopy(bytes5, 0, concat, bytes4.length, bytes5.length);
+            System.arraycopy(bytes6, 0, concat, bytes4.length + bytes5.length, bytes6.length);
+            var readBytesSpanning = ByteBuffer.allocate(concat.length);
+            channel.beginChecksum();
+            channel.read(readBytesSpanning);
+            assertThat(channel.endChecksumAndValidate()).isEqualTo(0);
+            assertThat(readBytesSpanning.array()).isEqualTo(concat);
+            // Read data and bridge into next file with prevChecksum == 0
+            var readBytes7 = ByteBuffer.allocate(bytes7.length);
+            channel.beginChecksum();
+            channel.read(readBytes7);
+            assertThat(channel.endChecksumAndValidate()).isEqualTo(0);
+            assertThat(channel.logHeader().getPreviousLogFileChecksum()).isEqualTo(0);
+            assertThat(readBytes7.array()).isEqualTo(bytes7);
+            var readBytes8 = ByteBuffer.allocate(4);
+            // should correctly conclude rest of file is just preallocated zeros
+            channel.beginChecksum();
+            assertThatThrownBy(() -> channel.read(readBytes8)).isInstanceOf(ReadPastEndException.class);
+        }
+    }
+
     private Path file(int index) {
         return directory.homePath().resolve(String.valueOf(index));
     }
@@ -1749,8 +1921,36 @@ class EnvelopeReadChannelTest {
 
     private int buildChecksum(
             EnvelopeType type, int payloadLength, int previousChecksum, Consumer<ByteBuffer> builder) {
-        final var version = type.isStarting() ? LatestVersions.LATEST_KERNEL_VERSION.version() : IGNORE_KERNEL_VERSION;
-        return buildChecksum(type, payloadLength, version, previousChecksum, builder, START_INDEX);
+        return buildChecksum(
+                type,
+                payloadLength,
+                LatestVersions.LATEST_KERNEL_VERSION.version(),
+                previousChecksum,
+                builder,
+                START_INDEX);
+    }
+
+    private static ByteBuffer buildChecksumContent(
+            EnvelopeType type,
+            int payloadLength,
+            byte kernelVersion,
+            int previousChecksum,
+            Consumer<ByteBuffer> builder,
+            long entryIndex,
+            byte contentType,
+            long term) {
+        final var buffer = ByteBuffer.allocate(HEADER_SIZE - Integer.BYTES + payloadLength)
+                .order(LITTLE_ENDIAN)
+                // header data
+                .put(type.typeValue)
+                .putInt(payloadLength)
+                .putLong(entryIndex)
+                .put(kernelVersion)
+                .putInt(previousChecksum)
+                .putLong(term)
+                .put(contentType);
+        builder.accept(buffer);
+        return buffer.flip();
     }
 
     private static int buildChecksum(
@@ -1764,17 +1964,15 @@ class EnvelopeReadChannelTest {
             long term) {
         return buildChecksum(
                 checksum,
-                ByteBuffer.allocate(HEADER_SIZE - Integer.BYTES + payload.length)
-                        .order(LITTLE_ENDIAN)
-                        .put(type.typeValue)
-                        .putInt(payload.length)
-                        .putLong(entryIndex)
-                        .put(kernelVersion)
-                        .putInt(previousChecksum)
-                        .putLong(term)
-                        .put(contentType)
-                        .put(payload)
-                        .flip());
+                buildChecksumContent(
+                        type,
+                        payload.length,
+                        kernelVersion,
+                        previousChecksum,
+                        (buffer) -> buffer.put(payload),
+                        entryIndex,
+                        contentType,
+                        term));
     }
 
     private int buildChecksum(
@@ -1784,18 +1982,9 @@ class EnvelopeReadChannelTest {
             int previousChecksum,
             Consumer<ByteBuffer> builder,
             long entryIndex) {
-        final var buffer = ByteBuffer.allocate(HEADER_SIZE - Integer.BYTES + payloadLength)
-                .order(LITTLE_ENDIAN)
-                // header data
-                .put(type.typeValue)
-                .putInt(payloadLength)
-                .putLong(entryIndex)
-                .put(kernelVersion)
-                .putInt(previousChecksum)
-                .putLong(TERM)
-                .put(CONTENT_TYPE);
-        builder.accept(buffer);
-        return buildChecksum(checksum, buffer.flip());
+        final var buffer = buildChecksumContent(
+                type, payloadLength, kernelVersion, previousChecksum, builder, entryIndex, CONTENT_TYPE, TERM);
+        return buildChecksum(checksum, buffer);
     }
 
     private static int buildChecksum(Checksum checksum, ByteBuffer payload) {
@@ -1811,13 +2000,12 @@ class EnvelopeReadChannelTest {
             int payloadLength,
             int previousChecksum,
             long entryIndex) {
-        final var version = type.isStarting() ? LatestVersions.LATEST_KERNEL_VERSION.version() : IGNORE_KERNEL_VERSION;
         writeLogEnvelopeHeader(
                 buffer,
                 payloadChecksum,
                 type,
                 payloadLength,
-                version,
+                LatestVersions.LATEST_KERNEL_VERSION.version(),
                 previousChecksum,
                 entryIndex,
                 CONTENT_TYPE,
@@ -1826,8 +2014,14 @@ class EnvelopeReadChannelTest {
 
     private int writeHeaderAndPayload(
             ByteBuffer buffer, EnvelopeType type, int previousChecksum, byte[] payload, long startIndex) {
-        final var version = type.isStarting() ? LatestVersions.LATEST_KERNEL_VERSION.version() : IGNORE_KERNEL_VERSION;
-        return writeHeaderAndPayload(buffer, type, previousChecksum, version, payload, startIndex, CONTENT_TYPE);
+        return writeHeaderAndPayload(
+                buffer,
+                type,
+                previousChecksum,
+                LatestVersions.LATEST_KERNEL_VERSION.version(),
+                payload,
+                startIndex,
+                CONTENT_TYPE);
     }
 
     private int writeHeaderAndPayload(
