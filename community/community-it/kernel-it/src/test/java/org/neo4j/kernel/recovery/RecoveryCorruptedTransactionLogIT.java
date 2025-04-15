@@ -132,7 +132,11 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
+@SkipOnSpd(
+        reason = "Assertions are quite specific tx log characteristic of a single db and starting db on "
+                + "failed recovery throws explicit exception in SPD setup, not in single-db setup")
 @Neo4jLayoutExtension
 @ExtendWith(RandomExtension.class)
 class RecoveryCorruptedTransactionLogIT {
