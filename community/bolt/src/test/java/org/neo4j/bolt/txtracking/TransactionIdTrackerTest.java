@@ -76,6 +76,7 @@ class TransactionIdTrackerTest {
 
         when(managementService.database(namedDatabaseId.name())).thenReturn(dbApi);
         when(dbApi.getDependencyResolver()).thenReturn(resolver);
+        when(dbApi.databaseId()).thenReturn(namedDatabaseId);
 
         when(db.getNamedDatabaseId()).thenReturn(namedDatabaseId);
         when(db.isSystem()).thenReturn(false);
