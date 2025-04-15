@@ -57,12 +57,6 @@
     <dependencies>
 
         <dependency>
-            <groupId>org.opencypher</groupId>
-            <artifactId>tck</artifactId>
-            <version>${opencypher.version}</version>
-        </dependency>
-
-        <dependency>
             <groupId>io.cucumber</groupId>
             <artifactId>cucumber-scala_${scala.binary.version}</artifactId>
         </dependency>

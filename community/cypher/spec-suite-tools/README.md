@@ -36,8 +36,7 @@ See classes in:
   skip scenario in all configurations. Avoid if possible!
 - `@ignore:parallel-runtime`, `@ignore:cypher-5`, `@ignore:db-format-multiversion`... -
   skip scenario in specific configuration. Avoid if possible!
-- External scenarios (the TCK ones from open cypher) don't have the required tags,
-  so they are loaded from `tck-tags.txt`.
+
 
 ## Extending the API
 
