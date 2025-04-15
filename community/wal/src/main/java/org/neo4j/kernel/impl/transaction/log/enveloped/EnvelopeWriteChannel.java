@@ -101,7 +101,6 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     static final String ERROR_MSG_TEMPLATE_OFFSET_MUST_NOT_BE_INSIDE_ANOTHER_ENVELOPE =
             "START_OFFSET cannot be inserted while another envelope is still open. Close the current entry first.";
 
-    public static final long START_INDEX = 0;
     private static final byte[] PADDING_ZEROES = new byte[MAX_ZERO_PADDING_SIZE];
 
     private final Checksum checksum = CHECKSUM_FACTORY.get();
