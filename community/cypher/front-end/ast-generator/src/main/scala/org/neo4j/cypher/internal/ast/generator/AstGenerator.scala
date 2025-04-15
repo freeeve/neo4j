@@ -663,6 +663,8 @@ class AstGenerator(
 
   protected val pos: InputPosition = InputPosition.NONE
 
+  private val usesCypher5 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
+
   def string: Gen[String] =
     if (simpleStrings) alphaLowerChar.map(_.toString)
     else validString
@@ -1871,7 +1873,7 @@ class AstGenerator(
   } yield types
 
   def _constraintType: Gen[ShowConstraintType] = for {
-    returnCypher5Values <- const(whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5))
+    returnCypher5Values <- const(usesCypher5)
     constraintType <- oneOf(
       AllConstraints,
       if (returnCypher5Values) UniqueConstraints.cypher5 else UniqueConstraints.cypher25,
@@ -1951,7 +1953,6 @@ class AstGenerator(
     yields <- _eitherYieldOrWhere
     yieldAll <- boolean
   } yield {
-    val usesCypher5 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
     val showClauses = yields match {
       case Some(Right(w)) =>
         Seq(ShowConstraintsClause(constraintType, Some(w), List.empty, yieldAll = false, None, usesCypher5)(pos))
@@ -2027,7 +2028,7 @@ class AstGenerator(
     yieldAll <- boolean
     use <- option(_use)
   } yield {
-    val returnCypher5Types = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
+    val returnCypher5Types = usesCypher5
     val showClauses = yields match {
       case Some(Right(w)) =>
         Seq(ShowTransactionsClause(ids, Some(w), List.empty, yieldAll = false, None, returnCypher5Types)(pos))
@@ -2135,7 +2136,6 @@ class AstGenerator(
     exec <- option(oneOf(CurrentUser, User(name)))
     yields <- _yield
     yieldAll <- boolean
-    usesCypher5 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
     clause <- oneOf(
       (item: List[CommandResultItem], all: Boolean, w: With) =>
         ShowTransactionsClause(ids, None, item, all, Some(w), usesCypher5)(pos),
@@ -2247,7 +2247,7 @@ class AstGenerator(
   } yield props
 
   def _cypherTypeName: Gen[CypherType] = for {
-    _type <- oneOf(allCypherTypeNamesFromReflection(whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)))
+    _type <- oneOf(allCypherTypeNamesFromReflection)
   } yield _type
 
   def _vectorCandidateType: Gen[CypherType] = for {
@@ -2270,7 +2270,7 @@ class AstGenerator(
     )
   } yield _type
 
-  private def allCypherTypeNamesFromReflection(cypher5Types: Boolean): Set[CypherType] = {
+  private val allCypherTypeNamesFromReflection: Set[CypherType] = {
     val reflections = new Reflections("org.neo4j.cypher.internal.util.symbols")
     var innerTypes = reflections.getSubTypesOf[CypherType](classOf[CypherType]).asScala.toSet
       .flatMap((cls: Class[_ <: CypherType]) => {
@@ -2299,7 +2299,7 @@ class AstGenerator(
         }
       })
 
-    innerTypes = if (cypher5Types) {
+    innerTypes = if (usesCypher5) {
       innerTypes.filter {
         case _: VectorType        => false
         case _: PropertyValueType => false
@@ -2322,7 +2322,7 @@ class AstGenerator(
       None
     )
 
-    val vectorTypes: Set[CypherType] = if (!cypher5Types) supportedInnerVectorTypes.flatMap(inner => {
+    val vectorTypes: Set[CypherType] = if (!usesCypher5) supportedInnerVectorTypes.flatMap(inner => {
       Set(
         VectorType(inner, Some(1024), isNullable = true)(pos),
         VectorType(inner, Some(1024), isNullable = false)(pos),
@@ -2532,7 +2532,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
-      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+      usesCypher5,
       use
     )(pos)
     relKey = CreateConstraint.createRelationshipKeyConstraint(
@@ -2542,7 +2542,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
-      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+      usesCypher5,
       use
     )(pos)
     nodeUniqueness = CreateConstraint.createNodePropertyUniquenessConstraint(
@@ -2552,7 +2552,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
-      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+      usesCypher5,
       use
     )(pos)
     compositeUniqueness = CreateConstraint.createNodePropertyUniquenessConstraint(
@@ -2562,7 +2562,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
-      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+      usesCypher5,
       use
     )(pos)
     relUniqueness = CreateConstraint.createRelationshipPropertyUniquenessConstraint(
@@ -2572,7 +2572,7 @@ class AstGenerator(
       name,
       ifExistsDo,
       options,
-      whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5),
+      usesCypher5,
       use
     )(pos)
     nodeExistence = CreateConstraint.createNodePropertyExistenceConstraint(
@@ -3347,7 +3347,7 @@ class AstGenerator(
     shardDefOption <- option(_shardDef)
     (topology, shard) <- oneOf(const((topologyOption, None)), const((None, shardDefOption)))
   } yield {
-    val shardDef = if (whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)) None else shard
+    val shardDef = if (usesCypher5) None else shard
     CreateDatabase(dbName, ifExistsDo, options, wait, topology, defaultLanguageVersion, shardDef)(pos)
   }
 
