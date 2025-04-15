@@ -44,6 +44,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
 import org.neo4j.gqlstatus.GqlExceptionLikeAssert;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
@@ -130,6 +131,21 @@ class TransactionIdTrackerTest {
         // then
         verify(systemLastTransactionIdProvider, times(3)).lastTransactionId();
         verifyNoInteractions(transactionIdStore);
+    }
+
+    @Test
+    void shouldThrowUnavailableIfSystemNotFound() {
+        doThrow(DatabaseNotFoundHelper.databaseNotFound(NamedDatabaseId.SYSTEM_DATABASE_NAME))
+                .when(managementService)
+                .database(NamedDatabaseId.SYSTEM_DATABASE_NAME);
+        verifyDbUnavailableError(
+                () -> transactionIdTracker.awaitUpToDate(NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID, 33L, ofSeconds(5)),
+                NamedDatabaseId.SYSTEM_DATABASE_NAME,
+                false);
+        verifyDbUnavailableError(
+                () -> transactionIdTracker.newestTransactionId(NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID),
+                NamedDatabaseId.SYSTEM_DATABASE_NAME,
+                false);
     }
 
     @Test
