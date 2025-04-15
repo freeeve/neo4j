@@ -390,8 +390,7 @@ class RecoveryRequiredCheckerTest {
     }
 
     private void startStopAndCreateDefaultData() {
-        DatabaseManagementService managementService = startDatabase(fileSystem, storeDir);
-        try {
+        try (DatabaseManagementService managementService = startDatabase(fileSystem, storeDir)) {
             GraphDatabaseService database = managementService.database(DEFAULT_DATABASE_NAME);
             try (Transaction transaction = database.beginTx()) {
                 transaction.createNode();
@@ -401,8 +400,6 @@ class RecoveryRequiredCheckerTest {
             databaseLayout = ((GraphDatabaseAPI) database).databaseLayout();
             storageEngineFactory =
                     ((GraphDatabaseAPI) database).getDependencyResolver().resolveDependency(StorageEngineFactory.class);
-        } finally {
-            managementService.shutdown();
         }
     }
 }

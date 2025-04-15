@@ -27,7 +27,9 @@ import static org.neo4j.graphdb.StringSearchMode.PREFIX;
 import static org.neo4j.graphdb.StringSearchMode.SUFFIX;
 import static org.neo4j.graphdb.schema.IndexType.RANGE;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.TextIndexIT.IndexAccessMonitor;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.io.layout.DatabaseLayout;
@@ -37,15 +39,23 @@ import org.neo4j.test.extension.Neo4jLayoutExtension;
 
 @Neo4jLayoutExtension
 public class RangeIndexStringContainsEnds {
-
     @Inject
     protected DatabaseLayout databaseLayout;
+
+    private DatabaseManagementService dbms;
+
+    @AfterEach
+    void tearDown() {
+        if (dbms != null) {
+            dbms.shutdown();
+        }
+    }
 
     @Test
     void shouldFindNodesUsingRangeIndexIfNoTextIndex() {
         var person = label("PERSON");
         var monitor = new IndexAccessMonitor();
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
+        dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setMonitors(monitor.monitors())
                 .build();
         var db = dbms.database(DEFAULT_DATABASE_NAME);
@@ -86,7 +96,7 @@ public class RangeIndexStringContainsEnds {
         var person = label("PERSON");
         var relation = RelationshipType.withName("FRIEND");
         var monitor = new IndexAccessMonitor();
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
+        dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setMonitors(monitor.monitors())
                 .build();
         var db = dbms.database(DEFAULT_DATABASE_NAME);

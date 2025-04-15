@@ -72,9 +72,12 @@ class PageCacheCountersIT {
 
     @AfterEach
     void tearDown() throws InterruptedException {
-        executors.shutdown();
-        executors.awaitTermination(5, TimeUnit.SECONDS);
-        managementService.shutdown();
+        try {
+            executors.shutdown();
+            executors.awaitTermination(5, TimeUnit.SECONDS);
+        } finally {
+            managementService.shutdown();
+        }
     }
 
     @RepeatedTest(5)

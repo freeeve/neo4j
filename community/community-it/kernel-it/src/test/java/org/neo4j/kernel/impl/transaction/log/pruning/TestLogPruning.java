@@ -64,7 +64,7 @@ class TestLogPruning {
 
     @AfterEach
     void after() throws Exception {
-        if (db != null) {
+        if (managementService != null) {
             managementService.shutdown();
         }
         fs.close();

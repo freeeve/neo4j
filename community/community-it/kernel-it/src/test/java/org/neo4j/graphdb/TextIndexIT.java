@@ -34,6 +34,7 @@ import static org.neo4j.test.conditions.Conditions.condition;
 
 import java.util.HashMap;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -58,10 +59,19 @@ public class TextIndexIT {
     @Inject
     protected DatabaseLayout databaseLayout;
 
+    private DatabaseManagementService dbms;
+
+    @AfterEach
+    void tearDown() {
+        if (dbms != null) {
+            dbms.shutdown();
+        }
+    }
+
     @Test
     void shouldNotAllowTextIndexCreationForMultipleTokens() {
         // Given
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout).build();
+        dbms = new TestDatabaseManagementServiceBuilder(databaseLayout).build();
         var db = dbms.database(DEFAULT_DATABASE_NAME);
         var relations = new RelationshipType[] {RelationshipType.withName("FRIEND"), RelationshipType.withName("FROM")};
         var labels = new Label[] {label("PERSON"), label("EMPLOYEE")};
@@ -79,12 +89,11 @@ public class TextIndexIT {
                     .withIndexType(IndexType.TEXT)
                     .create());
         }
-        dbms.shutdown();
     }
 
     @Test
     void shouldRejectIndexCreationWithCompositeKeys() {
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout).build();
+        dbms = new TestDatabaseManagementServiceBuilder(databaseLayout).build();
         var db = dbms.database(DEFAULT_DATABASE_NAME);
         var rel = RelationshipType.withName("FRIEND");
         var label = label("PERSON");
@@ -103,7 +112,6 @@ public class TextIndexIT {
                     .withIndexType(IndexType.TEXT)
                     .create());
         }
-        dbms.shutdown();
     }
 
     private void assertUnsupported(Executable executable) {
@@ -119,7 +127,7 @@ public class TextIndexIT {
         var relationshipIndex = "some_rel_text_index";
         var person = label("PERSON");
         var relation = RelationshipType.withName("FRIEND");
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout).build();
+        dbms = new TestDatabaseManagementServiceBuilder(databaseLayout).build();
         var db = dbms.database(DEFAULT_DATABASE_NAME);
 
         // When
@@ -148,8 +156,6 @@ public class TextIndexIT {
             assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(nodeIndex));
             assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(relationshipIndex));
         }
-
-        dbms.shutdown();
     }
 
     @Test
@@ -159,7 +165,7 @@ public class TextIndexIT {
         var relationshipIndex = "some_rel_text_index";
         var person = label("PERSON");
         var relation = RelationshipType.withName("FRIEND");
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout).build();
+        dbms = new TestDatabaseManagementServiceBuilder(databaseLayout).build();
         var db = dbms.database(DEFAULT_DATABASE_NAME);
 
         // When
@@ -198,8 +204,6 @@ public class TextIndexIT {
             assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(nodeIndex));
             assertThrows(IllegalArgumentException.class, () -> tx.schema().getIndexByName(relationshipIndex));
         }
-
-        dbms.shutdown();
     }
 
     @Test
@@ -207,7 +211,7 @@ public class TextIndexIT {
         // Given a database with different index types
         var person = label("PERSON");
         var monitor = new IndexAccessMonitor();
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
+        dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setMonitors(monitor.monitors())
                 .build();
         var db = dbms.database(DEFAULT_DATABASE_NAME);
@@ -246,7 +250,6 @@ public class TextIndexIT {
         // Then all queries touch only text index
         assertThat(monitor.accessed(org.neo4j.internal.schema.IndexType.TEXT)).isEqualTo(4);
         assertThat(monitor.accessed(org.neo4j.internal.schema.IndexType.RANGE)).isEqualTo(0);
-        dbms.shutdown();
     }
 
     @Test
@@ -255,7 +258,7 @@ public class TextIndexIT {
         var person = label("PERSON");
         var relation = RelationshipType.withName("FRIEND");
         var monitor = new IndexAccessMonitor();
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
+        dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setMonitors(monitor.monitors())
                 .build();
         var db = dbms.database(DEFAULT_DATABASE_NAME);
@@ -299,7 +302,6 @@ public class TextIndexIT {
         // Then all queries touch only text index
         assertThat(monitor.accessed(org.neo4j.internal.schema.IndexType.TEXT)).isEqualTo(4);
         assertThat(monitor.accessed(org.neo4j.internal.schema.IndexType.RANGE)).isEqualTo(0);
-        dbms.shutdown();
     }
 
     @Test
@@ -307,7 +309,7 @@ public class TextIndexIT {
         // Given a database with some index updates
         var person = label("PERSON");
         var fs = new EphemeralFileSystemAbstraction();
-        var dbms = startDbms(fs, new Monitors());
+        dbms = startDbms(fs, new Monitors());
         var db = dbms.database(DEFAULT_DATABASE_NAME);
         try (var tx = db.beginTx()) {
             tx.schema()
@@ -339,8 +341,6 @@ public class TextIndexIT {
             assertThat(monitor.accessed(org.neo4j.internal.schema.IndexType.TEXT))
                     .isEqualTo(1);
         }
-
-        dbms.shutdown();
     }
 
     @Test
@@ -348,7 +348,7 @@ public class TextIndexIT {
         // Given a database with different index types
         var person = label("PERSON");
         var monitor = new IndexAccessMonitor();
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
+        dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setMonitors(monitor.monitors())
                 .build();
         var db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
@@ -378,7 +378,6 @@ public class TextIndexIT {
                 condition(sample -> sample.indexSize() == 5 && sample.sampleSize() >= 5 && sample.uniqueValues() >= 5),
                 1,
                 MINUTES);
-        dbms.shutdown();
     }
 
     @Test
@@ -386,7 +385,7 @@ public class TextIndexIT {
         // Given
         var person = label("PERSON");
         var monitor = new IndexAccessMonitor();
-        var dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
+        dbms = new TestDatabaseManagementServiceBuilder(databaseLayout)
                 .setMonitors(monitor.monitors())
                 .build();
         var db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
@@ -406,7 +405,6 @@ public class TextIndexIT {
             assertThat(monitor.accessed(org.neo4j.internal.schema.IndexType.TEXT))
                     .isEqualTo(0);
         }
-        dbms.shutdown();
     }
 
     private void createTextIndex(GraphDatabaseAPI db, Label person, String indexName) {

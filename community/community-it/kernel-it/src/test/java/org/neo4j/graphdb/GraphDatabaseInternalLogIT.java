@@ -42,6 +42,7 @@ import java.util.concurrent.Callable;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.status.StatusData;
 import org.apache.logging.log4j.status.StatusLogger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -69,10 +70,19 @@ class GraphDatabaseInternalLogIT {
     @Inject
     private SuppressOutput suppressOutput;
 
+    private DatabaseManagementService managementService;
+
+    @AfterEach
+    void tearDown() {
+        if (managementService != null) {
+            managementService.shutdown();
+        }
+    }
+
     @Test
     void shouldWriteToInternalDiagnosticsLog() throws Exception {
         // Given
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
+        managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
                 .setConfig(
                         GraphDatabaseSettings.logs_directory,
                         testDir.directory("logs").toAbsolutePath())
@@ -93,7 +103,7 @@ class GraphDatabaseInternalLogIT {
     @Test
     void shouldNotWriteDebugToInternalDiagnosticsLogByDefault() throws Exception {
         // Given
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
+        managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
                 .setConfig(
                         GraphDatabaseSettings.logs_directory,
                         testDir.directory("logs").toAbsolutePath())
@@ -119,7 +129,7 @@ class GraphDatabaseInternalLogIT {
         // Given
         Path log4jXmlConfig = testDir.homePath().resolve(SERVER_LOGS_XML);
         writeResourceToFile("testConfig.xml", log4jXmlConfig);
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
+        managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
                 .setConfig(GraphDatabaseSettings.server_logging_config_path, log4jXmlConfig)
                 .build();
         GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
@@ -151,7 +161,7 @@ class GraphDatabaseInternalLogIT {
         Path log4jXmlConfig = testDir.homePath().resolve(SERVER_LOGS_XML);
         Files.createDirectories(log4jXmlConfig.getParent());
         writeResourceToFile("testConfig2.xml", log4jXmlConfig);
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
+        managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
                 .setConfig(GraphDatabaseSettings.server_logging_config_path, log4jXmlConfig)
                 .build();
         GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
@@ -197,7 +207,7 @@ class GraphDatabaseInternalLogIT {
 
         Files.createDirectories(log4jXmlConfig.getParent());
         writeResourceToFile("testConfigSpecialChars.xml", log4jXmlConfig);
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
+        managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
                 .setConfig(GraphDatabaseSettings.server_logging_config_path, log4jXmlConfig)
                 .setConfig(GraphDatabaseSettings.logs_directory, logsDirectory)
                 .build();
@@ -239,19 +249,15 @@ class GraphDatabaseInternalLogIT {
         }
         assertThat(testDir.getFileSystem().getFileSize(logs)).isGreaterThan(200);
 
-        DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
+        managementService = new TestDatabaseManagementServiceBuilder(testDir.homePath())
                 .setConfig(GraphDatabaseSettings.server_logging_config_path, log4jXmlConfig)
                 .build();
 
-        try {
-            // Should not have gotten errors because of the diagnostics manager not being setup at
-            // the time of writing the header for the rotated log
-            List<StatusData> statusData = StatusLogger.getLogger().getStatusData();
-            for (StatusData statusDatum : statusData) {
-                assertThat(statusDatum.getFormattedStatus()).doesNotContain("ERROR");
-            }
-        } finally {
-            managementService.shutdown();
+        // Should not have gotten errors because of the diagnostics manager not being setup at
+        // the time of writing the header for the rotated log
+        List<StatusData> statusData = StatusLogger.getLogger().getStatusData();
+        for (StatusData statusDatum : statusData) {
+            assertThat(statusDatum.getFormattedStatus()).doesNotContain("ERROR");
         }
     }
 

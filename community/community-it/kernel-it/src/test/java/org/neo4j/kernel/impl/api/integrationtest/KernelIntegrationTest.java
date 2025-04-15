@@ -186,10 +186,13 @@ public abstract class KernelIntegrationTest {
     }
 
     private void stopDb() throws TransactionFailureException {
-        if (kernelTransaction != null && kernelTransaction.isOpen()) {
-            kernelTransaction.close();
+        try {
+            if (kernelTransaction != null && kernelTransaction.isOpen()) {
+                kernelTransaction.close();
+            }
+        } finally {
+            managementService.shutdown();
         }
-        managementService.shutdown();
     }
 
     protected void restartDb() throws TransactionFailureException {
