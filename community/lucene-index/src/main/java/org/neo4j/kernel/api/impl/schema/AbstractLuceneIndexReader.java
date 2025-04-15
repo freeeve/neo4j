@@ -67,7 +67,7 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
             IndexQueryConstraints constraints,
             PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
-        final var predicate = validateQuery(predicates);
+        final var predicate = validateSingleQuery(constraints, predicates);
         queryContext.monitor().queried(descriptor);
         usageTracker.queried();
 
@@ -76,7 +76,8 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
         client.initializeQuery(descriptor, progressor, false, needStoreFilter, constraints, predicate);
     }
 
-    protected PropertyIndexQuery validateQuery(PropertyIndexQuery... predicates)
+    @Override
+    public void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         if (predicates.length > 1) {
             throw invalidCompositeQuery(
@@ -90,8 +91,13 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
                     msg -> IndexNotApplicableKernelException.indexNotApplicable(log, descriptor.getName(), msg),
                     predicate);
         }
+    }
 
-        return predicate;
+    protected PropertyIndexQuery validateSingleQuery(
+            IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
+            throws IndexNotApplicableKernelException {
+        validateQuery(constraints, predicates);
+        return predicates[0];
     }
 
     protected <E extends Exception> E invalidCompositeQuery(

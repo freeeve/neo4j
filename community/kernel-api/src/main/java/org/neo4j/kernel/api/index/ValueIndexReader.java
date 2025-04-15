@@ -47,7 +47,7 @@ public interface ValueIndexReader extends IndexReader {
      * @param queryContext
      * @param cursorContext context with which query should be executed with
      * @param constraints   constraints upon the query result, like ordering and whether the index should fetch property values alongside the entity ids.
-     * @param query         the query so serve.
+     * @param query         the query to serve.
      */
     void query(
             IndexProgressor.EntityValueClient client,
@@ -55,6 +55,18 @@ public interface ValueIndexReader extends IndexReader {
             CursorContext cursorContext,
             IndexQueryConstraints constraints,
             PropertyIndexQuery... query)
+            throws IndexNotApplicableKernelException;
+
+    /**
+     * Validates the given query whether it can be run on this index.
+     * {@link #query(IndexProgressor.EntityValueClient, QueryContext, CursorContext, IndexQueryConstraints, PropertyIndexQuery...)}
+     * should do this automatically, but this validation can be run separately by calling this method.
+     *
+     * @param constraints constraints upon the query result, like ordering and whether the index should fetch property values alongside the entity ids.
+     * @param query the query validate.
+     * @throws IndexNotApplicableKernelException
+     */
+    void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... query)
             throws IndexNotApplicableKernelException;
 
     /**
@@ -88,6 +100,11 @@ public interface ValueIndexReader extends IndexReader {
                 CursorContext cursorContext,
                 IndexQueryConstraints constraints,
                 PropertyIndexQuery... query) {
+            // do nothing
+        }
+
+        @Override
+        public void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... query) {
             // do nothing
         }
 

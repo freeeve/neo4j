@@ -82,6 +82,14 @@ public class PartitionedValueIndexReader implements ValueIndexReader {
     }
 
     @Override
+    public void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... query)
+            throws IndexNotApplicableKernelException {
+        for (var reader : indexReaders) {
+            reader.validateQuery(constraints, query);
+        }
+    }
+
+    @Override
     public PartitionedValueSeek valueSeek(
             int desiredNumberOfPartitions, QueryContext context, PropertyIndexQuery... query) {
         throw new UnsupportedOperationException();

@@ -63,6 +63,12 @@ public class TrackingIndexReader implements ValueIndexReader {
     }
 
     @Override
+    public void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... query)
+            throws IndexNotApplicableKernelException {
+        delegate.validateQuery(constraints, query);
+    }
+
+    @Override
     public PartitionedValueSeek valueSeek(
             int desiredNumberOfPartitions, QueryContext context, PropertyIndexQuery... query)
             throws IndexNotApplicableKernelException {

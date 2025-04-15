@@ -145,9 +145,6 @@ abstract class NativeIndexReader<KEY extends NativeIndexKey<KEY>> implements Val
         treeKeyTo.initialize(Long.MAX_VALUE);
     }
 
-    abstract void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
-            throws IndexNotApplicableKernelException;
-
     /**
      * @return true if query results from seek will need to be filtered through the predicates, else false
      */

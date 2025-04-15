@@ -2201,6 +2201,11 @@ class IndexingServiceTest {
         }
 
         @Override
+        public void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... query) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public PartitionedTokenScan entityTokenScan(
                 int desiredNumberOfPartitions, CursorContext context, TokenPredicate query) {
             throw new UnsupportedOperationException();

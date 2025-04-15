@@ -101,9 +101,9 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
     }
 
     @Override
-    protected PropertyIndexQuery validateQuery(PropertyIndexQuery... predicates)
+    public PropertyIndexQuery validateSingleQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
-        final var predicate = super.validateQuery(predicates);
+        final var predicate = super.validateSingleQuery(constraints, predicates);
         if (predicate instanceof final NearestNeighborsPredicate nearestNeighbour) {
             final var queryVector = nearestNeighbour.query();
             if (dimensions.isPresent() && queryVector.length != dimensions.getAsInt()) {
@@ -117,7 +117,7 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
     private IndexQueryConstraints adjustedConstraints(
             IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
-        return validateQuery(predicates) instanceof final NearestNeighborsPredicate nearestNeighbour
+        return validateSingleQuery(constraints, predicates) instanceof final NearestNeighborsPredicate nearestNeighbour
                 ? constraints.limit(Math.min(
                         nearestNeighbour.numberOfNeighbors(),
                         constraints.limit().orElse(Integer.MAX_VALUE)))

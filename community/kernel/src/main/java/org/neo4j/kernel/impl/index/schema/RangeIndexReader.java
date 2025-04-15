@@ -51,7 +51,7 @@ public class RangeIndexReader extends NativeIndexReader<RangeKey> {
     }
 
     @Override
-    void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
+    public void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         validateNoUnsupportedPredicates(predicates);
         validateOrder(constraints.order(), predicates);

@@ -64,7 +64,7 @@ class PointIndexReader extends NativeIndexReader<PointKey> {
     }
 
     @Override
-    void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery[] predicates)
+    public void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery[] predicates)
             throws IndexNotApplicableKernelException {
         if (predicates.length > 1) {
             throw IndexNotApplicableKernelException.indexNotApplicable(

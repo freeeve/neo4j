@@ -105,7 +105,8 @@ public class FulltextIndexReader implements ValueIndexReader {
             IndexQueryConstraints constraints,
             PropertyIndexQuery... queries)
             throws IndexNotApplicableKernelException {
-        final var predicate = validateQuery(queries);
+        validateQuery(constraints, queries);
+        final var predicate = queries[0];
         final var query = toLuceneQuery(predicate);
         queryContext.monitor().queried(index);
         usageTracker.queried();
@@ -116,7 +117,8 @@ public class FulltextIndexReader implements ValueIndexReader {
         client.initializeQuery(index, progressor, true, false, constraints, queries);
     }
 
-    private PropertyIndexQuery validateQuery(PropertyIndexQuery... predicates)
+    @Override
+    public void validateQuery(IndexQueryConstraints constraints, PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         if (predicates.length > 1) {
             throw invalidCompositeQuery(
@@ -128,8 +130,6 @@ public class FulltextIndexReader implements ValueIndexReader {
             throw invalidQuery(
                     msg -> IndexNotApplicableKernelException.indexNotApplicable(log, index.getName(), msg), predicate);
         }
-
-        return predicate;
     }
 
     private <E extends Exception> E invalidCompositeQuery(
