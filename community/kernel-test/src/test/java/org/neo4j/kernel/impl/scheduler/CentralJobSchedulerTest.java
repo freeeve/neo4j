@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -80,6 +81,35 @@ class CentralJobSchedulerTest {
                 RejectedExecutionException.class,
                 () -> scheduler.schedule(
                         Group.TASK_SCHEDULER, NOT_MONITORED, () -> fail("This task should not have been executed.")));
+    }
+
+    @Test
+    void countVirtualThreads() {
+        life.start();
+
+        var waitLatch = new CountDownLatch(1);
+
+        assertEquals(0, scheduler.virtualThreadCount());
+        try {
+            for (int i = 0; i < 5; i++) {
+                scheduler.schedule(Group.FABRIC_WORKER, () -> {
+                    try {
+                        waitLatch.await();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
+
+            assertEquals(5, scheduler.virtualThreadCount());
+
+        } finally {
+            waitLatch.countDown();
+        }
+
+        Awaitility.waitAtMost(Duration.ofMinutes(2)).untilAsserted(() -> {
+            assertEquals(0, scheduler.virtualThreadCount());
+        });
     }
 
     // Tests scheduling a recurring job to run 5 times with 100ms in between.

@@ -90,6 +90,10 @@ final class ThreadPool {
         return executor;
     }
 
+    public boolean isVirtual() {
+        return executor.getClass().getSimpleName().equals("ThreadPerTaskExecutor");
+    }
+
     public <T> JobHandle<T> submit(JobMonitoringParams jobMonitoringParams, Callable<T> job) {
         Object registryKey = new Object();
         AtomicBoolean running = new AtomicBoolean();

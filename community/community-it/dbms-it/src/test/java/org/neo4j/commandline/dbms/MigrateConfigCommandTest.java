@@ -441,6 +441,7 @@ class MigrateConfigCommandTest {
                 .contains(additional_jvm.name() + "=--add-opens=java.base/java.nio=ALL-UNNAMED RECOMMENDED")
                 .contains(additional_jvm.name() + "=--add-opens=java.base/java.io=ALL-UNNAMED RECOMMENDED")
                 .contains(additional_jvm.name() + "=--add-opens=java.base/sun.nio.ch=ALL-UNNAMED RECOMMENDED")
+                .contains(additional_jvm.name() + "=--add-opens=java.base/java.util.concurrent=ALL-UNNAMED RECOMMENDED")
                 .contains(additional_jvm.name() + "=-Dlog4j2.disable.jmx=true RECOMMENDED");
     }
 
@@ -466,6 +467,7 @@ class MigrateConfigCommandTest {
                 .contains(jvmSetting + "=--add-opens=java.base/java.nio=ALL-UNNAMED RECOMMENDED")
                 .contains(jvmSetting + "=--add-opens=java.base/java.io=ALL-UNNAMED RECOMMENDED")
                 .contains(jvmSetting + "=--add-opens=java.base/sun.nio.ch=ALL-UNNAMED RECOMMENDED")
+                .contains(jvmSetting + "=--add-opens=java.base/java.util.concurrent=ALL-UNNAMED RECOMMENDED")
                 .doesNotContain("-Dlog4j2.disable.jmx=true");
     }
 

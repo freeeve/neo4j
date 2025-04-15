@@ -73,6 +73,12 @@ public interface JobScheduler extends Lifecycle, AutoCloseable {
     MonitoredJobExecutor monitoredJobExecutor(Group group);
 
     /**
+     * Get number of virtual thread that are registered in executors in groups managed by this scheduler
+     * @return number of virtual threads or -1 on failure
+     */
+    int virtualThreadCount();
+
+    /**
      * Expose a group scheduler as a {@link java.util.concurrent.ThreadFactory}.
      * This is a lower-level alternative than {@link #executor(Group)}, where you are in control of when to spin
      * up new threads for your jobs.

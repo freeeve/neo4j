@@ -114,6 +114,11 @@ public class FakeClockJobScheduler extends FakeClock implements JobScheduler {
     }
 
     @Override
+    public int virtualThreadCount() {
+        return 0;
+    }
+
+    @Override
     public ThreadFactory threadFactory(Group group) {
         throw new UnsupportedOperationException();
     }

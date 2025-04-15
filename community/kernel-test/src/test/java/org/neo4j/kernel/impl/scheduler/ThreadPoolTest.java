@@ -20,6 +20,8 @@
 package org.neo4j.kernel.impl.scheduler;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.concurrent.ExecutionException;
 import org.junit.jupiter.api.AfterEach;
@@ -47,6 +49,24 @@ class ThreadPoolTest {
     public void teardown() {
         if (threadPool != null) {
             threadPool.shutDown();
+        }
+    }
+
+    @Test
+    void virtualThreadPool() {
+        assertFalse(threadPool.isVirtual());
+
+        var testPool = new ThreadPool(
+                Group.FABRIC_WORKER,
+                new ThreadGroup("TestPool"),
+                new ThreadPool.ThreadPoolParameters(),
+                Clocks.nanoClock(),
+                new FailedJobRunsStore(10),
+                () -> 9999);
+        try {
+            assertTrue(testPool.isVirtual());
+        } finally {
+            testPool.shutDown();
         }
     }
 

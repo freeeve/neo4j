@@ -59,6 +59,11 @@ public class JobSchedulerAdapter extends LifecycleAdapter implements JobSchedule
     }
 
     @Override
+    public int virtualThreadCount() {
+        return 0;
+    }
+
+    @Override
     public ThreadFactory threadFactory(Group group) {
         return null;
     }

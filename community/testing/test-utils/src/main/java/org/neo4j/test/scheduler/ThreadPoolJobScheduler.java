@@ -91,6 +91,11 @@ public class ThreadPoolJobScheduler extends LifecycleAdapter implements JobSched
     }
 
     @Override
+    public int virtualThreadCount() {
+        return 0;
+    }
+
+    @Override
     public ThreadFactory threadFactory(Group group) {
         return threadFactory;
     }

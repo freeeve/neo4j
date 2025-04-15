@@ -86,6 +86,11 @@ class TraceableJobExecutionScheduler extends JobSchedulerExtension {
         }
 
         @Override
+        public int virtualThreadCount() {
+            return originalScheduler.virtualThreadCount();
+        }
+
+        @Override
         public ThreadFactory threadFactory(Group group) {
             return originalScheduler.threadFactory(group);
         }

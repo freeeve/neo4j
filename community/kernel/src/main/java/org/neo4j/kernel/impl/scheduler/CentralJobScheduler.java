@@ -19,6 +19,9 @@
  */
 package org.neo4j.kernel.impl.scheduler;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
+import org.apache.commons.lang3.mutable.MutableLong;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.kernel.impl.scheduler.ThreadPool.ThreadPoolParameters;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
@@ -49,6 +53,8 @@ import org.neo4j.scheduler.SchedulerThreadFactoryFactory;
 import org.neo4j.time.SystemNanoClock;
 
 public class CentralJobScheduler extends LifecycleAdapter implements JobScheduler, AutoCloseable {
+    private static final String VIRTUAL_EXECUTOR_CLASS = "java.util.concurrent.ThreadPerTaskExecutor";
+
     private static final AtomicInteger INSTANCE_COUNTER = new AtomicInteger();
 
     private final TimeBasedTaskScheduler scheduler;
@@ -58,7 +64,17 @@ public class CentralJobScheduler extends LifecycleAdapter implements JobSchedule
     private final ConcurrentHashMap<Group, ThreadPoolParameters> extraParameters;
     private final FailedJobRunsStore failedJobRunsStore;
 
+    private static MethodHandle TASK_COUNTER_HANDLE;
+
     private volatile boolean started;
+
+    static {
+        try {
+            TASK_COUNTER_HANDLE = getVirtualTaskCountHandle();
+        } catch (Throwable e) {
+            // ignore
+        }
+    }
 
     private static class TopLevelGroup extends ThreadGroup {
         TopLevelGroup() {
@@ -129,6 +145,28 @@ public class CentralJobScheduler extends LifecycleAdapter implements JobSchedule
     public MonitoredJobExecutor monitoredJobExecutor(Group group) {
         var threadPool = getThreadPool(group);
         return threadPool::submit;
+    }
+
+    @Override
+    public int virtualThreadCount() {
+        if (TASK_COUNTER_HANDLE == null) {
+            return -1;
+        }
+        try {
+            MutableLong count = new MutableLong();
+            pools.forEachStarted((group, threadPool) -> {
+                if (threadPool.isVirtual()) {
+                    try {
+                        count.add(((Number) TASK_COUNTER_HANDLE.invoke(threadPool.getExecutorService())).longValue());
+                    } catch (Throwable e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+            return count.intValue();
+        } catch (Throwable e) {
+            return -1;
+        }
     }
 
     @Override
@@ -270,5 +308,12 @@ public class CentralJobScheduler extends LifecycleAdapter implements JobSchedule
             handle.registerCancelListener((CancelListener) maybeCancelListener);
         }
         return handle;
+    }
+
+    private static MethodHandle getVirtualTaskCountHandle()
+            throws ClassNotFoundException, IllegalAccessException, NoSuchMethodException {
+        Class<?> clazz = Class.forName(VIRTUAL_EXECUTOR_CLASS);
+        MethodHandles.Lookup privateLookup = MethodHandles.privateLookupIn(clazz, MethodHandles.lookup());
+        return privateLookup.findVirtual(clazz, "threadCount", MethodType.methodType(long.class));
     }
 }
