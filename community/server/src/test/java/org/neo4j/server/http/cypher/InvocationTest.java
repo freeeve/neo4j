@@ -659,7 +659,8 @@ class InvocationTest {
         // given
         String queryText = "matsch (n) return n";
         when(transaction.run(queryText, MapValue.EMPTY))
-                .thenThrow(new RuntimeException(new SyntaxException("did you mean MATCH?")));
+                .thenThrow(new RuntimeException(
+                        SyntaxException.internalError(this.getClass().getSimpleName(), "did you mean MATCH?")));
 
         when(registry.begin(any(TransactionHandle.class))).thenReturn(123L);
         TransactionHandle handle = getTransactionHandle(registry);

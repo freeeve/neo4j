@@ -48,7 +48,10 @@ class ProcedureSignatureParser {
     // Extract everything before the first parentheses = the full procedure name
     val parts = signature.split("(?=\\()", 2)
     if (parts.size < 2) {
-      throw new SyntaxException("Error parsing procedure signature: expected '(' after procedure name")
+      throw SyntaxException.internalError(
+        this.getClass.getSimpleName,
+        "Error parsing procedure signature: expected '(' after procedure name"
+      )
     }
 
     // Split full procedure name into namespace and name by splitting on '.'
@@ -67,7 +70,8 @@ class ProcedureSignatureParser {
 
     // Check that the first and last char are parenthesis
     if (inputAndOutputString.head != '(' || inputAndOutputString.last != ')') {
-      throw new SyntaxException(
+      throw SyntaxException.internalError(
+        this.getClass.getSimpleName,
         "Error parsing procedure signature: expected input fields to be on the format '(input) :: (output)'"
       )
     }
@@ -75,7 +79,8 @@ class ProcedureSignatureParser {
     // Check there is exactly one ') :: (' and split on it
     val inputAndOutput = inputAndOutputString.split("\\) :: \\(")
     if (inputAndOutput.size != 2) {
-      throw new SyntaxException(
+      throw SyntaxException.internalError(
+        this.getClass.getSimpleName,
         "Error parsing procedure signature: expected exactly one ') :: (' between input and output."
       )
     }
@@ -113,7 +118,8 @@ class ProcedureSignatureParser {
     val fieldParts = procedureField.split("::")
 
     if (fieldParts.size != 2) {
-      throw new SyntaxException(
+      throw SyntaxException.internalError(
+        this.getClass.getSimpleName,
         "Error parsing procedure signature: expected exactly one '::' between procedure field parts."
       )
     }
@@ -138,7 +144,10 @@ class ProcedureSignatureParser {
       case "FLOAT?"                       => CTFloat
       case s if s.startsWith("LIST? OF ") => CTList(extractCypherType(s.stripPrefix("LIST? OF ")))
       case unexpected =>
-        throw new SyntaxException(s"Error parsing procedure signature: unexpected Cypher type $unexpected")
+        throw SyntaxException.internalError(
+          this.getClass.getSimpleName,
+          s"Error parsing procedure signature: unexpected Cypher type $unexpected"
+        )
     }
   }
 }

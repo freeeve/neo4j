@@ -27,13 +27,15 @@ import java.io.IOException;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 
 class SyntaxExceptionTest {
 
     @Test
     void messageWithoutOffset() {
         String message = "Message";
-        SyntaxException e = new SyntaxException(message);
+        SyntaxException e = new SyntaxException(dummyGql, message);
         assertEquals(message, e.getMessage());
     }
 
@@ -42,7 +44,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "";
         int offset = 0;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "", "^");
 
@@ -54,7 +56,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "\n";
         int offset = 0;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "", "^");
 
@@ -66,7 +68,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "\r\n";
         int offset = 0;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "", "^");
 
@@ -78,7 +80,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "The error is here.";
         int offset = 13;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "The error is here.", "             ^");
 
@@ -90,7 +92,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "The error is here.";
         int offset = 100;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "The error is here.", "                  ^");
 
@@ -102,7 +104,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "The error is here.\nSome random text.";
         int offset = 13;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "The error is here.", "             ^");
 
@@ -114,7 +116,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "The error is here.\r\nSome random text.";
         int offset = 13;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "The error is here.", "             ^");
 
@@ -126,7 +128,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "The error is here.\nSome random text.";
         int offset = 18;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "The error is here.", "                  ^");
 
@@ -138,7 +140,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "The error is here.\r\nSome random text.";
         int offset = 18;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "The error is here.", "                  ^");
 
@@ -150,7 +152,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "The error is here.\nSome random text.";
         int offset = 19;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "Some random text.", "^");
 
@@ -162,7 +164,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "The error is here.\r\nSome random text.";
         int offset = 19 + 1; // account for \r
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "Some random text.", "^");
 
@@ -174,7 +176,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "Some random text.\nThe error is here.";
         int offset = 31;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "The error is here.", "             ^");
 
@@ -186,7 +188,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "Some random text.\r\nThe error is here.";
         int offset = 31 + 1; // account for \r
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "The error is here.", "             ^");
 
@@ -198,7 +200,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "Some random text.\nThe error is here.";
         int offset = 100;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "The error is here.", "                  ^");
 
@@ -210,7 +212,7 @@ class SyntaxExceptionTest {
         String message = "Message";
         String query = "Some random text.\r\nThe error is here.";
         int offset = 100;
-        SyntaxException e = new SyntaxException(message, query, offset);
+        SyntaxException e = new SyntaxException(dummyGql, message, query, offset);
 
         String expected = formatExpectedString("Message", "The error is here.", "                  ^");
 
@@ -220,7 +222,7 @@ class SyntaxExceptionTest {
     @Test
     void shouldSerialize() throws IOException {
         // Given
-        SyntaxException e = new SyntaxException("Message");
+        SyntaxException e = new SyntaxException(dummyGql, "Message");
         ObjectOutputStream stream = new ObjectOutputStream(OutputStream.nullOutputStream());
 
         // Then
@@ -230,4 +232,6 @@ class SyntaxExceptionTest {
     private static String formatExpectedString(String messageLine, String errorLine, String caretLine) {
         return String.format("%s%s\"%s\"%s %s", messageLine, lineSeparator(), errorLine, lineSeparator(), caretLine);
     }
+
+    private final ErrorGqlStatusObject dummyGql = GqlHelper.getGql42001_42N00("db");
 }
