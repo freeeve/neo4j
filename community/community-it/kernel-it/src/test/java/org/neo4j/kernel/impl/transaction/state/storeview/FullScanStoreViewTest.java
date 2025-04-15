@@ -68,6 +68,7 @@ import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageReader;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.values.storable.Values;
 
 @DbmsExtension
@@ -126,11 +127,12 @@ class FullScanStoreViewTest {
     }
 
     @AfterEach
-    void after() throws Exception {
+    void after() {
         jobScheduler.close();
         reader.close();
     }
 
+    @SkipOnSpd(reason = "Entity shard doesn't have the property data")
     @Test
     void shouldScanExistingNodesForALabel() {
         // given
@@ -156,6 +158,7 @@ class FullScanStoreViewTest {
                         record(stefan.getId(), propertyKeyId, "Stefan", new int[] {labelId}));
     }
 
+    @SkipOnSpd(reason = "Entity shard doesn't have the property data")
     @Test
     void shouldScanExistingRelationshipsForARelationshipType() {
         // given
@@ -290,6 +293,7 @@ class FullScanStoreViewTest {
         order.verify(lock1).close();
     }
 
+    @SkipOnSpd(reason = "Entity shard doesn't have the property data")
     @Test
     void tracePageCacheAccessOnStoreViewNodeScan() throws IOException {
         // enforce checkpoint to flush tree caches
@@ -322,6 +326,7 @@ class FullScanStoreViewTest {
                 .matches(pageCacheTracer);
     }
 
+    @SkipOnSpd(reason = "Entity shard doesn't have the property data")
     @Test
     void tracePageCacheAccessOnRelationshipStoreScan() throws Exception {
         // enforce checkpoint to flush tree caches
