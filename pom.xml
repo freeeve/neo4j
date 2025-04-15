@@ -172,8 +172,8 @@
     <metrics.version>4.2.30</metrics.version>
     <scala.target.vm>${vm.target.version}</scala.target.vm>
     <jersey.version>2.43</jersey.version>
-    <junit.version>5.12.1</junit.version>
-    <junit.platform.version>1.12.1</junit.platform.version>
+    <junit.version>5.12.2</junit.version>
+    <junit.platform.version>1.12.2</junit.platform.version>
     <mockito.version>5.17.0</mockito.version>
     <opencypher.version>1.0.0-M23</opencypher.version>
     <cucumber.version>7.22.0</cucumber.version>
