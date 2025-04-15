@@ -24,27 +24,19 @@ import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.DETA
 import java.util.Objects;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
+import org.neo4j.kernel.impl.transaction.log.entry.AbstractDetachedCheckpointLogEntry;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.string.Mask;
 
-public class LogEntryDetachedCheckpointV4_2 extends AbstractVersionAwareLogEntry {
-    private final LogPosition logPosition;
-    private final long checkpointTime;
-    private final StoreId storeId;
-    private final String reason;
+public class LogEntryDetachedCheckpointV4_2 extends AbstractDetachedCheckpointLogEntry {
 
     public LogEntryDetachedCheckpointV4_2(
             KernelVersion kernelVersion,
-            LogPosition logPosition,
+            LogPosition checkpointedLogPosition,
             long checkpointMillis,
             StoreId storeId,
             String reason) {
-        super(kernelVersion, DETACHED_CHECK_POINT);
-        this.logPosition = logPosition;
-        this.checkpointTime = checkpointMillis;
-        this.storeId = storeId;
-        this.reason = reason;
+        super(kernelVersion, checkpointedLogPosition, checkpointMillis, storeId, reason, DETACHED_CHECK_POINT);
     }
 
     @Override
@@ -56,7 +48,7 @@ public class LogEntryDetachedCheckpointV4_2 extends AbstractVersionAwareLogEntry
             return false;
         }
         LogEntryDetachedCheckpointV4_2 that = (LogEntryDetachedCheckpointV4_2) o;
-        return Objects.equals(logPosition, that.logPosition)
+        return Objects.equals(checkpointedLogPosition, that.checkpointedLogPosition)
                 && checkpointTime == that.checkpointTime
                 && kernelVersion() == that.kernelVersion()
                 && Objects.equals(storeId, that.storeId)
@@ -65,30 +57,14 @@ public class LogEntryDetachedCheckpointV4_2 extends AbstractVersionAwareLogEntry
 
     @Override
     public int hashCode() {
-        return Objects.hash(kernelVersion(), logPosition, checkpointTime, storeId, reason);
-    }
-
-    public StoreId getStoreId() {
-        return storeId;
-    }
-
-    public LogPosition getLogPosition() {
-        return logPosition;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public long getCheckpointTime() {
-        return checkpointTime;
+        return Objects.hash(kernelVersion(), checkpointedLogPosition, checkpointTime, storeId, reason);
     }
 
     @Override
     public String toString(Mask mask) {
         return "LogEntryDetachedCheckpointV4_2{" + "version="
                 + kernelVersion() + ", logPosition="
-                + logPosition + ", checkpointTime="
+                + checkpointedLogPosition + ", checkpointTime="
                 + checkpointTime + ", storeId="
                 + storeId + ", reason='"
                 + reason + '\'' + '}';

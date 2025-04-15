@@ -19,32 +19,26 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry.v50;
 
-import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.DETACHED_CHECK_POINT_V5_0;
-
 import java.util.Objects;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
+import org.neo4j.kernel.impl.transaction.log.entry.AbstractDetachedCheckpointLogEntry;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.string.Mask;
 
-public class LogEntryDetachedCheckpointV5_0 extends AbstractVersionAwareLogEntry {
+public class LogEntryDetachedCheckpointV5_0 extends AbstractDetachedCheckpointLogEntry {
     private final TransactionId transactionId;
-    private final LogPosition logPosition;
-    private final long checkpointTime;
-    private final StoreId storeId;
-    private final String reason;
     private final boolean consensusIndexInCheckpoint;
 
     public LogEntryDetachedCheckpointV5_0(
             KernelVersion kernelVersion,
             TransactionId transactionId,
-            LogPosition logPosition,
+            LogPosition checkpointedLogPosition,
             long checkpointMillis,
             StoreId storeId,
             String reason) {
-        this(kernelVersion, transactionId, logPosition, checkpointMillis, storeId, reason, true);
+        this(kernelVersion, transactionId, checkpointedLogPosition, checkpointMillis, storeId, reason, true);
     }
 
     public LogEntryDetachedCheckpointV5_0(
@@ -55,12 +49,8 @@ public class LogEntryDetachedCheckpointV5_0 extends AbstractVersionAwareLogEntry
             StoreId storeId,
             String reason,
             boolean consensusIndexInCheckpoint) {
-        super(kernelVersion, DETACHED_CHECK_POINT_V5_0);
+        super(kernelVersion, logPosition, checkpointMillis, storeId, reason);
         this.transactionId = transactionId;
-        this.logPosition = logPosition;
-        this.checkpointTime = checkpointMillis;
-        this.storeId = storeId;
-        this.reason = reason;
         this.consensusIndexInCheckpoint = consensusIndexInCheckpoint;
     }
 
@@ -75,7 +65,7 @@ public class LogEntryDetachedCheckpointV5_0 extends AbstractVersionAwareLogEntry
         LogEntryDetachedCheckpointV5_0 that = (LogEntryDetachedCheckpointV5_0) o;
         return checkpointTime == that.checkpointTime
                 && Objects.equals(transactionId, that.transactionId)
-                && Objects.equals(logPosition, that.logPosition)
+                && Objects.equals(checkpointedLogPosition, that.checkpointedLogPosition)
                 && Objects.equals(storeId, that.storeId)
                 && kernelVersion() == that.kernelVersion()
                 && Objects.equals(reason, that.reason);
@@ -83,27 +73,11 @@ public class LogEntryDetachedCheckpointV5_0 extends AbstractVersionAwareLogEntry
 
     @Override
     public int hashCode() {
-        return Objects.hash(kernelVersion(), transactionId, logPosition, checkpointTime, storeId, reason);
-    }
-
-    public StoreId getStoreId() {
-        return storeId;
-    }
-
-    public LogPosition getLogPosition() {
-        return logPosition;
+        return Objects.hash(kernelVersion(), transactionId, checkpointedLogPosition, checkpointTime, storeId, reason);
     }
 
     public TransactionId getTransactionId() {
         return transactionId;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public long getCheckpointTime() {
-        return checkpointTime;
     }
 
     public boolean consensusIndexInCheckpoint() {
@@ -114,7 +88,7 @@ public class LogEntryDetachedCheckpointV5_0 extends AbstractVersionAwareLogEntry
     public String toString(Mask mask) {
         return "LogEntryDetachedCheckpointV5_0{" + "transactionId="
                 + transactionId + ", logPosition="
-                + logPosition + ", checkpointTime="
+                + checkpointedLogPosition + ", checkpointTime="
                 + checkpointTime + ", storeId="
                 + storeId + ", reason='"
                 + reason + '\'' + ", version="

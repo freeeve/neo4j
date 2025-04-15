@@ -79,8 +79,8 @@ public final class CheckpointInfoFactory {
                     checkpoint522.consensusIndexInCheckpoint());
         } else if (entry instanceof LogEntryDetachedCheckpointV5_20 checkpoint520) {
             return new CheckpointInfo(
-                    checkpoint520.getLogPosition(),
-                    checkpoint520.getLogPosition(),
+                    checkpoint520.getCheckpointedLogPosition(),
+                    checkpoint520.getCheckpointedLogPosition(),
                     checkpoint520.getStoreId(),
                     checkpointEntryPosition,
                     channelPositionAfterCheckpoint,
@@ -93,8 +93,8 @@ public final class CheckpointInfoFactory {
                     checkpoint520.consensusIndexInCheckpoint());
         } else if (entry instanceof LogEntryDetachedCheckpointV5_0 checkpoint50) {
             return new CheckpointInfo(
-                    checkpoint50.getLogPosition(),
-                    checkpoint50.getLogPosition(),
+                    checkpoint50.getCheckpointedLogPosition(),
+                    checkpoint50.getCheckpointedLogPosition(),
                     checkpoint50.getStoreId(),
                     checkpointEntryPosition,
                     channelPositionAfterCheckpoint,
@@ -106,10 +106,10 @@ public final class CheckpointInfoFactory {
                     checkpoint50.getReason(),
                     checkpoint50.consensusIndexInCheckpoint());
         } else if (entry instanceof LogEntryDetachedCheckpointV4_2 checkpoint42) {
-            var transactionId = readTransactionInfoFor4_2(context, logFile, checkpoint42.getLogPosition());
+            var transactionId = readTransactionInfoFor4_2(context, logFile, checkpoint42.getCheckpointedLogPosition());
             return new CheckpointInfo(
-                    checkpoint42.getLogPosition(),
-                    checkpoint42.getLogPosition(),
+                    checkpoint42.getCheckpointedLogPosition(),
+                    checkpoint42.getCheckpointedLogPosition(),
                     checkpoint42.getStoreId(),
                     checkpointEntryPosition,
                     channelPositionAfterCheckpoint,

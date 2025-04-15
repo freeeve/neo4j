@@ -85,8 +85,8 @@ class DetachedCheckpointLogEntrySerializerV42Test {
                 version, new LogPosition(1, 2), checkpointMillis, storeId, checkpointDescription);
 
         writeLogEntryHeader(version, DETACHED_CHECK_POINT, channel);
-        channel.putLong(checkpoint.getLogPosition().getLogVersion())
-                .putLong(checkpoint.getLogPosition().getByteOffset())
+        channel.putLong(checkpoint.getCheckpointedLogPosition().getLogVersion())
+                .putLong(checkpoint.getCheckpointedLogPosition().getByteOffset())
                 .putLong(checkpointMillis)
                 .putLong(storeId.getCreationTime())
                 .putLong(storeId.getRandom())

@@ -100,7 +100,7 @@ class DetachedCheckpointLogEntrySerializerTest {
                 var checkpointV50 = readCheckpoint(entryReader, readChannel);
                 assertEquals(DETACHED_CHECK_POINT_V5_0, checkpointV50.getType());
                 assertEquals(KernelVersion.V5_0, checkpointV50.kernelVersion());
-                assertEquals(new LogPosition(100, 200), checkpointV50.getLogPosition());
+                assertEquals(new LogPosition(100, 200), checkpointV50.getCheckpointedLogPosition());
                 assertEquals(TEST_STORE_ID, checkpointV50.getStoreId());
                 assertEquals(
                         new TransactionId(70, 70, KernelVersion.V5_0, 80, 90, UNKNOWN_CONSENSUS_INDEX),
@@ -294,7 +294,7 @@ class DetachedCheckpointLogEntrySerializerTest {
 
         assertEquals(DETACHED_CHECK_POINT_V5_0, checkpoint.getType());
         assertEquals(kernelVersion, checkpoint.kernelVersion());
-        assertEquals(new LogPosition(100, 200), checkpoint.getLogPosition());
+        assertEquals(new LogPosition(100, 200), checkpoint.getCheckpointedLogPosition());
         assertEquals(TEST_STORE_ID, checkpoint.getStoreId());
         assertEquals(new TransactionId(70, 70, kernelVersion, 80, 90, 10), checkpoint.getTransactionId());
         assertTrue(checkpoint.consensusIndexInCheckpoint());
@@ -309,7 +309,7 @@ class DetachedCheckpointLogEntrySerializerTest {
 
         assertEquals(DETACHED_CHECK_POINT_V5_0, checkpoint.getType());
         assertEquals(kernelVersion, checkpoint.kernelVersion());
-        assertEquals(new LogPosition(100, 200), checkpoint.getLogPosition());
+        assertEquals(new LogPosition(100, 200), checkpoint.getCheckpointedLogPosition());
         assertEquals(TEST_STORE_ID, checkpoint.getStoreId());
         assertEquals(new TransactionId(70, 70, kernelVersion, 80, 90, 10), checkpoint.getTransactionId());
         assertTrue(checkpoint.consensusIndexInCheckpoint());

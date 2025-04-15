@@ -19,24 +19,18 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry.v522;
 
-import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.DETACHED_CHECK_POINT_V5_0;
-
 import java.util.Objects;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
-import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
+import org.neo4j.kernel.impl.transaction.log.entry.AbstractDetachedCheckpointLogEntry;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.string.Mask;
 
-public class LogEntryDetachedCheckpointV5_22 extends AbstractVersionAwareLogEntry {
+public class LogEntryDetachedCheckpointV5_22 extends AbstractDetachedCheckpointLogEntry {
     private final TransactionId transactionId;
     private final long lastAppendIndex;
     private final LogPosition oldestNotCompletedPosition;
-    private final LogPosition checkpointedLogPosition;
-    private final long checkpointTime;
-    private final StoreId storeId;
-    private final String reason;
     private final boolean consensusIndexInCheckpoint;
 
     public LogEntryDetachedCheckpointV5_22(
@@ -48,14 +42,10 @@ public class LogEntryDetachedCheckpointV5_22 extends AbstractVersionAwareLogEntr
             long checkpointMillis,
             StoreId storeId,
             String reason) {
-        super(kernelVersion, DETACHED_CHECK_POINT_V5_0);
+        super(kernelVersion, checkpointedLogPosition, checkpointMillis, storeId, reason);
         this.transactionId = transactionId;
         this.oldestNotCompletedPosition = oldestNotCompletedPosition;
-        this.checkpointedLogPosition = checkpointedLogPosition;
-        this.checkpointTime = checkpointMillis;
-        this.storeId = storeId;
         this.lastAppendIndex = lastAppendIndex;
-        this.reason = reason;
         this.consensusIndexInCheckpoint = true;
     }
 
@@ -91,28 +81,12 @@ public class LogEntryDetachedCheckpointV5_22 extends AbstractVersionAwareLogEntr
                 consensusIndexInCheckpoint);
     }
 
-    public StoreId getStoreId() {
-        return storeId;
-    }
-
-    public LogPosition getCheckpointedLogPosition() {
-        return checkpointedLogPosition;
-    }
-
     public LogPosition getOldestNotCompletedPosition() {
         return oldestNotCompletedPosition;
     }
 
     public TransactionId getTransactionId() {
         return transactionId;
-    }
-
-    public String getReason() {
-        return reason;
-    }
-
-    public long getCheckpointTime() {
-        return checkpointTime;
     }
 
     public boolean consensusIndexInCheckpoint() {

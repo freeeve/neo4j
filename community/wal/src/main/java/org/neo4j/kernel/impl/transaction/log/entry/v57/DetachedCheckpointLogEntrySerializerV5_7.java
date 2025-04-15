@@ -150,7 +150,7 @@ public class DetachedCheckpointLogEntrySerializerV5_7 extends LogEntrySerializer
         short length = safeCastIntToShort(min(reasonBytes.length, MAX_DESCRIPTION_LENGTH));
         byte[] descriptionBytes = new byte[MAX_DESCRIPTION_LENGTH];
         System.arraycopy(reasonBytes, 0, descriptionBytes, 0, length);
-        LogPosition logPosition = logEntry.getLogPosition();
+        LogPosition logPosition = logEntry.getCheckpointedLogPosition();
         TransactionId transactionId = logEntry.getTransactionId();
         channel.putLong(logPosition.getLogVersion())
                 .putLong(logPosition.getByteOffset())
