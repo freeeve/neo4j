@@ -34,13 +34,15 @@ import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
-import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
+import org.neo4j.cypher.internal.util.StepSequencer.Condition
 import org.neo4j.cypher.internal.util.helpers.fixedPoint
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.symbols.ParameterTypeInfo
 import org.neo4j.cypher.internal.util.topDown
 
-case object MoveWithPastMatch extends StepSequencer.Step with DefaultPostCondition with ASTRewriterFactory {
+case object WithMovedPastMatch extends Condition
+
+case object MoveWithPastMatch extends StepSequencer.Step with ASTRewriterFactory {
 
   override def getRewriter(
     semanticState: SemanticState,
@@ -57,6 +59,8 @@ case object MoveWithPastMatch extends StepSequencer.Step with DefaultPostConditi
   override def invalidatedConditions: Set[StepSequencer.Condition] = Set(
     ProjectionClausesHaveSemanticInfo // It can invalidate this condition by copying WITH clauses
   )
+
+  override def postConditions: Set[StepSequencer.Condition] = Set(WithMovedPastMatch)
 
   protected def isMovableWith(w: With): Boolean = {
     w.skip.isEmpty &&

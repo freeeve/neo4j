@@ -67,7 +67,7 @@ case object NameAllPatternElements extends StepSequencer.Step with ASTRewriterFa
     version: CypherVersion
   ): Rewriter = NameAllPatternElements(anonymousVariableNameGenerator)
 
-  override def preConditions: Set[StepSequencer.Condition] = Set.empty
+  override def preConditions: Set[StepSequencer.Condition] = Set(WithMovedPastMatch)
 
   override def postConditions: Set[StepSequencer.Condition] = Set(
     NoUnnamedNodesAndRelationships
