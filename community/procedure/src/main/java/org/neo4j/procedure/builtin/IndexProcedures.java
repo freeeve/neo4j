@@ -86,21 +86,18 @@ public class IndexProcedures {
 
     private boolean isOnline(IndexDescriptor index, String procedureName) throws ProcedureException {
         InternalIndexState state = getState(index, procedureName);
-        switch (state) {
-            case POPULATING:
-                return false;
-            case ONLINE:
-                return true;
-            case FAILED:
+        return switch (state) {
+            case POPULATING -> false;
+            case ONLINE -> true;
+            case FAILED -> {
                 String cause = getFailure(index, procedureName);
                 throw ProcedureException.indexInFailedState(
                         index.getName(),
                         String.format(
                                 IndexPopulationFailure.appendCauseOfFailure("Index '%s' is in failed state.", cause),
                                 index.getName()));
-            default:
-                throw new IllegalStateException("Unknown index state " + state);
-        }
+            }
+        };
     }
 
     private InternalIndexState getState(IndexDescriptor index, String procedureName) throws ProcedureException {

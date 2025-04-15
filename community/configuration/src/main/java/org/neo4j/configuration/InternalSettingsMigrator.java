@@ -17,10 +17,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.api.index.sampling;
+package org.neo4j.configuration;
 
-import org.neo4j.kernel.impl.api.index.IndexProxy;
+import static org.neo4j.configuration.SettingMigrators.migrateSettingRemoval;
 
-public interface IndexSamplingJobFactory {
-    IndexSamplingTask create(long indexId, IndexProxy indexProxy);
+import java.util.Map;
+import org.neo4j.annotations.service.ServiceProvider;
+import org.neo4j.logging.InternalLog;
+
+@ServiceProvider
+public class InternalSettingsMigrator implements SettingMigrator {
+
+    @Override
+    public void migrate(Map<String, String> values, Map<String, String> defaultValues, InternalLog log) {
+        migrateSettingRemoval(
+                values, log, "unsupported.dbms.index.sampling.async_recovery", "Setting is no longer used");
+        migrateSettingRemoval(values, log, "internal.dbms.index.sampling.async_recovery", "Setting is no longer used");
+    }
 }

@@ -969,17 +969,9 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
-    @Description("Enable asynchronous index sample recovery")
-    public static final Setting<Boolean> async_recover_index_samples = newBuilder(
-                    "internal.dbms.index.sampling.async_recovery", BOOL, true)
-            .immutable()
-            .build();
-
-    @Internal
     @Description("Wait for asynchronous index sample recovery to finish")
     public static final Setting<Boolean> async_recover_index_samples_wait = newBuilder(
-                    "internal.dbms.index.sampling.async_recovery_wait", BOOL, null)
-            .setDependency(async_recover_index_samples)
+                    "internal.dbms.index.sampling.async_recovery_wait", BOOL, true)
             .build();
 
     @Internal

@@ -39,7 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.test.DoubleLatch;
 
-class IndexSamplingJobTrackerTest {
+class IndexSamplingTaskTrackerTest {
     private static final long indexId11 = 0;
     private static final long indexId12 = 1;
     private static final long indexId22 = 2;
@@ -61,7 +61,7 @@ class IndexSamplingJobTrackerTest {
         // when
         final AtomicInteger count = new AtomicInteger(0);
 
-        IndexSamplingJob job = new IndexSamplingJob() {
+        IndexSamplingTask job = new IndexSamplingTask() {
             @Override
             public void run(AtomicBoolean stopped) {
                 count.incrementAndGet();
@@ -81,8 +81,8 @@ class IndexSamplingJobTrackerTest {
             }
         };
 
-        jobTracker.scheduleSamplingJob(job);
-        jobTracker.scheduleSamplingJob(job);
+        jobTracker.scheduleSamplingTask(job);
+        jobTracker.scheduleSamplingTask(job);
 
         latch.startAndWaitForAllToStart();
         latch.waitForAllToFinish();
@@ -98,7 +98,7 @@ class IndexSamplingJobTrackerTest {
         jobTracker.stopAndAwaitAllJobs();
 
         // When
-        jobTracker.scheduleSamplingJob(mock(IndexSamplingJob.class));
+        jobTracker.scheduleSamplingTask(mock(IndexSamplingTask.class));
 
         // Then
         verifyNoInteractions(scheduler);
@@ -111,11 +111,11 @@ class IndexSamplingJobTrackerTest {
         final CountDownLatch latch1 = new CountDownLatch(1);
         final CountDownLatch latch2 = new CountDownLatch(1);
 
-        WaitingIndexSamplingJob job1 = new WaitingIndexSamplingJob(indexId11, latch1);
-        WaitingIndexSamplingJob job2 = new WaitingIndexSamplingJob(indexId22, latch1);
+        WaitingIndexSamplingTask job1 = new WaitingIndexSamplingTask(indexId11, latch1);
+        WaitingIndexSamplingTask job2 = new WaitingIndexSamplingTask(indexId22, latch1);
 
-        jobTracker.scheduleSamplingJob(job1);
-        jobTracker.scheduleSamplingJob(job2);
+        jobTracker.scheduleSamplingTask(job1);
+        jobTracker.scheduleSamplingTask(job2);
 
         Future<?> stopping = executorService.submit(() -> {
             latch2.countDown();
@@ -135,13 +135,13 @@ class IndexSamplingJobTrackerTest {
         assertTrue(job2.executed);
     }
 
-    private static class WaitingIndexSamplingJob implements IndexSamplingJob {
+    private static class WaitingIndexSamplingTask implements IndexSamplingTask {
         final long indexId;
         final CountDownLatch latch;
 
         volatile boolean executed;
 
-        WaitingIndexSamplingJob(long indexId, CountDownLatch latch) {
+        WaitingIndexSamplingTask(long indexId, CountDownLatch latch) {
             this.indexId = indexId;
             this.latch = latch;
         }

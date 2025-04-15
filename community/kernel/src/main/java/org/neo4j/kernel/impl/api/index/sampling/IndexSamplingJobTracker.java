@@ -38,7 +38,7 @@ class IndexSamplingJobTracker {
     private final Condition allJobsFinished = lock.newCondition();
     private final String databaseName;
 
-    private AtomicBoolean stopped = new AtomicBoolean(false);
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     IndexSamplingJobTracker(JobScheduler jobScheduler, String databaseName) {
         this.jobScheduler = jobScheduler;
@@ -46,26 +46,26 @@ class IndexSamplingJobTracker {
         this.databaseName = databaseName;
     }
 
-    JobHandle scheduleSamplingJob(final IndexSamplingJob samplingJob) {
+    JobHandle<?> scheduleSamplingTask(final IndexSamplingTask samplingTask) {
         lock.lock();
         try {
             if (stopped.get()) {
                 return JobHandle.EMPTY;
             }
 
-            long indexId = samplingJob.indexId();
+            long indexId = samplingTask.indexId();
             if (executingJobs.contains(indexId)) {
                 return JobHandle.EMPTY;
             }
 
             executingJobs.add(indexId);
             var monitoringParams = new JobMonitoringParams(
-                    Subject.SYSTEM, databaseName, "Sampling of index '" + samplingJob.indexName() + "'");
+                    Subject.SYSTEM, databaseName, "Sampling of index '" + samplingTask.indexName() + "'");
             return jobScheduler.schedule(Group.INDEX_SAMPLING, monitoringParams, () -> {
                 try {
-                    samplingJob.run(stopped);
+                    samplingTask.run(stopped);
                 } finally {
-                    samplingJobCompleted(samplingJob);
+                    samplingJobCompleted(samplingTask);
                 }
             });
         } finally {
@@ -73,7 +73,7 @@ class IndexSamplingJobTracker {
         }
     }
 
-    private void samplingJobCompleted(IndexSamplingJob samplingJob) {
+    private void samplingJobCompleted(IndexSamplingTask samplingJob) {
         lock.lock();
         try {
             executingJobs.remove(samplingJob.indexId());

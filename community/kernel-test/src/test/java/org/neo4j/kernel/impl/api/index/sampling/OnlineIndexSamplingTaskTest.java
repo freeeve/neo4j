@@ -48,7 +48,7 @@ import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.NullLogProvider;
 
-class OnlineIndexSamplingJobTest {
+class OnlineIndexSamplingTaskTest {
     private static final CursorContextFactory CONTEXT_FACTORY =
             new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER);
     private final InternalLogProvider logProvider = NullLogProvider.getInstance();
@@ -76,7 +76,7 @@ class OnlineIndexSamplingJobTest {
     @Test
     void shouldSampleTheIndexAndStoreTheValueWhenTheIndexIsOnline() {
         // given
-        OnlineIndexSamplingJob job = new OnlineIndexSamplingJob(
+        OnlineIndexSamplingTask job = new OnlineIndexSamplingTask(
                 indexId, indexProxy, indexStatisticsStore, "Foo", "Foo", logProvider, CONTEXT_FACTORY);
         when(indexProxy.getState()).thenReturn(ONLINE);
 
@@ -91,7 +91,7 @@ class OnlineIndexSamplingJobTest {
     @Test
     void shouldSampleTheIndexButDoNotStoreTheValuesIfTheIndexIsNotOnline() {
         // given
-        OnlineIndexSamplingJob job = new OnlineIndexSamplingJob(
+        OnlineIndexSamplingTask job = new OnlineIndexSamplingTask(
                 indexId, indexProxy, indexStatisticsStore, "Foo", "Foo", logProvider, CONTEXT_FACTORY);
         when(indexProxy.getState()).thenReturn(FAILED);
 
@@ -105,7 +105,7 @@ class OnlineIndexSamplingJobTest {
     @Test
     void shouldNotUpdateStatisticsStoreForStoppedSamplingJob() {
         // given
-        OnlineIndexSamplingJob job = new OnlineIndexSamplingJob(
+        OnlineIndexSamplingTask job = new OnlineIndexSamplingTask(
                 indexId, indexProxy, indexStatisticsStore, "Foo", "Foo", logProvider, CONTEXT_FACTORY);
         when(indexProxy.getState()).thenReturn(ONLINE);
 
@@ -123,7 +123,7 @@ class OnlineIndexSamplingJobTest {
         var pageCursorTracer = mock(PageCursorTracer.class);
         when(pageCacheTracer.createPageCursorTracer(any())).thenReturn(pageCursorTracer);
 
-        OnlineIndexSamplingJob job = new OnlineIndexSamplingJob(
+        OnlineIndexSamplingTask job = new OnlineIndexSamplingTask(
                 indexId,
                 indexProxy,
                 indexStatisticsStore,

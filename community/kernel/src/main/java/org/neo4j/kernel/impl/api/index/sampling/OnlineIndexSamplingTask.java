@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.impl.api.index.sampling;
 
-import static java.lang.String.format;
 import static org.neo4j.internal.kernel.api.InternalIndexState.ONLINE;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -33,7 +32,7 @@ import org.neo4j.kernel.impl.util.DurationLogger;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.logging.InternalLogProvider;
 
-class OnlineIndexSamplingJob implements IndexSamplingJob {
+class OnlineIndexSamplingTask implements IndexSamplingTask {
     private static final String INDEX_SAMPLER_TAG = "indexSampler";
     private final long indexId;
     private final IndexProxy indexProxy;
@@ -43,7 +42,7 @@ class OnlineIndexSamplingJob implements IndexSamplingJob {
     private final String indexName;
     private final CursorContextFactory contextFactory;
 
-    OnlineIndexSamplingJob(
+    OnlineIndexSamplingTask(
             long indexId,
             IndexProxy indexProxy,
             IndexStatisticsStore indexStatisticsStore,
@@ -84,10 +83,10 @@ class OnlineIndexSamplingJob implements IndexSamplingJob {
                     if (indexProxy.getState() == ONLINE && !wasInterrupted) {
                         indexStatisticsStore.setSampleStats(indexId, sample);
                         durationLogger.markAsFinished();
-                        log.debug(format(
+                        log.debug(
                                 "Sampled index %s with %d unique values in sample of avg size %d taken from "
                                         + "index containing %d entries",
-                                indexUserDescription, sample.uniqueValues(), sample.sampleSize(), sample.indexSize()));
+                                indexUserDescription, sample.uniqueValues(), sample.sampleSize(), sample.indexSize());
                     } else {
                         durationLogger.markAsAborted(
                                 wasInterrupted ? "Sampling job aborted" : "Index no longer ONLINE");

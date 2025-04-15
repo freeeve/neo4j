@@ -30,7 +30,6 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongPredicate;
@@ -69,11 +68,10 @@ public class IndexSamplingController {
     private final Lock samplingLock = new ReentrantLock();
     private final InternalLog log;
     private final boolean logRecoverIndexSamples;
-    private final boolean asyncRecoverIndexSamples;
     private final boolean asyncRecoverIndexSamplesWait;
     private final String databaseName;
 
-    private JobHandle backgroundSamplingHandle;
+    private JobHandle<?> backgroundSamplingHandle;
 
     // use IndexSamplingControllerFactory.create do not instantiate directly
     IndexSamplingController(
@@ -96,7 +94,6 @@ public class IndexSamplingController {
         this.indexRecoveryCondition = indexRecoveryCondition;
         this.log = logProvider.getLog(getClass());
         this.logRecoverIndexSamples = config.get(GraphDatabaseInternalSettings.log_recover_index_samples);
-        this.asyncRecoverIndexSamples = config.get(GraphDatabaseInternalSettings.async_recover_index_samples);
         this.asyncRecoverIndexSamplesWait = config.get(GraphDatabaseInternalSettings.async_recover_index_samples_wait);
         this.databaseName = databaseName;
     }
@@ -108,8 +105,8 @@ public class IndexSamplingController {
     }
 
     public void sampleIndex(long indexId, IndexSamplingMode mode) {
-        IndexMap indexMap = indexMapSnapshotProvider.indexMapSnapshot();
         if (shouldSampleIndex(mode, indexId)) {
+            IndexMap indexMap = indexMapSnapshotProvider.indexMapSnapshot();
             scheduleSampling(LongLists.immutable.of(indexId), mode, indexMap);
         }
     }
@@ -120,6 +117,7 @@ public class IndexSamplingController {
             IndexMap indexMap = indexMapSnapshotProvider.indexMapSnapshot();
             final LongIterator indexIds = indexMap.indexIds();
             List<IndexSamplingJobHandle> asyncSamplingJobs = Lists.mutable.of();
+
             while (indexIds.hasNext()) {
                 long indexId = indexIds.next();
                 IndexDescriptor descriptor = indexMap.getIndexProxy(indexId).getDescriptor();
@@ -127,12 +125,7 @@ public class IndexSamplingController {
                     if (logRecoverIndexSamples) {
                         log.info("Index requires sampling, id=%d, name=%s.", indexId, descriptor.getName());
                     }
-
-                    if (asyncRecoverIndexSamples) {
-                        asyncSamplingJobs.add(sampleIndexOnTracker(indexMap, indexId));
-                    } else {
-                        sampleIndexOnCurrentThread(indexMap, indexId);
-                    }
+                    asyncSamplingJobs.add(sampleIndexOnTracker(indexMap, indexId));
                 } else {
                     if (logRecoverIndexSamples) {
                         log.info("Index does not require sampling, id=%d, name=%s.", indexId, descriptor.getName());
@@ -203,22 +196,15 @@ public class IndexSamplingController {
     }
 
     private IndexSamplingJobHandle sampleIndexOnTracker(IndexMap indexMap, long indexId) {
-        IndexSamplingJob job = createSamplingJob(indexMap, indexId);
+        IndexSamplingTask task = createSamplingTask(indexMap, indexId);
         IndexDescriptor descriptor = indexMap.getIndexProxy(indexId).getDescriptor();
-        if (job != null) {
-            return new IndexSamplingJobHandle(jobTracker.scheduleSamplingJob(job), descriptor);
+        if (task == null) {
+            return new IndexSamplingJobHandle(JobHandle.EMPTY, descriptor);
         }
-        return new IndexSamplingJobHandle(JobHandle.EMPTY, descriptor);
+        return new IndexSamplingJobHandle(jobTracker.scheduleSamplingTask(task), descriptor);
     }
 
-    private void sampleIndexOnCurrentThread(IndexMap indexMap, long indexId) {
-        IndexSamplingJob job = createSamplingJob(indexMap, indexId);
-        if (job != null) {
-            job.run(new AtomicBoolean(false));
-        }
-    }
-
-    private IndexSamplingJob createSamplingJob(IndexMap indexMap, long indexId) {
+    private IndexSamplingTask createSamplingTask(IndexMap indexMap, long indexId) {
         IndexProxy proxy = indexMap.getIndexProxy(indexId);
         if (proxy == null
                 || proxy.getState() != InternalIndexState.ONLINE
@@ -261,15 +247,7 @@ public class IndexSamplingController {
         return !mode.sampleOnlyIfUpdated() || samplingUpdatePredicate.test(indexId);
     }
 
-    private static class IndexSamplingJobHandle {
-        private final JobHandle jobHandle;
-        private final IndexDescriptor descriptor;
-
-        IndexSamplingJobHandle(JobHandle jobHandle, IndexDescriptor descriptor) {
-            this.jobHandle = jobHandle;
-            this.descriptor = descriptor;
-        }
-
+    private record IndexSamplingJobHandle(JobHandle<?> jobHandle, IndexDescriptor descriptor) {
         public void waitTermination() throws ExecutionException, InterruptedException {
             this.jobHandle.waitTermination();
         }

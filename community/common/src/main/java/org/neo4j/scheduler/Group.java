@@ -22,6 +22,7 @@ package org.neo4j.scheduler;
 import java.util.OptionalInt;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.neo4j.util.FeatureToggles;
 
 /**
  * Represents a common group of jobs, defining how they should be scheduled.
@@ -63,7 +64,7 @@ public enum Group {
      */
     INDEX_POPULATION_WORK("IndexPopulationWork", ExecutorServiceFactory.cached()),
     /** Background index sampling */
-    INDEX_SAMPLING("IndexSampling"),
+    INDEX_SAMPLING("IndexSampling", ServiceFactorySelector.selectGroupServiceFactory()),
     /** Background index update applier, for eventually consistent indexes. */
     INDEX_UPDATING("IndexUpdating"),
     INDEX_REFRESHING("IndexRefreshing"),
@@ -203,5 +204,16 @@ public enum Group {
 
     public OptionalInt defaultParallelism() {
         return defaultParallelism == null ? OptionalInt.empty() : OptionalInt.of(defaultParallelism);
+    }
+
+    private static class ServiceFactorySelector {
+        private static final boolean USE_VIRTUAL_THREADS =
+                FeatureToggles.flag(Group.class, "enableVirtualThreads", true);
+
+        private static ExecutorServiceFactory selectGroupServiceFactory() {
+            return USE_VIRTUAL_THREADS
+                    ? ExecutorServiceFactory.newVirtualThreadPerTask()
+                    : ExecutorServiceFactory.cached();
+        }
     }
 }

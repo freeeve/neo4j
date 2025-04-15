@@ -74,8 +74,8 @@ class IndexSamplingControllerTest {
             forSchema(forLabel(3, 4), PROVIDER_DESCRIPTOR).withName("index_2").materialise(indexId);
     private final IndexDescriptor anotherDescriptor =
             forSchema(forLabel(5, 6), PROVIDER_DESCRIPTOR).withName("index_3").materialise(anotherIndexId);
-    private final IndexSamplingJob job = mock(IndexSamplingJob.class);
-    private final IndexSamplingJob anotherJob = mock(IndexSamplingJob.class);
+    private final IndexSamplingTask job = mock(IndexSamplingTask.class);
+    private final IndexSamplingTask anotherJob = mock(IndexSamplingTask.class);
     private AssertableLogProvider logProvider;
 
     @BeforeEach
@@ -102,7 +102,7 @@ class IndexSamplingControllerTest {
 
         // then
         verify(jobFactory).create(indexId, indexProxy);
-        verify(tracker).scheduleSamplingJob(job);
+        verify(tracker).scheduleSamplingTask(job);
         verifyNoMoreInteractions(jobFactory, tracker);
     }
 
@@ -132,9 +132,9 @@ class IndexSamplingControllerTest {
 
         // then
         verify(jobFactory).create(indexId, indexProxy);
-        verify(tracker).scheduleSamplingJob(job);
+        verify(tracker).scheduleSamplingTask(job);
         verify(jobFactory).create(anotherIndexId, anotherIndexProxy);
-        verify(tracker).scheduleSamplingJob(anotherJob);
+        verify(tracker).scheduleSamplingTask(anotherJob);
 
         verifyNoMoreInteractions(jobFactory, tracker);
     }
@@ -152,7 +152,7 @@ class IndexSamplingControllerTest {
 
         // then
         verify(jobFactory).create(indexId, indexProxy);
-        verify(tracker).scheduleSamplingJob(job);
+        verify(tracker).scheduleSamplingTask(job);
 
         verifyNoMoreInteractions(jobFactory, tracker);
     }
@@ -166,8 +166,8 @@ class IndexSamplingControllerTest {
         indexMap.putIndexProxy(anotherIndexProxy);
         JobHandle jobHandle = mock(JobHandle.class);
         JobHandle anotherJobHandle = mock(JobHandle.class);
-        when(tracker.scheduleSamplingJob(job)).thenReturn(jobHandle);
-        when(tracker.scheduleSamplingJob(anotherJob)).thenReturn(anotherJobHandle);
+        when(tracker.scheduleSamplingTask(job)).thenReturn(jobHandle);
+        when(tracker.scheduleSamplingTask(anotherJob)).thenReturn(anotherJobHandle);
 
         // when
         IndexSamplingMode mode = foregroundRebuildUpdated(60);
@@ -175,9 +175,9 @@ class IndexSamplingControllerTest {
 
         // then
         verify(jobFactory).create(indexId, indexProxy);
-        verify(tracker).scheduleSamplingJob(job);
+        verify(tracker).scheduleSamplingTask(job);
         verify(jobFactory).create(anotherIndexId, anotherIndexProxy);
-        verify(tracker).scheduleSamplingJob(anotherJob);
+        verify(tracker).scheduleSamplingTask(anotherJob);
         verify(jobHandle).waitTermination(anyLong(), any(TimeUnit.class));
         verify(anotherJobHandle).waitTermination(anyLong(), any(TimeUnit.class));
         verifyNoMoreInteractions(jobFactory, tracker, jobHandle, anotherJobHandle);
@@ -190,7 +190,7 @@ class IndexSamplingControllerTest {
         when(indexProxy.getState()).thenReturn(ONLINE);
         when(anotherIndexProxy.getState()).thenReturn(ONLINE);
         indexMap.putIndexProxy(anotherIndexProxy);
-        JobHandle<Object> jobHandle = new JobHandle<>() {
+        JobHandle jobHandle = new JobHandle<>() {
             @Override
             public void cancel() {}
 
@@ -210,7 +210,7 @@ class IndexSamplingControllerTest {
                 return null;
             }
         };
-        when(tracker.scheduleSamplingJob(job)).thenReturn(jobHandle);
+        when(tracker.scheduleSamplingTask(job)).thenReturn(jobHandle);
 
         IndexSamplingMode mode = foregroundRebuildUpdated(1);
         RuntimeException e = assertThrows(RuntimeException.class, () -> controller.sampleIndexes(mode));
@@ -229,7 +229,7 @@ class IndexSamplingControllerTest {
 
         // then
         verify(jobFactory).create(indexId, indexProxy);
-        verify(tracker).scheduleSamplingJob(job);
+        verify(tracker).scheduleSamplingTask(job);
         verifyNoMoreInteractions(jobFactory, job, tracker);
     }
 
@@ -272,9 +272,9 @@ class IndexSamplingControllerTest {
 
         // then
         verify(jobFactory).create(indexId, indexProxy);
-        verify(tracker).scheduleSamplingJob(job);
+        verify(tracker).scheduleSamplingTask(job);
         verify(jobFactory, never()).create(anotherIndexId, anotherIndexProxy);
-        verify(tracker, never()).scheduleSamplingJob(anotherJob);
+        verify(tracker, never()).scheduleSamplingTask(anotherJob);
 
         verifyNoMoreInteractions(jobFactory, tracker);
     }
@@ -304,24 +304,11 @@ class IndexSamplingControllerTest {
         final IndexSamplingController controller = newSamplingController(always(true), logProvider);
         when(indexProxy.getState()).thenReturn(ONLINE);
         when(jobFactory.create(indexId, indexProxy)).thenReturn(job);
-        when(tracker.scheduleSamplingJob(any(IndexSamplingJob.class))).thenReturn(mock(JobHandle.class));
+        when(tracker.scheduleSamplingTask(any(IndexSamplingTask.class))).thenReturn(mock(JobHandle.class));
 
         controller.recoverIndexSamples();
 
-        verify(tracker).scheduleSamplingJob(job);
-    }
-
-    @Test
-    void shouldNotTriggerAsyncSamplesIfNotToggled() {
-        final IndexSamplingController controller = newSamplingController(
-                always(true),
-                logProvider,
-                Config.defaults(GraphDatabaseInternalSettings.async_recover_index_samples, false));
-        when(indexProxy.getState()).thenReturn(ONLINE);
-
-        controller.recoverIndexSamples();
-
-        verifyNoMoreInteractions(tracker);
+        verify(tracker).scheduleSamplingTask(job);
     }
 
     @Test
@@ -330,11 +317,11 @@ class IndexSamplingControllerTest {
         when(indexProxy.getState()).thenReturn(ONLINE);
         when(jobFactory.create(indexId, indexProxy)).thenReturn(job);
         final JobHandle jobHandle = mock(JobHandle.class);
-        when(tracker.scheduleSamplingJob(any(IndexSamplingJob.class))).thenReturn(jobHandle);
+        when(tracker.scheduleSamplingTask(any(IndexSamplingTask.class))).thenReturn(jobHandle);
 
         controller.recoverIndexSamples();
 
-        verify(tracker).scheduleSamplingJob(job);
+        verify(tracker).scheduleSamplingTask(job);
         verify(jobHandle).waitTermination();
     }
 
@@ -347,11 +334,11 @@ class IndexSamplingControllerTest {
         when(indexProxy.getState()).thenReturn(ONLINE);
         when(jobFactory.create(indexId, indexProxy)).thenReturn(job);
         final JobHandle jobHandle = mock(JobHandle.class);
-        when(tracker.scheduleSamplingJob(any(IndexSamplingJob.class))).thenReturn(jobHandle);
+        when(tracker.scheduleSamplingTask(any(IndexSamplingTask.class))).thenReturn(jobHandle);
 
         controller.recoverIndexSamples();
 
-        verify(tracker).scheduleSamplingJob(job);
+        verify(tracker).scheduleSamplingTask(job);
         verifyNoMoreInteractions(jobHandle);
     }
 

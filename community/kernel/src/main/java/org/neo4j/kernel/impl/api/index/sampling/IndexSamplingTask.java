@@ -21,7 +21,7 @@ package org.neo4j.kernel.impl.api.index.sampling;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public interface IndexSamplingJob {
+public interface IndexSamplingTask {
     long indexId();
 
     String indexName();

@@ -19,22 +19,20 @@
  */
 package org.neo4j.kernel.impl.util;
 
-import static java.lang.String.format;
-
 import org.neo4j.logging.InternalLog;
 
 public class DurationLogger implements AutoCloseable {
     private final InternalLog log;
     private final String tag;
 
-    private long start;
+    private final long start;
     private String outcome = "Not finished";
 
     public DurationLogger(InternalLog log, String tag) {
         this.log = log;
         this.tag = tag;
         start = System.currentTimeMillis();
-        log.debug(format("Started: %s", tag));
+        log.debug("Started: %s", tag);
     }
 
     public void markAsFinished() {
@@ -42,7 +40,7 @@ public class DurationLogger implements AutoCloseable {
     }
 
     public void markAsAborted(String cause) {
-        outcome = format("Aborted (cause: %s)", cause);
+        outcome = "Aborted (cause: " + cause + ")";
     }
 
     @Override
@@ -50,9 +48,9 @@ public class DurationLogger implements AutoCloseable {
         long end = System.currentTimeMillis();
         long duration = end - start;
         if (outcome == null) {
-            log.debug(format("Finished: %s in %d ms", tag, duration));
+            log.debug("Finished: %s in %d ms", tag, duration);
         } else {
-            log.warn(format("%s: %s in %d ms", outcome, tag, duration));
+            log.warn("%s: %s in %d ms", outcome, tag, duration);
         }
     }
 }

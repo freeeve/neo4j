@@ -31,7 +31,6 @@ import java.util.function.Consumer;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
-import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
@@ -166,19 +165,13 @@ class IndexSamplingIntegrationTest {
     }
 
     private IndexSample fetchIndexSamplingValues() throws IndexNotFoundKernelException, TransactionFailureException {
-        DatabaseManagementService managementService = null;
-        try {
+        try (var managementService = new TestDatabaseManagementServiceBuilder(layout).build()) {
             // Then
-            managementService = new TestDatabaseManagementServiceBuilder(layout).build();
             GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
             GraphDatabaseAPI api = (GraphDatabaseAPI) db;
             Kernel kernel = api.getDependencyResolver().resolveDependency(Kernel.class);
             try (KernelTransaction tx = kernel.beginTransaction(EXPLICIT, AUTH_DISABLED)) {
                 return tx.schemaRead().indexSample(indexId(tx));
-            }
-        } finally {
-            if (managementService != null) {
-                managementService.shutdown();
             }
         }
     }

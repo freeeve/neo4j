@@ -20,18 +20,19 @@
 package org.neo4j.kernel.impl.api.index.sampling;
 
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.kernel.impl.api.index.IndexProxy;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.logging.InternalLogProvider;
 
-public class OnlineIndexSamplingJobFactory implements IndexSamplingJobFactory {
+public class OnlineIndexSamplingTaskFactory implements IndexSamplingJobFactory {
     private final IndexStatisticsStore indexStatisticsStore;
     private final InternalLogProvider logProvider;
     private final TokenNameLookup nameLookup;
     private final CursorContextFactory contextFactory;
 
-    public OnlineIndexSamplingJobFactory(
+    public OnlineIndexSamplingTaskFactory(
             IndexStatisticsStore indexStatisticsStore,
             TokenNameLookup nameLookup,
             InternalLogProvider logProvider,
@@ -43,10 +44,11 @@ public class OnlineIndexSamplingJobFactory implements IndexSamplingJobFactory {
     }
 
     @Override
-    public IndexSamplingJob create(long indexId, IndexProxy indexProxy) {
-        final String indexUserDescription = indexProxy.getDescriptor().userDescription(nameLookup);
-        String indexName = indexProxy.getDescriptor().getName();
-        return new OnlineIndexSamplingJob(
+    public IndexSamplingTask create(long indexId, IndexProxy indexProxy) {
+        IndexDescriptor descriptor = indexProxy.getDescriptor();
+        String indexName = descriptor.getName();
+        String indexUserDescription = descriptor.userDescription(nameLookup);
+        return new OnlineIndexSamplingTask(
                 indexId,
                 indexProxy,
                 indexStatisticsStore,

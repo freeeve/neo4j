@@ -20,9 +20,11 @@
 package org.neo4j.kernel.impl.scheduler;
 
 import static java.lang.Thread.sleep;
+import static java.time.Duration.ofMinutes;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.waitAtMost;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -46,7 +48,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -87,27 +88,45 @@ class CentralJobSchedulerTest {
     void countVirtualThreads() {
         life.start();
 
-        var waitLatch = new CountDownLatch(1);
+        var fabricWaitLatch = new CountDownLatch(1);
+        var indexWaitLatch = new CountDownLatch(1);
 
         assertEquals(0, scheduler.virtualThreadCount());
         try {
             for (int i = 0; i < 5; i++) {
                 scheduler.schedule(Group.FABRIC_WORKER, () -> {
                     try {
-                        waitLatch.await();
+                        fabricWaitLatch.await();
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
                 });
             }
 
-            assertEquals(5, scheduler.virtualThreadCount());
+            waitAtMost(ofMinutes(1)).untilAsserted(() -> {
+                assertEquals(5, scheduler.virtualThreadCount());
+            });
+
+            for (int i = 0; i < 5; i++) {
+                scheduler.schedule(Group.INDEX_SAMPLING, () -> {
+                    try {
+                        indexWaitLatch.await();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                });
+            }
+
+            waitAtMost(ofMinutes(1)).untilAsserted(() -> {
+                assertEquals(10, scheduler.virtualThreadCount());
+            });
 
         } finally {
-            waitLatch.countDown();
+            indexWaitLatch.countDown();
+            fabricWaitLatch.countDown();
         }
 
-        Awaitility.waitAtMost(Duration.ofMinutes(2)).untilAsserted(() -> {
+        waitAtMost(ofMinutes(2)).untilAsserted(() -> {
             assertEquals(0, scheduler.virtualThreadCount());
         });
     }
