@@ -59,24 +59,10 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
         this.queryId = null;
     }
 
-    @Deprecated
-    private FabricException(Status statusCode, String message, Throwable cause) {
-        super(message, cause);
-        this.statusCode = statusCode;
-        this.queryId = null;
-    }
-
     private FabricException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
         this.statusCode = statusCode;
         this.queryId = null;
-    }
-
-    @Deprecated
-    public FabricException(Status statusCode, String message, Throwable cause, Long queryId) {
-        super(message, cause);
-        this.statusCode = statusCode;
-        this.queryId = queryId;
     }
 
     public FabricException(
@@ -95,7 +81,8 @@ public class FabricException extends GqlRuntimeException implements Status.HasSt
         if (localException instanceof ErrorGqlStatusObject gqlException && gqlException.gqlStatusObject() != null) {
             return new FabricException(gqlException, localException);
         }
-        return new FabricException(localException.status(), localException.getMessage(), localException);
+        return new FabricException(
+                GqlHelper.getDefaultObject(), localException.status(), localException.getMessage(), localException);
     }
 
     public static FabricException internalError(

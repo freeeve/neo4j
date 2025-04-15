@@ -21,8 +21,6 @@ package org.neo4j.internal.kernel.api.exceptions;
 
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
-import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
-import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 /**
@@ -30,11 +28,6 @@ import org.neo4j.kernel.api.exceptions.Status;
  * violations to any constraints defined for the database.
  */
 public class ConstraintViolationTransactionFailureException extends TransactionFailureException {
-
-    @Deprecated
-    private ConstraintViolationTransactionFailureException(String msg, KernelException cause) {
-        super(Status.Schema.ConstraintValidationFailed, cause, msg);
-    }
 
     protected ConstraintViolationTransactionFailureException(ErrorGqlStatusObject gqlStatusObject, String msg) {
         super(gqlStatusObject, Status.Schema.ConstraintValidationFailed, msg);
@@ -46,19 +39,6 @@ public class ConstraintViolationTransactionFailureException extends TransactionF
     }
 
     public static ConstraintViolationTransactionFailureException create(String msg, KernelException cause) {
-        if (cause.gqlStatusObject() != null) {
-            // Except for the protected constructor and the genericViolationFailure method, the cause
-            // will always provide the correct GQL status object.
-            return new ConstraintViolationTransactionFailureException(cause.gqlStatusObject(), cause, msg);
-        }
-        // But some causes don't have the GQL status object implemented _yet_.
-        return new ConstraintViolationTransactionFailureException(msg, cause);
-    }
-
-    // KNL-065
-    public static ConstraintViolationTransactionFailureException genericViolationFailure(String msg) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N14)
-                .build();
-        return new ConstraintViolationTransactionFailureException(gql, msg);
+        return new ConstraintViolationTransactionFailureException(cause, cause, msg);
     }
 }

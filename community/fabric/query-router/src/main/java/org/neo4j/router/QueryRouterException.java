@@ -26,6 +26,7 @@ import org.neo4j.fabric.executor.Location;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.ErrorMessageHolder;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlRuntimeException;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
@@ -35,13 +36,6 @@ import org.neo4j.kernel.api.exceptions.Status;
 public class QueryRouterException extends GqlRuntimeException implements Status.HasStatus, HasQuery {
     private final Status statusCode;
     private Long queryId;
-
-    @Deprecated
-    public QueryRouterException(Status statusCode, Throwable cause) {
-        super(ErrorMessageHolder.getOldCauseMessage(cause), cause);
-        this.statusCode = statusCode;
-        this.queryId = null;
-    }
 
     private QueryRouterException(ErrorGqlStatusObject gqlStatusObject, Status statusCode, Throwable cause) {
         super(gqlStatusObject, ErrorMessageHolder.getOldCauseMessage(cause), cause);
@@ -56,18 +50,20 @@ public class QueryRouterException extends GqlRuntimeException implements Status.
         this.queryId = null;
     }
 
-    @Deprecated
-    public QueryRouterException(Status statusCode, String message, Throwable cause) {
-        super(message, cause);
-        this.statusCode = statusCode;
-        this.queryId = null;
-    }
-
     public QueryRouterException(
             ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
         this.statusCode = statusCode;
         this.queryId = null;
+    }
+
+    public static <EX extends Throwable & Status.HasStatus> QueryRouterException wrapError(EX cause) {
+        if (cause instanceof ErrorGqlStatusObject gqlException && gqlException.gqlStatusObject() != null) {
+            return new QueryRouterException(gqlException, cause.status(), cause);
+        }
+
+        // This case can be removed once all errors has been ported to GQLSTATUS
+        return new QueryRouterException(GqlHelper.getDefaultObject(), cause.status(), cause);
     }
 
     public static QueryRouterException executeQueryInClosedTransaction(String legacyMessage) {

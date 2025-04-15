@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.eclipse.collections.impl.factory.Maps;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 
 /**
@@ -36,21 +37,20 @@ public class StatusWrapCypherException extends Neo4jException {
 
     private final Map<ExtraInformation, String> extraInfoMap = Maps.mutable.of();
 
-    @Deprecated
-    private StatusWrapCypherException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
     private <EX extends Throwable & ErrorGqlStatusObject> StatusWrapCypherException(EX cause) {
         super(cause, cause.getMessage(), cause);
+    }
+
+    private StatusWrapCypherException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
+        super(gqlStatusObject, cause.getMessage(), cause);
     }
 
     public static <EX extends Throwable & ErrorGqlStatusObject> StatusWrapCypherException wrapCypherException(EX e) {
         if (e.gqlStatusObject() != null) {
             return new StatusWrapCypherException(e);
         }
-        // This would indicate that the wrapped exception has not been ported yet
-        return new StatusWrapCypherException(e.getMessage(), e);
+        // This case can be removed once all instances of Neo4jException has been ported to GQLSTATUS
+        return new StatusWrapCypherException(GqlHelper.getDefaultObject(), e);
     }
 
     public StatusWrapCypherException addExtraInfo(ExtraInformation informationType, String extraInfo) {

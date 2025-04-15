@@ -20,7 +20,6 @@
 package org.neo4j.kernel.query;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.api.exceptions.Status.General.InvalidArguments;
 
@@ -149,11 +148,11 @@ public class QueryExecutionKernelExceptionTest {
         var notGqlException = new InvalidArgumentsException("message");
         var translatedGqlException = QueryExecutionKernelException.wrapError(notGqlException);
         assertEquals("50N42", translatedGqlException.gqlStatus());
+        assertEquals("50N42", translatedGqlException.gqlStatusObject().gqlStatus());
         assertEquals(InvalidArguments, translatedGqlException.status());
         assertEquals("message", translatedGqlException.getMessage());
         // It should set a cause since we are not wrapping a gql exception
         assertEquals(notGqlException, translatedGqlException.getCause());
-        assertNull(translatedGqlException.gqlStatusObject());
 
         var userException = translatedGqlException.asUserException();
         assertEquals("50N42", userException.gqlStatus());

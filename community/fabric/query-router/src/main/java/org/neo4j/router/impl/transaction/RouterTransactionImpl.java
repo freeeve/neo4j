@@ -501,7 +501,7 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
             if (t instanceof ErrorGqlStatusObject gqlStatusObjectOfT) {
                 return new QueryRouterException(gqlStatusObjectOfT, ((Status.HasStatus) t).status(), message, t);
             }
-            return new QueryRouterException(((Status.HasStatus) t).status(), message, t);
+            return new QueryRouterException(fallbackGqlStatusObject, ((Status.HasStatus) t).status(), message, t);
         }
 
         return new QueryRouterException(fallbackGqlStatusObject, defaultStatus, message, t);

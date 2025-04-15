@@ -279,7 +279,7 @@ public class QueryProcessorImpl implements QueryProcessor {
         try {
             databaseContext.database().getDatabaseAvailabilityGuard().assertDatabaseAvailable();
         } catch (UnavailableException e) {
-            throw new QueryRouterException(e.status(), e);
+            throw QueryRouterException.wrapError(e);
         }
     }
 

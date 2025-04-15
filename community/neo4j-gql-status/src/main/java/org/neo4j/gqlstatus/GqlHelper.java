@@ -1255,6 +1255,11 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject getDefaultObject() {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
+                .build();
+    }
+
     public static boolean causeChainContains(ErrorGqlStatusObject gso, GqlStatusInfoCodes gqlStatusCode) {
         return gso.gqlStatus().equals(gqlStatusCode.getStatusString())
                 || (gso.cause().isPresent() && causeChainContains(gso.cause().get(), gqlStatusCode));
@@ -1327,8 +1332,11 @@ public class GqlHelper {
                      * The Java cause is an exception implementing ErrorGqlStatusObject
                      * but is not is having an inner error object
                      * => the cause was not ported to the new framework yet
-                     * => add the default error object as GQL cause
+                     * => add the default error object as GQL cause if it is not already present
                      */
+                    if (gqlStatusObject.gqlStatus().equals(ErrorGqlStatusObject.DEFAULT_STATUS_CODE)) {
+                        return gqlStatusObject;
+                    }
                     newCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N42)
                             .build();
                 }

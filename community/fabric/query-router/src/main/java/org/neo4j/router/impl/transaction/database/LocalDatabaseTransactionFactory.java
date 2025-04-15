@@ -74,7 +74,7 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
         try {
             databaseContext.database().getDatabaseAvailabilityGuard().assertDatabaseAvailable();
         } catch (UnavailableException e) {
-            throw new QueryRouterException(e.status(), e);
+            throw QueryRouterException.wrapError(e);
         }
 
         var queryExecutionEngine = resolver.resolveDependency(QueryExecutionEngine.class);
@@ -139,7 +139,7 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
             if (e instanceof RuntimeException re) {
                 return re;
             }
-            return new QueryRouterException(se.status(), e.getMessage(), e);
+            return QueryRouterException.wrapError((Throwable & Status.HasStatus) se);
         }
 
         // We don't know what operation is being executed,

@@ -47,7 +47,7 @@ public class Exceptions {
             if (t instanceof ErrorGqlStatusObject gqlStatusObjectOfUnwrapped) {
                 return new FabricException(gqlStatusObjectOfUnwrapped, withStatus.status(), t.getMessage(), t, queryId);
             }
-            return new FabricException(withStatus.status(), t.getMessage(), t, queryId);
+            return new FabricException(fallbackGqlStatusObject, withStatus.status(), t.getMessage(), t, queryId);
         }
 
         return new FabricException(fallbackGqlStatusObject, defaultStatus, t.getMessage(), t, queryId);

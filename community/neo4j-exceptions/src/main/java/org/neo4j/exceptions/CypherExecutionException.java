@@ -50,24 +50,20 @@ public class CypherExecutionException extends Neo4jException {
         super(cause, cause.getMessage(), cause);
     }
 
-    private <EX extends Throwable & ErrorGqlStatusObject> CypherExecutionException(EX cause, String msg) {
-        super(cause, msg, cause);
-    }
-
     public static <EX extends Throwable & ErrorGqlStatusObject> CypherExecutionException wrapError(EX e) {
         if (e.gqlStatusObject() != null) {
             return new CypherExecutionException(e);
         }
-        // This would indicate that the wrapped exception has not been ported yet
-        return new CypherExecutionException(e.getMessage(), e);
+        // This case can be removed once all instances of ProcedureException has been ported to GQLSTATUS
+        return new CypherExecutionException(GqlHelper.getDefaultObject(), e.getMessage(), e);
     }
 
     public static CypherExecutionException wrapKernelException(String msg, KernelException e) {
         if (e.gqlStatusObject() != null) {
-            return new CypherExecutionException(e, msg);
+            return new CypherExecutionException(e, msg, e);
         }
-        // This would indicate that the wrapped exception has not been ported yet
-        return new CypherExecutionException(msg, e);
+        // This case can be removed once all instances of KernelException has been ported to GQLSTATUS
+        return new CypherExecutionException(GqlHelper.getDefaultObject(), msg, e);
     }
 
     public static CypherExecutionException csvBufferSizeOverflow(Throwable cause) {
