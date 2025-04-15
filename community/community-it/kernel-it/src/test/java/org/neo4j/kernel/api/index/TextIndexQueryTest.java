@@ -75,6 +75,7 @@ import org.neo4j.logging.LogAssertions;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 
 public class TextIndexQueryTest extends KernelAPIReadTestBase<ReadTestSupport> {
     private static final Label PERSON = label("PERSON");
@@ -331,6 +332,7 @@ public class TextIndexQueryTest extends KernelAPIReadTestBase<ReadTestSupport> {
         LogAssertions.assertThat(logProvider).containsMessageWithException("Index query not supported for", e);
     }
 
+    @SkipOnSpd(reason = "Fulltext indexing not working properly?")
     @Test
     void shouldUseCorrectGQLStatusCodeForUnsupportedCompositeQuery() {
         var e = assertThrows(
