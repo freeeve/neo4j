@@ -38,8 +38,7 @@
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <source>1.8</source>
-                            <target>1.8</target>
+                            <release>8</release>
                             <compileSourceRoots>
                                 <compileSourceRoot>${project.basedir}/src/main/java8</compileSourceRoot>
                             </compileSourceRoots>
@@ -52,7 +51,7 @@
                             <goal>compile</goal>
                         </goals>
                         <configuration>
-                            <release>${maven.compiler.target}</release>
+                            <release>${maven.compiler.release}</release>
                             <multiReleaseOutput>true</multiReleaseOutput>
                         </configuration>
                     </execution>

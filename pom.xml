@@ -77,8 +77,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <vm.target.version>21</vm.target.version>
-    <maven.compiler.source>${vm.target.version}</maven.compiler.source>
-    <maven.compiler.target>${vm.target.version}</maven.compiler.target>
+    <maven.compiler.release>${vm.target.version}</maven.compiler.release>
     <generate-config-docs-phase>prepare-package</generate-config-docs-phase>
     <test.runner.mockito.agent>-javaagent:${settings.localRepository}/org/mockito/mockito-core/${mockito.version}/mockito-core-${mockito.version}.jar</test.runner.mockito.agent>
     <jdk.custom.options>
@@ -285,7 +284,7 @@
             <quiet>true</quiet>
             <reportOutputDirectory>${project.build.directory}/apidocs</reportOutputDirectory>
             <links>
-              <link>https://docs.oracle.com/en/java/javase/${maven.compiler.source}/docs/api</link>
+              <link>https://docs.oracle.com/en/java/javase/${maven.compiler.release}/docs/api</link>
             </links>
 
             <!-- Defines grouping for overview -->
