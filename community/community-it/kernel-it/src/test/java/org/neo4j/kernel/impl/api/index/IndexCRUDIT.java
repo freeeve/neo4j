@@ -73,9 +73,11 @@ import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.storageengine.migration.StoreMigrationParticipant;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.EphemeralFileSystemExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Values;
 
+@SkipOnSpd(reason = "Assumptions about index updates applied to 'local' index")
 @ExtendWith(EphemeralFileSystemExtension.class)
 class IndexCRUDIT {
     private FileSystemAbstraction fs;

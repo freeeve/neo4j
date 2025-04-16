@@ -50,7 +50,9 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.recovery.RecoveryHelpers;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 
+@SkipOnSpd(reason = "The transaction stream looks different in SPD")
 class TransactionLogsUpgradeFromNonEnvelopesIT extends TransactionLogsUpgradeIT {
 
     @Override

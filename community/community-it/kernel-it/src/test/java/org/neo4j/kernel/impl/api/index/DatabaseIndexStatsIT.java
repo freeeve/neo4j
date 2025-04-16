@@ -43,6 +43,7 @@ import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
@@ -72,6 +73,9 @@ class DatabaseIndexStatsIT {
         managementService.shutdown();
     }
 
+    @SkipOnSpd(
+            reason = "Index usage isn't tracked for entity shard, although could be accomplished if making "
+                    + "the tracked a param to KernelRead#newValueIndexReader(IndexDescriptor index)")
     @ParameterizedTest
     @EnumSource(
             value = IndexType.class,

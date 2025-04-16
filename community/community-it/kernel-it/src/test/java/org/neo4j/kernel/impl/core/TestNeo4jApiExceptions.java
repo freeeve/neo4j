@@ -76,8 +76,8 @@ class TestNeo4jApiExceptions {
         newTransaction();
         var testNode = tx.getNodeById(node1.getId());
         var testRelationship = tx.getRelationshipById(rel.getId());
-        assertEquals(testNode.getProperty("test"), 1);
-        assertEquals(testRelationship.getProperty("test"), 11);
+        assertEquals(((Number) testNode.getProperty("test")).intValue(), 1);
+        assertEquals(((Number) testRelationship.getProperty("test")).intValue(), 11);
         assertEquals(testRelationship, testNode.getSingleRelationship(MyRelTypes.TEST, Direction.OUTGOING));
         testNode.delete();
         tx.getNodeById(node2.getId()).delete();

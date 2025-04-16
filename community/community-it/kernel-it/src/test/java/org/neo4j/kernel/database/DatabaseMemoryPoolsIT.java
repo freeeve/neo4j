@@ -28,6 +28,7 @@ import org.neo4j.memory.MemoryGroup;
 import org.neo4j.memory.MemoryPools;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension
 public class DatabaseMemoryPoolsIT {
@@ -37,6 +38,7 @@ public class DatabaseMemoryPoolsIT {
     @Inject
     private GraphDatabaseService db;
 
+    @SkipOnSpd(reason = "Page cache tracing works differently in SPD")
     @Test
     void trackDatabaseNativeByteBuffersUsage() {
         var otherGlobalPool = memoryPools.getPools().stream()

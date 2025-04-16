@@ -62,6 +62,7 @@ import org.neo4j.kernel.impl.store.format.standard.NodeRecordFormat;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.time.Clocks;
 import org.neo4j.util.concurrent.Futures;
 
@@ -199,6 +200,7 @@ public class ExecutionContextIT {
         }
     }
 
+    @SkipOnSpd(reason = "Page cache tracing is different in SPD")
     @RepeatedTest(10)
     void contextPeriodicReport() throws ExecutionException {
         int numberOfNodes = 32768;

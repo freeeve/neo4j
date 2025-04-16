@@ -30,6 +30,7 @@ import org.neo4j.graphdb.event.DatabaseEventContext;
 import org.neo4j.graphdb.event.DatabaseEventListener;
 import org.neo4j.graphdb.event.DatabaseEventListenerAdapter;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 
 class DatabaseEventsTest {
     private DatabaseManagementService managementService;
@@ -66,6 +67,7 @@ class DatabaseEventsTest {
         managementService.unregisterDatabaseEventListener(handler2);
     }
 
+    @SkipOnSpd(reason = "Shutdown count is off in SPD, since there are more dbs")
     @Test
     void shutdownEvents() {
         DummyDatabaseEventListener handler1 = new DummyDatabaseEventListener();

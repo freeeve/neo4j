@@ -85,6 +85,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.pagecache.PageCacheSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -304,6 +305,7 @@ class DatabaseIT {
         assertEquals(afterStop, afterShutdown);
     }
 
+    @SkipOnSpd(reason = "Weird looping over mapped files, perhaps gets all mapped files from all shards too?")
     @Test
     void shouldFlushDatabaseFilesOnCheckpoint() throws Exception {
         // Given
@@ -326,6 +328,7 @@ class DatabaseIT {
         }
     }
 
+    @SkipOnSpd(reason = "Weird looping over mapped files, perhaps gets all mapped files from all shards too?")
     @Test
     void shouldFlushAllFilesOnShutdown() {
         // Given

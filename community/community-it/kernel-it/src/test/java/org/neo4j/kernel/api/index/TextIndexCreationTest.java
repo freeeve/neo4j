@@ -46,7 +46,9 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
+@SkipOnSpd(reason = "Unsupported in SPD")
 @ImpermanentDbmsExtension(configurationCallback = "configuration")
 public class TextIndexCreationTest {
     @Inject

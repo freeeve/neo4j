@@ -25,7 +25,9 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.io.pagecache.IOController;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
+@SkipOnSpd(reason = "SPD injects enterprise edition")
 @DbmsExtension
 class CommunityIOControllerIT {
     @Inject

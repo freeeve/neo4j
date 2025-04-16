@@ -55,6 +55,7 @@ import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.impl.api.integrationtest.KernelIntegrationTest;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.BooleanValue;
 import org.neo4j.values.storable.TextValue;
@@ -97,6 +98,7 @@ class BuiltInDbmsProceduresIT extends KernelIntegrationTest {
         });
     }
 
+    @SkipOnSpd(reason = "Assumes very specific settings")
     @Test
     void listClientConfig() throws Exception {
         QualifiedName procedureName = new QualifiedName("dbms", "clientConfig");

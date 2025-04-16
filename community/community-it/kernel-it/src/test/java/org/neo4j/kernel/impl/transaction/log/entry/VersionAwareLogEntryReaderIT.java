@@ -52,6 +52,7 @@ import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.LatestVersions;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
 @DbmsExtension
 class VersionAwareLogEntryReaderIT {
@@ -86,6 +87,10 @@ class VersionAwareLogEntryReaderIT {
         managementService.shutdown();
     }
 
+    @SkipOnSpd(
+            reason = "SPD doesn't seem to pre-allocated tx logs. Potentially this is true for clustering too. "
+                    + "It seems to be because at the time of initially creating the tx log file the member is in some form of read-only state. "
+                    + "See LogFilesBuilder#getTryToPreallocateTransactionLogs()")
     @Test
     @EnabledOnOs(OS.LINUX)
     void readOnlyLogFilesWhileCommandsAreAvailable() throws IOException {

@@ -103,6 +103,7 @@ class LabelScanNodeViewTracingIT {
         assertThatTracing(database)
                 .record(pins(102).noFaults())
                 .block(pins(113).noFaults())
+                .spd(pins(107).noFaults())
                 .matches(cacheTracer);
     }
 

@@ -42,6 +42,7 @@ import org.neo4j.internal.schema.LabelSchemaDescriptor;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.index.schema.FailingNativeIndexProviderFactory;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -53,6 +54,7 @@ class DbIndexesFailureMessageIT extends KernelIntegrationTest {
                 GraphDatabaseInternalSettings.always_use_latest_index_provider, false));
     }
 
+    @SkipOnSpd(reason = "Incompatible specific assertions about population percentage")
     @Test
     void listAllIndexesWithFailedIndex() throws Throwable {
         // Given

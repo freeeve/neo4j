@@ -41,7 +41,9 @@ import org.neo4j.storageengine.AppendIndexProvider;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.Neo4jLayoutExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 
+@SkipOnSpd(reason = "SPD doesn't support these older versions")
 @Neo4jLayoutExtension
 public class CheckpointKernelVersionIT {
     @Inject

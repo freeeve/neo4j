@@ -69,6 +69,7 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.util.concurrent.BinaryLatch;
 
 /**
@@ -102,6 +103,9 @@ class TransactionEventsIT {
         }
     }
 
+    @SkipOnSpd(
+            reason = "SPD doesn't quite get existing property values when changing properties, "
+                    + "and so the tx state and by extension tx event listeners won't get the 'prev' values")
     @Test
     void shouldSeeExpectedTransactionData() {
         // GIVEN

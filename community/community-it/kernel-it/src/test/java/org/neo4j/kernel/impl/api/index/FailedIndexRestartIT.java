@@ -34,7 +34,9 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.test.extension.DbmsController;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 
+@SkipOnSpd(reason = "Failed indexes in SPD works differently?")
 @DbmsExtension
 public class FailedIndexRestartIT {
     private static final String ROBOT = "Robot";

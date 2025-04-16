@@ -44,6 +44,7 @@ import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.PropertySelection;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
@@ -374,6 +375,7 @@ public abstract class PropertyCursorTestBase<G extends KernelAPIReadTestSupport>
         assertAccessSingleRelationshipProperty(datePropRelId, Values.of(DATE_VALUE), ValueGroup.DATE);
     }
 
+    @SkipOnSpd(reason = "Shard property reading loose the specific kernel integral data types")
     @Test
     void shouldAccessAllNodeProperties() {
         // given
@@ -416,6 +418,7 @@ public abstract class PropertyCursorTestBase<G extends KernelAPIReadTestSupport>
         }
     }
 
+    @SkipOnSpd(reason = "Shard property reading loose the specific kernel integral data types")
     @Test
     void shouldAccessAllRelationshipProperties() {
         // given
@@ -458,6 +461,7 @@ public abstract class PropertyCursorTestBase<G extends KernelAPIReadTestSupport>
         }
     }
 
+    @SkipOnSpd(reason = "Shard property reading loose the specific kernel integral data types")
     @Test
     void supportExcludingWithChangesInTxState() throws Exception {
         try (KernelTransaction tx = beginTransaction()) {

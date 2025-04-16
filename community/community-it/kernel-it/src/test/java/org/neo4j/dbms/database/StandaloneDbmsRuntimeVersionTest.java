@@ -35,8 +35,10 @@ import org.neo4j.test.UpgradeTestUtil;
 import org.neo4j.test.extension.DbmsExtension;
 import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 
+@SkipOnSpd(reason = "SPD compat runs this with another implementation of DbmsRuntimeVersion")
 @TestDirectoryExtension
 @DbmsExtension()
 class StandaloneDbmsRuntimeVersionTest {
