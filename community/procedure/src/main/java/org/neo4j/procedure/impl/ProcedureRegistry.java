@@ -160,11 +160,15 @@ public class ProcedureRegistry {
     }
 
     ProcedureSignature signatureFromId(int id) throws ProcedureException {
-        CallableProcedure byId = procedures.getById(id);
-        if (byId == null) {
+        try {
+            CallableProcedure byId = procedures.getById(id);
+            if (byId == null) {
+                throw ProcedureException.noSuchProcedure(id);
+            }
+            return byId.signature();
+        } catch (IndexOutOfBoundsException e) {
             throw ProcedureException.noSuchProcedure(id);
         }
-        return byId.signature();
     }
 
     public UserFunctionHandle function(QualifiedName name, QueryLanguage scope) {

@@ -53,6 +53,7 @@ import org.neo4j.kernel.impl.query.CacheMetrics;
 import org.neo4j.kernel.impl.query.QueryCacheStatistics;
 import org.neo4j.kernel.internal.Version;
 import org.neo4j.monitoring.Monitors;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.virtual.VirtualValues;
 
@@ -221,6 +222,7 @@ class BuiltInProceduresIT extends KernelIntegrationTest implements ProcedureITBa
         }
     }
 
+    @SkipOnSpd(reason = "Assumes community edition")
     @Test
     void listAllComponents() throws Throwable {
         // Given a running database
@@ -245,6 +247,7 @@ class BuiltInProceduresIT extends KernelIntegrationTest implements ProcedureITBa
         commit();
     }
 
+    @SkipOnSpd(reason = "Calls procedure which is unsupported in SPD")
     @Test
     void prepareForReplanningShouldEmptyQueryCache() {
         // Given, something is cached
@@ -268,6 +271,7 @@ class BuiltInProceduresIT extends KernelIntegrationTest implements ProcedureITBa
         assertThat(cacheMetrics.getDiscards() - discardsBefore).isEqualTo(2L);
     }
 
+    @SkipOnSpd(reason = "Calls procedure which is unsupported in SPD")
     @Test
     void prepareForReplanningShouldTriggerIndexesSampling() {
         // Given
