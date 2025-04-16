@@ -764,7 +764,10 @@ typeName
    | STRING
    | INT
    | SIGNED? INTEGER
+   | INTEGER64
+   | INT64
    | FLOAT
+   | FLOAT64
    | DATE
    | LOCAL (TIME | DATETIME)
    | ZONED (TIME | DATETIME)

@@ -897,12 +897,13 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     val firstToken = nodeChild(ctx, 0).getSymbol.getType
     ctx.ast = size match {
       case 1 => firstToken match {
-          case Cypher25Parser.NOTHING                            => NothingType()(p)
-          case Cypher25Parser.NULL                               => NullType()(p)
-          case Cypher25Parser.BOOL | Cypher25Parser.BOOLEAN      => BooleanType(isNullable = true)(p)
-          case Cypher25Parser.STRING | Cypher25Parser.VARCHAR    => StringType(isNullable = true)(p)
-          case Cypher25Parser.INT | Cypher25Parser.INTEGER       => IntegerType(isNullable = true)(p)
-          case Cypher25Parser.FLOAT                              => FloatType(isNullable = true)(p)
+          case Cypher25Parser.NOTHING                         => NothingType()(p)
+          case Cypher25Parser.NULL                            => NullType()(p)
+          case Cypher25Parser.BOOL | Cypher25Parser.BOOLEAN   => BooleanType(isNullable = true)(p)
+          case Cypher25Parser.STRING | Cypher25Parser.VARCHAR => StringType(isNullable = true)(p)
+          case Cypher25Parser.INT | Cypher25Parser.INTEGER | Cypher25Parser.INT64 | Cypher25Parser.INTEGER64 =>
+            IntegerType(isNullable = true)(p)
+          case Cypher25Parser.FLOAT | Cypher25Parser.FLOAT64     => FloatType(isNullable = true)(p)
           case Cypher25Parser.DATE                               => DateType(isNullable = true)(p)
           case Cypher25Parser.DURATION                           => DurationType(isNullable = true)(p)
           case Cypher25Parser.POINT                              => PointType(isNullable = true)(p)

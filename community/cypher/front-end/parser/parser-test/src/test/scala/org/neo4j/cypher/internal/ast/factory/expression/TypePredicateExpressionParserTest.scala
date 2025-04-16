@@ -296,7 +296,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
             |            ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 12 (offset: 11))
+          """Invalid input '': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 12 (offset: 11))
             |"RETURN x ::"
             |            ^""".stripMargin
         )
@@ -397,21 +397,6 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
   }
 
   // Coordinate types are specific to vectors
-  test("RETURN x :: FLOAT64") {
-    failsParsing[Statements].in {
-      case Cypher5 => _.withSyntaxError(
-          """Invalid input 'FLOAT64': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
-            |"RETURN x :: FLOAT64"
-            |             ^""".stripMargin
-        )
-      case _ => _.withSyntaxError(
-          """Invalid input 'FLOAT64': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
-            |"RETURN x :: FLOAT64"
-            |             ^""".stripMargin
-        )
-    }
-  }
-
   test("RETURN x :: FLOAT32") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
@@ -420,7 +405,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
             |             ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'FLOAT32': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+          """Invalid input 'FLOAT32': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
             |"RETURN x :: FLOAT32"
             |             ^""".stripMargin
         )
@@ -435,7 +420,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
             |             ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'INTEGER8': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'INT', 'INTEGER', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
+          """Invalid input 'INTEGER8': expected 'ARRAY', 'LIST', 'ANY', 'BOOL', 'BOOLEAN', 'DATE', 'DURATION', 'EDGE', 'FLOAT', 'FLOAT64', 'INT', 'INT64', 'INTEGER', 'INTEGER64', 'LOCAL', 'MAP', 'NODE', 'NOTHING', 'NULL', 'PATH', 'PATHS', 'POINT', 'RELATIONSHIP', 'SIGNED', 'STRING', 'TIME', 'TIMESTAMP', 'PROPERTY VALUE', 'VARCHAR', 'VECTOR', 'VERTEX' or 'ZONED' (line 1, column 13 (offset: 12))
             |"RETURN x :: INTEGER8"
             |             ^""".stripMargin
         )
@@ -461,10 +446,17 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
     } else typeExpr
   }
 
+  val cypher25OnlyTypes: Seq[String] = Seq(
+    "INT64",
+    "INTEGER64",
+    "FLOAT64",
+    "VECTOR"
+  )
+
   test("all combinations of types should behave") {
     forAll(allCombinations) { case (typeString, typeExpr) =>
       s"x IS :: $typeString" should parseIn[Expression] {
-        case Cypher5 if typeString.contains("VECTOR") =>
+        case Cypher5 if cypher25OnlyTypes.exists(typeString.contains(_)) =>
           _.withMessageStart("Invalid input ")
         case Cypher5 => _.toAstIgnorePos {
             isTyped(varFor("x"), getCorrectCypherVersionOfType(fromCypher5 = true, typeExpr))
@@ -475,7 +467,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
       }
 
       s"n.prop IS TYPED $typeString" should parseIn[Expression] {
-        case Cypher5 if typeString.contains("VECTOR") =>
+        case Cypher5 if cypher25OnlyTypes.exists(typeString.contains(_)) =>
           _.withMessageStart("Invalid input ")
         case Cypher5 => _.toAstIgnorePos {
             isTyped(prop(varFor("n"), "prop"), getCorrectCypherVersionOfType(fromCypher5 = true, typeExpr))
@@ -487,7 +479,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
 
       // Java CC produces invalid input positions in some cases
       s"5 :: $typeString" should parseIn[Expression] {
-        case Cypher5 if typeString.contains("VECTOR") =>
+        case Cypher5 if cypher25OnlyTypes.exists(typeString.contains(_)) =>
           _.withMessageStart("Invalid input ")
         case Cypher5 => _.toAstIgnorePos {
             isTyped(
@@ -502,7 +494,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
       }
 
       s"x + y IS NOT :: $typeString" should parseIn[Expression] {
-        case Cypher5 if typeString.contains("VECTOR") =>
+        case Cypher5 if cypher25OnlyTypes.exists(typeString.contains(_)) =>
           _.withMessageStart("Invalid input ")
         case Cypher5 => _.toAstIgnorePos {
             isNotTyped(add(varFor("x"), varFor("y")), getCorrectCypherVersionOfType(fromCypher5 = true, typeExpr))
@@ -513,7 +505,7 @@ class TypePredicateExpressionParserTest extends AstParsingTestBase
       }
 
       s"['a', 'b', 'c'] IS NOT TYPED $typeString" should parseIn[Expression] {
-        case Cypher5 if typeString.contains("VECTOR") =>
+        case Cypher5 if cypher25OnlyTypes.exists(typeString.contains(_)) =>
           _.withMessageStart("Invalid input ")
         case Cypher5 => _.toAstIgnorePos {
             isNotTyped(listOfString("a", "b", "c"), getCorrectCypherVersionOfType(fromCypher5 = true, typeExpr))
@@ -590,6 +582,18 @@ object TypePredicateExpressionParserTest extends AstConstructionTestSupport {
     ("INT", IntegerType(isNullable = false)(pos)),
     ("INT NOT NULL", IntegerType(isNullable = false)(pos)),
     ("INT!", IntegerType(isNullable = false)(pos)),
+    ("INT64", IntegerType(isNullable = false)(pos)),
+    ("INT64 NOT NULL", IntegerType(isNullable = false)(pos)),
+    ("INT64!", IntegerType(isNullable = false)(pos)),
+    ("INT32", Integer32Type(isNullable = false)(pos)),
+    ("INT32 NOT NULL", Integer32Type(isNullable = false)(pos)),
+    ("INT32!", Integer32Type(isNullable = false)(pos)),
+    ("INT16", Integer16Type(isNullable = false)(pos)),
+    ("INT16 NOT NULL", Integer16Type(isNullable = false)(pos)),
+    ("INT16!", Integer16Type(isNullable = false)(pos)),
+    ("INT8", Integer8Type(isNullable = false)(pos)),
+    ("INT8 NOT NULL", Integer8Type(isNullable = false)(pos)),
+    ("INT8!", Integer8Type(isNullable = false)(pos)),
     ("SIGNED INTEGER", IntegerType(isNullable = false)(pos)),
     ("SIGNED INTEGER NOT NULL", IntegerType(isNullable = false)(pos)),
     ("SIGNED INTEGER!", IntegerType(isNullable = false)(pos)),
@@ -655,15 +659,24 @@ object TypePredicateExpressionParserTest extends AstConstructionTestSupport {
     ("INTEGER", IntegerType(isNullable = true)(pos)),
     ("INTEGER NOT NULL", IntegerType(isNullable = false)(pos)),
     ("INTEGER!", IntegerType(isNullable = false)(pos)),
+    ("INTEGER64", IntegerType(isNullable = true)(pos)),
+    ("INTEGER64 NOT NULL", IntegerType(isNullable = false)(pos)),
+    ("INTEGER64!", IntegerType(isNullable = false)(pos)),
     ("INT", IntegerType(isNullable = true)(pos)),
     ("INT NOT NULL", IntegerType(isNullable = false)(pos)),
     ("INT!", IntegerType(isNullable = false)(pos)),
+    ("INT64", IntegerType(isNullable = true)(pos)),
+    ("INT64 NOT NULL", IntegerType(isNullable = false)(pos)),
+    ("INT64!", IntegerType(isNullable = false)(pos)),
     ("SIGNED INTEGER", IntegerType(isNullable = true)(pos)),
     ("SIGNED INTEGER NOT NULL", IntegerType(isNullable = false)(pos)),
     ("SIGNED INTEGER!", IntegerType(isNullable = false)(pos)),
     ("FLOAT", FloatType(isNullable = true)(pos)),
     ("FLOAT NOT NULL", FloatType(isNullable = false)(pos)),
     ("FLOAT!", FloatType(isNullable = false)(pos)),
+    ("FLOAT64", FloatType(isNullable = true)(pos)),
+    ("FLOAT64 NOT NULL", FloatType(isNullable = false)(pos)),
+    ("FLOAT64!", FloatType(isNullable = false)(pos)),
     ("DATE", DateType(isNullable = true)(pos)),
     ("DATE NOT NULL", DateType(isNullable = false)(pos)),
     ("DATE!", DateType(isNullable = false)(pos)),
