@@ -274,19 +274,25 @@ class TransactionLogFilesTest {
     }
 
     @Test
-    void envelopedFileWithFirstPartlyZeroChecksumHasEntries() throws Exception {
+    void envelopedFileWithZeroChecksumHasEntries() throws Exception {
         KernelVersion kernelVersion = VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
         LogFile logFile = createLogFiles(() -> kernelVersion).getLogFile();
         try (PhysicalLogVersionedStoreChannel channel =
                         logFile.createLogChannelForVersion(1, () -> 1L, () -> kernelVersion, BASE_TX_CHECKSUM);
                 EnvelopeWriteChannel envelopeWriteChannel = getEnvelopeChannel(channel)) {
-            // Some magic bytes that just happen to give a checksum with last byte 0
+            // Some magic bytes that just happen to give a checksum of 0
             byte[] bytes;
             if (kernelVersion == KernelVersion.GLORIOUS_FUTURE) {
-                bytes = new byte[] {105, -62, -59, 21, -8, 63, -67, -47, 58, 63};
+                bytes = new byte[] {105, -62, -59, 21, 111, 23, 116, -69, 58, 63};
             } else if (kernelVersion == KernelVersion.V5_25) {
-                bytes = new byte[] {105, -62, -59, 21, -8, 63, -67, -47, 58, -91};
+                bytes = new byte[] {105, -62, -59, 21, -67, -17, -7, -106, 58, -91};
+            } else if (kernelVersion == KernelVersion.V2025_04) {
+                bytes = new byte[] {105, -62, -59, 21, -106, -19, -112, -103, 58, -91};
             } else {
+                // Next few in the sequence
+                // version byte 22 => bytes = new byte[] {105, -62, -59, 21, -21, -21, 43, -120, 58, -91};
+                // version byte 23 => bytes = new byte[] {105, -62, -59, 21, -64, -23, 66, -121, 58, -91};
+                // version byte 24 => bytes = new byte[] {105, -62, -59, 21, 73, -10, 21, -48, 58, -91};
                 throw new IllegalArgumentException("Checksum magic not available for kernel version " + kernelVersion);
             }
             envelopeWriteChannel.beginChecksumForWriting();
@@ -294,7 +300,7 @@ class TransactionLogFilesTest {
             envelopeWriteChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
             envelopeWriteChannel.put(bytes, bytes.length);
             envelopeWriteChannel.endCurrentEntry();
-            assertThat((envelopeWriteChannel.currentChecksum() & 0xFF)).isEqualTo(0);
+            assertThat(envelopeWriteChannel.currentChecksum()).isEqualTo(0);
             envelopeWriteChannel.prepareForFlush();
             assertThat(channel.size())
                     .isGreaterThan(LogFormat.fromKernelVersion(kernelVersion).getHeaderSize());
