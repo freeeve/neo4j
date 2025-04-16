@@ -301,7 +301,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
         createNode(
                 singletonList("B"),
                 Arrays.asList("type", "size"),
-                Arrays.asList(stringValue("B2"), Values.intValue(5)));
+                Arrays.asList(stringValue("B2"), Values.longValue(5)));
 
         // When
         Procedures procs = procs();
@@ -317,7 +317,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             nodeEntry(":`B`", singletonList("B"), "type", singletonList("String"), true),
-                            nodeEntry(":`B`", singletonList("B"), "size", singletonList("Integer"), false));
+                            nodeEntry(":`B`", singletonList("B"), "size", singletonList("Long"), false));
         }
     }
 
@@ -331,7 +331,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
         createNode(
                 singletonList("B"),
                 Arrays.asList("type", "size"),
-                Arrays.asList(stringValue("B2"), Values.intValue(5)));
+                Arrays.asList(stringValue("B2"), Values.longValue(5)));
         createNode(singletonList("B"), singletonList("type"), singletonList(stringValue("B1")));
 
         // When
@@ -348,7 +348,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             nodeEntry(":`B`", singletonList("B"), "type", singletonList("String"), true),
-                            nodeEntry(":`B`", singletonList("B"), "size", singletonList("Integer"), false));
+                            nodeEntry(":`B`", singletonList("B"), "size", singletonList("Long"), false));
         }
     }
 
@@ -367,7 +367,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
                 "B",
                 nodeId1,
                 Arrays.asList("type", "size"),
-                Arrays.asList(stringValue("B1"), Values.intValue(5)));
+                Arrays.asList(stringValue("B1"), Values.longValue(5)));
 
         // When
         Procedures procs = procs();
@@ -383,7 +383,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             relEntry(":`B`", "type", singletonList("String"), true),
-                            relEntry(":`B`", "size", singletonList("Integer"), false));
+                            relEntry(":`B`", "size", singletonList("Long"), false));
         }
     }
 
@@ -401,7 +401,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
                 "B",
                 nodeId1,
                 Arrays.asList("type", "size"),
-                Arrays.asList(stringValue("B1"), Values.intValue(5)));
+                Arrays.asList(stringValue("B1"), Values.longValue(5)));
         createRelationship(nodeId1, "B", nodeId1, singletonList("type"), singletonList(stringValue("B1")));
 
         // When
@@ -418,7 +418,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             relEntry(":`B`", "type", singletonList("String"), true),
-                            relEntry(":`B`", "size", singletonList("Integer"), false));
+                            relEntry(":`B`", "size", singletonList("Long"), false));
         }
     }
 
@@ -434,7 +434,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
         createNode(
                 Arrays.asList("A", "B"),
                 Arrays.asList("prop1", "prop2"),
-                Arrays.asList(stringValue("Test"), Values.intValue(12)));
+                Arrays.asList(stringValue("Test"), Values.longValue(12)));
         createNode(singletonList("B"), singletonList("prop1"), singletonList(Values.TRUE));
         createEmptyNode();
         createNode(singletonList("C"), singletonList("prop1"), singletonList(Values.stringArray("Test", "Success")));
@@ -453,7 +453,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             nodeEntry(":`A`:`B`", Arrays.asList("A", "B"), "prop1", singletonList("String"), true),
-                            nodeEntry(":`A`:`B`", Arrays.asList("A", "B"), "prop2", singletonList("Integer"), true),
+                            nodeEntry(":`A`:`B`", Arrays.asList("A", "B"), "prop2", singletonList("Long"), true),
                             nodeEntry(":`B`", singletonList("B"), "prop1", singletonList("Boolean"), true),
                             nodeEntry(":`C`", singletonList("C"), "prop1", singletonList("StringArray"), true),
                             nodeEntry("", emptyList(), null, null, false));
@@ -497,11 +497,11 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
         createNode(
                 emptyList(),
                 Arrays.asList("prop1", "prop2", "prop3"),
-                Arrays.asList(stringValue("Test"), Values.intValue(12), Values.booleanValue(true)));
+                Arrays.asList(stringValue("Test"), Values.longValue(12), Values.booleanValue(true)));
         createNode(
                 emptyList(),
                 Arrays.asList("prop1", "prop2", "prop3"),
-                Arrays.asList(stringValue("Test"), Values.floatValue(1.5f), stringValue("Test")));
+                Arrays.asList(stringValue("Test"), Values.doubleValue(1.5f), stringValue("Test")));
         createNode(emptyList(), singletonList("prop1"), singletonList(stringValue("Test")));
 
         // When
@@ -517,7 +517,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             nodeEntry("", emptyList(), "prop1", singletonList("String"), true),
-                            nodeEntry("", emptyList(), "prop2", Arrays.asList("Integer", "Float"), false),
+                            nodeEntry("", emptyList(), "prop2", Arrays.asList("Long", "Double"), false),
                             nodeEntry("", emptyList(), "prop3", Arrays.asList("String", "Boolean"), false));
         }
     }
@@ -534,11 +534,11 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
         createNode(
                 emptyList(),
                 Arrays.asList("prop1", "prop2", "prop3"),
-                Arrays.asList(stringValue("Test"), Values.intValue(12), Values.booleanValue(true)));
+                Arrays.asList(stringValue("Test"), Values.longValue(12), Values.booleanValue(true)));
         createNode(
                 emptyList(),
                 Arrays.asList("prop1", "prop2", "prop3"),
-                Arrays.asList(stringValue("Test"), Values.floatValue(1.5f), stringValue("Test")));
+                Arrays.asList(stringValue("Test"), Values.doubleValue(1.5f), stringValue("Test")));
 
         // When
         Procedures procs = procs();
@@ -554,7 +554,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             nodeEntry("", emptyList(), "prop1", singletonList("String"), false),
-                            nodeEntry("", emptyList(), "prop2", Arrays.asList("Integer", "Float"), false),
+                            nodeEntry("", emptyList(), "prop2", Arrays.asList("Long", "Double"), false),
                             nodeEntry("", emptyList(), "prop3", Arrays.asList("String", "Boolean"), false));
         }
     }
@@ -574,7 +574,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
                 "R",
                 nodeId1,
                 Arrays.asList("prop1", "prop2"),
-                Arrays.asList(stringValue("Test"), Values.intValue(12)));
+                Arrays.asList(stringValue("Test"), Values.longValue(12)));
         createRelationship(nodeId1, "X", nodeId1, singletonList("prop1"), singletonList(Values.TRUE));
         createRelationship(nodeId1, "Z", nodeId1, emptyList(), emptyList());
 
@@ -592,7 +592,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             relEntry(":`R`", "prop1", singletonList("String"), true),
-                            relEntry(":`R`", "prop2", singletonList("Integer"), true),
+                            relEntry(":`R`", "prop2", singletonList("Long"), true),
                             relEntry(":`X`", "prop1", singletonList("Boolean"), true),
                             relEntry(":`Z`", null, null, false));
         }
@@ -639,7 +639,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
                 "R",
                 nodeId1,
                 Arrays.asList("prop1", "prop2", "prop3"),
-                Arrays.asList(stringValue("Test"), Values.intValue(12), Values.booleanValue(true)));
+                Arrays.asList(stringValue("Test"), Values.longValue(12), Values.booleanValue(true)));
         createRelationship(nodeId1, "R", nodeId1, emptyList(), emptyList());
 
         // When
@@ -656,7 +656,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             relEntry(":`R`", "prop1", singletonList("String"), false),
-                            relEntry(":`R`", "prop2", singletonList("Integer"), false),
+                            relEntry(":`R`", "prop2", singletonList("Long"), false),
                             relEntry(":`R`", "prop3", singletonList("Boolean"), false));
         }
     }
@@ -676,13 +676,13 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
                 "R",
                 nodeId1,
                 Arrays.asList("prop1", "prop2", "prop3"),
-                Arrays.asList(stringValue("Test"), Values.intValue(12), Values.booleanValue(true)));
+                Arrays.asList(stringValue("Test"), Values.longValue(12), Values.booleanValue(true)));
         createRelationship(
                 nodeId1,
                 "R",
                 nodeId1,
                 Arrays.asList("prop1", "prop2", "prop3"),
-                Arrays.asList(stringValue("Test"), Values.floatValue(1.5f), stringValue("Test")));
+                Arrays.asList(stringValue("Test"), Values.doubleValue(1.5f), stringValue("Test")));
         createRelationship(nodeId1, "R", nodeId1, singletonList("prop1"), singletonList(stringValue("Test")));
 
         // When
@@ -699,7 +699,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             relEntry(":`R`", "prop1", singletonList("String"), true),
-                            relEntry(":`R`", "prop2", Arrays.asList("Integer", "Float"), false),
+                            relEntry(":`R`", "prop2", Arrays.asList("Long", "Double"), false),
                             relEntry(":`R`", "prop3", Arrays.asList("String", "Boolean"), false));
         }
     }
@@ -721,13 +721,13 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
                 "R",
                 nodeId1,
                 Arrays.asList("prop1", "prop2", "prop3"),
-                Arrays.asList(stringValue("Test"), Values.intValue(12), Values.booleanValue(true)));
+                Arrays.asList(stringValue("Test"), Values.longValue(12), Values.booleanValue(true)));
         createRelationship(
                 nodeId1,
                 "R",
                 nodeId1,
                 Arrays.asList("prop1", "prop2", "prop3"),
-                Arrays.asList(stringValue("Test"), Values.floatValue(1.5f), stringValue("Test")));
+                Arrays.asList(stringValue("Test"), Values.doubleValue(1.5f), stringValue("Test")));
 
         // When
         Procedures procs = procs();
@@ -743,7 +743,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             relEntry(":`R`", "prop1", singletonList("String"), false),
-                            relEntry(":`R`", "prop2", Arrays.asList("Integer", "Float"), false),
+                            relEntry(":`R`", "prop2", Arrays.asList("Long", "Double"), false),
                             relEntry(":`R`", "prop3", Arrays.asList("String", "Boolean"), false));
         }
     }
@@ -761,7 +761,7 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
         createNode(
                 singletonList("A"),
                 Arrays.asList("prop1", "prop2", "prop3"),
-                Arrays.asList(stringValue("Test"), Values.intValue(12), Values.booleanValue(true)));
+                Arrays.asList(stringValue("Test"), Values.longValue(12), Values.booleanValue(true)));
         createNode(
                 singletonList("A"),
                 Arrays.asList("prop1", "prop3"),
@@ -769,11 +769,11 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
         createNode(
                 singletonList("A"),
                 Arrays.asList("prop1", "prop2"),
-                Arrays.asList(stringValue("Test3"), Values.intValue(42)));
+                Arrays.asList(stringValue("Test3"), Values.longValue(42)));
         createNode(
                 singletonList("B"),
                 Arrays.asList("prop1", "prop2"),
-                Arrays.asList(stringValue("Test4"), Values.intValue(21)));
+                Arrays.asList(stringValue("Test4"), Values.longValue(21)));
         createNode(singletonList("B"), emptyList(), emptyList());
 
         // When
@@ -790,10 +790,10 @@ class BuiltInSchemaProceduresIT extends KernelIntegrationTest {
             assertThat(asList(stream))
                     .contains(
                             nodeEntry(":`A`", singletonList("A"), "prop1", singletonList("String"), true),
-                            nodeEntry(":`A`", singletonList("A"), "prop2", singletonList("Integer"), false),
+                            nodeEntry(":`A`", singletonList("A"), "prop2", singletonList("Long"), false),
                             nodeEntry(":`A`", singletonList("A"), "prop3", singletonList("Boolean"), false),
                             nodeEntry(":`B`", singletonList("B"), "prop1", singletonList("String"), false),
-                            nodeEntry(":`B`", singletonList("B"), "prop2", singletonList("Integer"), false));
+                            nodeEntry(":`B`", singletonList("B"), "prop2", singletonList("Long"), false));
         }
     }
 
