@@ -155,13 +155,8 @@ public class QueryRouterImpl implements QueryRouter {
         // Try to create a dummy kernel transaction so that this router transaction can be monitored
         DatabaseTransaction sessionTransaction = null;
         try {
-            var dummyTransactionMode = transactionInfo.accessMode().equals(AccessMode.READ)
-                    ? TransactionMode.DEFINITELY_READ
-                    : TransactionMode.MAYBE_WRITE;
-            Location location = rpcCall
-                    ? new Location.Local(-1, (DatabaseReferenceImpl.Internal) sessionDatabaseReference)
-                    : locationService.locationOf(sessionDatabaseReference);
-            sessionTransaction = routerTransaction.transactionFor(location, dummyTransactionMode);
+            sessionTransaction = RouterTransactionContext.beginSessionTransaction(
+                    transactionInfo, sessionDatabaseReference, rpcCall, locationService, routerTransaction);
         } catch (Exception e) {
             queryRouterLog.warn("Could not eagerly create kernel transaction due to: %s".formatted(e));
         }
@@ -269,9 +264,7 @@ public class QueryRouterImpl implements QueryRouter {
              */
             if (statementType.statementType().equals(StatementType.AdminCommand())
                     && !transactionInfo.targetsSystemDatabase()) {
-                if (context.sessionTransaction() != null) {
-                    context.routerTransaction().closeTransaction(context.sessionTransaction());
-                }
+                context.closeSessionTransaction();
             }
             updateQueryRouterMetric(location);
             statementLifecycle.doneRouterProcessing(

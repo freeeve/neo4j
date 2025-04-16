@@ -86,6 +86,17 @@ public record RouterTransactionContextImpl(
 
     @Override
     public DatabaseTransaction sessionTransaction() {
+        if (sessionTransaction == null) {
+            return RouterTransactionContext.beginSessionTransaction(
+                    transactionInfo, sessionDatabaseReference(), isRpcCall, locationService, routerTransaction);
+        }
         return sessionTransaction;
+    }
+
+    @Override
+    public void closeSessionTransaction() {
+        if (sessionTransaction != null) {
+            routerTransaction.closeTransaction(sessionTransaction);
+        }
     }
 }

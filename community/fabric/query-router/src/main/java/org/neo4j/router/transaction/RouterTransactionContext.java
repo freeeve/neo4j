@@ -19,10 +19,12 @@
  */
 package org.neo4j.router.transaction;
 
+import org.neo4j.bolt.protocol.common.message.AccessMode;
 import org.neo4j.fabric.bookmark.TransactionBookmarkManager;
 import org.neo4j.fabric.executor.Location;
 import org.neo4j.fabric.transaction.TransactionMode;
 import org.neo4j.kernel.database.DatabaseReference;
+import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.router.impl.query.StatementType;
 import org.neo4j.router.location.LocationService;
 import org.neo4j.router.query.Query;
@@ -55,4 +57,21 @@ public interface RouterTransactionContext {
     DatabaseTransaction sessionTransaction();
 
     boolean isRpcCall();
+
+    void closeSessionTransaction();
+
+    static DatabaseTransaction beginSessionTransaction(
+            TransactionInfo transactionInfo,
+            DatabaseReference sessionDatabaseReference,
+            boolean rpcCall,
+            LocationService locationService,
+            RouterTransaction routerTransaction) {
+        var transactionMode = transactionInfo.accessMode().equals(AccessMode.READ)
+                ? TransactionMode.DEFINITELY_READ
+                : TransactionMode.MAYBE_WRITE;
+        Location location = rpcCall
+                ? new Location.Local(-1, (DatabaseReferenceImpl.Internal) sessionDatabaseReference)
+                : locationService.locationOf(sessionDatabaseReference);
+        return routerTransaction.transactionFor(location, transactionMode);
+    }
 }
