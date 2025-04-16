@@ -1525,35 +1525,30 @@ private[internal] class TransactionBoundReadQueryContext(
 
     indexes.foldLeft(Map[IndexDescriptor, IndexInfo]()) {
       (map, index) =>
-        val indexStatus = getIndexStatus(schemaRead, index)
-        val schema = index.schema
-        val labelsOrTypes = tokenRead.entityTokensGetNames(schema.entityType(), schema.getEntityTokenIds).toList
-        val properties = schema.getPropertyIds.map(id => tokenRead.propertyKeyGetName(id)).toList
-        map + (index -> runtime.IndexInfo(indexStatus, labelsOrTypes, properties))
+        getIndexStatus(schemaRead, index) match {
+          case Some(indexStatus) =>
+            val schema = index.schema
+            val labelsOrTypes = tokenRead.entityTokensGetNames(schema.entityType(), schema.getEntityTokenIds).toList
+            val properties = schema.getPropertyIds.map(id => tokenRead.propertyKeyGetName(id)).toList
+            map + (index -> runtime.IndexInfo(indexStatus, labelsOrTypes, properties))
+          case None => map
+        }
     }
   }
 
-  private def getIndexStatus(schemaRead: SchemaReadCore, index: IndexDescriptor): IndexStatus = {
-    val (
-      state: String,
-      failureMessage: String,
-      populationProgress: Double,
-      maybeConstraint: Option[ConstraintDescriptor]
-    ) =
-      try {
-        val internalIndexState: InternalIndexState = schemaRead.indexGetState(index)
-        val progress =
-          schemaRead.indexGetPopulationProgress(index).toIndexPopulationProgress.getCompletedPercentage.toDouble
-        val message: String =
-          if (internalIndexState == InternalIndexState.FAILED) schemaRead.indexGetFailure(index) else ""
-        val constraint: ConstraintDescriptor = schemaRead.constraintGetForName(index.getName)
-        (internalIndexState.toString, message, progress, Option(constraint))
-      } catch {
-        case _: IndexNotFoundKernelException =>
-          val errorMessage = "Index not found. It might have been concurrently dropped."
-          ("NOT FOUND", errorMessage, 0.0, None)
-      }
-    IndexStatus(state, failureMessage, populationProgress, maybeConstraint)
+  private def getIndexStatus(schemaRead: SchemaReadCore, index: IndexDescriptor): Option[IndexStatus] = {
+    try {
+      val internalIndexState: InternalIndexState = schemaRead.indexGetState(index)
+      val progress =
+        schemaRead.indexGetPopulationProgress(index).toIndexPopulationProgress.getCompletedPercentage.toDouble
+      val message: String =
+        if (internalIndexState == InternalIndexState.FAILED) schemaRead.indexGetFailure(index) else ""
+      val constraint: ConstraintDescriptor = schemaRead.constraintGetForName(index.getName)
+      Some(IndexStatus(internalIndexState.toString, message, progress, Option(constraint)))
+    } catch {
+      case _: IndexNotFoundKernelException =>
+        None
+    }
   }
 
   override def getIndexUsageStatistics(index: IndexDescriptor): IndexUsageStats =

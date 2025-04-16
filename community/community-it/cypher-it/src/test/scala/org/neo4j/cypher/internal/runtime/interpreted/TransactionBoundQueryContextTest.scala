@@ -21,7 +21,9 @@ package org.neo4j.cypher.internal.runtime.interpreted
 
 import org.apache.commons.lang3.SystemUtils
 import org.assertj.core.api.Assertions.assertThat
+import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.RETURNS_DEEP_STUBS
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.verifyNoMoreInteractions
 import org.mockito.Mockito.when
@@ -36,6 +38,8 @@ import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.runtime.CreateTempFileTestSupport
 import org.neo4j.cypher.internal.runtime.DummyResource
 import org.neo4j.cypher.internal.runtime.DummyResource.verifyClose
+import org.neo4j.cypher.internal.runtime.IndexInfo
+import org.neo4j.cypher.internal.runtime.IndexStatus
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.ResourceManager
 import org.neo4j.cypher.internal.runtime.interpreted.TransactionBoundQueryContext.IndexSearchMonitor
@@ -47,14 +51,22 @@ import org.neo4j.graphdb.Node
 import org.neo4j.graphdb.RelationshipType
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.graphdb.security.URLAccessValidationError
+import org.neo4j.internal.kernel.api.InternalIndexState.FAILED
+import org.neo4j.internal.kernel.api.InternalIndexState.ONLINE
+import org.neo4j.internal.kernel.api.InternalIndexState.POPULATING
 import org.neo4j.internal.kernel.api.NodeCursor
 import org.neo4j.internal.kernel.api.NodeLabelIndexCursor
+import org.neo4j.internal.kernel.api.PopulationProgress
 import org.neo4j.internal.kernel.api.RelationshipScanCursor
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor
+import org.neo4j.internal.kernel.api.SchemaReadCore
+import org.neo4j.internal.kernel.api.TokenRead
 import org.neo4j.internal.kernel.api.TokenReadSession
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo
+import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException
 import org.neo4j.internal.kernel.api.security.LoginContext
 import org.neo4j.internal.kernel.api.security.SecurityContext.AUTH_DISABLED
+import org.neo4j.internal.schema.IndexPrototype
 import org.neo4j.internal.schema.SchemaDescriptors
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour
 import org.neo4j.io.pagecache.context.CursorContext
@@ -85,6 +97,7 @@ import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.util.concurrent.atomic.AtomicReference
 
+import scala.jdk.CollectionConverters.IteratorHasAsJava
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 class TransactionBoundQueryContextTest extends CypherFunSuite with CreateTempFileTestSupport {
@@ -501,6 +514,95 @@ class TransactionBoundQueryContextTest extends CypherFunSuite with CreateTempFil
     // THEN
     context.resources.allResources shouldBe empty
     tx.close()
+  }
+
+  test("getAllIndexes should return a list of index statuses") {
+    val index1 = IndexPrototype.forSchema(SchemaDescriptors.forLabel(1, 10, 11)).withName("a").materialise(1)
+    val index2 = IndexPrototype.forSchema(SchemaDescriptors.forLabel(2, 12, 13)).withName("b").materialise(2)
+    val index3 = IndexPrototype.forSchema(SchemaDescriptors.forLabel(3, 14, 15)).withName("c").materialise(3)
+    val it = Iterator(index1, index2, index3).asJava
+
+    val schemaReadCore = mock[SchemaReadCore]
+    when(schemaReadCore.indexesGetAll()).thenReturn(it)
+    when(schemaReadCore.indexGetState(any())).thenReturn(ONLINE, FAILED, POPULATING)
+
+    when(schemaReadCore.indexGetPopulationProgress(any())).thenReturn(
+      PopulationProgress.single(100, 100),
+      PopulationProgress.single(50, 100),
+      PopulationProgress.single(25, 100)
+    )
+    when(schemaReadCore.indexGetFailure(index2)).thenReturn("Failed because failure.")
+
+    val tokenRead = mock[TokenRead]
+    when(tokenRead.entityTokensGetNames(any(), any())).thenReturn(Array("A"), Array("B"), Array("C"))
+    when(tokenRead.propertyKeyGetName(any())).thenReturn("prop10", "prop11", "prop12", "prop13", "prop14", "prop15")
+
+    when(outerTx.kernelTransaction().schemaRead().snapshot()).thenReturn(schemaReadCore)
+    when(outerTx.kernelTransaction().tokenRead()).thenReturn(tokenRead)
+
+    val tc = new Neo4jTransactionalContext(
+      graph,
+      outerTx,
+      statement,
+      mock[ExecutingQuery],
+      transactionFactory,
+      QueryExecutionConfiguration.DEFAULT_CONFIG
+    )
+    val transactionalContext = TransactionalContextWrapper(tc)
+    val context = new TransactionBoundQueryContext(transactionalContext, new ResourceManager)(indexSearchMonitor)
+
+    val indexes = context.getAllIndexes()
+
+    verify(schemaReadCore, times(3)).indexGetState(any())
+    indexes.keys.toList should equal(List(index1, index2, index3))
+    indexes(index1) should equal(IndexInfo(IndexStatus("ONLINE", "", 100.0, None), List("A"), List("prop10", "prop11")))
+    indexes(index2) should equal(IndexInfo(
+      IndexStatus("FAILED", "Failed because failure.", 50.0, None),
+      List("B"),
+      List("prop12", "prop13")
+    ))
+    indexes(index3) should equal(IndexInfo(
+      IndexStatus("POPULATING", "", 25.0, None),
+      List("C"),
+      List("prop14", "prop15")
+    ))
+  }
+
+  test("getAllIndexes should only return valid indexes") {
+    val index1 = IndexPrototype.forSchema(SchemaDescriptors.forLabel(1, 10, 11)).withName("a").materialise(1)
+    val index2 = IndexPrototype.forSchema(SchemaDescriptors.forLabel(2, 12, 13)).withName("b").materialise(2)
+    val it = Iterator(index1, index2).asJava
+
+    val schemaReadCore = mock[SchemaReadCore]
+    when(schemaReadCore.indexesGetAll()).thenReturn(it)
+    when(schemaReadCore.indexGetState(any())).thenReturn(ONLINE).thenThrow(IndexNotFoundKernelException.indexNotFound())
+
+    when(schemaReadCore.indexGetPopulationProgress(any())).thenReturn(
+      PopulationProgress.single(100, 100)
+    )
+
+    val tokenRead = mock[TokenRead]
+    when(tokenRead.entityTokensGetNames(any(), any())).thenReturn(Array("A"))
+    when(tokenRead.propertyKeyGetName(any())).thenReturn("prop10", "prop11")
+
+    when(outerTx.kernelTransaction().schemaRead().snapshot()).thenReturn(schemaReadCore)
+    when(outerTx.kernelTransaction().tokenRead()).thenReturn(tokenRead)
+
+    val tc = new Neo4jTransactionalContext(
+      graph,
+      outerTx,
+      statement,
+      mock[ExecutingQuery],
+      transactionFactory,
+      QueryExecutionConfiguration.DEFAULT_CONFIG
+    )
+    val transactionalContext = TransactionalContextWrapper(tc)
+    val context = new TransactionBoundQueryContext(transactionalContext, new ResourceManager)(indexSearchMonitor)
+
+    val indexes = context.getAllIndexes()
+
+    verify(schemaReadCore, times(2)).indexGetState(any())
+    indexes.keys.toList should equal(List(index1))
   }
 
   private def startGraph(config: (Setting[_], Object)*): Unit = {
