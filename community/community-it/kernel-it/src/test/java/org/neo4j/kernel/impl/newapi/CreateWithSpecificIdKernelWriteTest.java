@@ -67,12 +67,22 @@ class CreateWithSpecificIdKernelWriteTest extends KernelAPIWriteTestBase<WriteTe
         // given
         MutableLongObjectMap<NodeData> nodes = LongObjectMaps.mutable.empty();
         MutableLongObjectMap<RelationshipData> relationships = LongObjectMaps.mutable.empty();
+
+        int[] keyIds = new int[4];
+        int[] labelIds = new int[4];
+        int[] typeIds = new int[4];
         try (var tx = beginTransaction()) {
+            for (int i = 0; i < 4; i++) {
+                keyIds[i] = tx.tokenWrite().propertyKeyGetOrCreateForName("key" + i);
+                labelIds[i] = tx.tokenWrite().labelGetOrCreateForName("Label" + i);
+                typeIds[i] = tx.tokenWrite().relationshipTypeGetOrCreateForName("TYPE" + i);
+            }
+
             var write = tx.dataWrite();
             for (int i = 0; i < 10; i++) {
-                int[] labels = (i % 2 == 0) ? EMPTY_INT_ARRAY : new int[] {i % 3};
+                int[] labels = (i % 2 == 0) ? EMPTY_INT_ARRAY : new int[] {labelIds[i % 3]};
                 long nodeId = labels.length == 0 ? write.nodeCreate() : write.nodeCreateWithLabels(labels);
-                int keyId = i % 4;
+                int keyId = keyIds[i % 4];
                 var value = random.nextValue();
                 write.nodeSetProperty(nodeId, keyId, value);
                 nodes.put(
@@ -86,10 +96,10 @@ class CreateWithSpecificIdKernelWriteTest extends KernelAPIWriteTestBase<WriteTe
             var nodeIds = nodes.keySet().toArray();
             for (int i = 0; i < 20; i++) {
                 long startNodeId = random.among(nodeIds);
-                int type = i % 3;
+                int type = typeIds[i % 3];
                 long endNodeId = random.among(nodeIds);
                 long relationshipId = write.relationshipCreate(startNodeId, type, endNodeId);
-                int keyId = i % 4;
+                int keyId = keyIds[i % 4];
                 var value = random.nextValue();
                 write.relationshipSetProperty(relationshipId, keyId, value);
                 var data =
