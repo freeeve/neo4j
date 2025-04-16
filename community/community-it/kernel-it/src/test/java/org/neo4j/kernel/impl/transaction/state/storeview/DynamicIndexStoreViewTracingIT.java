@@ -100,6 +100,7 @@ class DynamicIndexStoreViewTracingIT {
         assertThatTracing(database)
                 .record(pins(104).noFaults())
                 .block(pins(115).noFaults())
+                .spd(pins(109).noFaults())
                 .matches(pageCacheTracer);
     }
 }

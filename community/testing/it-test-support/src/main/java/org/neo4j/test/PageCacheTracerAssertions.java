@@ -64,6 +64,10 @@ public class PageCacheTracerAssertions {
             return storageEngine("block", storageEngineNumbers);
         }
 
+        public TracingBuilder spd(PerStorageEngine storageEngineNumbers) {
+            return storageEngine("spd", storageEngineNumbers);
+        }
+
         public TracingBuilder storageEngine(String name, PerStorageEngine storageEngineNumbers) {
             perStorage.put(name, storageEngineNumbers);
             return this;
