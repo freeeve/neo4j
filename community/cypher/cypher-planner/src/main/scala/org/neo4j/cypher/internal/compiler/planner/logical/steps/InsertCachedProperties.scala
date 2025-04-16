@@ -126,6 +126,8 @@ import scala.collection.mutable
  * A logical plan rewriter that also changes the semantic table (thus a Transformer).
  *
  * It traverses the plan and swaps property lookups for cached properties where possible.
+ *
+ * It can be disabled with [[CypherDebugOption.disableExistsSubqueryCaching]]
  */
 case class InsertCachedProperties(pushdownPropertyReads: Boolean)
     extends Phase[PlannerContext, LogicalPlanState, LogicalPlanState] {
@@ -135,7 +137,6 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
   override def postConditions: Set[StepSequencer.Condition] = InsertCachedProperties.postConditions
 
   override def process(from: LogicalPlanState, context: PlannerContext): LogicalPlanState = {
-
     val remoteBatchPropertiesImplementation =
       from.maybeRemoteBatchPropertiesImplementation.getOrElse(throw new IllegalStateException(
         "Expected the remote batch properties implementation in the logical plan state, but found nothing."
@@ -168,6 +169,10 @@ case class InsertCachedProperties(pushdownPropertyReads: Boolean)
       } else {
         from.logicalPlan
       }
+
+    if (context.debugOptions.disablePropertyCaching) {
+      return from.withMaybeLogicalPlan(Some(logicalPlan))
+    }
 
     // In the first step we collect all property usages and renaming while going over the tree
     val propertyUsagesAndRenamings =

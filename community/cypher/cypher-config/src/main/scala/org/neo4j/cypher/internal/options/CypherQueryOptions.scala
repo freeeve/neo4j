@@ -782,6 +782,7 @@ case object CypherDebugOption extends CypherOptionCompanion[CypherDebugOption](
   case object disableExistsSubqueryCaching extends CypherDebugOption("disableexistssubquerycaching")
   case object verboseEagernessReasons extends CypherDebugOption("verboseeagernessreasons")
   case object printIDPLog extends CypherDebugOption("printidplog")
+  case object disablePropertyCaching extends CypherDebugOption("disablepropertycaching")
 
   def values: Set[CypherDebugOption] = Set(
     tostring,
@@ -805,7 +806,8 @@ case object CypherDebugOption extends CypherOptionCompanion[CypherDebugOption](
     warnOnCompilationErrors,
     disableExistsSubqueryCaching,
     verboseEagernessReasons,
-    printIDPLog
+    printIDPLog,
+    disablePropertyCaching
   )
 
   implicit val hasDefault: OptionDefault[CypherDebugOption] = OptionDefault.create(default)
@@ -867,4 +869,5 @@ case class CypherDebugOptions(enabledOptions: Set[CypherDebugOption]) {
   val disableExistsSubqueryCaching: Boolean = isEnabled(CypherDebugOption.disableExistsSubqueryCaching)
   val verboseEagernessReasons: Boolean = isEnabled(CypherDebugOption.verboseEagernessReasons)
   val printIDPLog: Boolean = isEnabled(CypherDebugOption.printIDPLog)
+  val disablePropertyCaching: Boolean = isEnabled(CypherDebugOption.disablePropertyCaching)
 }
