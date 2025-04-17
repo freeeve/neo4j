@@ -64,6 +64,26 @@ import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.topDown
 
+/**
+ * The ProjectNamedPaths rewriter introduces PathExpressions into references
+ * of named path variables. The PathExpression is only introduced in the
+ * first occurrence of the path variables as past the projection horizon
+ * is possible to reference using a normal variable reference or is out of scope.
+ *
+ * Query:
+ *    MATCH p = (a), q = (b)
+ *    WITH p
+ *      ORDER BY p
+ *      WHERE length(q) = 1
+ *    RETURN p
+ *
+ * Rewrite:
+ *    MATCH (a), (b)
+ *    WITH (a) AS p
+ *      ORDER BY p ASCENDING
+ *      WHERE length((b)) = 1
+ *    RETURN p
+ */
 case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
 
   case class Projectibles(
@@ -77,6 +97,8 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
     self =>
 
     def withoutNamedPaths: Projectibles = copy(paths = Map.empty)
+
+    def withoutNamedPaths(ps: Set[Variable]): Projectibles = copy(paths = paths.removedAll(ps))
 
     def withProtectedVariable(ident: Ref[LogicalVariable]): Projectibles =
       copy(protectedVariables = protectedVariables + ident)
@@ -155,14 +177,42 @@ case object ProjectNamedPaths extends Rewriter with StepSequencer.Step {
           case None           => TraverseChildren(acc)
         }
 
-    case projection: ProjectionClause =>
+    case ProjectionClause(_, returnItems, _, _, _, _) =>
       acc =>
+        val items = returnItems.items
         // Collect rewritten variables inside of the ReturnItems that refer to path variables
-        val projectedAcc = projection.returnItems.items.map(_.expression).foldLeft(acc) {
+        // After this projection, we remove all named paths. They have either been projected here, or they are not available in the rest of the query.
+        val projectedAcc = items.map(_.expression).foldLeft(acc) {
           (acc, expr) => acc.withVariableRewritesForExpression(expr)
         }
-        // After this projection, we remove all named paths. They have either been projected here, or they are not available in the rest of the query.
-        TraverseChildrenNewAccForSiblings(projectedAcc, _.withoutNamedPaths)
+
+        // If no update on acc then there does not exist a path variable in the return items.
+        // In that case we need to rewrite potential path variables in WHERE and ORDER BY.
+        // Otherwise, path variables in WHERE and ORDER BY can reference the variables in
+        // the projection and should not be rewritten.
+        // We find and remove the path variables within the ReturnItems from the paths in acc
+        // and substitute any remaining paths in WHERE and ORDER BY if they exist.
+        // Example:
+        //    MATCH p = (), q = ()
+        //    WITH p
+        //      ORDER BY p
+        //      WHERE length(q) = 0
+        //    RETURN p
+        //
+        // Rewritten as:
+        //    MATCH p = (a), q = (b)
+        //    WITH (a) AS p
+        //      ORDER BY p
+        //      WHERE length((b)) = 0
+        //    RETURN p
+
+        // Path variables that needs to be checked in ORDER BY and WHERE
+        val namesReplaced = acc.paths.keySet.filter(pathVar => items.exists(_.name == pathVar.name))
+
+        TraverseChildrenNewAccForSiblings(
+          projectedAcc.withoutNamedPaths(namesReplaced),
+          _.withoutNamedPaths
+        )
 
     case subquery: ImportingWithSubqueryCall =>
       acc =>

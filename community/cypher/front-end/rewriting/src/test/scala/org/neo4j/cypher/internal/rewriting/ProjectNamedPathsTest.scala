@@ -2287,6 +2287,71 @@ class ProjectNamedPathsTest extends CypherFunSuite with AstRewritingTestSupport 
     rewritten should equal(expected)
   }
 
+  test("Multiple paths WHERE and ORDER BY on WITH clauses should be rewritten") {
+    val rewritten = projectionInlinedAst("MATCH p = (a), q = (b) WITH p ORDER BY p WHERE length(q) = 1 RETURN p")
+
+    val aId = varFor("a")
+    val bId = varFor("b")
+
+    val pId = varFor("p")
+
+    val MATCH =
+      Match(
+        optional = false,
+        matchMode = MatchMode.default(pos),
+        patternForMatch(
+          NodePattern(Some(aId), None, None, None)(pos),
+          NodePattern(Some(bId), None, None, None)(pos)
+        ),
+        List(),
+        None
+      )(pos)
+
+    val pathExpressionA = PathExpression(NodePathStep(aId, NilPathStep()(pos))(pos))(pos)
+    val pathExpressionB = PathExpression(NodePathStep(bId, NilPathStep()(pos))(pos))(pos)
+
+    val WHERE =
+      Where(
+        equals(
+          function("length", pathExpressionB),
+          literalInt(1)
+        )
+      )(pos)
+
+    val WITH =
+      With(
+        distinct = false,
+        ReturnItems(
+          includeExisting = false,
+          Seq(
+            AliasedReturnItem(pathExpressionA, pId)(pos)
+          )
+        )(pos),
+        Some(OrderBy(List(AscSortItem(pId)(pos)))(pos)),
+        None,
+        None,
+        Some(WHERE)
+      )(pos)
+
+    val RETURN =
+      Return(
+        distinct = false,
+        ReturnItems(
+          includeExisting = false,
+          List(
+            AliasedReturnItem(pId, pId)(pos)
+          )
+        )(pos),
+        None,
+        None,
+        None
+      )(pos)
+
+    val expected: Query = SingleQuery(List(MATCH, WITH, RETURN))(pos)
+
+    rewritten should equal(expected)
+  }
+
   test("Shortest path with predicate and path assignment, 1 relationship, OUTGOING") {
     assertRewrittenReturnP(
       "MATCH p = ANY SHORTEST ((a)-[r]->+(b) WHERE a.prop IS NOT NULL) RETURN p",
