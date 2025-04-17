@@ -21,12 +21,13 @@ package org.neo4j.kernel.impl.device;
 
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.io.device.DeviceMapper;
+import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.logging.InternalLogProvider;
 
 @ServiceProvider
 public class CommunityDeviceMapperService implements DeviceMapperService {
     @Override
-    public DeviceMapper createDeviceMapper(InternalLogProvider logProvider) {
+    public DeviceMapper createDeviceMapper(InternalLogProvider logProvider, FileSystemAbstraction fileSystem) {
         return DeviceMapper.UNKNOWN_MAPPER;
     }
 

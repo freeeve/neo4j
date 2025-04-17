@@ -37,7 +37,6 @@ import org.neo4j.internal.diagnostics.NamedDiagnosticsProvider;
 import org.neo4j.internal.helpers.Format;
 import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.io.fs.FileSystemAbstraction;
-import org.neo4j.io.fs.FileUtils;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.internal.NativeIndexFileFilter;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -74,10 +73,14 @@ public class StoreFilesDiagnostics extends NamedDiagnosticsProvider {
     }
 
     private long logStoreFiles(DiagnosticsLogger logger, String prefix, Path dir, MappedFileCounter mappedCounter) {
-        if (!Files.isDirectory(dir)) {
+        if (!fs.isDirectory(dir)) {
             return 0;
         }
-        Path[] files = FileUtils.listPaths(dir);
+        Path[] files = null;
+        try {
+            files = fs.listFiles(dir);
+        } catch (IOException ignored) {
+        }
         if (files == null) {
             logger.log(prefix + "<INACCESSIBLE>");
             return 0;
@@ -91,13 +94,13 @@ public class StoreFilesDiagnostics extends NamedDiagnosticsProvider {
         for (Path file : fileList) {
             long size = 0;
             String filename = file.getFileName().toString();
-            if (Files.isDirectory(file)) {
+            if (fs.isDirectory(file)) {
                 logger.log(prefix + filename + ":");
                 size = logStoreFiles(logger, prefix + "  ", file, mappedCounter);
                 filename = "- Total";
             } else {
                 try {
-                    size = Files.size(file);
+                    size = fs.getFileSize(file);
                 } catch (IOException ignored) {
                     // Preserve behaviour of File.length()
                 }
@@ -114,9 +117,9 @@ public class StoreFilesDiagnostics extends NamedDiagnosticsProvider {
         return total;
     }
 
-    private static String getFileModificationDate(Path file) {
+    private String getFileModificationDate(Path file) {
         try {
-            Instant instant = Files.getLastModifiedTime(file).toInstant();
+            Instant instant = Instant.ofEpochMilli(fs.lastModifiedTime(file));
             return Format.date(instant);
         } catch (IOException e) {
             return "<UNKNOWN>";

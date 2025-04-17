@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.device;
 
 import org.neo4j.annotations.service.Service;
 import org.neo4j.io.device.DeviceMapper;
+import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.service.PrioritizedService;
 import org.neo4j.service.Services;
@@ -28,7 +29,7 @@ import org.neo4j.service.Services;
 @Service
 public interface DeviceMapperService extends PrioritizedService {
 
-    DeviceMapper createDeviceMapper(InternalLogProvider logProvider);
+    DeviceMapper createDeviceMapper(InternalLogProvider logProvider, FileSystemAbstraction fileSystem);
 
     static DeviceMapperService getInstance() {
         return DeviceMapperProviderHolder.DEVICE_MAPPER_SERVICE_PROVIDER;

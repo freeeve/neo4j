@@ -81,7 +81,7 @@ class KernelDiagnosticsTest {
                 storageEngineFactory,
                 fs,
                 databaseLayout,
-                DeviceMapperService.getInstance().createDeviceMapper(logProvider));
+                DeviceMapperService.getInstance().createDeviceMapper(logProvider, fs));
         storeFiles.dump(logProvider.getLog(getClass())::debug);
 
         assertThat(logProvider).containsMessages("Storage files stored on file store: ");

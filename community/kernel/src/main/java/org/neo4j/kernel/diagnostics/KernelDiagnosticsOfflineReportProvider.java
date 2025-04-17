@@ -151,8 +151,8 @@ public class KernelDiagnosticsOfflineReportProvider extends DiagnosticsOfflineRe
                 () -> String.join(System.lineSeparator(), files)));
     }
 
-    private static DeviceMapper loadDeviceMapper() {
-        return DeviceMapperService.getInstance().createDeviceMapper(NullLogProvider.getInstance());
+    private DeviceMapper loadDeviceMapper() {
+        return DeviceMapperService.getInstance().createDeviceMapper(NullLogProvider.getInstance(), fs);
     }
 
     /**
