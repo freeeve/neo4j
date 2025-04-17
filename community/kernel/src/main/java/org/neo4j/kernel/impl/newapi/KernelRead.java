@@ -103,7 +103,7 @@ public class KernelRead implements Read {
     private final StoreCursors storageCursors;
     protected final QueryContext queryContext;
     private final Locks entityLocks;
-    protected final TxStateHolder txStateHolder;
+    private final TxStateHolder txStateHolder;
     private final SchemaRead schemaRead;
     private final AssertOpen assertOpen;
     protected final AccessModeProvider accessModeProvider;
