@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
@@ -2464,7 +2465,7 @@ public final class CypherFunctions {
             result = true;
         } else if (typeName instanceof ListType listType) {
             result = (item instanceof SequenceValue list) && checkInnerListIsTyped(list, listType);
-        } else if (typeName.hasValueRepresentation()) {
+        } else if (typeName.hasValueRepresentation() && !(typeName instanceof ClosedDynamicUnionType)) {
             result = possibleValueRepresentations(typeName).contains(item.valueRepresentation());
             if (result && typeName instanceof VectorType vectorType && item instanceof VectorValue vectorValue) {
                 // If the inner type was matched above, we also need to make sure the dimension is checked
@@ -2537,58 +2538,92 @@ public final class CypherFunctions {
                 || valueRepresentation.equals(ValueRepresentation.INT8_VECTOR);
     }
 
+    private static final Map<Class<? extends CypherType>, List<ValueRepresentation>> TYPE_TO_REPRESENTATIONS =
+            Map.ofEntries(
+                    Map.entry(BooleanType.class, List.of(ValueRepresentation.BOOLEAN)),
+                    Map.entry(StringType.class, List.of(ValueRepresentation.UTF8_TEXT, ValueRepresentation.UTF16_TEXT)),
+                    Map.entry(
+                            IntegerType.class,
+                            List.of(
+                                    ValueRepresentation.INT8,
+                                    ValueRepresentation.INT16,
+                                    ValueRepresentation.INT32,
+                                    ValueRepresentation.INT64)),
+                    Map.entry(FloatType.class, List.of(ValueRepresentation.FLOAT32, ValueRepresentation.FLOAT64)),
+                    Map.entry(
+                            NumberType.class,
+                            List.of(
+                                    ValueRepresentation.INT8,
+                                    ValueRepresentation.INT16,
+                                    ValueRepresentation.INT32,
+                                    ValueRepresentation.INT64,
+                                    ValueRepresentation.FLOAT32,
+                                    ValueRepresentation.FLOAT64)),
+                    Map.entry(DateType.class, List.of(ValueRepresentation.DATE)),
+                    Map.entry(LocalTimeType.class, List.of(ValueRepresentation.LOCAL_TIME)),
+                    Map.entry(ZonedTimeType.class, List.of(ValueRepresentation.ZONED_TIME)),
+                    Map.entry(LocalDateTimeType.class, List.of(ValueRepresentation.LOCAL_DATE_TIME)),
+                    Map.entry(ZonedDateTimeType.class, List.of(ValueRepresentation.ZONED_DATE_TIME)),
+                    Map.entry(DurationType.class, List.of(ValueRepresentation.DURATION)),
+                    Map.entry(PointType.class, List.of(ValueRepresentation.GEOMETRY)),
+                    Map.entry(GeometryType.class, List.of(ValueRepresentation.GEOMETRY)));
+
+    private static final Map<Class<? extends CypherType>, List<ValueRepresentation>>
+            LIST_INNER_TYPE_TO_REPRESENTATIONS = Map.ofEntries(
+                    Map.entry(BooleanType.class, List.of(ValueRepresentation.BOOLEAN_ARRAY)),
+                    Map.entry(StringType.class, List.of(ValueRepresentation.TEXT_ARRAY)),
+                    Map.entry(
+                            IntegerType.class,
+                            List.of(
+                                    ValueRepresentation.INT8_ARRAY,
+                                    ValueRepresentation.INT16_ARRAY,
+                                    ValueRepresentation.INT32_ARRAY,
+                                    ValueRepresentation.INT64_ARRAY)),
+                    Map.entry(
+                            FloatType.class,
+                            List.of(ValueRepresentation.FLOAT32_ARRAY, ValueRepresentation.FLOAT64_ARRAY)),
+                    Map.entry(
+                            NumberType.class,
+                            List.of(
+                                    ValueRepresentation.INT8_ARRAY,
+                                    ValueRepresentation.INT16_ARRAY,
+                                    ValueRepresentation.INT32_ARRAY,
+                                    ValueRepresentation.INT64_ARRAY,
+                                    ValueRepresentation.FLOAT32_ARRAY,
+                                    ValueRepresentation.FLOAT64_ARRAY)),
+                    Map.entry(DateType.class, List.of(ValueRepresentation.DATE_ARRAY)),
+                    Map.entry(LocalTimeType.class, List.of(ValueRepresentation.LOCAL_TIME_ARRAY)),
+                    Map.entry(ZonedTimeType.class, List.of(ValueRepresentation.ZONED_TIME_ARRAY)),
+                    Map.entry(LocalDateTimeType.class, List.of(ValueRepresentation.LOCAL_DATE_TIME_ARRAY)),
+                    Map.entry(ZonedDateTimeType.class, List.of(ValueRepresentation.ZONED_DATE_TIME_ARRAY)),
+                    Map.entry(DurationType.class, List.of(ValueRepresentation.DURATION_ARRAY)),
+                    Map.entry(GeometryType.class, List.of(ValueRepresentation.GEOMETRY_ARRAY)),
+                    Map.entry(PointType.class, List.of(ValueRepresentation.GEOMETRY_ARRAY)));
+
     private static List<ValueRepresentation> possibleValueRepresentations(CypherType cypherType)
             throws UnsupportedOperationException {
-        if (cypherType instanceof BooleanType) {
-            return List.of(ValueRepresentation.BOOLEAN);
-        } else if (cypherType instanceof StringType) {
-            return List.of(ValueRepresentation.UTF8_TEXT, ValueRepresentation.UTF16_TEXT);
-        } else if (cypherType instanceof IntegerType) {
-            return List.of(
-                    ValueRepresentation.INT8,
-                    ValueRepresentation.INT16,
-                    ValueRepresentation.INT32,
-                    ValueRepresentation.INT64);
-        } else if (cypherType instanceof FloatType) {
-            return List.of(ValueRepresentation.FLOAT32, ValueRepresentation.FLOAT64);
-        } else if (cypherType instanceof NumberType) {
-            return List.of(
-                    ValueRepresentation.INT8,
-                    ValueRepresentation.INT16,
-                    ValueRepresentation.INT32,
-                    ValueRepresentation.INT64,
-                    ValueRepresentation.FLOAT32,
-                    ValueRepresentation.FLOAT64);
-        } else if (cypherType instanceof DateType) {
-            return List.of(ValueRepresentation.DATE);
-        } else if (cypherType instanceof LocalTimeType) {
-            return List.of(ValueRepresentation.LOCAL_TIME);
-        } else if (cypherType instanceof ZonedTimeType) {
-            return List.of(ValueRepresentation.ZONED_TIME);
-        } else if (cypherType instanceof LocalDateTimeType) {
-            return List.of(ValueRepresentation.LOCAL_DATE_TIME);
-        } else if (cypherType instanceof ZonedDateTimeType) {
-            return List.of(ValueRepresentation.ZONED_DATE_TIME);
-        } else if (cypherType instanceof DurationType) {
-            return List.of(ValueRepresentation.DURATION);
-        } else if (cypherType instanceof GeometryType || cypherType instanceof PointType) {
-            return List.of(ValueRepresentation.GEOMETRY);
-        } else if (cypherType instanceof VectorType vectorType) {
+
+        // Direct mapping for standard types
+        List<ValueRepresentation> representations = TYPE_TO_REPRESENTATIONS.get(cypherType.getClass());
+        if (representations != null) {
+            return representations;
+        }
+
+        // Handle VectorType specially
+        if (cypherType instanceof VectorType vectorType) {
             if (vectorType.innerType().isDefined()) {
-                CypherType coordinateType = vectorType.innerType().get();
-                return switch (coordinateType) {
-                    case FloatType floatType -> List.of(ValueRepresentation.FLOAT64_VECTOR);
-                    case Float32Type float32Type -> List.of(ValueRepresentation.FLOAT32_VECTOR);
-                    case IntegerType integerType -> List.of(ValueRepresentation.INT64_VECTOR);
-                    case Integer32Type integer32Type -> List.of(ValueRepresentation.INT32_VECTOR);
-                    case Integer16Type integer16Type -> List.of(ValueRepresentation.INT16_VECTOR);
-                    case Integer8Type integer8Type -> List.of(ValueRepresentation.INT8_VECTOR);
-                    case null, default ->
-                        throw new UnsupportedOperationException(String.format(
-                                "possibleValueRepresentations not supported on %s",
-                                cypherType.getClass().getName()));
+                return switch (vectorType.innerType().get()) {
+                    case Float32Type __ -> List.of(ValueRepresentation.FLOAT32_VECTOR);
+                    case FloatType __ -> List.of(ValueRepresentation.FLOAT64_VECTOR);
+                    case Integer8Type __ -> List.of(ValueRepresentation.INT8_VECTOR);
+                    case Integer16Type __ -> List.of(ValueRepresentation.INT16_VECTOR);
+                    case Integer32Type __ -> List.of(ValueRepresentation.INT32_VECTOR);
+                    case IntegerType __ -> List.of(ValueRepresentation.INT64_VECTOR);
+                    default ->
+                        throw new UnsupportedOperationException("Unsupported vector coordinate type: "
+                                + vectorType.innerType().get().getClass().getName());
                 };
-            } else
+            } else {
                 return List.of(
                         ValueRepresentation.FLOAT64_VECTOR,
                         ValueRepresentation.FLOAT32_VECTOR,
@@ -2596,49 +2631,49 @@ public final class CypherFunctions {
                         ValueRepresentation.INT32_VECTOR,
                         ValueRepresentation.INT16_VECTOR,
                         ValueRepresentation.INT8_VECTOR);
-        } else if (cypherType instanceof ListType listType) {
-            if (listType.innerType() instanceof BooleanType) {
-                return List.of(ValueRepresentation.BOOLEAN_ARRAY);
-            } else if (listType.innerType() instanceof StringType) {
-                return List.of(ValueRepresentation.TEXT_ARRAY);
-            } else if (listType.innerType() instanceof IntegerType) {
-                return List.of(
-                        ValueRepresentation.INT8_ARRAY,
-                        ValueRepresentation.INT16_ARRAY,
-                        ValueRepresentation.INT32_ARRAY,
-                        ValueRepresentation.INT64_ARRAY);
-            } else if (listType.innerType() instanceof FloatType) {
-                return List.of(ValueRepresentation.FLOAT32_ARRAY, ValueRepresentation.FLOAT64_ARRAY);
-            } else if (listType.innerType() instanceof NumberType) {
-                return List.of(
-                        ValueRepresentation.INT8_ARRAY,
-                        ValueRepresentation.INT16_ARRAY,
-                        ValueRepresentation.INT32_ARRAY,
-                        ValueRepresentation.INT64_ARRAY,
-                        ValueRepresentation.FLOAT32_ARRAY,
-                        ValueRepresentation.FLOAT64_ARRAY);
-            } else if (listType.innerType() instanceof DateType) {
-                return List.of(ValueRepresentation.DATE_ARRAY);
-            } else if (listType.innerType() instanceof LocalTimeType) {
-                return List.of(ValueRepresentation.LOCAL_TIME_ARRAY);
-            } else if (listType.innerType() instanceof ZonedTimeType) {
-                return List.of(ValueRepresentation.ZONED_TIME_ARRAY);
-            } else if (listType.innerType() instanceof LocalDateTimeType) {
-                return List.of(ValueRepresentation.LOCAL_DATE_TIME_ARRAY);
-            } else if (listType.innerType() instanceof ZonedDateTimeType) {
-                return List.of(ValueRepresentation.ZONED_DATE_TIME_ARRAY);
-            } else if (listType.innerType() instanceof DurationType) {
-                return List.of(ValueRepresentation.DURATION_ARRAY);
-            } else if (listType.innerType() instanceof PointType || listType.innerType() instanceof GeometryType) {
-                return List.of(ValueRepresentation.GEOMETRY_ARRAY);
-            } else {
-                return List.of();
             }
-        } else {
-            throw new UnsupportedOperationException(String.format(
-                    "possibleValueRepresentations not supported on %s",
-                    cypherType.getClass().getName()));
         }
+
+        // Handle ListType specially
+        if (cypherType instanceof ListType listType) {
+            CypherType innerType = listType.innerType();
+            if (innerType instanceof ClosedDynamicUnionType closedDynamicUnionType) {
+                return possibleUnionListValueRepresentations(closedDynamicUnionType);
+            }
+            List<ValueRepresentation> listReps = LIST_INNER_TYPE_TO_REPRESENTATIONS.get(innerType.getClass());
+            return listReps != null ? listReps : List.of();
+        }
+
+        // Handle closed dynamic union types specially
+        if (cypherType instanceof ClosedDynamicUnionType closedDynamicUnionType) {
+            return possibleUnionValueRepresentations(closedDynamicUnionType);
+        }
+
+        throw new UnsupportedOperationException("possibleValueRepresentations not supported on "
+                + cypherType.getClass().getName());
+    }
+
+    private static List<ValueRepresentation> possibleUnionValueRepresentations(ClosedDynamicUnionType innerListType) {
+        List<ValueRepresentation> possibleValueRepresentations = new ArrayList<>();
+        for (CypherType cypherType : asJava(innerListType.innerTypes())) {
+            List<ValueRepresentation> representations = possibleValueRepresentations(cypherType);
+            if (representations != null) {
+                possibleValueRepresentations.addAll(representations);
+            }
+        }
+        return possibleValueRepresentations;
+    }
+
+    private static List<ValueRepresentation> possibleUnionListValueRepresentations(
+            ClosedDynamicUnionType innerListType) {
+        List<ValueRepresentation> possibleValueRepresentations = new ArrayList<>();
+        for (CypherType cypherType : asJava(innerListType.innerTypes())) {
+            List<ValueRepresentation> representations = LIST_INNER_TYPE_TO_REPRESENTATIONS.get(cypherType.getClass());
+            if (representations != null) {
+                possibleValueRepresentations.addAll(representations);
+            }
+        }
+        return possibleValueRepresentations;
     }
 
     private static boolean checkInnerListIsTyped(SequenceValue values, ListType typeName) {

@@ -35,6 +35,8 @@ case class ClosedDynamicUnionType(innerTypes: Set[CypherType])(val position: Inp
 
   override def description: String = toCypherTypeString
 
+  override def hasValueRepresentation: Boolean = innerTypes.exists(_.hasValueRepresentation)
+
   override def simplify: CypherType = {
     val flattenedInner = sortedInnerTypes.flatMap {
       case c: ClosedDynamicUnionType => c.sortedInnerTypes.map(_.simplify)
