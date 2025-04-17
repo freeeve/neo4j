@@ -417,13 +417,11 @@ case class LoadCSV(
   }
 
   private def typeCheck: SemanticCheck = {
-    val typ =
-      if (withHeaders)
-        CTMap
-      else
-        CTList(CTString)
-
-    declareVariable(variable, typ)
+    if (withHeaders) {
+      declareVariable(variable, CTMap) chain
+        addLoadCsvWithHeadersVariable(variable)
+    } else
+      declareVariable(variable, CTList(CTString))
   }
 }
 
@@ -1933,7 +1931,7 @@ case class With(
   }
 
   override def clauseSpecificSemanticCheck: SemanticCheck =
-    super.clauseSpecificSemanticCheck chain checkProjectionItems(returnItems)
+    super.clauseSpecificSemanticCheck chain checkProjectionItems(returnItems) chain updateCsvVarsInState
 
   override def withReturnItems(items: Seq[ReturnItem]): With =
     this.copy(returnItems = ReturnItems(returnItems.includeExisting, items)(returnItems.position))(this.position)
@@ -1952,6 +1950,23 @@ case class With(
 
   private def checkLetItems(returnItems: ReturnItems): SemanticCheck =
     SemanticExpressionCheck.simple(returnItems.items.map(_.expression))
+
+  private def updateCsvVarsInState(): SemanticCheck = {
+    SemanticCheck.fromState(state => {
+      val updatedCsvVariables = returnItems.items.foldLeft(Set.empty[LogicalVariable]) {
+        case (acc, AliasedReturnItem(expression: Variable, aliasVariable: Variable))
+          if state.loadCsvWithHeaderVariables.contains(expression) =>
+          // A load CSV variable is being renamed or passed through as itself
+          acc + aliasVariable
+        case (acc, AliasedReturnItem(Property(v: Variable, _: PropertyKeyName), _))
+          if state.loadCsvWithHeaderVariables.contains(v) =>
+          // A load CSV variable is used to access one of its fields
+          acc + v
+        case (acc, _) => acc
+      }
+      SemanticCheck.setState(state.copy(loadCsvWithHeaderVariables = updatedCsvVariables))
+    })
+  }
 }
 
 case class Finish()(val position: InputPosition) extends Clause with ClauseAllowedOnSystem {

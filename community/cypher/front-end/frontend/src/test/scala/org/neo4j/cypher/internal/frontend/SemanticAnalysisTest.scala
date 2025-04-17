@@ -1867,6 +1867,75 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
     run(query).hasNoErrors
   }
 
+  test("Should not find any LOAD CSV WITH HEADERS variables") {
+    run(
+      """MATCH (row)
+        |WITH row.id AS rid
+        |CREATE (a: A { id: rid});
+      """.stripMargin
+    ).assertSemanticState(semanticState => {
+      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set.empty
+    })
+  }
+
+  test("Should find row as the LOAD CSV WITH HEADERS variable") {
+    run(
+      """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
+        |CREATE (a: A { id: row.id});
+      """.stripMargin
+    ).assertSemanticState(semanticState => {
+      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set("row")
+    })
+  }
+
+  test("Should find rowWith as the LOAD CSV WITH HEADERS variable2") {
+    run(
+      """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS rowWith
+        |WITH rowWith.id AS rid
+        |CREATE (a: A { id: rid});
+      """.stripMargin
+    ).assertSemanticState(semanticState => {
+      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set("rowWith")
+    })
+  }
+
+  test("Should find rowAlias as the LOAD CSV WITH HEADERS variable") {
+    run(
+      """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
+        |WITH row AS rowAlias
+        |WITH rowAlias.id AS rid
+        |CREATE (a: A { id: rid});
+      """.stripMargin
+    ).assertSemanticState(semanticState => {
+      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set("rowAlias")
+    })
+  }
+
+  test("Should find row and rowAlias as the LOAD CSV WITH HEADERS variable") {
+    run(
+      """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
+        |WITH row, row AS rowAlias
+        |WITH row.id AS rid, rowAlias
+        |CREATE (a: A { id: rid});
+      """.stripMargin
+    ).assertSemanticState(semanticState => {
+      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set("row", "rowAlias")
+    })
+  }
+
+  test("Should not find row as the LOAD CSV WITH HEADERS variable") {
+    run(
+      """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
+        |CREATE (n)
+        |WITH n AS row
+        |WITH row.id AS rid
+        |CREATE (a: A { id: rid});
+      """.stripMargin
+    ).assertSemanticState(semanticState => {
+      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set.empty
+    })
+  }
+
   override def messageProvider: ErrorMessageProvider = new ErrorMessageProviderAdapter {
     override def createUseClauseUnsupportedError(): String = "A very nice message explaining why USE is not allowed"
 

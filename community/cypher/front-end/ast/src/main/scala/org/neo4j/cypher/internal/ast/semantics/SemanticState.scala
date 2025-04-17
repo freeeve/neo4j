@@ -329,7 +329,9 @@ case class SemanticState(
   semanticCheckHasRunOnce: Boolean = false,
   targetGraph: Option[GraphReference] =
     None, // used to check different use clause targets given a regular session database
-  workingGraph: Option[GraphReference] = None // used for nested check given a composite session database
+  workingGraph: Option[GraphReference] = None, // used for nested check given a composite session database
+  loadCsvWithHeaderVariables: Set[LogicalVariable] =
+    Set.empty // used to specify the type of the map values as strings, when the map comes from LOAD CSV WITH HEADERS
 ) {
 
   def scopeTree: Scope = currentScope.rootScope
@@ -460,4 +462,11 @@ case class SemanticState(
   def recordTargetGraph(targetGraph: GraphReference): SemanticState = copy(targetGraph = Some(targetGraph))
 
   def recordWorkingGraph(graph: Option[GraphReference]): SemanticState = copy(workingGraph = graph)
+
+  def isLoadCsvWithHeadersVariable(expr: Expression): Boolean = {
+    expr match {
+      case v: LogicalVariable if loadCsvWithHeaderVariables.contains(v) => true
+      case _                                                            => false
+    }
+  }
 }

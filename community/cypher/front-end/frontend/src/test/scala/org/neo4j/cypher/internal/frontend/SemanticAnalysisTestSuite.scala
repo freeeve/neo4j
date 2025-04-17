@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.ast.Ast.p
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticErrorDef
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
+import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
 import org.neo4j.cypher.internal.expressions.Expression
@@ -239,6 +240,15 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
         }
       }
       this
+    }
+
+    def assertSemanticState(assertion: SemanticState => Unit): AnalysisAssertions = {
+      assert((semanticAnalysisResult: SemanticAnalysisResult) => {
+        semanticAnalysisResult.state.maybeSemantics match {
+          case Some(semantics) => assertion(semantics)
+          case None            => fail(s"Cannot get the SemanticState")
+        }
+      })
     }
 
     def assertTry(assertion: Try[SemanticAnalysisResult] => Unit): AnalysisAssertions = {

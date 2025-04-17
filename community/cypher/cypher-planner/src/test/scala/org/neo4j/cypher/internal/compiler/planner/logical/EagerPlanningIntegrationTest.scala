@@ -2314,4 +2314,78 @@ class EagerPlanningIntegrationTest extends CypherFunSuite
       .allNodeScan("anon_0")
       .build()
   }
+
+  test(
+    "Eager should not be inserted between projection and create because LOAD CSV can only produce STRING values, not nodes or relationships"
+  ) {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(100)
+        .setLabelCardinality("A", 20)
+        .build()
+
+    val query =
+      """
+        |LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
+        |
+        |WITH
+        |  row.id AS rid
+        |
+        |CREATE (a:A {
+        |  id: rid
+        |});
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan should equal(
+      planner.subPlanBuilder()
+        .emptyResult()
+        .create(createNodeFull("a", labels = Seq("A"), properties = Some("{id: rid}")))
+        .projection("row.id AS rid")
+        .loadCSV("'file:///test.csv'", "row", HasHeaders)
+        .argument()
+        .build()
+    )
+  }
+
+  test(
+    "Should identify that rid can only be a STRING values and should therefore not create an eager between the projection and create"
+  ) {
+    val planner =
+      plannerBuilder()
+        .setAllNodesCardinality(100)
+        .setLabelCardinality("A", 20)
+        .build()
+
+    val query =
+      """
+        |LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
+        |
+        |WITH
+        |  row as rowAlias
+        |
+        |WITH
+        |  rowAlias as rowAlias2
+        |
+        |WITH
+        |  rowAlias2.id AS rid
+        |
+        |CREATE (a:A {
+        |  id: rid
+        |});
+        |""".stripMargin
+
+    val plan = planner.plan(query).stripProduceResults
+    plan should equal(
+      planner.subPlanBuilder()
+        .emptyResult()
+        .create(createNodeFull("a", labels = Seq("A"), properties = Some("{id: rid}")))
+        .projection("rowAlias2.id AS rid")
+        .projection("rowAlias AS rowAlias2")
+        .projection("row AS rowAlias")
+        .loadCSV("'file:///test.csv'", "row", HasHeaders)
+        .argument()
+        .build()
+    )
+  }
 }

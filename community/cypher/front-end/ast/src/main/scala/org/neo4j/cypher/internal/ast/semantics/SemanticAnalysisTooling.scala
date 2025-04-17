@@ -304,6 +304,9 @@ trait SemanticAnalysisTooling {
   def typeSwitch(expr: Expression)(choice: TypeSpec => SemanticCheck): SemanticCheck =
     SemanticCheck.fromState(state => choice(state.expressionType(expr).actual))
 
+  def typeSwitchWithState(expr: Expression)(choice: (SemanticState, TypeSpec) => SemanticCheck): SemanticCheck =
+    SemanticCheck.fromState(state => choice(state, state.expressionType(expr).actual))
+
   def validNumber(long: StringDecimalInteger): Boolean =
     try {
       long.value.isInstanceOf[Long]
@@ -327,6 +330,10 @@ trait SemanticAnalysisTooling {
 
   def ensureDefined(v: LogicalVariable): SemanticState => Either[SemanticError, SemanticState] =
     (_: SemanticState).ensureVariableDefined(v)
+
+  def addLoadCsvWithHeadersVariable(v: LogicalVariable): SemanticState => Either[SemanticError, SemanticState] = {
+    (s: SemanticState) => Right(s.copy(loadCsvWithHeaderVariables = s.loadCsvWithHeaderVariables + v))
+  }
 
   def declareVariable(
     v: LogicalVariable,
