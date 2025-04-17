@@ -19,7 +19,6 @@
  */
 package org.neo4j.io.layout.recordstorage;
 
-import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -27,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -138,59 +136,6 @@ class RecordDatabaseLayoutTest {
         assertEquals(
                 "neostore.schemastore.db.id",
                 layout.idSchemaStore().getFileName().toString());
-    }
-
-    @Test
-    void allStoreFiles() {
-        Set<String> files = layout.storeFiles().stream()
-                .map(Path::getFileName)
-                .map(Path::toString)
-                .collect(toSet());
-        assertThat(files)
-                .containsExactlyInAnyOrder(
-                        "neostore",
-                        "neostore.counts.db",
-                        "neostore.labeltokenstore.db",
-                        "neostore.labeltokenstore.db.names",
-                        "neostore.nodestore.db",
-                        "neostore.nodestore.db.labels",
-                        "neostore.propertystore.db",
-                        "neostore.propertystore.db.arrays",
-                        "neostore.propertystore.db.index",
-                        "neostore.propertystore.db.index.keys",
-                        "neostore.propertystore.db.strings",
-                        "neostore.relationshipgroupstore.db",
-                        "neostore.relationshipgroupstore.degrees.db",
-                        "neostore.relationshipstore.db",
-                        "neostore.relationshiptypestore.db",
-                        "neostore.relationshiptypestore.db.names",
-                        "neostore.schemastore.db",
-                        "neostore.indexstats.db");
-    }
-
-    @Test
-    void allMandatoryStoreFiles() {
-        Set<String> files = layout.mandatoryStoreFiles().stream()
-                .map(Path::getFileName)
-                .map(Path::toString)
-                .collect(toSet());
-        assertThat(files)
-                .containsExactlyInAnyOrder(
-                        "neostore",
-                        "neostore.labeltokenstore.db",
-                        "neostore.labeltokenstore.db.names",
-                        "neostore.nodestore.db",
-                        "neostore.nodestore.db.labels",
-                        "neostore.propertystore.db",
-                        "neostore.propertystore.db.arrays",
-                        "neostore.propertystore.db.index",
-                        "neostore.propertystore.db.index.keys",
-                        "neostore.propertystore.db.strings",
-                        "neostore.relationshipgroupstore.db",
-                        "neostore.relationshipstore.db",
-                        "neostore.relationshiptypestore.db",
-                        "neostore.relationshiptypestore.db.names",
-                        "neostore.schemastore.db");
     }
 
     @Test

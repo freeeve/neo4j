@@ -122,9 +122,9 @@ import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineCostCharacteristics;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
+import org.neo4j.storageengine.api.StorageFileSelection;
 import org.neo4j.storageengine.api.StorageLocks;
 import org.neo4j.storageengine.api.StorageReader;
-import org.neo4j.storageengine.api.StoreFileMetadata;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.TransactionIdStore;
@@ -707,21 +707,24 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     }
 
     @Override
-    public void listStorageFiles(Collection<StoreFileMetadata> atomic, Collection<StoreFileMetadata> replayable) {
-        atomic.add(new StoreFileMetadata(databaseLayout.countStore()));
-        atomic.add(new StoreFileMetadata(databaseLayout.relationshipGroupDegreesStore()));
-        for (StoreType type : StoreType.STORE_TYPES) {
-            final RecordStore<AbstractBaseRecord> recordStore = neoStores.getRecordStore(type);
-            StoreFileMetadata metadata = new StoreFileMetadata(recordStore.getStorageFile());
-            replayable.add(metadata);
+    public Collection<Path> listStorageFiles(StorageFileSelection selection) {
+        List<Path> files = new ArrayList<>();
+        if (selection.includeAtomicStoreFiles()) {
+            files.add(databaseLayout.countStore());
+            files.add(databaseLayout.relationshipGroupDegreesStore());
         }
-    }
-
-    @Override
-    public void listIdFiles(Collection<StoreFileMetadata> target) {
-        for (Path idFile : databaseLayout.idFiles()) {
-            target.add(new StoreFileMetadata(idFile));
+        if (selection.includeReplayableStoreFiles()) {
+            for (StoreType type : StoreType.STORE_TYPES) {
+                final RecordStore<AbstractBaseRecord> recordStore = neoStores.getRecordStore(type);
+                files.add(recordStore.getStorageFile());
+            }
         }
+        if (selection.includeIdFiles()) {
+            for (var file : RecordDatabaseFile.values()) {
+                databaseLayout.idFile(file).ifPresent(files::add);
+            }
+        }
+        return files;
     }
 
     /**

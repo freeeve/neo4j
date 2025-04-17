@@ -20,6 +20,7 @@
 package org.neo4j.storageengine.api;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.List;
 import org.neo4j.configuration.Config;
@@ -175,16 +176,9 @@ public interface StorageEngine extends ReadableStorageEngine, Lifecycle {
     void shutdown();
 
     /**
-     * Lists storage files into one of the two provided collections.
-     * @param atomic will contain files that must be copied under a lock where no checkpoint can happen concurrently.
-     * @param replayable will contain files not sensitive to the checkpoint constraint of those in the {@code atomic} collection.
+     * Lists storage files that makes up this storage engine, consulting open stores and in-memory stage.
      */
-    void listStorageFiles(Collection<StoreFileMetadata> atomic, Collection<StoreFileMetadata> replayable);
-
-    /**
-     * Add id files into the provided collection.
-     */
-    void listIdFiles(Collection<StoreFileMetadata> target);
+    Collection<Path> listStorageFiles(StorageFileSelection selection);
 
     StoreId retrieveStoreId();
 

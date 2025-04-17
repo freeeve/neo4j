@@ -129,6 +129,7 @@ import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.locker.FileLockException;
 import org.neo4j.kernel.impl.util.Validators;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -1943,9 +1944,12 @@ class ImportCommandTest {
                                 + nodeData(false, config, nodeIds, TRUE, Charset.defaultCharset(), extraColumns)
                                         .toAbsolutePath()));
         // THEN the store files should be there
-        for (final var storePath : getDatabaseApi().databaseLayout().storeFiles()) {
-            assertTrue(testDirectory.getFileSystem().fileExists(storePath));
-        }
+        var fs = testDirectory.getFileSystem();
+        var databaseLayout = layout.databaseLayout(DEFAULT_DATABASE_NAME);
+        List<Path> storeFiles = StorageEngineFactory.selectStorageEngine(fs, databaseLayout)
+                .get()
+                .listStorageFiles(fs, databaseLayout);
+        assertThat(storeFiles.size()).isGreaterThan(5);
 
         assertTrue(ctx.errAsString()
                 .contains("Starting a database on these store files will likely fail or observe inconsistent records"));

@@ -69,6 +69,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
@@ -167,6 +168,7 @@ import org.neo4j.service.Services;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
+import org.neo4j.storageengine.api.StorageFileSelection;
 import org.neo4j.storageengine.api.TransactionId;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.test.LatestVersions;
@@ -1702,9 +1704,9 @@ class RecoveryIT {
         GraphDatabaseAPI db = createDatabase();
         generateSomeData(db);
         DatabaseLayout layout = db.databaseLayout();
+        Path idFile = getIdFile(db);
         managementService.shutdown();
 
-        Path idFile = getIdFile(layout);
         fileSystem.deleteFileOrThrow(idFile);
         assertTrue(isRecoveryRequired(layout));
 
@@ -1730,6 +1732,7 @@ class RecoveryIT {
         for (int i = 0; i < 10; i++) {
             generateSomeData(db);
         }
+        Path idFile = getIdFile(db);
         managementService.shutdown();
 
         assertThat(Arrays.stream(fileSystem.listFiles(layout.getTransactionLogsDirectory()))
@@ -1737,7 +1740,7 @@ class RecoveryIT {
                         .count())
                 .isGreaterThan(2);
 
-        fileSystem.deleteFileOrThrow(getIdFile(layout));
+        fileSystem.deleteFileOrThrow(idFile);
         assertTrue(isRecoveryRequired(layout));
 
         Config config = defaults(Map.of(GraphDatabaseSettings.keep_logical_logs, "keep_none"));
@@ -1761,10 +1764,11 @@ class RecoveryIT {
     void recoverDatabaseWithoutIdFiles() throws Throwable {
         GraphDatabaseAPI db = createDatabase();
         generateSomeData(db);
+        var idFiles = getIdFiles(db);
         DatabaseLayout layout = db.databaseLayout();
         managementService.shutdown();
 
-        for (Path idFile : layout.idFiles()) {
+        for (Path idFile : idFiles) {
             fileSystem.deleteFileOrThrow(idFile);
         }
         assertTrue(isRecoveryRequired(layout));
@@ -1772,7 +1776,7 @@ class RecoveryIT {
         recoverDatabase();
         assertFalse(isRecoveryRequired(layout));
 
-        for (Path idFile : layout.idFiles()) {
+        for (Path idFile : idFiles) {
             assertTrue(fileSystem.fileExists(idFile));
         }
     }
@@ -1781,9 +1785,8 @@ class RecoveryIT {
     void failRecoveryWithMissingStoreFile() throws Exception {
         GraphDatabaseAPI database = createDatabase();
         generateSomeData(database);
-        DatabaseLayout layout = database.databaseLayout();
+        Path storeFile = getStoreFile(database);
         managementService.shutdown();
-        Path storeFile = getStoreFile(layout);
         fileSystem.deleteFileOrThrow(storeFile);
 
         GraphDatabaseAPI restartedDb = createDatabase();
@@ -1805,14 +1808,14 @@ class RecoveryIT {
     void failRecoveryWithMissingStoreFileAndIdFile() throws Exception {
         GraphDatabaseAPI database = createDatabase();
         generateSomeData(database);
-        DatabaseLayout layout = database.databaseLayout();
+        Path storeFile = getStoreFile(database);
+        Path idFile = getIdFile(database);
         managementService.shutdown();
 
         // Recovery should not be attempted on any store with missing store files, even if other recoverable files are
         // missing as well.
-        Path storeFile = getStoreFile(layout);
         fileSystem.deleteFileOrThrow(storeFile);
-        fileSystem.deleteFileOrThrow(getIdFile(layout));
+        fileSystem.deleteFileOrThrow(idFile);
 
         GraphDatabaseAPI restartedDb = createDatabase();
 
@@ -1893,6 +1896,7 @@ class RecoveryIT {
         GraphDatabaseAPI db = createDatabase();
         generateSomeData(db);
         DatabaseLayout layout = db.databaseLayout();
+        Path idFile = getIdFile(db);
         managementService.shutdown();
         assertFalse(isRecoveryRequired(layout));
         var openOptions = db.getDependencyResolver()
@@ -1901,7 +1905,6 @@ class RecoveryIT {
         // Make an ID generator, say for the node store, dirty
         DefaultIdGeneratorFactory idGeneratorFactory =
                 new DefaultIdGeneratorFactory(fileSystem, immediate(), PageCacheTracer.NULL, "my db");
-        Path idFile = getIdFile(layout);
         try (IdGenerator idGenerator = idGeneratorFactory.open(
                 pageCache,
                 idFile,
@@ -2573,18 +2576,28 @@ class RecoveryIT {
         }
     }
 
-    private static Path getIdFile(DatabaseLayout layout) {
-        return getFirstSortedOnName(layout.idFiles());
+    private static Path getIdFile(GraphDatabaseAPI db) {
+        var idFiles = getIdFiles(db);
+        return getFirstSortedOnName(idFiles);
     }
 
-    private static Path getStoreFile(DatabaseLayout layout) {
-        Set<Path> files = new HashSet<>(layout.storeFiles());
+    private static Collection<Path> getIdFiles(GraphDatabaseAPI db) {
+        return db.getDependencyResolver()
+                .resolveDependency(StorageEngine.class)
+                .listStorageFiles(new StorageFileSelection(false, false, true));
+    }
+
+    private static Path getStoreFile(GraphDatabaseAPI db) {
+        Set<Path> files = new HashSet<>(db.getDependencyResolver()
+                .resolveDependency(StorageEngine.class)
+                .listStorageFiles(new StorageFileSelection(true, true, false)));
+        var layout = db.databaseLayout();
         files.remove(layout.pathForStore(CommonDatabaseStores.METADATA));
         files.remove(layout.pathForStore(CommonDatabaseStores.INDEX_STATISTICS));
         return getFirstSortedOnName(files);
     }
 
-    private static Path getFirstSortedOnName(Set<Path> path) {
+    private static Path getFirstSortedOnName(Collection<Path> path) {
         return path.stream()
                 .max(Comparator.comparing(p -> p.getFileName().toString())) // To be deterministic
                 .orElseThrow();

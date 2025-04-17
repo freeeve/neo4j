@@ -183,7 +183,9 @@ public interface StorageEngineFactory {
             throws IOException;
 
     /**
-     * Lists files of a specific storage location.
+     * Lists files of a specific storage location. This is a lenient version of {@link #checkStoreFileState(FileSystemAbstraction, DatabaseLayout, PageCache)}
+     * which doesn't take into account which files are expected to be there.
+     *
      * @param fileSystem {@link FileSystemAbstraction} this storage is on.
      * @param databaseLayout {@link DatabaseLayout} pointing out its location.
      * @return a {@link List} of {@link Path} instances for the storage files.

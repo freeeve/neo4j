@@ -20,6 +20,7 @@
 package org.neo4j.kernel.database;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongFunction;
 import org.neo4j.collection.Dependencies;
@@ -53,7 +54,6 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.resources.CpuClock;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.api.StorageEngineFactory;
-import org.neo4j.storageengine.api.StoreFileMetadata;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.time.SystemNanoClock;
 import org.neo4j.token.TokenHolders;
@@ -278,7 +278,7 @@ public abstract class AbstractDatabase extends LifecycleAdapter implements Lifec
 
     public abstract Kernel getKernel();
 
-    public abstract ResourceIterator<StoreFileMetadata> listStoreFiles(boolean includeLogs) throws IOException;
+    public abstract ResourceIterator<Path> listStoreFiles(boolean includeLogs) throws IOException;
 
     public abstract StoreFileListing getStoreFileListing();
 

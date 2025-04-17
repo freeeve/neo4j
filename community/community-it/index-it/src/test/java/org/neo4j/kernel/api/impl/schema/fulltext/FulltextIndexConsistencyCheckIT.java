@@ -37,6 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -70,6 +71,8 @@ import org.neo4j.kernel.impl.coreapi.TransactionImpl;
 import org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
+import org.neo4j.storageengine.api.StorageEngine;
+import org.neo4j.storageengine.api.StorageFileSelection;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -828,7 +831,7 @@ class FulltextIndexConsistencyCheckIT {
 
     @Test
     void mustDiscoverNodeInIndexWithMissingPropertyInStore() throws Exception {
-        GraphDatabaseService db = createDatabase();
+        GraphDatabaseAPI db = createDatabase();
         try (Transaction tx = db.beginTx()) {
             tx.execute(format(FULLTEXT_CREATE, "nodes", asNodeLabelStr("Label"), asPropertiesStrList("prop")))
                     .close();
@@ -841,10 +844,11 @@ class FulltextIndexConsistencyCheckIT {
             nodeId = node.getElementId();
             tx.commit();
         }
+        var storeFiles = getStoreFiles(db);
 
         managementService.shutdown();
         Path copyRoot = testDirectory.directory("cpy");
-        copyStoreFiles(copyRoot);
+        copyStoreFiles(storeFiles, copyRoot);
         db = createDatabase();
 
         try (Transaction tx = db.beginTx()) {
@@ -878,10 +882,11 @@ class FulltextIndexConsistencyCheckIT {
             relId = rel.getElementId();
             tx.commit();
         }
+        var storeFiles = getStoreFiles(db);
 
         managementService.shutdown();
         final var copyRoot = testDirectory.directory("cpy");
-        copyStoreFiles(copyRoot);
+        copyStoreFiles(storeFiles, copyRoot);
 
         db = createDatabase();
         try (var tx = db.beginTx()) {
@@ -914,10 +919,11 @@ class FulltextIndexConsistencyCheckIT {
             nodeId = node.getElementId();
             tx.commit();
         }
+        var storeFiles = getStoreFiles(db);
 
         managementService.shutdown();
         final var copyRoot = testDirectory.directory("cpy");
-        copyStoreFiles(copyRoot);
+        copyStoreFiles(storeFiles, copyRoot);
 
         db = createDatabase();
         try (var tx = db.beginTx()) {
@@ -937,6 +943,12 @@ class FulltextIndexConsistencyCheckIT {
         assertThat(result.summary().getInconsistencyCountForRecordType("INDEX")).isEqualTo(1);
     }
 
+    private static Collection<Path> getStoreFiles(GraphDatabaseAPI db) {
+        return db.getDependencyResolver()
+                .resolveDependency(StorageEngine.class)
+                .listStorageFiles(new StorageFileSelection(true, true, false));
+    }
+
     private static long getNodeId(Transaction tx, Node node) {
         return ((TransactionImpl) tx).elementIdMapper().nodeId(node.getElementId());
     }
@@ -945,9 +957,9 @@ class FulltextIndexConsistencyCheckIT {
         return ((TransactionImpl) tx).elementIdMapper().relationshipId(rel.getElementId());
     }
 
-    private void copyStoreFiles(Path into) throws IOException {
+    private void copyStoreFiles(Collection<Path> storeFiles, Path into) throws IOException {
         FileSystemAbstraction fileSystem = testDirectory.getFileSystem();
-        for (Path storeFile : databaseLayout.mandatoryStoreFiles()) {
+        for (Path storeFile : storeFiles) {
             fileSystem.copyFile(storeFile, into.resolve(storeFile.getFileName()));
         }
     }

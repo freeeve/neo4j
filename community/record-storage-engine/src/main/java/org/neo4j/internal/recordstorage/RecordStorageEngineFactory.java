@@ -89,6 +89,7 @@ import org.neo4j.internal.schema.SchemaState;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
+import org.neo4j.io.layout.recordstorage.RecordDatabaseFile;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCursor;
@@ -300,8 +301,8 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             throw new IOException("No storage present at " + databaseLayout + " on " + fileSystem);
         }
 
-        return Arrays.stream(StoreType.STORE_TYPES)
-                .map(t -> databaseLayout.file(t.getDatabaseFile()))
+        return Arrays.stream(RecordDatabaseFile.values())
+                .flatMap(databaseLayout::allFiles)
                 .filter(fileSystem::fileExists)
                 .toList();
     }
@@ -690,14 +691,23 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
     public StorageFilesState checkStoreFileState(
             FileSystemAbstraction fs, DatabaseLayout databaseLayout, PageCache pageCache) {
         RecordDatabaseLayout recordLayout = formatSpecificDatabaseLayout(databaseLayout);
-        Set<Path> storeFiles = recordLayout.mandatoryStoreFiles();
+
+        Set<Path> storeFiles = Arrays.stream(RecordDatabaseFile.values())
+                .filter(f -> !recordLayout.isRecoverableStore(f))
+                .map(recordLayout::file)
+                .collect(Collectors.toSet());
         boolean allStoreFilesExist = storeFiles.stream().allMatch(fs::fileExists);
         if (!allStoreFilesExist) {
             return StorageFilesState.unrecoverableState(
                     storeFiles.stream().filter(file -> !fs.fileExists(file)).toList());
         }
 
-        boolean allIdFilesExist = recordLayout.idFiles().stream().allMatch(fs::fileExists);
+        Set<Path> idFiles = Arrays.stream(RecordDatabaseFile.values())
+                .map(recordLayout::idFile)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toSet());
+        boolean allIdFilesExist = idFiles.stream().allMatch(fs::fileExists);
         if (!allIdFilesExist) {
             return StorageFilesState.recoverableState();
         }

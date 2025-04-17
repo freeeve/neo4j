@@ -30,7 +30,6 @@ import org.neo4j.kernel.database.Database;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.logging.InternalLog;
-import org.neo4j.storageengine.api.StoreFileMetadata;
 import org.neo4j.storageengine.api.StoreResource;
 import org.neo4j.storageengine.api.StoreSnapshot;
 
@@ -119,7 +118,7 @@ public class DefaultStoreSnapshotFactory implements StoreSnapshot.Factory {
                 .excludeAll()
                 .includeReplayableStorageFiles()
                 .build()) {
-            return recoverableFiles.stream().map(StoreFileMetadata::path).toArray(Path[]::new);
+            return recoverableFiles.stream().toArray(Path[]::new);
         }
     }
 
@@ -132,9 +131,8 @@ public class DefaultStoreSnapshotFactory implements StoreSnapshot.Factory {
                 .storeCopy(() -> checkPointer.tryCheckPoint(new SimpleTriggerInfo("Store copy")));
     }
 
-    private StoreResource toStoreResource(Path databaseDirectory, StoreFileMetadata storeFileMetadata) {
-        var file = storeFileMetadata.path();
-        var relativePath = databaseDirectory.relativize(file).toString();
-        return new StoreResource(file, relativePath, fs);
+    private StoreResource toStoreResource(Path databaseDirectory, Path storeFile) {
+        var relativePath = databaseDirectory.relativize(storeFile).toString();
+        return new StoreResource(storeFile, relativePath, fs);
     }
 }

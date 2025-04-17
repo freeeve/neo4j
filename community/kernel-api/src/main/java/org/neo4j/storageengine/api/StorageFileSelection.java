@@ -19,10 +19,9 @@
  */
 package org.neo4j.storageengine.api;
 
-import java.nio.file.Path;
-
-public record StoreFileMetadata(Path path, boolean isLogFile) {
-    public StoreFileMetadata(Path path) {
-        this(path, false);
+public record StorageFileSelection(
+        boolean includeAtomicStoreFiles, boolean includeReplayableStoreFiles, boolean includeIdFiles) {
+    public StorageFileSelection() {
+        this(false, false, false);
     }
 }

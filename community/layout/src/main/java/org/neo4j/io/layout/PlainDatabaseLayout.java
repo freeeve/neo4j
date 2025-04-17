@@ -22,9 +22,6 @@ package org.neo4j.io.layout;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
@@ -114,34 +111,6 @@ public class PlainDatabaseLayout implements DatabaseLayout {
     public Path pathForStore(CommonDatabaseStores store) {
         throw new IllegalStateException(
                 "Can not get the path for the %s store from a PlainDatabaseLayout.".formatted(store.name()));
-    }
-
-    @Override
-    public Set<Path> idFiles() {
-        return databaseFiles()
-                .filter(DatabaseFile::hasIdFile)
-                .flatMap(value -> idFile(value).stream())
-                .collect(Collectors.toUnmodifiableSet());
-    }
-
-    @Override
-    public Set<Path> storeFiles() {
-        return databaseFiles().map(this::file).collect(Collectors.toUnmodifiableSet());
-    }
-
-    /**
-     * @return the store files required to be present for a database to be able to be recovered
-     */
-    @Override
-    public Set<Path> mandatoryStoreFiles() {
-        return databaseFiles()
-                .filter(Predicate.not(this::isRecoverableStore))
-                .map(this::file)
-                .collect(Collectors.toUnmodifiableSet());
-    }
-
-    protected Stream<? extends DatabaseFile> databaseFiles() {
-        throw new IllegalStateException("Can not access the database files from a PlainDatabaseLayout.");
     }
 
     @Override

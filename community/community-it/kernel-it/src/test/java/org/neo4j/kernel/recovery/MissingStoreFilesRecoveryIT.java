@@ -28,6 +28,7 @@ import static org.neo4j.graphdb.RelationshipType.withName;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +47,8 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.storageengine.api.StorageEngine;
+import org.neo4j.storageengine.api.StorageFileSelection;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -53,6 +56,8 @@ import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
 class MissingStoreFilesRecoveryIT {
+    private static final Label testNodes = Label.label("testNodes");
+
     @Inject
     private TestDirectory testDirectory;
 
@@ -63,7 +68,7 @@ class MissingStoreFilesRecoveryIT {
     private DatabaseLayout databaseLayout;
     private TestDatabaseManagementServiceBuilder serviceBuilder;
     private NamedDatabaseId defaultNamedDatabaseId;
-    private static final Label testNodes = Label.label("testNodes");
+    private Collection<Path> storeFiles;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -77,6 +82,10 @@ class MissingStoreFilesRecoveryIT {
                 .databaseIdRepository()
                 .getByName(DEFAULT_DATABASE_NAME)
                 .orElseThrow();
+        storeFiles = databaseApi
+                .getDependencyResolver()
+                .resolveDependency(StorageEngine.class)
+                .listStorageFiles(new StorageFileSelection(true, true, false));
 
         managementService.shutdown();
     }
@@ -90,16 +99,18 @@ class MissingStoreFilesRecoveryIT {
 
     @Test
     void databaseStartFailingOnMissingFilesAndMissedTxLogs() throws IOException {
-        Path storeFile = getStoreFile(databaseLayout);
-        fileSystem.deleteFile(storeFile);
+        Path[] storeFiles = getStoreFiles(databaseLayout);
+        for (Path storeFile : storeFiles) {
+            fileSystem.deleteFile(storeFile);
+        }
         fileSystem.deleteRecursively(databaseLayout.getTransactionLogsDirectory());
 
         managementService = serviceBuilder.build();
         var dbStateService = getDatabaseStateService();
         assertThat(dbStateService.causeOfFailure(defaultNamedDatabaseId).orElseThrow())
-                .hasRootCauseMessage(String.format(
-                        "Store files [%s] is(are) missing and recovery is not possible. Please restore from a consistent backup.",
-                        storeFile.toAbsolutePath()));
+                .rootCause()
+                .hasMessageContaining(
+                        "is(are) missing and recovery is not possible. Please restore from a consistent backup.");
     }
 
     @Test
@@ -107,20 +118,24 @@ class MissingStoreFilesRecoveryIT {
         LogFiles logFiles = prepareDatabaseWithTwoTxLogFiles();
 
         fileSystem.deleteFile(logFiles.getLogFile().getLogFileForVersion(0));
-        Path storeFile = getStoreFile(databaseLayout);
-        fileSystem.deleteFile(storeFile);
+        Path[] storeFiles = getStoreFiles(databaseLayout);
+        for (Path storeFile : storeFiles) {
+            fileSystem.deleteFile(storeFile);
+        }
 
         var dbStateService = getDatabaseStateService();
         var failure = dbStateService.causeOfFailure(defaultNamedDatabaseId);
         assertFalse(failure.isPresent());
-        assertFalse(fileSystem.fileExists(storeFile));
+        for (Path storeFile : storeFiles) {
+            assertFalse(fileSystem.fileExists(storeFile));
+        }
     }
 
-    private static Path getStoreFile(DatabaseLayout layout) {
-        return layout.mandatoryStoreFiles().stream()
+    private Path[] getStoreFiles(DatabaseLayout layout) {
+        return storeFiles.stream()
                 .filter(Predicate.not(layout.pathForExistsMarker()::equals))
-                .findAny()
-                .orElseThrow();
+                .limit(5)
+                .toArray(Path[]::new);
     }
 
     private LogFiles prepareDatabaseWithTwoTxLogFiles() throws IOException {

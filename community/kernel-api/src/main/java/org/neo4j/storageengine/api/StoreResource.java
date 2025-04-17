@@ -38,8 +38,8 @@ public final class StoreResource {
     private final String relativePath;
     private final FileSystemAbstraction fs;
 
-    public StoreResource(StoreFileMetadata storeFileMetadata, DatabaseLayout dbLayout, FileSystemAbstraction fs) {
-        this(storeFileMetadata.path(), relativeFilePath(storeFileMetadata, dbLayout), fs);
+    public StoreResource(Path storeFile, DatabaseLayout dbLayout, FileSystemAbstraction fs) {
+        this(storeFile, relativeFilePath(storeFile, dbLayout), fs);
     }
 
     @VisibleForTesting
@@ -49,8 +49,8 @@ public final class StoreResource {
         this.fs = fs;
     }
 
-    private static String relativeFilePath(StoreFileMetadata storeFileMetadata, DatabaseLayout dbLayout) {
-        return dbLayout.databaseDirectory().relativize(storeFileMetadata.path()).toString();
+    private static String relativeFilePath(Path storeFile, DatabaseLayout dbLayout) {
+        return dbLayout.databaseDirectory().relativize(storeFile).toString();
     }
 
     /**

@@ -29,13 +29,14 @@ import java.io.UncheckedIOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexSettingUtil;
@@ -44,12 +45,13 @@ import org.neo4j.io.device.DeviceMapper;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.diagnostics.providers.StoreFilesDiagnostics;
-import org.neo4j.kernel.impl.store.StoreType;
 import org.neo4j.storageengine.api.StorageEngineFactory;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.DbmsExtension;
+import org.neo4j.test.extension.ExtensionCallback;
 import org.neo4j.test.extension.Inject;
 
-@DbmsExtension
+@DbmsExtension(configurationCallback = "configure")
 class KernelDiagnosticsIT {
     @Inject
     private GraphDatabaseAPI db;
@@ -57,12 +59,21 @@ class KernelDiagnosticsIT {
     @Inject
     private FileSystemAbstraction fs;
 
+    @Inject
+    private DatabaseLayout databaseLayout;
+
+    @ExtensionCallback
+    void configure(TestDatabaseManagementServiceBuilder builder) {
+        builder.setConfig(GraphDatabaseInternalSettings.gbptree_structure_log_enabled, false);
+        builder.setConfig(GraphDatabaseInternalSettings.buffered_ids_offload, false);
+    }
+
     @ParameterizedTest
     @EnumSource(
             value = IndexType.class,
             mode = EnumSource.Mode.EXCLUDE,
             names = {"LOOKUP"}) // testing property indexes
-    void shouldIncludeNativeIndexFilesInTotalMappedSize(IndexType indexType) {
+    void shouldIncludeNativeIndexFilesInTotalMappedSize(IndexType indexType) throws IOException {
         // given
         createIndexAndData(indexType);
 
@@ -104,22 +115,25 @@ class KernelDiagnosticsIT {
         }
     }
 
-    private static long manuallyCountTotalMappedFileSize(Path dbDir) {
+    private long manuallyCountTotalMappedFileSize(Path dbDir) throws IOException {
         MutableLong result = new MutableLong();
         NativeIndexFileFilter nativeIndexFilter = new NativeIndexFileFilter(dbDir);
-        manuallyCountTotalMappedFileSize(dbDir, result, nativeIndexFilter);
+        var storeFiles = Arrays.stream(fs.listFiles(dbDir))
+                .filter(p -> !p.equals(databaseLayout.databaseLockFile()))
+                .filter(p -> !fs.isDirectory(p))
+                .map(p -> p.getFileName().toString())
+                .collect(Collectors.toSet());
+        manuallyCountTotalMappedFileSize(dbDir, result, nativeIndexFilter, storeFiles);
         return result.getValue();
     }
 
-    private static void manuallyCountTotalMappedFileSize(
-            Path dir, MutableLong result, NativeIndexFileFilter nativeIndexFilter) {
-        Set<String> storeFiles = Stream.of(StoreType.STORE_TYPES)
-                .map(type -> type.getDatabaseFile().getName())
-                .collect(Collectors.toSet());
+    private void manuallyCountTotalMappedFileSize(
+            Path dir, MutableLong result, NativeIndexFileFilter nativeIndexFilter, Set<String> storeFiles)
+            throws IOException {
         try (DirectoryStream<Path> paths = Files.newDirectoryStream(dir)) {
             for (Path path : paths) {
                 if (Files.isDirectory(path)) {
-                    manuallyCountTotalMappedFileSize(path, result, nativeIndexFilter);
+                    manuallyCountTotalMappedFileSize(path, result, nativeIndexFilter, storeFiles);
                 } else if (storeFiles.contains(path.getFileName().toString()) || nativeIndexFilter.test(path)) {
                     try {
                         result.add(Files.size(path));

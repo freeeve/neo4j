@@ -194,7 +194,6 @@ import org.neo4j.storageengine.api.ReadableStorageEngine;
 import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StorageReader;
-import org.neo4j.storageengine.api.StoreFileMetadata;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionIdStore;
 import org.neo4j.storageengine.api.enrichment.ApplyEnrichmentStrategy;
@@ -1200,7 +1199,7 @@ public class Database extends AbstractDatabase {
     }
 
     @Override
-    public ResourceIterator<StoreFileMetadata> listStoreFiles(boolean includeLogs) throws IOException {
+    public ResourceIterator<Path> listStoreFiles(boolean includeLogs) throws IOException {
         StoreFileListing.Builder fileListingBuilder = getStoreFileListing().builder();
         fileListingBuilder.excludeIdFiles();
         if (!includeLogs) {

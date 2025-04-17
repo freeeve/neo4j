@@ -43,7 +43,6 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.LatestCheckpointInfo;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.StoreCopyCheckPointMutex;
 import org.neo4j.logging.internal.DatabaseLogProvider;
-import org.neo4j.storageengine.api.StoreFileMetadata;
 import org.neo4j.storageengine.api.StoreResource;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -82,7 +81,7 @@ class DefaultStoreSnapshotFactoryTest {
 
     @Test
     void shouldHandleEmptyListOfFilesForEachType() throws Exception {
-        setExpectedFiles(new StoreFileMetadata[0]);
+        setExpectedFiles(new Path[0]);
         var prepareStoreCopyFiles =
                 defaultStoreSnapshotFactory.createStoreSnapshot().get();
         var files = prepareStoreCopyFiles.recoverableFiles();
@@ -92,7 +91,7 @@ class DefaultStoreSnapshotFactoryTest {
         assertEquals(0, atomicFilesSnapshotLength);
     }
 
-    private void setExpectedFiles(StoreFileMetadata[] expectedFiles) throws IOException {
+    private void setExpectedFiles(Path[] expectedFiles) throws IOException {
         doAnswer(invocation -> Iterators.asResourceIterator(Iterators.iterator(expectedFiles)))
                 .when(fileListingBuilder)
                 .build();
@@ -101,10 +100,7 @@ class DefaultStoreSnapshotFactoryTest {
     @Test
     void shouldReturnExpectedListOfFileNamesForEachType() throws Exception {
         // given
-        var expectedFiles = new StoreFileMetadata[] {
-            new StoreFileMetadata(databaseLayout.file(Path.of("a"))),
-            new StoreFileMetadata(databaseLayout.file(Path.of("b")))
-        };
+        var expectedFiles = new Path[] {databaseLayout.file(Path.of("a")), databaseLayout.file(Path.of("b"))};
         setExpectedFiles(expectedFiles);
 
         // when
@@ -114,10 +110,9 @@ class DefaultStoreSnapshotFactoryTest {
         var atomicFilesSnapshot = prepareStoreCopyFiles.unrecoverableFiles().toArray(StoreResource[]::new);
 
         // then
-        var expectedFilesConverted =
-                Arrays.stream(expectedFiles).map(StoreFileMetadata::path).toArray(Path[]::new);
+        var expectedFilesConverted = Arrays.stream(expectedFiles).toArray(Path[]::new);
         var expectedAtomicFilesConverted = Arrays.stream(expectedFiles)
-                .map(f -> new StoreResource(f.path(), getRelativePath(f), testDirectory.getFileSystem()))
+                .map(f -> new StoreResource(f, getRelativePath(f), testDirectory.getFileSystem()))
                 .toArray(StoreResource[]::new);
         assertArrayEquals(expectedFilesConverted, files);
         assertEquals(expectedAtomicFilesConverted.length, atomicFilesSnapshot.length);
@@ -145,7 +140,7 @@ class DefaultStoreSnapshotFactoryTest {
         checkpointMutex.close();
     }
 
-    private String getRelativePath(StoreFileMetadata f) {
-        return databaseLayout.databaseDirectory().relativize(f.path()).toString();
+    private String getRelativePath(Path f) {
+        return databaseLayout.databaseDirectory().relativize(f).toString();
     }
 }

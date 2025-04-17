@@ -34,13 +34,11 @@ import static org.neo4j.lock.LockType.EXCLUSIVE;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -62,7 +60,7 @@ import org.neo4j.monitoring.DatabaseHealth;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.storageengine.api.StorageCommand;
 import org.neo4j.storageengine.api.StorageEngineTransaction;
-import org.neo4j.storageengine.api.StoreFileMetadata;
+import org.neo4j.storageengine.api.StorageFileSelection;
 import org.neo4j.storageengine.api.TransactionApplicationMode;
 import org.neo4j.storageengine.api.cursor.StoreCursors;
 import org.neo4j.storageengine.util.IdGeneratorUpdatesWorkSync;
@@ -150,20 +148,17 @@ class RecordStorageEngineTest {
         RecordStorageEngine engine = recordStorageEngineBuilder().build();
 
         // when
-        Collection<StoreFileMetadata> atomicFiles = new ArrayList<>();
-        Collection<StoreFileMetadata> replayableFiles = new ArrayList<>();
-        engine.listStorageFiles(atomicFiles, replayableFiles);
-        Collection<StoreFileMetadata> allFiles = new ArrayList<>();
-        allFiles.addAll(atomicFiles);
-        allFiles.addAll(replayableFiles);
-        Set<Path> currentFiles = allFiles.stream().map(StoreFileMetadata::path).collect(Collectors.toSet());
+        Collection<Path> allFiles = engine.listStorageFiles(new StorageFileSelection(true, true, false));
+        Set<Path> currentFiles = new HashSet<>(allFiles);
 
         // then
-        Set<Path> allPossibleFiles = new HashSet<>(databaseLayout.storeFiles());
+        Set<Path> allPossibleFiles =
+                new HashSet<>(new HashSet<>(engine.listStorageFiles(new StorageFileSelection(true, true, false))));
         allPossibleFiles.remove(databaseLayout.indexStatisticsStore());
 
         assertEquals(allPossibleFiles, currentFiles);
-        assertThat(atomicFiles.stream().map(StoreFileMetadata::path).collect(Collectors.toSet()))
+        Collection<Path> atomicFiles = engine.listStorageFiles(new StorageFileSelection(true, false, false));
+        assertThat(new HashSet<>(atomicFiles))
                 .isEqualTo(Set.of(databaseLayout.countStore(), databaseLayout.relationshipGroupDegreesStore()));
     }
 

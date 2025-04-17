@@ -27,9 +27,9 @@ import static org.neo4j.kernel.impl.storemigration.StoreMigratorFileOperation.fi
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.Collection;
 import org.apache.logging.log4j.core.util.NullOutputStream;
-import org.eclipse.collections.api.factory.Sets;
 import org.neo4j.batchimport.api.AdditionalInitialIds;
 import org.neo4j.batchimport.api.BatchImporter;
 import org.neo4j.batchimport.api.Configuration;
@@ -270,9 +270,7 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
             toplevelIndexFolder = toplevelIndexFolder.getParent();
         }
         Path profiles = dir.databaseDirectory().resolve("profiles");
-        Set<Path> storeFiles = Sets.mutable.of(dir.storeFiles().toArray(new Path[] {}));
-        Set<Path> idFiles = dir.idFiles();
-        storeFiles.addAll(idFiles);
+        Collection<Path> storeFiles = new ArrayList<>(srcStorageEngine.listStorageFiles(fileSystem, dir));
         storeFiles.add(toplevelIndexFolder);
         storeFiles.add(profiles);
         // If migrating from <5 the legacy token indexes are not in the index folder
@@ -289,9 +287,7 @@ public class AcrossEngineMigrationParticipant extends AbstractStoreMigrationPart
 
         // Move the migrated ones into the store directory
         Path migIndexFolder = IndexDirectoryStructure.baseSchemaIndexFolder(mig.databaseDirectory());
-        storeFiles = Sets.mutable.of(mig.storeFiles().toArray(new Path[] {}));
-        idFiles = mig.idFiles();
-        storeFiles.addAll(idFiles);
+        storeFiles = targetStorageEngine.listStorageFiles(fileSystem, mig);
         fileOperation(
                 MOVE,
                 fileSystem,

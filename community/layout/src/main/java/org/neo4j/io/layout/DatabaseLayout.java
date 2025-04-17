@@ -21,7 +21,6 @@ package org.neo4j.io.layout;
 
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Stream;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -80,15 +79,6 @@ public interface DatabaseLayout {
 
     Path pathForStore(CommonDatabaseStores store);
 
-    Set<Path> idFiles();
-
-    Set<Path> storeFiles();
-
-    /**
-     * @return the store files required to be present for a database to be able to be recovered
-     */
-    Set<Path> mandatoryStoreFiles();
-
     Optional<Path> idFile(DatabaseFile file);
 
     /**
@@ -99,4 +89,8 @@ public interface DatabaseLayout {
     Path file(DatabaseFile databaseFile);
 
     Stream<Path> allFiles(DatabaseFile databaseFile);
+
+    default boolean isIdFile(Path file) {
+        return file.getFileName().toString().endsWith(".id");
+    }
 }
