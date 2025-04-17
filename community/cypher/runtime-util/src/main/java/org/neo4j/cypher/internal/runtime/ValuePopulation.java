@@ -87,6 +87,7 @@ public final class ValuePopulation {
             RelationshipScanCursor relCursor,
             PropertyCursor propertyCursor,
             MemoryTracker memoryTracker) {
+        assert value != null : "value should not be null";
         return switch (value) {
             case VirtualNodeValue node -> populate(node, dbAccess, nodeCursor, propertyCursor);
             case VirtualRelationshipValue relationship -> populate(relationship, dbAccess, relCursor, propertyCursor);

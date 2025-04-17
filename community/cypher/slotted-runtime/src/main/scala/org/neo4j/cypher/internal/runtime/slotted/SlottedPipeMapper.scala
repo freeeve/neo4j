@@ -87,6 +87,7 @@ import org.neo4j.cypher.internal.logical.plans.ForeachApply
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
 import org.neo4j.cypher.internal.logical.plans.InjectCompilationError
 import org.neo4j.cypher.internal.logical.plans.IntersectionNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.LeftOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.Limit
 import org.neo4j.cypher.internal.logical.plans.LoadCSV
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -131,6 +132,7 @@ import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
+import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.RollUpApply
 import org.neo4j.cypher.internal.logical.plans.SelectOrAntiSemiApply
 import org.neo4j.cypher.internal.logical.plans.SelectOrSemiApply
@@ -209,6 +211,8 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyLabel
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyPropertyKey
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.LazyType
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.MergePipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeLeftOuterHashJoinPipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.NodeRightOuterHashJoinPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.OrderedAggregationPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PartialSortPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.PartialTop1Pipe
@@ -233,7 +237,6 @@ import org.neo4j.cypher.internal.runtime.slotted
 import org.neo4j.cypher.internal.runtime.slotted.SlottedPipeMapper.DistinctAllPrimitive
 import org.neo4j.cypher.internal.runtime.slotted.SlottedPipeMapper.DistinctWithReferences
 import org.neo4j.cypher.internal.runtime.slotted.SlottedPipeMapper.computeSlotMappings
-import org.neo4j.cypher.internal.runtime.slotted.SlottedPipeMapper.computeSlotsDifference
 import org.neo4j.cypher.internal.runtime.slotted.SlottedPipeMapper.createProjectionForVariable
 import org.neo4j.cypher.internal.runtime.slotted.SlottedPipeMapper.createProjectionsForResult
 import org.neo4j.cypher.internal.runtime.slotted.SlottedPipeMapper.findDistinctPhysicalOp
@@ -1395,7 +1398,7 @@ class SlottedPipeMapper(
         )(id = id)
 
       case Optional(inner, symbols) =>
-        val nullableSlots = computeSlotsDifference(inner.availableSymbols, symbols, slots)
+        val nullableSlots = computeSlotsDifference(inner.id, symbols.map(slots(_).slot))
         OptionalSlottedPipe(source, nullableSlots)(id)
 
       case Projection(_, expressions) =>
@@ -1853,7 +1856,7 @@ class SlottedPipeMapper(
         )
         val longOffsets = longIds.map(e => slots.longOffset(e))
         val refOffsets = refIds.map(e => slots.refOffset(e))
-        val nullableSlots = computeSlotsDifference(right.availableSymbols, left.availableSymbols, slots)
+        val nullableSlots = computeSlotsDifference(right.id, left.id)
         ConditionalApplySlottedPipe(lhs, rhs, longOffsets.toArray, refOffsets.toArray, slots, nullableSlots)(id)
 
       case AntiConditionalApply(left, right, items) =>
@@ -1869,7 +1872,7 @@ class SlottedPipeMapper(
         )
         val longOffsets = longIds.map(e => slots.longOffset(e))
         val refOffsets = refIds.map(e => slots.refOffset(e))
-        val nullableSlots = computeSlotsDifference(right.availableSymbols, left.availableSymbols, slots)
+        val nullableSlots = computeSlotsDifference(right.id, left.id)
         AntiConditionalApplySlottedPipe(lhs, rhs, longOffsets.toArray, refOffsets.toArray, slots, nullableSlots)(id)
 
       case ForeachApply(_, _, variable, expression) =>
@@ -1916,8 +1919,10 @@ class SlottedPipeMapper(
           rhs,
           expressionConverters.toCommandExpression(id, batchSize),
           onErrorBehaviour,
-          (rhsPlan.availableSymbols.map(_.name) -- lhsPlan.availableSymbols.map(_.name)).map(n => slots(n).slot),
-          maybeReportAs.map(n => slots(n).slot),
+          physicalPlan.variableSlots(rhsPlan.id) -- physicalPlan.variableSlots(lhsPlan.id) -- maybeReportAs.map(
+            slots(_).slot
+          ).toSet,
+          maybeReportAs.map(slots(_).slot),
           argumentSize,
           computeTransactionRetryPolicy(
             onErrorBehaviour,
@@ -1964,7 +1969,7 @@ class SlottedPipeMapper(
           expressionConverters.toCommandExpression(id, batchSize),
           maybeConcurrency.map(expressionConverters.toCommandExpression(id, _)),
           onErrorBehaviour,
-          (rhsPlan.availableSymbols.map(_.name) -- lhsPlan.availableSymbols.map(_.name)).map(n => slots(n).slot),
+          physicalPlan.variableSlots(rhsPlan.id) -- physicalPlan.variableSlots(lhsPlan.id),
           maybeReportAs.map(n => slots(n).slot),
           argumentSize,
           computeTransactionRetryPolicy(
@@ -2099,6 +2104,16 @@ class SlottedPipeMapper(
           reverseGroupVariableProjections,
           nodeInScope
         )(id = id)
+
+      // same as fallback but don't use LogicalPlan.availableSymbols since we have slotted variables
+      case LeftOuterHashJoin(nodes, l, r) =>
+        val nullableVariables = physicalPlan.variableNames(r.id) -- physicalPlan.variableNames(l.id)
+        NodeLeftOuterHashJoinPipe(nodes.map(_.name), lhs, rhs, nullableVariables)(id = id)
+
+      // same as fallback but don't use LogicalPlan.availableSymbols since we have slotted variables
+      case RightOuterHashJoin(nodes, l, r) =>
+        val nullableVariables = physicalPlan.variableNames(l.id) -- physicalPlan.variableNames(r.id)
+        NodeRightOuterHashJoinPipe(nodes.map(_.name), lhs, rhs, nullableVariables)(id = id)
 
       case _ =>
         fallback.onTwoChildPlan(plan, lhs, rhs)
@@ -2324,6 +2339,12 @@ class SlottedPipeMapper(
     }
     true
   }
+
+  private def computeSlotsDifference(left: Id, right: Id): Array[Slot] =
+    computeSlotsDifference(left, physicalPlan.variableSlots(right))
+
+  private def computeSlotsDifference(left: Id, right: Set[Slot]): Array[Slot] =
+    (physicalPlan.variableSlots(left) -- right).toArray
 }
 
 object SlottedPipeMapper {
@@ -2685,15 +2706,5 @@ object SlottedPipeMapper {
     val unorderedGroupingColumns =
       expressionConverters.toGroupingExpression(id, unorderedGroupingExpressions, orderToLeverage)
     (orderedGroupingColumns, unorderedGroupingColumns)
-  }
-
-  def computeSlotsDifference(
-    left: Set[LogicalVariable],
-    right: Set[LogicalVariable],
-    slotConfiguration: SlotConfiguration
-  ): Array[Slot] = {
-    val leftSlots = left.map(slotConfiguration(_).slot)
-    val rightSlots = right.map(slotConfiguration(_).slot)
-    (leftSlots -- rightSlots).toArray
   }
 }
