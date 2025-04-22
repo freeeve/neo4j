@@ -49,7 +49,7 @@ import org.neo4j.internal.kernel.api.procs.ProcedureCallContext;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.kernel.api.impl.fulltext.FulltextAdapter;
+import org.neo4j.kernel.api.impl.schema.fulltext.FulltextAdapter;
 import org.neo4j.kernel.api.procedure.SystemProcedure;
 import org.neo4j.kernel.api.txstate.TxStateHolder;
 import org.neo4j.kernel.impl.api.index.IndexingService;

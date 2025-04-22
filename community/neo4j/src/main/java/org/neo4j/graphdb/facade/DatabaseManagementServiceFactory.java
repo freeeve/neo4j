@@ -78,7 +78,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.database.DatabaseSizeServiceImpl;
-import org.neo4j.kernel.api.impl.fulltext.FulltextAdapter;
+import org.neo4j.kernel.api.impl.schema.fulltext.FulltextAdapter;
 import org.neo4j.kernel.api.procedure.Context;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.api.security.provider.SecurityProvider;

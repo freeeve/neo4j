@@ -57,8 +57,8 @@ import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.SchemaDescriptors
 import org.neo4j.internal.schema.SettingsAccessor.IndexConfigAccessor
 import org.neo4j.internal.schema.constraints.ConstraintDescriptorFactory
-import org.neo4j.kernel.api.impl.fulltext.analyzer.providers.StandardNoStopWords
-import org.neo4j.kernel.api.impl.fulltext.analyzer.providers.UrlOrEmail
+import org.neo4j.kernel.api.impl.schema.fulltext.analyzer.providers.StandardNoStopWords
+import org.neo4j.kernel.api.impl.schema.fulltext.analyzer.providers.UrlOrEmail
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexVersion
 import org.neo4j.kernel.api.index.IndexUsageStats
 import org.neo4j.values.AnyValue

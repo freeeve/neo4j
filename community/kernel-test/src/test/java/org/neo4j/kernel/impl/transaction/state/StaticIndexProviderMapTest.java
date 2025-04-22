@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.collection.Dependencies;
 import org.neo4j.internal.schema.IndexProviderDescriptor;
 import org.neo4j.internal.schema.IndexType;
-import org.neo4j.kernel.api.impl.fulltext.FulltextIndexProvider;
+import org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexProvider;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.kernel.api.impl.schema.trigram.TrigramIndexProvider;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexProvider;

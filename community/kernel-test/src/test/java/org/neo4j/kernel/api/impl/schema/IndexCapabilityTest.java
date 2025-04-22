@@ -56,7 +56,7 @@ import org.neo4j.graphdb.schema.IndexSettingUtil;
 import org.neo4j.graphdb.schema.IndexType;
 import org.neo4j.internal.schema.IndexCapability;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
-import org.neo4j.kernel.api.impl.fulltext.FulltextIndexCapability;
+import org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexCapability;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.kernel.api.impl.schema.trigram.TrigramIndexProvider;
 import org.neo4j.kernel.api.impl.schema.vector.VectorIndexProvider;

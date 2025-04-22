@@ -19,12 +19,13 @@
  */
 package org.neo4j.kernel.api.impl.fulltext;
 
-import static org.neo4j.kernel.api.impl.fulltext.FulltextIndexSettingsKeys.ANALYZER;
+import static org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexSettingsKeys.ANALYZER;
 
 import java.util.Arrays;
 import java.util.Map;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
+import org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexSettingsKeys;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
