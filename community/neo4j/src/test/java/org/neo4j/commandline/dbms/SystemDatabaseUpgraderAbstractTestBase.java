@@ -64,21 +64,20 @@ public abstract class SystemDatabaseUpgraderAbstractTestBase {
                 NullLogProvider.getInstance(),
                 NullLogProvider.getInstance());
 
-        var dbms = dbmsBuilder(homeDirectory)
+        try (var dbms = dbmsBuilder(homeDirectory)
                 .setConfig(BoltConnector.enabled, FALSE)
                 .setConfig(GraphDatabaseInternalSettings.automatic_upgrade_enabled, FALSE)
                 .setConfig(GraphDatabaseSettings.pagecache_memory, ByteUnit.mebiBytes(8))
                 .setConfig(baseConfig())
-                .build();
+                .build()) {
 
-        var systemDatabase = dbms.database(SYSTEM_DATABASE_NAME);
-        var systemGraphComponents = ((GraphDatabaseAPI) systemDatabase)
-                .getDependencyResolver()
-                .resolveDependency(SystemGraphComponents.class);
+            var systemDatabase = dbms.database(SYSTEM_DATABASE_NAME);
+            var systemGraphComponents = ((GraphDatabaseAPI) systemDatabase)
+                    .getDependencyResolver()
+                    .resolveDependency(SystemGraphComponents.class);
 
-        assertThat(systemGraphComponents.detect(systemDatabase)).isEqualTo(Status.CURRENT);
-
-        dbms.shutdown();
+            assertThat(systemGraphComponents.detect(systemDatabase)).isEqualTo(Status.CURRENT);
+        }
     }
 
     protected Config getConfig(Path homeDirectory) {
