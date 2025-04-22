@@ -28,7 +28,11 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.DateType
 import org.neo4j.cypher.internal.util.symbols.DurationType
+import org.neo4j.cypher.internal.util.symbols.Float32Type
 import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.Integer16Type
+import org.neo4j.cypher.internal.util.symbols.Integer32Type
+import org.neo4j.cypher.internal.util.symbols.Integer8Type
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.ListType
 import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType
@@ -43,6 +47,7 @@ import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.RelationshipType
 import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.VectorType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
 import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
@@ -2062,9 +2067,12 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     ("VARCHAR", StringType(isNullable = true)(pos)),
     ("STRING", StringType(isNullable = true)(pos)),
     ("INTEGER", IntegerType(isNullable = true)(pos)),
+    ("INTEGER64", IntegerType(isNullable = true)(pos)),
     ("INT", IntegerType(isNullable = true)(pos)),
+    ("INT64", IntegerType(isNullable = true)(pos)),
     ("SIGNED INTEGER", IntegerType(isNullable = true)(pos)),
     ("FLOAT", FloatType(isNullable = true)(pos)),
+    ("FLOAT64", FloatType(isNullable = true)(pos)),
     ("DATE", DateType(isNullable = true)(pos)),
     ("LOCAL TIME", LocalTimeType(isNullable = true)(pos)),
     ("TIME WITHOUT TIMEZONE", LocalTimeType(isNullable = true)(pos)),
@@ -2075,7 +2083,25 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     ("ZONED DATETIME", ZonedDateTimeType(isNullable = true)(pos)),
     ("TIMESTAMP WITH TIMEZONE", ZonedDateTimeType(isNullable = true)(pos)),
     ("DURATION", DurationType(isNullable = true)(pos)),
-    ("POINT", PointType(isNullable = true)(pos))
+    ("POINT", PointType(isNullable = true)(pos)),
+    ("VECTOR<INT32>(3)", VectorType(Some(Integer32Type(isNullable = false)(pos)), Some(3), isNullable = true)(pos))
+  )
+
+  // coordinate types allowed inside vectors
+  private val allowedInnerVectorTypes = Seq(
+    ("INT8", Integer8Type(isNullable = false)(pos)),
+    ("INTEGER8", Integer8Type(isNullable = false)(pos)),
+    ("INT16", Integer16Type(isNullable = false)(pos)),
+    ("INTEGER16", Integer16Type(isNullable = false)(pos)),
+    ("INT32", Integer32Type(isNullable = false)(pos)),
+    ("INTEGER32", Integer32Type(isNullable = false)(pos)),
+    ("INT64", IntegerType(isNullable = false)(pos)),
+    ("INTEGER64", IntegerType(isNullable = false)(pos)),
+    ("INT", IntegerType(isNullable = false)(pos)),
+    ("INTEGER", IntegerType(isNullable = false)(pos)),
+    ("FLOAT32", Float32Type(isNullable = false)(pos)),
+    ("FLOAT64", FloatType(isNullable = false)(pos)),
+    ("FLOAT", FloatType(isNullable = false)(pos))
   )
 
   // disallowed single types (throws in semantic checking)
@@ -2103,6 +2129,22 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     ("TIMESTAMP WITH TIMEZONE NOT NULL", ZonedDateTimeType(isNullable = false)(pos)),
     ("DURATION NOT NULL", DurationType(isNullable = false)(pos)),
     ("POINT NOT NULL", PointType(isNullable = false)(pos)),
+    // Missing dimension
+    ("VECTOR<INTEGER64>", VectorType(Some(IntegerType(isNullable = false)(pos)), None, isNullable = true)(pos)),
+    // Missing coordinate type
+    ("VECTOR(77)", VectorType(None, Some(77), isNullable = true)(pos)),
+    // Missing dimension and coordinate type
+    ("VECTOR", VectorType(None, None, isNullable = true)(pos)),
+    // Too large dimension
+    (
+      "VECTOR<FLOAT32>(4097)",
+      VectorType(Some(Float32Type(isNullable = false)(pos)), Some(4097), isNullable = true)(pos)
+    ),
+    // Outer NOT NULL
+    (
+      "VECTOR<INT8>(1) NOT NULL",
+      VectorType(Some(Integer8Type(isNullable = false)(pos)), Some(1), isNullable = false)(pos)
+    ),
     ("NODE", NodeType(isNullable = true)(pos)),
     ("NODE NOT NULL", NodeType(isNullable = false)(pos)),
     ("ANY NODE", NodeType(isNullable = true)(pos)),
@@ -2495,6 +2537,13 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     )
   )
 
+  val cypher25OnlyTypes: Seq[String] = Seq(
+    "INT64",
+    "INTEGER64",
+    "FLOAT64",
+    "VECTOR"
+  )
+
   allowedNonListSingleTypes.foreach { case (typeString, typeExpr: CypherType) =>
     test(s"CREATE CONSTRAINT FOR (n:Label) REQUIRE r.prop IS TYPED $typeString") {
       assertAst(
@@ -2506,7 +2555,8 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           None,
           ast.IfExistsThrowError,
           ast.NoOptions
-        )(pos)
+        )(pos),
+        supportedInCypher5 = !cypher25OnlyTypes.exists(typeString.contains(_))
       )
     }
 
@@ -2522,7 +2572,8 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Some("my_constraint"),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )(pos)
+        )(pos),
+        supportedInCypher5 = !cypher25OnlyTypes.exists(typeString.contains(_))
       )
     }
 
@@ -2536,7 +2587,8 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           None,
           ast.IfExistsThrowError,
           ast.NoOptions
-        )(pos)
+        )(pos),
+        supportedInCypher5 = !cypher25OnlyTypes.exists(typeString.contains(_))
       )
     }
 
@@ -2552,7 +2604,74 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Some("my_constraint"),
           ast.IfExistsThrowError,
           ast.NoOptions
-        )(pos)
+        )(pos),
+        supportedInCypher5 = !cypher25OnlyTypes.exists(typeString.contains(_))
+      )
+    }
+  }
+
+  allowedInnerVectorTypes.foreach { case (coordinateType, typeExpr: CypherType) =>
+    // Node property type constraint, Cypher style syntax
+    test(s"CREATE CONSTRAINT name FOR (n:Label) REQUIRE n.prop IS TYPED VECTOR<$coordinateType>(2)") {
+      assertAst(
+        ast.CreateConstraint.createNodePropertyTypeConstraint(
+          varFor("n"),
+          labelName("Label"),
+          prop("n", "prop"),
+          VectorType(Some(typeExpr), Some(2), isNullable = true)(pos),
+          Some("name"),
+          ast.IfExistsThrowError,
+          ast.NoOptions
+        )(pos),
+        supportedInCypher5 = false
+      )
+    }
+
+    // Node property type constraint, GQL style syntax and explicit inner NOT NULL
+    test(s"CREATE CONSTRAINT name FOR (n:Label) REQUIRE n.prop IS TYPED VECTOR(512, $coordinateType NOT NULL)") {
+      assertAst(
+        ast.CreateConstraint.createNodePropertyTypeConstraint(
+          varFor("n"),
+          labelName("Label"),
+          prop("n", "prop"),
+          VectorType(Some(typeExpr), Some(512), isNullable = true)(pos),
+          Some("name"),
+          ast.IfExistsThrowError,
+          ast.NoOptions
+        )(pos),
+        supportedInCypher5 = false
+      )
+    }
+
+    // Relationship property type constraint, Cypher style syntax and explicit inner NOT NULL
+    test(s"CREATE CONSTRAINT FOR ()-[r:R]-() REQUIRE r.prop IS :: VECTOR<$coordinateType NOT NULL>(1032)") {
+      assertAst(
+        ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
+          varFor("r"),
+          relTypeName("R"),
+          prop("r", "prop"),
+          VectorType(Some(typeExpr), Some(1032), isNullable = true)(pos),
+          None,
+          ast.IfExistsThrowError,
+          ast.NoOptions
+        )(pos),
+        supportedInCypher5 = false
+      )
+    }
+
+    // Relationship property type constraint, GQL style syntax
+    test(s"CREATE CONSTRAINT FOR ()-[r:R]-() REQUIRE r.prop IS :: VECTOR(5, $coordinateType)") {
+      assertAst(
+        ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
+          varFor("r"),
+          relTypeName("R"),
+          prop("r", "prop"),
+          VectorType(Some(typeExpr), Some(5), isNullable = true)(pos),
+          None,
+          ast.IfExistsThrowError,
+          ast.NoOptions
+        )(pos),
+        supportedInCypher5 = false
       )
     }
   }
@@ -2580,32 +2699,36 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR (n:Label) REQUIRE r.prop IS TYPED ${typeString.toLowerCase}"
     ) {
-      assertAstVersionBased(fromCypher5 =>
-        ast.CreateConstraint.createNodePropertyTypeConstraint(
-          varFor("n"),
-          labelName("Label"),
-          prop("r", "prop"),
-          getCorrectCypherVersionOfType(fromCypher5, typeExpr),
-          Some("my_constraint"),
-          ast.IfExistsThrowError,
-          ast.NoOptions
-        )(pos)
+      assertAstVersionBased(
+        fromCypher5 =>
+          ast.CreateConstraint.createNodePropertyTypeConstraint(
+            varFor("n"),
+            labelName("Label"),
+            prop("r", "prop"),
+            getCorrectCypherVersionOfType(fromCypher5, typeExpr),
+            Some("my_constraint"),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
+        supportedInCypher5 = !cypher25OnlyTypes.exists(typeString.contains(_))
       )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() REQUIRE n.prop IS TYPED $typeString"
     ) {
-      assertAstVersionBased(fromCypher5 =>
-        ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
-          varFor("r"),
-          relTypeName("R"),
-          prop("n", "prop"),
-          getCorrectCypherVersionOfType(fromCypher5, typeExpr),
-          Some("my_constraint"),
-          ast.IfExistsThrowError,
-          ast.NoOptions
-        )(pos)
+      assertAstVersionBased(
+        fromCypher5 =>
+          ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
+            varFor("r"),
+            relTypeName("R"),
+            prop("n", "prop"),
+            getCorrectCypherVersionOfType(fromCypher5, typeExpr),
+            Some("my_constraint"),
+            ast.IfExistsThrowError,
+            ast.NoOptions
+          )(pos),
+        supportedInCypher5 = !cypher25OnlyTypes.exists(typeString.contains(_))
       )
     }
   }
@@ -2614,7 +2737,6 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR (n:Label) REQUIRE r.prop IS TYPED ${listTypeString.toLowerCase}"
     ) {
-      // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
         fromCypher5 =>
           ast.Statements(Seq(ast.CreateConstraint.createNodePropertyTypeConstraint(
@@ -2626,14 +2748,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             ast.IfExistsThrowError,
             ast.NoOptions
           )(pos))),
-        comparePosition = false
+        comparePosition = false,
+        supportedInCypher5 = !cypher25OnlyTypes.exists(listTypeString.contains(_))
       )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() REQUIRE n.prop IS TYPED $listTypeString"
     ) {
-      // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
         fromCypher5 =>
           ast.Statements(Seq(ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
@@ -2645,7 +2767,8 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             ast.IfExistsThrowError,
             ast.NoOptions
           )(pos))),
-        comparePosition = false
+        comparePosition = false,
+        supportedInCypher5 = !cypher25OnlyTypes.exists(listTypeString.contains(_))
       )
     }
   }
@@ -2654,7 +2777,6 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     test(
       s"CREATE CONSTRAINT my_constraint FOR (n:Label) REQUIRE r.prop IS TYPED ${unionTypeString.toLowerCase}"
     ) {
-      // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
         fromCypher5 =>
           ast.Statements(Seq(ast.CreateConstraint.createNodePropertyTypeConstraint(
@@ -2666,14 +2788,14 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             ast.IfExistsThrowError,
             ast.NoOptions
           )(pos))),
-        comparePosition = false
+        comparePosition = false,
+        supportedInCypher5 = !cypher25OnlyTypes.exists(unionTypeString.contains(_))
       )
     }
 
     test(
       s"CREATE CONSTRAINT my_constraint FOR ()-[r:R]-() REQUIRE n.prop IS TYPED $unionTypeString"
     ) {
-      // kept the version based as it takes in Statements instead of single Statement
       assertAstVersionBased(
         fromCypher5 =>
           ast.Statements(Seq(ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
@@ -2685,7 +2807,8 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
             ast.IfExistsThrowError,
             ast.NoOptions
           )(pos))),
-        comparePosition = false
+        comparePosition = false,
+        supportedInCypher5 = !cypher25OnlyTypes.exists(unionTypeString.contains(_))
       )
     }
   }
@@ -3165,6 +3288,34 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
       """Invalid input 'EAN': expected '!', 'ARRAY', 'LIST', 'NOT NULL', 'OPTIONS', '|' or <EOF> (line 1, column 52 (offset: 51))
         |"CREATE CONSTRAINT FOR (n:L) REQUIRE n.p IS :: BOOL EAN"
         |                                                    ^""".stripMargin
+    )
+  }
+
+  test("CREATE CONSTRAINT typeConstraint FOR (n:Label) REQUIRE n.prop IS :: VECTOR<INT32>(-2)") {
+    // Negative dimension
+    failsParsing[ast.Statements].in {
+      case Cypher5 => _.withSyntaxErrorContaining(
+          "Invalid input 'VECTOR'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input 'VECTOR'",
+          fuzzyStatusDescr = true
+        )
+      case _ => _.withSyntaxErrorContaining(
+          "Invalid input '<'",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input '<'",
+          fuzzyStatusDescr = true
+        )
+    }
+  }
+
+  test("CREATE CONSTRAINT typeConstraint FOR (n:Label) REQUIRE n.prop IS :: INTEGER32") {
+    // Vector-only numeric coordinate type
+    failsParsing[ast.Statements].withSyntaxErrorContaining(
+      "Invalid input 'INTEGER32'",
+      GqlStatusInfoCodes.STATUS_42I06,
+      "error: syntax error or access rule violation - invalid input. Invalid input 'INTEGER32'",
+      fuzzyStatusDescr = true
     )
   }
 

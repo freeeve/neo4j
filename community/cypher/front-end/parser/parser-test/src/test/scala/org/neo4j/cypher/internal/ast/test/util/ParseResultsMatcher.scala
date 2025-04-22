@@ -119,11 +119,12 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
     message: String,
     causeGql: GqlStatusInfoCodes,
     causeStatusDescription: String,
-    position: Option[InputPosition] = None
+    position: Option[InputPosition] = None,
+    fuzzyStatusDescr: Boolean = false
   ): Self = {
     throws[SyntaxException]
       .withError(throwable => {
-        val gqlMatcher = InvalidSyntaxStatus.withCause(causeGql, causeStatusDescription)
+        val gqlMatcher = InvalidSyntaxStatus.withCause(causeGql, causeStatusDescription, fuzzyStatusDescr)
         val gqlMatcherWithMaybePos =
           position.map(pos => gqlMatcher.withPosition(pos.offset, pos.line, pos.column)).getOrElse(gqlMatcher)
         throwable.asInstanceOf[Exception] should be(

@@ -28,27 +28,47 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 import java.nio.charset.StandardCharsets
 
 class AdministrationAndSchemaCommandParserTestBase extends AstParsingTestBase {
 
-  protected def assertAst(expected: ast.Statement, comparePosition: Boolean = true): Unit = {
-    if (comparePosition) parses[ast.Statements].toAstPositioned(ast.Statements(Seq(expected)))
-    else parses[ast.Statements].toAst(ast.Statements(Seq(expected)))
-  }
+  protected def assertAst(
+    expected: ast.Statement,
+    comparePosition: Boolean = true,
+    supportedInCypher5: Boolean = true
+  ): Unit =
+    parsesIn[ast.Statements] {
+      case Cypher5 if !supportedInCypher5 =>
+        _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input ",
+          fuzzyStatusDescr = true
+        )
+      case _ if comparePosition => _.toAstPositioned(ast.Statements(Seq(expected)))
+      case _                    => _.toAst(ast.Statements(Seq(expected)))
+    }
 
-  protected def assertAstVersionBased(expected: Boolean => ast.Statements, comparePosition: Boolean = true): Unit =
-    if (comparePosition)
-      parsesIn[ast.Statements] {
-        case Cypher5 => _.toAstPositioned(expected(true))
-        case _       => _.toAstPositioned(expected(false))
-      }
-    else
-      parsesIn[ast.Statements] {
-        case Cypher5 => _.toAst(expected(true))
-        case _       => _.toAst(expected(false))
-      }
+  protected def assertAstVersionBased(
+    expected: Boolean => ast.Statements,
+    comparePosition: Boolean = true,
+    supportedInCypher5: Boolean = true
+  ): Unit =
+    parsesIn[ast.Statements] {
+      case Cypher5 if !supportedInCypher5 =>
+        _.withSyntaxErrorContaining(
+          "Invalid input ",
+          GqlStatusInfoCodes.STATUS_42I06,
+          "error: syntax error or access rule violation - invalid input. Invalid input ",
+          fuzzyStatusDescr = true
+        )
+      case Cypher5 if comparePosition => _.toAstPositioned(expected(true))
+      case Cypher5                    => _.toAst(expected(true))
+      case _ if comparePosition       => _.toAstPositioned(expected(false))
+      case _                          => _.toAst(expected(false))
+    }
 
   implicit val stringConvertor: String => Either[String, Parameter] = s => Left(s)
   implicit val rolenameConvertor: String => Expression = s => literalString(s)

@@ -224,6 +224,45 @@ class GqlExceptionMatcherTest extends CypherFunSuite {
     }
   }
 
+  test("should not pass on partial status description without fuzzy") {
+    expectFailure {
+      val exception = the[MyException] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .build()
+        throw MyException(gql, "my scary failure")
+      }
+      exception should be(gqlException(
+        "my scary failure",
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_00N50,
+          "note: successful completion - home database does not exist. The database "
+        )
+      ))
+    }
+  }
+
+  test("should pass on partial status description with fuzzy") {
+    expectSuccess {
+      val exception = the[MyException] thrownBy {
+        val gql = ErrorGqlStatusObjectImplementation
+          .from(GqlStatusInfoCodes.STATUS_00N50)
+          .withParam(GqlParams.StringParam.db, "foo")
+          .build()
+        throw MyException(gql, "my scary failure")
+      }
+      exception should be(gqlException(
+        "my scary failure",
+        gqlStatus(
+          GqlStatusInfoCodes.STATUS_00N50,
+          "note: successful completion - home database ",
+          fuzzyStatusDescr = true
+        )
+      ))
+    }
+  }
+
   test("should not pass on incorrect exception type") {
     expectFailure {
       val exception = the[RuntimeException] thrownBy {
