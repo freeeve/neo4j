@@ -165,6 +165,13 @@ class DatabaseUpgradeTransactionHandler {
                             checkKernelVersion,
                             dbmsRuntimeVersionProvider.getVersion().kernelVersion(),
                             max_concurrent_transactions.name());
+                } catch (Exception e) {
+                    log.info(
+                            "Upgrade transaction from %s to %s not possible right now due exception with message: '%s', will retry on next write",
+                            checkKernelVersion,
+                            dbmsRuntimeVersionProvider.getVersion().kernelVersion(),
+                            e);
+                    throw e;
                 }
             }
             return locker.acquireReadLock(tx); // This read lock will be released in afterCommit or afterRollback
