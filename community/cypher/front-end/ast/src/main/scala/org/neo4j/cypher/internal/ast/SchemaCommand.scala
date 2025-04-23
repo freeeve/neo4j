@@ -17,10 +17,10 @@
 package org.neo4j.cypher.internal.ast
 
 import org.neo4j.cypher.internal.CypherVersion
+import org.neo4j.cypher.internal.ast.semantics.CypherTypeChecking
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
-import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticExpressionCheck
 import org.neo4j.cypher.internal.expressions.DynamicLabelExpression
@@ -37,24 +37,9 @@ import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Type
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.symbols.BooleanType
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
-import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
-import org.neo4j.cypher.internal.util.symbols.DateType
-import org.neo4j.cypher.internal.util.symbols.DurationType
-import org.neo4j.cypher.internal.util.symbols.FloatType
-import org.neo4j.cypher.internal.util.symbols.IntegerType
-import org.neo4j.cypher.internal.util.symbols.ListType
-import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType
-import org.neo4j.cypher.internal.util.symbols.LocalTimeType
-import org.neo4j.cypher.internal.util.symbols.PointType
-import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
-import org.neo4j.cypher.internal.util.symbols.PropertyValueType
-import org.neo4j.cypher.internal.util.symbols.StringType
-import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
-import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -577,107 +562,14 @@ sealed trait CreateConstraint extends SchemaCommand {
       checkOptionsMap(s"${constraintType.description} constraint", options)
   }
 
-  private val allowedPropertyTypes = List(
-    BooleanType(isNullable = true)(InputPosition.NONE),
-    StringType(isNullable = true)(InputPosition.NONE),
-    IntegerType(isNullable = true)(InputPosition.NONE),
-    FloatType(isNullable = true)(InputPosition.NONE),
-    DateType(isNullable = true)(InputPosition.NONE),
-    LocalTimeType(isNullable = true)(InputPosition.NONE),
-    ZonedTimeType(isNullable = true)(InputPosition.NONE),
-    LocalDateTimeType(isNullable = true)(InputPosition.NONE),
-    ZonedDateTimeType(isNullable = true)(InputPosition.NONE),
-    DurationType(isNullable = true)(InputPosition.NONE),
-    PointType(isNullable = true)(InputPosition.NONE),
-    ListType(BooleanType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
-    ListType(StringType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
-    ListType(IntegerType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
-    ListType(FloatType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
-    ListType(DateType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
-    ListType(LocalTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
-    ListType(ZonedTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
-    ListType(LocalDateTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
-    ListType(ZonedDateTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
-    ListType(DurationType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
-    ListType(PointType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
-  )
-
   protected def checkPropertyTypes(
     originalPropertyType: CypherType,
     normalizedPropertyType: CypherType
-  ): SemanticCheck = {
-
-    def allowedTypesCheck = {
-      def anyPropertyValueType(pt: CypherType): Boolean = pt match {
-        case _: PropertyValueType        => true
-        case _: PropertyValueCypher5Type => true
-        case l: ListType                 => anyPropertyValueType(l.innerType)
-        case c: ClosedDynamicUnionType   => c.sortedInnerTypes.map(anyPropertyValueType).exists(b => b)
-        case _                           => false
-      }
-      val containsPropertyValueType = anyPropertyValueType(originalPropertyType)
-
-      val onlyAllowedTypes = normalizedPropertyType match {
-        case c: ClosedDynamicUnionType =>
-          c.sortedInnerTypes.forall(p => allowedPropertyTypes.contains(p.withPosition(InputPosition.NONE)))
-        case _ =>
-          allowedPropertyTypes.contains(normalizedPropertyType.withPosition(InputPosition.NONE))
-      }
-
-      if (containsPropertyValueType || !onlyAllowedTypes) {
-        def additionalErrorInfo(pt: CypherType): String = pt match {
-          case ListType(_: ListType, _) =>
-            " Lists cannot have lists as an inner type."
-          case ListType(_: ClosedDynamicUnionType, _) =>
-            " Lists cannot have a union of types as an inner type."
-          case ListType(inner, _) if inner.isNullable =>
-            " Lists cannot have nullable inner types."
-          case c: ClosedDynamicUnionType if c.sortedInnerTypes.exists(_.isInstanceOf[ListType]) =>
-            // If we have lists we want to check them for the above cases as well
-            // Unions within unions should have been flattened in parsing so won't be handled here
-            c.sortedInnerTypes.filter(_.isInstanceOf[ListType])
-              .map(additionalErrorInfo)
-              .find(_.nonEmpty)
-              .getOrElse("")
-          case _ => ""
-        }
-
-        // Don't expand the PROPERTY VALUE in error message as that makes it confusing as to why it's not allowed.
-        // Similarly, it shouldn't get any additional error messages for being a union in a list,
-        // in case of LIST<PROPERTY VALUE>, as that isn't the main reason for failure.
-        val (typeDescription, additionalError) =
-          if (containsPropertyValueType) (originalPropertyType.description, additionalErrorInfo(originalPropertyType))
-          else (normalizedPropertyType.description, additionalErrorInfo(normalizedPropertyType))
-
-        val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-          .withParam(GqlParams.StringParam.constrDescrOrName, constraintType.description + " constraint")
-          .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-            .withParam(GqlParams.StringParam.item, typeDescription)
-            .build())
-          .build()
-
-        error(
-          gql,
-          s"Failed to create ${constraintType.description} constraint: " +
-            s"Invalid property type `$typeDescription`.$additionalError",
-          originalPropertyType.position
-        )
-      } else SemanticCheck.success
-    }
-
-    // We want run the semantic checks for the types themselves, but the error messages might not make sense in this context
-    // There isn't much point telling users to make all their union types NOT NULL if that is not accepted here.
-    CypherTypeName(originalPropertyType).semanticCheck.map {
-      case r @ SemanticCheckResult(_, Nil) => r
-      case SemanticCheckResult(state, _) => SemanticCheckResult(
-          state,
-          Seq(SemanticError.propertyTypeUnsupportedInConstraint(
-            constraintType.description,
-            originalPropertyType
-          ))
-        )
-    } chain allowedTypesCheck
-  }
+  ): SemanticCheck = CypherTypeChecking.checkPropertyTypeForConstraint(
+    originalPropertyType,
+    normalizedPropertyType,
+    SemanticError.propertyTypeUnsupportedInConstraint(constraintType.description, _, _)
+  )
 }
 
 object CreateConstraint {

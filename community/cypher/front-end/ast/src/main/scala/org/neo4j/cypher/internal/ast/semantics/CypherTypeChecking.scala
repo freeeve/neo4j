@@ -1,0 +1,173 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.neo4j.cypher.internal.ast.semantics
+
+import org.neo4j.cypher.internal.ast.CypherTypeName
+import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.symbols.AnyType
+import org.neo4j.cypher.internal.util.symbols.BooleanType
+import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
+import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.cypher.internal.util.symbols.DateType
+import org.neo4j.cypher.internal.util.symbols.DurationType
+import org.neo4j.cypher.internal.util.symbols.FloatType
+import org.neo4j.cypher.internal.util.symbols.IntegerType
+import org.neo4j.cypher.internal.util.symbols.ListType
+import org.neo4j.cypher.internal.util.symbols.LocalDateTimeType
+import org.neo4j.cypher.internal.util.symbols.LocalTimeType
+import org.neo4j.cypher.internal.util.symbols.PointType
+import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
+import org.neo4j.cypher.internal.util.symbols.PropertyValueType
+import org.neo4j.cypher.internal.util.symbols.StringType
+import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
+import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
+
+object CypherTypeChecking extends SemanticAnalysisTooling {
+
+  private val allowedPropertyTypes = List(
+    BooleanType(isNullable = true)(InputPosition.NONE),
+    StringType(isNullable = true)(InputPosition.NONE),
+    IntegerType(isNullable = true)(InputPosition.NONE),
+    FloatType(isNullable = true)(InputPosition.NONE),
+    DateType(isNullable = true)(InputPosition.NONE),
+    LocalTimeType(isNullable = true)(InputPosition.NONE),
+    ZonedTimeType(isNullable = true)(InputPosition.NONE),
+    LocalDateTimeType(isNullable = true)(InputPosition.NONE),
+    ZonedDateTimeType(isNullable = true)(InputPosition.NONE),
+    DurationType(isNullable = true)(InputPosition.NONE),
+    PointType(isNullable = true)(InputPosition.NONE),
+    ListType(BooleanType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(StringType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(IntegerType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(FloatType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(DateType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(LocalTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(ZonedTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(LocalDateTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(ZonedDateTimeType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(DurationType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE),
+    ListType(PointType(isNullable = false)(InputPosition.NONE), isNullable = true)(InputPosition.NONE)
+  )
+
+  private val allowedPropertyTypesInGraphType = List(
+    AnyType(isNullable = false)(InputPosition.NONE),
+    BooleanType(isNullable = false)(InputPosition.NONE),
+    StringType(isNullable = false)(InputPosition.NONE),
+    IntegerType(isNullable = false)(InputPosition.NONE),
+    FloatType(isNullable = false)(InputPosition.NONE),
+    DateType(isNullable = false)(InputPosition.NONE),
+    LocalTimeType(isNullable = false)(InputPosition.NONE),
+    ZonedTimeType(isNullable = false)(InputPosition.NONE),
+    LocalDateTimeType(isNullable = false)(InputPosition.NONE),
+    ZonedDateTimeType(isNullable = false)(InputPosition.NONE),
+    DurationType(isNullable = false)(InputPosition.NONE),
+    PointType(isNullable = false)(InputPosition.NONE),
+    ListType(BooleanType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(StringType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(IntegerType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(FloatType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(DateType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(LocalTimeType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(ZonedTimeType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(LocalDateTimeType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(ZonedDateTimeType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(DurationType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE),
+    ListType(PointType(isNullable = false)(InputPosition.NONE), isNullable = false)(InputPosition.NONE)
+  ) ++ allowedPropertyTypes
+
+  def checkPropertyTypeForConstraint(
+    originalPropertyType: CypherType,
+    normalizedPropertyType: CypherType,
+    errorFn: (CypherType, String) => SemanticError
+  ): SemanticCheck = checkPropertyTypes(originalPropertyType, normalizedPropertyType, errorFn, allowedPropertyTypes)
+
+  /**
+   * Graph Types support NOT NULL variants, which will translate into a property type constraint and a property existence constraint
+   * Graph Types support ANY NOT NULL as an alias for a property existence constraint
+   * */
+  def checkPropertyTypeForGraphType(
+    originalPropertyType: CypherType,
+    normalizedPropertyType: CypherType,
+    errorFn: (CypherType, String) => SemanticError
+  ): SemanticCheck =
+    checkPropertyTypes(originalPropertyType, normalizedPropertyType, errorFn, allowedPropertyTypesInGraphType)
+
+  private def checkPropertyTypes(
+    originalPropertyType: CypherType,
+    normalizedPropertyType: CypherType,
+    errorFn: (CypherType, String) => SemanticError,
+    allowedTypes: List[CypherType]
+  ): SemanticCheck = {
+
+    def allowedTypesCheck = {
+      def anyPropertyValueType(pt: CypherType): Boolean = pt match {
+        case _: PropertyValueType        => true
+        case _: PropertyValueCypher5Type => true
+        case l: ListType                 => anyPropertyValueType(l.innerType)
+        case c: ClosedDynamicUnionType   => c.sortedInnerTypes.map(anyPropertyValueType).exists(b => b)
+        case _                           => false
+      }
+      val containsPropertyValueType = anyPropertyValueType(originalPropertyType)
+
+      val onlyAllowedTypes = normalizedPropertyType match {
+        case c: ClosedDynamicUnionType =>
+          c.sortedInnerTypes.forall(p => allowedTypes.contains(p.withPosition(InputPosition.NONE)))
+        case _ =>
+          allowedTypes.contains(normalizedPropertyType.withPosition(InputPosition.NONE))
+      }
+
+      if (containsPropertyValueType || !onlyAllowedTypes) {
+        def additionalErrorInfo(pt: CypherType): String = pt match {
+          case ListType(_: ListType, _) =>
+            " Lists cannot have lists as an inner type."
+          case ListType(_: ClosedDynamicUnionType, _) =>
+            " Lists cannot have a union of types as an inner type."
+          case ListType(inner, _) if inner.isNullable =>
+            " Lists cannot have nullable inner types."
+          case c: ClosedDynamicUnionType if c.sortedInnerTypes.exists(_.isInstanceOf[ListType]) =>
+            // If we have lists we want to check them for the above cases as well
+            // Unions within unions should have been flattened in parsing so won't be handled here
+            c.sortedInnerTypes.filter(_.isInstanceOf[ListType])
+              .map(additionalErrorInfo)
+              .find(_.nonEmpty)
+              .getOrElse("")
+          case _ => ""
+        }
+
+        // Don't expand the PROPERTY VALUE in error message as that makes it confusing as to why it's not allowed.
+        // Similarly, it shouldn't get any additional error messages for being a union in a list,
+        // in case of LIST<PROPERTY VALUE>, as that isn't the main reason for failure.
+        val (propertyType, additionalError) =
+          if (containsPropertyValueType) (originalPropertyType, additionalErrorInfo(originalPropertyType))
+          else (normalizedPropertyType, additionalErrorInfo(normalizedPropertyType))
+
+        error(errorFn(propertyType, additionalError))
+      } else SemanticCheck.success
+    }
+
+    // We want run the semantic checks for the types themselves, but the error messages might not make sense in this context
+    // There isn't much point telling users to make all their union types NOT NULL if that is not accepted here.
+    CypherTypeName(originalPropertyType).semanticCheck.map {
+      case r @ SemanticCheckResult(_, Nil) => r
+      case SemanticCheckResult(state, _) => SemanticCheckResult(
+          state,
+          Seq(errorFn(originalPropertyType, ""))
+        )
+    } chain allowedTypesCheck
+  }
+
+}

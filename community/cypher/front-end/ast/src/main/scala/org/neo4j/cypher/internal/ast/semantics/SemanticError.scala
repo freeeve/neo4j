@@ -446,7 +446,8 @@ object SemanticError {
 
   def propertyTypeUnsupportedInConstraint(
     constraintTypeDescription: String,
-    originalPropertyType: CypherType
+    originalPropertyType: CypherType,
+    additionalError: String
   ): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
       .withParam(GqlParams.StringParam.constrDescrOrName, constraintTypeDescription + " constraint")
@@ -457,7 +458,7 @@ object SemanticError {
     new SemanticError(
       gql,
       s"Failed to create ${constraintTypeDescription} constraint: " +
-        s"Invalid property type `${originalPropertyType.description}`.",
+        s"Invalid property type `${originalPropertyType.description}`.$additionalError",
       originalPropertyType.position
     )
   }
