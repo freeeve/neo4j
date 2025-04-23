@@ -284,13 +284,10 @@ class TransactionLogFilesTest {
             byte[] bytes;
             if (kernelVersion == KernelVersion.GLORIOUS_FUTURE) {
                 bytes = new byte[] {105, -62, -59, 21, 111, 23, 116, -69, 58, 63};
-            } else if (kernelVersion == KernelVersion.V5_25) {
-                bytes = new byte[] {105, -62, -59, 21, -67, -17, -7, -106, 58, -91};
-            } else if (kernelVersion == KernelVersion.V2025_04) {
-                bytes = new byte[] {105, -62, -59, 21, -106, -19, -112, -103, 58, -91};
+            } else if (kernelVersion == KernelVersion.V2025_05) {
+                bytes = new byte[] {105, -62, -59, 21, -21, -21, 43, -120, 58, -91};
             } else {
                 // Next few in the sequence
-                // version byte 22 => bytes = new byte[] {105, -62, -59, 21, -21, -21, 43, -120, 58, -91};
                 // version byte 23 => bytes = new byte[] {105, -62, -59, 21, -64, -23, 66, -121, 58, -91};
                 // version byte 24 => bytes = new byte[] {105, -62, -59, 21, 73, -10, 21, -48, 58, -91};
                 throw new IllegalArgumentException("Checksum magic not available for kernel version " + kernelVersion);

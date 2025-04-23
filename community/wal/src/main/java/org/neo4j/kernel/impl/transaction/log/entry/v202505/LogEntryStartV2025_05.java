@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.impl.transaction.log.entry.vGloriousFuture;
+package org.neo4j.kernel.impl.transaction.log.entry.v202505;
 
 import java.util.Arrays;
 import java.util.Objects;
@@ -25,10 +25,10 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
 import org.neo4j.string.Mask;
 
-public class LogEntryStartVGloriousFuture extends LogEntryStart {
+public class LogEntryStartV2025_05 extends LogEntryStart {
     private final long appendIndex;
 
-    public LogEntryStartVGloriousFuture(
+    public LogEntryStartV2025_05(
             KernelVersion kernelVersion,
             long timeWritten,
             long lastCommittedTxWhenTransactionStarted,
@@ -45,7 +45,7 @@ public class LogEntryStartVGloriousFuture extends LogEntryStart {
 
     @Override
     public String toString(Mask mask) {
-        return "LogEntryStartVGloriousFuture[" + "kernelVersion=" + kernelVersion() + ",time=" + timestamp(timeWritten)
+        return "LogEntryStartV2025_05[" + "kernelVersion=" + kernelVersion() + ",time=" + timestamp(timeWritten)
                 + ",lastCommittedTxWhenTransactionStarted=" + lastCommittedTxWhenTransactionStarted
                 + ",additionalHeaderLength=" + (additionalHeader == null ? -1 : additionalHeader.length) + ","
                 + (additionalHeader == null ? "" : Arrays.toString(additionalHeader))
@@ -60,7 +60,7 @@ public class LogEntryStartVGloriousFuture extends LogEntryStart {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        LogEntryStartVGloriousFuture start = (LogEntryStartVGloriousFuture) o;
+        LogEntryStartV2025_05 start = (LogEntryStartV2025_05) o;
         return lastCommittedTxWhenTransactionStarted == start.lastCommittedTxWhenTransactionStarted
                 && timeWritten == start.timeWritten
                 && kernelVersion() == start.kernelVersion()

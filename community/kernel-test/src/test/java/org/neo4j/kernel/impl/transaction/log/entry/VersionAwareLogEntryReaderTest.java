@@ -101,12 +101,12 @@ recreatedStart = %s,
         checksums.put(KernelVersion.V5_20, -1118972985);
         checksums.put(KernelVersion.V5_22, -1393109574);
         checksums.put(KernelVersion.V5_23, -1549805679);
+        checksums.put(KernelVersion.V5_25, -1887381184);
+        checksums.put(KernelVersion.V2025_04, -2132157589);
         if (kernelVersion.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
-            checksums.put(KernelVersion.V5_25, 1467784593);
-            checksums.put(KernelVersion.V2025_04, 1467784593);
+            checksums.put(KernelVersion.V2025_05, 1467784593);
         } else {
-            checksums.put(KernelVersion.V5_25, -1887381184);
-            checksums.put(KernelVersion.V2025_04, -2132157589);
+            checksums.put(KernelVersion.V2025_05, -1856840426);
         }
         final LogEntryCommit commit = newCommitEntry(kernelVersion, 42, 21, checksums.get(kernelVersion));
         final InMemoryClosableChannel channel = new InMemoryClosableChannel(true);

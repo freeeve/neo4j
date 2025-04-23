@@ -19,16 +19,16 @@
  */
 package org.neo4j.kernel.impl.transaction.log.entry;
 
+import static org.neo4j.kernel.KernelVersion.V2025_05;
 import static org.neo4j.kernel.KernelVersion.VERSION_APPEND_INDEX_INTRODUCED;
-import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
 
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.entry.v202505.LogEntryStartV2025_05;
 import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryCommitV4_2;
 import org.neo4j.kernel.impl.transaction.log.entry.v42.LogEntryStartV4_2;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryChunkStartV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryRollbackV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.LogEntryStartV5_20;
-import org.neo4j.kernel.impl.transaction.log.entry.vGloriousFuture.LogEntryStartVGloriousFuture;
 
 public final class LogEntryFactory {
     private LogEntryFactory() {}
@@ -40,8 +40,8 @@ public final class LogEntryFactory {
             long appendIndex,
             int previousChecksum,
             byte[] additionalHeader) {
-        if (version.isAtLeast(VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
-            return new LogEntryStartVGloriousFuture(
+        if (version.isAtLeast(V2025_05)) {
+            return new LogEntryStartV2025_05(
                     version, timeWritten, lastCommittedTxWhenTransactionStarted, appendIndex, additionalHeader);
         }
         if (version.isAtLeast(VERSION_APPEND_INDEX_INTRODUCED)) {
