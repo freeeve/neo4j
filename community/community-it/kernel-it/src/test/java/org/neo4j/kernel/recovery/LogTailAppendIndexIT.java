@@ -25,6 +25,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.fail_on_missing_file
 import static org.neo4j.kernel.recovery.RecoveryHelpers.removeLastCheckpointRecordFromLogFile;
 import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
+import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT_PROVIDER;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -275,7 +276,8 @@ public class LogTailAppendIndexIT {
     }
 
     private LogFiles buildDefaultLogFiles(DatabaseLayout databaseLayout) throws IOException {
-        return LogFilesBuilder.builder(databaseLayout, fileSystem, LATEST_KERNEL_VERSION_PROVIDER)
+        return LogFilesBuilder.builder(
+                        databaseLayout, fileSystem, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())

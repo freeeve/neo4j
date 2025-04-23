@@ -114,7 +114,10 @@ class DetachedLogTailScannerTest {
     void includeWrongPositionInException() throws Exception {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
         var testTogFiles = LogFilesBuilder.activeFilesBuilder(
-                        databaseLayout, fs, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fs,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
@@ -825,7 +828,8 @@ class DetachedLogTailScannerTest {
 
     LogFiles createLogFiles(KernelVersion kernelVersion) throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.activeFilesBuilder(databaseLayout, fs, () -> kernelVersion)
+        return LogFilesBuilder.activeFilesBuilder(
+                        databaseLayout, fs, () -> kernelVersion, () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
                 .withAppendIndexProvider(appendIndexProvider)

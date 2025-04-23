@@ -19,7 +19,6 @@
  */
 package org.neo4j.kernel.recovery;
 
-import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.fromKernelVersion;
 import static org.neo4j.storageengine.api.LogVersionRepository.INITIAL_LOG_VERSION;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_COMMIT_TIMESTAMP;
@@ -33,6 +32,7 @@ import org.neo4j.io.pagecache.context.TransactionIdSnapshot;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation.BatchInformation;
 import org.neo4j.kernel.impl.transaction.log.CommandBatchCursor;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -52,6 +52,7 @@ public class DefaultRecoveryService implements RecoveryService {
     private final LogVersionRepository logVersionRepository;
     private final LogFiles logFiles;
     private final KernelVersionProvider versionProvider;
+    private final LogFormatVersionProvider logFormatVersionProvider;
     private final InternalLog log;
     private final boolean doParallelRecovery;
     private final CursorContextFactory contextFactory;
@@ -63,6 +64,7 @@ public class DefaultRecoveryService implements RecoveryService {
             LogVersionRepository logVersionRepository,
             LogFiles logFiles,
             KernelVersionProvider versionProvider,
+            LogFormatVersionProvider logFormatVersionProvider,
             RecoveryStartInformationProvider.Monitor monitor,
             InternalLog log,
             boolean doParallelRecovery,
@@ -73,6 +75,7 @@ public class DefaultRecoveryService implements RecoveryService {
         this.logVersionRepository = logVersionRepository;
         this.logFiles = logFiles;
         this.versionProvider = versionProvider;
+        this.logFormatVersionProvider = logFormatVersionProvider;
         this.log = log;
         this.doParallelRecovery = doParallelRecovery;
         this.contextFactory = contextFactory;
@@ -118,8 +121,7 @@ public class DefaultRecoveryService implements RecoveryService {
         var lastClosedTransaction = transactionIdStore.getLastClosedTransaction();
         var lastClosedTransactionId = lastClosedTransaction.transactionId();
         long logVersion = lastClosedTransaction.logPosition().getLogVersion();
-        var logFormat = fromKernelVersion(versionProvider.kernelVersion());
-        var startOffset = logFormat.getDefaultDataStartByteOffset();
+        var startOffset = logFormatVersionProvider.getCurrentLogFormat().getDefaultDataStartByteOffset();
         log.warn(
                 "Recovery detected that transaction logs were missing. "
                         + "Resetting offset of last closed transaction to point to the head of %d transaction log file.",

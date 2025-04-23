@@ -29,6 +29,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.database.DatabaseTracers;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.memory.MemoryTracker;
@@ -58,6 +59,7 @@ public class TransactionLogFilesContext {
     private final Supplier<StoreId> storeId;
     private final DatabaseHealth databaseHealth;
     private final KernelVersionProvider kernelVersionProvider;
+    private final LogFormatVersionProvider logFormatVersionProvider;
     private final Clock clock;
     private final String databaseName;
     private final Config config;
@@ -88,6 +90,7 @@ public class TransactionLogFilesContext {
             boolean failOnCorruptedLogFiles,
             DatabaseHealth databaseHealth,
             KernelVersionProvider kernelVersionProvider,
+            LogFormatVersionProvider logFormatVersionProvider,
             Clock clock,
             String databaseName,
             Config config,
@@ -116,6 +119,7 @@ public class TransactionLogFilesContext {
         this.failOnCorruptedLogFiles = failOnCorruptedLogFiles;
         this.databaseHealth = databaseHealth;
         this.kernelVersionProvider = kernelVersionProvider;
+        this.logFormatVersionProvider = logFormatVersionProvider;
         this.clock = clock;
         this.databaseName = databaseName;
         this.config = config;
@@ -204,6 +208,10 @@ public class TransactionLogFilesContext {
 
     public KernelVersionProvider getKernelVersionProvider() {
         return kernelVersionProvider;
+    }
+
+    public LogFormatVersionProvider getLogFormatVersionProvider() {
+        return logFormatVersionProvider;
     }
 
     public Clock getClock() {

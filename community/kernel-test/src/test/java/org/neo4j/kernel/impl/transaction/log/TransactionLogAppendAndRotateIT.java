@@ -300,7 +300,8 @@ class TransactionLogAppendAndRotateIT {
 
         // Null because the format for V5_11 doesn't contain the kernelVersion
         assertLogHeaderExpectedVersion(setup.logFiles, LogVersionRepository.INITIAL_LOG_VERSION, null);
-        assertLogHeaderExpectedVersion(setup.logFiles, LogVersionRepository.INITIAL_LOG_VERSION + 1, GLORIOUS_FUTURE);
+        // Null because the log format only changes on upgrade tx, not directly connected to the kernel version
+        assertLogHeaderExpectedVersion(setup.logFiles, LogVersionRepository.INITIAL_LOG_VERSION + 1, null);
     }
 
     @ParameterizedTest
@@ -326,7 +327,8 @@ class TransactionLogAppendAndRotateIT {
         assertLogHeaderExpectedVersion(setup.logFiles, LogVersionRepository.INITIAL_LOG_VERSION, null);
         assertWholeTransactionsWithCorrectVersionInSpecificLogVersion(
                 setup.logFiles.getLogFile(), LogVersionRepository.INITIAL_LOG_VERSION, V5_11, 2);
-        assertLogHeaderExpectedVersion(setup.logFiles, LogVersionRepository.INITIAL_LOG_VERSION + 1, GLORIOUS_FUTURE);
+        // Null because the log format only changes on upgrade tx, not directly connected to the kernel version
+        assertLogHeaderExpectedVersion(setup.logFiles, LogVersionRepository.INITIAL_LOG_VERSION + 1, null);
         assertWholeTransactionsWithCorrectVersionInSpecificLogVersion(
                 setup.logFiles.getLogFile(), LogVersionRepository.INITIAL_LOG_VERSION + 1, GLORIOUS_FUTURE, 2);
     }
@@ -350,7 +352,11 @@ class TransactionLogAppendAndRotateIT {
                 GraphDatabaseInternalSettings.latest_runtime_version,
                 DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion())));
         SimpleAppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fileSystem, versionProvider)
+        LogFiles logFiles = LogFilesBuilder.builder(
+                        databaseLayout,
+                        fileSystem,
+                        versionProvider,
+                        () -> LogFormat.fromKernelVersion(versionProvider.kernelVersion()))
                 .withLogVersionRepository(logVersionRepository)
                 .withRotationThreshold(ByteUnit.mebiBytes(1))
                 .withMonitors(monitors)

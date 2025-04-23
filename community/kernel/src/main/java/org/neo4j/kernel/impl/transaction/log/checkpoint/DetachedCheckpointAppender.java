@@ -108,7 +108,8 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
                 currentLogVersion,
                 AppendIndexProvider.UNKNOWN_APPEND_INDEX,
                 BASE_TX_CHECKSUM,
-                context.getKernelVersionProvider());
+                context.getKernelVersionProvider(),
+                context.getLogFormatVersionProvider());
 
         context.getMonitors().newMonitor(LogRotationMonitor.class).started(channel.getPath(), currentLogVersion);
         seekCheckpointChannel(currentLogVersion);
@@ -120,6 +121,18 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
                         logRotation, context.getDatabaseTracers().getDatabaseTracer(), buffer);
         writer = new PhysicalFlushableLogPositionAwareChannel(
                 channel, logHeader(currentLogVersion), checksumChannelProvider);
+
+        // A corner case where if we start up with an empty checkpoint file and the header already exist
+        // but is of an old version. Our version providers will have been updated to latest version at recovery
+        // already at this point and previousKernelVersion is set to the recovered version.
+        // That means it will match the next checkpoint version and no rotation will happen then.
+        // Let's just rotate here if the log format should change.
+        // This is just a problem in log formats before V10, otherwise the correct previous kernel version
+        // can be found in the header.
+        if (channel.getLogFormatVersion()
+                != context.getLogFormatVersionProvider().getCurrentLogFormat()) {
+            rotate();
+        }
     }
 
     private LogHeader logHeader(long logVersion) throws IOException {
@@ -256,7 +269,11 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
 
         int checksum = writer.currentChecksum().orElse(BASE_TX_CHECKSUM);
         var newChannel = channelAllocator.createLogChannel(
-                newLogVersion, AppendIndexProvider.UNKNOWN_APPEND_INDEX, checksum, kernelVersionProvider);
+                newLogVersion,
+                AppendIndexProvider.UNKNOWN_APPEND_INDEX,
+                checksum,
+                kernelVersionProvider,
+                context.getLogFormatVersionProvider());
         channel.close();
         return newChannel;
     }

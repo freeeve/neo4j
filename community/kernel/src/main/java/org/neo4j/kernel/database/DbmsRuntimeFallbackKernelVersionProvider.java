@@ -27,9 +27,12 @@ import org.neo4j.dbms.DbmsRuntimeVersionProvider;
 import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 
-public class DbmsRuntimeFallbackKernelVersionProvider implements KernelVersionProvider {
+public class DbmsRuntimeFallbackKernelVersionProvider implements KernelVersionProvider, LogFormatVersionProvider {
     private final KernelVersionProvider kernelVersionProvider;
+    private final LogFormatVersionProvider logFormatVersionProvider;
 
     public DbmsRuntimeFallbackKernelVersionProvider(Dependencies dependencies, String databaseName, Config config) {
         // Use the kernel version provider if we have one.
@@ -51,10 +54,19 @@ public class DbmsRuntimeFallbackKernelVersionProvider implements KernelVersionPr
             this.kernelVersionProvider =
                     () -> dbmsRuntimeVersionProvider.getVersion().kernelVersion();
         }
+
+        this.logFormatVersionProvider = dependencies
+                .resolveOptionalDependency(LogFormatVersionProvider.class)
+                .orElseGet(() -> () -> LogFormat.fromKernelVersion(kernelVersionProvider.kernelVersion()));
     }
 
     @Override
     public KernelVersion kernelVersion() {
         return kernelVersionProvider.kernelVersion();
+    }
+
+    @Override
+    public LogFormat getCurrentLogFormat() {
+        return logFormatVersionProvider.getCurrentLogFormat();
     }
 }

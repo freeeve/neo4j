@@ -127,7 +127,10 @@ public class Runner implements Callable<Long> {
         SimpleLogVersionRepository logVersionRepository = new SimpleLogVersionRepository();
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
         return LogFilesBuilder.builder(
-                        databaseLayout, fileSystemAbstraction, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fileSystemAbstraction,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
                 .withAppendIndexProvider(appendIndexProvider)

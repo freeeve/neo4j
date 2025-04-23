@@ -417,7 +417,11 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
         @Override
         public boolean locklessBatchedRotateLogIfNeeded(
-                LogRotateEvents logRotateEvents, long lastAppendIndex, KernelVersion kernelVersion, int checksum) {
+                LogRotateEvents logRotateEvents,
+                long lastAppendIndex,
+                KernelVersion kernelVersion,
+                int checksum,
+                LogFormat logFormat) {
             throw new UnsupportedOperationException("envelope channel rotation checks are done internally");
         }
 
@@ -446,6 +450,16 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
                 KernelVersion kernelVersion,
                 long lastAppendIndex,
                 int previousChecksum) {
+            throw new UnsupportedOperationException("envelope channel rotation checks are done internally");
+        }
+
+        @Override
+        public void locklessRotateLogFile(
+                LogRotateEvents logRotateEvents,
+                KernelVersion kernelVersion,
+                long lastAppendIndex,
+                int previousChecksum,
+                LogFormat logFormat) {
             throw new UnsupportedOperationException("envelope channel rotation checks are done internally");
         }
 

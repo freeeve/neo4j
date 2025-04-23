@@ -46,6 +46,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.database.DatabaseTracers;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.entry.LogSegments;
@@ -105,6 +106,7 @@ public class LogFilesBuilder {
     private StoreId storeId;
     private NativeAccess nativeAccess;
     private KernelVersionProvider kernelVersionProvider = KernelVersionProvider.THROWING_PROVIDER;
+    private LogFormatVersionProvider logFormatVersionProvider = LogFormatVersionProvider.THROWING_PROVIDER;
     private LogTailMetadata externalLogTail;
     private int envelopeSegmentBlockSizeBytes = LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
     private int bufferSizeBytes;
@@ -124,11 +126,13 @@ public class LogFilesBuilder {
     public static LogFilesBuilder builder(
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fileSystem,
-            KernelVersionProvider kernelVersionProvider) {
+            KernelVersionProvider kernelVersionProvider,
+            LogFormatVersionProvider logFormatVersionProvider) {
         LogFilesBuilder filesBuilder = new LogFilesBuilder();
         filesBuilder.databaseLayout = databaseLayout;
         filesBuilder.fileSystem = fileSystem;
         filesBuilder.kernelVersionProvider = kernelVersionProvider;
+        filesBuilder.logFormatVersionProvider = logFormatVersionProvider;
         return filesBuilder;
     }
 
@@ -146,8 +150,9 @@ public class LogFilesBuilder {
     public static LogFilesBuilder activeFilesBuilder(
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fileSystem,
-            KernelVersionProvider kernelVersionProvider) {
-        LogFilesBuilder builder = builder(databaseLayout, fileSystem, kernelVersionProvider);
+            KernelVersionProvider kernelVersionProvider,
+            LogFormatVersionProvider logFormatVersionProvider) {
+        LogFilesBuilder builder = builder(databaseLayout, fileSystem, kernelVersionProvider, logFormatVersionProvider);
         builder.readOnlyStores = true;
         return builder;
     }
@@ -156,7 +161,10 @@ public class LogFilesBuilder {
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fileSystem,
             KernelVersionProvider kernelVersionProvider) {
-        LogFilesBuilder builder = builder(databaseLayout, fileSystem, kernelVersionProvider);
+        LogFilesBuilder builder = new LogFilesBuilder();
+        builder.databaseLayout = databaseLayout;
+        builder.fileSystem = fileSystem;
+        builder.kernelVersionProvider = kernelVersionProvider;
         builder.readOnlyStores = true;
         builder.readOnlyLogs = true;
         return builder;
@@ -304,6 +312,11 @@ public class LogFilesBuilder {
         return this;
     }
 
+    public LogFilesBuilder withLogFormatVersionProvider(LogFormatVersionProvider logFormatVersionProvider) {
+        this.logFormatVersionProvider = logFormatVersionProvider;
+        return this;
+    }
+
     public LogFiles build() throws IOException {
         TransactionLogFilesContext filesContext = buildContext();
         Path logsDirectory = getLogsDirectory();
@@ -361,6 +374,7 @@ public class LogFilesBuilder {
                 config.get(fail_on_corrupted_log_files),
                 health,
                 kernelVersionProvider,
+                logFormatVersionProvider,
                 clock,
                 databaseLayout.getDatabaseName(),
                 config,

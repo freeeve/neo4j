@@ -185,7 +185,11 @@ class TransactionLogFileTest {
     @KernelVersionSource(atLeast = "5.0")
     void preAllocateOnStartAndEvictOnShutdownNewLogFile(KernelVersion kernelVersion) throws IOException {
         final CapturingNativeAccess capturingNativeAccess = new CapturingNativeAccess();
-        LogFilesBuilder.builder(databaseLayout, fileSystem, () -> kernelVersion)
+        LogFilesBuilder.builder(
+                        databaseLayout,
+                        fileSystem,
+                        () -> kernelVersion,
+                        () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
                 .withAppendIndexProvider(appendIndexProvider)
@@ -363,7 +367,8 @@ class TransactionLogFileTest {
     void shouldCloseChannelInFailedAttemptToReadHeaderAfterOpen(KernelVersion kernelVersion) throws Exception {
         // GIVEN a file which returns 1/2 log header size worth of bytes
         FileSystemAbstraction fs = mock(FileSystemAbstraction.class);
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, () -> kernelVersion)
+        LogFiles logFiles = LogFilesBuilder.builder(
+                        databaseLayout, fs, () -> kernelVersion, () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
@@ -392,7 +397,8 @@ class TransactionLogFileTest {
             throws Exception {
         // GIVEN a file which returns 1/2 log header size worth of bytes
         FileSystemAbstraction fs = mock(FileSystemAbstraction.class);
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, () -> kernelVersion)
+        LogFiles logFiles = LogFilesBuilder.builder(
+                        databaseLayout, fs, () -> kernelVersion, () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
@@ -897,7 +903,11 @@ class TransactionLogFileTest {
     }
 
     private LogFiles buildLogFiles(KernelVersion kernelVersion) throws IOException {
-        var builder = LogFilesBuilder.builder(databaseLayout, wrappingFileSystem, () -> kernelVersion)
+        var builder = LogFilesBuilder.builder(
+                        databaseLayout,
+                        wrappingFileSystem,
+                        () -> kernelVersion,
+                        () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withRotationThreshold(rotationThreshold)
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
@@ -928,7 +938,11 @@ class TransactionLogFileTest {
     private void startStop(
             CapturingNativeAccess capturingNativeAccess, LifeSupport lifeSupport, KernelVersion kernelVersion)
             throws IOException {
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fileSystem, () -> kernelVersion)
+        LogFiles logFiles = LogFilesBuilder.builder(
+                        databaseLayout,
+                        fileSystem,
+                        () -> kernelVersion,
+                        () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
                 .withAppendIndexProvider(appendIndexProvider)

@@ -228,6 +228,7 @@ class TransactionLogsRecoveryTest {
             life.add(new TransactionLogsRecovery(
                     logFiles,
                     LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                    LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
                     new DefaultRecoveryService(
                             storageEngine,
                             transactionIdStore,
@@ -235,6 +236,7 @@ class TransactionLogsRecoveryTest {
                             versionRepository,
                             recoveryLogFiles,
                             LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                            LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
                             NO_MONITOR,
                             mock(InternalLog.class),
                             false,
@@ -352,6 +354,7 @@ class TransactionLogsRecoveryTest {
             life.add(new TransactionLogsRecovery(
                     logFiles,
                     LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                    LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
                     new DefaultRecoveryService(
                             storageEngine,
                             transactionIdStore,
@@ -359,6 +362,7 @@ class TransactionLogsRecoveryTest {
                             versionRepository,
                             logFiles,
                             LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                            LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
                             NO_MONITOR,
                             mock(InternalLog.class),
                             false,
@@ -585,6 +589,7 @@ class TransactionLogsRecoveryTest {
         TransactionLogsRecovery logsRecovery = new TransactionLogsRecovery(
                 logFiles,
                 LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
                 recoveryService,
                 logPruner,
                 schemaLife,
@@ -669,6 +674,7 @@ class TransactionLogsRecoveryTest {
             life.add(new TransactionLogsRecovery(
                     logFiles,
                     LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                    LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
                     new DefaultRecoveryService(
                             storageEngine,
                             transactionIdStore,
@@ -676,6 +682,7 @@ class TransactionLogsRecoveryTest {
                             versionRepository,
                             logFiles,
                             LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                            LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
                             NO_MONITOR,
                             mock(InternalLog.class),
                             false,
@@ -723,7 +730,11 @@ class TransactionLogsRecoveryTest {
     private record DataWriters(LogEntryWriter<?> writer, FlushableLogPositionAwareChannel channel) {}
 
     private LogFiles buildLogFiles() throws IOException {
-        return LogFilesBuilder.builder(databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+        return LogFilesBuilder.builder(
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
                 .withAppendIndexProvider(appendIndexProvider)

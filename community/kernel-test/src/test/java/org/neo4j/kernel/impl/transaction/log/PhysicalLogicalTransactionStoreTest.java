@@ -239,6 +239,7 @@ class PhysicalLogicalTransactionStoreTest {
         life.add(new TransactionLogsRecovery(
                 logFiles,
                 LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
                 new TestRecoveryService(visitor, logFiles, txStore, recoveryPerformed),
                 logPruner,
                 new LifecycleAdapter(),
@@ -348,7 +349,11 @@ class PhysicalLogicalTransactionStoreTest {
 
     private LogFiles buildLogFiles(TransactionIdStore transactionIdStore) throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.builder(databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+        return LogFilesBuilder.builder(
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withRotationThreshold(ByteUnit.mebiBytes(1))
                 .withTransactionIdStore(transactionIdStore)
                 .withAppendIndexProvider(appendIndexProvider)

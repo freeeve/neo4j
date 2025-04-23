@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import java.time.Clock;
 import java.util.function.LongSupplier;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.RotatableFile;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFile;
@@ -100,7 +101,11 @@ public class FileLogRotation implements LogRotation {
 
     @Override
     public boolean locklessBatchedRotateLogIfNeeded(
-            LogRotateEvents logRotateEvents, long lastAppendIndex, KernelVersion kernelVersion, int checksum)
+            LogRotateEvents logRotateEvents,
+            long lastAppendIndex,
+            KernelVersion kernelVersion,
+            int checksum,
+            LogFormat logFormat)
             throws IOException {
         if (rotatableFile.rotationNeeded()) {
             TransactionLogFile logFile = (TransactionLogFile) rotatableFile;
@@ -109,7 +114,7 @@ public class FileLogRotation implements LogRotation {
                     logRotateEvents,
                     lastAppendIndex,
                     () -> version,
-                    () -> logFile.rotate(kernelVersion, lastAppendIndex, checksum));
+                    () -> logFile.rotate(kernelVersion, lastAppendIndex, checksum, logFormat));
             return true;
         }
         return false;
@@ -162,6 +167,21 @@ public class FileLogRotation implements LogRotation {
                 lastAppendIndex,
                 currentFileVersionSupplier,
                 () -> rotatableFile.rotate(kernelVersion, lastAppendIndex, previousChecksum));
+    }
+
+    @Override
+    public void locklessRotateLogFile(
+            LogRotateEvents logRotateEvents,
+            KernelVersion kernelVersion,
+            long lastAppendIndex,
+            int previousChecksum,
+            LogFormat logFormat)
+            throws IOException {
+        doRotate(
+                logRotateEvents,
+                lastAppendIndex,
+                currentFileVersionSupplier,
+                () -> rotatableFile.rotate(kernelVersion, lastAppendIndex, previousChecksum, logFormat));
     }
 
     @Override

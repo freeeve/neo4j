@@ -102,6 +102,7 @@ import org.neo4j.kernel.impl.index.DatabaseIndexStats;
 import org.neo4j.kernel.impl.pagecache.ConfiguringPageCacheFactory;
 import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
 import org.neo4j.kernel.impl.store.FileStoreProviderRegistry;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogicalTransactionStore;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogicalTransactionStore;
@@ -686,7 +687,7 @@ public final class Recovery {
                 logService,
                 metadataProvider);
 
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, recoveryMetaDataCache)
+        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, recoveryMetaDataCache, recoveryMetaDataCache)
                 .withStorageEngineFactory(storageEngineFactory)
                 .withConfig(config)
                 .withDatabaseTracers(tracers)
@@ -721,6 +722,7 @@ public final class Recovery {
                 monitors.newMonitor(RecoveryStartInformationProvider.Monitor.class),
                 logFiles,
                 storageEngine,
+                logTailMetadata,
                 logTailMetadata,
                 transactionStore,
                 metadataProvider,
@@ -880,6 +882,7 @@ public final class Recovery {
             LogFiles logFiles,
             StorageEngine storageEngine,
             KernelVersionProvider versionProvider,
+            LogFormatVersionProvider logFormatVersionProvider,
             LogicalTransactionStore logicalTransactionStore,
             LogVersionRepository logVersionRepository,
             Lifecycle schemaLife,
@@ -902,6 +905,7 @@ public final class Recovery {
                 logVersionRepository,
                 logFiles,
                 versionProvider,
+                logFormatVersionProvider,
                 positionMonitor,
                 log,
                 doParallelRecovery,
@@ -912,6 +916,7 @@ public final class Recovery {
         return new TransactionLogsRecovery(
                 logFiles,
                 versionProvider,
+                logFormatVersionProvider,
                 recoveryService,
                 logsTruncator,
                 schemaLife,

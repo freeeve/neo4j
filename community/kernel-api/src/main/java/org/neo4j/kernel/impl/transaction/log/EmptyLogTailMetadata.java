@@ -27,6 +27,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.emptyVersionedTrans
 import java.util.Optional;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionId;
 
@@ -88,6 +89,11 @@ public class EmptyLogTailMetadata implements LogTailMetadata {
     @Override
     public Optional<CheckpointInfo> getLastCheckPoint() {
         return Optional.empty();
+    }
+
+    @Override
+    public LogFormat getCurrentLogFormat() {
+        return LogFormat.fromKernelVersion(kernelVersion);
     }
 
     @Override

@@ -30,6 +30,7 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotation;
 import org.neo4j.storageengine.api.CommandBatch;
 import org.neo4j.util.VisibleForTesting;
@@ -172,11 +173,20 @@ public class TransactionLogWriter {
                     .orElse(previousKernelVersion);
             // In append we know we are the only ones using the logfile, don't need to lock on rotation here
             if (kernelVersion != previousKernelVersion) {
-                logRotation.locklessRotateLogFile(logAppendEvent, kernelVersion, appendIndex.getAsLong() - 1, checksum);
+                logRotation.locklessRotateLogFile(
+                        logAppendEvent,
+                        kernelVersion,
+                        appendIndex.getAsLong() - 1,
+                        checksum,
+                        LogFormat.fromKernelVersion(kernelVersion));
                 previousKernelVersion = kernelVersion;
             } else {
                 logRotation.locklessBatchedRotateLogIfNeeded(
-                        logAppendEvent, appendIndex.getAsLong() - 1, kernelVersion, checksum);
+                        logAppendEvent,
+                        appendIndex.getAsLong() - 1,
+                        kernelVersion,
+                        checksum,
+                        LogFormat.fromKernelVersion(kernelVersion));
             }
         }
 

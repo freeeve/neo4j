@@ -45,10 +45,12 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.database.Database;
 import org.neo4j.kernel.impl.transaction.CommittedCommandBatchRepresentation;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.PhysicalFlushableLogPositionAwareChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvents;
@@ -69,6 +71,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
 
     private final LogFiles logFiles;
     private final KernelVersionProvider versionProvider;
+    private final LogFormatVersionProvider logFormatVersionProvider;
     private final RecoveryService recoveryService;
     private final RecoveryMonitor monitor;
     private final CorruptedLogsTruncator logsTruncator;
@@ -88,6 +91,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
     public TransactionLogsRecovery(
             LogFiles logFiles,
             KernelVersionProvider versionProvider,
+            LogFormatVersionProvider logFormatVersionProvider,
             RecoveryService recoveryService,
             CorruptedLogsTruncator logsTruncator,
             Lifecycle schemaLife,
@@ -103,6 +107,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
             RecoveryMode mode) {
         this.logFiles = logFiles;
         this.versionProvider = versionProvider;
+        this.logFormatVersionProvider = logFormatVersionProvider;
         this.recoveryService = recoveryService;
         this.monitor = monitor;
         this.logsTruncator = logsTruncator;
@@ -337,7 +342,12 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         KernelVersion kernelVersion = versionProvider.kernelVersion();
         LogFile logFile = logFiles.getLogFile();
         try (ChannelWithPartialLogRotationAbility channelAllocator = new ChannelWithPartialLogRotationAbility(
-                logFile, appendIndexProvider, versionProvider, logFile.rotationSize(), writePosition)) {
+                logFile,
+                appendIndexProvider,
+                versionProvider,
+                logFormatVersionProvider,
+                logFile.rotationSize(),
+                writePosition)) {
             PhysicalFlushableLogPositionAwareChannel writerChannel = channelAllocator.getWriterChannel();
             var entryWriter = new LogEntryWriter<>(writerChannel, binarySupportedKernelVersions);
             long time = clock.millis();
@@ -369,18 +379,21 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
         private final LogFile logFile;
         private final AppendIndexProvider appendIndexProvider;
         private final KernelVersionProvider versionProvider;
+        private final LogFormatVersionProvider logFormatVersionProvider;
         private final long rotateAtSize;
 
         public ChannelWithPartialLogRotationAbility(
                 LogFile logFile,
                 AppendIndexProvider appendIndexProvider,
                 KernelVersionProvider versionProvider,
+                LogFormatVersionProvider logFormatVersionProvider,
                 long rotateAtSize,
                 LogPosition writePosition)
                 throws IOException {
             this.logFile = logFile;
             this.appendIndexProvider = appendIndexProvider;
             this.versionProvider = versionProvider;
+            this.logFormatVersionProvider = logFormatVersionProvider;
             this.rotateAtSize = rotateAtSize;
 
             channel = logFile.createLogChannelForExistingVersion(writePosition.getLogVersion());
@@ -403,7 +416,11 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
 
         @Override
         public boolean locklessBatchedRotateLogIfNeeded(
-                LogRotateEvents logRotateEvents, long lastAppendIndex, KernelVersion kernelVersion, int checksum) {
+                LogRotateEvents logRotateEvents,
+                long lastAppendIndex,
+                KernelVersion kernelVersion,
+                int checksum,
+                LogFormat logFormat) {
             throw new UnsupportedOperationException();
         }
 
@@ -427,7 +444,8 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
                     newLogVersion,
                     appendIndexProvider::getLastAppendIndex,
                     versionProvider,
-                    writer.currentChecksum().orElse(BASE_TX_CHECKSUM));
+                    writer.currentChecksum().orElse(BASE_TX_CHECKSUM),
+                    logFormatVersionProvider);
             channel.close();
             channel = newLog;
             writer.setChannel(channel, logFile.extractHeader(channel.getLogVersion()));
@@ -439,6 +457,16 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
                 KernelVersion kernelVersion,
                 long lastAppendIndex,
                 int previousChecksum) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void locklessRotateLogFile(
+                LogRotateEvents logRotateEvents,
+                KernelVersion kernelVersion,
+                long lastAppendIndex,
+                int previousChecksum,
+                LogFormat logFormat) {
             throw new UnsupportedOperationException();
         }
 

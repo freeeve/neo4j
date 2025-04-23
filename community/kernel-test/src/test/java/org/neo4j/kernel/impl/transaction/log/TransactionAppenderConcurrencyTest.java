@@ -147,7 +147,11 @@ public class TransactionAppenderConcurrencyTest {
         life.add(new FileSystemLifecycleAdapter(fs));
         DatabaseHealth databaseHealth =
                 new DatabaseHealth(mock(DatabaseHealthEventGenerator.class), NullLog.getInstance());
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+        LogFiles logFiles = LogFilesBuilder.builder(
+                        databaseLayout,
+                        fs,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
                 .withDatabaseHealth(databaseHealth)
@@ -189,7 +193,11 @@ public class TransactionAppenderConcurrencyTest {
         DatabaseHealth databaseHealth =
                 new DatabaseHealth(mock(DatabaseHealthEventGenerator.class), NullLog.getInstance());
         life.add(new FileSystemLifecycleAdapter(fs));
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+        LogFiles logFiles = LogFilesBuilder.builder(
+                        databaseLayout,
+                        fs,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
                 .withDatabaseHealth(databaseHealth)

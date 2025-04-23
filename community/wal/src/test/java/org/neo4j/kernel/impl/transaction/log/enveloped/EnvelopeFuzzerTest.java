@@ -268,6 +268,16 @@ class EnvelopeFuzzerTest {
             }
 
             @Override
+            public void locklessRotateLogFile(
+                    LogRotateEvents logRotateEvents,
+                    KernelVersion kernelVersion,
+                    long lastAppendIndex,
+                    int previousChecksum,
+                    LogFormat logFormat) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             public long rotationSize() {
                 return maxFileSize;
             }
@@ -279,7 +289,11 @@ class EnvelopeFuzzerTest {
 
             @Override
             public boolean locklessBatchedRotateLogIfNeeded(
-                    LogRotateEvents logRotateEvents, long appendIndex, KernelVersion kernelVersion, int checksum) {
+                    LogRotateEvents logRotateEvents,
+                    long appendIndex,
+                    KernelVersion kernelVersion,
+                    int checksum,
+                    LogFormat logFormat) {
                 throw new UnsupportedOperationException();
             }
 

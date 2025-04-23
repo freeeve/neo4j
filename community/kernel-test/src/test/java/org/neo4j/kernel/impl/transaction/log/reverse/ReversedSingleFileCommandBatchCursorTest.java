@@ -60,6 +60,7 @@ import org.neo4j.kernel.impl.transaction.log.ReadAheadLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
@@ -108,7 +109,11 @@ class ReversedSingleFileCommandBatchCursorTest {
         SimpleTransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
         SimpleAppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        logFiles = LogFilesBuilder.builder(databaseLayout, fs, () -> LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES)
+        logFiles = LogFilesBuilder.builder(
+                        databaseLayout,
+                        fs,
+                        () -> LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES,
+                        () -> LogFormat.fromKernelVersion(LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES))
                 .withRotationThreshold(ByteUnit.mebiBytes(10))
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)

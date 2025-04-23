@@ -63,6 +63,7 @@ import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.EnvelopeType;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.rotation.CountingLogRotateEvent;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvent;
 import org.neo4j.kernel.impl.transaction.log.rotation.LogRotateEvents;
@@ -2254,6 +2255,16 @@ class EnvelopeWriteChannelTest {
             }
 
             @Override
+            public void locklessRotateLogFile(
+                    LogRotateEvents logRotateEvents,
+                    KernelVersion kernelVersion,
+                    long lastAppendIndex,
+                    int previousChecksum,
+                    LogFormat logFormat) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             public long rotationSize() {
                 return maxFileSize;
             }
@@ -2265,7 +2276,11 @@ class EnvelopeWriteChannelTest {
 
             @Override
             public boolean locklessBatchedRotateLogIfNeeded(
-                    LogRotateEvents logRotateEvents, long appendIndex, KernelVersion kernelVersion, int checksum) {
+                    LogRotateEvents logRotateEvents,
+                    long appendIndex,
+                    KernelVersion kernelVersion,
+                    int checksum,
+                    LogFormat logFormat) {
                 throw new UnsupportedOperationException();
             }
 

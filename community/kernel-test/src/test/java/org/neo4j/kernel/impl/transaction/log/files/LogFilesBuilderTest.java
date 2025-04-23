@@ -82,7 +82,10 @@ class LogFilesBuilderTest {
     @Test
     void buildActiveFilesOnlyContext() {
         TransactionLogFilesContext context = activeFilesBuilder(
-                        databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withTransactionIdStore(new SimpleTransactionIdStore())
@@ -115,7 +118,10 @@ class LogFilesBuilderTest {
     @Test
     void buildDefaultContext() {
         TransactionLogFilesContext context = builder(
-                        databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(new SimpleLogVersionRepository(2))
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
@@ -137,7 +143,10 @@ class LogFilesBuilderTest {
     @Test
     void guaranteeMinimumTwoSegmentsForRotation() {
         TransactionLogFilesContext context = builder(
-                        databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(new SimpleLogVersionRepository(2))
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
@@ -160,7 +169,10 @@ class LogFilesBuilderTest {
     @Test
     void guaranteeMinimumTwoSegmentsForCheckpointRotation() {
         TransactionLogFilesContext context = builder(
-                        databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(new SimpleLogVersionRepository(2))
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
@@ -172,7 +184,10 @@ class LogFilesBuilderTest {
     @Test
     void keepConfigWhenBiggerThanTwoSegmentsForCheckpointRotation() {
         TransactionLogFilesContext context = builder(
-                        databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(new SimpleLogVersionRepository(2))
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
@@ -185,7 +200,10 @@ class LogFilesBuilderTest {
     @Test
     void buildContextWithRotationThreshold() {
         TransactionLogFilesContext context = builder(
-                        databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(new SimpleLogVersionRepository(2))
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
@@ -212,7 +230,10 @@ class LogFilesBuilderTest {
         Dependencies dependencies = dependenciesOf(logVersionRepository, transactionIdStore, databaseHealth);
 
         TransactionLogFilesContext context = builder(
-                        databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withDependencies(dependencies)
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())
                 .withCommandReaderFactory(CommandReaderFactory.NO_COMMANDS)
@@ -241,7 +262,10 @@ class LogFilesBuilderTest {
                 .build();
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
         LogFiles logFiles = builder(
-                        DatabaseLayout.of(config), fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        DatabaseLayout.of(config),
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withRotationThreshold(ByteUnit.mebiBytes(1))
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withTransactionIdStore(new SimpleTransactionIdStore())
@@ -269,7 +293,10 @@ class LogFilesBuilderTest {
                 .build();
 
         final var logFiles = builder(
-                        DatabaseLayout.of(config), fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        DatabaseLayout.of(config),
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withLogFileVersionTracker(tracker)
                 .withTransactionIdStore(new SimpleTransactionIdStore())
@@ -331,7 +358,11 @@ class LogFilesBuilderTest {
 
     private static LogFilesBuilder builderWithTestCommandReaderFactory(
             DatabaseLayout databaseLayout, FileSystemAbstraction fileSystem) {
-        return builder(databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+        return builder(
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE);
     }
 }

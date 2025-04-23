@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.transaction.log.rotation;
 
 import java.io.IOException;
 import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 
 /**
  * Used to check if a log rotation is needed, and also to execute a log rotation.
@@ -37,7 +38,11 @@ public interface LogRotation {
 
         @Override
         public boolean locklessBatchedRotateLogIfNeeded(
-                LogRotateEvents logRotateEvents, long appendIndex, KernelVersion kernelVersion, int checksum) {
+                LogRotateEvents logRotateEvents,
+                long appendIndex,
+                KernelVersion kernelVersion,
+                int checksum,
+                LogFormat logFormat) {
             return false;
         }
 
@@ -63,6 +68,14 @@ public interface LogRotation {
                 int previousChecksum) {}
 
         @Override
+        public void locklessRotateLogFile(
+                LogRotateEvents logRotateEvents,
+                KernelVersion kernelVersion,
+                long lastAppendIndex,
+                int previousChecksum,
+                LogFormat logFormat) {}
+
+        @Override
         public long rotationSize() {
             return 0;
         }
@@ -79,7 +92,11 @@ public interface LogRotation {
      * Batch rotation does not perform any metadata or lover version store updates and only perform log file rotations.
      */
     boolean locklessBatchedRotateLogIfNeeded(
-            LogRotateEvents logRotateEvents, long lastAppendIndex, KernelVersion kernelVersion, int checksum)
+            LogRotateEvents logRotateEvents,
+            long lastAppendIndex,
+            KernelVersion kernelVersion,
+            int checksum,
+            LogFormat logFormat)
             throws IOException;
 
     /**
@@ -109,6 +126,14 @@ public interface LogRotation {
      */
     void locklessRotateLogFile(
             LogRotateEvents logRotateEvents, KernelVersion kernelVersion, long lastAppendIndex, int previousChecksum)
+            throws IOException;
+
+    void locklessRotateLogFile(
+            LogRotateEvents logRotateEvents,
+            KernelVersion kernelVersion,
+            long lastAppendIndex,
+            int previousChecksum,
+            LogFormat logFormat)
             throws IOException;
 
     long rotationSize();

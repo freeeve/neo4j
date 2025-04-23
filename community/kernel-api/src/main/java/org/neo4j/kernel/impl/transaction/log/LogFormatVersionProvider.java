@@ -19,17 +19,13 @@
  */
 package org.neo4j.kernel.impl.transaction.log;
 
-import java.util.Optional;
-import org.neo4j.kernel.KernelVersionProvider;
-import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 
-public interface LogTailMetadata extends KernelVersionProvider, LogTailLogVersionsMetadata, LogFormatVersionProvider {
+@FunctionalInterface
+public interface LogFormatVersionProvider {
+    LogFormatVersionProvider THROWING_PROVIDER = () -> {
+        throw new IllegalStateException("Log format version can not be provided in this state");
+    };
 
-    Optional<StoreId> getStoreId();
-
-    boolean logsMissing();
-
-    boolean hasUnreadableBytesInCheckpointLogs();
-
-    Optional<CheckpointInfo> getLastCheckPoint();
+    LogFormat getCurrentLogFormat();
 }

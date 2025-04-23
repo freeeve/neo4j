@@ -156,7 +156,7 @@ public class TransactionLogInitializer {
     }
 
     private LogFilesSpan buildLogFiles(DatabaseLayout layout, Path transactionLogsDirectory) throws IOException {
-        LogFilesBuilder builder = LogFilesBuilder.builder(layout, fs, metadataCache)
+        LogFilesBuilder builder = LogFilesBuilder.builder(layout, fs, metadataCache, metadataCache)
                 .withLogVersionRepository(metadataProvider)
                 .withTransactionIdStore(metadataProvider)
                 .withAppendIndexProvider(metadataProvider)

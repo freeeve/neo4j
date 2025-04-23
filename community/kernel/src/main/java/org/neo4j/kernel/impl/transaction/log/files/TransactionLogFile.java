@@ -63,6 +63,7 @@ import org.neo4j.kernel.impl.transaction.UnclosableChannel;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvent;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvents;
 import org.neo4j.kernel.impl.transaction.log.LogForceWaitEvent;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogHeaderCache;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogVersionBridge;
@@ -74,6 +75,7 @@ import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
@@ -145,17 +147,17 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
                 currentLogVersion,
                 context::appendIndex,
                 context.getKernelVersionProvider(),
-                context.getLastCommittedChecksumProvider().getLastCommittedChecksum(logFiles));
+                context.getLastCommittedChecksumProvider().getLastCommittedChecksum(logFiles),
+                context.getLogFormatVersionProvider());
 
         LogHeader logHeader = extractHeader(currentLogVersion);
         KernelVersion currentKernelVersion = context.getKernelVersionProvider().kernelVersion();
-        KernelVersion logHeaderKernelVersion = logHeader.getKernelVersion();
         // In the unlikely case that upgrade transaction was last tx (with or without recovery), we need to rotate
         // to a new file with correct header.
         // The header doesn't contain a kernel version before envelopes, but this corner case can safely be
         // ignored before envelopes since the format doesn't change.
-        if (currentKernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
-                && logHeaderKernelVersion != currentKernelVersion) {
+        if (rotationNeededBecauseOfVersionMismatch(currentKernelVersion, logHeader)) {
+            KernelVersion logHeaderKernelVersion = logHeader.getKernelVersion();
             assert logHeaderKernelVersion == null || currentKernelVersion.isGreaterThan(logHeaderKernelVersion);
             rotateOnStart(logHeader);
             currentLogVersion = logVersionRepository.getCurrentLogVersion();
@@ -179,6 +181,12 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
                     context.getBinarySupportedKernelVersions(),
                     logRotation);
         }
+    }
+
+    private boolean rotationNeededBecauseOfVersionMismatch(KernelVersion currentKernelVersion, LogHeader logHeader) {
+        return (currentKernelVersion.isAtLeast(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
+                        && logHeader.getKernelVersion() != currentKernelVersion)
+                || context.getLogFormatVersionProvider().getCurrentLogFormat() != logHeader.getLogFormatVersion();
     }
 
     @Override
@@ -205,7 +213,8 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
                 newLogVersion,
                 context::appendIndex,
                 context.getKernelVersionProvider(),
-                context.getLastCommittedChecksumProvider().getLastCommittedChecksum(logFiles));
+                context.getLastCommittedChecksumProvider().getLastCommittedChecksum(logFiles),
+                context.getLogFormatVersionProvider());
         channel.close();
         channel = newLog;
 
@@ -248,10 +257,15 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
             long version,
             LongSupplier lastAppendIndexSupplier,
             KernelVersionProvider kernelVersionProvider,
-            int previousLogFileChecksum)
+            int previousLogFileChecksum,
+            LogFormatVersionProvider logFormatVersionProvider)
             throws IOException {
         return channelAllocator.createLogChannel(
-                version, lastAppendIndexSupplier.getAsLong(), previousLogFileChecksum, kernelVersionProvider);
+                version,
+                lastAppendIndexSupplier.getAsLong(),
+                previousLogFileChecksum,
+                kernelVersionProvider,
+                logFormatVersionProvider);
     }
 
     /**
@@ -277,7 +291,8 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
                 currentLogVersion,
                 context.appendIndex(),
                 context.getLastCommittedChecksumProvider().getLastCommittedChecksum(logFiles),
-                context.getKernelVersionProvider());
+                context.getKernelVersionProvider(),
+                context.getLogFormatVersionProvider());
     }
 
     @Override
@@ -360,9 +375,21 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     }
 
     @Override
-    public synchronized Path rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum)
-            throws IOException {
-        channel = rotate(channel, () -> lastAppendIndex, () -> kernelVersion, () -> checksum);
+    public synchronized Path rotate(
+            KernelVersion kernelVersion, long lastAppendIndex, int checksum, LogFormat logFormat) throws IOException {
+        channel = rotate(channel, () -> lastAppendIndex, () -> kernelVersion, () -> checksum, () -> logFormat);
+        writer.setChannel(channel, channelAllocator.readLogHeaderForVersion(channel.getLogVersion()));
+        return channel.getPath();
+    }
+
+    @Override
+    public Path rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum) throws IOException {
+        channel = rotate(
+                channel,
+                () -> lastAppendIndex,
+                () -> kernelVersion,
+                () -> checksum,
+                context.getLogFormatVersionProvider());
         writer.setChannel(channel, channelAllocator.readLogHeaderForVersion(channel.getLogVersion()));
         return channel.getPath();
     }
@@ -664,9 +691,12 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
     }
 
     private synchronized Path rotate(LongSupplier appendIndexSupplier) throws IOException {
-        channel =
-                rotate(channel, appendIndexSupplier, context.getKernelVersionProvider(), () -> writer.currentChecksum()
-                        .orElse(BASE_TX_CHECKSUM));
+        channel = rotate(
+                channel,
+                appendIndexSupplier,
+                context.getKernelVersionProvider(),
+                () -> writer.currentChecksum().orElse(BASE_TX_CHECKSUM),
+                context.getLogFormatVersionProvider());
         writer.setChannel(channel, channelAllocator.readLogHeaderForVersion(channel.getLogVersion()));
         return channel.getPath();
     }
@@ -799,7 +829,8 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
             LogVersionedStoreChannel currentLog,
             LongSupplier lastAppendIndexSupplier,
             KernelVersionProvider kernelVersionProvider,
-            IntSupplier checksumProvider)
+            IntSupplier checksumProvider,
+            LogFormatVersionProvider logFormatVersionProvider)
             throws IOException {
         /*
          * The store is now flushed. If we fail now the recovery code will open the
@@ -829,7 +860,11 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
          * into transaction log that was just rotated.
          */
         PhysicalLogVersionedStoreChannel newLog = createLogChannelForVersion(
-                newLogVersion, lastAppendIndexSupplier, kernelVersionProvider, checksumProvider.getAsInt());
+                newLogVersion,
+                lastAppendIndexSupplier,
+                kernelVersionProvider,
+                checksumProvider.getAsInt(),
+                logFormatVersionProvider);
         currentLog.close();
 
         try {

@@ -59,6 +59,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryStart;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
 import org.neo4j.kernel.impl.transaction.log.entry.v57.LogEntryChunkEnd;
@@ -151,8 +152,8 @@ public class DetachedLogTailScanner {
             LogFile logFile, long highestLogVersion, long lowestLogVersion, CheckpointInfo checkpoint)
             throws IOException {
 
-        var postCheckPointInfo =
-                getPostCheckpointInfo(logFile, checkpoint.kernelVersion(), checkpoint.transactionLogPosition());
+        LogPosition transactionLogPosition = checkpoint.transactionLogPosition();
+        var postCheckPointInfo = getPostCheckpointInfo(logFile, checkpoint.kernelVersion(), transactionLogPosition);
         return new LogTailInformation(
                 loadConsensusIndexIfNeeded(logFile, checkpoint),
                 checkpoint.olderTransactionRecoveryRequired() || postCheckPointInfo.isPresent(),
@@ -162,13 +163,16 @@ public class DetachedLogTailScanner {
                 postCheckPointInfo.getEntryVersion(),
                 checkpoint.storeId(),
                 fallbackKernelVersionProvider,
+                checkpointFile
+                        .extractHeader(checkpoint.checkpointEntryPosition().getLogVersion())
+                        .getLogFormatVersion(),
                 new DetachedLogTailAppendIndexProvider(
                         commandReaderFactory,
                         binarySupportedKernelVersions,
                         logFiles.getLogFile(),
                         checkpoint.kernelVersion(),
                         checkpoint.appendIndex(),
-                        checkpoint.transactionLogPosition(),
+                        transactionLogPosition,
                         memoryTracker));
     }
 
@@ -181,7 +185,19 @@ public class DetachedLogTailScanner {
 
     private LogTailInformation noCheckpointLogTail(LogFile logFile, long highestLogVersion, long lowestLogVersion)
             throws IOException {
-        var entries = getFirstEntryInfo(logFile, lowestLogVersion);
+        var logPosition = LogPosition.UNSPECIFIED;
+        var kernelVersion = EARLIEST;
+        LogFormat logFormat = null;
+        if (logFile.versionExists(lowestLogVersion)) {
+            LogHeader logHeader = logFile.extractHeader(lowestLogVersion);
+            if (logHeader != null) {
+                logPosition = logHeader.getStartPosition();
+                kernelVersion = logHeader.getLogFormatVersion().getFromKernelVersion();
+                logFormat = logHeader.getLogFormatVersion();
+            }
+        }
+
+        var entries = getPostCheckpointInfo(logFile, kernelVersion, logPosition);
         var startPosition = getLogStartPosition(logFile, lowestLogVersion);
         var logFileVersion =
                 entries.kernelVersion == NO_ENTRY ? EARLIEST : KernelVersion.getForVersion(entries.kernelVersion);
@@ -193,6 +209,7 @@ public class DetachedLogTailScanner {
                 highestLogVersion,
                 entries.getEntryVersion(),
                 fallbackKernelVersionProvider,
+                logFormat,
                 new DetachedLogTailAppendIndexProvider(
                         commandReaderFactory,
                         binarySupportedKernelVersions,
@@ -209,19 +226,6 @@ public class DetachedLogTailScanner {
         }
         LogHeader logHeader = logFile.extractHeader(lowestLogVersion);
         return logHeader != null ? logHeader.getStartPosition() : LogPosition.UNSPECIFIED;
-    }
-
-    private PostCheckpointInfo getFirstEntryInfo(LogFile logFile, long lowestLogVersion) throws IOException {
-        var logPosition = LogPosition.UNSPECIFIED;
-        var kernelVersion = EARLIEST;
-        if (logFile.versionExists(lowestLogVersion)) {
-            LogHeader logHeader = logFile.extractHeader(lowestLogVersion);
-            if (logHeader != null) {
-                logPosition = logHeader.getStartPosition();
-                kernelVersion = logHeader.getLogFormatVersion().getFromKernelVersion();
-            }
-        }
-        return getPostCheckpointInfo(logFile, kernelVersion, logPosition);
     }
 
     /**

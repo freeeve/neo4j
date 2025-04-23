@@ -83,6 +83,7 @@ class RecoveryStartInformationProviderTest {
                         currentLogVersion,
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         kernelProv,
+                        LATEST_LOG_FORMAT,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         // when
@@ -126,6 +127,7 @@ class RecoveryStartInformationProviderTest {
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         null,
                         kernelProv,
+                        LATEST_LOG_FORMAT,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         // when
@@ -169,6 +171,7 @@ class RecoveryStartInformationProviderTest {
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         null,
                         kernelProv,
+                        LATEST_LOG_FORMAT,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         RecoveryStartInformation recoveryStartInformation =
@@ -195,6 +198,7 @@ class RecoveryStartInformationProviderTest {
                         currentLogVersion,
                         kernelVersion.version(),
                         kernelProv,
+                        LATEST_LOG_FORMAT,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         // when
@@ -221,6 +225,7 @@ class RecoveryStartInformationProviderTest {
                         -1,
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         kernelProv,
+                        LATEST_LOG_FORMAT,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         RecoveryStartInformation recoveryStartInformation =
@@ -242,6 +247,7 @@ class RecoveryStartInformationProviderTest {
                         currentLogVersion,
                         LatestVersions.LATEST_KERNEL_VERSION.version(),
                         kernelProv,
+                        LATEST_LOG_FORMAT,
                         EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER));
 
         // when

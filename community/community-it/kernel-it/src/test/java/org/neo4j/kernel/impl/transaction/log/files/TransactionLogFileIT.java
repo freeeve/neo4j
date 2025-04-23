@@ -75,7 +75,10 @@ class TransactionLogFileIT {
     @EnabledOnOs(OS.LINUX)
     void doNotScanDirectoryOnRotate() throws IOException {
         LogFiles logFiles = LogFilesBuilder.builder(
-                        databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withTransactionIdStore(metadataProvider)
                 .withAppendIndexProvider(metadataProvider)
                 .withLogVersionRepository(logVersionRepository)
@@ -112,7 +115,10 @@ class TransactionLogFileIT {
         var memoryTracker = new LocalMemoryTracker();
         var life = new LifeSupport();
         LogFiles logFiles = LogFilesBuilder.builder(
-                        databaseLayout, fileSystem, LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        fileSystem,
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withTransactionIdStore(metadataProvider)
                 .withLogVersionRepository(logVersionRepository)
                 .withAppendIndexProvider(metadataProvider)

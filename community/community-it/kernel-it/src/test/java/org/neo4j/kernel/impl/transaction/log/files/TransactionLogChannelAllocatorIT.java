@@ -30,6 +30,7 @@ import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
+import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT_PROVIDER;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -152,8 +153,8 @@ class TransactionLogChannelAllocatorIT {
     @Test
     @EnabledOnOs(OS.LINUX)
     void allocateNewTransactionLogFile() throws IOException {
-        try (var logChannel =
-                fileAllocator.createLogChannel(10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER)) {
+        try (var logChannel = fileAllocator.createLogChannel(
+                10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)) {
             assertEquals(ROTATION_THRESHOLD, logChannel.size());
         }
     }
@@ -165,8 +166,8 @@ class TransactionLogChannelAllocatorIT {
         var nativeChannelAccessor = new LogFileChannelNativeAccessor(fileSystem, logFileContext);
         var unreasonableAllocator = new TransactionLogChannelAllocator(
                 logFileContext, fileHelper, new LogHeaderCache(10), nativeChannelAccessor);
-        try (var channel = assertDoesNotThrow(() ->
-                unreasonableAllocator.createLogChannel(10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER))) {}
+        try (var channel = assertDoesNotThrow(() -> unreasonableAllocator.createLogChannel(
+                10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER))) {}
 
         assertThat(logProvider.serialize())
                 .containsSequence(
@@ -183,8 +184,8 @@ class TransactionLogChannelAllocatorIT {
         var nativeChannelAccessor = new LogFileChannelNativeAccessor(fileSystem, logFileContext);
         var unreasonableAllocator = new TransactionLogChannelAllocator(
                 logFileContext, fileHelper, new LogHeaderCache(10), nativeChannelAccessor);
-        try (PhysicalLogVersionedStoreChannel channel =
-                unreasonableAllocator.createLogChannel(10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER)) {
+        try (PhysicalLogVersionedStoreChannel channel = unreasonableAllocator.createLogChannel(
+                10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)) {
             assertEquals(EMPTY_LOG_FILE_SIZE, channel.size());
             assertThat(logProvider.serialize())
                     .containsSequence(
@@ -198,8 +199,8 @@ class TransactionLogChannelAllocatorIT {
     @Test
     @DisabledOnOs(OS.LINUX)
     void allocateNewTransactionLogFileOnSystemThatDoesNotSupportPreallocations() throws IOException {
-        try (PhysicalLogVersionedStoreChannel logChannel =
-                fileAllocator.createLogChannel(10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER)) {
+        try (PhysicalLogVersionedStoreChannel logChannel = fileAllocator.createLogChannel(
+                10, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)) {
             assertEquals(EMPTY_LOG_FILE_SIZE, logChannel.size());
         }
     }
@@ -210,8 +211,8 @@ class TransactionLogChannelAllocatorIT {
         fileSystem.write(file).close();
 
         TransactionLogChannelAllocator fileAllocator = createLogFileAllocator();
-        try (PhysicalLogVersionedStoreChannel channel =
-                fileAllocator.createLogChannel(11, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER)) {
+        try (PhysicalLogVersionedStoreChannel channel = fileAllocator.createLogChannel(
+                11, 1L, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)) {
             assertEquals(EMPTY_LOG_FILE_SIZE, channel.size());
         }
     }
@@ -253,6 +254,7 @@ class TransactionLogChannelAllocatorIT {
                 true,
                 new DatabaseHealth(HealthEventGenerator.NO_OP, NullLog.getInstance()),
                 LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                LATEST_LOG_FORMAT_PROVIDER,
                 Clock.systemUTC(),
                 DEFAULT_DATABASE_NAME,
                 config,

@@ -23,6 +23,7 @@ import org.neo4j.internal.helpers.Numbers;
 import org.neo4j.internal.recordstorage.Command.MetaDataCommand;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.database.MetadataCache;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 
 public class KernelVersionTransactionApplier extends TransactionApplier.Adapter {
     private final MetadataCache metadataCache;
@@ -38,6 +39,10 @@ public class KernelVersionTransactionApplier extends TransactionApplier.Adapter 
         // Not using the format yet, that is coming soon
         byte logFormatVersion = (byte) ((value >> Byte.SIZE) & 0xFF);
         metadataCache.setKernelVersion(kernelVersion);
+        metadataCache.setCurrentLogFormat(
+                logFormatVersion == 0
+                        ? LogFormat.fromKernelVersion(kernelVersion)
+                        : LogFormat.fromByteVersion(logFormatVersion));
         return false;
     }
 }

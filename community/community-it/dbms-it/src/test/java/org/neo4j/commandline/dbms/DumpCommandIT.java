@@ -224,7 +224,10 @@ class DumpCommandIT {
     @Test
     void databaseThatRequireRecoveryIsNotDumpable() throws IOException {
         LogFiles logFiles = LogFilesBuilder.builder(
-                        databaseLayout, testDirectory.getFileSystem(), LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
+                        databaseLayout,
+                        testDirectory.getFileSystem(),
+                        LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                        LatestVersions.LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withAppendIndexProvider(new SimpleAppendIndexProvider())

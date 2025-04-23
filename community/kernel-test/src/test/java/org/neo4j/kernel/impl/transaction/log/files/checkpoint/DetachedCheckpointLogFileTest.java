@@ -24,7 +24,9 @@ import static org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent.NULL;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_COMMIT_TIMESTAMP;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
+import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
+import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT_PROVIDER;
 
 import java.io.IOException;
 import java.time.Instant;
@@ -35,8 +37,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.api.TestCommandReaderFactory;
 import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
@@ -80,7 +80,6 @@ class DetachedCheckpointLogFileTest {
     private final AppendIndexProvider appendIndexProvider = new SimpleAppendIndexProvider();
     private CheckpointFile checkpointFile;
     private LogFiles logFiles;
-    private final FakeKernelVersionProvider versionProvider = new FakeKernelVersionProvider();
 
     @BeforeEach
     void setUp() throws IOException {
@@ -176,7 +175,8 @@ class DetachedCheckpointLogFileTest {
 
     private LogFiles buildLogFiles() throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.builder(databaseLayout, fileSystem, versionProvider)
+        return LogFilesBuilder.builder(
+                        databaseLayout, fileSystem, LATEST_KERNEL_VERSION_PROVIDER, LATEST_LOG_FORMAT_PROVIDER)
                 .withRotationThreshold(rotationThreshold)
                 .withTransactionIdStore(transactionIdStore)
                 .withAppendIndexProvider(appendIndexProvider)
@@ -185,14 +185,5 @@ class DetachedCheckpointLogFileTest {
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
                 .withStoreId(storeId)
                 .build();
-    }
-
-    private static class FakeKernelVersionProvider implements KernelVersionProvider {
-        volatile KernelVersion version = LatestVersions.LATEST_KERNEL_VERSION;
-
-        @Override
-        public KernelVersion kernelVersion() {
-            return version;
-        }
     }
 }

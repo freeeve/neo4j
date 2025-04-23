@@ -31,6 +31,7 @@ import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.NativeScopedBuffer;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogForceEvents;
+import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
@@ -89,9 +90,10 @@ public interface LogFile extends VersionedFile, RotatableFile {
 
     PhysicalLogVersionedStoreChannel createLogChannelForVersion(
             long version,
-            LongSupplier lastApplyIndexSupplier,
+            LongSupplier lastAppendIndexSupplier,
             KernelVersionProvider kernelVersionProvider,
-            int previousLogFileChecksum)
+            int previousLogFileChecksum,
+            LogFormatVersionProvider logFormatVersionProvider)
             throws IOException;
 
     PhysicalLogVersionedStoreChannel createLogChannelForExistingVersion(long version) throws IOException;

@@ -30,6 +30,7 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
+import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT_PROVIDER;
 
 import java.io.File;
 import java.io.IOException;
@@ -118,6 +119,7 @@ class CorruptedLogsTruncatorTest {
                 .withRotationThreshold(ROTATION_THRESHOLD)
                 .withEnvelopeSegmentBlockSizeBytes(SEGMENT_SIZE)
                 .withKernelVersionProvider(LATEST_KERNEL_VERSION_PROVIDER)
+                .withLogFormatVersionProvider(LATEST_LOG_FORMAT_PROVIDER)
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
                 .withAppendIndexProvider(appendIndexProvider)

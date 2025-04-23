@@ -44,6 +44,7 @@ import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogSegments;
 import org.neo4j.kernel.impl.transaction.log.entry.v522.DetachedCheckpointLogEntrySerializerV5_22;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -153,7 +154,10 @@ class EnvelopedCheckpointLogFileTest {
                 .set(GraphDatabaseInternalSettings.latest_kernel_version, GLORIOUS_FUTURE.version())
                 .build();
         return LogFilesBuilder.builder(
-                        databaseLayout, fileSystem, () -> KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)
+                        databaseLayout,
+                        fileSystem,
+                        () -> KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED,
+                        () -> LogFormat.V10)
                 .withConfig(futureEnabledConf)
                 .withRotationThreshold(rotationThreshold)
                 .withTransactionIdStore(transactionIdStore)

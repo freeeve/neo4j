@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.V10;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.V6;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper.CHECKPOINT_FILE_PREFIX;
@@ -33,6 +34,7 @@ import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION_PROVIDER;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
+import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT_PROVIDER;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -266,8 +268,8 @@ class TransactionLogFilesTest {
     @Test
     void fileWithoutEntriesDoesNotHaveThemIndependentlyOfItsSize() throws Exception {
         final var logFile = (TransactionLogFile) createLogFiles().getLogFile();
-        try (PhysicalLogVersionedStoreChannel channel =
-                logFile.createLogChannelForVersion(1, () -> 1L, LATEST_KERNEL_VERSION_PROVIDER, BASE_TX_CHECKSUM)) {
+        try (PhysicalLogVersionedStoreChannel channel = logFile.createLogChannelForVersion(
+                1, () -> 1L, LATEST_KERNEL_VERSION_PROVIDER, BASE_TX_CHECKSUM, LATEST_LOG_FORMAT_PROVIDER)) {
             assertThat(channel.size()).isGreaterThanOrEqualTo(LATEST_LOG_FORMAT.getHeaderSize());
             assertFalse(logFile.hasAnyEntries(1));
         }
@@ -277,8 +279,8 @@ class TransactionLogFilesTest {
     void envelopedFileWithZeroChecksumHasEntries() throws Exception {
         KernelVersion kernelVersion = VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
         LogFile logFile = createLogFiles(() -> kernelVersion).getLogFile();
-        try (PhysicalLogVersionedStoreChannel channel =
-                        logFile.createLogChannelForVersion(1, () -> 1L, () -> kernelVersion, BASE_TX_CHECKSUM);
+        try (PhysicalLogVersionedStoreChannel channel = logFile.createLogChannelForVersion(
+                        1, () -> 1L, () -> kernelVersion, BASE_TX_CHECKSUM, () -> V10);
                 EnvelopeWriteChannel envelopeWriteChannel = getEnvelopeChannel(channel)) {
             // Some magic bytes that just happen to give a checksum of 0
             byte[] bytes;
@@ -342,7 +344,8 @@ class TransactionLogFilesTest {
 
     private LogFiles createLogFiles(KernelVersionProvider kvp) throws Exception {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        var files = LogFilesBuilder.builder(databaseLayout, fileSystem, kvp)
+        var files = LogFilesBuilder.builder(
+                        databaseLayout, fileSystem, kvp, () -> LogFormat.fromKernelVersion(kvp.kernelVersion()))
                 .withTransactionIdStore(new SimpleTransactionIdStore())
                 .withLogVersionRepository(new SimpleLogVersionRepository())
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)

@@ -45,7 +45,10 @@ public class ReadOnlyTransactionStore implements LogicalTransactionStore {
             throws IOException {
         TransactionMetadataCache transactionMetadataCache = new TransactionMetadataCache();
         LogFiles logFiles = LogFilesBuilder.activeFilesBuilder(
-                        fromDatabaseLayout, fs, KernelVersionProvider.THROWING_PROVIDER)
+                        fromDatabaseLayout,
+                        fs,
+                        KernelVersionProvider.THROWING_PROVIDER,
+                        LogFormatVersionProvider.THROWING_PROVIDER)
                 .withCommandReaderFactory(commandReaderFactory)
                 .withConfig(config)
                 .build();

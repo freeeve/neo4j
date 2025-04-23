@@ -88,6 +88,7 @@ class RecoveryProgressIndicatorTest {
         TransactionLogsRecovery recovery = new TransactionLogsRecovery(
                 Mockito.mock(LogFiles.class),
                 LatestVersions.LATEST_KERNEL_VERSION_PROVIDER,
+                LatestVersions.LATEST_LOG_FORMAT_PROVIDER,
                 recoveryService,
                 logsTruncator,
                 new LifecycleAdapter(),

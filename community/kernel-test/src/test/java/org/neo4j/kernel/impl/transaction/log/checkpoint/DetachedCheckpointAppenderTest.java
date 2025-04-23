@@ -47,6 +47,7 @@ import org.neo4j.kernel.impl.transaction.SimpleAppendIndexProvider;
 import org.neo4j.kernel.impl.transaction.SimpleLogVersionRepository;
 import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogChannelAllocator;
@@ -270,7 +271,11 @@ class DetachedCheckpointAppenderTest {
 
     private LogFiles buildLogFiles(KernelVersion initialKernelVersion) throws IOException {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
-        return LogFilesBuilder.builder(databaseLayout, fileSystem, () -> initialKernelVersion)
+        return LogFilesBuilder.builder(
+                        databaseLayout,
+                        fileSystem,
+                        () -> initialKernelVersion,
+                        () -> LogFormat.fromKernelVersion(initialKernelVersion))
                 .withRotationThreshold(rotationThreshold)
                 .withTransactionIdStore(transactionIdStore)
                 .withAppendIndexProvider(appendIndexProvider)

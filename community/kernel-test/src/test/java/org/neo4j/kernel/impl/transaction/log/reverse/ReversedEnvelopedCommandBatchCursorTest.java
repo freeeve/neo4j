@@ -67,6 +67,7 @@ import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopeReadChannel;
 import org.neo4j.kernel.impl.transaction.log.files.LogFile;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
@@ -140,7 +141,8 @@ class ReversedEnvelopedCommandBatchCursorTest {
         SimpleTransactionIdStore transactionIdStore = new SimpleTransactionIdStore();
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
         config = Config.defaults(latest_kernel_version, kernelVersion.version());
-        LogFiles logFiles = LogFilesBuilder.builder(databaseLayout, fs, () -> kernelVersion)
+        LogFiles logFiles = LogFilesBuilder.builder(
+                        databaseLayout, fs, () -> kernelVersion, () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withRotationThreshold(ROTATION_THRESHOLD)
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
@@ -293,7 +295,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
     void readWhenPreAllocatedFile() throws IOException {
         int readableTransactions = 100;
         try (PhysicalLogVersionedStoreChannel channel = logFile.createLogChannelForVersion(
-                0L, () -> 1L, () -> KernelVersion.GLORIOUS_FUTURE, BASE_TX_CHECKSUM)) {
+                0L, () -> 1L, () -> KernelVersion.GLORIOUS_FUTURE, BASE_TX_CHECKSUM, () -> LogFormat.V10)) {
             var zeros = ByteBuffer.allocate(DEFAULT_LOG_SEGMENT_SIZE);
             for (int i = 0; i < ROTATION_THRESHOLD / DEFAULT_LOG_SEGMENT_SIZE; i++) {
                 channel.writeAll(zeros);

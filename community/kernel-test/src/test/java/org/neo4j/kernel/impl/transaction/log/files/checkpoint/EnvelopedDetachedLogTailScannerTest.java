@@ -44,6 +44,7 @@ import org.neo4j.kernel.impl.transaction.SimpleTransactionIdStore;
 import org.neo4j.kernel.impl.transaction.log.CompleteCommandBatch;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryWriter;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
@@ -85,7 +86,8 @@ public class EnvelopedDetachedLogTailScannerTest {
                         DbmsRuntimeVersion.GLORIOUS_FUTURE.getVersion())
                 .set(GraphDatabaseInternalSettings.latest_kernel_version, kernelVersion.version())
                 .build();
-        return LogFilesBuilder.activeFilesBuilder(databaseLayout, fs, () -> kernelVersion)
+        return LogFilesBuilder.activeFilesBuilder(
+                        databaseLayout, fs, () -> kernelVersion, () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
                 .withAppendIndexProvider(appendIndexProvider)

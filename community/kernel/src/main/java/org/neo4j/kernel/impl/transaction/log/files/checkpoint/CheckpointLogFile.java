@@ -53,6 +53,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointAppender;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.DetachedCheckpointAppender;
 import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.UnsupportedLogVersionException;
 import org.neo4j.kernel.impl.transaction.log.entry.VersionAwareLogEntryReader;
@@ -350,7 +351,15 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
     }
 
     @Override
-    public Path rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum) throws IOException {
+    public Path rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum, LogFormat logFormat)
+            throws IOException {
+        // Checkpoint log handles checksums and append indexes internally, this one should not ever be needed for
+        // checkpoint log file.
+        throw new UnsupportedOperationException("Checkpoint log does not support this type of rotation");
+    }
+
+    @Override
+    public Path rotate(KernelVersion kernelVersion, long lastAppendIndex, int checksum) {
         // Checkpoint log handles checksums and append indexes internally, this one should not ever be needed for
         // checkpoint log file.
         throw new UnsupportedOperationException("Checkpoint log does not support this type of rotation");
