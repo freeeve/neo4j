@@ -176,9 +176,13 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
       .build()
   }
 
-  def getGql42N19_duplicateClause(clause: String): ErrorGqlStatusObject = {
-    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N19)
-      .withParam(GqlParams.StringParam.syntax, clause)
+  def getGql42N19_duplicateClause(clause: String, position: InputPosition): ErrorGqlStatusObject = {
+    ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N19)
+        .withParam(GqlParams.StringParam.syntax, clause)
+        .atPosition(position.offset, position.line, position.column)
+        .build())
       .build()
   }
 
@@ -1439,7 +1443,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD"),
+        getGql42N19_duplicateClause("SET PASSWORD", pos2),
         initialState,
         "Duplicate `SET PASSWORD` clause.",
         pos2
@@ -1457,7 +1461,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD"),
+        getGql42N19_duplicateClause("SET PASSWORD", pos2),
         initialState,
         "Duplicate `SET PASSWORD` clause.",
         pos2
@@ -1749,7 +1753,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD CHANGE [NOT] REQUIRED"),
+        getGql42N19_duplicateClause("SET PASSWORD CHANGE [NOT] REQUIRED", pos3),
         initialState,
         "Duplicate `SET PASSWORD CHANGE [NOT] REQUIRED` clause.",
         pos3
@@ -1858,7 +1862,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     val error1 = SemanticCheckResult.error(
-      getGql42N19_duplicateClause("SET AUTH 'native'"),
+      getGql42N19_duplicateClause("SET AUTH 'native'", pos3),
       initialState,
       "Duplicate `SET AUTH 'native'` clause.",
       pos3
@@ -1888,7 +1892,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     val error1 = SemanticCheckResult.error(
-      getGql42N19_duplicateClause("SET AUTH 'native'"),
+      getGql42N19_duplicateClause("SET AUTH 'native'", pos3),
       initialState,
       "Duplicate `SET AUTH 'native'` clause.",
       pos3
@@ -2015,7 +2019,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET AUTH 'foo'"),
+        getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
         "Duplicate `SET AUTH 'foo'` clause.",
         pos3
@@ -2033,7 +2037,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET AUTH 'foo'"),
+        getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
         "Duplicate `SET AUTH 'foo'` clause.",
         pos3
@@ -2051,7 +2055,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD"),
+        getGql42N19_duplicateClause("SET PASSWORD", pos3),
         initialState,
         "Duplicate `SET PASSWORD` clause.",
         pos3
@@ -2069,7 +2073,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD"),
+        getGql42N19_duplicateClause("SET PASSWORD", pos3),
         initialState,
         "Duplicate `SET PASSWORD` clause.",
         pos3
@@ -2087,7 +2091,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     createUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET ID"),
+        getGql42N19_duplicateClause("SET ID", pos2),
         initialState,
         "Duplicate `SET ID` clause.",
         pos2
@@ -2417,7 +2421,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD"),
+        getGql42N19_duplicateClause("SET PASSWORD", pos2),
         initialState,
         "Duplicate `SET PASSWORD` clause.",
         pos2
@@ -2436,7 +2440,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD"),
+        getGql42N19_duplicateClause("SET PASSWORD", pos2),
         initialState,
         "Duplicate `SET PASSWORD` clause.",
         pos2
@@ -2455,7 +2459,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD"),
+        getGql42N19_duplicateClause("SET PASSWORD", pos2),
         initialState,
         "Duplicate `SET PASSWORD` clause.",
         pos2
@@ -2477,7 +2481,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD CHANGE [NOT] REQUIRED"),
+        getGql42N19_duplicateClause("SET PASSWORD CHANGE [NOT] REQUIRED", pos2),
         initialState,
         "Duplicate `SET PASSWORD CHANGE [NOT] REQUIRED` clause.",
         pos2
@@ -2560,7 +2564,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET AUTH 'native'"),
+        getGql42N19_duplicateClause("SET AUTH 'native'", pos3),
         initialState,
         "Duplicate `SET AUTH 'native'` clause.",
         pos3
@@ -2585,7 +2589,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET AUTH 'native'"),
+        getGql42N19_duplicateClause("SET AUTH 'native'", pos3),
         initialState,
         "Duplicate `SET AUTH 'native'` clause.",
         pos3
@@ -2680,7 +2684,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET AUTH 'foo'"),
+        getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
         "Duplicate `SET AUTH 'foo'` clause.",
         pos3
@@ -2699,7 +2703,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET AUTH 'foo'"),
+        getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
         "Duplicate `SET AUTH 'foo'` clause.",
         pos3
@@ -2718,7 +2722,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD"),
+        getGql42N19_duplicateClause("SET PASSWORD", pos3),
         initialState,
         "Duplicate `SET PASSWORD` clause.",
         pos3
@@ -2737,7 +2741,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET PASSWORD"),
+        getGql42N19_duplicateClause("SET PASSWORD", pos3),
         initialState,
         "Duplicate `SET PASSWORD` clause.",
         pos3
@@ -2756,7 +2760,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET ID"),
+        getGql42N19_duplicateClause("SET ID", pos2),
         initialState,
         "Duplicate `SET ID` clause.",
         pos2
@@ -2775,7 +2779,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET ID"),
+        getGql42N19_duplicateClause("SET ID", pos2),
         initialState,
         "Duplicate `SET ID` clause.",
         pos2
@@ -3176,7 +3180,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
     )(p)
 
     val error1 = SemanticCheckResult.error(
-      getGql42N19_duplicateClause("SET AUTH 'foo'"),
+      getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
       initialState,
       "Duplicate `SET AUTH 'foo'` clause.",
       pos3
@@ -3217,7 +3221,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET AUTH 'foo'"),
+        getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
         "Duplicate `SET AUTH 'foo'` clause.",
         pos3
@@ -3236,7 +3240,7 @@ class AdministrationCommandTest extends CypherFunSuite with AstConstructionTestS
 
     alterUser.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
       .error(
-        getGql42N19_duplicateClause("SET AUTH 'foo'"),
+        getGql42N19_duplicateClause("SET AUTH 'foo'", pos3),
         initialState,
         "Duplicate `SET AUTH 'foo'` clause.",
         pos3

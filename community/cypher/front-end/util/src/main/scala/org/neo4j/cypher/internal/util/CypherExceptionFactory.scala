@@ -28,8 +28,19 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 trait CypherExceptionFactory {
+
+  @deprecated("Use version with gqlStatusObject instead", since = "2025.05")
   def syntaxException(message: String, pos: InputPosition): RuntimeException
   def syntaxException(gqlStatusObject: ErrorGqlStatusObject, message: String, pos: InputPosition): RuntimeException
+
+  def duplicateClause(clause: String, legacyMessage: String, pos: InputPosition): RuntimeException = {
+    val gql = GqlHelper.getGql42001_42N19(clause, pos.offset, pos.line, pos.column)
+    syntaxException(
+      gql,
+      legacyMessage,
+      pos
+    )
+  }
 
   def unsupportedRequestOnSystemDatabaseException(
     invalidInput: String,
@@ -158,15 +169,7 @@ trait CypherExceptionFactory {
   }
 
   def duplicateClauseParameter(description: String, position: InputPosition): RuntimeException = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
-      .atPosition(position.offset, position.line, position.column)
-      .withCause(
-        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N19)
-          .withParam(GqlParams.StringParam.syntax, description)
-          .atPosition(position.offset, position.line, position.column)
-          .build()
-      ).build()
-
+    val gql = GqlHelper.getGql42001_42N19(description, position.offset, position.line, position.column)
     syntaxException(
       gql,
       s"Duplicated $description parameters",
@@ -250,6 +253,7 @@ trait CypherExceptionFactory {
 case class Neo4jCypherExceptionFactory(queryText: String, preParserOffset: Option[InputPosition])
     extends CypherExceptionFactory {
 
+  @deprecated("Use version with gqlStatusObject instead", since = "2025.05")
   override def syntaxException(message: String, pos: InputPosition): Neo4jException = {
     val adjustedPosition = pos.withOffset(preParserOffset)
     new SyntaxException(s"$message ($adjustedPosition)", queryText, adjustedPosition.offset)

@@ -110,6 +110,7 @@ class FabricParsingPropertyTest extends CypherFunSuite
 
   private val dummyExceptionFactory = new CypherExceptionFactory {
 
+    @deprecated("Use version with gqlStatusObject instead", since = "2025.05")
     override def syntaxException(message: String, pos: InputPosition): RuntimeException = new DummyException
 
     override def syntaxException(

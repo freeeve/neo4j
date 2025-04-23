@@ -43,7 +43,7 @@ public final class JsonHelper {
         try {
             return OBJECT_MAPPER.readTree(json);
         } catch (IOException e) {
-            throw new JsonParseException(e);
+            throw JsonParseException.jsonParsingException(e);
         }
     }
 

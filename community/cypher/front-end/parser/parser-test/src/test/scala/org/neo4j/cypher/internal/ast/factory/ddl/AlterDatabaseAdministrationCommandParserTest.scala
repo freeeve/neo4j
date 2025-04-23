@@ -661,7 +661,9 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
   test("ALTER DATABASE foo REMOVE OPTION key REMOVE OPTION key") {
     failsParsing[Statements].withSyntaxErrorContaining(
-      """Duplicate 'REMOVE OPTION key' clause (line 1, column 52 (offset: 51))"""
+      "Duplicate 'REMOVE OPTION key' clause (line 1, column 52 (offset: 51))",
+      GqlStatusInfoCodes.STATUS_42N19,
+      "error: syntax error or access rule violation - duplicate clause. Duplicate `REMOVE OPTION key` clause."
     )
   }
 
@@ -739,7 +741,9 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
   test("ALTER DATABASE foo SET OPTION txLogEnrichment 'FULL' SET OPTION txLogEnrichment 'FULL'") {
     failsParsing[Statements].withSyntaxErrorContaining(
-      """Duplicate 'SET OPTION txLogEnrichment' clause (line 1, column 58 (offset: 57))"""
+      "Duplicate 'SET OPTION txLogEnrichment' clause (line 1, column 58 (offset: 57))",
+      GqlStatusInfoCodes.STATUS_42N19,
+      "error: syntax error or access rule violation - duplicate clause. Duplicate `SET OPTION txLogEnrichment` clause."
     )
   }
 

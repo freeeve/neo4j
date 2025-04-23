@@ -34,6 +34,10 @@ public class JsonParseException extends GqlException implements Status.HasStatus
         super(gqlStatusObject, message, cause);
     }
 
+    private JsonParseException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
+        super(gqlStatusObject, ErrorMessageHolder.getOldCauseMessage(cause), cause);
+    }
+
     public static JsonParseException jsonParsingException(int line, int column, String message, Throwable cause) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_08N11)
                 .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N95)
@@ -46,15 +50,6 @@ public class JsonParseException extends GqlException implements Status.HasStatus
                         .build())
                 .build();
         return new JsonParseException(gql, message, cause);
-    }
-
-    @Deprecated
-    public JsonParseException(Throwable cause) {
-        super(ErrorMessageHolder.getOldCauseMessage(cause), cause);
-    }
-
-    private JsonParseException(ErrorGqlStatusObject gqlStatusObject, Throwable cause) {
-        super(gqlStatusObject, ErrorMessageHolder.getOldCauseMessage(cause), cause);
     }
 
     public static JsonParseException jsonParsingException(Throwable cause) {

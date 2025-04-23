@@ -176,6 +176,7 @@ import org.neo4j.cypher.internal.util.attribution.SequentialIdGen
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY
 import org.neo4j.exceptions.InvalidSemanticsException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.security.AuthorizationViolationException
 
@@ -262,7 +263,8 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
             if (error.gqlStatusObject != null) {
               throw context.cypherExceptionFactory.syntaxException(error.gqlStatusObject, error.msg, error.position)
             }
-            throw context.cypherExceptionFactory.syntaxException(error.msg, error.position)
+            // This case can be removed once all semantic errors have been ported to GQLSTATUS
+            throw context.cypherExceptionFactory.syntaxException(GqlHelper.getDefaultObject, error.msg, error.position)
           }
       }
       val signature = resolved.signature

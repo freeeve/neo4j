@@ -30,7 +30,8 @@ public final class TransactionId {
 
     public static String formatTransactionId(String database, long internalId) throws InvalidArgumentsException {
         if (internalId < 0) {
-            throw new InvalidArgumentsException("Negative ids are not supported " + EXPECTED_FORMAT_MSG);
+            throw InvalidArgumentsException.internalError(
+                    TransactionId.class.getSimpleName(), "Negative ids are not supported " + EXPECTED_FORMAT_MSG);
         }
         var normalizedDatabaseName = new NormalizedDatabaseName(database);
         return normalizedDatabaseName.name() + SEPARATOR + internalId;

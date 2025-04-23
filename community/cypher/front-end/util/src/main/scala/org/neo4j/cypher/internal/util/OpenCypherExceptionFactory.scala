@@ -36,6 +36,7 @@ object OpenCypherExceptionFactory {
     val pos: InputPosition
   ) extends CypherException(message) {
 
+    @deprecated("will be removed once all usages are ported", since = "2025.05")
     def this(message: String, pos: InputPosition) = this(null, message, pos)
 
     override def getMessage: String = {
@@ -49,6 +50,7 @@ object OpenCypherExceptionFactory {
 
 case class OpenCypherExceptionFactory(preParserOffset: Option[InputPosition]) extends CypherExceptionFactory {
 
+  @deprecated("Use version with gqlStatusObject instead", since = "2025.05")
   override def syntaxException(message: String, pos: InputPosition): CypherException = {
     val adjustedPosition = pos.withOffset(preParserOffset)
     new SyntaxException(message, adjustedPosition)

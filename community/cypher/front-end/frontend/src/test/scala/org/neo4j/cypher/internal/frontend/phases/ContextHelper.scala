@@ -45,7 +45,7 @@ object ContextHelper extends MockitoSugar {
 
       override def errorHandler: Seq[SemanticErrorDef] => Unit =
         (errors: Seq[SemanticErrorDef]) =>
-          errors.foreach(e => throw cypherExceptionFactory.syntaxException(e.msg, e.position))
+          errors.foreach(e => throw cypherExceptionFactory.syntaxException(e.gqlStatusObject, e.msg, e.position))
 
       override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider
 

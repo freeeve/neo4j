@@ -54,6 +54,7 @@ class ExistsScopedDependenciesTest extends CypherFunSuite with AstConstructionTe
   private val parsing = CompilationPhases.parsing(ParsingConfig()) andThen Namespacer
 
   private val dummyExceptionFactory = new CypherExceptionFactory {
+    @deprecated("Use version with gqlStatusObject instead", since = "2025.05")
     override def syntaxException(message: String, pos: InputPosition): RuntimeException = new DummyException
 
     override def syntaxException(

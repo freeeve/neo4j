@@ -117,7 +117,8 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
     if (isParam) {
       _errors :+= exceptionFactory.duplicateClauseParameter(description, inputPosition(token))
     } else {
-      _errors :+= exceptionFactory.syntaxException(
+      _errors :+= exceptionFactory.duplicateClause(
+        description,
         s"Duplicate $description clause",
         inputPosition(token)
       )
@@ -681,7 +682,8 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
       var i = 0
       keyNames.foreach(k =>
         if (keySet.contains(k)) {
-          _errors :+= exceptionFactory.syntaxException(
+          _errors :+= exceptionFactory.duplicateClause(
+            s"REMOVE OPTION $k",
             s"Duplicate 'REMOVE OPTION $k' clause",
             pos(ctx.symbolicNameString(i))
           )
@@ -700,7 +702,8 @@ final class Cypher5SyntaxChecker(exceptionFactory: CypherExceptionFactory) exten
       var i = 0
       keyNames.foreach(k =>
         if (keySet.contains(k)) {
-          _errors :+= exceptionFactory.syntaxException(
+          _errors :+= exceptionFactory.duplicateClause(
+            s"SET OPTION $k",
             s"Duplicate 'SET OPTION $k' clause",
             pos(ctx.alterDatabaseOption(i))
           )

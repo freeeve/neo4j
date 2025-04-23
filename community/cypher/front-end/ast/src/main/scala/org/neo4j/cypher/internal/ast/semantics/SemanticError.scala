@@ -481,9 +481,7 @@ object SemanticError {
   }
 
   def duplicateClause(clause: String, legacyMessage: String, pos: InputPosition): SemanticError = {
-    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N19)
-      .withParam(GqlParams.StringParam.syntax, clause)
-      .build()
+    val gql = GqlHelper.getGql42001_42N19(clause, pos.offset, pos.line, pos.column)
     SemanticError(
       gql,
       legacyMessage,

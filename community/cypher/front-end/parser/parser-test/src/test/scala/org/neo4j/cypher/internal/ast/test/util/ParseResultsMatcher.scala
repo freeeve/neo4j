@@ -104,7 +104,7 @@ trait FluentMatchers[Self <: FluentMatchers[Self, T], T <: ASTNode] extends AstM
   def withSyntaxError(message: String): Self = throws[SyntaxException].withMessage(message)
   def withSyntaxErrorContaining(message: String): Self = throws[SyntaxException].withMessageContaining(message)
 
-  private def withGqlStatus(gqlStatusMatcher: GqlExceptionMatcher): Self = {
+  def withGqlStatus(gqlStatusMatcher: GqlExceptionMatcher): Self = {
     withError(throwable => {
       throwable should be(a[ErrorGqlStatusObject])
       throwable.asInstanceOf[ErrorGqlStatusObject] should be(gqlStatusMatcher)
