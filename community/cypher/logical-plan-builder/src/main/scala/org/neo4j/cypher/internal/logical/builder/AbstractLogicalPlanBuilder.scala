@@ -414,6 +414,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   private val looseEnds = new ArrayBuffer[Tree]
   private var indent = 0
   protected var resultColumns: Array[String] = _
+  protected var enabled = true
 
   private var _idOfLastPlan = Id.INVALID_ID
 
@@ -3377,40 +3378,58 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     }.toMap
   }
 
+  /**
+   * Enables/disables the builder for the next statements until ___CONDITION_END___ is called.
+   */
+  def ___CONDITION_BEGIN___(enabled: Boolean): IMPL = {
+    this.enabled = enabled
+    self
+  }
+
+  /**
+   * Re-enables the builder after a call to ___CONDITION_BEGIN___.
+   */
+  def ___CONDITION_END___(): IMPL = {
+    this.enabled = true
+    self
+  }
+
   protected def appendAtCurrentIndent(operatorBuilder: OperatorBuilder): IMPL = {
-    if (tree == null) {
-      if (wholePlan) {
-        throw new IllegalStateException("Must call produceResult before adding other operators.")
+    if (enabled) {
+      if (tree == null) {
+        if (wholePlan) {
+          throw new IllegalStateException("Must call produceResult before adding other operators.")
+        } else {
+          tree = new Tree(operatorBuilder)
+          looseEnds += tree
+        }
       } else {
-        tree = new Tree(operatorBuilder)
-        looseEnds += tree
+        val newTree = new Tree(operatorBuilder)
+
+        def appendAtIndent(): Unit = {
+          val parent = looseEnds(indent)
+          parent.left = Some(newTree)
+          looseEnds(indent) = newTree
+        }
+
+        indent - (looseEnds.size - 1) match {
+          case 1 => // new rhs
+            val parent = looseEnds.last
+            parent.right = Some(newTree)
+            looseEnds += newTree
+
+          case 0 => // append to lhs
+            appendAtIndent()
+
+          case -1 => // end of rhs
+            appendAtIndent()
+            looseEnds.remove(looseEnds.size - 1)
+
+          case _ =>
+            throw new IllegalStateException("out of bounds")
+        }
+        indent = 0
       }
-    } else {
-      val newTree = new Tree(operatorBuilder)
-
-      def appendAtIndent(): Unit = {
-        val parent = looseEnds(indent)
-        parent.left = Some(newTree)
-        looseEnds(indent) = newTree
-      }
-
-      indent - (looseEnds.size - 1) match {
-        case 1 => // new rhs
-          val parent = looseEnds.last
-          parent.right = Some(newTree)
-          looseEnds += newTree
-
-        case 0 => // append to lhs
-          appendAtIndent()
-
-        case -1 => // end of rhs
-          appendAtIndent()
-          looseEnds.remove(looseEnds.size - 1)
-
-        case _ =>
-          throw new IllegalStateException("out of bounds")
-      }
-      indent = 0
     }
     self
   }
