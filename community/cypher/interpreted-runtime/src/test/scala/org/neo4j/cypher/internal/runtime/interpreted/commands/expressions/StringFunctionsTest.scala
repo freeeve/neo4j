@@ -47,10 +47,39 @@ class StringFunctionsTest extends CypherFunSuite {
     replace("hello", "l", "w") should equal(stringValue("hewwo"))
     replace("hello", "ell", "ipp") should equal(stringValue("hippo"))
     replace("hello", "a", "x") should equal(stringValue("hello"))
+    replace("aaaaaaaaaa", "", "b") should equal(stringValue("babababababababababab"))
     replace(null, "a", "x") should equal(expectedNull)
     replace("hello", null, "x") should equal(expectedNull)
     replace("hello", "o", null) should equal(expectedNull)
     intercept[CypherTypeException](replace(1042, "10", "30"))
+  }
+
+  test("replaceWithLimitTests") {
+    def replace(orig: Any, from: Any, to: Any, limit: Any) =
+      ReplaceFunction(literal(orig), literal(from), literal(to), Some(literal(limit))).apply(
+        CypherRow.empty,
+        QueryStateHelper.empty
+      )
+
+    replace("hello", "l", "w", Int.MaxValue) should equal(stringValue("hewwo"))
+    replace("hello", "l", "w", 3) should equal(stringValue("hewwo"))
+    replace("hello", "l", "w", 2) should equal(stringValue("hewwo"))
+    replace("hello", "l", "w", 1) should equal(stringValue("hewlo"))
+    replace("hello", "l", "w", 0) should equal(stringValue("hello"))
+    replace("hello", "ell", "ipp", 1) should equal(stringValue("hippo"))
+    replace("hello", "a", "x", 3) should equal(stringValue("hello"))
+    replace("hellllelllllellllo", "l", "w", 10) should equal(stringValue("hewwwwewwwwwewlllo"))
+    replace("aaaaaaaaaa", "", "b", 3) should equal(stringValue("bababaaaaaaaa"))
+    replace("aaaaaaaaaa", "", "b", 10) should equal(stringValue("babababababababababa"))
+    replace("aaaaaaaaaa", "", "b", 11) should equal(stringValue("babababababababababab"))
+    replace("aaaaaaaaaa", "", "b", 12) should equal(stringValue("babababababababababab"))
+    replace("aaaaaaaaaa", "", "", 3) should equal(stringValue("aaaaaaaaaa"))
+    replace("aaaaaaaaaa", "a", "", 3) should equal(stringValue("aaaaaaa"))
+    replace(null, "a", "x", 1) should equal(expectedNull)
+    replace("hello", null, "x", 1) should equal(expectedNull)
+    replace("hello", "o", null, 1) should equal(expectedNull)
+    replace("hello", "o", "y", null) should equal(expectedNull)
+    intercept[CypherTypeException](replace(1042, "10", "30", 1))
   }
 
   test("leftTests") {

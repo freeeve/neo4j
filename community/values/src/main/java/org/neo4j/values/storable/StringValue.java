@@ -134,7 +134,7 @@ public abstract class StringValue extends TextValue {
     /**
      * Splits a string with multiple separator strings
      *
-     * @param input String to be split
+     * @param input  String to be split
      * @param delims delimiters, must not be not empty
      * @return the split string as a List of TextValues
      */
@@ -192,6 +192,74 @@ public abstract class StringValue extends TextValue {
         assert replace != null;
 
         return Values.stringValue(value().replace(find, replace));
+    }
+
+    @Override
+    public TextValue replaceWithLimit(String find, String replace, int limit) {
+        assert find != null;
+        assert replace != null;
+
+        if (limit < 1) {
+            return this;
+        }
+
+        return Values.stringValue(replaceStringWithLimit(find, replace, limit));
+    }
+
+    private String replaceStringWithLimit(String target, String replacement, int limit) {
+        int thisLen = length();
+        int trgtLen = target.length();
+        int replLen = replacement.length();
+
+        if (trgtLen > 0) {
+            // Replace all occurrences
+            if (trgtLen == 1 && replLen == 1 && limit > thisLen) {
+                return value().replace(target, replacement);
+            }
+
+            String str = value();
+            StringBuilder sb = new StringBuilder();
+            int count = 0;
+            int i = 0;
+
+            while (i < thisLen) {
+                if (count < limit) {
+                    if (str.startsWith(target, i)) {
+                        sb.append(replacement);
+                        i += target.length();
+                        count++;
+                    } else {
+                        sb.append(str.charAt(i));
+                        i++;
+                    }
+                } else {
+                    sb.append(str, i, thisLen);
+                    i = thisLen;
+                }
+            }
+
+            return sb.toString();
+
+        } else { // trgtLen == 0
+            int resultLen;
+            try {
+                resultLen =
+                        Math.addExact(thisLen, Math.multiplyExact(Math.min(limit, Math.addExact(thisLen, 1)), replLen));
+            } catch (ArithmeticException ignored) {
+                throw new OutOfMemoryError("Required length exceeds implementation limit");
+            }
+
+            StringBuilder sb = new StringBuilder(resultLen);
+            sb.append(replacement);
+            for (int i = 0; i < Math.min(limit - 1, thisLen); ++i) {
+                sb.append(this.value().charAt(i)).append(replacement);
+            }
+            if (limit <= thisLen) {
+                sb.append(this.value(), limit - 1, thisLen);
+            }
+
+            return sb.toString();
+        }
     }
 
     @Override
@@ -330,6 +398,15 @@ public abstract class StringValue extends TextValue {
 
         @Override
         public TextValue replace(String find, String replace) {
+            if (find.isEmpty()) {
+                return Values.stringValue(replace);
+            } else {
+                return this;
+            }
+        }
+
+        @Override
+        public TextValue replaceWithLimit(String find, String replace, int limit) {
             if (find.isEmpty()) {
                 return Values.stringValue(replace);
             } else {

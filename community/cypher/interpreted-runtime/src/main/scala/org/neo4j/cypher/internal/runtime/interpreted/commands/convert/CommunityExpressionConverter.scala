@@ -737,12 +737,22 @@ case class CommunityExpressionConverter(
         )
       case Relationships =>
         commands.expressions.RelationshipFunction(self.toCommandExpression(id, invocation.arguments.head))
-      case Replace =>
-        commands.expressions.ReplaceFunction(
-          self.toCommandExpression(id, invocation.arguments.head),
-          self.toCommandExpression(id, invocation.arguments(1)),
-          self.toCommandExpression(id, invocation.arguments(2))
-        )
+      case Replace => if (invocation.arguments.size == 3) {
+          commands.expressions.ReplaceFunction(
+            self.toCommandExpression(id, invocation.arguments.head),
+            self.toCommandExpression(id, invocation.arguments(1)),
+            self.toCommandExpression(id, invocation.arguments(2)),
+            None
+          )
+        } else {
+          commands.expressions.ReplaceFunction(
+            self.toCommandExpression(id, invocation.arguments.head),
+            self.toCommandExpression(id, invocation.arguments(1)),
+            self.toCommandExpression(id, invocation.arguments(2)),
+            Some(self.toCommandExpression(id, invocation.arguments(3)))
+          )
+
+        }
       case Reverse => commands.expressions.ReverseFunction(self.toCommandExpression(id, invocation.arguments.head))
       case Right =>
         commands.expressions.RightFunction(

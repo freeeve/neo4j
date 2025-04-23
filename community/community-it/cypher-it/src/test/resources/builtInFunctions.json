@@ -3018,6 +3018,53 @@
     "cypherVersionScope": [5, 25]
   },
   {
+    "name": "replace",
+    "category": "String",
+    "description": "Returns a `STRING` in which all occurrences of a specified search `STRING` in the given `STRING` have been replaced by another (specified) replacement `STRING`.",
+    "signature": "replace(original :: STRING, search :: STRING, replace :: STRING, limit :: INTEGER) :: STRING",
+    "isBuiltIn": true,
+    "argumentDescription": [
+      {
+        "name": "original",
+        "description" : "The string to be modified.",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "search",
+        "description" : "The value to replace in the original string.",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "replace",
+        "description" : "The value to be inserted in the original string.",
+        "type": "STRING",
+        "isDeprecated": false
+      },
+      {
+        "name": "limit",
+        "description" : "The maximum amount of times the search value should be replaced in the string, starting from the left.",
+        "type": "INTEGER",
+        "isDeprecated": false
+      }
+    ],
+    "returnDescription": "STRING",
+    "aggregating": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin",
+      "architect",
+      "editor",
+      "publisher",
+      "reader"
+    ],
+    "rolesBoostedExecution": [],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "cypherVersionScope": [25]
+  },
+  {
     "name": "reverse",
     "category": "String",
     "description": "Returns a `STRING` or `LIST<ANY>` in which the order of all characters or elements in the given `STRING` or `LIST<ANY>` have been reversed.",

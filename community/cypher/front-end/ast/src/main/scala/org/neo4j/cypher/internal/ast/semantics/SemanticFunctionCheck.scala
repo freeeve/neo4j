@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.expressions.FunctionTypeSignatures
 import org.neo4j.cypher.internal.expressions.IntegerLiteral
 import org.neo4j.cypher.internal.expressions.Literal
 import org.neo4j.cypher.internal.expressions.MapExpression
+import org.neo4j.cypher.internal.expressions.NumberLiteral
 import org.neo4j.cypher.internal.expressions.PatternExpression
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
@@ -48,6 +49,7 @@ import org.neo4j.cypher.internal.expressions.functions.PercentileCont
 import org.neo4j.cypher.internal.expressions.functions.PercentileDisc
 import org.neo4j.cypher.internal.expressions.functions.Point
 import org.neo4j.cypher.internal.expressions.functions.Reduce
+import org.neo4j.cypher.internal.expressions.functions.Replace
 import org.neo4j.cypher.internal.expressions.functions.Reverse
 import org.neo4j.cypher.internal.expressions.functions.Tail
 import org.neo4j.cypher.internal.expressions.functions.ToBoolean
@@ -229,6 +231,28 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
               specifyType(types(invocation.arguments.head), invocation)
           }
 
+        case Replace =>
+          checkFunctionTypeSignatures(semanticCheckContext, Replace, invocation) ifOkChain {
+            if (invocation.arguments.size == 4) {
+              invocation.arguments(3) match {
+                case i: IntegerLiteral if i.value >= 0 => SemanticCheck.success
+                case lit: NumberLiteral =>
+                  SemanticAnalysisToolingErrorWithGqlInfo.specifiedNumberOutOfRangeError(
+                    "limit",
+                    "INTEGER",
+                    0,
+                    Long.MaxValue,
+                    String.valueOf(lit.value),
+                    "The limit needs to be greater than or equal to 0.",
+                    lit.position
+                  )
+                case _ => SemanticCheck.success
+              }
+            } else {
+              SemanticCheck.success
+            }
+          }
+
         case Tail =>
           checkArgs(invocation, 1, Tail.signatures) ifOkChain {
             expectType(CTList(CTAny).covariant, invocation.arguments(0)) chain
@@ -277,8 +301,16 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
     f: FunctionTypeSignatures,
     invocation: FunctionInvocation
   ): SemanticCheck =
-    checkMinArgs(invocation, f.signatureLengthsByScope(ctx.cypherVersion).min, f.signatures) chain
-      checkMaxArgs(invocation, f.signatureLengthsByScope(ctx.cypherVersion).max, f.signatures) chain
+    checkMinArgs(
+      invocation,
+      f.signatureLengthsByScope(ctx.cypherVersion).min,
+      f.signaturesByScope(ctx.cypherVersion)
+    ) chain
+      checkMaxArgs(
+        invocation,
+        f.signatureLengthsByScope(ctx.cypherVersion).max,
+        f.signaturesByScope(ctx.cypherVersion)
+      ) chain
       checkTypes(invocation, f.signaturesByScope(ctx.cypherVersion))
 
   protected def checkArgs(

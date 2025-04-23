@@ -185,20 +185,30 @@ case class SubstringFunction(orig: Expression, start: Expression, length: Option
 
 }
 
-case class ReplaceFunction(orig: Expression, search: Expression, replaceWith: Expression)
-    extends Expression {
+case class ReplaceFunction(
+  orig: Expression,
+  search: Expression,
+  replaceWith: Expression,
+  limit: Option[Expression] = None
+) extends Expression {
 
-  override def apply(ctx: ReadableRow, state: QueryState): AnyValue = {
-    CypherFunctions.replace(orig(ctx, state), search(ctx, state), replaceWith(ctx, state))
+  override def apply(ctx: ReadableRow, state: QueryState): AnyValue = limit match {
+    case Some(e) =>
+      CypherFunctions.replace(orig(ctx, state), search(ctx, state), replaceWith(ctx, state), e(ctx, state))
+    case None => CypherFunctions.replace(orig(ctx, state), search(ctx, state), replaceWith(ctx, state))
   }
 
-  override def arguments: Seq[Expression] = Seq(orig, search, replaceWith)
+  override def arguments: Seq[Expression] = limit match {
+    case Some(e) => Seq(orig, search, replaceWith, e)
+    case None    => Seq(orig, search, replaceWith)
+  }
 
   override def children: Seq[AstNode[_]] = arguments
 
-  override def rewrite(f: Expression => Expression): Expression = f(
-    ReplaceFunction(orig.rewrite(f), search.rewrite(f), replaceWith.rewrite(f))
-  )
+  override def rewrite(f: Expression => Expression): Expression = limit match {
+    case Some(e) => f(ReplaceFunction(orig.rewrite(f), search.rewrite(f), replaceWith.rewrite(f), Some(e.rewrite(f))))
+    case None    => f(ReplaceFunction(orig.rewrite(f), search.rewrite(f), replaceWith.rewrite(f)))
+  }
 
 }
 

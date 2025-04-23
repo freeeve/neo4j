@@ -193,6 +193,19 @@ public final class CharValue extends TextValue {
     }
 
     @Override
+    public TextValue replaceWithLimit(String find, String replace, int limit) {
+        assert find != null;
+        assert replace != null;
+        if (limit < 1) {
+            return this;
+        } else if (stringValue().equals(find)) {
+            return Values.stringValue(replace);
+        } else {
+            return this;
+        }
+    }
+
+    @Override
     public TextValue reverse() {
         return this;
     }

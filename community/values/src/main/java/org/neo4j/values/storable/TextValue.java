@@ -72,6 +72,8 @@ public abstract class TextValue extends HashMemoizingScalarValue {
 
     public abstract TextValue replace(String find, String replace);
 
+    public abstract TextValue replaceWithLimit(String find, String replace, int limit);
+
     public abstract TextValue reverse();
 
     public abstract TextValue plus(TextValue other);

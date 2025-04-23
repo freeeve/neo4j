@@ -291,6 +291,19 @@ object GqlExceptionMatchers extends GqlExceptionMatchers {
     )
   }
 
+  def functionInvalidArgumentGqlException(legacyMsg: String, func: String, msgPart: String): BeMatcher[Exception] = {
+    gqlException(
+      legacyMsg,
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22N38,
+        s"error: data exception - invalid function argument. Invalid argument to the function $func."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_22N03,
+        s"error: data exception - specified numeric value out of range. $msgPart"
+      )
+    )
+  }
+
   def typeExceptionGqlException(legacyMsg: String, msgPart: String): BeMatcher[Exception] = {
     gqlException(
       legacyMsg,

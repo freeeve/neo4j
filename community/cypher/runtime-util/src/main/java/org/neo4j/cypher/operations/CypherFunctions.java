@@ -996,8 +996,23 @@ public final class CypherFunctions {
     public static AnyValue replace(AnyValue original, AnyValue search, AnyValue replaceWith) {
         if (original == NO_VALUE || search == NO_VALUE || replaceWith == NO_VALUE) {
             return NO_VALUE;
-        } else if (original instanceof TextValue) {
-            return ((TextValue) original).replace(asString(search), asString(replaceWith));
+        } else if (original instanceof TextValue textValue) {
+            return textValue.replace(asString(search), asString(replaceWith));
+        } else {
+            throw notAString("replace", original);
+        }
+    }
+
+    public static AnyValue replace(AnyValue original, AnyValue search, AnyValue replaceWith, AnyValue limit) {
+        if (original == NO_VALUE || search == NO_VALUE || replaceWith == NO_VALUE || limit == NO_VALUE) {
+            return NO_VALUE;
+        } else if (original instanceof TextValue textValue) {
+            int intLimit =
+                    asIntExact(limit, () -> "Invalid input for limit value in function 'replace()'", "replace", false);
+            if (intLimit < 0) {
+                throw InvalidArgumentException.argumentOutOfRange("replace", "limit", 0, Long.MAX_VALUE, intLimit);
+            }
+            return textValue.replaceWithLimit(asString(search), asString(replaceWith), intLimit);
         } else {
             throw notAString("replace", original);
         }
@@ -2362,21 +2377,28 @@ public final class CypherFunctions {
     }
 
     private static long asLong(AnyValue value, Supplier<String> contextForErrorMessage, String functionName) {
-        if (value instanceof NumberValue) {
-            return ((NumberValue) value).longValue();
+        return asLong(value, contextForErrorMessage, functionName, true);
+    }
+
+    private static long asLong(
+            AnyValue value, Supplier<String> contextForErrorMessage, String functionName, Boolean allowFloats) {
+        if (value instanceof NumberValue numberValue && (allowFloats || !(numberValue instanceof FloatingPointValue))) {
+            return numberValue.longValue();
         } else {
             String errorMsg;
+            String numericTypeString = allowFloats ? "a numeric" : "an integer";
             if (contextForErrorMessage == null) {
-                errorMsg = "Expected a numeric value but got: " + value;
+                errorMsg = "Expected " + numericTypeString + " value but got: " + value;
             } else {
-                errorMsg = contextForErrorMessage.get() + ": Expected a numeric value but got: " + value;
+                errorMsg =
+                        contextForErrorMessage.get() + ": Expected " + numericTypeString + " value but got: " + value;
             }
             if (!functionName.isEmpty()) {
                 throw CypherTypeException.functionArgumentWrongType(
                         errorMsg,
                         functionName,
                         value.prettify(),
-                        List.of("INTEGER", "FLOAT"),
+                        allowFloats ? List.of("INTEGER", "FLOAT") : List.of("INTEGER"),
                         CypherTypeValueMapper.valueType(value));
             } else {
                 throw CypherTypeException.expectedNumber(
@@ -2386,11 +2408,16 @@ public final class CypherFunctions {
     }
 
     public static int asIntExact(AnyValue value) {
-        return asIntExact(value, null, null);
+        return asIntExact(value, null, null, true);
     }
 
     public static int asIntExact(AnyValue value, Supplier<String> contextForErrorMessage, String functionName) {
-        final long longValue = asLong(value, contextForErrorMessage, functionName);
+        return asIntExact(value, contextForErrorMessage, functionName, true);
+    }
+
+    public static int asIntExact(
+            AnyValue value, Supplier<String> contextForErrorMessage, String functionName, Boolean allowFloats) {
+        final long longValue = asLong(value, contextForErrorMessage, functionName, allowFloats);
         final int intValue = (int) longValue;
         if (intValue != longValue) {
             String errorMsg = format(

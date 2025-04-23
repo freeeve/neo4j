@@ -16,7 +16,9 @@
  */
 package org.neo4j.cypher.internal.expressions.functions
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.expressions.FunctionTypeSignature
+import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.CTString
 
 case object Replace extends Function {
@@ -36,6 +38,22 @@ case object Replace extends Function {
         "search" -> "The value to replace in the original string.",
         "replace" -> "The value to be inserted in the original string."
       )
+    ),
+    FunctionTypeSignature(
+      function = this,
+      names = Vector("original", "search", "replace", "limit"),
+      argumentTypes = Vector(CTString, CTString, CTString, CTInteger),
+      outputType = CTString,
+      description =
+        "Returns a `STRING` in which all occurrences of a specified search `STRING` in the given `STRING` have been replaced by another (specified) replacement `STRING`.",
+      category = Category.STRING,
+      argumentDescriptions = Map(
+        "original" -> "The string to be modified.",
+        "search" -> "The value to replace in the original string.",
+        "replace" -> "The value to be inserted in the original string.",
+        "limit" -> "The maximum amount of times the search value should be replaced in the string, starting from the left."
+      ),
+      scopes = Set(CypherVersion.Cypher25)
     )
   )
 }
