@@ -416,11 +416,15 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
 
     @Override
     public WritableChannel putAppendIndex(long appendIndex) {
-        // Tracked internally but let's assert that it is as expected
-        // offset for currentIndex not increased until first header of a tx/chunk is written
-        assert appendIndex == currentIndex + (begin ? 1 : 0)
-                : "Append index %s should be the same as current index %s"
-                        .formatted(appendIndex, currentIndex + (begin ? 1 : 0));
+        // Tracked internally but this method still exist because of the old format.
+        // Indexes need to match otherwise there could be some very weird errors with
+        // saved positions for append indexes.
+        // Let's treat it as an error if they don't
+        // An offset for currentIndex not being increased until first header of a tx/chunk is written
+        if (appendIndex != currentIndex + (begin ? 1 : 0)) {
+            throw new IllegalStateException("Append index %s should be the same as current index %s"
+                    .formatted(appendIndex, currentIndex + (begin ? 1 : 0)));
+        }
         return this;
     }
 
