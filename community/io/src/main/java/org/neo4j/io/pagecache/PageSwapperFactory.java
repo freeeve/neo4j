@@ -21,7 +21,6 @@ package org.neo4j.io.pagecache;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.neo4j.annotations.service.Service;
 import org.neo4j.io.pagecache.impl.muninn.EvictionBouncer;
 import org.neo4j.io.pagecache.impl.muninn.SwapperSet;
 
@@ -36,7 +35,6 @@ import org.neo4j.io.pagecache.impl.muninn.SwapperSet;
  * Note that this API is <em>only</em> intended to be used by a {@link PageCache} implementation.
  * It should never be used directly by user code.
  */
-@Service
 public interface PageSwapperFactory {
     /**
      * Create a PageSwapper for the given file.
