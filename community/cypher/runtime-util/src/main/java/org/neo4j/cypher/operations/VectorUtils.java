@@ -20,6 +20,8 @@
 package org.neo4j.cypher.operations;
 
 import static java.lang.String.format;
+import static org.neo4j.values.storable.VectorValue.MAX_VECTOR_DIMENSIONS;
+import static org.neo4j.values.storable.VectorValue.MIN_VECTOR_DIMENSIONS;
 
 import java.util.List;
 import org.neo4j.exceptions.CypherTypeException;
@@ -213,9 +215,9 @@ final class VectorUtils {
                     dimension.getTypeName());
         }
 
-        if (dimensionValue.longValue() < 0 || dimensionValue.longValue() > 4096) {
+        if (dimensionValue.longValue() < MIN_VECTOR_DIMENSIONS || dimensionValue.longValue() > MAX_VECTOR_DIMENSIONS) {
             throw InvalidArgumentException.argumentOutOfRange(
-                    "vector", "dimension", 0, 4096, dimensionValue.longValue());
+                    "vector", "dimension", MIN_VECTOR_DIMENSIONS, MAX_VECTOR_DIMENSIONS, dimensionValue.longValue());
         }
 
         return dimensionValue.longValue();

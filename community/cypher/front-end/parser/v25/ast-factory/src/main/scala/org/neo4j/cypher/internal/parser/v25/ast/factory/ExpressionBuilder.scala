@@ -446,6 +446,18 @@ trait ExpressionBuilder extends Cypher25ParserListener {
     else IsTyped(lhs, cypherType)(pos(typeCtx), withDoubleColonOnly = typeCtx.children.size() == 2)
   }
 
+  private def vectorType(ctx: Cypher25Parser.TypeNameContext, p: InputPosition): VectorType = {
+
+    val vectorCoordinateType = if (ctx.vectorCoordinateType() != null) Some(ctx.vectorCoordinateType().ast()) else None
+
+    val dimension =
+      if (ctx.signedIntegerLiteral() != null)
+        Some(ctx.signedIntegerLiteral().ast().asInstanceOf[SignedDecimalIntegerLiteral].stringVal.toLong)
+      else None
+
+    VectorType(vectorCoordinateType, dimension, isNullable = true)(p)
+  }
+
   private def normalFormComparisonExpression(
     lhs: Expression,
     nfCtx: Cypher25Parser.NormalFormContext,
@@ -955,16 +967,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
           case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
         }
       case 4 => firstToken match {
-          case Cypher25Parser.VECTOR if ctx.vectorCoordinateType() != null =>
-            VectorType(Some(ctx.vectorCoordinateType().ast()), None, isNullable = true)(p)
-          case Cypher25Parser.VECTOR => nodeChild(ctx, 2).getSymbol.getType match {
-              case Cypher25Parser.UNSIGNED_DECIMAL_INTEGER => VectorType(
-                  None,
-                  Some(SignedDecimalIntegerLiteral(nodeChild(ctx, 2).getText)(pos(nodeChild(ctx, 2))).value),
-                  isNullable = true
-                )(p)
-              case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
-            }
+          case Cypher25Parser.VECTOR => vectorType(ctx, p)
           case Cypher25Parser.TIME => nodeChild(ctx, 1).getSymbol.getType match {
               case Cypher25Parser.WITH    => ZonedTimeType(isNullable = true)(p)
               case Cypher25Parser.WITHOUT => LocalTimeType(isNullable = true)(p)
@@ -995,14 +998,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
           case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
         }
       case 6 => firstToken match {
-          case Cypher25Parser.VECTOR => nodeChild(ctx, 2).getSymbol.getType match {
-              case Cypher25Parser.UNSIGNED_DECIMAL_INTEGER => VectorType(
-                  Some(ctx.vectorCoordinateType().ast()),
-                  Some(SignedDecimalIntegerLiteral(nodeChild(ctx, 2).getText)(pos(nodeChild(ctx, 2))).value),
-                  isNullable = true
-                )(p)
-              case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
-            }
+          case Cypher25Parser.VECTOR => vectorType(ctx, p)
           case Cypher25Parser.ANY =>
             AssertMacros.checkOnlyWhenAssertionsAreEnabled(ctx.LT() != null && ctx.GT() != null)
             ctx.`type`().ast[CypherType]() match {
@@ -1012,15 +1008,7 @@ trait ExpressionBuilder extends Cypher25ParserListener {
           case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
         }
       case 7 => firstToken match {
-          case Cypher25Parser.VECTOR => nodeChild(ctx, 5).getSymbol.getType match {
-              case Cypher25Parser.UNSIGNED_DECIMAL_INTEGER =>
-                VectorType(
-                  Some(ctx.vectorCoordinateType().ast()),
-                  Some(SignedDecimalIntegerLiteral(nodeChild(ctx, 5).getText)(pos(nodeChild(ctx, 5))).value),
-                  isNullable = true
-                )(p)
-              case _ => throw new IllegalStateException(s"Unexpected context $ctx (first token type $firstToken)")
-            }
+          case Cypher25Parser.VECTOR                      => vectorType(ctx, p)
           case Cypher25Parser.LIST | Cypher25Parser.ARRAY => ListType(ctx.`type`().ast(), isNullable = true)(p)
           case Cypher25Parser.ANY =>
             AssertMacros.checkOnlyWhenAssertionsAreEnabled(ctx.LT() != null && ctx.GT() != null)

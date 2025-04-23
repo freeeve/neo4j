@@ -2135,6 +2135,13 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     ("VECTOR(77)", VectorType(None, Some(77), isNullable = true)(pos)),
     // Missing dimension and coordinate type
     ("VECTOR", VectorType(None, None, isNullable = true)(pos)),
+    // Negative dimension
+    (
+      "VECTOR<INTEGER32>(-2)",
+      VectorType(Some(Integer32Type(isNullable = false)(pos)), Some(-2), isNullable = true)(pos)
+    ),
+    // To small dimension
+    ("VECTOR<INTEGER16>(0)", VectorType(Some(Integer16Type(isNullable = false)(pos)), Some(0), isNullable = true)(pos)),
     // Too large dimension
     (
       "VECTOR<FLOAT32>(4097)",
@@ -3291,8 +3298,8 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
     )
   }
 
-  test("CREATE CONSTRAINT typeConstraint FOR (n:Label) REQUIRE n.prop IS :: VECTOR<INT32>(-2)") {
-    // Negative dimension
+  test("CREATE CONSTRAINT typeConstraint FOR (n:Label) REQUIRE n.prop IS TYPED VECTOR<STRING>(2)") {
+    // Invalid inner type
     failsParsing[ast.Statements].in {
       case Cypher5 => _.withSyntaxErrorContaining(
           "Invalid input 'VECTOR'",
