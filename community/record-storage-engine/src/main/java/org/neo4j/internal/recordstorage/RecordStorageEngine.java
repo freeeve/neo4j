@@ -90,7 +90,7 @@ import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.KernelVersionRepository;
+import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.store.CountsComputer;
 import org.neo4j.kernel.impl.store.MetaDataStore;
 import org.neo4j.kernel.impl.store.NeoStores;
@@ -168,7 +168,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     private final IdGeneratorFactory idGeneratorFactory;
     private final CursorContextFactory contextFactory;
     private final MemoryTracker otherMemoryTracker;
-    final KernelVersionRepository kernelVersionRepository;
+    final MetadataCache metadataCache;
     private final LockVerificationFactory lockVerificationFactory;
     private final CountsStore countsStore;
     private final RelationshipGroupDegreesStore groupDegreesStore;
@@ -203,7 +203,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
             MemoryTracker otherMemoryTracker,
             LogTailMetadata logTailMetadata,
-            KernelVersionRepository kernelVersionRepository,
+            MetadataCache metadataCache,
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
             VersionStorage versionStorage,
@@ -221,7 +221,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
         this.idGeneratorFactory = idGeneratorFactory;
         this.contextFactory = contextFactory;
         this.otherMemoryTracker = otherMemoryTracker;
-        this.kernelVersionRepository = kernelVersionRepository;
+        this.metadataCache = metadataCache;
         this.pagePrefetcher = pagePrefetcher;
         this.neoStores = new StoreFactory(
                         databaseLayout,
@@ -289,7 +289,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     }
 
     private void buildApplierChains() {
-        var kernelVersionApplierFactory = new KernelVersionTransactionApplierFactory(kernelVersionRepository);
+        var kernelVersionApplierFactory = new KernelVersionTransactionApplierFactory(metadataCache);
         for (TransactionApplicationMode mode : TransactionApplicationMode.values()) {
             applierChains.put(mode, buildApplierFacadeChain(mode, kernelVersionApplierFactory));
         }

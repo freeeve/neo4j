@@ -22,13 +22,13 @@ package org.neo4j.internal.recordstorage;
 import org.neo4j.internal.helpers.Numbers;
 import org.neo4j.internal.recordstorage.Command.MetaDataCommand;
 import org.neo4j.kernel.KernelVersion;
-import org.neo4j.kernel.KernelVersionRepository;
+import org.neo4j.kernel.database.MetadataCache;
 
 public class KernelVersionTransactionApplier extends TransactionApplier.Adapter {
-    private final KernelVersionRepository kernelVersionRepository;
+    private final MetadataCache metadataCache;
 
-    public KernelVersionTransactionApplier(KernelVersionRepository kernelVersionRepository) {
-        this.kernelVersionRepository = kernelVersionRepository;
+    public KernelVersionTransactionApplier(MetadataCache metadataCache) {
+        this.metadataCache = metadataCache;
     }
 
     @Override
@@ -37,7 +37,7 @@ public class KernelVersionTransactionApplier extends TransactionApplier.Adapter 
         final var kernelVersion = KernelVersion.getForVersion((byte) (value & 0xFF));
         // Not using the format yet, that is coming soon
         byte logFormatVersion = (byte) ((value >> Byte.SIZE) & 0xFF);
-        kernelVersionRepository.setKernelVersion(kernelVersion);
+        metadataCache.setKernelVersion(kernelVersion);
         return false;
     }
 }

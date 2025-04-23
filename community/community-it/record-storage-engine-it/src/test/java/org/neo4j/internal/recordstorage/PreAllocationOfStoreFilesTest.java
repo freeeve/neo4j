@@ -53,7 +53,7 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.kernel.KernelVersionRepository;
+import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.CompleteTransaction;
 import org.neo4j.kernel.impl.store.record.NodeRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;
@@ -123,7 +123,7 @@ class PreAllocationOfStoreFilesTest {
                 RecoveryCleanupWorkCollector.ignore(),
                 EmptyMemoryTracker.INSTANCE,
                 new EmptyLogTailMetadata(Config.defaults()),
-                mock(KernelVersionRepository.class),
+                mock(MetadataCache.class),
                 CursorContextFactory.NULL_CONTEXT_FACTORY,
                 PageCacheTracer.NULL,
                 VersionStorage.EMPTY_STORAGE,

@@ -98,8 +98,8 @@ import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.prefetch.PagePrefetcher;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.kernel.KernelVersionRepository;
 import org.neo4j.kernel.api.index.IndexProvidersAccess;
+import org.neo4j.kernel.database.MetadataCache;
 import org.neo4j.kernel.impl.api.index.IndexProviderMap;
 import org.neo4j.kernel.impl.locking.LockManager;
 import org.neo4j.kernel.impl.locking.forseti.ForsetiLockManager;
@@ -261,7 +261,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
             InternalLogProvider userLogProvider,
             RecoveryCleanupWorkCollector recoveryCleanupWorkCollector,
             LogTailMetadata logTailMetadata,
-            KernelVersionRepository kernelVersionRepository,
+            MetadataCache metadataCache,
             MemoryTracker memoryTracker,
             CursorContextFactory contextFactory,
             PageCacheTracer pageCacheTracer,
@@ -286,7 +286,7 @@ public class RecordStorageEngineFactory implements StorageEngineFactory {
                 recoveryCleanupWorkCollector,
                 memoryTracker,
                 logTailMetadata,
-                kernelVersionRepository,
+                metadataCache,
                 contextFactory,
                 pageCacheTracer,
                 versionStorage,
