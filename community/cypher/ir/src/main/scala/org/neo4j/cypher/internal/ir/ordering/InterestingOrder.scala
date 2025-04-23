@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.ir.ordering.ColumnOrder.projectExpression
 object InterestingOrder {
 
   /**
-   * An [[InterestingOrder]] can be fully, partially, or not all all satisfied by a [[ProvidedOrder]].
+   * An [[InterestingOrder]] can be fully, partially, or not at all satisfied by a [[ProvidedOrder]].
    * This class specifies the satisfied prefix of columns and the missing suffix of columns.
    */
   case class Satisfaction(satisfiedPrefix: Seq[ColumnOrder], missingSuffix: Seq[ColumnOrder]) {

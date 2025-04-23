@@ -3885,7 +3885,7 @@ case class LogicalPlanProducer(
     val cachedProperties = cachedPropertiesPerPlan.get(inner.id).addAll(properties)
     val solved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(_.updateHorizon {
       case p: QueryProjection => p.addPredicates(inlinablePredicates)
-      case p                  => p
+      case horizon            => horizon
     })
 
     val plan = mergeAndPlanRemoteBatchPropertiesWithFilter(properties, inlinablePredicates, inner)
