@@ -33,6 +33,11 @@ import org.neo4j.kernel.impl.index.schema.ConsistencyCheckable;
 
 public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable {
     /**
+     * Represents the absence of an id in the id cache.
+     */
+    long NO_ID = -1;
+
+    /**
      * Allocates an ID which is available to use. The returned ID can be either of:
      * <ul>
      *     <li>a new ID, allocated as the previously highest allocated plus one, or</li>
@@ -54,15 +59,24 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
      * @param cursorContext for tracing page accesses.
      * @return the first id in the consecutive range.
      */
+    @Override
     long nextConsecutiveIdRange(int numberOfIds, boolean favorSamePage, CursorContext cursorContext);
 
     /**
      * Reserve range of ids that cover whole page of the store
+     *
      * @param cursorContext for tracking cursor interaction.
-     * @param idsPerPage - number of ids per page in store that this generator responsible for
+     * @param idsPerPage    - number of ids per page in store that this generator is responsible for
      * @return range of reserved ids
      */
     PageIdRange nextPageRange(CursorContext cursorContext, int idsPerPage);
+
+    /**
+     * Reserves range of ids that cover whole page of the store and has no other ids already allocated inside that page
+     * @param idsPerPage    - number of ids per page in store that this generator is responsible for
+     * @return range of reserved ids from empty page
+     */
+    PageIdRange nextEmptyPageRange(int idsPerPage);
 
     /**
      * Release back id leftovers from previously reserved range.
@@ -340,6 +354,11 @@ public interface IdGenerator extends IdSequence, Closeable, ConsistencyCheckable
         @Override
         public PageIdRange nextPageRange(CursorContext cursorContext, int idsPerPage) {
             return delegate.nextPageRange(cursorContext, idsPerPage);
+        }
+
+        @Override
+        public PageIdRange nextEmptyPageRange(int idsPerPage) {
+            return delegate.nextEmptyPageRange(idsPerPage);
         }
 
         @Override

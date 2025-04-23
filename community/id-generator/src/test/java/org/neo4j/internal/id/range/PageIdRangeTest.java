@@ -19,9 +19,11 @@
  */
 package org.neo4j.internal.id.range;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
+import org.neo4j.internal.id.IdGenerator;
 
 class PageIdRangeTest {
 
@@ -79,5 +81,54 @@ class PageIdRangeTest {
 
             arrayIdRange.resetToMark();
         }
+    }
+
+    @Test
+    void shouldGiveConsecutiveIdsArrayBased() {
+        var arrayIdRange = new ArrayBasedRange(new long[] {1, 2, 4, 5, 10}, 120);
+        assertThat(arrayIdRange.nextConsecutiveIdRange(2)).isEqualTo(1L);
+        assertThat(arrayIdRange.nextConsecutiveIdRange(2)).isEqualTo(4L);
+        assertThat(arrayIdRange.nextId()).isEqualTo(10L);
+    }
+
+    @Test
+    void shouldGiveNoIdWhenAskingForMoreThanAvailableArrayBased() {
+        // When not enough consecutive IDs are found
+        var arrayIdRange = new ArrayBasedRange(new long[] {1, 2, 3, 4}, 120);
+        // Then get NO_ID back
+        assertThat(arrayIdRange.nextConsecutiveIdRange(5)).isEqualTo(IdGenerator.NO_ID);
+        // When asking for something that IS available
+        assertThat(arrayIdRange.nextConsecutiveIdRange(4)).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldResetToMarkArrayBased() {
+        var arrayIdRange = new ArrayBasedRange(new long[] {1, 2}, 120);
+        arrayIdRange.mark();
+        // [1,2]
+        // ^ mark
+        assertThat(arrayIdRange.nextConsecutiveIdRange(2)).isEqualTo(1L);
+        // [1,2]
+        //    ^ cursor
+        arrayIdRange.resetToMark();
+        assertThat(arrayIdRange.nextConsecutiveIdRange(2)).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldGiveConsecutiveIdsContinuousIdRange() {
+        var arrayIdRange = new ContinuousIdRange(0, 10, 120);
+        assertThat(arrayIdRange.nextConsecutiveIdRange(2)).isEqualTo(0L);
+        assertThat(arrayIdRange.nextConsecutiveIdRange(3)).isEqualTo(2L);
+        assertThat(arrayIdRange.nextId()).isEqualTo(5L);
+    }
+
+    @Test
+    void shouldGiveNoIdWhenAskingForMoreThanAvailableContinuous() {
+        // When not enough consecutive IDs are found
+        var arrayIdRange = new ContinuousIdRange(1, 4, 120);
+        // Then get NO_ID back
+        assertThat(arrayIdRange.nextConsecutiveIdRange(5)).isEqualTo(IdGenerator.NO_ID);
+        // When asking for something that IS available
+        assertThat(arrayIdRange.nextConsecutiveIdRange(4)).isEqualTo(1L);
     }
 }

@@ -23,4 +23,8 @@ import org.neo4j.io.pagecache.context.CursorContext;
 
 public interface IdSequence {
     long nextId(CursorContext cursorContext);
+
+    default long nextConsecutiveIdRange(int numberOfIds, boolean favorSamePage, CursorContext cursorContext) {
+        throw new UnsupportedOperationException();
+    }
 }

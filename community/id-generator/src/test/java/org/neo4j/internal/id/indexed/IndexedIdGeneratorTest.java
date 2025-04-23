@@ -49,6 +49,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 import static org.neo4j.index.internal.gbptree.IndexedIdGeneratorUnsafe.changeHeaderDataLength;
 import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.immediate;
 import static org.neo4j.internal.id.FreeIds.NO_FREE_IDS;
+import static org.neo4j.internal.id.IdGenerator.NO_ID;
 import static org.neo4j.internal.id.IdSlotDistribution.SINGLE_IDS;
 import static org.neo4j.internal.id.IdSlotDistribution.powerTwoSlotSizesDownwards;
 import static org.neo4j.internal.id.IdSlotDistribution.slotDistribution;
@@ -57,7 +58,6 @@ import static org.neo4j.internal.id.IdUtils.idFromCombinedId;
 import static org.neo4j.internal.id.IdUtils.numberOfIdsFromCombinedId;
 import static org.neo4j.internal.id.IdUtils.usedFromCombinedId;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.IDS_PER_ENTRY;
-import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_ID;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_MONITOR;
 import static org.neo4j.internal.id.indexed.IndexedIdGenerator.SMALL_CACHE_CAPACITY;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
@@ -1434,6 +1434,11 @@ class IndexedIdGeneratorTest {
         @Override
         public PageIdRange nextPageRange(CursorContext cursorContext, int idsPerPage) {
             return withReadLock(() -> leader().nextPageRange(cursorContext, idsPerPage));
+        }
+
+        @Override
+        public PageIdRange nextEmptyPageRange(int idsPerPage) {
+            return withReadLock(() -> leader().nextEmptyPageRange(idsPerPage));
         }
 
         @Override

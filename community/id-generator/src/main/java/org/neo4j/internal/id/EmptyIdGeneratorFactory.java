@@ -202,6 +202,11 @@ public class EmptyIdGeneratorFactory implements IdGeneratorFactory {
         }
 
         @Override
+        public PageIdRange nextEmptyPageRange(int idsPerPage) {
+            return PageIdRange.EMPTY;
+        }
+
+        @Override
         public void releasePageRange(PageIdRange range, CursorContext cursorContext) {}
 
         @Override

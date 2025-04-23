@@ -185,11 +185,6 @@ public class IndexedIdGenerator implements IdGenerator {
     public static final Monitor NO_MONITOR = new Monitor.Adapter();
 
     /**
-     * Represents the absence of an id in the id cache.
-     */
-    public static final long NO_ID = -1;
-
-    /**
      * Number of ids per entry in the GBPTree.
      */
     public static final int IDS_PER_ENTRY = 128;
@@ -500,6 +495,17 @@ public class IndexedIdGenerator implements IdGenerator {
     @Override
     public PageIdRange nextPageRange(CursorContext cursorContext, int idsPerPage) {
         checkRefillCache(cursorContext);
+        // Reuse is turned off in the case where we wish to guarantee the range can fit consecutive ids
+        PageIdRange range = getPageIdRangeFromCache(cursorContext, idsPerPage);
+        if (range != null) {
+            return range;
+        }
+
+        // There was no usable range from cache, so we take an empty one
+        return nextEmptyPageRange(idsPerPage);
+    }
+
+    private PageIdRange getPageIdRangeFromCache(CursorContext cursorContext, int idsPerPage) {
         long[] reusedIds = cache.drainRange(idsPerPage);
         if (reusedIds.length > 0) {
             // we have some reuse ids available that we allocated from cache
@@ -517,7 +523,11 @@ public class IndexedIdGenerator implements IdGenerator {
                 }
             }
         }
+        return null;
+    }
 
+    @Override
+    public PageIdRange nextEmptyPageRange(int idsPerPage) {
         long currentHighId;
         long requestSize;
         do {

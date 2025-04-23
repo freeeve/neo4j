@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_ID;
+import static org.neo4j.internal.id.IdGenerator.NO_ID;
 
 import java.util.ArrayList;
 import java.util.Collection;

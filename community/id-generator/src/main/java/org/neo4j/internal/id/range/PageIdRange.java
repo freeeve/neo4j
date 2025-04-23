@@ -20,6 +20,7 @@
 package org.neo4j.internal.id.range;
 
 import static org.apache.commons.lang3.ArrayUtils.isSorted;
+import static org.neo4j.internal.id.IdGenerator.NO_ID;
 
 import org.neo4j.internal.id.IdGenerator;
 
@@ -33,7 +34,12 @@ public interface PageIdRange {
     PageIdRange EMPTY = new PageIdRange() {
         @Override
         public long nextId() {
-            return -1;
+            return NO_ID;
+        }
+
+        @Override
+        public long nextConsecutiveIdRange(int numberOfIds) {
+            return NO_ID;
         }
 
         @Override
@@ -73,6 +79,11 @@ public interface PageIdRange {
      * Id from this reserved range. Should be used only in combination with {@link #hasNext()}
      */
     long nextId();
+
+    /*
+     * Ids from this reserved range of numberOfIds amount of consectutive ids.
+     */
+    long nextConsecutiveIdRange(int numberOfIds);
 
     /**
      * Check if there still any ids available in this range.

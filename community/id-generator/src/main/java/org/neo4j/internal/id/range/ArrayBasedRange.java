@@ -19,6 +19,8 @@
  */
 package org.neo4j.internal.id.range;
 
+import static org.neo4j.internal.id.IdGenerator.NO_ID;
+
 import java.util.Arrays;
 import org.neo4j.internal.id.IdGenerator;
 
@@ -39,6 +41,24 @@ public class ArrayBasedRange implements PageIdRange {
     @Override
     public long nextId() {
         return ids[cursor++];
+    }
+
+    @Override
+    public long nextConsecutiveIdRange(int numberOfIds) {
+        assert numberOfIds > 0;
+        if (cursor + numberOfIds > ids.length) {
+            return NO_ID;
+        }
+        long prev = ids[cursor];
+        for (int i = cursor + 1; i < cursor + numberOfIds; i++) {
+            if (ids[i] != prev + 1) {
+                return NO_ID;
+            }
+            prev = ids[i];
+        }
+        long result = ids[cursor];
+        cursor += numberOfIds;
+        return result;
     }
 
     @Override

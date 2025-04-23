@@ -21,7 +21,7 @@ package org.neo4j.internal.id.indexed;
 
 import static java.lang.Integer.min;
 import static org.apache.commons.lang3.ArrayUtils.EMPTY_LONG_ARRAY;
-import static org.neo4j.internal.id.indexed.IndexedIdGenerator.NO_ID;
+import static org.neo4j.internal.id.IdGenerator.NO_ID;
 import static org.neo4j.util.Preconditions.checkArgument;
 
 import java.util.Arrays;
@@ -191,7 +191,6 @@ class IdCache {
     }
 
     long[] drainRange(int idsPerPage) {
-        assert singleSlotted;
         long[] ids = null;
         int position = 0;
         long idPageLowerBoundary = Long.MIN_VALUE;
