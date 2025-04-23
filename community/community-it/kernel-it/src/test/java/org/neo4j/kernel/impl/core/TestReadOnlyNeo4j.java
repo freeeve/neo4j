@@ -52,6 +52,7 @@ import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.test.DbRepresentation;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.testdirectory.EphemeralTestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
@@ -72,6 +73,10 @@ class TestReadOnlyNeo4j {
         }
     }
 
+    @SkipOnSpd(
+            reason =
+                    "SPD (cluster) uses LeaderCanWrite AccessCapability which won't trigger this exact exception. "
+                            + "Instead DatabaseReadOnlyChecker.Default#check() will throw a slightly different exception, also wrapped in a RuntimeException (-‸ლ)")
     @Test
     void testSimple() {
         DbRepresentation someData = createSomeData();
