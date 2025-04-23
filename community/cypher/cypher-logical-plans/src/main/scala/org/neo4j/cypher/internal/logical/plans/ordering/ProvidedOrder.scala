@@ -268,30 +268,26 @@ sealed trait ProvidedOrder {
    */
   def fromBoth(implicit factory: ProvidedOrderFactory, plan: Option[LogicalPlan]): ProvidedOrder
 
-  /**
-   * Checks if a RequiredOrder is satisfied by a ProvidedOrder
-   */
-  def satisfies(interestingOrder: InterestingOrder): Satisfaction = {
-
-    @tailrec
-    def satisfied(
-      providedOrder: Expression,
-      requiredOrder: Expression,
-      projections: Map[LogicalVariable, Expression]
-    ): Boolean = {
-      val projected = projectExpression(requiredOrder, projections)
-      if (!requiredOrder.isDeterministic)
-        false
-      else if (providedOrder == requiredOrder || providedOrder == projected) {
-        true
-      } else if (projected != requiredOrder) {
-        satisfied(providedOrder, projected, projections)
-      } else {
-        false
-      }
+  @tailrec
+  private def satisfied(
+    providedOrder: Expression,
+    requiredOrder: Expression,
+    projections: Map[LogicalVariable, Expression]
+  ): Boolean = {
+    val projected = projectExpression(requiredOrder, projections)
+    if (!requiredOrder.isDeterministic)
+      false
+    else if (providedOrder == requiredOrder || providedOrder == projected) {
+      true
+    } else if (projected != requiredOrder) {
+      satisfied(providedOrder, projected, projections)
+    } else {
+      false
     }
+  }
 
-    interestingOrder.requiredOrderCandidate.order.zipAll(this.columns, null, null).foldLeft(
+  private def checkSatisfaction(order: Seq[ColumnOrder]): Satisfaction = {
+    order.zipAll(this.columns, null, null).foldLeft(
       Satisfaction(Seq.empty, Seq.empty)
     ) {
       case (s, (null, _)) => s // no required order left
@@ -305,6 +301,18 @@ sealed trait ProvidedOrder {
         ) // required order left but no provided or provided not matching or previous column not matching
     }
   }
+
+  /**
+   * Checks if a RequiredOrder is satisfied by a ProvidedOrder
+   */
+  def satisfies(interestingOrder: InterestingOrder): Satisfaction =
+    checkSatisfaction(interestingOrder.requiredOrderCandidate.order)
+
+  /**
+   * Checks if InterestingOrderCandidates are satisfied by a ProvidedOrder
+   */
+  def satisfiesAnyInterestingOrder(interestingOrder: InterestingOrder): Seq[Satisfaction] =
+    interestingOrder.interestingOrderCandidates.map(ioc => checkSatisfaction(ioc.order))
 
 }
 

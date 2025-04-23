@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.idp
 
+import org.neo4j.cypher.internal.compiler.planner.logical.InterestingOrderSelectorHeuristic
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanFinder
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningSupport.RichHint
@@ -216,15 +217,22 @@ case class SingleComponentPlanner(
         // with `false`. We don't want to compare just the ones that are unsorted
         // in isolation, because it could be that the best overall plan is sorted.
         val bestWithoutPrefetchedProperties =
-          kit.pickBest(plans, s"best overall plan for $pattern")
+          kit.pickBest(
+            plans,
+            InterestingOrderSelectorHeuristic(context, interestingOrderConfig),
+            s"best overall plan for $pattern"
+          )
             .map(p =>
               (SolvableItemWithExtraRequirements(Set(pattern), isSorted = false, hasPrefetchedProperties = false), p)
             )
         val bestWithPrefetchedProperties =
-          kit.pickBest(plansWithPrefetchedProperties, s"best plan with additional properties for $pattern")
-            .map(p =>
-              (SolvableItemWithExtraRequirements(Set(pattern), isSorted = false, hasPrefetchedProperties = true), p)
-            )
+          kit.pickBest(
+            plansWithPrefetchedProperties,
+            InterestingOrderSelectorHeuristic(context, interestingOrderConfig),
+            s"best plan with additional properties for $pattern"
+          ).map(p =>
+            (SolvableItemWithExtraRequirements(Set(pattern), isSorted = false, hasPrefetchedProperties = true), p)
+          )
         val result: Iterable[(SolvableItemWithExtraRequirements[NodeConnection], LogicalPlan)] =
           if (interestingOrderConfig.orderToSolve.isEmpty) {
             bestWithoutPrefetchedProperties ++ bestWithPrefetchedProperties

@@ -20,6 +20,7 @@
 package org.neo4j.cypher.internal.compiler.planner.logical
 
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.BestResults
+import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 
 trait ProjectingSelector[P] {
@@ -73,4 +74,22 @@ trait SelectorHeuristic {
 
   /** Heuristic used to break ties between plans with the same cost */
   def tieBreaker(plan: LogicalPlan): Int
+}
+
+/**
+ * A heuristic that selects the plan with the most satisfied interesting order candidates.
+ */
+case class InterestingOrderSelectorHeuristic(
+  context: LogicalPlanningContext,
+  interestingOrderConfig: InterestingOrderConfig
+) extends SelectorHeuristic {
+
+  final override def tieBreaker(plan: LogicalPlan): Int =
+    context.staticComponents.planningAttributes.providedOrders.get(
+      plan.id
+    ).satisfiesAnyInterestingOrder(interestingOrderConfig.orderToSolve)
+      .foldLeft(0) { (acc, order) =>
+        acc + order.satisfiedPrefix.size
+      }
+
 }
