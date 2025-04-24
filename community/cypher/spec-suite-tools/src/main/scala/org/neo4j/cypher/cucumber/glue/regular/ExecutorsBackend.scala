@@ -55,6 +55,7 @@ class ExecutorsBackend(lookup: Lookup) extends Backend {
   }
 
   override def buildWorld(): Unit = {}
+
   override def disposeWorld(): Unit = {}
 
   override def getSnippet: Snippet = new Snippet {

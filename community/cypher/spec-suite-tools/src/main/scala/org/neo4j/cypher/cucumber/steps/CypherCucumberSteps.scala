@@ -33,7 +33,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
 /**
  * Step definitions of all Cypher Cucumber steps (from the .feature test files).
  */
-trait CypherCucumberSteps extends ScalaDsl with EN {
+trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
 
   // Given
   // =====
@@ -151,4 +151,41 @@ trait CypherCucumberSteps extends ScalaDsl with EN {
 object CypherCucumberSteps {
   case class ExpectedError(error: String, description: Option[String], phase: Option[String])
   case class ExpectedGqlError(code: String, descriptionContains: Option[String])
+}
+
+trait InOpenTxCypherCucumberSteps extends ScalaDsl with EN {
+
+  // Given
+  // =====
+
+  Given("an open transaction") { openTransaction() }
+
+  // And
+  // ===
+
+  And("having executed, in open tx:") { query: String => havingExecutedInOpenTx(query) }
+
+  // When
+  // ====
+
+  When("executing query, in open tx:") { query: String => executingQueryInOpenTx(query) }
+  When("executing control query, in open tx:") { (query: String) => executingControlQueryInOpenTx(query) }
+
+  When("open transaction is commited and re-opened") {
+    commitOpenTx()
+    openTransaction()
+  }
+
+  // Then
+  // ====
+
+  Then("open transaction should commit without errors") {
+    commitOpenTx()
+  }
+
+  protected def openTransaction(): Unit
+  protected def havingExecutedInOpenTx(cypher: String): Unit
+  protected def executingQueryInOpenTx(cypher: String): Unit
+  protected def executingControlQueryInOpenTx(cypher: String): Unit
+  protected def commitOpenTx(): Unit
 }

@@ -32,22 +32,25 @@ import io.cucumber.guice.ScenarioScope
 
 // Cucumber has its own GuiceFactory similar to this one.
 // We use this because it's easier to switch between configurations that way imo.
-abstract class GuiceObjectFactory(injector: Injector) extends ObjectFactory {
+abstract class SingletonInjector(override val injector: Injector) extends GuiceObjectFactory
+
+trait GuiceObjectFactory extends ObjectFactory {
   private[this] var scenarioScope: ScenarioScope = _
 
-  override def start(): Unit = {
+  final override def start(): Unit = {
     scenarioScope = injector.getInstance(classOf[ScenarioScope])
     scenarioScope.enterScope()
   }
 
-  override def stop(): Unit = {
+  final override def stop(): Unit = {
     if (scenarioScope != null) {
       scenarioScope.exitScope()
       scenarioScope = null
     }
   }
-  override def addClass(glueClass: Class[_]): Boolean = true
-  override def getInstance[T](glueClass: Class[T]): T = injector.getInstance(glueClass)
+  def injector: Injector
+  final override def addClass(glueClass: Class[_]): Boolean = true
+  final override def getInstance[T](glueClass: Class[T]): T = injector.getInstance(glueClass)
 }
 
 object GuiceObjectFactory {

@@ -19,3 +19,5 @@ org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdParallel$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$Legacy$ObjectFactory
 
 org.neo4j.cypher.cucumber.glue.prettifier.PrettifierSteps$ObjectFactory
+
+org.neo4j.cypher.cucumber.synthesise.glue.scenario.ScenarioRecordingSteps$ObjectFactory

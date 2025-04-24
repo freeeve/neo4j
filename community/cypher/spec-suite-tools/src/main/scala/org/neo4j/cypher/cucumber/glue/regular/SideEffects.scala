@@ -26,8 +26,9 @@ import org.eclipse.collections.api.set.primitive.LongSet
 import org.eclipse.collections.impl.factory.Sets
 import org.eclipse.collections.impl.factory.primitive.IntSets
 import org.eclipse.collections.impl.factory.primitive.LongSets
-import org.neo4j.cypher.cucumber.glue.regular.GraphState.Property
 import org.neo4j.cypher.cucumber.util.KernelOperation
+import org.neo4j.cypher.cucumber.value.ResultValueMapper
+import org.neo4j.cypher.testing.api.CypherExecutorTransaction
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade
 import org.neo4j.values.storable.DoubleValue
 import org.neo4j.values.storable.Value
@@ -82,9 +83,16 @@ object SideEffects {
   }
 }
 
-case class GraphState(nodeIds: LongSet, relIds: LongSet, labels: IntSet, props: MutableSet[Property]) {
+sealed trait GraphState
 
-  def sideEffects(other: GraphState): SideEffects = SideEffects(
+case class KernelGraphState(
+  nodeIds: LongSet,
+  relIds: LongSet,
+  labels: IntSet,
+  props: MutableSet[KernelGraphState.Property]
+) extends GraphState {
+
+  def sideEffects(other: KernelGraphState): SideEffects = SideEffects(
     nodesCreated = other.nodeIds.difference(nodeIds).size(),
     nodesDeleted = nodeIds.difference(other.nodeIds).size(),
     relsCreated = other.relIds.difference(relIds).size(),
@@ -96,10 +104,10 @@ case class GraphState(nodeIds: LongSet, relIds: LongSet, labels: IntSet, props: 
   )
 }
 
-object GraphState {
+object KernelGraphState {
   case class Property(entityId: Long, isNode: Boolean, propKey: Int, propValue: Value)
 
-  def recordGraphState(db: GraphDatabaseFacade): GraphState = KernelOperation.withKernelTx(db) { tx =>
+  def recordGraphState(db: GraphDatabaseFacade): KernelGraphState = KernelOperation.withKernelTx(db) { tx =>
     val nodeIds = LongSets.mutable.empty()
     val relIds = LongSets.mutable.empty()
     val labelIds = IntSets.mutable.empty()
@@ -133,13 +141,80 @@ object GraphState {
         }
       }
     }
-    GraphState(nodeIds, relIds, labelIds, props)
+    KernelGraphState(nodeIds, relIds, labelIds, props)
   }
 
-  private def replaceNan(value: Value): Value = value match {
+  def replaceNan(value: Value): Value = value match {
     case double: DoubleValue if double.value().isNaN =>
       // NaN values are not equal to each other.
       Values.stringValue("!!!This is not a string, it's a NaN???")
     case _ => value
+  }
+}
+
+case class CypherGraphState(
+  nodeIds: LongSet,
+  relIds: LongSet,
+  labels: MutableSet[String],
+  props: MutableSet[CypherGraphState.Property]
+) extends GraphState {
+
+  def sideEffects(other: CypherGraphState): SideEffects = SideEffects(
+    nodesCreated = other.nodeIds.difference(nodeIds).size(),
+    nodesDeleted = nodeIds.difference(other.nodeIds).size(),
+    relsCreated = other.relIds.difference(relIds).size(),
+    relsDeleted = relIds.difference(other.relIds).size(),
+    labelsAdded = other.labels.difference(labels).size(),
+    labelsRemoved = labels.difference(other.labels).size(),
+    propsAdded = other.props.count(v => !props.contains(v)),
+    propsRemoved = props.count(v => !other.props.contains(v))
+  )
+}
+
+object CypherGraphState {
+  case class Property(entityId: Long, isNode: Boolean, propKey: String, propValue: Value)
+
+  def recordGraphState(tx: CypherExecutorTransaction): CypherGraphState = {
+    val nodeIds = LongSets.mutable.empty()
+    val relIds = LongSets.mutable.empty()
+    val labelIds = Sets.mutable.empty[String]()
+    val props = Sets.mutable.empty[Property]()
+
+    tx.execute("match (n) return id(n)").consume(ResultValueMapper).rows
+      .forEach(row => nodeIds.add(row.get(0).asInstanceOf[Long]))
+    tx.execute("match ()-[r]->() return id(r)").consume(ResultValueMapper).rows
+      .forEach(row => relIds.add(row.get(0).asInstanceOf[Long]))
+    tx.execute("match (n) unwind labels(n) as label return distinct label").consume(ResultValueMapper).rows
+      .forEach(row => labelIds.add(row.get(0).asInstanceOf[String]))
+    tx.execute(
+      """match (n)
+        |with n, properties(n) as props
+        |unwind keys(props) AS key
+        |return id(n) AS id, true as isNode, key, props[key] AS value
+        |union all
+        |match ()-[r]->()
+        |with r, properties(r) as props
+        |unwind keys(props) AS key
+        |return id(r) AS id, false as isNode, key, props[key] AS value
+        |""".stripMargin
+    ).consume(ResultValueMapper).rows
+      .forEach { row =>
+        val propValue = row.get(3) match {
+          case list: java.util.List[_] if list.isEmpty => new Array[String](0)
+          case list: java.util.List[_] =>
+            val itemCls = list.getFirst.getClass
+            list.stream()
+              .map(i => itemCls.cast(i))
+              .toArray(i => java.lang.reflect.Array.newInstance(itemCls, i).asInstanceOf[Array[AnyRef]])
+          case other => other
+        }
+        props.add(Property(
+          entityId = row.get(0).asInstanceOf[Long],
+          isNode = row.get(1).asInstanceOf[Boolean],
+          propKey = row.get(2).asInstanceOf[String],
+          propValue = KernelGraphState.replaceNan(Values.of(propValue))
+        ))
+      }
+    CypherGraphState(nodeIds, relIds, labelIds, props)
   }
 }

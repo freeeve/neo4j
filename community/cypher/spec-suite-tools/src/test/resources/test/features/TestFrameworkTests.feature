@@ -393,3 +393,201 @@ Feature: TestFrameworkTests
       """
       Incorrect message
       """
+
+  Scenario: [023] Open tx: Incorrect result value ordered
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      RETURN 2 AS res
+      """
+    Then the result should be, in order:
+      | res     |
+      | 'wrong' |
+
+  Scenario: [024] Open tx: Incorrect result value any order
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      RETURN 2 AS res
+      """
+    Then the result should be, in any order:
+      | res     |
+      | 'wrong' |
+
+  Scenario Outline: [025] Open tx: Incorrect result value ordered, any list order
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      UNWIND [1,2,3] AS x WITH x, rand() AS order ORDER BY order RETURN collect(x) AS res
+      """
+    Then the result should be, in order (ignoring element order for lists):
+      | res   |
+      | <res> |
+    Examples:
+      | res       |
+      | [1,2,2]   |
+      | [1,2]     |
+      | [1,2,3,4] |
+
+  Scenario Outline: [026] Open tx: Incorrect result value any order, any list order
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      UNWIND [1,2,3] AS x WITH x,  rand() AS order ORDER BY order RETURN collect(x) AS res
+      """
+    Then the result should be (ignoring element order for lists):
+      | res   |
+      | <res> |
+    Examples:
+      | res       |
+      | [1,2,2]   |
+      | [1,2]     |
+      | [1,2,3,4] |
+
+  Scenario: [027] Open tx: Incorrect row count ordered
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      RETURN 1 AS res
+      """
+    Then the result should be, in order:
+      | res |
+      | 1   |
+      | 1   |
+
+  Scenario: [028] Open tx: Incorrect row count any order
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      RETURN 1 AS res
+      """
+    Then the result should be, in any order:
+      | res |
+      | 1   |
+      | 1   |
+
+  Scenario: [029] Open tx: Incorrect row count ordered, any list order
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      RETURN [1] AS res
+      """
+    Then the result should be, in order (ignoring element order for lists):
+      | res |
+      | [1] |
+      | [1] |
+
+  Scenario: [030] Open tx: Incorrect row count any order, any list order
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      RETURN [1] AS res
+      """
+    Then the result should be (ignoring element order for lists):
+      | res |
+      | [1] |
+      | [1] |
+
+  Scenario: [031] Open tx: Incorrect result headers ordered
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      RETURN 1 AS res
+      """
+    Then the result should be, in order:
+      | wrong |
+      | 1     |
+
+  Scenario: [032] Open tx: Incorrect result headers any order
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      RETURN 1 AS res
+      """
+    Then the result should be, in any order:
+      | wrong |
+      | 1     |
+
+  Scenario: [033] Open tx: Incorrect result headers ordered, any list order
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      RETURN [1] AS res
+      """
+    Then the result should be, in order (ignoring element order for lists):
+      | wrong |
+      | [1]   |
+
+  Scenario: [034] Open tx: Incorrect result headers any order, any list order
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      RETURN [1] AS res
+      """
+    Then the result should be (ignoring element order for lists):
+      | wrong |
+      | [1]   |
+
+  Scenario Outline: [035] Open tx: Incorrect side effects
+    Given an empty graph
+    Given an open transaction
+    And having executed, in open tx:
+      """
+      CREATE (:A {p:1})-[r:A {p:1}]->(:B {p:1})
+      CREATE (:C {p:1})
+      """
+    When executing query, in open tx:
+      """
+      <query>
+      """
+    Then the result should be empty
+    And the side effects should be:
+      | +nodes         | 0 |
+      | -nodes         | 0 |
+      | +relationships | 0 |
+      | -relationships | 0 |
+      | +labels        | 0 |
+      | -labels        | 0 |
+      | +properties    | 0 |
+      | -properties    | 0 |
+    Examples:
+      | query                                            |
+      | CREATE (:A {p:1})-[r:A {p:1}]->(:B {p:1})        |
+      | CREATE ()                                        |
+      | CREATE (:C)                                      |
+      | MATCH (c:C) DELETE c                             |
+      | MATCH (a:A) SET a.p = '1'                        |
+      | MATCH (a:A) SET a.a = 1                          |
+      | MATCH (a:A) SET a:AAA                            |
+      | MATCH (a:A) REMOVE a.p                           |
+      | MATCH (a:A), (b:B) CREATE (a)-[r:RRR]->(b)       |
+      | MATCH (a:A), (b:B) CREATE (a)-[r:RRR {p:1}]->(b) |
+      | MATCH ()-[r]->() DELETE r                        |
+      | MATCH ()-[r]->() SET r.p = '1'                   |
+      | MATCH ()-[r]->() SET r.a = '1'                   |
+      | MATCH ()-[r]->() REMOVE r.p                      |
+
+  Scenario Outline: [036] Open tx: Query failure
+    Given an empty graph
+    Given an open transaction
+    When executing query, in open tx:
+      """
+      <query>
+      """
+    Then the result should be empty
+    Examples:
+      | query                            |
+      | INVALID QUERY                    |
+      | UNWIND [1,2] AS x RETURN 1/(x-2) |

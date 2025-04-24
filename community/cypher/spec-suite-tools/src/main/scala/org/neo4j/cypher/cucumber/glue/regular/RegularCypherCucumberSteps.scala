@@ -48,6 +48,7 @@ import org.neo4j.cypher.cucumber.value.ResultValueMapper
 import org.neo4j.cypher.cucumber.value.ResultValueMapper.UnorderedList.rowsWithUnorderedLists
 import org.neo4j.cypher.testing.api.ConsumedResult
 import org.neo4j.cypher.testing.api.CypherExecutorException
+import org.neo4j.cypher.testing.api.CypherExecutorTransaction
 import org.neo4j.cypher.testing.impl.FeatureDatabaseManagementService
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.internal.helpers.Exceptions
@@ -85,6 +86,7 @@ final class RegularCypherCucumberSteps @Inject() (
   private[this] var lastGraphState: GraphState = _
   private[this] var lastResult: QueryExecution = _
   private[this] var registeredProcedures = Seq.empty[QualifiedName]
+  private[this] var openTx: CypherExecutorTransaction = _ // Only used for certain steps
 
   Before { scenario: Scenario =>
     // Note, @fail tags are handled in SkipFailsScenarios (or OnlyFailsScenarios).
@@ -94,6 +96,7 @@ final class RegularCypherCucumberSteps @Inject() (
   }
 
   After {
+    if (openTx != null) openTx.close()
     if (db != null) db.unregisterProcedures(registeredProcedures)
     if (dbmsAccessor != null) executors.release(dbmsAccessor)
   }
@@ -141,7 +144,7 @@ final class RegularCypherCucumberSteps @Inject() (
   }
 
   override protected def executingQuery(cypher: String): Unit = {
-    lastGraphState = GraphState.recordGraphState(db.database)
+    lastGraphState = KernelGraphState.recordGraphState(db.database)
     lastResult = execute(conf.preparserPrefix + cypher)
   }
 
@@ -150,15 +153,27 @@ final class RegularCypherCucumberSteps @Inject() (
   }
 
   private def execute(cypher: String): QueryExecution = {
-    Try(db.execute(cypher, parameters, _.consume(ResultValueMapper))) match {
-      case Success(results) => QueryResults(cypher, results)
-      case Failure(queryException) => Using.resource(db.begin()) { tx =>
-          val explainSucceeds = Try(tx.execute("EXPLAIN\n" + cypher, parameters).consume()).isSuccess
-          val rollbackSucceeds = Try(tx.rollback()).isSuccess
-          val phase = if (explainSucceeds || !rollbackSucceeds) Phase.runtime else Phase.compile
-          QueryFailure(cypher, phase, queryException)
-        }
-    }
+    convertConsumedResult(cypher, Try(db.execute(cypher, parameters, _.consume(ResultValueMapper))))
+  }
+
+  private def executeInOpenTx(cypher: String): QueryExecution = {
+    convertConsumedResult(cypher, Try(openTx.execute(cypher, parameters).consume(ResultValueMapper)))
+  }
+
+  private def convertConsumedResult(cypher: String, result: Try[ConsumedResult]): QueryExecution = result match {
+    case Success(results) => QueryResults(cypher, results)
+    case Failure(queryException) =>
+      val phase = Try(failurePhase(cypher)) match {
+        case Success(value) => value
+        case Failure(error) => s"Failed to find phase: $error"
+      }
+      QueryFailure(cypher, phase, queryException)
+  }
+
+  private def failurePhase(cypher: String): String = Using.resource(db.begin()) { tx =>
+    val explainSucceeds = Try(tx.execute("EXPLAIN\n" + cypher, parameters).consume()).isSuccess
+    val rollbackSucceeds = Try(tx.rollback()).isSuccess
+    if (explainSucceeds || !rollbackSucceeds) Phase.runtime else Phase.compile
   }
 
   override protected def resultShouldBeInOrder(expected: DataTable): Unit = lastResult match {
@@ -216,42 +231,70 @@ final class RegularCypherCucumberSteps @Inject() (
   }
 
   override protected def sideEffectsShouldBe(expected: DataTable): Unit = {
-    assertThat(lastGraphState.sideEffects(GraphState.recordGraphState(db.database)))
+    val actualSideEffects = lastGraphState match {
+      case state: KernelGraphState => state.sideEffects(KernelGraphState.recordGraphState(db.database))
+      case state: CypherGraphState => state.sideEffects(CypherGraphState.recordGraphState(openTx))
+      case other                   => throw new IllegalStateException(s"Unexpected graph state: " + other)
+    }
+    assertThat(actualSideEffects)
       .describedAs("Incorrect side effects")
       .isEqualTo(SideEffects.from(expected))
   }
 
-  override protected def errorShouldBeRaised(expected: ExpectedError): Unit = {
-    lastResult match {
-      case success: QueryResults => unexpectedSuccess(success)
-      case failure: QueryFailure =>
-        val actual = Neo4jExceptionToExecutionFailed.convert(failure.phase, failure.cause)
-        val desc = describe(failure)
-        assertThat[Any](actual.errorType).as(desc).isEqualTo(expected.error)
-        expected.phase.foreach(expectedPhase => assertThat[Any](actual.phase).as(desc).isEqualTo(expectedPhase))
-        expected.description.foreach(expectedDesc => assertThat[Any](actual.detail).as(desc).isEqualTo(expectedDesc))
-    }
+  override protected def errorShouldBeRaised(expected: ExpectedError): Unit = lastResult match {
+    case success: QueryResults => unexpectedSuccess(success)
+    case failure: QueryFailure =>
+      val actual = Neo4jExceptionToExecutionFailed.convert(failure.phase, failure.cause)
+      val desc = describe(failure)
+      assertThat[Any](actual.errorType).as(desc).isEqualTo(expected.error)
+      expected.phase.foreach(expectedPhase => assertThat[Any](actual.phase).as(desc).isEqualTo(expectedPhase))
+      expected.description.foreach(expectedDesc => assertThat[Any](actual.detail).as(desc).isEqualTo(expectedDesc))
   }
 
-  override protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = {
-    lastResult match {
-      case success: QueryResults => unexpectedSuccess(success)
-      case failure: QueryFailure => findMatchingGqlFailure(expectedError.code, originalError(failure.cause)) match {
-          case Some(actualGql) =>
-            val desc = describe(failure)
-            assertThat[Any](actualGql.code).as(desc).isEqualTo(expectedError.code)
-            expectedError.descriptionContains.foreach { e =>
-              assertThat[Any](actualGql.message).as(desc).asString.contains(e)
-            }
-          case None => fail(
-              s"""
-                 |Expected GQL status ${expectedError.code} but found ${findAllGqlCodes(
-                  originalError(failure.cause)
-                )} in:
-                 |${doDescribe(failure)}
-                 |""".stripMargin
-            )
-        }
+  override protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = lastResult match {
+    case success: QueryResults => unexpectedSuccess(success)
+    case failure: QueryFailure => findMatchingGqlFailure(expectedError.code, originalError(failure.cause)) match {
+        case Some(actualGql) =>
+          val desc = describe(failure)
+          assertThat[Any](actualGql.code).as(desc).isEqualTo(expectedError.code)
+          expectedError.descriptionContains.foreach { e =>
+            assertThat[Any](actualGql.message).as(desc).asString.contains(e)
+          }
+        case None => fail(
+            s"""
+               |Expected GQL status ${expectedError.code} but found ${findAllGqlCodes(
+                originalError(failure.cause)
+              )} in:
+               |${doDescribe(failure)}
+               |""".stripMargin
+          )
+      }
+  }
+
+  override protected def openTransaction(): Unit = {
+    openTx = db.begin()
+  }
+
+  override protected def havingExecutedInOpenTx(cypher: String): Unit = {
+    openTx.execute(cypher, parameters).consume()
+  }
+
+  override protected def executingQueryInOpenTx(cypher: String): Unit = {
+    lastGraphState = CypherGraphState.recordGraphState(openTx)
+    lastResult = executeInOpenTx(conf.preparserPrefix + cypher)
+  }
+
+  override protected def executingControlQueryInOpenTx(cypher: String): Unit = {
+    lastResult = executeInOpenTx(cypher)
+  }
+
+  override protected def commitOpenTx(): Unit = {
+    try {
+      openTx.commit()
+    } catch {
+      case t: Throwable => fail("Failed to commit open transaction", originalError(t))
+    } finally {
+      openTx.close()
     }
   }
 }

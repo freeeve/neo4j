@@ -47,10 +47,10 @@ case class TestConf(
   val preparserPrefix: String = TestConf.preParserPrefix(preparserOptions)
 
   /** Scenarios with these tags are expected to fail. */
-  val expectFailureTags = tagContext.map(name => Tag.FailsPrefix + name) + Tag.FailsAll
+  val expectFailureTags: Set[String] = tagContext.map(name => Tag.FailsPrefix + name) + Tag.FailsAll
 
   /** Scenarios with these tags are not run. */
-  val ignoreTags = tagContext.map(name => Tag.IgnorePrefix + name) + Tag.IgnoreAll
+  val ignoreTags: Set[String] = tagContext.map(name => Tag.IgnorePrefix + name) + Tag.IgnoreAll
 }
 
 object TestConf {
@@ -81,11 +81,11 @@ object TestConf {
     new TestConf(fullNeo4jConf, useBolt, useEnterprise, useSpd, preparserOptions, tagContext + dbFormatTagContext)
   }
 
-  def withCypher5(base: TestConf): TestConf = base.copy(
+  private def withCypher5(base: TestConf): TestConf = base.copy(
     tagContext = base.tagContext.incl("cypher-5")
   )
 
-  def withCypher25(base: TestConf): TestConf = base.copy(
+  private def withCypher25(base: TestConf): TestConf = base.copy(
     neo4jConf = base.neo4jConf ++ Seq(
       "internal.db.query.default_language" -> "cypher_25",
       "internal.dbms.cypher.enable_experimental_versions" -> "true"
@@ -99,13 +99,13 @@ object TestConf {
     object Cypher25 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Default$Cypher25$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher25(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
 
     object Cypher5 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Default$Cypher5$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher5(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
   }
 
@@ -120,13 +120,13 @@ object TestConf {
     object Cypher25 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$DefaultBolt$Cypher25$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher25(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
 
     object Cypher5 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$DefaultBolt$Cypher5$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher5(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
   }
 
@@ -140,13 +140,13 @@ object TestConf {
     object Cypher25 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Pipelined$Cypher25$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher25(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
 
     object Cypher5 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Pipelined$Cypher5$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher5(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
   }
 
@@ -165,7 +165,7 @@ object TestConf {
       final val FactoryName =
         "org.neo4j.cypher.cucumber.glue.regular.TestConf$PipelinedFallback$Cypher25$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher25(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
 
     object Cypher5 extends InjectedTestConf {
@@ -173,7 +173,7 @@ object TestConf {
       final val FactoryName =
         "org.neo4j.cypher.cucumber.glue.regular.TestConf$PipelinedFallback$Cypher5$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher5(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
   }
 
@@ -186,13 +186,13 @@ object TestConf {
     object Cypher25 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Slotted$Cypher25$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher25(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
 
     object Cypher5 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Slotted$Cypher5$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher5(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
   }
 
@@ -210,7 +210,7 @@ object TestConf {
       final val FactoryName =
         "org.neo4j.cypher.cucumber.glue.regular.TestConf$SlottedCompiled$Cypher25$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher25(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
 
     object Cypher5 extends InjectedTestConf {
@@ -218,7 +218,7 @@ object TestConf {
       final val FactoryName =
         "org.neo4j.cypher.cucumber.glue.regular.TestConf$SlottedCompiled$Cypher5$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher5(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
   }
 
@@ -232,13 +232,13 @@ object TestConf {
     object Cypher25 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Parallel$Cypher25$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher25(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
 
     object Cypher5 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Parallel$Cypher5$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher5(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
   }
 
@@ -256,13 +256,13 @@ object TestConf {
       final val FactoryName =
         "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelBolt$Cypher25$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher25(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
 
     object Cypher5 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelBolt$Cypher5$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher5(baseConf)
-      final class ObjectFactory extends GuiceObjectFactory(injector)
+      final class ObjectFactory extends SingletonInjector(injector)
     }
   }
 
@@ -295,7 +295,7 @@ object TestConf {
       useSpd = true,
       tagContext = Set("spd", "cypher-25", "bolt")
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+    final class ObjectFactory extends SingletonInjector(injector)
   }
 
   object SpdParallel extends InjectedTestConf {
@@ -308,7 +308,7 @@ object TestConf {
       useBolt = true,
       tagContext = Set("spd", "cypher-25", "parallel-runtime", "bolt")
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+    final class ObjectFactory extends SingletonInjector(injector)
   }
 
   object Legacy extends InjectedTestConf {
@@ -321,7 +321,7 @@ object TestConf {
       preparserOptions = Map("runtime" -> "legacy"),
       tagContext = Set("cypher-5", "legacy-runtime")
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+    final class ObjectFactory extends SingletonInjector(injector)
   }
 
   private def preParserPrefix(options: Map[String, String]): String = {

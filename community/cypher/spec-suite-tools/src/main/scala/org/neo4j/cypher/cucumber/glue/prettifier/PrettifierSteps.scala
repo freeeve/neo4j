@@ -29,8 +29,9 @@ import org.neo4j.configuration.Config
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.cucumber.glue.prettifier.PrettifierSteps.preParser
 import org.neo4j.cypher.cucumber.glue.prettifier.PrettifierSteps.prettifier
-import org.neo4j.cypher.cucumber.glue.regular.GuiceObjectFactory
+import org.neo4j.cypher.cucumber.glue.regular.GuiceObjectFactory.injector
 import org.neo4j.cypher.cucumber.glue.regular.NoOpBeforeAndAfterAllModule
+import org.neo4j.cypher.cucumber.glue.regular.SingletonInjector
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
@@ -122,6 +123,9 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
   override protected def havingExecuted(cypher: String): Unit = roundTripCheck(cypher)
   override protected def executingQuery(cypher: String): Unit = roundTripCheck(cypher)
   override protected def executingControlQuery(cypher: String): Unit = roundTripCheck(cypher)
+  override protected def havingExecutedInOpenTx(cypher: String): Unit = roundTripCheck(cypher)
+  override protected def executingQueryInOpenTx(cypher: String): Unit = roundTripCheck(cypher)
+  override protected def executingControlQueryInOpenTx(cypher: String): Unit = roundTripCheck(cypher)
 
   override protected def parametersAre(params: Map[String, String]): Unit = {}
   override protected def registerProcedure(signature: String, results: DataTable): Unit = {}
@@ -134,6 +138,8 @@ final class PrettifierSteps @Inject() () extends CypherCucumberSteps {
   override protected def sideEffectsShouldBe(expected: DataTable): Unit = {}
   override protected def errorShouldBeRaised(expected: ExpectedError): Unit = {}
   override protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = {}
+  override protected def openTransaction(): Unit = {}
+  override protected def commitOpenTx(): Unit = {}
 }
 
 object PrettifierSteps {
@@ -150,7 +156,7 @@ object PrettifierSteps {
   ))
 
   final val FactoryName = "org.neo4j.cypher.cucumber.glue.prettifier.PrettifierSteps$ObjectFactory"
-  class ObjectFactory extends GuiceObjectFactory(GuiceObjectFactory.injector(new NoOpBeforeAndAfterAllModule()))
+  class ObjectFactory extends SingletonInjector(injector(new NoOpBeforeAndAfterAllModule()))
 
   def expectFailure(scenario: Scenario): Boolean = scenariosExpectedToFail.get(scenario.getName) match {
     case Some(paths) => paths.contains(scenario.getUri.getSchemeSpecificPart)

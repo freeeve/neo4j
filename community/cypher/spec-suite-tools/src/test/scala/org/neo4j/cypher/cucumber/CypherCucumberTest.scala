@@ -34,8 +34,8 @@ import org.junit.platform.launcher.core.LauncherDiscoveryRequestBuilder
 import org.junit.platform.launcher.core.LauncherFactory
 import org.junit.platform.launcher.listeners.SummaryGeneratingListener
 import org.neo4j.cypher.cucumber.CypherCucumberTest.TestConfiguration
-import org.neo4j.cypher.cucumber.glue.regular.GuiceObjectFactory
 import org.neo4j.cypher.cucumber.glue.regular.InjectedTestConf
+import org.neo4j.cypher.cucumber.glue.regular.SingletonInjector
 import org.neo4j.cypher.cucumber.glue.regular.TestConf
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -64,11 +64,9 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       .configurationParameter(OBJECT_FACTORY_PROPERTY_NAME, classOf[TestConfiguration.ObjectFactory].getName)
       .build()
 
-    val launcher = LauncherFactory.create()
     val summaryListener = new SummaryGeneratingListener()
     val passingListener = new CypherCucumberTest.TestListener
-    launcher.registerTestExecutionListeners(summaryListener, passingListener)
-    launcher.execute(request)
+    LauncherFactory.create().execute(request, summaryListener, passingListener)
 
     val summary = summaryListener.getSummary
 
@@ -201,7 +199,51 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
         wrongConfTag("[019] Incorrect conf tag"),
         wrongGqlCode("[020] Syntax error has incorrect code"),
         wrongGqlCode("[021] Syntax error has incorrect code and correct message"),
-        wrongFailureMessage("[022] Syntax error has correct code and incorrect message")
+        wrongFailureMessage("[022] Syntax error has correct code and incorrect message"),
+        wrongResultOrdered("[023] Open tx: Incorrect result value ordered"),
+        wrongResultAnyOrder("[024] Open tx: Incorrect result value any order"),
+        wrongResultOrderedAnyListOrder(
+          "[025] Open tx: Incorrect result value ordered, any list order - Examples - Example #1.1"
+        ),
+        wrongResultOrderedAnyListOrder(
+          "[025] Open tx: Incorrect result value ordered, any list order - Examples - Example #1.2"
+        ),
+        wrongResultOrderedAnyListOrder(
+          "[025] Open tx: Incorrect result value ordered, any list order - Examples - Example #1.3"
+        ),
+        wrongResultAnyOrderAnyListOrder(
+          "[026] Open tx: Incorrect result value any order, any list order - Examples - Example #1.1"
+        ),
+        wrongResultAnyOrderAnyListOrder(
+          "[026] Open tx: Incorrect result value any order, any list order - Examples - Example #1.2"
+        ),
+        wrongResultAnyOrderAnyListOrder(
+          "[026] Open tx: Incorrect result value any order, any list order - Examples - Example #1.3"
+        ),
+        wrongResultOrdered("[027] Open tx: Incorrect row count ordered"),
+        wrongResultAnyOrder("[028] Open tx: Incorrect row count any order"),
+        wrongResultOrderedAnyListOrder("[029] Open tx: Incorrect row count ordered, any list order"),
+        wrongResultAnyOrderAnyListOrder("[030] Open tx: Incorrect row count any order, any list order"),
+        wrongHeaders("[031] Open tx: Incorrect result headers ordered"),
+        wrongHeaders("[032] Open tx: Incorrect result headers any order"),
+        wrongHeaders("[033] Open tx: Incorrect result headers ordered, any list order"),
+        wrongHeaders("[034] Open tx: Incorrect result headers any order, any list order"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.1"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.10"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.11"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.12"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.13"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.14"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.2"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.3"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.4"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.5"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.6"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.7"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.8"),
+        wrongSideEffects("[035] Open tx: Incorrect side effects - Examples - Example #1.9"),
+        queryFailedCompile("[036] Open tx: Query failure - Examples - Example #1.1"),
+        queryFailedRuntime("[036] Open tx: Query failure - Examples - Example #1.2")
       )
 
     val summaryOutputStream = new ByteArrayOutputStream()
@@ -212,8 +254,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
     withClue(summaryOutputStream.toString) {
       summary.getTestsSucceededCount shouldBe 21
       summary.getContainersFailedCount shouldBe 0
-      summary.getTestsFoundCount shouldBe 104
-      summary.getTestsFailedCount shouldBe 83
+      summary.getTestsFoundCount shouldBe 136
+      summary.getTestsFailedCount shouldBe 115
       summary.getTestsAbortedCount shouldBe 0
       summary.getTestsSkippedCount shouldBe 0
     }
@@ -222,7 +264,7 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
   test("object factories have correct names") {
     val testConfs = ServiceLoader.load(classOf[ObjectFactory]).stream().toList.asScala.toSeq
       .map(_.get())
-      .collect { case factory: GuiceObjectFactory if Try(factory.getInstance(classOf[TestConf])).isSuccess => factory }
+      .collect { case factory: SingletonInjector if Try(factory.getInstance(classOf[TestConf])).isSuccess => factory }
       .map(f => f.getClass.getName -> f.getInstance(classOf[TestConf]))
       .toMap
 
@@ -296,20 +338,27 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.sideEffectsShouldBe(io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.resultShouldBeInAnyOrderIgnoringListOrder(io.cucumber.datatable.DataTable)",
       "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedError)",
-      "private java.lang.String org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.readNamedGraphCypher(java.lang.String)",
-      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlError)"
+      "public abstract void org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.errorShouldBeRaised(org.neo4j.cypher.cucumber.steps.CypherCucumberSteps$ExpectedGqlError)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.commitOpenTx()",
+      "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.executingControlQueryInOpenTx(java.lang.String)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.openTransaction()",
+      "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.havingExecutedInOpenTx(java.lang.String)",
+      "public abstract void org.neo4j.cypher.cucumber.steps.InOpenTxCypherCucumberSteps.executingQueryInOpenTx(java.lang.String)"
     )
-    val methods = classOf[CypherCucumberSteps].getDeclaredMethods
+    val methods = classOf[CypherCucumberSteps].getMethods
+      .filter(c => c.toString.contains("org.neo4j.cypher.cucumber"))
       .filter(c => !Modifier.isStatic(c.getModifiers))
       .map(_.toString)
       .toSet
     if (methods != covered) {
       fail(
         s"""
-           |You might want to add test coverage in "cucumber based cypher tests can fail and pass in various ways"
-           |of the following methods to avoid false positives:
+           |You might want to add test coverage of the following methods to avoid false positives:
            |
            |${methods.diff(covered).mkString("\n")}
+           |
+           |Could not find these:
+           |${covered.diff(methods).mkString("\n")}
            |""".stripMargin
       )
     }
@@ -415,7 +464,7 @@ object CypherCucumberTest {
       tagContext = Set("cypher-5"),
       preparserOptions = Map("runtime" -> "legacy")
     )
-    final class ObjectFactory extends GuiceObjectFactory(injector)
+    final class ObjectFactory extends SingletonInjector(injector)
   }
 
   case class Failure(testName: String, throwable: Throwable) {
@@ -425,7 +474,7 @@ object CypherCucumberTest {
   }
 
   class TestListener extends TestExecutionListener {
-    val passing = Collections.synchronizedList(new util.ArrayList[String]())
+    val passing: java.util.List[String] = Collections.synchronizedList(new util.ArrayList[String]())
 
     override def executionFinished(id: TestIdentifier, result: TestExecutionResult): Unit = result.getStatus match {
       case TestExecutionResult.Status.SUCCESSFUL => if (id.isTest) passing.add(id.getDisplayName)

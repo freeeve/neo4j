@@ -26,9 +26,11 @@ trait Expectations {
 
   /** Returns true if scenario is expected to fail. */
   def fails(scenario: Scenario): Boolean
+  def fails(tags: Set[String]): Boolean
 
   /** Returns true if scenario should be ignored. */
   def ignore(scenario: Scenario): Boolean
+  def ignore(tags: Set[String]): Boolean
 }
 
 @com.google.inject.Singleton
@@ -38,7 +40,10 @@ final class DynamicExpectations @Inject() (conf: TestConf) extends Expectations 
   private[this] val ignoreTags: Set[String] = conf.ignoreTags
 
   override def fails(scenario: Scenario): Boolean = scenarioHasAnyTag(scenario, failTags)
+  override def fails(tags: Set[String]): Boolean = tags.exists(failTags.contains)
+
   override def ignore(scenario: Scenario): Boolean = scenarioHasAnyTag(scenario, ignoreTags)
+  override def ignore(tags: Set[String]): Boolean = tags.exists(ignoreTags.contains)
 
   private def scenarioHasAnyTag(scenario: Scenario, targetTags: Set[String]): Boolean = {
     val tags = scenario.getSourceTagNames
