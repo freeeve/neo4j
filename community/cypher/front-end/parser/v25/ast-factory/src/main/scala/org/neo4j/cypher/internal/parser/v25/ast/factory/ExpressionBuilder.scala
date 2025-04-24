@@ -447,14 +447,8 @@ trait ExpressionBuilder extends Cypher25ParserListener {
   }
 
   private def vectorType(ctx: Cypher25Parser.TypeNameContext, p: InputPosition): VectorType = {
-
-    val vectorCoordinateType = if (ctx.vectorCoordinateType() != null) Some(ctx.vectorCoordinateType().ast()) else None
-
-    val dimension =
-      if (ctx.signedIntegerLiteral() != null)
-        Some(ctx.signedIntegerLiteral().ast().asInstanceOf[SignedDecimalIntegerLiteral].stringVal.toLong)
-      else None
-
+    val vectorCoordinateType = astOpt[CypherType](ctx.vectorCoordinateType())
+    val dimension = astOpt[SignedDecimalIntegerLiteral](ctx.signedIntegerLiteral()).map(_.stringVal.toLong)
     VectorType(vectorCoordinateType, dimension, isNullable = true)(p)
   }
 
