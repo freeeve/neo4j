@@ -1071,7 +1071,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
   test("should fail when trying to filter with a set of invalid dynamic labels (all)") {
     // given
     val n = givenGraph {
-      tx.createNode()
+      tx.createNode(label("C"))
     }
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -1092,12 +1092,20 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     the[CypherTypeException] thrownBy theDynamicLabel(
       null
     ) should have message "Expected node label to be a string or list of strings."
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(""))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel("\u0000"))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("\u0000", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("C", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("D", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("", "C")))
   }
 
   test("should fail when trying to filter with a set of invalid dynamic labels (any)") {
     // given
     val n = givenGraph {
-      tx.createNode()
+      tx.createNode(label("C"))
     }
 
     val logicalQuery = new LogicalQueryBuilder(this)
@@ -1117,6 +1125,14 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     the[CypherTypeException] thrownBy theDynamicLabel(
       null
     ) should have message "Expected node label to be a string or list of strings."
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(""))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel("\u0000"))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("\u0000", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("C", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("D", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicLabel(Array("", "C")))
   }
 
   test("should handle non-existing node with has any label expression") {
@@ -1215,6 +1231,7 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     def theDynamicType(v: Any): Unit = consume(theResultFor(v))
 
     // then
+    theResultFor(Array[String]("C", "C")) should beColumns("r").withNoNotifications()
     theResultFor(Array[String]("C", "D")) should beColumns("r").withNotifications(
       RuntimeUnsatisfiableRelationshipTypeExpression(List("C", "D"))
     )
@@ -1229,6 +1246,11 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     ) should have message "Expected relationship type to be a string or list of strings."
     an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(""))
     an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType("\u0000"))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("\u0000", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("C", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("", "C")))
   }
 
   test("should throw the correct error if the dynamic type is invalid (any)") {
@@ -1259,6 +1281,11 @@ abstract class ExpressionTestBase[CONTEXT <: RuntimeContext](edition: Edition[CO
     ) should have message "Expected relationship type to be a string or list of strings."
     an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(""))
     an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType("\u0000"))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("\u0000", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("C", "\u0000")))
+    an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("", "C")))
   }
 
   test("should get type of relationship") {

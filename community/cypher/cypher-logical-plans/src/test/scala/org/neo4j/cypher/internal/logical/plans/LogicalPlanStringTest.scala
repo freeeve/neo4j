@@ -270,7 +270,8 @@ object LogicalPlanStringTest {
       classOf[RunQueryAtProjection] -> "graphReference",
       classOf[RunQueryAtProjection] -> "queryString",
       classOf[GraphFunctionReference] -> "print",
-      classOf[GraphDirectReference] -> "print"
+      classOf[GraphDirectReference] -> "print",
+      classOf[DynamicElement.SetOperator] -> "name"
     )
 
     val whiteListedClasses: Set[Class[_]] = Set[Class[_]](

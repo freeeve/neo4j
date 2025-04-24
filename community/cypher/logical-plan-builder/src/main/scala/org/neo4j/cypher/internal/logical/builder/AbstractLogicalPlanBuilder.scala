@@ -132,9 +132,11 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel.SetOperator
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicElement
+import org.neo4j.cypher.internal.logical.plans.DynamicElement.SetOperator
 import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -1339,7 +1341,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     newNode(varFor(n))
     appendAtCurrentIndent(LeafOperator(DynamicNodeByLabelsScan(
       varFor(n),
-      DynamicLabel.Simple(parseExpression(labelExpr), operator),
+      DynamicElement.Simple(parseExpression(labelExpr), operator),
       args.map(a => varFor(VariableParser.unescaped(a))).toSet,
       indexOrder
     )(_)))
@@ -1833,6 +1835,94 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
           varFor(p.maybeFrom),
           typ,
           varFor(p.maybeTo),
+          args.map(varFor).toSet,
+          indexOrder
+        )(_)))
+    }
+  }
+
+  // implicit IndexOrderNone
+  def dynamicRelationshipTypeScan(
+    pattern: String,
+    relTypeExpr: String,
+    args: String*
+  ): IMPL = {
+    dynamicRelationshipTypeScan(pattern, relTypeExpr, IndexOrderNone, args: _*)
+  }
+
+  // supplied index order
+  def dynamicRelationshipTypeScan(
+    pattern: String,
+    relTypeExpr: String,
+    indexOrder: IndexOrder,
+    args: String*
+  ): IMPL = {
+    val p = patternParser.parse(pattern)
+    val regex = "^(\\$|\\$any|\\$all)\\((.*)\\)$".r
+    relTypeExpr match {
+      case regex(operatorMatch: String, expression) =>
+        val op = operatorMatch match {
+          case "$" | "$all" =>
+            DynamicElement.All
+          case "$any" =>
+            DynamicElement.Any
+        }
+
+        dynamicRelationshipTypeScan(
+          p.maybeFrom,
+          p.relName,
+          expression,
+          p.maybeTo,
+          p.dir,
+          op,
+          indexOrder,
+          args: _*
+        )
+      case _ =>
+        throw new IllegalArgumentException(s"'$pattern' cannot be parsed as a dynamic relationship type expression")
+    }
+  }
+
+  // use supplied indexOrder, Option nodes
+  private def dynamicRelationshipTypeScan(
+    leftNode: Option[String],
+    relName: String,
+    relTypeExpr: String,
+    rightNode: Option[String],
+    direction: SemanticDirection,
+    operator: SetOperator,
+    indexOrder: IndexOrder,
+    args: String*
+  ): IMPL = {
+    newRelationship(varFor(relName))
+    newNode(varFor(leftNode))
+    newNode(varFor(rightNode))
+
+    direction match {
+      case SemanticDirection.OUTGOING =>
+        appendAtCurrentIndent(LeafOperator(DynamicDirectedRelationshipTypeScan(
+          varFor(relName),
+          varFor(leftNode),
+          DynamicElement.Simple(parseExpression(relTypeExpr), operator),
+          varFor(rightNode),
+          args.map(varFor).toSet,
+          indexOrder
+        )(_)))
+      case SemanticDirection.INCOMING =>
+        appendAtCurrentIndent(LeafOperator(DynamicDirectedRelationshipTypeScan(
+          varFor(relName),
+          varFor(rightNode),
+          DynamicElement.Simple(parseExpression(relTypeExpr), operator),
+          varFor(leftNode),
+          args.map(varFor).toSet,
+          indexOrder
+        )(_)))
+      case SemanticDirection.BOTH =>
+        appendAtCurrentIndent(LeafOperator(DynamicUndirectedRelationshipTypeScan(
+          varFor(relName),
+          varFor(leftNode),
+          DynamicElement.Simple(parseExpression(relTypeExpr), operator),
+          varFor(rightNode),
           args.map(varFor).toSet,
           indexOrder
         )(_)))

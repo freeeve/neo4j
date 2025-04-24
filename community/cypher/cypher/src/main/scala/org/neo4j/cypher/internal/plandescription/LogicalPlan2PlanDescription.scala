@@ -142,8 +142,10 @@ import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForIndex
 import org.neo4j.cypher.internal.logical.plans.DoNothingIfExistsForLookupIndex
 import org.neo4j.cypher.internal.logical.plans.DropConstraintOnName
 import org.neo4j.cypher.internal.logical.plans.DropIndexOnName
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -302,6 +304,7 @@ import org.neo4j.cypher.internal.plandescription.Arguments.PlannerImpl
 import org.neo4j.cypher.internal.plandescription.Arguments.PlannerVersion
 import org.neo4j.cypher.internal.plandescription.Arguments.RuntimeVersion
 import org.neo4j.cypher.internal.plandescription.Arguments.Version
+import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescription.getPrettyDynamicElement
 import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescription.getPrettyStringName
 import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescription.prettyOptions
 import org.neo4j.cypher.internal.plandescription.LogicalPlan2PlanDescription.prettyUpdateLabelString
@@ -373,6 +376,13 @@ object LogicalPlan2PlanDescription {
 
   def getPrettyStringName(nameOption: Option[Either[String, Parameter]]): PrettyString =
     nameOption.map(n => pretty" ${PrettyString(Prettifier.escapeName(n))}").getOrElse(pretty"")
+
+  def getPrettyDynamicElement(expr: DynamicElement) = {
+    expr match {
+      case DynamicElement.Simple(expr, DynamicElement.All) => pretty"$$all(${asPrettyString(expr)})"
+      case DynamicElement.Simple(expr, DynamicElement.Any) => pretty"$$any(${asPrettyString(expr)})"
+    }
+  }
 }
 
 case class LogicalPlan2PlanDescription(
@@ -446,10 +456,7 @@ case class LogicalPlan2PlanDescription(
         )
 
       case DynamicNodeByLabelsScan(idName, labelExpr, _, _) =>
-        val label = labelExpr match {
-          case DynamicLabel.Simple(expr, DynamicLabel.All) => pretty"$$all(${asPrettyString(expr)})"
-          case DynamicLabel.Simple(expr, DynamicLabel.Any) => pretty"$$any(${asPrettyString(expr)})"
-        }
+        val label = getPrettyDynamicElement(labelExpr)
         val prettyDetails = pretty"${asPrettyString(idName)}:$label"
         PlanDescriptionImpl(
           id,
@@ -1211,12 +1218,38 @@ case class LogicalPlan2PlanDescription(
           withDistinctness
         )
 
+      case DynamicDirectedRelationshipTypeScan(idName, start, typeExpr, end, _, _) =>
+        val prettyType =
+          pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${getPrettyDynamicElement(typeExpr)}]->(${asPrettyString(end)})"
+        PlanDescriptionImpl(
+          id,
+          "DynamicDirectedRelationshipTypeScan",
+          children,
+          Seq(Details(prettyType)),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
       case UndirectedRelationshipTypeScan(idName, start, typeName, end, _, _) =>
         val prettyDetails =
           pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${asPrettyString(typeName.name)}]-(${asPrettyString(end)})"
         PlanDescriptionImpl(
           id,
           "UndirectedRelationshipTypeScan",
+          children,
+          Seq(Details(prettyDetails)),
+          variables,
+          withRawCardinalities,
+          withDistinctness
+        )
+
+      case DynamicUndirectedRelationshipTypeScan(idName, start, typeExpr, end, _, _) =>
+        val prettyDetails =
+          pretty"(${asPrettyString(start)})-[${asPrettyString(idName)}:${getPrettyDynamicElement(typeExpr)}]-(${asPrettyString(end)})"
+        PlanDescriptionImpl(
+          id,
+          "DynamicUndirectedRelationshipTypeScan",
           children,
           Seq(Details(prettyDetails)),
           variables,

@@ -2068,6 +2068,40 @@ object DirectedRelationshipTypeScan {
     new DirectedRelationshipTypeScan(idName, Some(startNode), relType, Some(endNode), argumentIds, indexOrder)
 }
 
+case class DynamicDirectedRelationshipTypeScan(
+  idName: LogicalVariable,
+  startNode: Option[LogicalVariable],
+  relType: DynamicElement,
+  endNode: Option[LogicalVariable],
+  argumentIds: Set[LogicalVariable],
+  indexOrder: IndexOrder
+)(implicit idGen: IdGen)
+    extends RelationshipLogicalLeafPlan(idGen) with RelationshipTypeScan with StableLeafPlan {
+
+  override def usedVariables: Set[LogicalVariable] = Set.empty
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicDirectedRelationshipTypeScan =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): DynamicDirectedRelationshipTypeScan =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def leftNode: Option[LogicalVariable] = startNode
+
+  override def rightNode: Option[LogicalVariable] = endNode
+
+  override def directed: Boolean = true
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override def withNewLeftAndRightNodes(
+    leftNode: Option[LogicalVariable],
+    rightNode: Option[LogicalVariable]
+  ): RelationshipLogicalLeafPlan =
+    copy(startNode = leftNode, endNode = rightNode)(SameId(this.id))
+}
+
 case class PartitionedDirectedRelationshipTypeScan(
   idName: LogicalVariable,
   startNode: Option[LogicalVariable],
@@ -3121,17 +3155,20 @@ case class NodeByLabelScan(
     copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
 }
 
-// initially we will only support conjunction/disjunction, but later we want to add support for combinations of the
-// two (and negation), hence the sealed trait with just one implementation at present
-sealed trait DynamicLabel
+/**
+ * Represents either a dynamic node label expression, or a dynamic relationship type expression,
+ * along with a boolean logic operator that defines how the expression should be evaluated.
+ */
+sealed trait DynamicElement
 
-object DynamicLabel {
-  sealed trait SetOperator
-  case object All extends SetOperator
-  case object Any extends SetOperator
+object DynamicElement {
+  sealed trait SetOperator { val name: String }
+  case object All extends SetOperator { override val name: String = "DynamicElement.All" }
+  case object Any extends SetOperator { override val name: String = "DynamicElement.Any" }
 
   /** expr must evaluate at runtime to a string or list of strings, representing label names to which the operator is applied */
-  case class Simple(expr: Expression, operator: SetOperator) extends DynamicLabel
+  case class Simple(expr: Expression, operator: SetOperator) extends DynamicElement
+  // TODO: Complex case
 }
 
 /**
@@ -3140,7 +3177,7 @@ object DynamicLabel {
  */
 case class DynamicNodeByLabelsScan(
   idName: LogicalVariable,
-  labelExpr: DynamicLabel,
+  labelExpr: DynamicElement,
   argumentIds: Set[LogicalVariable],
   indexOrder: IndexOrder
 )(implicit idGen: IdGen) extends NodeLogicalLeafPlan(idGen) with StableLeafPlan {
@@ -5397,6 +5434,36 @@ object UndirectedRelationshipTypeScan {
     indexOrder: IndexOrder
   )(implicit idGen: IdGen): UndirectedRelationshipTypeScan =
     new UndirectedRelationshipTypeScan(idName, Some(startNode), relType, Some(endNode), argumentIds, indexOrder)
+}
+
+case class DynamicUndirectedRelationshipTypeScan(
+  idName: LogicalVariable,
+  leftNode: Option[LogicalVariable],
+  relType: DynamicElement,
+  rightNode: Option[LogicalVariable],
+  argumentIds: Set[LogicalVariable],
+  indexOrder: IndexOrder
+)(implicit idGen: IdGen)
+    extends RelationshipLogicalLeafPlan(idGen) with RelationshipTypeScan with StableLeafPlan {
+
+  override def usedVariables: Set[LogicalVariable] = Set.empty
+
+  override def withoutArgumentIds(argsToExclude: Set[LogicalVariable]): DynamicUndirectedRelationshipTypeScan =
+    copy(argumentIds = argumentIds -- argsToExclude)(SameId(this.id))
+
+  override def removeArgumentIds(): DynamicUndirectedRelationshipTypeScan =
+    copy(argumentIds = Set.empty)(SameId(this.id))
+
+  override def directed: Boolean = false
+
+  override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
+    copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
+
+  override def withNewLeftAndRightNodes(
+    leftNode: Option[LogicalVariable],
+    rightNode: Option[LogicalVariable]
+  ): RelationshipLogicalLeafPlan =
+    copy(leftNode = leftNode, rightNode = rightNode)(SameId(this.id))
 }
 
 case class PartitionedUndirectedRelationshipTypeScan(

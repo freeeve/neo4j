@@ -245,7 +245,7 @@ abstract class RelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("directed relationship scan should use ascending index order when provided") {
-    assume(RelationshipTypeIndexIsOrdered && !isParallel)
+    assume(relationshipTypeIndexIsOrdered && !isParallel)
     // given
     val nNodes = Math.sqrt(sizeHint).ceil.toInt
     val (_, _, relationships, _) = givenGraph {
@@ -272,7 +272,7 @@ abstract class RelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
 
   test("directed relationship scan should use descending index order when provided") {
     // parallel does not maintain order
-    assume(RelationshipTypeIndexIsOrdered && !isParallel)
+    assume(relationshipTypeIndexIsOrdered && !isParallel)
     // given
     val nNodes = Math.sqrt(sizeHint).ceil.toInt
     val (_, _, relationships, _) = givenGraph {
@@ -298,7 +298,7 @@ abstract class RelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("undirected relationship scan should use ascending index order when provided") {
-    assume(RelationshipTypeIndexIsOrdered && !isParallel)
+    assume(relationshipTypeIndexIsOrdered && !isParallel)
     // given
     val nNodes = Math.sqrt(sizeHint).ceil.toInt
     val (_, _, relationships, _) = givenGraph {
@@ -324,7 +324,7 @@ abstract class RelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
   }
 
   test("undirected relationship scan should use descending index order when provided") {
-    assume(RelationshipTypeIndexIsOrdered && !isParallel)
+    assume(relationshipTypeIndexIsOrdered && !isParallel)
     // given
     val nNodes = Math.sqrt(sizeHint).ceil.toInt
     val (_, _, relationships, _) = givenGraph {
@@ -384,7 +384,7 @@ abstract class RelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
     execute(logicalQuery, runtime) should beColumns("r").withSingleRow(rel)
   }
 
-  private def RelationshipTypeIndexIsOrdered: Boolean = {
+  private def relationshipTypeIndexIsOrdered: Boolean = {
     Using(graphDb.beginTx) { tx =>
       {
         tx.schema.getIndexes.forEach({ id =>

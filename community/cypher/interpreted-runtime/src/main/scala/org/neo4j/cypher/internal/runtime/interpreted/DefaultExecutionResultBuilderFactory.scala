@@ -46,6 +46,7 @@ import org.neo4j.cypher.internal.runtime.memory.ProfilingParallelTrackingQueryMe
 import org.neo4j.cypher.internal.runtime.memory.QueryMemoryTracker
 import org.neo4j.cypher.internal.runtime.memory.TrackingQueryMemoryTracker
 import org.neo4j.cypher.internal.runtime.memory.TransactionWorkerThreadDelegatingMemoryTracker
+import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.result.RuntimeResult
 import org.neo4j.internal.kernel.api.DefaultCloseListenable
 import org.neo4j.kernel.impl.query.QuerySubscriber
@@ -53,6 +54,8 @@ import org.neo4j.scheduler.CallableExecutor
 import org.neo4j.scheduler.Group
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.MapValue
+
+import java.util
 
 abstract class BaseExecutionResultBuilderFactory(
   pipe: Pipe,
@@ -190,6 +193,7 @@ case class InterpretedExecutionResultBuilderFactory(
         input = input,
         if (doProfile) profileInformation else null,
         transactionWorkerExecutor,
+        notifications = new util.HashSet[InternalNotification],
         warnOnAggregationSkipNull = warnOnAggregationSkipNull
       )
     }

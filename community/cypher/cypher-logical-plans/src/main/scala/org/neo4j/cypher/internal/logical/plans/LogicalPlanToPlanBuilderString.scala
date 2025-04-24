@@ -44,6 +44,8 @@ import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.expressions.SemanticDirection.BOTH
+import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.VariableGrouping
 import org.neo4j.cypher.internal.frontend.phases.ProcedureSignature
@@ -71,7 +73,7 @@ import org.neo4j.cypher.internal.ir.ShortestRelationshipPattern
 import org.neo4j.cypher.internal.ir.SimpleMutatingPattern
 import org.neo4j.cypher.internal.ir.SimplePatternLength
 import org.neo4j.cypher.internal.ir.VarPatternLength
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel.SetOperator
+import org.neo4j.cypher.internal.logical.plans.DynamicElement.SetOperator
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpansionMode
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
@@ -285,6 +287,8 @@ object LogicalPlanToPlanBuilderString {
       case _: DirectedRelationshipUniqueIndexSeek             => "relationshipIndexOperator"
       case _: DirectedRelationshipTypeScan                    => "relationshipTypeScan"
       case _: UndirectedRelationshipTypeScan                  => "relationshipTypeScan"
+      case _: DynamicDirectedRelationshipTypeScan             => "dynamicRelationshipTypeScan"
+      case _: DynamicUndirectedRelationshipTypeScan           => "dynamicRelationshipTypeScan"
       case _: PartitionedDirectedRelationshipTypeScan         => "partitionedRelationshipTypeScan"
       case _: PartitionedUndirectedRelationshipTypeScan       => "partitionedRelationshipTypeScan"
       case _: DirectedAllRelationshipsScan                    => "allRelationshipsScan"
@@ -534,8 +538,40 @@ object LogicalPlanToPlanBuilderString {
         params(idName, label, indexOrder, spread(argumentIds))
       case DynamicNodeByLabelsScan(idName, labelExpr, argumentIds, indexOrder) =>
         labelExpr match {
-          case DynamicLabel.Simple(expr, operator) =>
+          case DynamicElement.Simple(expr, operator) =>
             params(idName, expr.quoted, operator, indexOrder, spread(argumentIds))
+        }
+      case DynamicDirectedRelationshipTypeScan(idName, start, typeExpr, end, argumentIds, indexOrder) =>
+        typeExpr match {
+          case DynamicElement.Simple(expr, operator) =>
+            val op = operator match {
+              case DynamicElement.All => "all"
+              case DynamicElement.Any => "any"
+            }
+            val relExpr = s"$$$op(${expressionStringifier(expr)})"
+
+            params(
+              renderSimplePath(idName, start, Seq.empty, end),
+              relExpr.quoted,
+              indexOrder,
+              spread(argumentIds)
+            )
+        }
+      case DynamicUndirectedRelationshipTypeScan(idName, start, typeExpr, end, argumentIds, indexOrder) =>
+        typeExpr match {
+          case DynamicElement.Simple(expr, operator) =>
+            val op = operator match {
+              case DynamicElement.All => "all"
+              case DynamicElement.Any => "any"
+            }
+            val relExpr = s"$$$op(${expressionStringifier(expr)})"
+
+            params(
+              renderSimplePath(idName, start, Seq.empty, end, BOTH),
+              relExpr.quoted,
+              indexOrder,
+              spread(argumentIds)
+            )
         }
       case PartitionedNodeByLabelScan(idName, label, argumentIds) =>
         params(idName, label, spread(argumentIds))
@@ -553,42 +589,36 @@ object LogicalPlanToPlanBuilderString {
         params(idName, ps, ns, spread(argumentIds))
 
       case DirectedUnionRelationshipTypesScan(idName, start, types, end, argumentIds, indexOrder) =>
-        val typeNames = types.map(l => l.name).mkString("|")
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:$typeNames]->(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, types.map(_.name), end, OUTGOING),
           indexOrder,
           spread(argumentIds)
         )
 
       case UndirectedUnionRelationshipTypesScan(idName, start, types, end, argumentIds, indexOrder) =>
-        val typeNames = types.map(l => l.name).mkString("|")
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:$typeNames]-(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, types.map(_.name), end, BOTH),
           indexOrder,
           spread(argumentIds)
         )
 
       case PartitionedDirectedUnionRelationshipTypesScan(idName, start, types, end, argumentIds) =>
-        val typeNames = types.map(l => l.name).mkString("|")
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:$typeNames]->(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, types.map(_.name), end, OUTGOING),
           spread(argumentIds)
         )
 
       case PartitionedUndirectedUnionRelationshipTypesScan(idName, start, types, end, argumentIds) =>
-        val typeNames = types.map(l => l.name).mkString("|")
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:$typeNames]-(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, types.map(_.name), end, BOTH),
           spread(argumentIds)
         )
 
       case Optional(_, protectedSymbols) =>
         spread(protectedSymbols)
       case OptionalExpand(_, from, dir, types, to, relName, _, predicate) =>
-        val (dirStrA, dirStrB) = arrows(dir)
-        val typeStr = relTypeStr(types)
         params(
-          s"(${from.name})$dirStrA[${relName.name}$typeStr]$dirStrB(${to.name})".quoted,
+          renderSimplePath(relName, Some(from), types.map(_.name), Some(to), dir),
           optional(predicate.map(_.quoted.some))
         )
 
@@ -800,56 +830,56 @@ object LogicalPlanToPlanBuilderString {
         )
       case DirectedRelationshipByIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
         params(
-          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.name}]->(${rightNode.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, leftNode, Seq.empty, rightNode),
           argumentIds,
           ids
         )
       case DirectedRelationshipByElementIdSeek(idName, ids, leftNode, rightNode, argumentIds) =>
         params(
-          s"(${leftNode.map(_.name).getOrElse("")})-[${idName.name}]->(${rightNode.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, leftNode, Seq.empty, rightNode),
           argumentIds,
           ids
         )
       case DirectedAllRelationshipsScan(idName, start, end, argumentIds) =>
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}]->(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, Seq.empty, end),
           spread(argumentIds)
         )
       case UndirectedAllRelationshipsScan(idName, start, end, argumentIds) =>
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}]-(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, Seq.empty, end, BOTH),
           spread(argumentIds)
         )
       case PartitionedDirectedAllRelationshipsScan(idName, start, end, argumentIds) =>
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}]->(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, Seq.empty, end, OUTGOING),
           spread(argumentIds)
         )
       case PartitionedUndirectedAllRelationshipsScan(idName, start, end, argumentIds) =>
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}]-(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, Seq.empty, end, BOTH),
           spread(argumentIds)
         )
       case DirectedRelationshipTypeScan(idName, start, typ, end, argumentIds, indexOrder) =>
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typ.name}]->(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, Seq(typ.name), end, OUTGOING),
           indexOrder,
           spread(argumentIds)
         )
       case UndirectedRelationshipTypeScan(idName, start, typ, end, argumentIds, indexOrder) =>
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typ.name}]-(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, Seq(typ.name), end, BOTH),
           indexOrder,
           spread(argumentIds)
         )
       case PartitionedDirectedRelationshipTypeScan(idName, start, typ, end, argumentIds) =>
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typ.name}]->(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, Seq(typ.name), end, OUTGOING),
           spread(argumentIds)
         )
       case PartitionedUndirectedRelationshipTypeScan(idName, start, typ, end, argumentIds) =>
         params(
-          s"(${start.map(_.name).getOrElse("")})-[${idName.name}:${typ.name}]-(${end.map(_.name).getOrElse("")})".quoted,
+          renderSimplePath(idName, start, Seq(typ.name), end, BOTH),
           spread(argumentIds)
         )
       case NodeIndexScan(idName, labelToken, properties, argumentIds, indexOrder, indexType, supportPartitionedScan) =>
@@ -1550,6 +1580,22 @@ object LogicalPlanToPlanBuilderString {
       case _ => ""
     }
 
+  private def renderSimplePath(
+    idName: LogicalVariable,
+    start: Option[LogicalVariable],
+    relType: Seq[String],
+    end: Option[LogicalVariable],
+    direction: SemanticDirection = OUTGOING
+  ): Param = {
+    val (dirA, dirB) = arrows(direction)
+    val relTypes = relType match {
+      case Seq()    => ""
+      case typeList => typeList.mkString(":", "|", "")
+    }
+
+    s"(${start.map(_.name).getOrElse("")})$dirA[${idName.name}$relTypes]$dirB(${end.map(_.name).getOrElse("")})".quoted
+  }
+
   /**
    * NFAs cause stateful shortest path operators to spill over several lines. It is then confusing if the NFA is
    * rendered on the same indentation as the stateful shortest path operator.
@@ -2178,7 +2224,8 @@ object LogicalPlanToPlanBuilderString {
     implicit def fromPropertyKeyToken: ToParam[PropertyKeyToken] = _.name.quoted
     implicit def fromRelTypeName: ToParam[RelTypeName] = _.name.quoted
     implicit def fromRelTypeToken: ToParam[RelationshipTypeToken] = _.name.quoted
-    implicit def fromSetOperator: ToParam[SetOperator] = str(x => s"DynamicLabel.$x")
+
+    implicit def fromSetOperator: ToParam[SetOperator] = _.name
 
     implicit def fromIndexOrder: ToParam[IndexOrder] = str(objectName)
     implicit def fromTraversalPathMode: ToParam[TraversalPathMode] = str(objectName)

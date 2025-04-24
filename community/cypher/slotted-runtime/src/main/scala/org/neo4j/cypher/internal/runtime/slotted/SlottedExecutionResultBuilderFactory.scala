@@ -34,10 +34,13 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState.createDefaultInCache
 import org.neo4j.cypher.internal.runtime.interpreted.profiler.InterpretedProfileInformation
+import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.kernel.impl.query.QuerySubscriber
 import org.neo4j.memory.MemoryTracker
 import org.neo4j.values.AnyValue
 import org.neo4j.values.virtual.MapValue
+
+import java.util
 
 class SlottedExecutionResultBuilderFactory(
   pipe: Pipe,
@@ -95,6 +98,7 @@ class SlottedExecutionResultBuilderFactory(
         input = input,
         if (doProfile) profileInformation else null,
         transactionWorkerExecutor = transactionWorkerExecutor,
+        notifications = new util.HashSet[InternalNotification],
         warnOnAggregationSkipNull
       )
     }

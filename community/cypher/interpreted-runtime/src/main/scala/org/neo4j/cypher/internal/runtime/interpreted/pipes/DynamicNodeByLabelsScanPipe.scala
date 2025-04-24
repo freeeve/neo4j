@@ -19,9 +19,9 @@
  */
 package org.neo4j.cypher.internal.runtime.interpreted.pipes
 
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel.All
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel.Any
+import org.neo4j.cypher.internal.logical.plans.DynamicElement
+import org.neo4j.cypher.internal.logical.plans.DynamicElement.All
+import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
 import org.neo4j.cypher.internal.logical.plans.IndexOrder
 import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.ClosingLongIterator
@@ -39,7 +39,7 @@ import org.neo4j.values.virtual.VirtualValues
 case class DynamicNodeByLabelsScanPipe(
   ident: String,
   labelExpr: Expression,
-  operator: DynamicLabel.SetOperator,
+  operator: DynamicElement.SetOperator,
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
@@ -54,7 +54,7 @@ object DynamicNodeByLabelsScanPipe {
 
   def getNodes(
     labelExpr: Expression,
-    operator: DynamicLabel.SetOperator,
+    operator: DynamicElement.SetOperator,
     indexOrder: IndexOrder,
     context: CypherRow,
     state: QueryState

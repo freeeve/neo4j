@@ -89,7 +89,9 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -349,6 +351,14 @@ object ReadFinder {
           .withAddedNodeFilterExpression(variable, hasLabels)
 
       case _: DynamicNodeByLabelsScan =>
+        // TODO
+        ???
+
+      case _: DynamicDirectedRelationshipTypeScan =>
+        // TODO
+        ???
+
+      case _: DynamicUndirectedRelationshipTypeScan =>
         // TODO
         ???
 

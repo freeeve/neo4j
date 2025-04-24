@@ -91,7 +91,7 @@ class PipeExecutionResult(
     inner == null || (inner.hasNext && !cancelled)
   }
 
-  override def notifications(): util.Set[InternalNotification] = state.notifications()
+  override def notifications(): util.Set[InternalNotification] = state.notifications
 
   private def serveResults(): Unit = {
     while (inner.hasNext && demand > 0 && !cancelled) {

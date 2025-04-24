@@ -73,6 +73,7 @@ class QueryState(
   val input: InputDataStream = NoInput,
   val profileInformation: InterpretedProfileInformation = null,
   val transactionWorkerExecutor: Option[CallableExecutor] = None,
+  val notifications: util.Set[InternalNotification] = new util.HashSet[InternalNotification](),
   val warnOnAggregationSkipNull: Boolean = false
 ) extends AutoCloseable with RuntimeNotifier {
 
@@ -84,7 +85,6 @@ class QueryState(
   //       silly micro optimization to avoid an extra equality check.
   private[this] var lastCachedNotification: InternalNotification =
     if (!warnOnAggregationSkipNull) AggregationSkippedNull else null
-  private[this] val _notifications = new util.HashSet[InternalNotification]()
 
   def newRow(rowFactory: CypherRowFactory): CypherRow = {
     initialContext match {
@@ -96,13 +96,11 @@ class QueryState(
   def newRuntimeNotification(notification: InternalNotification): Unit = {
     if (notification ne lastCachedNotification) {
       if (warnOnAggregationSkipNull || (notification ne AggregationSkippedNull)) {
-        _notifications.add(notification)
+        notifications.add(notification)
       }
       lastCachedNotification = notification
     }
   }
-
-  def notifications(): util.Set[InternalNotification] = _notifications
 
   /**
    * When running on the RHS of an Apply, this method will fill the new row with argument data
@@ -137,7 +135,8 @@ class QueryState(
       prePopulateResults,
       input,
       profileInformation,
-      transactionWorkerExecutor
+      transactionWorkerExecutor,
+      notifications
     )
 
   def withInitialContext(initialContext: CypherRow): QueryState =
@@ -161,7 +160,8 @@ class QueryState(
       prePopulateResults,
       input,
       profileInformation,
-      transactionWorkerExecutor
+      transactionWorkerExecutor,
+      notifications
     )
 
   def withInitialContextAndDecorator(initialContext: CypherRow, newDecorator: PipeDecorator): QueryState =
@@ -185,7 +185,8 @@ class QueryState(
       prePopulateResults,
       input,
       profileInformation,
-      transactionWorkerExecutor
+      transactionWorkerExecutor,
+      notifications
     )
 
   def withQueryContext(query: QueryContext): QueryState =
@@ -209,7 +210,8 @@ class QueryState(
       prePopulateResults,
       input,
       profileInformation,
-      transactionWorkerExecutor
+      transactionWorkerExecutor,
+      notifications
     )
 
   def withNewTransaction(concurrentAccess: Boolean): QueryState = {
@@ -279,6 +281,7 @@ class QueryState(
       input,
       newProfileInformation,
       transactionWorkerExecutor,
+      notifications,
       warnOnAggregationSkipNull
     )
   }
@@ -304,7 +307,8 @@ class QueryState(
       prePopulateResults,
       input,
       profileInformation,
-      transactionWorkerExecutor
+      transactionWorkerExecutor,
+      notifications
     )
   }
 
@@ -388,6 +392,7 @@ object QueryState {
     input: InputDataStream,
     profileInformation: InterpretedProfileInformation,
     transactionWorkerExecutor: Option[CallableExecutor],
+    notifications: util.Set[InternalNotification],
     warnOnAggregationSkipNull: Boolean
   ): QueryState = {
     val memoryTrackerForOperatorProvider =
@@ -413,6 +418,7 @@ object QueryState {
       input,
       profileInformation,
       transactionWorkerExecutor,
+      notifications,
       warnOnAggregationSkipNull
     )
   }

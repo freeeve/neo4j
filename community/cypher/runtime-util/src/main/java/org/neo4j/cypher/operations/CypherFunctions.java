@@ -21,8 +21,12 @@ package org.neo4j.cypher.operations;
 
 import static java.lang.String.format;
 import static org.neo4j.cypher.operations.CursorUtils.propertyKeys;
+import static org.neo4j.cypher.operations.CypherFunctions.GetSingleDynamicTypeResult.ConflictingDynamicTypes;
+import static org.neo4j.cypher.operations.CypherFunctions.GetSingleDynamicTypeResult.EmptyDynamicTypeList;
+import static org.neo4j.cypher.operations.CypherFunctions.GetSingleDynamicTypeResult.SingleDynamicType;
 import static org.neo4j.cypher.operations.VectorUtils.assertDimension;
 import static org.neo4j.cypher.operations.VectorUtils.invalidVector;
+import static org.neo4j.internal.kernel.api.TokenWrite.checkValidTokenName;
 import static org.neo4j.values.storable.Values.EMPTY_STRING;
 import static org.neo4j.values.storable.Values.FALSE;
 import static org.neo4j.values.storable.Values.NO_VALUE;
@@ -1341,7 +1345,7 @@ public final class CypherFunctions {
     private static boolean hasLabel(
             VirtualNodeValue node, TextValue textLabel, NodeCursor nodeCursor, QueryContext queryContext)
             throws IllegalTokenNameException {
-        var validName = TokenWrite.checkValidTokenName(textLabel.stringValue(), TokenType.LABEL);
+        var validName = checkValidTokenName(textLabel.stringValue(), TokenType.LABEL);
         var tokenId = queryContext.nodeLabel(validName);
         if (tokenId == TokenConstants.NO_TOKEN) {
             return false;
@@ -1393,17 +1397,18 @@ public final class CypherFunctions {
             AnyValue entity, AnyValue[] labelNames, NodeCursor nodeCursor, QueryContext queryContext)
             throws IllegalTokenNameException {
         assert entity != NO_VALUE : "NO_VALUE checks need to happen outside this call";
+        boolean allMatch = true;
         if (entity instanceof VirtualNodeValue node) {
             for (var labelName : labelNames) {
                 if (labelName instanceof TextValue textLabel) {
                     if (!hasLabel(node, textLabel, nodeCursor, queryContext)) {
-                        return false;
+                        allMatch = false;
                     }
                 } else if (labelName instanceof SequenceValue labelSequence) {
                     for (var l : labelSequence) {
                         if (l instanceof TextValue textLabel) {
                             if (!hasLabel(node, textLabel, nodeCursor, queryContext)) {
-                                return false;
+                                allMatch = false;
                             }
                         } else {
                             throw CypherTypeException.expectedStringNotNull(
@@ -1423,7 +1428,7 @@ public final class CypherFunctions {
             throw CypherTypeException.expectedNode(
                     entity.toString(), entity.prettyPrint(), CypherTypeValueMapper.valueType(entity));
         }
-        return true;
+        return allMatch;
     }
 
     @CalledFromGeneratedCode
@@ -1447,6 +1452,85 @@ public final class CypherFunctions {
         } else {
             throw CypherTypeException.expectedStringOrListOfStringsNotNull(
                     "Expected node label to be a string or list of strings.",
+                    labelName.prettyPrint(),
+                    CypherTypeValueMapper.valueType(labelName));
+        }
+    }
+
+    public sealed interface GetSingleDynamicTypeResult {
+        record SingleDynamicType(String value) implements GetSingleDynamicTypeResult {}
+
+        record ConflictingDynamicTypes() implements GetSingleDynamicTypeResult {}
+
+        record EmptyDynamicTypeList() implements GetSingleDynamicTypeResult {}
+    }
+
+    @CalledFromGeneratedCode
+    public static GetSingleDynamicTypeResult getSingleDynamicType(AnyValue typeName, RuntimeNotifier notifier)
+            throws IllegalTokenNameException {
+        assert typeName != NO_VALUE : "NO_VALUE checks need to happen outside this call";
+        if (typeName instanceof TextValue textType) {
+            return new SingleDynamicType(checkValidTokenName(textType.stringValue(), TokenType.RELATIONSHIP_TYPE));
+        } else if (typeName instanceof SequenceValue typeSequence) {
+            ArrayList<String> conflicts = null;
+            String singleValue = null;
+            for (var l : typeSequence) {
+                if (l instanceof TextValue textType) {
+                    String validValue = checkValidTokenName(textType.stringValue(), TokenType.RELATIONSHIP_TYPE);
+                    if (singleValue == null) {
+                        singleValue = validValue;
+                    } else if (!singleValue.equals(validValue)) {
+                        if (conflicts == null) {
+                            conflicts = new ArrayList<>();
+                            conflicts.add(singleValue);
+                        }
+                        conflicts.add(validValue);
+                    }
+                } else {
+                    throw CypherTypeException.expectedStringNotNull(
+                            "Expected relationship type to be a string or list of strings.",
+                            l.prettyPrint(),
+                            CypherTypeValueMapper.valueType(l));
+                }
+            }
+
+            if (singleValue == null) {
+                return new EmptyDynamicTypeList();
+            } else if (conflicts == null) {
+                return new SingleDynamicType(singleValue);
+            } else {
+                notifier.newRuntimeNotification(new RuntimeUnsatisfiableRelationshipTypeExpression(conflicts));
+                return new ConflictingDynamicTypes();
+            }
+        } else {
+            throw CypherTypeException.expectedStringOrListOfStringsNotNull(
+                    "Expected relationship type to be a string or list of strings.",
+                    typeName.prettyPrint(),
+                    CypherTypeValueMapper.valueType(typeName));
+        }
+    }
+
+    @CalledFromGeneratedCode
+    public static String[] getDynamicTypes(AnyValue labelName) throws IllegalTokenNameException {
+        if (labelName instanceof TextValue textType) {
+            return new String[] {checkValidTokenName(textType.stringValue(), TokenType.RELATIONSHIP_TYPE)};
+        } else if (labelName instanceof SequenceValue labelSequence) {
+            var list = new String[labelSequence.intSize()];
+            int i = 0;
+            for (var l : labelSequence) {
+                if (l instanceof TextValue textType) {
+                    list[i++] = checkValidTokenName(textType.stringValue(), TokenType.RELATIONSHIP_TYPE);
+                } else {
+                    throw CypherTypeException.expectedStringNotNull(
+                            "Expected relationship type to be a string or list of strings.",
+                            l.prettyPrint(),
+                            CypherTypeValueMapper.valueType(l));
+                }
+            }
+            return list;
+        } else {
+            throw CypherTypeException.expectedStringOrListOfStringsNotNull(
+                    "Expected relationship type to be a string or list of strings.",
                     labelName.prettyPrint(),
                     CypherTypeValueMapper.valueType(labelName));
         }
@@ -1517,17 +1601,18 @@ public final class CypherFunctions {
             AnyValue entity, AnyValue[] labels, NodeCursor nodeCursor, QueryContext queryContext)
             throws IllegalTokenNameException {
         assert entity != NO_VALUE : "NO_VALUE checks need to happen outside this call";
+        boolean anyMatch = false;
         if (entity instanceof VirtualNodeValue node) {
             for (var labelName : labels) {
                 if (labelName instanceof TextValue textLabel) {
                     if (hasLabel(node, textLabel, nodeCursor, queryContext)) {
-                        return true;
+                        anyMatch = true;
                     }
                 } else if (labelName instanceof SequenceValue labelSequence) {
                     for (var l : labelSequence) {
                         if (l instanceof TextValue textLabel) {
                             if (hasLabel(node, textLabel, nodeCursor, queryContext)) {
-                                return true;
+                                anyMatch = true;
                             }
                         } else {
                             throw CypherTypeException.expectedStringNotNull(
@@ -1548,7 +1633,7 @@ public final class CypherFunctions {
                     entity.toString(), entity.prettyPrint(), CypherTypeValueMapper.valueType(entity));
         }
 
-        return false;
+        return anyMatch;
     }
 
     public static AnyValue type(AnyValue item, DbAccess access, RelationshipScanCursor relCursor, Read read) {
@@ -1616,7 +1701,7 @@ public final class CypherFunctions {
             RelationshipScanCursor relCursor,
             DbAccess queryContext)
             throws IllegalTokenNameException {
-        var validName = TokenWrite.checkValidTokenName(textValue.stringValue(), TokenType.RELATIONSHIP_TYPE);
+        var validName = checkValidTokenName(textValue.stringValue(), TokenType.RELATIONSHIP_TYPE);
         var tokenId = queryContext.relationshipType(validName);
         return queryContext.isTypeSetOnRelationship(tokenId, relationship.id(), relCursor);
     }
@@ -1636,6 +1721,7 @@ public final class CypherFunctions {
         if (entity instanceof VirtualRelationshipValue relationship) {
             for (var value : dynamicTypes) {
                 if (value instanceof TextValue textValue) {
+                    checkValidTokenName(textValue.stringValue(), TokenType.RELATIONSHIP_TYPE);
                     if (conflictingTypes != null) {
                         conflictingTypes.add(textValue.stringValue());
                     } else if (singleValue == null) {
@@ -1648,6 +1734,7 @@ public final class CypherFunctions {
                 } else if (value instanceof SequenceValue sequenceValue) {
                     for (var t : sequenceValue) {
                         if (t instanceof TextValue textValue) {
+                            checkValidTokenName(textValue.stringValue(), TokenType.RELATIONSHIP_TYPE);
                             if (conflictingTypes != null) {
                                 conflictingTypes.add(textValue.stringValue());
                             } else if (singleValue == null) {

@@ -70,8 +70,10 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -275,7 +277,9 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.DirectedUnionRelationship
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedPrimitivePipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DistinctSlottedSinglePrimitivePipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicDirectedRelationshipTypeScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicNodeByLabelsScanSlottedPipe
+import org.neo4j.cypher.internal.runtime.slotted.pipes.DynamicUndirectedRelationshipTypeScanSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.EagerSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.ExpandAllSlottedPipe
 import org.neo4j.cypher.internal.runtime.slotted.pipes.ExpandIntoSlottedPipe
@@ -459,7 +463,7 @@ class SlottedPipeMapper(
       case DynamicNodeByLabelsScan(column, labelExpr, _, indexOrder) =>
         indexRegistrator.registerLabelScan()
         labelExpr match {
-          case DynamicLabel.Simple(expr, operator) =>
+          case DynamicElement.Simple(expr, operator) =>
             DynamicNodeByLabelsScanSlottedPipe(
               slots.longOffset(column.name),
               expressionConverters.toCommandExpression(id, expr),
@@ -786,6 +790,21 @@ class SlottedPipeMapper(
           indexOrder
         )(id)
 
+      case DynamicDirectedRelationshipTypeScan(name, start, relTypeLabel, end, _, indexOrder) =>
+        indexRegistrator.registerTypeScan()
+
+        relTypeLabel match {
+          case DynamicElement.Simple(expr, operator) =>
+            DynamicDirectedRelationshipTypeScanSlottedPipe(
+              slots.longOffset(name),
+              start.map(n => slots.longOffset(n)),
+              expressionConverters.toCommandExpression(id, expr),
+              end.map(n => slots.longOffset(n)),
+              operator,
+              indexOrder
+            )(id)
+        }
+
       case UndirectedRelationshipTypeScan(name, start, typ, end, _, indexOrder) =>
         indexRegistrator.registerTypeScan()
         UndirectedRelationshipTypeScanSlottedPipe(
@@ -795,6 +814,21 @@ class SlottedPipeMapper(
           end.map(n => slots.longOffset(n)),
           indexOrder
         )(id)
+
+      case DynamicUndirectedRelationshipTypeScan(name, start, relTypeLabel, end, _, indexOrder) =>
+        indexRegistrator.registerTypeScan()
+
+        relTypeLabel match {
+          case DynamicElement.Simple(expr, operator) =>
+            DynamicUndirectedRelationshipTypeScanSlottedPipe(
+              slots.longOffset(name),
+              start.map(n => slots.longOffset(n)),
+              expressionConverters.toCommandExpression(id, expr),
+              end.map(n => slots.longOffset(n)),
+              operator,
+              indexOrder
+            )(id)
+        }
 
       case PartitionedDirectedRelationshipTypeScan(name, start, typ, end, _) =>
         indexRegistrator.registerTypeScan()

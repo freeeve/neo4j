@@ -77,8 +77,10 @@ import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.DirectedRelationshipUniqueIndexSeek
 import org.neo4j.cypher.internal.logical.plans.DirectedUnionRelationshipTypesScan
 import org.neo4j.cypher.internal.logical.plans.Distinct
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.ErrorPlan
@@ -260,7 +262,9 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedRelationshipI
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedRelationshipTypeScanPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DirectedUnionRelationshipTypesScanPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DistinctPipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicDirectedRelationshipTypeScanPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicNodeByLabelsScanPipe
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicUndirectedRelationshipTypeScanPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.EagerAggregationPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.EagerPipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.EmptyResultPipe
@@ -426,7 +430,7 @@ case class InterpretedPipeMapper(
       case DynamicNodeByLabelsScan(ident, labelExpr, _, indexOrder) =>
         indexRegistrator.registerLabelScan()
         labelExpr match {
-          case DynamicLabel.Simple(expr, operator) =>
+          case DynamicElement.Simple(expr, operator) =>
             DynamicNodeByLabelsScanPipe(
               ident.name,
               expressionConverters.toCommandExpression(id, expr),
@@ -541,6 +545,20 @@ case class InterpretedPipeMapper(
           indexOrder
         )(id = id)
 
+      case DynamicDirectedRelationshipTypeScan(ident, fromNode, typeExpr, toNode, _, indexOrder) =>
+        indexRegistrator.registerTypeScan()
+        typeExpr match {
+          case DynamicElement.Simple(expr, operator) =>
+            DynamicDirectedRelationshipTypeScanPipe(
+              ident.name,
+              fromNode.map(_.name),
+              expressionConverters.toCommandExpression(id, expr),
+              toNode.map(_.name),
+              operator,
+              indexOrder
+            )(id = id)
+        }
+
       case UndirectedRelationshipTypeScan(ident, fromNode, typ, toNode, _, indexOrder) =>
         indexRegistrator.registerTypeScan()
         UndirectedRelationshipTypeScanPipe(
@@ -550,6 +568,20 @@ case class InterpretedPipeMapper(
           toNode.map(_.name),
           indexOrder
         )(id = id)
+
+      case DynamicUndirectedRelationshipTypeScan(ident, fromNode, typeExpr, toNode, _, indexOrder) =>
+        indexRegistrator.registerTypeScan()
+        typeExpr match {
+          case DynamicElement.Simple(expr, operator) =>
+            DynamicUndirectedRelationshipTypeScanPipe(
+              ident.name,
+              fromNode.map(_.name),
+              expressionConverters.toCommandExpression(id, expr),
+              toNode.map(_.name),
+              operator,
+              indexOrder
+            )(id = id)
+        }
 
       case PartitionedDirectedRelationshipTypeScan(ident, fromNode, typ, toNode, _) =>
         indexRegistrator.registerTypeScan()

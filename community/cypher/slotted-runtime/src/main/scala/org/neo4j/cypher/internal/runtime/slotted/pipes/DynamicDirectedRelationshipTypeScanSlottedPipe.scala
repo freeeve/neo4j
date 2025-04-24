@@ -25,30 +25,30 @@ import org.neo4j.cypher.internal.runtime.ClosingIterator
 import org.neo4j.cypher.internal.runtime.CypherRow
 import org.neo4j.cypher.internal.runtime.PrimitiveLongHelper
 import org.neo4j.cypher.internal.runtime.interpreted.commands.expressions.Expression
-import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicNodeByLabelsScanPipe.getNodes
+import org.neo4j.cypher.internal.runtime.interpreted.pipes.DynamicDirectedRelationshipTypeScanPipe.getIterator
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.Pipe
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.QueryState
 import org.neo4j.cypher.internal.util.attribution.Id
 
-case class DynamicNodeByLabelsScanSlottedPipe(
-  nodeOffset: Int,
-  labelExpr: Expression,
+case class DynamicDirectedRelationshipTypeScanSlottedPipe(
+  relOffset: Int,
+  fromOffset: Option[Int],
+  typeExpr: Expression,
+  toOffset: Option[Int],
   operator: DynamicElement.SetOperator,
   indexOrder: IndexOrder
 )(val id: Id = Id.INVALID_ID) extends Pipe {
 
+  private val relationshipWriter = Relationships.compileRelationshipWriter(relOffset, fromOffset, toOffset)
+
   protected def internalCreateResults(state: QueryState): ClosingIterator[CypherRow] = {
+    val ctx = state.newRowWithArgument(rowFactory)
+    val relIterator = getIterator(state, ctx, typeExpr, operator, indexOrder)
     PrimitiveLongHelper.map(
-      getNodes(
-        labelExpr,
-        operator,
-        indexOrder,
-        state.newRowWithArgument(rowFactory),
-        state
-      ),
-      n => {
+      relIterator,
+      { relId =>
         val context = state.newRowWithArgument(rowFactory)
-        context.setLongAt(nodeOffset, n)
+        relationshipWriter.writeRow(context, relId, relIterator.startNodeId(), relIterator.endNodeId())
         context
       }
     )

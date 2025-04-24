@@ -63,7 +63,7 @@ import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.setR
 import org.neo4j.cypher.internal.logical.plans.Ascending
 import org.neo4j.cypher.internal.logical.plans.Descending
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel.All
+import org.neo4j.cypher.internal.logical.plans.DynamicElement.All
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
@@ -1884,6 +1884,16 @@ class LogicalPlanToPlanBuilderStringTest extends CypherFunSuite with TestName wi
       .apply()
       .|.relationshipTypeScan("(x)-[r:R]-(y)")
       .relationshipTypeScan("(x)-[r:R]->(y)")
+      .build()
+  )
+
+  testPlan(
+    "dynamicRelationshipTypeScan",
+    new TestPlanBuilder()
+      .produceResults("x", "y")
+      .apply()
+      .|.dynamicRelationshipTypeScan("(x)-[r]-(y)", "$all('R')")
+      .dynamicRelationshipTypeScan("(x)-[r]->(y)", "$any('R')")
       .build()
   )
 

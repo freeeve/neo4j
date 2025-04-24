@@ -2049,6 +2049,12 @@ object TransactionBoundQueryContext {
   object BaseRelationshipCursorIterator {
     private val NOT_INITIALIZED = -2L
     private val NO_ID = -1
+
+    val EMPTY = new BaseRelationshipCursorIterator {
+      override protected def fetchNext(): Long = -1L
+      override protected def storeState(): Unit = ()
+      override def close(): Unit = ()
+    }
   }
 
   trait IndexSearchMonitor {

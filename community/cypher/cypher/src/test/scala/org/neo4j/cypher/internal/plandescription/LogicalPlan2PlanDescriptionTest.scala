@@ -259,8 +259,11 @@ import org.neo4j.cypher.internal.logical.plans.DropIndexOnName
 import org.neo4j.cypher.internal.logical.plans.DropRole
 import org.neo4j.cypher.internal.logical.plans.DropServer
 import org.neo4j.cypher.internal.logical.plans.DropUser
-import org.neo4j.cypher.internal.logical.plans.DynamicLabel
+import org.neo4j.cypher.internal.logical.plans.DynamicDirectedRelationshipTypeScan
+import org.neo4j.cypher.internal.logical.plans.DynamicElement
+import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
 import org.neo4j.cypher.internal.logical.plans.DynamicNodeByLabelsScan
+import org.neo4j.cypher.internal.logical.plans.DynamicUndirectedRelationshipTypeScan
 import org.neo4j.cypher.internal.logical.plans.Eager
 import org.neo4j.cypher.internal.logical.plans.EmptyResult
 import org.neo4j.cypher.internal.logical.plans.EnableServer
@@ -741,7 +744,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         DynamicNodeByLabelsScan(
           varFor("node"),
-          DynamicLabel.Simple(literal(List("A", "B")), DynamicLabel.All),
+          DynamicElement.Simple(literal(List("A", "B")), DynamicElement.All),
           Set.empty,
           IndexOrderNone
         ),
@@ -754,7 +757,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
       attach(
         DynamicNodeByLabelsScan(
           varFor("  UNNAMED123"),
-          DynamicLabel.Simple(varFor("y"), DynamicLabel.Any),
+          DynamicElement.Simple(varFor("y"), DynamicElement.Any),
           Set.empty,
           IndexOrderNone
         ),
@@ -1972,6 +1975,113 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Seq.empty,
         Seq(details("(x)-[r:R]-()")),
         Set("r", "x")
+      )
+    )
+  }
+
+  test("DynamicRelationshipTypeScan") {
+    assertGood(
+      attach(
+        DynamicDirectedRelationshipTypeScan(
+          varFor("r"),
+          Some(varFor("x")),
+          DynamicElement.Simple(literal(List("R", "S")), Any),
+          Some(varFor("y")),
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DynamicDirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("(x)-[r:$any([\"R\", \"S\"])]->(y)")),
+        Set("r", "x", "y")
+      )
+    )
+
+    assertGood(
+      attach(
+        DynamicUndirectedRelationshipTypeScan(
+          varFor("r"),
+          Some(varFor("x")),
+          DynamicElement.Simple(literal(List("R", "S")), Any),
+          Some(varFor("y")),
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DynamicUndirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("(x)-[r:$any([\"R\", \"S\"])]-(y)")),
+        Set("r", "x", "y")
+      )
+    )
+
+    assertGood(
+      attach(
+        DynamicDirectedRelationshipTypeScan(
+          varFor("r"),
+          None,
+          DynamicElement.Simple(literal(List("R", "S")), Any),
+          None,
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DynamicDirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("()-[r:$any([\"R\", \"S\"])]->()")),
+        Set("r")
+      )
+    )
+
+    assertGood(
+      attach(
+        DynamicUndirectedRelationshipTypeScan(
+          varFor("r"),
+          Some(varFor("x")),
+          DynamicElement.Simple(literal(List("R", "S")), Any),
+          None,
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DynamicUndirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("(x)-[r:$any([\"R\", \"S\"])]-()")),
+        Set("r", "x")
+      )
+    )
+
+    assertGood(
+      attach(
+        DynamicDirectedRelationshipTypeScan(
+          varFor("  UNNAMED123"),
+          Some(varFor("x")),
+          DynamicElement.Simple(literal(List("R")), Any),
+          Some(varFor("y")),
+          Set.empty,
+          IndexOrderNone
+        ),
+        33.0
+      ),
+      planDescription(
+        id,
+        "DynamicDirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details(s"(x)-[${anonVar("123")}:$$any([\"R\"])]->(y)")),
+        Set(anonVar("123"), "x", "y")
       )
     )
   }
