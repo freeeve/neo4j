@@ -545,18 +545,28 @@ public class ParquetInput implements Input {
             mergedLabels.addAll(Collections.unmodifiableSet(nodePathEntries.getKey()));
             for (Path[] nodePaths : nodePathEntries.getValue()) {
                 for (Path nodePath : nodePaths) {
-                    var metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(nodePath));
-                    List<BlockMetaData> blocks = metadata.getBlocks();
-                    for (BlockMetaData block : blocks) {
-                        numberOfNodes += block.getRowCount();
-                        var currentColumnCount = block.getColumns().size();
-                        // This needs to be separated by file/group, or?
-                        if (currentColumnCount > numberOfNodeProperties) {
-                            numberOfNodeProperties = currentColumnCount;
+                    try {
+                        // skip obvious csv head
+                        if (nodePath.endsWith("csv")) {
+                            continue;
                         }
-                        for (ColumnChunkMetaData column : block.getColumns()) {
-                            totalNodePropertiesSize += column.getTotalUncompressedSize();
+                        var metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(nodePath));
+                        List<BlockMetaData> blocks = metadata.getBlocks();
+                        for (BlockMetaData block : blocks) {
+                            numberOfNodes += block.getRowCount();
+                            var currentColumnCount = block.getColumns().size();
+                            // This needs to be separated by file/group, or?
+                            if (currentColumnCount > numberOfNodeProperties) {
+                                numberOfNodeProperties = currentColumnCount;
+                            }
+                            for (ColumnChunkMetaData column : block.getColumns()) {
+                                totalNodePropertiesSize += column.getTotalUncompressedSize();
+                            }
                         }
+                    } catch (RuntimeException e) {
+                        // Silently ignore if a file cannot be read.
+                        // This is 99% caused by header CSVs being part of the import files.
+                        // Unfortunately, we can only ignore at this level because csv files might not be named such
                     }
                 }
             }
@@ -570,16 +580,26 @@ public class ParquetInput implements Input {
         for (Map.Entry<String, List<Path[]>> relationshipFileEntries : relationshipFiles.entrySet()) {
             for (Path[] relationshipPaths : relationshipFileEntries.getValue()) {
                 for (Path relationshipPath : relationshipPaths) {
-                    var metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(relationshipPath));
-                    for (BlockMetaData block : metadata.getBlocks()) {
-                        numberOfNodes += block.getRowCount();
-                        var currentColumnCount = block.getColumns().size();
-                        if (currentColumnCount > numberOfNodeProperties) {
-                            numberOfNodeProperties = currentColumnCount;
+                    try {
+                        // skip obvious csv headers
+                        if (relationshipPath.endsWith("csv")) {
+                            continue;
                         }
-                        for (ColumnChunkMetaData column : block.getColumns()) {
-                            totalRelationshipPropertiesSize += column.getTotalUncompressedSize();
+                        var metadata = ParquetReader.readMetadata(ParquetImportInputFile.of(relationshipPath));
+                        for (BlockMetaData block : metadata.getBlocks()) {
+                            numberOfNodes += block.getRowCount();
+                            var currentColumnCount = block.getColumns().size();
+                            if (currentColumnCount > numberOfNodeProperties) {
+                                numberOfNodeProperties = currentColumnCount;
+                            }
+                            for (ColumnChunkMetaData column : block.getColumns()) {
+                                totalRelationshipPropertiesSize += column.getTotalUncompressedSize();
+                            }
                         }
+                    } catch (RuntimeException e) {
+                        // Silently ignore if a file cannot be read.
+                        // This is 99% caused by header CSVs being part of the import files.
+                        // Unfortunately, we can only ignore at this level because csv files might not be named such
                     }
                 }
             }
@@ -603,21 +623,21 @@ public class ParquetInput implements Input {
             return importFileCache.computeIfAbsent(importFilePath, (any) -> new ParquetImportInputFile(importFilePath));
         }
 
-        private final Path lePath;
+        private final Path filePath;
 
         private ParquetImportInputFile(Path lePath) {
-            this.lePath = lePath;
+            this.filePath = lePath;
         }
 
         @Override
         public long getLength() throws IOException {
-            return Files.size(lePath);
+            return Files.size(filePath);
         }
 
         @Override
         public SeekableInputStream newStream() throws IOException {
 
-            InputStream inputStream = Files.newInputStream(lePath);
+            InputStream inputStream = Files.newInputStream(filePath);
             if (inputStream instanceof ReadableChannel cloudFileChannel) {
                 return new DelegatingSeekableInputStream(inputStream) {
                     private long position = 0;
@@ -634,7 +654,7 @@ public class ParquetInput implements Input {
                     }
                 };
             } else { // assume we have a local file
-                inputStream = new FileInputStream(lePath.toFile());
+                inputStream = new FileInputStream(filePath.toFile());
                 FileInputStream fis = (FileInputStream) inputStream;
                 return new DelegatingSeekableInputStream(fis) {
                     private long position = 0;
@@ -651,6 +671,11 @@ public class ParquetInput implements Input {
                     }
                 };
             }
+        }
+
+        @Override
+        public String toString() {
+            return "ParquetFile{" + "path=" + filePath + '}';
         }
     }
 }
