@@ -297,4 +297,100 @@ abstract class DynamicLabelsScanTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("x").withRows(singleColumn(nodes))
   }
 
+  test("should handle empty array with Any") {
+    givenGraph {
+      nodeGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "[]", Any, IndexOrderNone)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withNoRows()
+  }
+
+  test("should handle empty array with All") {
+    val nodes = givenGraph {
+      nodeGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "[]", All, IndexOrderNone)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withRows(singleColumn(nodes))
+  }
+
+  test("should handle nonexistent label array with Any") {
+    givenGraph {
+      nodeGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "['NONEXISTENT_LABEL_1', 'NONEXISTENT_LABEL_2']", Any, IndexOrderNone)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withNoRows()
+  }
+
+  test("should handle nonexistent label array with All") {
+    givenGraph {
+      nodeGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "['NONEXISTENT_LABEL_1', 'NONEXISTENT_LABEL_2']", All, IndexOrderNone)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withNoRows()
+  }
+
+  test("should handle partially nonexistent label array with Any") {
+    val foos = givenGraph {
+      nodeGraph(sizeHint, "Foo")
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "['NONEXISTENT_LABEL_1', 'Foo']", Any, IndexOrderNone)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withRows(singleColumn(foos))
+  }
+
+  test("should handle partially nonexistent label array with All") {
+    givenGraph {
+      nodeGraph(sizeHint, "Foo")
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "['NONEXISTENT_LABEL_1', 'Foo']", All, IndexOrderNone)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withNoRows()
+  }
+
 }

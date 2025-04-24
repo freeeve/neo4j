@@ -64,6 +64,9 @@ object DynamicNodeByLabelsScanPipe {
         .map(LazyLabel(_))
 
     (labels, operator) match {
+      case (Array(), Any) => ClosingLongIterator.empty
+      case (Array(), All) => state.query.nodeReadOps.all
+
       case (Array(label), _) =>
         val id = label.getId(state.query)
         if (id != UNKNOWN) {
