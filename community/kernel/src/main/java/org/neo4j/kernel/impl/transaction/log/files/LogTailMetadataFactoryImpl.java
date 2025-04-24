@@ -20,8 +20,10 @@
 package org.neo4j.kernel.impl.transaction.log.files;
 
 import java.io.IOException;
+import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadataFactory;
 import org.neo4j.storageengine.api.StorageEngineFactory;
@@ -34,10 +36,13 @@ public class LogTailMetadataFactoryImpl implements LogTailMetadataFactory {
     }
 
     @Override
-    public LogTailMetadata getLogTailMetadata(DatabaseLayout databaseLayout, StorageEngineFactory storageEngineFactory)
+    public LogTailMetadata getLogTailMetadata(
+            Config config, DatabaseLayout databaseLayout, StorageEngineFactory storageEngineFactory)
             throws IOException {
         return LogFilesBuilder.logFilesBasedOnlyBuilder(databaseLayout.getTransactionLogsDirectory(), fileSystem)
                 .withStorageEngineFactory(storageEngineFactory)
+                .withConfig(config)
+                .withKernelVersionProvider(() -> KernelVersion.getLatestVersion(config))
                 .build()
                 .getTailMetadata();
     }

@@ -44,7 +44,6 @@ import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
-import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.LogPosition;
@@ -105,7 +104,7 @@ public class LogFilesBuilder {
     private Monitors monitors;
     private StoreId storeId;
     private NativeAccess nativeAccess;
-    private KernelVersionProvider kernelVersionProvider;
+    private KernelVersionProvider kernelVersionProvider = KernelVersionProvider.THROWING_PROVIDER;
     private LogTailMetadata externalLogTail;
     private int envelopeSegmentBlockSizeBytes = LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
     private int bufferSizeBytes;
@@ -133,13 +132,6 @@ public class LogFilesBuilder {
         return filesBuilder;
     }
 
-    public static LogFilesBuilder builder(DatabaseLayout databaseLayout, FileSystemAbstraction fileSystem) {
-        LogFilesBuilder filesBuilder = new LogFilesBuilder();
-        filesBuilder.databaseLayout = databaseLayout;
-        filesBuilder.fileSystem = fileSystem;
-        return filesBuilder;
-    }
-
     /**
      * Build log files that can access and operate only on active set of log files without ability to
      * rotate and create any new one. Appending to current log file still possible.
@@ -164,10 +156,7 @@ public class LogFilesBuilder {
             DatabaseLayout databaseLayout,
             FileSystemAbstraction fileSystem,
             KernelVersionProvider kernelVersionProvider) {
-        LogFilesBuilder builder = new LogFilesBuilder();
-        builder.databaseLayout = databaseLayout;
-        builder.fileSystem = fileSystem;
-        builder.kernelVersionProvider = kernelVersionProvider;
+        LogFilesBuilder builder = builder(databaseLayout, fileSystem, kernelVersionProvider);
         builder.readOnlyStores = true;
         builder.readOnlyLogs = true;
         return builder;
@@ -329,9 +318,6 @@ public class LogFilesBuilder {
     TransactionLogFilesContext buildContext() {
         if (config == null) {
             config = Config.defaults();
-        }
-        if (kernelVersionProvider == null) {
-            kernelVersionProvider = () -> KernelVersion.getLatestVersion(config);
         }
         requireNonNull(fileSystem);
         Supplier<StoreId> storeIdSupplier = getStoreId();

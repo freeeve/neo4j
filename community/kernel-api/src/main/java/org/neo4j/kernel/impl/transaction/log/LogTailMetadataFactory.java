@@ -20,10 +20,11 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import java.io.IOException;
+import org.neo4j.configuration.Config;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 
 public interface LogTailMetadataFactory {
-    LogTailMetadata getLogTailMetadata(DatabaseLayout databaseLayout, StorageEngineFactory storageEngineFactory)
-            throws IOException;
+    LogTailMetadata getLogTailMetadata(
+            Config config, DatabaseLayout databaseLayout, StorageEngineFactory storageEngineFactory) throws IOException;
 }

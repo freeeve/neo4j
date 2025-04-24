@@ -68,6 +68,7 @@ import org.neo4j.storageengine.api.StorageEngine;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.storageengine.api.TransactionIdStore;
+import org.neo4j.test.LatestVersions;
 import org.neo4j.test.Race;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -396,6 +397,7 @@ class DbmsDiagnosticsManagerTest {
         databaseDependencies.satisfyDependency(DeviceMapper.UNKNOWN_MAPPER);
         LogFiles logFiles = databaseDependencies.satisfyDependency(
                 logFilesBasedOnlyBuilder(directory.homePath(), directory.getFileSystem())
+                        .withKernelVersionProvider(() -> LatestVersions.LATEST_KERNEL_VERSION)
                         .build());
         LogTailMetadata logTailMetadata = databaseDependencies.satisfyDependency(logFiles.getTailMetadata());
         TransactionIdStore txIdStore = databaseDependencies.satisfyDependency(mock(TransactionIdStore.class));
