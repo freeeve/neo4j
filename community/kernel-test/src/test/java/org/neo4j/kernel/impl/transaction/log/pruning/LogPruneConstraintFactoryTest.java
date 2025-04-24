@@ -33,7 +33,7 @@ import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.time.Clocks;
 import org.neo4j.time.SystemNanoClock;
 
-class LogPruneStrategyFactoryTest {
+class LogPruneConstraintFactoryTest {
 
     private FileSystemAbstraction fsa;
     private SystemNanoClock clock;

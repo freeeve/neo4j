@@ -53,6 +53,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     private final LogsRepository logsRepository;
     private final long maxFileSize;
     private final LogHeaderFactory logHeaderFactory;
+    private final LogFilesPruner logFilesPruner;
     private LogChannelContext<StoreChannel> currentWriteChannel;
     private EnvelopeWriteChannel appendingChannel;
 
@@ -63,7 +64,8 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             int segmentBlockSize,
             int writerBufferedBlocks,
             int totalSegments,
-            MemoryTracker memoryTracker) {
+            MemoryTracker memoryTracker,
+            PruneStrategy pruneStrategy) {
         if (totalSegments < 2) {
             throw new IllegalArgumentException("Must have at least 2 segments. Got " + totalSegments);
         }
@@ -75,6 +77,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         this.memoryTracker = memoryTracker;
         this.maxFileSize = totalSegments * (long) segmentBlockSize;
         this.logRotation = new EnvelopedLogRotation(this, maxFileSize);
+        this.logFilesPruner = new LogFilesPruner(logsRepository, pruneStrategy);
     }
 
     public EnvelopeWriteChannel currentWriteChannel() {
@@ -103,8 +106,10 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             int mid = (low + high) >>> 1;
 
             long midVersion = logFileVersions[mid];
-            var midLogHeader =
-                    readLogHeader(logsRepository.openReadChannel(midVersion).channel(), true, null, memoryTracker);
+            LogHeader midLogHeader;
+            try (var channel = logsRepository.openReadChannel(midVersion)) {
+                midLogHeader = readLogHeader(channel.channel(), true, null, memoryTracker);
+            }
             // null header means empty pre-allocated file
             long midVal = midLogHeader == null ? Long.MAX_VALUE : midLogHeader.getLastAppendIndex();
             if (midVal < fileWithIndex) {
@@ -225,9 +230,36 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
      * @return the highest index that was removed after the prune event, or -1 if there is nothing to prune
      */
     public long prune(long index) throws IOException {
+        long prunedVersion;
         if (index > appendingChannel.currentIndex()) {
-            var nextVersion = logsRepository.logVersionsRange().to() + 1;
-            logsRepository.deleteLogFilesFrom(0);
+            // ignoring pruning strategy since this index will create a gap in the log and there is therefor no
+            // reason to store old log files.
+            prunedVersion = logsRepository.logVersionsRange().to();
+            logsRepository.deleteLogFilesTo(prunedVersion);
+        } else {
+            long versionToPrune;
+            try (var reader = openReadChannel(index)) {
+                if (reader == null) {
+                    return -1; // index already pruned
+                }
+                var logVersion = reader.getLogVersion();
+                versionToPrune = logVersion - 1;
+                if (!logsRepository.logVersionsRange().isWithinRange(versionToPrune)) {
+                    return -1;
+                }
+            }
+            var envelopeWriteChannel = currentWriteChannel();
+            prunedVersion = logFilesPruner.pruneUpTo(
+                    versionToPrune,
+                    envelopeWriteChannel.currentIndex(),
+                    envelopeWriteChannel.position(),
+                    currentWriteChannel.version());
+        }
+        if (prunedVersion == -1) {
+            return -1;
+        }
+        if (logsRepository.isEmpty()) {
+            long nextVersion = prunedVersion + 1;
             var newStoreChannel = createNewStoreChannel(
                     nextVersion,
                     logHeaderFactory.createLogHeader(nextVersion, index, INITIAL_CHECKSUM, segmentBlockSize));
@@ -238,21 +270,8 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             // index we must provide a checksum. In Raft, this can be provided by the snapshot
             return index;
         } else {
-            try (var reader = openReadChannel(index)) {
-                if (reader == null) {
-                    return -1; // index already pruned
-                }
-                reader.alignWithStartEntry();
-                var logVersion = reader.getLogVersion();
-                var pruneToVersion = logVersion - 1;
-                if (!logsRepository.logVersionsRange().isWithinRange(pruneToVersion)) {
-                    return -1;
-                }
-                logsRepository.deleteLogFilesTo(pruneToVersion);
-                return reader.entryIndex() - 1;
-            } catch (ReadPastEndException e) {
-                throw new IllegalStateException("Prune index " + index + " was lower than current write index "
-                        + appendingChannel.currentIndex() + " but did not exist in the log");
+            try (var reader = openReadChannel()) {
+                return reader.logHeader().getLastAppendIndex();
             }
         }
     }
@@ -399,8 +418,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
         @Override
         public boolean locklessBatchedRotateLogIfNeeded(
-                LogRotateEvents logRotateEvents, long lastAppendIndex, KernelVersion kernelVersion, int checksum)
-                throws IOException {
+                LogRotateEvents logRotateEvents, long lastAppendIndex, KernelVersion kernelVersion, int checksum) {
             throw new UnsupportedOperationException("envelope channel rotation checks are done internally");
         }
 
@@ -428,8 +446,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
                 LogRotateEvents logRotateEvents,
                 KernelVersion kernelVersion,
                 long lastAppendIndex,
-                int previousChecksum)
-                throws IOException {
+                int previousChecksum) {
             throw new UnsupportedOperationException("envelope channel rotation checks are done internally");
         }
 

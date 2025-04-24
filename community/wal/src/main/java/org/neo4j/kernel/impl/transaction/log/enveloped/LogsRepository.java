@@ -63,7 +63,7 @@ class LogsRepository {
     }
 
     private LogChannelContext<StoreChannel> openLogChannel(long version, Set<OpenOption> options) throws IOException {
-        var path = getPathFor(version);
+        var path = pathFor(version);
         return new LogChannelContext<>(fs.open(path, options), path, version);
     }
 
@@ -129,11 +129,11 @@ class LogsRepository {
         return paths;
     }
 
-    private Path getPathFor(long version) {
+    Path pathFor(long version) {
         return directory.resolve(baseName + VERSION_SUFFIX + version);
     }
 
-    public void initialise() throws IOException {
+    void initialise() throws IOException {
         if (!fs.fileExists(directory)) {
             fs.mkdir(directory);
         }

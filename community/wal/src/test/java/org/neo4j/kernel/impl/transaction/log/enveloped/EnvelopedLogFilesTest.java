@@ -51,6 +51,7 @@ class EnvelopedLogFilesTest {
     private final int segmentBlockSize = 256;
     private final int totalSegments = 3;
     private final int totalFileDataSize = segmentBlockSize * (totalSegments - 1);
+    private PruneStrategy pruneStrategy = PruneStrategy.ALWAYS_PRUNE;
 
     @Inject
     TestDirectory testDirectory;
@@ -92,7 +93,9 @@ class EnvelopedLogFilesTest {
                 segmentBlockSize,
                 writeBufferedBlocks,
                 totalSegments,
-                EmptyMemoryTracker.INSTANCE);
+                EmptyMemoryTracker.INSTANCE,
+                (currentEntry, currentOffset, currentLogFile) ->
+                        pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile));
     }
 
     @AfterEach
@@ -503,6 +506,50 @@ class EnvelopedLogFilesTest {
                 assertThat(reader.entryIndex()).isEqualTo(i);
             }
         }
+    }
+
+    @Test
+    void shouldNotPruneFilesIfStrategyDoesNotAllow() throws IOException {
+        pruneStrategy = PruneStrategy.NEVER_PRUNE;
+        assertThat(mirroringRepository.isEmpty()).isTrue();
+
+        envelopedLogFiles.initialise();
+
+        var data = EIGHT_BYTES_MESSAGE.getBytes();
+        var largeData = new byte[totalFileDataSize / 2];
+        writeData(envelopedLogFiles.currentWriteChannel(), largeData);
+        writeData(envelopedLogFiles.currentWriteChannel(), largeData); // spills over to next file
+        writeData(envelopedLogFiles.currentWriteChannel(), data);
+        writeData(envelopedLogFiles.currentWriteChannel(), data);
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+
+        assertThat(mirroringRepository.isEmpty()).isFalse();
+        assertThat(mirroringRepository.logVersions(false)).containsExactly(BASE_VERSION, BASE_VERSION + 1);
+
+        assertThat(envelopedLogFiles.prune(3)).isEqualTo(-1);
+        assertThat(mirroringRepository.logVersions(false)).containsExactly(BASE_VERSION, BASE_VERSION + 1);
+    }
+
+    @Test
+    void shouldPruneFileIfStrategyDoesAllow() throws IOException {
+        pruneStrategy = PruneStrategy.ALWAYS_PRUNE;
+        assertThat(mirroringRepository.isEmpty()).isTrue();
+
+        envelopedLogFiles.initialise();
+
+        var data = EIGHT_BYTES_MESSAGE.getBytes();
+        var largeData = new byte[totalFileDataSize / 2];
+        writeData(envelopedLogFiles.currentWriteChannel(), largeData);
+        writeData(envelopedLogFiles.currentWriteChannel(), largeData); // spills over to next file
+        writeData(envelopedLogFiles.currentWriteChannel(), data);
+        writeData(envelopedLogFiles.currentWriteChannel(), data);
+        envelopedLogFiles.currentWriteChannel().prepareForFlush().flush();
+
+        assertThat(mirroringRepository.isEmpty()).isFalse();
+        assertThat(mirroringRepository.logVersions(false)).containsExactly(BASE_VERSION, BASE_VERSION + 1);
+
+        assertThat(envelopedLogFiles.prune(3)).isEqualTo(1);
+        assertThat(mirroringRepository.logVersions(false)).containsExactly(BASE_VERSION + 1);
     }
 
     @Test

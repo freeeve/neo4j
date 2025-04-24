@@ -45,7 +45,7 @@ import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFile;
 import org.neo4j.logging.AssertableLogProvider;
 import org.neo4j.logging.LogAssertions;
 
-class ThresholdBasedPruneStrategyTest {
+class ThresholdBasedPruneConstraintTest {
     private final FileSystemAbstraction fileSystem = mock(FileSystemAbstraction.class);
     private final LogFile logFile = mock(TransactionLogFile.class);
     private final Threshold threshold = mock(Threshold.class);

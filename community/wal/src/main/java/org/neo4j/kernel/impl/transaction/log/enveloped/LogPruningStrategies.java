@@ -19,14 +19,23 @@
  */
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
-import java.io.IOException;
-import java.nio.channels.Channel;
-import java.nio.file.Path;
+import org.neo4j.io.fs.FileSystemAbstraction;
 
-public record LogChannelContext<CHANNEL extends Channel>(CHANNEL channel, Path path, long version)
-        implements AutoCloseable {
-    @Override
-    public void close() throws IOException {
-        channel.close();
+public class LogPruningStrategies {
+
+    private final FileSystemAbstraction fs;
+
+    public LogPruningStrategies(FileSystemAbstraction fs) {
+        this.fs = fs;
+    }
+
+    public PruneStrategy fromKey(String key, long value) {
+        return switch (key) {
+            case "size" -> new LogPruningBySizeStrategy(fs, value);
+            case "txs", "entries" -> // txs and entries are synonyms
+                new LogPruningByEntryStrategy(fs, value);
+            case "false" -> PruneStrategy.NEVER_PRUNE;
+            default -> throw new IllegalArgumentException("Unknown pruning strategy key: " + key);
+        };
     }
 }

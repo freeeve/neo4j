@@ -22,7 +22,6 @@ package org.neo4j.kernel.impl.transaction.log.enveloped;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import org.neo4j.collection.RawIterator;
 import org.neo4j.memory.EmptyMemoryTracker;
 
@@ -63,12 +62,13 @@ public class LogFilesMetadata implements RawIterator<LogFileMetadata, IOExceptio
     private void setNext() throws IOException {
         if (++currentVersionIndex != versions.length) {
             var version = versions[currentVersionIndex];
-            var logChannel = logsRepository.openReadChannel(version);
-            Path currentPath = logChannel.path();
-            var logHeader = readLogHeader(logChannel.channel(), true, null, EmptyMemoryTracker.INSTANCE);
-            if (logHeader != null) {
-                nextMetadata = new LogFileMetadata(logHeader, version, currentPath);
-                return;
+            try (var logChannel = logsRepository.openReadChannel(version)) {
+                var currentPath = logChannel.path();
+                var logHeader = readLogHeader(logChannel.channel(), true, null, EmptyMemoryTracker.INSTANCE);
+                if (logHeader != null) {
+                    nextMetadata = new LogFileMetadata(logHeader, version, currentPath);
+                    return;
+                }
             }
         }
         nextMetadata = null;
