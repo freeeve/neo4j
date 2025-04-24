@@ -3328,7 +3328,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
   test("CREATE FULLTEXT INDEX FOR (n2:A)-[n1:R]-() ON EACH [n2.name]") {
     // variable on node
     failsParsing[ast.Statements].withSyntaxError(
-      """Invalid input '-': expected 'ON' (line 1, column 33 (offset: 32))
+      """Invalid input '-': expected 'ON EACH' (line 1, column 33 (offset: 32))
         |"CREATE FULLTEXT INDEX FOR (n2:A)-[n1:R]-() ON EACH [n2.name]"
         |                                 ^""".stripMargin
     )

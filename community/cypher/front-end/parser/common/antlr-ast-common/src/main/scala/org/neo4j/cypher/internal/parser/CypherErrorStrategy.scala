@@ -257,8 +257,19 @@ final class CypherErrorVocabulary(conf: CypherErrorStrategy.Conf) extends Vocabu
 
     val tokenNames = candidates.tokens.entrySet().asScala.toSeq
       .map(e => e.getKey +: e.getValue.asScala.toSeq)
-      // Make sure for example 'BTREE INDEX' and 'FULLTEXT INDEX' are next to each other
-      .sortBy(_.reverse.map(t => getDisplayName(t)))
+      .sortBy(ts => {
+        // Make sure for example 'BTREE INDEX' and 'FULLTEXT INDEX' are next to each other,
+        // by reversing the token sequence and sorting on the last token
+        val reverseTs = ts.reverse
+        val toSortOn = if (reverseTs.size > 1) {
+          // Make sure for example 'DEFAULT LANGUAGE CYPHER <an integer value>' doesn't get sorted on '<an integer value>'
+          val shortenedReverseTs = reverseTs.dropWhile(t => getDisplayName(t) != "'" + getSymbolicName(t) + "'")
+
+          // Ensure we don't get an empty list even if all of the tokens fulfill the symbolic name check
+          if (shortenedReverseTs.nonEmpty) shortenedReverseTs else reverseTs
+        } else reverseTs
+        toSortOn.map(t => getDisplayName(t))
+      })
       .map(displayName)
     (ruleNames ++ tokenNames).distinct
   }
@@ -290,7 +301,12 @@ final class CypherErrorVocabulary(conf: CypherErrorStrategy.Conf) extends Vocabu
   def displayName(tokenTypes: Seq[Integer]): String = {
     if (tokenTypes.forall(t => getDisplayName(t) == "'" + getSymbolicName(t) + "'"))
       tokenTypes.map(t => getSymbolicName(t)).mkString("'", " ", "'")
-    else getDisplayName(tokenTypes.head)
+    else {
+      // Display as long of a token sequence as possible
+      val startTokens = tokenTypes.takeWhile(t => getDisplayName(t) == "'" + getSymbolicName(t) + "'")
+      if (startTokens.nonEmpty) startTokens.map(t => getSymbolicName(t)).mkString("'", " ", "'")
+      else getDisplayName(tokenTypes.head)
+    }
   }
 
   override def getDisplayName(tokenType: Int): String = {

@@ -132,7 +132,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
   test("ALTER DATABASE foo SET READ ONLY") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input 'READ': expected 'OPTION', 'ACCESS READ', 'TOPOLOGY' or 'DEFAULT' (line 1, column 24 (offset: 23))
+      """Invalid input 'READ': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
         |"ALTER DATABASE foo SET READ ONLY"
         |                        ^""".stripMargin
     )
@@ -677,7 +677,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
   test("ALTER DATABASE foo SET OPTIONS {key: value}") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OPTIONS': expected 'OPTION', 'ACCESS READ', 'TOPOLOGY' or 'DEFAULT' (line 1, column 24 (offset: 23))
+      """Invalid input 'OPTIONS': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
         |"ALTER DATABASE foo SET OPTIONS {key: value}"
         |                        ^""".stripMargin
     )
@@ -693,7 +693,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
   test("ALTER DATABASE foo SET OPTIONS key value") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input 'OPTIONS': expected 'OPTION', 'ACCESS READ', 'TOPOLOGY' or 'DEFAULT' (line 1, column 24 (offset: 23))
+      """Invalid input 'OPTIONS': expected 'DEFAULT LANGUAGE CYPHER', 'OPTION', 'ACCESS READ' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
         |"ALTER DATABASE foo SET OPTIONS key value"
         |                        ^""".stripMargin
     )
@@ -854,7 +854,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
 
   test("ALTER DATABASE foo SET DEFAULT") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input '': expected 'LANGUAGE' (line 1, column 31 (offset: 30))
+      """Invalid input '': expected 'LANGUAGE CYPHER' (line 1, column 31 (offset: 30))
         |"ALTER DATABASE foo SET DEFAULT"
         |                               ^""".stripMargin
     )

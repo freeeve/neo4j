@@ -69,7 +69,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
           )(pos)
         )
       case _ =>
-        _.withSyntaxError("""Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 29 (offset: 28))
+        _.withSyntaxError("""Invalid input '.': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'WAIT' or <EOF> (line 1, column 29 (offset: 28))
                             |"CREATE COMPOSITE DATABASE db.name"
                             |                             ^""".stripMargin)
     }
@@ -87,7 +87,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
           )(pos)
         )
       case _ =>
-        _.withSyntaxError("""Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 30 (offset: 29))
+        _.withSyntaxError("""Invalid input '.': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'WAIT' or <EOF> (line 1, column 30 (offset: 29))
                             |"CREATE COMPOSITE DATABASE foo.bar"
                             |                              ^""".stripMargin)
     }
@@ -106,7 +106,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
           )(pos)
         )
       case _ =>
-        _.withSyntaxError("""Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 37 (offset: 36))
+        _.withSyntaxError("""Invalid input '.': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'WAIT' or <EOF> (line 1, column 37 (offset: 36))
                             |"CREATE COMPOSITE DATABASE `graph.db`.`db.db`"
                             |                                     ^""".stripMargin)
     }
@@ -157,12 +157,12 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
   test("CREATE COMPOSITE DATABASE name TOPOLOGY 1 PRIMARY") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'TOPOLOGY': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 32 (offset: 31))
+          """Invalid input 'TOPOLOGY': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT' or <EOF> (line 1, column 32 (offset: 31))
             |"CREATE COMPOSITE DATABASE name TOPOLOGY 1 PRIMARY"
             |                                ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'TOPOLOGY': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 32 (offset: 31))
+          """Invalid input 'TOPOLOGY': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'SET', 'WAIT' or <EOF> (line 1, column 32 (offset: 31))
             |"CREATE COMPOSITE DATABASE name TOPOLOGY 1 PRIMARY"
             |                                ^""".stripMargin
         )
@@ -172,12 +172,12 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
   test("CREATE COMPOSITE DATABASE name SET TOPOLOGY 1 PRIMARY") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 32 (offset: 31))
+          """Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT' or <EOF> (line 1, column 32 (offset: 31))
             |"CREATE COMPOSITE DATABASE name SET TOPOLOGY 1 PRIMARY"
             |                                ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'TOPOLOGY': expected 'DEFAULT' (line 1, column 36 (offset: 35))
+          """Invalid input 'TOPOLOGY': expected 'DEFAULT LANGUAGE CYPHER' (line 1, column 36 (offset: 35))
             |"CREATE COMPOSITE DATABASE name SET TOPOLOGY 1 PRIMARY"
             |                                    ^""".stripMargin
         )
@@ -235,7 +235,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
   test("CREATE COMPOSITE DATABASE foo SET DEFAULT LANGUAGE CYPHER 25") {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT', <EOF> or 'DEFAULT'"
+          "Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'WAIT' or <EOF>"
         )
       case _ => _.toAstPositioned(CreateCompositeDatabase(
           literalFoo,
@@ -289,7 +289,7 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
 
   test("CREATE COMPOSITE DATABASE foo DEFAULT") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input '': expected 'LANGUAGE' (line 1, column 38 (offset: 37))
+      """Invalid input '': expected 'LANGUAGE CYPHER' (line 1, column 38 (offset: 37))
         |"CREATE COMPOSITE DATABASE foo DEFAULT"
         |                                      ^""".stripMargin
     )

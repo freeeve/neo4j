@@ -44,7 +44,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET PROPERTY SHARDS { COUNT 2 }") {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))"
+          "Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))"
         )
       case _ => _.toAstPositioned(CreateDatabase(
           literalFoo,
@@ -61,7 +61,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET PROPERTY SHARDS { COUNT 2 TOPOLOGY 3 REPLICAS }") {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))"
+          "Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))"
         )
       case _ => _.toAstPositioned(CreateDatabase(
           literalFoo,
@@ -80,7 +80,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   ) {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))"
+          "Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))"
         )
       case _ => _.toAstPositioned(CreateDatabase(
           literalFoo,
@@ -99,7 +99,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   ) {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'SET': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 22 (offset: 21))"
+          "Invalid input 'SET': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 22 (offset: 21))"
         )
       case _ => _.toAstPositioned(CreateDatabase(
           stringParamName("foo"),
@@ -116,7 +116,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET GRAPH SHARD {} SET PROPERTY SHARDS { COUNT 2 }") {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))"
+          "Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))"
         )
       case _ => _.toAstPositioned(CreateDatabase(
           literalFoo,
@@ -281,7 +281,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
           None
         )(pos))
       case _ => _.withSyntaxErrorContaining(
-          "Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'TOPOLOGY', 'WAIT', 'GRAPH', <EOF> or 'DEFAULT'"
+          "Invalid input '.': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF>"
         )
     }
   }
@@ -471,7 +471,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET TOPOLOGY 1 PRIMARIES") {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT'"
+          "Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF>"
         )
       case _ => _.toAstPositioned(CreateDatabase(
           literalFoo,
@@ -530,7 +530,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET TOPOLOGY 1 SECONDARY 1 PRIMARY") {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT'"
+          "Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF>"
         )
       case _ => _.toAstPositioned(CreateDatabase(
           literalFoo,
@@ -687,14 +687,14 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
           )
 
       case _ => _.withSyntaxError(
-          """Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'TOPOLOGY', 'WAIT', 'GRAPH', <EOF> or 'DEFAULT' (line 1, column 27 (offset: 26))
+          """Invalid input '.': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 27 (offset: 26))
             |"CREATE DATABASE `graph.db`.`db.db`"
             |                           ^""".stripMargin
         )
           .withSyntaxErrorGqlStatus(
             gqlStatus(
               GqlStatusInfoCodes.STATUS_42I06,
-              "error: syntax error or access rule violation - invalid input. Invalid input '.', expected: 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'TOPOLOGY', 'WAIT', 'GRAPH', <EOF> or 'DEFAULT'."
+              "error: syntax error or access rule violation - invalid input. Invalid input '.', expected: 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF>."
             )
           )
     }
@@ -729,7 +729,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET DEFAULT LANGUAGE CYPHER 25") {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT'"
+          "Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF>"
         )
       case _ => _.toAstPositioned(CreateDatabase(
           literalFoo,
@@ -770,7 +770,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET DEFAULT LANGUAGE CYPHER 25 SET TOPOLOGY 1 PRIMARY") {
     parsesIn[Statements] {
       case Cypher5 => _.withSyntaxErrorContaining(
-          "Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT'"
+          "Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF>"
         )
       case _ => _.toAstPositioned(CreateDatabase(
           literalFoo,
@@ -838,13 +838,13 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
               )
           )
       case _ => _.withSyntaxError(
-          """Invalid input '.': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'TOPOLOGY', 'WAIT', 'GRAPH', <EOF> or 'DEFAULT' (line 1, column 22 (offset: 21))
+          """Invalid input '.': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 22 (offset: 21))
             |"CREATE DATABASE `foo`.`bar`.`baz`"
             |                      ^""".stripMargin
         ).withSyntaxErrorGqlStatus(
           gqlStatus(
             GqlStatusInfoCodes.STATUS_42I06,
-            "error: syntax error or access rule violation - invalid input. Invalid input '.', expected: 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'TOPOLOGY', 'WAIT', 'GRAPH', <EOF> or 'DEFAULT'."
+            "error: syntax error or access rule violation - invalid input. Invalid input '.', expected: 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF>."
           )
         )
     }
@@ -854,13 +854,13 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
     failsParsing[Statements].in {
       case Cypher5 =>
         _.withSyntaxError(
-          """Invalid input 'NOT': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'NOT': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE  IF NOT EXISTS"
             |                     ^""".stripMargin
         )
       case _ =>
         _.withSyntaxError(
-          """Invalid input 'NOT': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'TOPOLOGY', 'WAIT', 'GRAPH', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'NOT': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE  IF NOT EXISTS"
             |                     ^""".stripMargin
         )
@@ -917,12 +917,12 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET OPTION key value") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo SET OPTION key value"
             |                     ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'OPTION': expected 'PROPERTY', 'TOPOLOGY', 'GRAPH' or 'DEFAULT' (line 1, column 25 (offset: 24))
+          """Invalid input 'OPTION': expected 'DEFAULT LANGUAGE CYPHER', 'PROPERTY', 'GRAPH SHARD' or 'TOPOLOGY' (line 1, column 25 (offset: 24))
             |"CREATE DATABASE foo SET OPTION key value"
             |                         ^""".stripMargin
         )
@@ -932,12 +932,12 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo OPTION {key: value}") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'OPTION': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'OPTION': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo OPTION {key: value}"
             |                     ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'OPTION': expected 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'TOPOLOGY', 'WAIT', 'GRAPH', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'OPTION': expected 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo OPTION {key: value}"
             |                     ^""".stripMargin
         )
@@ -947,12 +947,12 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET OPTIONS key value") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo SET OPTIONS key value"
             |                     ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input 'OPTIONS': expected 'PROPERTY', 'TOPOLOGY', 'GRAPH' or 'DEFAULT' (line 1, column 25 (offset: 24))
+          """Invalid input 'OPTIONS': expected 'DEFAULT LANGUAGE CYPHER', 'PROPERTY', 'GRAPH SHARD' or 'TOPOLOGY' (line 1, column 25 (offset: 24))
             |"CREATE DATABASE foo SET OPTIONS key value"
             |                         ^""".stripMargin
         )
@@ -970,12 +970,12 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo SET") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'SET': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'SET': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo SET"
             |                     ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input '': expected 'PROPERTY', 'TOPOLOGY', 'GRAPH' or 'DEFAULT' (line 1, column 24 (offset: 23))
+          """Invalid input '': expected 'DEFAULT LANGUAGE CYPHER', 'PROPERTY', 'GRAPH SHARD' or 'TOPOLOGY' (line 1, column 24 (offset: 23))
             |"CREATE DATABASE foo SET"
             |                        ^""".stripMargin
         )
@@ -1055,7 +1055,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
 
   test("CREATE DATABASE foo DEFAULT") {
     failsParsing[Statements].withSyntaxError(
-      """Invalid input '': expected 'LANGUAGE' (line 1, column 28 (offset: 27))
+      """Invalid input '': expected 'LANGUAGE CYPHER' (line 1, column 28 (offset: 27))
         |"CREATE DATABASE foo DEFAULT"
         |                            ^""".stripMargin
     )
@@ -1134,7 +1134,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
             |                                                ^""".stripMargin
         )
       case _ => _.withSyntaxError(
-          """Invalid input '-': expected 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'TOPOLOGY', 'WAIT', 'GRAPH' or <EOF> (line 1, column 48 (offset: 47))
+          """Invalid input '-': expected 'NOWAIT', 'OPTIONS', 'PROPERTY', 'SET', 'GRAPH SHARD', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 48 (offset: 47))
             |"CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25 - 0"
             |                                                ^""".stripMargin
         )
@@ -1157,7 +1157,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo GRAPH SHARD {}") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'GRAPH': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'GRAPH': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo GRAPH SHARD {}"
             |                     ^""".stripMargin
         )
@@ -1172,7 +1172,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo GRAPH SHARD {TOPOLOGY 1 SECONDARY 2 SECONDARIES} PROPERTY SHARD {COUNT 1}") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'GRAPH': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'GRAPH': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo GRAPH SHARD {TOPOLOGY 1 SECONDARY 2 SECONDARIES} PROPERTY SHARD {COUNT 1}"
             |                     ^""".stripMargin
         )
@@ -1187,7 +1187,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo PROPERTY SHARD { COUNT -1 }") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'PROPERTY': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'PROPERTY': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo PROPERTY SHARD { COUNT -1 }"
             |                     ^""".stripMargin
         )
@@ -1202,7 +1202,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo PROPERTY SHARD { COUNT 1 TOPOLOGY -1 REPLICAS }") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'PROPERTY': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'PROPERTY': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo PROPERTY SHARD { COUNT 1 TOPOLOGY -1 REPLICAS }"
             |                     ^""".stripMargin
         )
@@ -1217,7 +1217,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   test("CREATE DATABASE foo PROPERTY SHARD { COUNT 1 TOPOLOGY 1 REPLICA 2 REPLICAS }") {
     failsParsing[Statements].in {
       case Cypher5 => _.withSyntaxError(
-          """Invalid input 'PROPERTY': expected a database name, 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT', <EOF> or 'DEFAULT' (line 1, column 21 (offset: 20))
+          """Invalid input 'PROPERTY': expected a database name, 'DEFAULT LANGUAGE CYPHER', 'IF NOT EXISTS', 'NOWAIT', 'OPTIONS', 'TOPOLOGY', 'WAIT' or <EOF> (line 1, column 21 (offset: 20))
             |"CREATE DATABASE foo PROPERTY SHARD { COUNT 1 TOPOLOGY 1 REPLICA 2 REPLICAS }"
             |                     ^""".stripMargin
         )
