@@ -30,12 +30,12 @@ import org.junit.jupiter.api.Assumptions.assumeFalse
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryExecution
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryResults
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.assertEqualHeaders
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describe
-import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.doDescribe
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeFailure
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.doDescribeFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.findAllGqlCodes
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.findMatchingGqlFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.originalError
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.renderAsTable
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.toResultRows
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.unexpectedFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.unexpectedSuccess
@@ -183,7 +183,7 @@ final class RegularCypherCucumberSteps @Inject() (
 
       if (actualRows != expectedRows) {
         // The assertion is more expensive so only run it if the equality check fails.
-        assertThat(actualRows).as(describe(actual, expected, "in order")).containsExactlyElementsOf(expectedRows)
+        assertThat(actualRows).as(describeResults(actual, expected, "in order")).containsExactlyElementsOf(expectedRows)
       }
       assertEqualHeaders(actual, expected)
     case failure: QueryFailure => unexpectedFailure(failure)
@@ -195,7 +195,7 @@ final class RegularCypherCucumberSteps @Inject() (
       val expectedRows = toResultRows(expected)
       if (actualRows != expectedRows) {
         assertThat(actualRows)
-          .as(describe(actual, expected, "in any order"))
+          .as(describeResults(actual, expected, "in any order"))
           .containsExactlyInAnyOrderElementsOf(expectedRows)
       }
       assertEqualHeaders(actual, expected)
@@ -209,7 +209,7 @@ final class RegularCypherCucumberSteps @Inject() (
       if (actualRows != expectedRows) {
         // The assertion is more expensive so only run it if the equality check fails.
         assertThat(rowsWithUnorderedLists(actualRows))
-          .as(describe(actual, expected, "rows in order, ignoring element order of lists"))
+          .as(describeResults(actual, expected, "rows in order, ignoring element order of lists"))
           .containsExactlyElementsOf(rowsWithUnorderedLists(expectedRows))
       }
       assertEqualHeaders(actual, expected)
@@ -223,29 +223,41 @@ final class RegularCypherCucumberSteps @Inject() (
       if (actualRows != expectedRows) {
         // The assertion is more expensive so only run it if the equality check fails.
         assertThat(rowsWithUnorderedLists(actualRows))
-          .as(describe(actual, expected, "rows in any order, ignoring element order of lists"))
+          .as(describeResults(actual, expected, "rows in any order, ignoring element order of lists"))
           .containsExactlyInAnyOrderElementsOf(rowsWithUnorderedLists(expectedRows))
       }
       assertEqualHeaders(actual, expected)
     case failure: QueryFailure => unexpectedFailure(failure)
   }
 
-  override protected def sideEffectsShouldBe(expected: DataTable): Unit = {
-    val actualSideEffects = lastGraphState match {
+  override protected def sideEffectsShouldBe(expectedTable: DataTable): Unit = {
+    val actual = lastGraphState match {
       case state: KernelGraphState => state.sideEffects(KernelGraphState.recordGraphState(db.database))
       case state: CypherGraphState => state.sideEffects(CypherGraphState.recordGraphState(openTx))
       case other                   => throw new IllegalStateException(s"Unexpected graph state: " + other)
     }
-    assertThat(actualSideEffects)
-      .describedAs("Incorrect side effects")
-      .isEqualTo(SideEffects.from(expected))
+    val expected = SideEffects.from(expectedTable)
+    if (actual != expected) {
+      fail(
+        s"""
+           >Incorrect side effects.
+           >
+           >Actual side effects:
+           >$actual
+           >Expected side effects:
+           >$expected
+           >Plan:
+           >${describePlan(lastResult)}
+           >""".stripMargin('>') // | margins messes with the tables
+      )
+    }
   }
 
   override protected def errorShouldBeRaised(expected: ExpectedError): Unit = lastResult match {
     case success: QueryResults => unexpectedSuccess(success)
     case failure: QueryFailure =>
       val actual = Neo4jExceptionToExecutionFailed.convert(failure.phase, failure.cause)
-      val desc = describe(failure)
+      val desc = describeFailure(failure)
       assertThat[Any](actual.errorType).as(desc).isEqualTo(expected.error)
       expected.phase.foreach(expectedPhase => assertThat[Any](actual.phase).as(desc).isEqualTo(expectedPhase))
       expected.description.foreach(expectedDesc => assertThat[Any](actual.detail).as(desc).isEqualTo(expectedDesc))
@@ -255,17 +267,17 @@ final class RegularCypherCucumberSteps @Inject() (
     case success: QueryResults => unexpectedSuccess(success)
     case failure: QueryFailure => findMatchingGqlFailure(expectedError.code, originalError(failure.cause)) match {
         case Some(actualGql) =>
-          val desc = describe(failure)
+          val desc = describeFailure(failure)
           assertThat[Any](actualGql.code).as(desc).isEqualTo(expectedError.code)
           expectedError.descriptionContains.foreach { e =>
             assertThat[Any](actualGql.message).as(desc).asString.contains(e)
           }
-        case None => fail(
+        case None =>
+          val found = findAllGqlCodes(originalError(failure.cause))
+          fail(
             s"""
-               |Expected GQL status ${expectedError.code} but found ${findAllGqlCodes(
-                originalError(failure.cause)
-              )} in:
-               |${doDescribe(failure)}
+               |Expected GQL status ${expectedError.code} but found $found in:
+               |${doDescribeFailure(failure)}
                |""".stripMargin
           )
       }
@@ -297,10 +309,54 @@ final class RegularCypherCucumberSteps @Inject() (
       openTx.close()
     }
   }
+
+  private def describeResults(
+    actual: QueryResults,
+    expected: DataTable,
+    order: String,
+    header: String = "Incorrect query result."
+  ): Supplier[String] = () => {
+    val expectedHeaders = if (expected.height() > 0) expected.row(0) else java.util.List.of[String]()
+
+    s"""
+       >$header
+       >
+       >Actual results:
+       >${renderAsTable(actual.results)}
+       >Expected results${Some(order).filter(_.nonEmpty).map(o => s" ($o)").getOrElse("")}:
+       >${renderAsTable(ConsumedResult(expectedHeaders, toResultRows(expected)))}
+       >Query:
+       >${actual.query}
+       >Plan:
+       >${describePlan(actual)}
+       >""".stripMargin('>') // | margins messes with the tables
+  }
+
+  private def describePlan(actual: QueryExecution): String = Try {
+    Using.resource(db.database.beginTx()) { tx =>
+      tx.execute("EXPLAIN\n" + actual.query).getExecutionPlanDescription.toString
+    }
+  } match {
+    case Success(planDesc) => planDesc
+    case Failure(error)    => s"Failed to produce plan: " + error
+  }
+
+  private def assertEqualHeaders(actual: QueryResults, expected: DataTable): Unit = {
+    val actualHeaders = actual.results.headers
+    val expectedHeaders = if (expected.isEmpty) java.util.List.of() else expected.row(0)
+    if (actualHeaders != expectedHeaders) {
+      assertThat(actualHeaders)
+        .as(describeResults(actual, expected, "", "Result has correct headers"))
+        .containsExactlyElementsOf(expectedHeaders)
+    }
+  }
 }
 
 object RegularCypherCucumberSteps {
-  sealed trait QueryExecution
+
+  sealed trait QueryExecution {
+    def query: String
+  }
   case class QueryResults(query: String, results: ConsumedResult) extends QueryExecution
   case class QueryFailure(query: String, phase: String, cause: Throwable) extends QueryExecution
 
@@ -335,14 +391,6 @@ object RegularCypherCucumberSteps {
     DataTable.create(table).toString
   }
 
-  private def assertEqualHeaders(actual: QueryResults, expected: DataTable): Unit = {
-    val actualHeaders = actual.results.headers
-    val expectedHeaders = if (expected.isEmpty) java.util.List.of() else expected.row(0)
-    if (actualHeaders != expectedHeaders) {
-      assertThat(actualHeaders).as("Result has correct headers").containsExactlyElementsOf(expectedHeaders)
-    }
-  }
-
   def unexpectedFailure(failure: QueryFailure): Unit = fail(
     s"""
        |Query failed but was expected to succeed.
@@ -364,20 +412,6 @@ object RegularCypherCucumberSteps {
        >${results.query}
        |""".stripMargin('>') // | margins messes with the tables
   )
-
-  private def describe(actual: QueryResults, expected: DataTable, order: String): Supplier[String] = () => {
-    val expectedHeaders = if (expected.height() > 0) expected.row(0) else java.util.List.of[String]()
-    s"""
-       >Incorrect query result.
-       >
-       >Actual results:
-       >${renderAsTable(actual.results)}
-       >Expected results ($order):
-       >${renderAsTable(ConsumedResult(expectedHeaders, toResultRows(expected)))}
-       >Query:
-       >${actual.query}
-       >""".stripMargin('>') // | margins messes with the tables
-  }
 
   def originalError(throwable: Throwable): Throwable = throwable match {
     case e: CypherExecutorException => e.original
@@ -403,10 +437,10 @@ object RegularCypherCucumberSteps {
     case _                       => result
   }
 
-  private def describe(failure: QueryFailure): Supplier[String] = () =>
-    "Query failure (you need to scroll past the stacktrace for actual assertion error).\n" + doDescribe(failure)
+  private def describeFailure(failure: QueryFailure): Supplier[String] = () =>
+    "Query failure (you need to scroll past the stacktrace for actual assertion error).\n" + doDescribeFailure(failure)
 
-  private def doDescribe(failure: QueryFailure): String = {
+  private def doDescribeFailure(failure: QueryFailure): String = {
     s"""
        |Phase: ${failure.phase}
        |Query:

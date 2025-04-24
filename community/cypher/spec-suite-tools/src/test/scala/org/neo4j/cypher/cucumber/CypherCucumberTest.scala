@@ -367,13 +367,23 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
   def wrongResultOrdered(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
     assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
     assertThat(failure.throwable)
-      .hasMessageContainingAll("Incorrect query result.", "Expected results (in order):", "CYPHER runtime=legacy")
+      .hasMessageContainingAll(
+        "Incorrect query result.",
+        "Expected results (in order):",
+        "CYPHER runtime=legacy",
+        "+ProduceResults"
+      )
   }
 
   def wrongResultAnyOrder(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
     assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
     assertThat(failure.throwable)
-      .hasMessageContainingAll("Incorrect query result.", "Expected results (in any order):", "CYPHER runtime=legacy")
+      .hasMessageContainingAll(
+        "Incorrect query result.",
+        "Expected results (in any order):",
+        "CYPHER runtime=legacy",
+        "+ProduceResults"
+      )
   }
 
   def wrongResultOrderedAnyListOrder(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
@@ -382,7 +392,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       .hasMessageContainingAll(
         "Incorrect query result.",
         "Expected results (rows in order, ignoring element order of lists):",
-        "runtime=legacy"
+        "runtime=legacy",
+        "+ProduceResults"
       )
   }
 
@@ -392,18 +403,23 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       .hasMessageContainingAll(
         "Incorrect query result.",
         "Expected results (rows in any order, ignoring element order of lists):",
-        "CYPHER runtime=legacy"
+        "CYPHER runtime=legacy",
+        "+ProduceResults"
       )
   }
 
   def wrongHeaders(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
     assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
-    assertThat(failure.throwable).hasMessageContaining("Result has correct headers")
+    assertThat(failure.throwable).hasMessageContainingAll("Result has correct headers", "+ProduceResults")
   }
 
   def wrongSideEffects(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
     assertThat(failure.testName).isEqualTo("TestFrameworkTests - " + name)
-    assertThat(failure.throwable).hasMessageContaining("Incorrect side effects")
+    assertThat(failure.throwable).hasMessageContainingAll(
+      "Incorrect side effects",
+      "Actual side effects:",
+      "+ProduceResults"
+    )
   }
 
   def queryFailedCompile(name: String): Consumer[CypherCucumberTest.Failure] = failure => {
