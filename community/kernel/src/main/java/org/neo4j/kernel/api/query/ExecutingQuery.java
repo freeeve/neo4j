@@ -313,13 +313,18 @@ public class ExecutingQuery implements QueryTransactionStatisticsAggregator {
         this.queryLanguage = queryLanguage;
     }
 
-    public QueryLanguage cypherVersion() {
+    public QueryLanguage queryLanguage() {
         assert this.queryLanguage != null; // Break in testing but not production
         if (this.queryLanguage == null) return null;
         return switch (this.queryLanguage) {
             case Cypher5 -> QueryLanguage.CYPHER_5;
             case Cypher25 -> QueryLanguage.CYPHER_25;
         };
+    }
+
+    // Can be null
+    public CypherVersion cypherVersion() {
+        return this.queryLanguage;
     }
 
     public void onFabricDeprecationNotificationsProviderReady(

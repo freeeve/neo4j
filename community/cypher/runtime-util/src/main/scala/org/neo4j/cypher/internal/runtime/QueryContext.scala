@@ -493,7 +493,7 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
       databaseId.isSystemDatabase,
       context.kernelExecutingQuery.cypherRuntime(),
       memoryTracker,
-      context.kernelExecutingQuery.cypherVersion()
+      context.kernelExecutingQuery.queryLanguage()
     )
   }
 
@@ -512,7 +512,7 @@ trait ReadQueryContext extends ReadTokenContext with DbAccess with AutoCloseable
       databaseId.isSystemDatabase,
       context.kernelExecutingQuery.cypherRuntime(),
       memoryTracker,
-      context.kernelExecutingQuery.cypherVersion()
+      context.kernelExecutingQuery.queryLanguage()
     )
   }
 }
