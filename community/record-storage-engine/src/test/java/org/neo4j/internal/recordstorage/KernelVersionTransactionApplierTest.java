@@ -61,7 +61,9 @@ public class KernelVersionTransactionApplierTest {
         before.initialize(true, from.version());
 
         MetaDataRecord after = new MetaDataRecord();
-        after.initialize(true, to.version());
+        long versionLong = to.version();
+        versionLong |= ((long) 15) << Byte.SIZE; // Add logformat the way it is done in extract commands
+        after.initialize(true, versionLong);
 
         return new Command.MetaDataCommand(RecordStorageCommandReaderFactory.INSTANCE.get(to), before, after);
     }

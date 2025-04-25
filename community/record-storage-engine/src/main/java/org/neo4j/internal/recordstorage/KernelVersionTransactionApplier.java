@@ -33,8 +33,10 @@ public class KernelVersionTransactionApplier extends TransactionApplier.Adapter 
 
     @Override
     public boolean visitMetaDataCommand(MetaDataCommand command) {
-        final var kernelVersion = KernelVersion.getForVersion(
-                Numbers.safeCastLongToByte(command.getAfter().getValue()));
+        int value = Numbers.safeCastLongToInt(command.getAfter().getValue());
+        final var kernelVersion = KernelVersion.getForVersion((byte) (value & 0xFF));
+        // Not using the format yet, that is coming soon
+        byte logFormatVersion = (byte) ((value >> Byte.SIZE) & 0xFF);
         kernelVersionRepository.setKernelVersion(kernelVersion);
         return false;
     }

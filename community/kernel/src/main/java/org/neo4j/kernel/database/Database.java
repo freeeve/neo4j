@@ -150,6 +150,7 @@ import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckpointerLifecycle;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.StoreCopyCheckPointMutex;
+import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.files.LogFiles;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesBuilder;
 import org.neo4j.kernel.impl.transaction.log.files.RangeLogVersionVisitor;
@@ -710,8 +711,9 @@ public class Database extends AbstractDatabase {
                 databaseConfig,
                 kernelModule.kernelAPI());
 
-        handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx) ->
-                tx.upgrade().upgradeKernel(new Upgrade.KernelUpgrade(fromKernelVersion, toKernelVersion)));
+        handler.registerUpgradeListener((fromKernelVersion, toKernelVersion, tx) -> tx.upgrade()
+                .upgradeKernel(new Upgrade.KernelUpgrade(
+                        fromKernelVersion, toKernelVersion, LogFormat.fromKernelVersion(toKernelVersion))));
     }
 
     private void validateStoreAndTxLogs(

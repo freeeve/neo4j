@@ -326,7 +326,9 @@ public class TransactionRecordState implements RecordState {
             MetaDataRecord before = new MetaDataRecord();
             before.initialize(true, upgrade.from().version());
             MetaDataRecord after = new MetaDataRecord();
-            after.initialize(true, upgrade.to().version());
+            long versionLong = upgrade.to().version();
+            versionLong |= ((long) upgrade.logFormatTo().getVersionByte()) << Byte.SIZE;
+            after.initialize(true, versionLong);
             // This command will be the last one in the "old" version, indicating the switch and writing it to the
             // KernelVersionRepository. The KernelVersionRepository update will make the transaction that triggered
             // upgrade be written in the "new" version
