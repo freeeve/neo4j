@@ -20,9 +20,12 @@
 package org.neo4j.kernel.impl.transaction.log;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -56,5 +59,41 @@ class LogPositionTest {
 
         assertEquals(0, logPositionA.compareTo(logPositionA));
         assertEquals(0, logPositionB.compareTo(logPositionB));
+    }
+
+    @Test
+    void beforePositionValidation() {
+        var point = new LogPosition(1, 100);
+        var sameFileAfterPosition = new LogPosition(1, 101);
+        var nextFilePosition = new LogPosition(2, 100);
+
+        assertTrue(point.isBefore(sameFileAfterPosition));
+        assertTrue(point.isBefore(nextFilePosition));
+
+        assertFalse(sameFileAfterPosition.isBefore(point));
+        assertTrue(sameFileAfterPosition.isBefore(nextFilePosition));
+
+        assertFalse(nextFilePosition.isBefore(point));
+        assertFalse(nextFilePosition.isBefore(sameFileAfterPosition));
+
+        assertFalse(point.isBefore(point));
+    }
+
+    @Test
+    void afterPositionValidation() {
+        var point = new LogPosition(1, 100);
+        var sameFileAfterPosition = new LogPosition(1, 101);
+        var nextFilePosition = new LogPosition(2, 100);
+
+        assertFalse(point.isAfterOrSame(sameFileAfterPosition));
+        assertFalse(point.isAfterOrSame(nextFilePosition));
+
+        assertTrue(sameFileAfterPosition.isAfterOrSame(point));
+        assertFalse(sameFileAfterPosition.isAfterOrSame(nextFilePosition));
+
+        assertTrue(nextFilePosition.isAfterOrSame(point));
+        assertTrue(nextFilePosition.isAfterOrSame(sameFileAfterPosition));
+
+        assertTrue(point.isAfterOrSame(point));
     }
 }

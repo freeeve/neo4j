@@ -527,7 +527,7 @@ public class TransactionLogsRecovery extends LifecycleAdapter {
                 }
                 transactionIdTracker.trackBatch(commandBatch);
                 // we need to unroll only transactions located after checkpointed position
-                if (transactionsToRecover.position().compareTo(checkpointedLogPosition) >= 0) {
+                if (transactionsToRecover.position().isAfterOrSame(checkpointedLogPosition)) {
                     recoveryVisitor.visit(commandBatch);
                 }
                 lowestRecoveredAppendIndex = commandBatch.appendIndex();

@@ -71,6 +71,14 @@ public class LogPosition implements Comparable<LogPosition> {
         return result;
     }
 
+    public boolean isAfterOrSame(LogPosition logPosition) {
+        return !isBefore(logPosition);
+    }
+
+    public boolean isBefore(LogPosition logPosition) {
+        return compareTo(logPosition) < 0;
+    }
+
     @Override
     public int compareTo(LogPosition o) {
         if (logVersion != o.logVersion) {

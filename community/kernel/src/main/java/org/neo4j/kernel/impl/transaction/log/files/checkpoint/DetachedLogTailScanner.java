@@ -415,7 +415,7 @@ public class DetachedLogTailScanner {
                 var logHeader = logFile.extractHeader(logVersion);
                 if (logHeader != null) {
                     var logHeaderStart = logHeader.getStartPosition();
-                    if (logHeaderStart.compareTo(checkpointTransactionPosition) < 0) {
+                    if (logHeaderStart.isBefore(checkpointTransactionPosition)) {
                         try (var reader = logFile.getReader(logHeaderStart, NO_MORE_CHANNELS);
                                 var cursor = new LogEntryCursor(logEntryReader, reader)) {
                             LogEntryStart start = null;
