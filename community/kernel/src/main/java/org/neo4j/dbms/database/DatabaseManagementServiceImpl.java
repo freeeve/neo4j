@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.api.DatabaseExistsException;
-import org.neo4j.dbms.api.DatabaseManagementException;
+import org.neo4j.dbms.api.DatabaseManagementHelper;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -165,7 +165,7 @@ public class DatabaseManagementServiceImpl implements DatabaseManagementService 
                 transaction.commit();
             }
         } catch (QueryExecutionException e) {
-            throw new DatabaseManagementException((Throwable) e);
+            throw DatabaseManagementHelper.wrapError(e);
         }
     }
 

@@ -24,7 +24,6 @@ import org.neo4j.bolt.fsm.error.state.StateTransitionException;
 import org.neo4j.bolt.security.error.AuthenticationException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorMessageHolder;
-import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.api.exceptions.Status.HasStatus;
 
@@ -34,8 +33,7 @@ public final class AuthenticationStateTransitionException extends StateTransitio
     private final String oldMessage;
     private final ErrorGqlStatusObject gqlStatusObject;
 
-    @Deprecated
-    public AuthenticationStateTransitionException(AuthenticationException cause) {
+    private AuthenticationStateTransitionException(AuthenticationException cause) {
         super(cause.getMessage(), cause);
         this.status = cause.status();
 
@@ -43,13 +41,8 @@ public final class AuthenticationStateTransitionException extends StateTransitio
         this.oldMessage = ErrorMessageHolder.getOldCauseMessage(cause);
     }
 
-    private AuthenticationStateTransitionException(
-            ErrorGqlStatusObject gqlStatusObject, AuthenticationException cause) {
-        super(ErrorMessageHolder.getMessage(gqlStatusObject, ErrorMessageHolder.getOldCauseMessage(cause)), cause);
-        this.gqlStatusObject = GqlHelper.getInnerGqlStatusObject(gqlStatusObject, cause);
-
-        this.status = cause.status();
-        this.oldMessage = ErrorMessageHolder.getOldCauseMessage(cause);
+    public static AuthenticationStateTransitionException wrapError(AuthenticationException cause) {
+        return new AuthenticationStateTransitionException(cause);
     }
 
     @Override

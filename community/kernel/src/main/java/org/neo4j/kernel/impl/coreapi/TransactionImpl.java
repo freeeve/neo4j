@@ -44,6 +44,7 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.graphdb.TransactionTerminatedHelper;
 import org.neo4j.graphdb.schema.Schema;
 import org.neo4j.graphdb.traversal.BidirectionalTraversalDescription;
@@ -259,7 +260,7 @@ public class TransactionImpl extends DataLookup implements InternalTransaction {
             availabilityGuard.assertDatabaseAvailable();
             return executionEngine.executeQuery(query, parameters, context, false);
         } catch (UnavailableException ue) {
-            throw new org.neo4j.graphdb.TransactionFailureException(ue.getMessage(), ue, ue.status());
+            throw TransactionFailureHelper.wrapError(ue);
         } catch (QueryExecutionKernelException e) {
             throw e.asUserException();
         }

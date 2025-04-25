@@ -61,7 +61,7 @@ public final class CreateAutocommitStatementStateTransition extends AbstractStat
             try {
                 ctx.connection().impersonate(message.impersonatedUser());
             } catch (AuthenticationException ex) {
-                throw new AuthenticationStateTransitionException(ex);
+                throw AuthenticationStateTransitionException.wrapError(ex);
             }
         }
 

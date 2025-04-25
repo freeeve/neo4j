@@ -60,7 +60,7 @@ public final class AuthenticationStateTransition extends AbstractStateTransition
         try {
             flags = ctx.connection().logon(message.authToken());
         } catch (AuthenticationException ex) {
-            throw new AuthenticationStateTransitionException(ex);
+            throw AuthenticationStateTransitionException.wrapError(ex);
         }
 
         if (flags != null) {

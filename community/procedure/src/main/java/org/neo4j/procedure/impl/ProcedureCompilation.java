@@ -518,18 +518,16 @@ public final class ProcedureCompilation {
      * @return an exception with an appropriate message.
      */
     public static ProcedureException rethrowProcedureException(Throwable throwable, String type, String name) {
-        if (throwable instanceof ProcedureException) {
-            return (ProcedureException) throwable;
+        if (throwable instanceof ProcedureException procedureException) {
+            return procedureException;
         }
-        if (throwable instanceof Status.HasStatus throwableWithStatus) {
-            if (throwableWithStatus instanceof ErrorGqlStatusObject gqlError) {
-                return ProcedureException.invocationFailedWithInnerError(
-                        (Throwable & ErrorGqlStatusObject & Status.HasStatus) gqlError, type, name);
-            }
-            return new ProcedureException(throwableWithStatus.status(), throwable, throwable.getMessage(), throwable);
-        } else {
-            return ProcedureException.invocationFailed(type, name, throwable);
+        if (throwable instanceof Status.HasStatus throwableWithStatus
+                && throwable instanceof ErrorGqlStatusObject gqlError) {
+            return ProcedureException.invocationFailed(
+                    type, name, (Throwable & ErrorGqlStatusObject & Status.HasStatus) gqlError);
         }
+
+        return ProcedureException.invocationFailed(type, name, throwable);
     }
 
     /**

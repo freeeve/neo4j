@@ -41,7 +41,7 @@ public abstract class SimpleImpersonationStateTransition<R extends Impersonation
             try {
                 ctx.connection().impersonate(message.impersonatedUser());
             } catch (AuthenticationException ex) {
-                throw new AuthenticationStateTransitionException(ex);
+                throw AuthenticationStateTransitionException.wrapError(ex);
             }
         }
 

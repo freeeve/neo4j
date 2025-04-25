@@ -54,7 +54,7 @@ public final class CreateTransactionStateTransition extends AbstractStateTransit
             try {
                 ctx.connection().impersonate(message.impersonatedUser());
             } catch (AuthenticationException ex) {
-                throw new AuthenticationStateTransitionException(ex);
+                throw AuthenticationStateTransitionException.wrapError(ex);
             }
         }
 

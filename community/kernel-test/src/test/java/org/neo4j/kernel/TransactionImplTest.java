@@ -80,8 +80,10 @@ class TransactionImplTest {
         // GIVEN
         KernelTransaction kernelTransaction = mock(KernelTransaction.class);
         when(kernelTransaction.isOpen()).thenReturn(true);
-        doThrow(new TransactionFailureException(
-                        Status.Transaction.ConstraintsChanged, "Proving that transaction does the right thing"))
+        doThrow(TransactionFailureException.internalError(
+                        Status.Transaction.ConstraintsChanged,
+                        this.getClass().getSimpleName(),
+                        "Proving that transaction does the right thing"))
                 .when(kernelTransaction)
                 .commit();
         TransactionImpl transaction = createTransaction(kernelTransaction);

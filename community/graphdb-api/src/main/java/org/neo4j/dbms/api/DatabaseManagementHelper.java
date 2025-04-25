@@ -20,12 +20,17 @@
 package org.neo4j.dbms.api;
 
 import org.neo4j.gqlstatus.GqlHelper;
+import org.neo4j.graphdb.QueryExecutionException;
 
 /**
  * This helper class contains methods to create `DatabaseManagementException`. These would normally be on the
  * exception class itself, but that is `@PublicApi`, and we don't want these methods to be public API.
  */
 public class DatabaseManagementHelper {
+    public static DatabaseManagementException wrapError(QueryExecutionException e) {
+        return new DatabaseManagementException(e, e);
+    }
+
     public static DatabaseManagementException internalError(String msgTitle, String message) {
         var gql = GqlHelper.get50N00(msgTitle, message);
         return new DatabaseManagementException(gql, message);

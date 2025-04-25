@@ -56,17 +56,12 @@ public class TransactionFailureException extends KernelException {
         super(gqlStatusObject, statusCode, cause);
     }
 
-    @Deprecated
-    public TransactionFailureException(Status statusCode, String message, Object... parameters) {
-        super(statusCode, message, parameters);
-    }
-
     protected TransactionFailureException(
             ErrorGqlStatusObject gqlStatusObject, Status statusCode, String message, Object... parameters) {
         super(gqlStatusObject, statusCode, message, parameters);
     }
 
-    // To satisfy DatabaseHealth
+    // Used implicitly from KernelImpl.beginTransaction()
     @Deprecated
     public TransactionFailureException(String message, Throwable cause) {
         super(Status.Transaction.TransactionStartFailed, cause, message);
@@ -74,6 +69,14 @@ public class TransactionFailureException extends KernelException {
 
     private TransactionFailureException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, Status.Transaction.TransactionStartFailed, cause, message);
+    }
+
+    public static <EX extends Throwable & Status.HasStatus> TransactionFailureException wrapError(EX cause) {
+        if (cause instanceof ErrorGqlStatusObject gqlException && gqlException.gqlStatusObject() != null) {
+            return new TransactionFailureException(gqlException, cause.status(), cause, cause.getMessage());
+        }
+        // This case can be removed once all errors has been ported to GQLSTATUS
+        return new TransactionFailureException(GqlHelper.getDefaultObject(), cause.status(), cause, cause.getMessage());
     }
 
     public static TransactionFailureException internalError(String msgTitle, String message, Throwable cause) {

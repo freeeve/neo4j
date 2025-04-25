@@ -27,6 +27,7 @@ import org.awaitility.Awaitility;
 import org.awaitility.core.ConditionTimeoutException;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.graphdb.GraphDatabaseService;
 
 public class AsyncDatabaseOperation {
@@ -46,7 +47,7 @@ public class AsyncDatabaseOperation {
                     .between(Duration.ofMillis(50), timeout)
                     .until(() -> findDatabase(managementService, databaseName), Objects::nonNull);
         } catch (ConditionTimeoutException e) {
-            throw new DatabaseNotFoundException(databaseName);
+            throw DatabaseNotFoundHelper.databaseNotFound(databaseName);
         }
     }
 

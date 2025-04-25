@@ -85,6 +85,7 @@ public class DatabaseManagementException extends GqlRuntimeException implements 
         return Status.Database.Unknown;
     }
 
+    @Deprecated(forRemoval = true, since = "2025.05")
     public static DatabaseManagementException wrap(Throwable toWrap) {
         if (toWrap instanceof DatabaseManagementException) {
             return (DatabaseManagementException) toWrap;

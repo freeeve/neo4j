@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 import org.neo4j.common.DependencyResolver;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HostedOnMode;
+import org.neo4j.graphdb.TransactionFailureHelper;
 import org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo;
 import org.neo4j.internal.kernel.api.connectioninfo.RoutingInfo;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
@@ -164,7 +165,7 @@ public class GraphDatabaseFacade extends GraphDatabaseTransactions implements Gr
             availabilityGuard.assertDatabaseAvailable();
             return database.getKernel().beginTransaction(type, loginContext, connectionInfo, timeout);
         } catch (UnavailableException | TransactionFailureException e) {
-            throw new org.neo4j.graphdb.TransactionFailureException(e.getMessage(), e, e.status());
+            throw TransactionFailureHelper.wrapError(e);
         }
     }
 

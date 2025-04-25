@@ -63,8 +63,8 @@ public class TransactionEventListeners {
                 if (cause instanceof TransientFailureException tfe) {
                     throw tfe;
                 }
-                if (cause instanceof Status.HasStatus se) {
-                    throw new TransactionFailureException(se.status(), cause, cause.getMessage());
+                if (cause instanceof Status.HasStatus) {
+                    throw TransactionFailureException.wrapError((Throwable & Status.HasStatus) cause);
                 }
                 throw TransactionFailureException.internalError(
                         TransactionHookFailed, cause, this.getClass().getSimpleName(), cause.getMessage());
