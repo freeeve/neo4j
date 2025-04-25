@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.SimpleMetricsFactory
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.ExpressionSelectivityCalculator.probLognormalGreaterThan1
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.ExpressionSelectivityCalculator.subqueryCardinalityToExistsSelectivity
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.ExpressionSelectivityCalculatorTest.IndexDescriptorHelper
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.simpleExpressionEvaluator
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
@@ -2212,6 +2213,8 @@ abstract class ExpressionSelectivityCalculatorTest extends CypherFunSuite with A
       compositeCalculator,
       simpleExpressionEvaluator
     )
+
+    implicit val graphSchemaOptimizations: GraphSchemaOptimizations = GraphSchemaOptimizations.Disabled
 
     (exp: Expression) => calculator(exp, labelInfo, relTypeInfo, existenceConstraints, typeConstraints)
   }

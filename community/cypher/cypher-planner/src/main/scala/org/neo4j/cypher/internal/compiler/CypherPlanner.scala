@@ -334,4 +334,11 @@ class CypherPlannerConfiguration(
     )
     () => config.remoteBatchPropertiesImplementation
   }
+
+  val planningGraphSchemaOptimizationsEnabled: () => Boolean = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.planning_graph_schema_optimizations_enabled.dynamic()
+    )
+    () => config.planningGraphSchemaOptimizationsEnabled
+  }
 }

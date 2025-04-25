@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.SelectivityCal
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.CompositeExpressionSelectivityCalculator
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
 import org.neo4j.cypher.internal.compiler.planner.logical.limit.LimitSelectivityConfig
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.evaluator.SimpleInternalExpressionEvaluator
 import org.neo4j.cypher.internal.expressions.Expression
@@ -133,7 +134,8 @@ object Metrics {
       relTypeInfo: RelTypeInfo,
       semanticTable: SemanticTable,
       indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
-      cardinalityModel: CardinalityModel
+      cardinalityModel: CardinalityModel,
+      graphSchemaOptimizations: GraphSchemaOptimizations
     ): Cardinality
 
     /**
@@ -147,14 +149,16 @@ object Metrics {
       labelInfo: LabelInfo,
       relTypeInfo: RelTypeInfo,
       semanticTable: SemanticTable,
-      indexCompatiblePredicatesProviderContext: IndexCompatiblePredicatesProviderContext
+      indexCompatiblePredicatesProviderContext: IndexCompatiblePredicatesProviderContext,
+      graphSchemaOptimizations: GraphSchemaOptimizations
     ): Cardinality = apply(
       plannerQuery,
       labelInfo,
       relTypeInfo,
       semanticTable,
       indexCompatiblePredicatesProviderContext,
-      this
+      this,
+      graphSchemaOptimizations
     )
   }
 
@@ -172,7 +176,8 @@ object Metrics {
       relTypeInfo: RelTypeInfo,
       semanticTable: SemanticTable,
       indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
-      cardinalityModel: CardinalityModel
+      cardinalityModel: CardinalityModel,
+      graphSchemaOptimizations: GraphSchemaOptimizations
     ): Cardinality
   }
 
@@ -190,7 +195,8 @@ object Metrics {
       semanticTable: SemanticTable,
       indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
       cardinalityModel: CardinalityModel,
-      argumentIds: Set[LogicalVariable]
+      argumentIds: Set[LogicalVariable],
+      graphSchemaOptimizations: GraphSchemaOptimizations
     ): Selectivity
   }
 

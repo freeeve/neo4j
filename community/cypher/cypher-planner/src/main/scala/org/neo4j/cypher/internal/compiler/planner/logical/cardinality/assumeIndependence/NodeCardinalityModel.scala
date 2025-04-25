@@ -35,7 +35,11 @@ trait NodeCardinalityModel {
     labelInfo: LabelInfo,
     node: LogicalVariable
   ): Option[Cardinality] =
-    getResolvedNodeLabels(context, labelInfo, node).map(getLabelsCardinality(context, _))
+    getResolvedNodeLabels(
+      context,
+      context.graphSchemaOptimizations.pruneImpliedLabels(labelInfo),
+      node
+    ).map(getLabelsCardinality(context, _))
 
   def getArgumentSelectivity(
     context: QueryGraphCardinalityContext,

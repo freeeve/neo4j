@@ -56,6 +56,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.PointBoundingBox
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.PointDistanceSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.PrefixRangeSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.Scannable
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.AssertIsNode
 import org.neo4j.cypher.internal.expressions.Contains
@@ -157,7 +158,8 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
   )(
     implicit semanticTable: SemanticTable,
     indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
-    cardinalityModel: CardinalityModel
+    cardinalityModel: CardinalityModel,
+    graphSchemaOptimizations: GraphSchemaOptimizations
   ): Selectivity = exp match {
     // WHERE a:Label
     case HasLabels(_, Seq(label)) =>
@@ -347,7 +349,8 @@ case class ExpressionSelectivityCalculator(stats: GraphStatistics, combiner: Sel
         relTypeInfo.filter { case (variable, _) => dependencies.contains(variable) },
         semanticTable,
         indexPredicateProviderContext,
-        cardinalityModel
+        cardinalityModel,
+        graphSchemaOptimizations
       )
       subqueryCardinalityToExistsSelectivity(subqueryCardinality)
 

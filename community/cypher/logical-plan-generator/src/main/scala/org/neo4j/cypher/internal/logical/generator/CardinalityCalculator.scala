@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.StatisticsBackedCardin
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.IndependenceCombiner
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.AssumeIndependenceQueryGraphCardinalityModel
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.IntegerLiteral
@@ -142,7 +143,8 @@ object CardinalityCalculator {
           state.relTypeInfo,
           state.semanticTable,
           IndexCompatiblePredicatesProviderContext.default,
-          cardinalityModel = null // We don't have SubqueryExpressions
+          cardinalityModel = null, // We don't have SubqueryExpressions
+          GraphSchemaOptimizations.Disabled
         )
       expandCardinality * inboundCardinality
   }

@@ -37,6 +37,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolv
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPLogger
 import org.neo4j.cypher.internal.compiler.planner.logical.limit.LimitSelectivityConfig
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CostComparisonListener
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProducer
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
@@ -99,7 +100,8 @@ object LogicalPlanningContext {
     costComparisonListener: CostComparisonListener,
     readOnly: Boolean,
     labelInferenceStrategy: LabelInferenceStrategy,
-    idpLogger: IDPLogger = IDPLogger.NoLogging
+    idpLogger: IDPLogger = IDPLogger.NoLogging,
+    graphSchemaOptimizations: GraphSchemaOptimizations = GraphSchemaOptimizations.Disabled
   )
 
   /**

@@ -33,6 +33,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolverInput
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.assumeIndependence.LabelInferenceStrategy
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPLogger
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.CostComparisonListener
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProducer
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.VerifyBestPlan
@@ -98,6 +99,8 @@ case object QueryPlanner
     val logicalPlanProducer =
       LogicalPlanProducer(context.metrics.cardinality, planningAttributes, context.logicalPlanIdGen)
 
+    val enableGraphSchemaOptimizations = context.config.planningGraphSchemaOptimizationsEnabled() && from.query.readOnly
+
     val staticComponents = StaticComponents(
       planContext = context.planContext,
       notificationLogger = context.notificationLogger,
@@ -112,7 +115,9 @@ case object QueryPlanner
       costComparisonListener = CostComparisonListener.givenDebugOptions(context.debugOptions, context.log),
       readOnly = from.query.readOnly,
       labelInferenceStrategy = context.labelInferenceStrategy,
-      idpLogger = IDPLogger.givenDebugOptions(context.debugOptions)
+      idpLogger = IDPLogger.givenDebugOptions(context.debugOptions),
+      graphSchemaOptimizations =
+        GraphSchemaOptimizations.fromConfig(enableGraphSchemaOptimizations, context.planContext, from.semanticTable())
     )
 
     val settings = Settings(

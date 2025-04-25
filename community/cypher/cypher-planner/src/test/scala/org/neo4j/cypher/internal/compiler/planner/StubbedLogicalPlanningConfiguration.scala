@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphCard
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphSolverInput
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.RelTypeInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.SelectivityCalculator
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LogicalVariable
@@ -275,7 +276,8 @@ class StubbedLogicalPlanningConfiguration(val parent: LogicalPlanningConfigurati
         relTypeInfo: RelTypeInfo,
         semanticTable: SemanticTable,
         indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
-        cardinalityModel: CardinalityModel
+        cardinalityModel: CardinalityModel,
+        graphSchemaOptimizations: GraphSchemaOptimizations
       ): Cardinality = {
         val labelIdCardinality: Map[LabelId, Cardinality] = labelCardinality.map {
           case (name: String, cardinality: Cardinality) =>
@@ -296,7 +298,8 @@ class StubbedLogicalPlanningConfiguration(val parent: LogicalPlanningConfigurati
           relTypeInfo,
           semanticTable,
           indexPredicateProviderContext,
-          cardinalityModel
+          cardinalityModel,
+          graphSchemaOptimizations
         )
       }
     }

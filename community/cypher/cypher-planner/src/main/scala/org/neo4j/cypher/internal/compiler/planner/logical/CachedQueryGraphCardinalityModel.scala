@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.CardinalityMod
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphCardinalityModel
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.RelTypeInfo
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.util.Cardinality
@@ -43,7 +44,8 @@ class CachedQueryGraphCardinalityModel(wrapped: QueryGraphCardinalityModel) exte
     relTypeInfo: RelTypeInfo,
     semanticTable: SemanticTable,
     indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
-    cardinalityModel: CardinalityModel
+    cardinalityModel: CardinalityModel,
+    graphSchemaOptimizations: GraphSchemaOptimizations
   ): Cardinality = {
     def cacheKey: QueryGraphCardinalityModelInput =
       (queryGraph, previousLabelInfo, relTypeInfo, semanticTable, indexPredicateProviderContext)
@@ -54,7 +56,8 @@ class CachedQueryGraphCardinalityModel(wrapped: QueryGraphCardinalityModel) exte
       relTypeInfo,
       semanticTable,
       indexPredicateProviderContext,
-      cardinalityModel // Not part of the cache key
+      cardinalityModel, // Not part of the cache key
+      graphSchemaOptimizations // Not part of the cache key
     )
 
     cache.getOrElseUpdate(cacheKey, wrappedResult)

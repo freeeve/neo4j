@@ -36,6 +36,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsPropertySeekab
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsStringRangeSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsValueRangeSeekable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.PrefixRangeSeekable
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.OrLeafPlanner.WhereClausePredicate
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexMatch
@@ -134,7 +135,8 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
     semanticTable: SemanticTable,
     indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
     cardinalityModel: CardinalityModel,
-    argumentIds: Set[LogicalVariable]
+    argumentIds: Set[LogicalVariable],
+    graphSchemaOptimizations: GraphSchemaOptimizations
   ): Selectivity = {
 
     // The selections we get for cardinality estimation might contain partial predicates.
@@ -169,7 +171,8 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
           .map(singleExpressionSelectivityCalculator(_, labelInfo, relTypeInfo, existenceConstraints, typeConstraints)(
             semanticTable,
             indexPredicateProviderContext,
-            cardinalityModel
+            cardinalityModel,
+            graphSchemaOptimizations
           ))
       combiner.andTogetherSelectivities(simpleSelectivities).getOrElse(Selectivity.ONE)
     }
@@ -267,7 +270,8 @@ case class CompositeExpressionSelectivityCalculator(planContext: PlanContext) ex
       )(
         semanticTable,
         indexPredicateProviderContext,
-        cardinalityModel
+        cardinalityModel,
+        graphSchemaOptimizations
       ))
     // Use composite index selectivities for all covered predicates.
     val coveredPredicatesSelectivities =

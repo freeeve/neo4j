@@ -72,7 +72,8 @@ object LimitSelectivity {
             context.plannerState.input.labelInfo,
             context.plannerState.input.relTypeInfo,
             context.semanticTable,
-            context.plannerState.indexCompatiblePredicatesProviderContext
+            context.plannerState.indexCompatiblePredicatesProviderContext,
+            context.staticComponents.graphSchemaOptimizations
           )
 
           val cardinalityWithoutLimit = cardinalityModel(queryWithoutLimit)

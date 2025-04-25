@@ -2732,14 +2732,16 @@ case class LogicalPlanProducer(
       context.plannerState.input.labelInfo,
       context.plannerState.input.relTypeInfo,
       context.semanticTable,
-      context.plannerState.indexCompatiblePredicatesProviderContext
+      context.plannerState.indexCompatiblePredicatesProviderContext,
+      context.staticComponents.graphSchemaOptimizations
     )
     val limitCardinality = cardinalityModel(
       solvedSkipAndLimit,
       context.plannerState.input.labelInfo,
       context.plannerState.input.relTypeInfo,
       context.semanticTable,
-      context.plannerState.indexCompatiblePredicatesProviderContext
+      context.plannerState.indexCompatiblePredicatesProviderContext,
+      context.staticComponents.graphSchemaOptimizations
     )
     val innerCardinality = cardinalities.get(inner.id)
     val skippedRows = innerCardinality - skipCardinality
@@ -3181,7 +3183,8 @@ case class LogicalPlanProducer(
       context.plannerState.input.labelInfo,
       context.plannerState.input.relTypeInfo,
       context.semanticTable,
-      context.plannerState.indexCompatiblePredicatesProviderContext
+      context.plannerState.indexCompatiblePredicatesProviderContext,
+      context.staticComponents.graphSchemaOptimizations
     )
     // Change solved and cardinality
     val keptAttributes =
@@ -3273,7 +3276,8 @@ case class LogicalPlanProducer(
       context.plannerState.input.labelInfo,
       context.plannerState.input.relTypeInfo,
       context.semanticTable,
-      context.plannerState.indexCompatiblePredicatesProviderContext
+      context.plannerState.indexCompatiblePredicatesProviderContext,
+      context.staticComponents.graphSchemaOptimizations
     )
     // Change solved and cardinality
     val keptAttributes =
@@ -4047,7 +4051,8 @@ case class LogicalPlanProducer(
         context.plannerState.input.labelInfo,
         context.plannerState.input.relTypeInfo,
         context.semanticTable,
-        context.plannerState.indexCompatiblePredicatesProviderContext
+        context.plannerState.indexCompatiblePredicatesProviderContext,
+        context.staticComponents.graphSchemaOptimizations
       )
     solveds.set(plan.id, solved)
     cardinalities.set(plan.id, cardinality)

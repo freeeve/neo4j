@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.CardinalityCostModel
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.LogicalPlanRewritten
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.AndsReorderable
@@ -122,7 +123,8 @@ case object SortPredicatesBySelectivity extends Phase[PlannerContext, LogicalPla
           labelInfo,
           relTypeInfo,
           from.semanticTable(),
-          IndexCompatiblePredicatesProviderContext.default
+          IndexCompatiblePredicatesProviderContext.default,
+          GraphSchemaOptimizations.Disabled
         )
         val selectivity = (cardinality / incomingCardinality).getOrElse(Selectivity.ONE)
         PredicateCost(costPerRow, selectivity)

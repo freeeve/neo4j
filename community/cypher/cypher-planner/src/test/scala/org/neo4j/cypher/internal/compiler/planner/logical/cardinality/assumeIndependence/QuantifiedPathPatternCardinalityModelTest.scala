@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.IndependenceCombiner
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.test_helpers.TestGraphStatistics
 import org.neo4j.cypher.internal.expressions.DifferentRelationships
 import org.neo4j.cypher.internal.expressions.LabelName
@@ -83,7 +84,8 @@ class QuantifiedPathPatternCardinalityModelTest extends CypherFunSuite with Quan
       cardinalityModel = null,
       allNodesCardinality = Cardinality(200),
       LabelInferenceStrategy.NoInference,
-      Set.empty
+      Set.empty,
+      GraphSchemaOptimizations.Disabled
     )
 
     val labelInfo: LabelInfo =

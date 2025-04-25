@@ -27,6 +27,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.QueryGraphCard
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.RelTypeInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.SelectivityCalculator
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.SelectivityCombiner
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.planner.spi.PlanContext
@@ -47,7 +48,8 @@ final class AssumeIndependenceQueryGraphCardinalityModel(
     relTypeInfo: RelTypeInfo,
     semanticTable: SemanticTable,
     indexPredicateProviderContext: IndexCompatiblePredicatesProviderContext,
-    cardinalityModel: CardinalityModel
+    cardinalityModel: CardinalityModel,
+    graphSchemaOptimizations: GraphSchemaOptimizations
   ): Cardinality = {
     // Plan context statistics must be consulted at least one per query, otherwise approximately 60k tests fail, so we cache the total number of nodes here
     val allNodesCardinality = planContext.statistics.nodesAllCardinality()
@@ -61,7 +63,8 @@ final class AssumeIndependenceQueryGraphCardinalityModel(
       cardinalityModel,
       allNodesCardinality,
       labelInferenceStrategy,
-      queryGraph.argumentIds
+      queryGraph.argumentIds,
+      graphSchemaOptimizations
     )
     // First calculate the cardinality of the "top-level" match query graph while keeping track of newly encountered node labels
     val (moreLabelInfo, matchCardinality) = getBaseQueryGraphCardinality(context, previousLabelInfo, queryGraph)

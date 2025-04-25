@@ -24,8 +24,11 @@ import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.AsExplicitlyPropertyScannable
 import org.neo4j.cypher.internal.expressions.Expression
+import org.neo4j.cypher.internal.expressions.HasLabels
+import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Property
+import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.PropertyTypeMapper
@@ -47,10 +50,15 @@ case object resolveImplicitlySolvedPredicates extends SelectionCandidateGenerato
         IsTypedPredicateCandidate(variable, property.propertyKey.name, e)
       }
 
+    val unsolvedHasLabels = unsolvedPredicates.collect {
+      case p @ HasLabels(v: Variable, Seq(labelName)) => (v, labelName, p)
+    }
+
     val implicitlySolvedPredicates = solvedNodePropertyNotNullPredicates(input, unsolvedNotNullPredicates, context) ++
       solvedRelationshipPropertyNotNullPredicates(input, unsolvedNotNullPredicates, context) ++
       solvedNodePropertyIsTypedPredicates(input, unsolvedIsTypedPredicates, context) ++
-      solvedRelationshipPropertyIsTypedPredicates(input, unsolvedIsTypedPredicates, context)
+      solvedRelationshipPropertyIsTypedPredicates(input, unsolvedIsTypedPredicates, context) ++
+      solvedNodeLabelPredicates(input, unsolvedHasLabels, context)
 
     if (implicitlySolvedPredicates.isEmpty) {
       Iterator.empty
@@ -132,5 +140,20 @@ case object resolveImplicitlySolvedPredicates extends SelectionCandidateGenerato
         propertyType
       )
     } yield predicateCandidate.predicate
+  }
+
+  def solvedNodeLabelPredicates(
+    plan: LogicalPlan,
+    unsolvedHasLabels: Set[(Variable, LabelName, HasLabels)],
+    context: LogicalPlanningContext
+  ): Set[HasLabels] = {
+    lazy val labelInfo =
+      context.staticComponents.planningAttributes.solveds(plan.id).asSinglePlannerQuery.queryGraph.selections.labelInfo
+
+    for {
+      (variable, unsolvedLabel, predExpr) <- unsolvedHasLabels
+      knownLabels = labelInfo.getOrElse(variable, Set.empty)
+      if context.staticComponents.graphSchemaOptimizations.isLabelImplied(unsolvedLabel, knownLabels)
+    } yield predExpr
   }
 }

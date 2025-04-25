@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.helpers.PredicateHelper.coercePredicatesWithAnds
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.ConstantTemporalFunction
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Contains
@@ -186,7 +187,8 @@ object ShardPredicatePushdownPartition {
               labelAndRelTypeInfo.labelInfo,
               labelAndRelTypeInfo.relTypeInfo,
               context.semanticTable,
-              IndexCompatiblePredicatesProviderContext.default
+              IndexCompatiblePredicatesProviderContext.default,
+              GraphSchemaOptimizations.Disabled
             )
           case None =>
             // We should never hit this scenario since any variable with empty sets of predicates should never be added to the map.

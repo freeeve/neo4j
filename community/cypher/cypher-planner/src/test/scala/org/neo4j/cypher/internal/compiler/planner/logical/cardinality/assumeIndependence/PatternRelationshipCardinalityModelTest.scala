@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringIn
 import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.cardinality.IndependenceCombiner
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.test_helpers.TestGraphStatistics
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.RelTypeName
@@ -57,7 +58,8 @@ class PatternRelationshipCardinalityModelTest extends CypherFunSuite with Patter
       cardinalityModel = null,
       allNodesCardinality = null,
       LabelInferenceStrategy.NoInference,
-      Set.empty
+      Set.empty,
+      GraphSchemaOptimizations.Disabled
     )
     val labelInfo: LabelInfo = Map(v"a" -> Set(LabelName("L")(InputPosition.NONE)))
     val cardinality = getSimpleRelationshipCardinality(
@@ -90,7 +92,8 @@ class PatternRelationshipCardinalityModelTest extends CypherFunSuite with Patter
       cardinalityModel = null,
       allNodesCardinality = null,
       LabelInferenceStrategy.NoInference,
-      Set.empty
+      Set.empty,
+      GraphSchemaOptimizations.Disabled
     )
     val labelInfo: LabelInfo = Map(v"a" -> Set(LabelName("L")(InputPosition.NONE)))
     val cardinality = getSimpleRelationshipCardinality(
@@ -123,7 +126,8 @@ class PatternRelationshipCardinalityModelTest extends CypherFunSuite with Patter
       cardinalityModel = null,
       allNodesCardinality = Cardinality.SINGLE,
       LabelInferenceStrategy.NoInference,
-      Set.empty
+      Set.empty,
+      GraphSchemaOptimizations.Disabled
     )
     val labelInfo: LabelInfo = Map(v"a" -> Set(LabelName("L")(InputPosition.NONE)))
     val relationship =
@@ -151,7 +155,8 @@ class PatternRelationshipCardinalityModelTest extends CypherFunSuite with Patter
       cardinalityModel = null,
       allNodesCardinality = null,
       LabelInferenceStrategy.NoInference,
-      Set.empty
+      Set.empty,
+      GraphSchemaOptimizations.Disabled
     )
     val directions = List(SemanticDirection.INCOMING, SemanticDirection.OUTGOING, SemanticDirection.BOTH)
     for (direction <- directions) withClue(direction) {

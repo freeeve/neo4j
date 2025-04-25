@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.CardinalityMod
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.LabelInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.RelTypeInfo
 import org.neo4j.cypher.internal.compiler.planner.logical.SimpleMetricsFactory
+import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.simpleExpressionEvaluator
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.BooleanExpression
@@ -66,7 +67,8 @@ abstract class CompositeExpressionSelectivityCalculatorWithSingleExpressionsTest
         semanticTable,
         IndexCompatiblePredicatesProviderContext.default,
         cardinalityModel,
-        Set.empty
+        Set.empty,
+        GraphSchemaOptimizations.Disabled
       )
     }
   }
