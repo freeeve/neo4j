@@ -115,6 +115,14 @@ class LogsRepositoryTest {
     }
 
     @Test
+    void shouldIgnoreFileWithOtherVersionSuffix() throws IOException {
+        var similarFile = directory.resolve(BASE_NAME + "-2");
+        fs.write(similarFile).close();
+        assertThat(fs.fileExists(similarFile)).isTrue();
+        assertThat(logRepository.isEmpty()).isTrue();
+    }
+
+    @Test
     void shouldListEmptyIfNoLogFiles() throws IOException {
         assertThat(fs.listFiles(directory)).isEmpty();
         assertThat(logRepository.isEmpty()).isTrue();

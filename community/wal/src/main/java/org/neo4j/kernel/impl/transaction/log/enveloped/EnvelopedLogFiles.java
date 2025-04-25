@@ -295,7 +295,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws IOException {
         if (appendingChannel != null) {
             appendingChannel.close();
             currentWriteChannel = null;
@@ -400,6 +400,11 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
     public LogFilesMetadata logFilesMetadata(boolean reversed) throws IOException {
         return new LogFilesMetadata(logsRepository, reversed);
+    }
+
+    public void remove() throws IOException {
+        close();
+        logsRepository.deleteLogFilesFrom(0);
     }
 
     private static class EnvelopedLogRotation implements LogRotation {

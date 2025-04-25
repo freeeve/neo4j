@@ -34,6 +34,7 @@ import org.neo4j.io.fs.StoreChannel;
 class LogsRepository {
     static final long BASE_VERSION = 0;
     private static final char VERSION_SUFFIX = '.';
+    private static final String VERSION_SUFFIX_REG = "\\.";
     private final FileSystemAbstraction fs;
     private final Path directory;
     private final String baseName;
@@ -47,7 +48,7 @@ class LogsRepository {
         this.fs = fs;
         this.directory = directory;
         this.baseName = baseName;
-        this.pattern = Pattern.compile(baseName + VERSION_SUFFIX + "(?<VERSION>[0-9]*)");
+        this.pattern = Pattern.compile(baseName + VERSION_SUFFIX_REG + "(?<VERSION>[0-9]*)");
     }
 
     LogChannelContext<StoreChannel> openReadChannel(long version) throws IOException {
@@ -122,9 +123,9 @@ class LogsRepository {
         if (reverse) {
             comparator = comparator.reversed();
         }
-
-        var paths =
-                fs.listFiles(directory, entry -> entry.getFileName().toString().startsWith(baseName));
+        var paths = fs.listFiles(
+                directory,
+                entry -> pattern.matcher(entry.getFileName().toString()).matches());
         Arrays.sort(paths, comparator);
         return paths;
     }

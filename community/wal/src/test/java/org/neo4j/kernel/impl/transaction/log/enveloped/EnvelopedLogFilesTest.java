@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.kernel.KernelVersion;
@@ -889,6 +890,23 @@ class EnvelopedLogFilesTest {
         positions.removeLast();
 
         verifyReadingAtPositions(positions);
+    }
+
+    @Test
+    void shouldRemoveAllFiles() throws IOException {
+        envelopedLogFiles.initialise();
+        var envelopeWriteChannel = envelopedLogFiles.currentWriteChannel();
+
+        for (int i = 0; i < totalSegments * 4; i++) {
+            writeData(envelopeWriteChannel, new byte[segmentBlockSize]);
+        }
+        envelopeWriteChannel.prepareForFlush().flush();
+
+        assertThat(mirroringRepository.logVersionsRange()).isEqualTo(LongRange.range(0, 7));
+
+        envelopedLogFiles.remove();
+
+        assertThat(mirroringRepository.isEmpty()).isTrue();
     }
 
     private void verifyReadingAtPositions(ArrayList<Pair<Long, Long>> positions) throws IOException {
