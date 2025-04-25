@@ -29,8 +29,11 @@ import org.neo4j.cypher.internal.ResourceManagerFactory
 import org.neo4j.cypher.internal.RuntimeContext
 import org.neo4j.cypher.internal.RuntimeContextManager
 import org.neo4j.cypher.internal.compiler.ExecutionModel
+import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedParallel
+import org.neo4j.cypher.internal.compiler.ExecutionModel.BatchedSingleThreaded
 import org.neo4j.cypher.internal.javacompat.GraphDatabaseCypherService
 import org.neo4j.cypher.internal.options.CypherDebugOptions
+import org.neo4j.cypher.internal.options.CypherParallelRuntimeConfigOption
 import org.neo4j.cypher.internal.plandescription.InternalPlanDescription
 import org.neo4j.cypher.internal.plandescription.PlanDescriptionBuilder
 import org.neo4j.cypher.internal.planner.spi.IDPPlannerName
@@ -82,6 +85,7 @@ import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
 
 import java.util.Collections
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
@@ -1055,6 +1059,28 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
 
     val queryOptions = edition.defaultQueryOptions.copy(defaultLanguage = dbDefaultLanguage)
 
+    val executionModel = runtime.name.toUpperCase(Locale.ROOT) match {
+      case "PARALLEL" =>
+        queryOptions.queryOptions.parallelRuntimeConfigOption match {
+          case CypherParallelRuntimeConfigOption.none =>
+            BatchedParallel(
+              edition.cypherConfig.pipelinedBatchSizeSmall,
+              edition.cypherConfig.pipelinedBatchSizeBig,
+              providedOrderPreserving = false
+            )
+          case CypherParallelRuntimeConfigOption.leverageOrder =>
+            BatchedParallel(
+              edition.cypherConfig.pipelinedBatchSizeSmall,
+              edition.cypherConfig.pipelinedBatchSizeBig,
+              providedOrderPreserving = true
+            )
+        }
+
+      case "PIPELINED" =>
+        BatchedSingleThreaded(edition.cypherConfig.pipelinedBatchSizeSmall, edition.cypherConfig.pipelinedBatchSizeBig)
+      case _ => ExecutionModel.Volcano
+    }
+
     runtimeContextManager.create(
       queryOptions.resolvedLanguage,
       queryContext,
@@ -1068,7 +1094,7 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
       interpretedPipesFallback = queryOptions.queryOptions.interpretedPipesFallback,
       anonymousVariableNameGenerator = new AnonymousVariableNameGenerator(),
       () => {},
-      ExecutionModel.default
+      executionModel
     )
   }
 
