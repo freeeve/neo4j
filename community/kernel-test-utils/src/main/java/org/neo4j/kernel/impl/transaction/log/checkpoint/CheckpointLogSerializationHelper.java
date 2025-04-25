@@ -56,11 +56,7 @@ public class CheckpointLogSerializationHelper {
     }
 
     public static int getExpectedPositionAfterOneCheckpoint() {
-        if (LATEST_LOG_FORMAT.usesSegments()) {
-            return LATEST_LOG_FORMAT.getDefaultSegmentBlockSize() + getCheckpointRecordLengthBytes();
-        } else {
-            return LATEST_LOG_FORMAT.getHeaderSize() + getCheckpointRecordLengthBytes();
-        }
+        return (int) LATEST_LOG_FORMAT.getDefaultDataStartByteOffset() + getCheckpointRecordLengthBytes();
     }
 
     public static long getMaxCheckpointFileSize() {
@@ -100,9 +96,6 @@ public class CheckpointLogSerializationHelper {
     }
 
     public static long expectedNewCheckpointFileSize() {
-        if (LATEST_LOG_FORMAT.usesSegments()) {
-            return LATEST_LOG_FORMAT.getDefaultSegmentBlockSize() + getCheckpointRecordLengthBytes();
-        }
-        return LATEST_LOG_FORMAT.getHeaderSize() + getCheckpointRecordLengthBytes();
+        return LATEST_LOG_FORMAT.getDefaultDataStartByteOffset() + getCheckpointRecordLengthBytes();
     }
 }

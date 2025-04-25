@@ -58,9 +58,7 @@ class VersionAwareLogEntryReaderIT {
     // this offset includes log header and transaction that create node on test setup
     // Magic number represents number of bytes that log file is actually using (in form of header size + payload)
     // to be able to check that its like that or to update manually you can disable pre-allocation + some manual checks.
-    private static final long HEADER_SIZE = LATEST_LOG_FORMAT.usesSegments()
-            ? LATEST_LOG_FORMAT.getDefaultSegmentBlockSize()
-            : LATEST_LOG_FORMAT.getHeaderSize();
+    private static final long HEADER_SIZE = LATEST_LOG_FORMAT.getDefaultDataStartByteOffset();
     private static final long AT_LEAST_END_OF_DATA_OFFSET = HEADER_SIZE + 1_000;
     private static final long AT_MOST_END_OF_DATA_OFFSET = HEADER_SIZE + kibiBytes(128);
     private static final StoreId STORE_ID = new StoreId(4, 5, "engine-1", "format-1", 1, 2);

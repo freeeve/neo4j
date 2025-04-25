@@ -118,6 +118,8 @@ public class DefaultRecoveryService implements RecoveryService {
         var lastClosedTransaction = transactionIdStore.getLastClosedTransaction();
         var lastClosedTransactionId = lastClosedTransaction.transactionId();
         long logVersion = lastClosedTransaction.logPosition().getLogVersion();
+        var logFormat = fromKernelVersion(versionProvider.kernelVersion());
+        var startOffset = logFormat.getDefaultDataStartByteOffset();
         log.warn(
                 "Recovery detected that transaction logs were missing. "
                         + "Resetting offset of last closed transaction to point to the head of %d transaction log file.",
@@ -127,7 +129,7 @@ public class DefaultRecoveryService implements RecoveryService {
                 lastClosedTransaction.transactionId().appendIndex(),
                 versionProvider.kernelVersion(),
                 logVersion,
-                fromKernelVersion(versionProvider.kernelVersion()).getHeaderSize(),
+                startOffset,
                 lastClosedTransactionId.checksum(),
                 lastClosedTransactionId.commitTimestamp(),
                 lastClosedTransactionId.consensusIndex());

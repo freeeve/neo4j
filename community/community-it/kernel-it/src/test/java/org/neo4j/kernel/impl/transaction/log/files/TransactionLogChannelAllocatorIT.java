@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.dynamic_read_only_failover;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.writeLogHeader;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.UNKNOWN_LOG_SEGMENT_SIZE;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
@@ -88,9 +87,7 @@ class TransactionLogChannelAllocatorIT {
     private TransactionLogChannelAllocator fileAllocator;
     private final AssertableLogProvider logProvider = new AssertableLogProvider();
     private final Config config = Config.defaults();
-    private final int EMPTY_LOG_FILE_SIZE = LATEST_LOG_FORMAT.usesSegments()
-            ? LATEST_LOG_FORMAT.getDefaultSegmentBlockSize()
-            : LATEST_LOG_FORMAT.getHeaderSize();
+    private final int EMPTY_LOG_FILE_SIZE = (int) LATEST_LOG_FORMAT.getDefaultDataStartByteOffset();
 
     @BeforeEach
     void setUp() {
@@ -104,7 +101,14 @@ class TransactionLogChannelAllocatorIT {
         try (var storeChannel = fileSystem.write(path)) {
             writeLogHeader(
                     storeChannel,
-                    LATEST_LOG_FORMAT.newHeader(1, 1, 1, STORE_ID, UNKNOWN_LOG_SEGMENT_SIZE, 1, LATEST_KERNEL_VERSION),
+                    LATEST_LOG_FORMAT.newHeader(
+                            1,
+                            1,
+                            1,
+                            STORE_ID,
+                            LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
+                            1,
+                            LATEST_KERNEL_VERSION),
                     INSTANCE);
         }
 
@@ -124,7 +128,14 @@ class TransactionLogChannelAllocatorIT {
         try (StoreChannel storeChannel = fileSystem.write(path)) {
             writeLogHeader(
                     storeChannel,
-                    LATEST_LOG_FORMAT.newHeader(1, 1, 1, STORE_ID, UNKNOWN_LOG_SEGMENT_SIZE, 1, LATEST_KERNEL_VERSION),
+                    LATEST_LOG_FORMAT.newHeader(
+                            1,
+                            1,
+                            1,
+                            STORE_ID,
+                            LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
+                            1,
+                            LATEST_KERNEL_VERSION),
                     INSTANCE);
         }
 

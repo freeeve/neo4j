@@ -21,7 +21,6 @@ package org.neo4j.kernel.diagnostics.providers;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.UNKNOWN_LOG_SEGMENT_SIZE;
 import static org.neo4j.logging.LogAssertions.assertThat;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
@@ -268,7 +267,7 @@ class TransactionRangeDiagnosticsTest {
                                 headerAppendIndex,
                                 LogHeader.UNKNOWN_TERM,
                                 new StoreId(12345, 56789, "engine-1", "format-1", 1, 1),
-                                UNKNOWN_LOG_SEGMENT_SIZE,
+                                LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                                 BASE_TX_CHECKSUM,
                                 LATEST_KERNEL_VERSION));
             }

@@ -29,7 +29,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryFactory.newStartEntry;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.UNKNOWN_LOG_SEGMENT_SIZE;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
@@ -72,7 +71,7 @@ class TransactionLogFileInformationTest {
                 baseId + 1L,
                 LogHeader.UNKNOWN_TERM,
                 storeId,
-                UNKNOWN_LOG_SEGMENT_SIZE,
+                LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 LATEST_KERNEL_VERSION);
         when(logFiles.getLogFile().extractHeader(version)).thenReturn(expectedHeader);
@@ -117,7 +116,7 @@ class TransactionLogFileInformationTest {
                 baseId + 1L,
                 LogHeader.UNKNOWN_TERM,
                 storeId,
-                UNKNOWN_LOG_SEGMENT_SIZE,
+                LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 LATEST_KERNEL_VERSION);
         when(logHeaderCache.getLogHeader(version)).thenReturn(expectedHeader);
@@ -139,7 +138,7 @@ class TransactionLogFileInformationTest {
                 4,
                 LogHeader.UNKNOWN_TERM,
                 storeId,
-                UNKNOWN_LOG_SEGMENT_SIZE,
+                LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 LATEST_KERNEL_VERSION);
         when(logFile.extractHeader(anyLong())).thenReturn(expectedHeader);
@@ -166,7 +165,7 @@ class TransactionLogFileInformationTest {
                 4,
                 LogHeader.UNKNOWN_TERM,
                 storeId,
-                UNKNOWN_LOG_SEGMENT_SIZE,
+                LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                 BASE_TX_CHECKSUM,
                 LATEST_KERNEL_VERSION);
         when(logFile.extractHeader(anyLong())).thenReturn(expectedHeader);

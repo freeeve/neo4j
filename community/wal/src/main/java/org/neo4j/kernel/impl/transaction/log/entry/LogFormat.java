@@ -329,7 +329,8 @@ public enum LogFormat {
                 buffer.put(logHeader.getKernelVersion().version());
 
                 // Pad rest with zeroes
-                while (buffer.position() < logHeader.getStartPosition().getByteOffset()) {
+                while (buffer.hasRemaining()
+                        && buffer.position() < logHeader.getStartPosition().getByteOffset()) {
                     buffer.put((byte) 0);
                 }
             } finally {
@@ -446,6 +447,12 @@ public enum LogFormat {
 
     public boolean usesSegments() {
         return defaultSegmentBlockSize != UNKNOWN_LOG_SEGMENT_SIZE;
+    }
+
+    // Where possible read the LogHeader and use LogHeader.getStartPosition() to find the start position,
+    // but where no log file is available this can be used
+    public long getDefaultDataStartByteOffset() {
+        return usesSegments() ? defaultSegmentBlockSize : headerSize;
     }
 
     public static LogHeader parseHeader(ByteBuffer buffer, boolean strict, Path sourceFile) throws IOException {

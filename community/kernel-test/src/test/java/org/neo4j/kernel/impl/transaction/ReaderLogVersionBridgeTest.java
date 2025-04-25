@@ -25,7 +25,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.UNKNOWN_LOG_SEGMENT_SIZE;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
 import static org.neo4j.test.LatestVersions.LATEST_LOG_FORMAT;
@@ -95,7 +94,7 @@ class ReaderLogVersionBridgeTest {
                         2L,
                         LogHeader.UNKNOWN_TERM,
                         storeId,
-                        UNKNOWN_LOG_SEGMENT_SIZE,
+                        LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
                         BASE_TX_CHECKSUM,
                         LATEST_KERNEL_VERSION);
                 LATEST_LOG_FORMAT.serializeHeader(buffer, logHeader);

@@ -28,7 +28,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.kernel.impl.transaction.log.LastAppendBatchInfoProvider.EMPTY_LAST_APPEND_BATCH_INFO_PROVIDER;
-import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.UNKNOWN_LOG_SEGMENT_SIZE;
 import static org.neo4j.kernel.recovery.RecoveryStartInformation.MISSING_LOGS;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.test.LatestVersions.LATEST_KERNEL_VERSION;
@@ -62,7 +61,13 @@ class RecoveryStartInformationProviderTest {
     @BeforeEach
     void setUp() throws IOException {
         var logHeader = LATEST_LOG_FORMAT.newHeader(
-                0, 1, LogHeader.UNKNOWN_TERM, null, UNKNOWN_LOG_SEGMENT_SIZE, BASE_TX_CHECKSUM, LATEST_KERNEL_VERSION);
+                0,
+                1,
+                LogHeader.UNKNOWN_TERM,
+                null,
+                LATEST_LOG_FORMAT.getDefaultSegmentBlockSize(),
+                BASE_TX_CHECKSUM,
+                LATEST_KERNEL_VERSION);
         when(logFile.extractHeader(0)).thenReturn(logHeader);
         when(logFiles.getLogFile()).thenReturn(logFile);
     }
@@ -198,9 +203,9 @@ class RecoveryStartInformationProviderTest {
 
         // then
         verify(monitor).noCheckPointFound();
-        assertEquals(
-                new LogPosition(0, LogFormat.fromKernelVersion(kernelVersion).getHeaderSize()),
-                recoveryStartInformation.transactionLogPosition());
+        var logFormat = LogFormat.fromKernelVersion(kernelVersion);
+        var startOffset = logFormat.getDefaultDataStartByteOffset();
+        assertEquals(new LogPosition(0, startOffset), recoveryStartInformation.transactionLogPosition());
         assertEquals(LogPosition.UNSPECIFIED, recoveryStartInformation.getCheckpointPosition());
         assertEquals(10L, recoveryStartInformation.firstAppendIndexAfterLastCheckPoint());
         assertTrue(recoveryStartInformation.isRecoveryRequired());
