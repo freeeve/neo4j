@@ -271,7 +271,6 @@ object TestConf {
     "internal.dbms.cypher.enable_experimental_versions" -> "true",
     // For unknown reasons multiversion store format override (NEO4J_OVERRIDE_STORE_FORMAT) fails here
     "db.format" -> "block",
-    "internal.dbms.extra_lock_verification" -> "false",
     "server.bolt.enabled" -> "true",
     "server.routing.listen_address" -> "127.0.0.1:0",
     "server.routing.advertised_address" -> "127.0.0.1:0",
