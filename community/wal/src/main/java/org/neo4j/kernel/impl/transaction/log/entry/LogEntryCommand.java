@@ -38,7 +38,7 @@ public class LogEntryCommand extends AbstractLogEntry {
 
     @Override
     public String toString(Mask mask) {
-        return "Command[" + System.lineSeparator() + command.toString(mask) + "]";
+        return command.toString(mask);
     }
 
     @Override
