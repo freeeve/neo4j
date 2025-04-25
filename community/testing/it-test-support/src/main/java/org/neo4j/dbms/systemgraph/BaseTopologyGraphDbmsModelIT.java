@@ -529,22 +529,49 @@ public abstract class BaseTopologyGraphDbmsModelIT {
         var referenceNode = tx.createNode(DATABASE_NAME_LABEL);
         referenceNode.setProperty(PRIMARY_PROPERTY, primary);
         referenceNode.setProperty(DATABASE_NAME_PROPERTY, NormalizedDatabaseName.normalize(name));
+        referenceNode.setProperty(DISPLAY_NAME_PROPERTY, displayName(namespace, name));
         referenceNode.setProperty(NAMESPACE_PROPERTY, namespace);
         referenceNode.createRelationshipTo(databaseNode, TARGETS_RELATIONSHIP);
         return referenceNode;
     }
 
+    private String displayName(String namespace, String name) {
+        if (namespace.equals(DEFAULT_NAMESPACE)) {
+            return new NormalizedDatabaseName(name).name();
+        } else {
+            return new NormalizedDatabaseName(namespace + "." + name).name();
+        }
+    }
+
     protected Node createExternalReferenceForDatabase(
             Transaction tx, String name, String targetName, RemoteUri uri, UUID uuid) {
-        return createExternalReferenceForDatabase(tx, name, targetName, uri, uuid, CypherVersion.Cypher5);
+        return createExternalReferenceForDatabase(
+                tx, DEFAULT_NAMESPACE, name, targetName, uri, uuid, CypherVersion.Cypher5);
     }
 
     protected Node createExternalReferenceForDatabase(
             Transaction tx, String name, String targetName, RemoteUri uri, UUID uuid, CypherVersion version) {
+        return createExternalReferenceForDatabase(tx, DEFAULT_NAMESPACE, name, targetName, uri, uuid, version);
+    }
+
+    protected Node createExternalReferenceForDatabase(
+            Transaction tx, String namespace, String name, String targetName, RemoteUri uri, UUID uuid) {
+        return createExternalReferenceForDatabase(tx, namespace, name, targetName, uri, uuid, CypherVersion.Cypher5);
+    }
+
+    protected Node createExternalReferenceForDatabase(
+            Transaction tx,
+            String namespace,
+            String name,
+            String targetName,
+            RemoteUri uri,
+            UUID uuid,
+            CypherVersion version) {
         var referenceNode = tx.createNode(REMOTE_DATABASE_LABEL, DATABASE_NAME_LABEL);
         referenceNode.setProperty(PRIMARY_PROPERTY, false);
-        referenceNode.setProperty(NAMESPACE_PROPERTY, DEFAULT_NAMESPACE);
+        referenceNode.setProperty(NAMESPACE_PROPERTY, namespace);
         referenceNode.setProperty(DATABASE_NAME_PROPERTY, NormalizedDatabaseName.normalize(name));
+        referenceNode.setProperty(DISPLAY_NAME_PROPERTY, displayName(namespace, name));
         referenceNode.setProperty(TARGET_NAME_PROPERTY, NormalizedDatabaseName.normalize(targetName));
         var uriString =
                 String.format("%s://%s", uri.getScheme(), uri.getAddresses().get(0));
@@ -554,13 +581,6 @@ public abstract class BaseTopologyGraphDbmsModelIT {
         referenceNode.setProperty(REMOTE_PASSWORD_PROPERTY, "password".getBytes());
         referenceNode.setProperty(IV_PROPERTY, "i_vector".getBytes());
         referenceNode.setProperty(DATABASE_DEFAULT_LANGUAGE_PROPERTY, version.persistedValue);
-        return referenceNode;
-    }
-
-    protected Node createExternalReferenceForDatabase(
-            Transaction tx, String namespace, String name, String targetName, RemoteUri uri, UUID uuid) {
-        var referenceNode = createExternalReferenceForDatabase(tx, name, targetName, uri, uuid);
-        referenceNode.setProperty(NAMESPACE_PROPERTY, namespace);
         return referenceNode;
     }
 

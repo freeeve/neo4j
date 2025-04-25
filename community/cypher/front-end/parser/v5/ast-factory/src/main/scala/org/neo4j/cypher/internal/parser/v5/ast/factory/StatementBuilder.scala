@@ -185,7 +185,7 @@ trait StatementBuilder extends Cypher5ParserListener {
     ctx.ast =
       if (ctx.graphReference() != null) ctx.graphReference().ast
       else if (ctx.functionInvocation() != null)
-        GraphFunctionReference(ctx.functionInvocation().ast(), parseStringGraphReferences = false)(pos(ctx))
+        GraphFunctionReference(ctx.functionInvocation().ast(), resolveByDisplayName = false)(pos(ctx))
       else GraphDirectReference(CatalogName(false, ctx.symbolicAliasName().ast[ArraySeq[String]](): _*))(pos(ctx))
   }
 

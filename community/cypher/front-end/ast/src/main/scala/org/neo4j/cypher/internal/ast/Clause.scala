@@ -644,7 +644,7 @@ final case class GraphDirectReference(catalogName: CatalogName)(val position: In
   }
 }
 
-final case class GraphFunctionReference(functionInvocation: FunctionInvocation, parseStringGraphReferences: Boolean)(
+final case class GraphFunctionReference(functionInvocation: FunctionInvocation, resolveByDisplayName: Boolean)(
   val position: InputPosition
 ) extends GraphReference with SemanticAnalysisTooling {
   override def print: String = ExpressionStringifier(_.asCanonicalStringVal).apply(functionInvocation)

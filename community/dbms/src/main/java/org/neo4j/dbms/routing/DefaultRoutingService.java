@@ -152,9 +152,15 @@ public class DefaultRoutingService implements RoutingService, PanicEventHandler 
             databaseName = defaultDatabaseResolver.defaultDatabase(user);
         }
         String finalDatabaseName = databaseName;
-        return databaseReferenceRepo
-                .getByAlias(databaseName)
+        var resolvedReference = databaseReferenceRepo
+                .getByDisplayName(databaseName)
                 .orElseThrow(() -> RoutingTableServiceHelpers.databaseNotFoundException(finalDatabaseName));
+        if (resolvedReference.namespace().isPresent()) {
+            // reject constituents
+            throw RoutingTableServiceHelpers.databaseNotFoundException(finalDatabaseName);
+        } else {
+            return resolvedReference;
+        }
     }
 
     private boolean configAllowsForClientSideRouting(

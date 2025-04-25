@@ -255,23 +255,40 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         createInternalReferenceForDatabase(tx, compDb1.name(), "locAlias", false, fooDb);
         createExternalReferenceForDatabase(tx, compDb1.name(), "remAlias", "rem", remoteNeo4j, barId2);
 
-        var expected = Set.of(
-                new DatabaseReferenceImpl.External(name("foo"), name("bar"), remoteNeo4j, barId),
-                new DatabaseReferenceImpl.Internal(name("foo"), fooDb, true),
-                new DatabaseReferenceImpl.Internal(name("fooAlias"), fooDb, false),
-                new DatabaseReferenceImpl.Composite(
-                        compDb1.normalizedName(),
-                        compDb1,
-                        Set.of(
-                                new DatabaseReferenceImpl.Internal(name("locAlias"), compDb1Name, fooDb, false),
-                                new DatabaseReferenceImpl.External(
-                                        name("rem"), name("remAlias"), compDb1Name, remoteNeo4j, barId2))));
-
-        // when
-        var aliases = dbmsModel().getAllDatabaseReferences();
+        var db = new DatabaseReferenceImpl.Internal(name("foo"), fooDb, true);
+        var dbAlias = new DatabaseReferenceImpl.Internal(name("fooAlias"), fooDb, false);
+        var remoteAlias = new DatabaseReferenceImpl.External(name("foo"), name("bar"), remoteNeo4j, barId);
+        var localConstituent = new DatabaseReferenceImpl.Internal(name("locAlias"), compDb1Name, fooDb, false);
+        var remoteConstituent =
+                new DatabaseReferenceImpl.External(name("rem"), name("remAlias"), compDb1Name, remoteNeo4j, barId2);
+        var composite = new DatabaseReferenceImpl.Composite(
+                compDb1.normalizedName(), compDb1, Set.of(localConstituent, remoteConstituent));
+        var expected = Set.of(remoteAlias, db, dbAlias, composite);
 
         // then
+        var aliases = dbmsModel().getAllDatabaseReferences();
         assertThat(aliases).isEqualTo(expected);
+
+        assertThat(dbmsModel()
+                        .getDatabaseRefByDisplayName(new NormalizedDatabaseName("fooAlias"))
+                        .get())
+                .isEqualTo(dbAlias);
+        assertThat(dbmsModel()
+                        .getDatabaseRefByDisplayName(new NormalizedDatabaseName("bar"))
+                        .get())
+                .isEqualTo(remoteAlias);
+        assertThat(dbmsModel()
+                        .getDatabaseRefByDisplayName(new NormalizedDatabaseName("compDb1"))
+                        .get())
+                .isEqualTo(composite);
+        assertThat(dbmsModel()
+                        .getDatabaseRefByDisplayName(new NormalizedDatabaseName("compDb1.locAlias"))
+                        .get())
+                .isEqualTo(localConstituent);
+        assertThat(dbmsModel()
+                        .getDatabaseRefByDisplayName(new NormalizedDatabaseName("compDb1.remAlias"))
+                        .get())
+                .isEqualTo(remoteConstituent);
     }
 
     @Test

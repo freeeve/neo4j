@@ -33,8 +33,6 @@ import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer
 import org.neo4j.cypher.internal.frontend.phases.CompilationPhaseTracer.CompilationPhase
 import org.neo4j.cypher.internal.frontend.phases.VisitorPhase
 import org.neo4j.cypher.internal.frontend.phases.factories.PlanPipelineTransformerFactory
-import org.neo4j.cypher.internal.util.DeprecatedDatabaseNameNotification
-import org.neo4j.cypher.internal.util.InternalNotificationLogger
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.StepSequencer.DefaultPostCondition
 import org.neo4j.cypher.messages.MessageUtilProvider
@@ -74,8 +72,7 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
         value.statement(),
         context.databaseId,
         context.config.queryRouterForCompositeQueriesEnabled,
-        context.params,
-        context.notificationLogger
+        context.params
       )
     }
   }
@@ -93,18 +90,15 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
     semanticFeatures: Seq[SemanticFeature]
   ): VisitorPhase[PlannerContext, BaseState] = this
 
-  private def resolveStrictly(
+  private def resolveByDisplayName(
     databaseReferenceRepository: DatabaseReferenceRepository,
     graphNameWithContext: GraphNameWithContext,
     databaseId: NamedDatabaseId,
     allowCompositeQueries: Boolean
   ): Unit = {
     val catalogName = graphNameWithContext.graphName
-    val normalizedDatabaseName = new NormalizedDatabaseName(catalogName.qualifiedNameString)
-
-    toScala(databaseReferenceRepository.getByAlias(
-      NormalizedCatalogEntry.fromList(catalogName.names())
-    )) match {
+    val normalizedDatabaseName = new NormalizedDatabaseName(catalogName.simplifiedQualifiedNameString)
+    toScala(databaseReferenceRepository.getByDisplayName(normalizedDatabaseName)) match {
       case None =>
         throw DatabaseNotFoundHelper.databaseNameNotFoundWithoutDot(catalogName.qualifiedNameString)
       case Some(databaseReference)
@@ -121,26 +115,15 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
     }
   }
 
-  private def resolveNonStrictly(
+  private def resolveByCatalogName(
     databaseReferenceRepository: DatabaseReferenceRepository,
     graphNameWithContext: GraphNameWithContext,
     databaseId: NamedDatabaseId,
-    allowCompositeQueries: Boolean,
-    notificationLogger: InternalNotificationLogger
+    allowCompositeQueries: Boolean
   ): Unit = {
     val catalogName = graphNameWithContext.graphName
     val normalizedDatabaseName = new NormalizedDatabaseName(catalogName.qualifiedNameString)
-
-    if (!allowCompositeQueries && catalogName.names().size() > 1) {
-      notificationLogger.log(DeprecatedDatabaseNameNotification(catalogName.qualifiedNameString, Option.empty))
-    }
-
-    val resolvedAlias = if (catalogName.resolveStrictly) {
-      databaseReferenceRepository.getByAlias(NormalizedCatalogEntry.fromList(catalogName.names()))
-    } else {
-      databaseReferenceRepository.getByAlias(normalizedDatabaseName)
-    }
-    toScala(resolvedAlias) match {
+    toScala(databaseReferenceRepository.getByAlias(normalizedDatabaseName)) match {
       case None
         if !allowCompositeQueries || !isConstituent(
           databaseReferenceRepository,
@@ -171,21 +154,19 @@ case object VerifyGraphTarget extends VisitorPhase[PlannerContext, BaseState] wi
     statement: Statement,
     databaseId: NamedDatabaseId,
     allowCompositeQueries: Boolean,
-    params: MapValue,
-    notificationLogger: InternalNotificationLogger
+    params: MapValue
   ): Unit = {
     evaluateGraphSelection(statement, databaseReferenceRepository, params) match {
       case Some(graphNameWithContext) =>
         // add deprecation for aliases that need to be quoted if it's not a composite. This needs to be updated when we pass here for composite databases
-        if (graphNameWithContext.graphName.resolveStrictly) {
-          resolveStrictly(databaseReferenceRepository, graphNameWithContext, databaseId, allowCompositeQueries)
+        if (graphNameWithContext.graphName.resolveByDisplayName) {
+          resolveByDisplayName(databaseReferenceRepository, graphNameWithContext, databaseId, allowCompositeQueries)
         } else {
-          resolveNonStrictly(
+          resolveByCatalogName(
             databaseReferenceRepository,
             graphNameWithContext,
             databaseId,
-            allowCompositeQueries,
-            notificationLogger
+            allowCompositeQueries
           )
         }
       case _ =>

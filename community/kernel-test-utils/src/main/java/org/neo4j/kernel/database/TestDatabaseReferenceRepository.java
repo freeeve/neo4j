@@ -132,12 +132,15 @@ public final class TestDatabaseReferenceRepository {
                 new NormalizedDatabaseName(SYSTEM_DATABASE_NAME), NAMED_SYSTEM_DATABASE_ID, true);
 
         private final Map<NormalizedDatabaseName, DatabaseReference> databaseReferences;
+        private final Map<NormalizedDatabaseName, DatabaseReference> databaseReferencesByDisplayName;
         private final Map<NormalizedCatalogEntry, DatabaseReference> catalogDatabaseReferences;
         private final Map<UUID, DatabaseReference> databaseReferencesByUUID;
 
         public Fixed(Collection<DatabaseReference> databaseReferences) {
             this.databaseReferences =
                     databaseReferences.stream().collect(Collectors.toMap(DatabaseReference::alias, identity()));
+            this.databaseReferencesByDisplayName =
+                    databaseReferences.stream().collect(Collectors.toMap(DatabaseReference::fullName, identity()));
             this.catalogDatabaseReferences =
                     databaseReferences.stream().collect(Collectors.toMap(DatabaseReference::catalogEntry, identity()));
             this.databaseReferencesByUUID =
@@ -147,6 +150,8 @@ public final class TestDatabaseReferenceRepository {
         public Fixed(DatabaseReference... databaseReferences) {
             this.databaseReferences =
                     Arrays.stream(databaseReferences).collect(Collectors.toMap(DatabaseReference::alias, identity()));
+            this.databaseReferencesByDisplayName = Arrays.stream(databaseReferences)
+                    .collect(Collectors.toMap(DatabaseReference::fullName, identity()));
             this.catalogDatabaseReferences = Arrays.stream(databaseReferences)
                     .collect(Collectors.toMap(DatabaseReference::catalogEntry, identity()));
             this.databaseReferencesByUUID = Arrays.stream(databaseReferences)
@@ -165,6 +170,11 @@ public final class TestDatabaseReferenceRepository {
                 return Optional.of(SYSTEM_DATABASE_REFERENCE);
             }
             return Optional.ofNullable(databaseReferences.get(databaseAlias));
+        }
+
+        @Override
+        public Optional<DatabaseReference> getByDisplayName(NormalizedDatabaseName displayName) {
+            return Optional.ofNullable(databaseReferencesByDisplayName.get(displayName));
         }
 
         @Override

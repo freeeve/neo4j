@@ -52,6 +52,14 @@ public class ModelBasedDatabaseReferenceRepository implements DatabaseReferenceR
     }
 
     @Override
+    public Optional<DatabaseReference> getByDisplayName(NormalizedDatabaseName databaseAlias) {
+        if (databaseAlias.name().equals(SYSTEM_DATABASE_NAME)) {
+            return Optional.of(SYSTEM_DATABASE_REFERENCE);
+        }
+        return modelProvider.withModel(model -> model.getDatabaseRefByDisplayName(databaseAlias));
+    }
+
+    @Override
     public Optional<DatabaseReference> getByUuid(UUID databaseId) {
         if (Objects.equals(SYSTEM_DATABASE_REFERENCE.id(), databaseId)) {
             return Optional.of(SYSTEM_DATABASE_REFERENCE);

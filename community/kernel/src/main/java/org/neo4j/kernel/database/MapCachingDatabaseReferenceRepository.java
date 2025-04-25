@@ -27,12 +27,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceRepository.Caching {
     private final DatabaseReferenceRepository delegate;
-    private volatile Map<NormalizedDatabaseName, DatabaseReference> databaseRefsByName;
+    private volatile Map<NormalizedDatabaseName, DatabaseReference> databaseRefsByAlias;
+    private volatile Map<NormalizedDatabaseName, DatabaseReference> databaseRefsByDisplayName;
     private volatile Map<NormalizedCatalogEntry, DatabaseReference> databaseRefsByCatalogEntry;
     private volatile Map<UUID, DatabaseReference> databaseRefsByUUID;
 
     public MapCachingDatabaseReferenceRepository(DatabaseReferenceRepository delegate) {
-        this.databaseRefsByName = new ConcurrentHashMap<>();
+        this.databaseRefsByAlias = new ConcurrentHashMap<>();
+        this.databaseRefsByDisplayName = new ConcurrentHashMap<>();
         this.databaseRefsByCatalogEntry = new ConcurrentHashMap<>();
         this.databaseRefsByUUID = new ConcurrentHashMap<>();
         this.delegate = delegate;
@@ -52,8 +54,22 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
 
     @Override
     public Optional<DatabaseReference> getByAlias(NormalizedDatabaseName databaseAlias) {
-        var databaseRef =
-                Optional.ofNullable(databaseRefsByName.computeIfAbsent(databaseAlias, this::lookupReferenceOnDelegate));
+        var databaseRef = Optional.ofNullable(
+                databaseRefsByAlias.computeIfAbsent(databaseAlias, this::lookupReferenceOnDelegate));
+        databaseRef.ifPresent(databaseReference -> {
+            databaseRefsByCatalogEntry.putIfAbsent(databaseReference.catalogEntry(), databaseReference);
+            databaseRefsByUUID.putIfAbsent(databaseReference.id(), databaseReference);
+        });
+        return databaseRef;
+    }
+
+    @Override
+    public Optional<DatabaseReference> getByDisplayName(NormalizedDatabaseName displayName) {
+        var databaseRef = Optional.ofNullable(
+                databaseRefsByDisplayName.computeIfAbsent(displayName, this::lookupDisplayNameReferenceOnDelegate));
+
+        // do not update databaseRefsByName, as this may have a different result that is preferred if the name is
+        // ambiguous
         databaseRef.ifPresent(databaseReference -> {
             databaseRefsByCatalogEntry.putIfAbsent(databaseReference.catalogEntry(), databaseReference);
             databaseRefsByUUID.putIfAbsent(databaseReference.id(), databaseReference);
@@ -66,8 +82,10 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
         var databaseRef =
                 Optional.ofNullable(databaseRefsByUUID.computeIfAbsent(uuid, this::lookupReferenceByUuidOnDelegate));
 
+        // do not update databaseRefsByName, as this may have a different result that is preferred if the name is
+        // ambiguous
         databaseRef.ifPresent(databaseReference -> {
-            databaseRefsByName.putIfAbsent(databaseReference.fullName(), databaseReference);
+            databaseRefsByAlias.putIfAbsent(databaseReference.fullName(), databaseReference);
             databaseRefsByCatalogEntry.putIfAbsent(databaseReference.catalogEntry(), databaseReference);
         });
         return databaseRef;
@@ -78,6 +96,10 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
      */
     private DatabaseReference lookupReferenceOnDelegate(NormalizedDatabaseName databaseName) {
         return delegate.getByAlias(databaseName).orElse(null);
+    }
+
+    private DatabaseReference lookupDisplayNameReferenceOnDelegate(NormalizedDatabaseName displayName) {
+        return delegate.getByDisplayName(displayName).orElse(null);
     }
 
     private DatabaseReference lookupReferenceOnDelegate(NormalizedCatalogEntry catalogEntry) {
@@ -105,7 +127,8 @@ public class MapCachingDatabaseReferenceRepository implements DatabaseReferenceR
 
     @Override
     public void invalidateAll() {
-        this.databaseRefsByName = new ConcurrentHashMap<>();
+        this.databaseRefsByAlias = new ConcurrentHashMap<>();
+        this.databaseRefsByDisplayName = new ConcurrentHashMap<>();
         this.databaseRefsByCatalogEntry = new ConcurrentHashMap<>();
         this.databaseRefsByUUID = new ConcurrentHashMap<>();
     }

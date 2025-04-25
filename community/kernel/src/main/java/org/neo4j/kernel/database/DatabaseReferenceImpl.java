@@ -54,13 +54,9 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
 
     @Override
     public String toPrettyString() {
-        var namespace = namespace().map(ns -> quoteIfNeeded(ns.name()) + ".").orElse("");
-        var name = quoteIfNeeded(alias().name());
+        var namespace = namespace().map(ns -> ns.name() + ".").orElse("");
+        var name = alias().name();
         return namespace + name;
-    }
-
-    private String quoteIfNeeded(String name) {
-        return name.contains(".") ? "`" + name + "`" : name;
     }
 
     @Override

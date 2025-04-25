@@ -20,12 +20,8 @@
 package org.neo4j.fabric.eval
 
 import org.neo4j.configuration.helpers.NormalizedGraphName
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.CatalogName
-import org.neo4j.cypher.internal.parser.AstParserFactory
-import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.exceptions.EntityNotFoundException
-import org.neo4j.exceptions.InvalidArgumentException
 import org.neo4j.fabric.eval.Catalog.Graph
 import org.neo4j.fabric.eval.Catalog.normalize
 import org.neo4j.fabric.util.Errors
@@ -44,7 +40,6 @@ import org.neo4j.values.storable.StringValue
 
 import java.util.UUID
 
-import scala.collection.immutable.ArraySeq
 import scala.jdk.OptionConverters.RichOptional
 
 object Catalog {
@@ -115,10 +110,10 @@ object Catalog {
       args: Seq[AnyValue],
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      parseArguments: Option[Boolean]
+      resolveByDisplayName: Option[Boolean]
     ): GraphWithNotification = {
       checkArity(args)
-      eval(cast(a1, args(0), args), catalog, sessionDb, parseArguments)
+      eval(cast(a1, args(0), args), catalog, sessionDb, resolveByDisplayName)
     }
 
     def eval(
@@ -168,27 +163,15 @@ object Catalog {
       arg: StringValue,
       catalog: Catalog,
       sessionDb: DatabaseReference,
-      parseArguments: Option[Boolean]
+      resolveByDisplayName: Option[Boolean]
     ): GraphWithNotification = {
       val graphName = arg.stringValue()
-      if (parseArguments.isDefined && parseArguments.get) {
-        GraphWithNotification(catalog.parseArgumentAndEvaluate(graphName), None)
-      } else {
-        //        val resolvedCypher25 =
-        //          try {
-        //            Some(parseArgumentAndEvaluate(catalog, graphName))
-        //          } catch {
-        //            case _: Exception => None
-        //          }
-        val resolved = catalog.resolveGraphByNameString(graphName)
-        //        if (resolvedCypher25.isEmpty || !resolvedCypher25.get.equals(resolved)) {
-        //          GraphWithNotification(
-        //            resolved,
-        //            Some(NotificationCodeWithDescription.deprecatedParsedDatabaseName(InputPosition.empty, graphName))
-        //          )
-        //        } else {
+      if (resolveByDisplayName.isDefined && resolveByDisplayName.get) {
+        val resolved = catalog.resolveGraphByNameString(graphName, simplified = true)
         GraphWithNotification(resolved, None)
-        //        }
+      } else {
+        val resolved = catalog.resolveGraphByNameString(graphName, simplified = false)
+        GraphWithNotification(resolved, None) // TODO: add deprecation if needed
       }
     }
 
@@ -224,7 +207,7 @@ object Catalog {
       if (aliases.isEmpty) {
         throw EntityNotFoundException.databaseWithElementIdNotFound(elementIdText)
       }
-      GraphWithNotification(catalog.resolveGraphByNameString(aliases.head), None)
+      GraphWithNotification(catalog.resolveGraphByNameString(aliases.head, simplified = false), None)
     }
 
     override def wrongArity(args: Seq[AnyValue]): Unit =
@@ -240,7 +223,7 @@ object Catalog {
     new NormalizedGraphName(graphName).name()
 
   private def normalize(name: CatalogName): CatalogName =
-    CatalogName(name.parts.map(normalize), resolveStrictly = true)
+    CatalogName(name.parts.map(normalize), resolveByDisplayName = true)
 
   private def normalizedName(parts: String*): CatalogName =
     normalize(CatalogName(true, parts: _*))
@@ -251,22 +234,32 @@ case class Catalog(
   views: Map[CatalogName, Catalog.View] = Map()
 ) {
 
-  def resolveGraph(name: CatalogName): Catalog.Graph =
+  def resolveGraph(name: CatalogName): Catalog.Graph = {
     resolveGraphOption(name)
       .getOrElse(throw EntityNotFoundException.databaseNotFound("Graph", name.qualifiedNameString))
+  }
 
-  def resolveGraphOption(name: CatalogName): Option[Catalog.Graph] =
-    graphs.get(normalize(name))
-
-  def resolveGraphByNameString(name: String): Catalog.Graph =
-    resolveGraphOptionByNameString(name)
-      .getOrElse(throw EntityNotFoundException.databaseNotFound("Graph", name))
-
-  def resolveGraphByCatalogEntry(name: NormalizedCatalogEntry): Catalog.Graph = {
-    val catalogName = if (name.compositeDb().isPresent) {
-      CatalogName(List(name.compositeDb().get(), name.databaseAlias()), resolveStrictly = true)
+  def resolveGraphOption(name: CatalogName): Option[Catalog.Graph] = {
+    if (name.resolveByDisplayName) {
+      resolveGraphOptionByNameString(name.simplifiedQualifiedNameString, resolveByDisplayName = true)
     } else {
-      CatalogName(List(name.databaseAlias()), resolveStrictly = true)
+      graphs.get(normalize(name))
+    }
+  }
+
+  def resolveGraphByNameString(name: String, simplified: Boolean): Catalog.Graph = {
+    val resolvedGraph = resolveGraphOptionByNameString(name, simplified: Boolean)
+    if (resolvedGraph.isDefined)
+      resolvedGraph.get
+    else
+      throw EntityNotFoundException.databaseNotFound("Graph", name)
+  }
+
+  def resolveGraphByDisplayName(name: NormalizedCatalogEntry): Catalog.Graph = {
+    val catalogName = if (name.compositeDb().isPresent) {
+      CatalogName(List(name.compositeDb().get(), name.databaseAlias()), resolveByDisplayName = true)
+    } else {
+      CatalogName(List(name.databaseAlias()), resolveByDisplayName = true)
     }
     resolveGraphOption(catalogName)
       .getOrElse(throw EntityNotFoundException.databaseNotFound("Graph", name.stringRepresentation()))
@@ -281,43 +274,42 @@ case class Catalog(
     securityContext: SecurityContext,
     cypherVersion: QueryLanguage
   ): Option[Graph] = {
+    val normalizedName = Catalog.normalize(name)
     if (cypherVersion.equals(QueryLanguage.CYPHER_5)) {
-      val normalizedName = Catalog.normalize(name)
       graphs.collectFirst {
         case (cn, graph) if cn.qualifiedNameString == normalizedName && canAccessDatabase(graph, securityContext) =>
           graph
       }
     } else {
-      Some(parseArgumentAndEvaluate(name))
-        .filter(canAccessDatabase(_, securityContext))
+      graphs.collectFirst {
+        case (cn, graph)
+          if cn.simplifiedQualifiedNameString == normalizedName && canAccessDatabase(graph, securityContext) =>
+          graph
+      }
     }
   }
 
-  private def parseArgumentAndEvaluate(graphName: String): Graph = {
-    var parsedArgument: ArraySeq[String] = null
-    try {
-      val exceptionFactory = Neo4jCypherExceptionFactory(graphName, None)
-      parsedArgument =
-        AstParserFactory.apply(CypherVersion.Cypher25).apply(graphName, exceptionFactory, None).symbolicAliasName()
-    } catch {
-      case _: Exception => throw InvalidArgumentException.invalidGraphName(graphName)
-    }
-    val catalogName = CatalogName(parsedArgument.toList, resolveStrictly = true)
-    resolveGraph(catalogName)
-  }
-
-  private def resolveGraphOptionByNameString(name: String): Option[Catalog.Graph] = {
+  private def resolveGraphOptionByNameString(name: String, resolveByDisplayName: Boolean): Option[Catalog.Graph] = {
     val normalizedName = Catalog.normalize(name)
-    graphs.collectFirst { case (cn, graph) if cn.qualifiedNameString == normalizedName => graph }
+    val result = graphs.collectFirst {
+      case (cn, graph) if resolveByDisplayName && cn.simplifiedQualifiedNameString == normalizedName => graph
+      case (cn, graph) if !resolveByDisplayName && cn.qualifiedNameString == normalizedName          => graph
+    }
+    result
   }
 
   def resolveView(
     name: CatalogName,
     args: Seq[AnyValue],
     sessionDb: DatabaseReference,
-    parseArguments: Option[Boolean]
+    resolveByDisplayName: Option[Boolean]
   ): Catalog.GraphWithNotification =
-    resolveViewOption(name, args, sessionDb, parseArguments).getOrElse(throw EntityNotFoundException.databaseNotFound(
+    resolveViewOption(
+      name,
+      args,
+      sessionDb,
+      resolveByDisplayName
+    ).getOrElse(throw EntityNotFoundException.databaseNotFound(
       "View",
       show(name)
     ))
@@ -326,16 +318,16 @@ case class Catalog(
     name: CatalogName,
     args: Seq[AnyValue],
     sessionDb: DatabaseReference,
-    parseArguments: Option[Boolean]
+    resolveByDisplayName: Option[Boolean]
   ): Option[Catalog.GraphWithNotification] =
-    views.get(normalize(name)).map(v => v.eval(args, this, sessionDb, parseArguments))
+    views.get(normalize(name)).map(v => v.eval(args, this, sessionDb, resolveByDisplayName))
 
   def graphNamesIn(namespace: String, securityContext: SecurityContext, queryLanguage: QueryLanguage): Array[String] = {
     graphs.collect {
       case (cn @ CatalogName(List(`namespace`, _), true), graph: Catalog.Graph)
         if canAccessDatabase(graph, securityContext) =>
         if (queryLanguage == QueryLanguage.CYPHER_25) {
-          cn.toCatalogEntry.stringRepresentation()
+          cn.simplifiedQualifiedNameString
         } else {
           cn.qualifiedNameString
         }

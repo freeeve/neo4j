@@ -209,7 +209,7 @@ trait StatementBuilder extends Cypher25ParserListener {
     ctx.ast =
       if (ctx.graphReference() != null) ctx.graphReference().ast
       else if (ctx.functionInvocation() != null)
-        GraphFunctionReference(ctx.functionInvocation().ast(), parseStringGraphReferences = true)(pos(ctx))
+        GraphFunctionReference(ctx.functionInvocation().ast(), resolveByDisplayName = true)(pos(ctx))
       else GraphDirectReference(CatalogName(true, ctx.symbolicAliasName().ast[ArraySeq[String]](): _*))(pos(ctx))
   }
 

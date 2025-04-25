@@ -101,10 +101,20 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         }
     }
 
+    @Override
+    public Optional<DatabaseReference> getDatabaseRefByDisplayName(NormalizedDatabaseName displayName) {
+        return Optional.<DatabaseReference>empty()
+                .or(() -> getCompositeDatabaseReference(displayName.name()))
+                .or(() -> getSPDGraphShardReference(displayName.name()))
+                .or(() -> getSPDPropertyShardReference(displayName.name()))
+                .or(() -> getMirrorReferences(displayName.name()))
+                .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReference(tx, displayName.name()))
+                .or(() -> CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReference(tx, displayName.name()));
+    }
+
     private Optional<DatabaseReference> resolveConstituent(String composite, String constituent) {
         return Optional.<DatabaseReference>empty()
-                .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReferenceInRoot(
-                        tx, composite, constituent))
+                .or(() -> CommunityTopologyGraphDbmsModelUtil.getInternalDatabaseReference(tx, composite, constituent))
                 .or(() -> CommunityTopologyGraphDbmsModelUtil.getExternalDatabaseReferenceInRoot(
                         tx, composite, constituent));
     }
@@ -137,6 +147,10 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
         return tx.findNodes(DATABASE_NAME_LABEL, NAMESPACE_PROPERTY, namespace, NAME_PROPERTY, databaseName).stream()
                 .toList()
                 .stream();
+    }
+
+    private Stream<Node> getAliasNode(String displayName) {
+        return tx.findNodes(DATABASE_NAME_LABEL, DISPLAY_NAME_PROPERTY, displayName).stream().toList().stream();
     }
 
     private Stream<Node> getAliasNodeInRoot(String databaseName) {
@@ -202,9 +216,16 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                         .stream());
     }
 
+    private Optional<DatabaseReferenceImpl.Mirror> getMirrorReferences(String displayName) {
+        return getMirrorReferences(getAliasNode(displayName));
+    }
+
     private Optional<DatabaseReferenceImpl.Mirror> getMirrorReferencesInRoot(String databaseName) {
-        return getAliasNodeInRoot(databaseName)
-                .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
+        return getMirrorReferences(getAliasNodeInRoot(databaseName));
+    }
+
+    private Optional<DatabaseReferenceImpl.Mirror> getMirrorReferences(Stream<Node> aliases) {
+        return aliases.flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.getDegree(IS_MIRROR_OF_RELATIONSHIP, Direction.OUTGOING) > 0)
                         .flatMap(db -> createMirrorReference(alias, db))
                         .stream())
@@ -220,8 +241,15 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     }
 
     private Optional<DatabaseReferenceImpl.Composite> getCompositeDatabaseReferenceInRoot(String databaseName) {
-        return getAliasNodeInRoot(databaseName)
-                .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
+        return getCompositeDatabaseReference(getAliasNodeInRoot(databaseName));
+    }
+
+    private Optional<DatabaseReferenceImpl.Composite> getCompositeDatabaseReference(String displayName) {
+        return getCompositeDatabaseReference(getAliasNode(displayName));
+    }
+
+    private Optional<DatabaseReferenceImpl.Composite> getCompositeDatabaseReference(Stream<Node> aliases) {
+        return aliases.flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.hasLabel(COMPOSITE_DATABASE_LABEL))
                         .flatMap(db -> createCompositeReference(alias, db))
                         .stream())
@@ -246,9 +274,16 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                         .stream());
     }
 
+    private Optional<DatabaseReferenceImpl.SPD> getSPDGraphShardReference(String displayName) {
+        return getSPDGraphShardReference(getAliasNode(displayName));
+    }
+
     private Optional<DatabaseReferenceImpl.SPD> getSPDGraphShardReferenceInRoot(String databaseName) {
-        return getAliasNodeInRoot(databaseName)
-                .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
+        return getSPDGraphShardReference(getAliasNodeInRoot(databaseName));
+    }
+
+    private Optional<DatabaseReferenceImpl.SPD> getSPDGraphShardReference(Stream<Node> aliases) {
+        return aliases.flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.getDegree(HAS_SHARD, Direction.OUTGOING) > 0)
                         .flatMap(db -> createSPDGraphShardReference(alias, db))
                         .stream())
@@ -263,9 +298,16 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
                         .stream());
     }
 
+    private Optional<DatabaseReferenceImpl.SPDShard> getSPDPropertyShardReference(String displayName) {
+        return getSPDPropertyShardReference(getAliasNode(displayName));
+    }
+
     private Optional<DatabaseReferenceImpl.SPDShard> getSPDPropertyShardReferenceInRoot(String databaseName) {
-        return getAliasNodeInRoot(databaseName)
-                .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
+        return getSPDPropertyShardReference(getAliasNodeInRoot(databaseName));
+    }
+
+    private Optional<DatabaseReferenceImpl.SPDShard> getSPDPropertyShardReference(Stream<Node> aliases) {
+        return aliases.flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
                         .filter(db -> db.getDegree(HAS_SHARD, Direction.INCOMING) > 0)
                         .flatMap(db -> createSPDPropertyShardReference(alias, db))
                         .stream())

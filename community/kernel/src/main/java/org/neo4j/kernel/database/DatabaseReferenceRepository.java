@@ -40,6 +40,13 @@ public interface DatabaseReferenceRepository {
     Optional<DatabaseReference> getByAlias(NormalizedDatabaseName databaseAlias);
 
     /**
+     * Given a display name of a database alias, return the corresponding {@link DatabaseReference} from the system database, if one exists.
+     * A display name corresponds to the normalized name of a database, where all name parts are concatenated with a dot,
+     * see CatalogName#simplifiedQualifiedNameString()
+     */
+    Optional<DatabaseReference> getByDisplayName(NormalizedDatabaseName displayName);
+
+    /**
      * Given a database uuid, return the corresponding {@link DatabaseReference} from the system database, if one exists.
      */
     Optional<DatabaseReference> getByUuid(UUID databaseId);
@@ -49,6 +56,13 @@ public interface DatabaseReferenceRepository {
      */
     default Optional<DatabaseReference> getByAlias(String databaseName) {
         return getByAlias(new NormalizedDatabaseName(databaseName));
+    }
+
+    /**
+     * Given a string representation of a database name, return the corresponding {@link DatabaseReference} from the system database, if one exists.
+     */
+    default Optional<DatabaseReference> getByDisplayName(String databaseName) {
+        return getByDisplayName(new NormalizedDatabaseName(databaseName));
     }
 
     /**

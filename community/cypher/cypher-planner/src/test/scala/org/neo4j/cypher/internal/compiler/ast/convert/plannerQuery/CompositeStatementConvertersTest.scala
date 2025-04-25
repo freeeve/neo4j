@@ -579,7 +579,7 @@ class CompositeStatementConvertersTest extends CypherFunSuite with LogicalPlanni
           .withHorizon(RunQueryAtProjection(
             graphReference = GraphFunctionReference(
               function(List("graph"), "byName", parameter("graphName", CTAny)).copy(calledFromUseClause = true)(pos),
-              parseStringGraphReferences = !(version == CypherVersion.Cypher5)
+              resolveByDisplayName = !(version == CypherVersion.Cypher5)
             )(pos),
             queryString = List(
               "MATCH (`product`)",

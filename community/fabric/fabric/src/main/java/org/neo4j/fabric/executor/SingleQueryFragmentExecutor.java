@@ -280,15 +280,15 @@ abstract class SingleQueryFragmentExecutor {
             if (!useEvaluator.isConstituentOrSelf(accessedGraph, sessionGraph)) {
                 if (!useEvaluator.isSystem(accessedGraph)) {
                     throw InvalidSemanticsException.unsupportedAccessOfStandardDb(
-                            useEvaluator.qualifiedNameString(accessedGraph),
-                            useEvaluator.qualifiedNameString(sessionGraph));
+                            useEvaluator.simplifiedQualifiedNameString(accessedGraph),
+                            useEvaluator.simplifiedQualifiedNameString(sessionGraph));
                 }
             }
         } else {
             if (!useEvaluator.isDatabaseOrAliasInRoot(accessedGraph)) {
                 throw InvalidSemanticsException.unsupportedAccessOfCompositeDatabase(
-                        useEvaluator.qualifiedNameString(accessedGraph),
-                        useEvaluator.qualifiedNameString(sessionGraph));
+                        useEvaluator.simplifiedQualifiedNameString(accessedGraph),
+                        useEvaluator.simplifiedQualifiedNameString(sessionGraph));
             }
         }
     }

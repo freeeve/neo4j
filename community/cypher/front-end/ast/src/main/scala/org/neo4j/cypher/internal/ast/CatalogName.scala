@@ -45,7 +45,11 @@ object CatalogName {
   def quote(str: String): String = quoteChar ++ str.replace("`", "``") ++ quoteChar
 }
 
-case class CatalogName(parts: List[String], resolveStrictly: Boolean) {
+case class CatalogName(parts: List[String], resolveByDisplayName: Boolean) {
+
+  def simplifiedQualifiedNameString: String =
+    parts
+      .mkString(separatorString)
 
   /**
    * @return the catalog name used in catalog lookups
@@ -68,7 +72,7 @@ case class CatalogName(parts: List[String], resolveStrictly: Boolean) {
       case name: CatalogName =>
         name.qualifiedNameString.toLowerCase.equals(
           this.qualifiedNameString.toLowerCase
-        ) && name.resolveStrictly == this.resolveStrictly
+        ) && name.resolveByDisplayName == this.resolveByDisplayName
       case _ =>
         false
     }

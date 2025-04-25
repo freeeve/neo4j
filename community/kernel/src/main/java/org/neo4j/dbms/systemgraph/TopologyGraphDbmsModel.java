@@ -36,6 +36,7 @@ import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.database.NormalizedCatalogEntry;
+import org.neo4j.kernel.database.NormalizedDatabaseName;
 
 public interface TopologyGraphDbmsModel {
     enum HostedOnMode {
@@ -339,6 +340,14 @@ public interface TopologyGraphDbmsModel {
             return Optional.empty();
         });
     }
+
+    /**
+     * Fetches the {@link DatabaseReference} corresponding to the provided database name display name.
+     *
+     * @param name the display name of the {@link DatabaseReference} to be resolved.
+     * @return the corresponding {@link DatabaseReference}
+     */
+    Optional<DatabaseReference> getDatabaseRefByDisplayName(NormalizedDatabaseName name);
 
     /**
      * Fetches the {@link DriverSettings} corresponding to the provided database name

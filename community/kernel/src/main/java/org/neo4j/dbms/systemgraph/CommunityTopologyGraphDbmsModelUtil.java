@@ -256,14 +256,26 @@ public final class CommunityTopologyGraphDbmsModelUtil {
     }
 
     static Optional<DatabaseReference> getInternalDatabaseReferenceInRoot(Transaction tx, String databaseName) {
-        return getInternalDatabaseReferenceInRoot(tx, DEFAULT_NAMESPACE, databaseName);
+        return getInternalDatabaseReference(tx, DEFAULT_NAMESPACE, databaseName);
     }
 
-    static Optional<DatabaseReference> getInternalDatabaseReferenceInRoot(
+    static Optional<DatabaseReference> getInternalDatabaseReference(
             Transaction tx, String namespace, String databaseName) {
         return findAliasNodeInNamespace(tx, namespace, databaseName)
                 .filter(node -> !node.hasLabel(REMOTE_DATABASE_LABEL))
                 .flatMap(alias -> getTargetedDatabase(alias).flatMap(db -> createInternalReference(alias, db)));
+    }
+
+    static Optional<DatabaseReference> getInternalDatabaseReference(Transaction tx, String displayName) {
+        return findAliasNodeByDisplayName(tx, displayName)
+                .filter(node -> !node.hasLabel(REMOTE_DATABASE_LABEL))
+                .flatMap(alias -> getTargetedDatabase(alias).flatMap(db -> createInternalReference(alias, db)));
+    }
+
+    static Optional<DatabaseReference> getExternalDatabaseReference(Transaction tx, String displayName) {
+        return findAliasNodeByDisplayName(tx, displayName)
+                .filter(node -> node.hasLabel(REMOTE_DATABASE_LABEL))
+                .flatMap(CommunityTopologyGraphDbmsModelUtil::createExternalReference);
     }
 
     static Optional<DatabaseReference> getExternalDatabaseReferenceInRoot(Transaction tx, String databaseName) {
@@ -289,6 +301,15 @@ public final class CommunityTopologyGraphDbmsModelUtil {
                             .orElse(TopologyGraphDbmsModel.DEFAULT_NAMESPACE)
                             .equals(namespace))
                     .findFirst();
+        }
+    }
+
+    private static Optional<Node> findAliasNodeByDisplayName(Transaction tx, String displayName) {
+        try (var nodes = tx.findNodes(
+                TopologyGraphDbmsModel.DATABASE_NAME_LABEL,
+                TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY,
+                displayName)) {
+            return nodes.stream().findFirst();
         }
     }
 

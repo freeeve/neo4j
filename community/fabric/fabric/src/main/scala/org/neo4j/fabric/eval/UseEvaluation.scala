@@ -80,10 +80,10 @@ object UseEvaluation {
           val functionName: List[String] =
             f.functionInvocation.functionName.namespace.parts :+ f.functionInvocation.functionName.name
           catalog.resolveView(
-            CatalogName(functionName, true),
+            CatalogName(functionName, f.resolveByDisplayName),
             argValues,
             sessionDb: DatabaseReference,
-            Some(f.parseStringGraphReferences)
+            Some(f.resolveByDisplayName)
           )
       }
     }
@@ -116,15 +116,15 @@ object UseEvaluation {
       }
 
     def isSystem(graph: Catalog.Graph): Boolean =
-      qualifiedNameString(graph) == GraphDatabaseSettings.SYSTEM_DATABASE_NAME
+      simplifiedQualifiedNameString(graph) == GraphDatabaseSettings.SYSTEM_DATABASE_NAME
 
     def isDatabaseOrAliasInRoot(graph: Catalog.Graph): Boolean = graph match {
       case _: Catalog.Composite => false
       case alias: Catalog.Alias => alias.namespace.isEmpty
     }
 
-    def qualifiedNameString(graph: Catalog.Graph): String =
-      Catalog.catalogName(graph).qualifiedNameString
+    def simplifiedQualifiedNameString(graph: Catalog.Graph): String =
+      Catalog.catalogName(graph).simplifiedQualifiedNameString
   }
 
   def isStatic(graphSelection: GraphSelection): Boolean =
