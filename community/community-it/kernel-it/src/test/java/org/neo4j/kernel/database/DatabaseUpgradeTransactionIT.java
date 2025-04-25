@@ -332,13 +332,19 @@ public class DatabaseUpgradeTransactionIT {
             executor.awaitFuture(f1);
         }
 
+        var dbLogPrefix = "["
+                + db.getDependencyResolver()
+                        .resolveDependency(Database.class)
+                        .getNamedDatabaseId()
+                        .logPrefix() + "]";
+
         // Then
         LogAssertions.assertThat(logProvider)
                 .containsMessages(
-                        "Upgrade transaction from %s to %s not possible right now due to conflicting transaction, will retry on next write"
-                                .formatted(oldKernelVersion, LATEST_KERNEL_VERSION))
-                .doesNotContainMessage(
-                        "Upgrade transaction from %s to %s started".formatted(oldKernelVersion, LATEST_KERNEL_VERSION));
+                        "%s Upgrade transaction from %s to %s not possible right now due to conflicting transaction, will retry on next write"
+                                .formatted(dbLogPrefix, oldKernelVersion, LATEST_KERNEL_VERSION))
+                .doesNotContainMessage("%s Upgrade transaction from %s to %s started"
+                        .formatted(dbLogPrefix, oldKernelVersion, LATEST_KERNEL_VERSION));
 
         assertThat(getNodeCount()).as("Both transactions succeeded").isEqualTo(numNodesBefore + 2);
         assertThat(kernelVersion()).isEqualTo(oldKernelVersion);
@@ -350,9 +356,10 @@ public class DatabaseUpgradeTransactionIT {
         assertThat(kernelVersion()).isEqualTo(LATEST_KERNEL_VERSION);
         LogAssertions.assertThat(logProvider)
                 .containsMessages(
-                        "Upgrade transaction from %s to %s started".formatted(oldKernelVersion, LATEST_KERNEL_VERSION),
-                        "Upgrade transaction from %s to %s completed"
-                                .formatted(oldKernelVersion, LATEST_KERNEL_VERSION));
+                        "%s Upgrade transaction from %s to %s started"
+                                .formatted(dbLogPrefix, oldKernelVersion, LATEST_KERNEL_VERSION),
+                        "%s Upgrade transaction from %s to %s completed"
+                                .formatted(dbLogPrefix, oldKernelVersion, LATEST_KERNEL_VERSION));
     }
 
     private long getNodeCount() {
