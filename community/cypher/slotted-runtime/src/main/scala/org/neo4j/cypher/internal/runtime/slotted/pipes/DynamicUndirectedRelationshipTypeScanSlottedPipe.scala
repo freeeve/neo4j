@@ -31,7 +31,7 @@ import org.neo4j.cypher.internal.runtime.slotted.pipes.UndirectedRelationshipTyp
 import org.neo4j.cypher.internal.util.attribution.Id
 
 case class DynamicUndirectedRelationshipTypeScanSlottedPipe(
-  relOffset: Int,
+  relOffset: Option[Int],
   fromOffset: Option[Int],
   typeExpr: Expression,
   toOffset: Option[Int],

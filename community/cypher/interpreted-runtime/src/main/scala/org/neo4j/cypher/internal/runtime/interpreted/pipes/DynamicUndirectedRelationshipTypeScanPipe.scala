@@ -38,7 +38,7 @@ import org.neo4j.cypher.operations.CypherFunctions
 import org.neo4j.cypher.operations.CypherFunctions.GetSingleDynamicTypeResult
 
 case class DynamicUndirectedRelationshipTypeScanPipe(
-  ident: String,
+  ident: Option[String],
   fromNode: Option[String],
   typeExpr: Expression,
   toNode: Option[String],

@@ -1880,7 +1880,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
 
         dynamicRelationshipTypeScan(
           p.maybeFrom,
-          p.relName,
+          p.maybeRelName,
           expression,
           p.maybeTo,
           p.dir,
@@ -1896,7 +1896,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   // use supplied indexOrder, Option nodes
   private def dynamicRelationshipTypeScan(
     leftNode: Option[String],
-    relName: String,
+    relName: Option[String],
     relTypeExpr: String,
     rightNode: Option[String],
     direction: SemanticDirection,

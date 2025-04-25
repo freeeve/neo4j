@@ -796,7 +796,7 @@ class SlottedPipeMapper(
         relTypeLabel match {
           case DynamicElement.Simple(expr, operator) =>
             DynamicDirectedRelationshipTypeScanSlottedPipe(
-              slots.longOffset(name),
+              name.map(r => slots.longOffset(r)),
               start.map(n => slots.longOffset(n)),
               expressionConverters.toCommandExpression(id, expr),
               end.map(n => slots.longOffset(n)),
@@ -821,7 +821,7 @@ class SlottedPipeMapper(
         relTypeLabel match {
           case DynamicElement.Simple(expr, operator) =>
             DynamicUndirectedRelationshipTypeScanSlottedPipe(
-              slots.longOffset(name),
+              name.map(r => slots.longOffset(r)),
               start.map(n => slots.longOffset(n)),
               expressionConverters.toCommandExpression(id, expr),
               end.map(n => slots.longOffset(n)),

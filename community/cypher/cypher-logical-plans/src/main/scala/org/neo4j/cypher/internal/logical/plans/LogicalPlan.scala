@@ -2125,11 +2125,12 @@ case class DynamicDirectedRelationshipTypeScan(
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
     copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
 
-  override def withNewLeftAndRightNodes(
+  override def updateVariables(
+    idName: Option[LogicalVariable],
     leftNode: Option[LogicalVariable],
     rightNode: Option[LogicalVariable]
   ): RelationshipLogicalLeafPlan =
-    copy(startNode = leftNode, endNode = rightNode)(SameId(this.id))
+    copy(idName = idName, startNode = leftNode, endNode = rightNode)(SameId(this.id))
 }
 
 case class PartitionedDirectedRelationshipTypeScan(
@@ -5552,11 +5553,12 @@ case class DynamicUndirectedRelationshipTypeScan(
   override def addArgumentIds(argsToAdd: Set[LogicalVariable]): LogicalLeafPlan =
     copy(argumentIds = argumentIds ++ argsToAdd)(SameId(this.id))
 
-  override def withNewLeftAndRightNodes(
+  override def updateVariables(
+    idName: Option[LogicalVariable],
     leftNode: Option[LogicalVariable],
     rightNode: Option[LogicalVariable]
   ): RelationshipLogicalLeafPlan =
-    copy(leftNode = leftNode, rightNode = rightNode)(SameId(this.id))
+    copy(idName = idName, leftNode = leftNode, rightNode = rightNode)(SameId(this.id))
 }
 
 case class PartitionedUndirectedRelationshipTypeScan(

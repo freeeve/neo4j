@@ -40,7 +40,7 @@ import org.neo4j.values.storable.Values
 import org.neo4j.values.virtual.VirtualValues
 
 case class DynamicDirectedRelationshipTypeScanPipe(
-  ident: String,
+  ident: Option[String],
   fromNode: Option[String],
   typeExpr: Expression,
   toNode: Option[String],

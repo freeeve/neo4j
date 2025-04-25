@@ -550,7 +550,7 @@ case class InterpretedPipeMapper(
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>
             DynamicDirectedRelationshipTypeScanPipe(
-              ident.name,
+              ident.map(_.name),
               fromNode.map(_.name),
               expressionConverters.toCommandExpression(id, expr),
               toNode.map(_.name),
@@ -574,7 +574,7 @@ case class InterpretedPipeMapper(
         typeExpr match {
           case DynamicElement.Simple(expr, operator) =>
             DynamicUndirectedRelationshipTypeScanPipe(
-              ident.name,
+              ident.map(_.name),
               fromNode.map(_.name),
               expressionConverters.toCommandExpression(id, expr),
               toNode.map(_.name),

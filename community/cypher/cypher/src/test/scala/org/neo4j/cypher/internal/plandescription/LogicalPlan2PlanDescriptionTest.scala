@@ -2053,7 +2053,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         DynamicDirectedRelationshipTypeScan(
-          varFor("r"),
+          Some(varFor("r")),
           Some(varFor("x")),
           DynamicElement.Simple(literal(List("R", "S")), Any),
           Some(varFor("y")),
@@ -2070,11 +2070,31 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
         Set("r", "x", "y")
       )
     )
+    assertGood(
+      attach(
+        DynamicDirectedRelationshipTypeScan(
+          None,
+          None,
+          DynamicElement.Simple(literal(List("R", "S")), Any),
+          Some(varFor("y")),
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DynamicDirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("()-[:$any([\"R\", \"S\"])]->(y)")),
+        Set("y")
+      )
+    )
 
     assertGood(
       attach(
         DynamicUndirectedRelationshipTypeScan(
-          varFor("r"),
+          Some(varFor("r")),
           Some(varFor("x")),
           DynamicElement.Simple(literal(List("R", "S")), Any),
           Some(varFor("y")),
@@ -2094,8 +2114,29 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
+        DynamicUndirectedRelationshipTypeScan(
+          None,
+          Some(varFor("x")),
+          DynamicElement.Simple(literal(List("R", "S")), Any),
+          Some(varFor("y")),
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DynamicUndirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("(x)-[:$any([\"R\", \"S\"])]-(y)")),
+        Set("x", "y")
+      )
+    )
+
+    assertGood(
+      attach(
         DynamicDirectedRelationshipTypeScan(
-          varFor("r"),
+          Some(varFor("r")),
           None,
           DynamicElement.Simple(literal(List("R", "S")), Any),
           None,
@@ -2115,8 +2156,29 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
 
     assertGood(
       attach(
+        DynamicDirectedRelationshipTypeScan(
+          None,
+          None,
+          DynamicElement.Simple(literal(List("R", "S")), Any),
+          None,
+          Set.empty,
+          IndexOrderNone
+        ),
+        23.0
+      ),
+      planDescription(
+        id,
+        "DynamicDirectedRelationshipTypeScan",
+        Seq.empty,
+        Seq(details("()-[:$any([\"R\", \"S\"])]->()")),
+        Set.empty
+      )
+    )
+
+    assertGood(
+      attach(
         DynamicUndirectedRelationshipTypeScan(
-          varFor("r"),
+          Some(varFor("r")),
           Some(varFor("x")),
           DynamicElement.Simple(literal(List("R", "S")), Any),
           None,
@@ -2137,7 +2199,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
     assertGood(
       attach(
         DynamicDirectedRelationshipTypeScan(
-          varFor("  UNNAMED123"),
+          Some(varFor("  UNNAMED123")),
           Some(varFor("x")),
           DynamicElement.Simple(literal(List("R")), Any),
           Some(varFor("y")),
