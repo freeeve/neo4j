@@ -1698,8 +1698,6 @@ public class Operations implements Write, SchemaWrite, Upgrade {
 
         // valid schema checks
         final var indexType = prototype.getIndexType();
-        exclusiveSchemaLock(prototype.schema());
-
         if (indexType == IndexType.VECTOR) {
             switch (prototype.schema().entityType()) {
                 case NODE ->
