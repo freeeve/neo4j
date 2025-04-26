@@ -29,7 +29,7 @@ import org.apache.lucene.index.Term;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;
 import org.neo4j.values.VectorCandidate;
 
-abstract class VectorDocumentStructure {
+public abstract class VectorDocumentStructure {
     static final String ENTITY_ID_KEY = "id";
 
     static Term newTermForChangeOrRemove(long id) {

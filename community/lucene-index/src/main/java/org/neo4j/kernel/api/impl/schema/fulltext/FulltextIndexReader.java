@@ -34,7 +34,6 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TotalHitCountCollector;
 import org.eclipse.collections.impl.block.factory.primitive.LongPredicates;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
@@ -45,10 +44,10 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelE
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.collector.ScoredEntityIterator;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
-import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
 import org.neo4j.kernel.api.impl.schema.LuceneScoredEntityIndexProgressor;
 import org.neo4j.kernel.api.impl.schema.reader.IndexReaderCloseException;
 import org.neo4j.kernel.api.index.IndexProgressor;
@@ -194,9 +193,7 @@ public class FulltextIndexReader implements ValueIndexReader {
                 }
                 Query query = LuceneFulltextDocumentStructure.newCountEntityEntriesQuery(
                         entityId, propertyKeys, propertyValues);
-                TotalHitCountCollector collector = new TotalHitCountCollector();
-                searcher.getIndexSearcher().search(query, collector);
-                count += collector.getTotalHits();
+                count += searcher.getIndexSearcher().count(query);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -250,7 +247,7 @@ public class FulltextIndexReader implements ValueIndexReader {
                     includeTransactionState ? transactionState.isModifiedInTransactionPredicate() : ALWAYS_FALSE;
             List<PreparedSearch> searches = new ArrayList<>(searchers.size() + 1);
             for (SearcherReference searcher : searchers) {
-                Neo4jIndexSearcher indexSearcher = searcher.getIndexSearcher();
+                LuceneIndexSearcher indexSearcher = searcher.getIndexSearcher();
                 searches.add(new PreparedSearch(indexSearcher, filter));
             }
             if (includeTransactionState) {

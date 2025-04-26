@@ -96,7 +96,7 @@ public class ScoredEntityIterator implements ValuesIterator {
      */
     public static ValuesIterator mergeIterators(List<ValuesIterator> iterators) {
         if (iterators.size() == 1) {
-            return iterators.get(0);
+            return iterators.getFirst();
         }
         return new ConcatenatingScoredEntityIterator(iterators);
     }

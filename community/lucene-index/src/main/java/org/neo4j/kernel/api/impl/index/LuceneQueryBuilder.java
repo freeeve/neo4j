@@ -17,55 +17,64 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.trigram;
+package org.neo4j.kernel.api.impl.index;
 
 import static org.neo4j.kernel.api.impl.schema.trigram.TrigramDocumentStructure.TRIGRAM_VALUE_KEY;
 
+import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharacterUtils;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParserBase;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
-import org.neo4j.internal.kernel.api.PropertyIndexQuery;
-import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
-import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
-import org.neo4j.kernel.api.impl.index.LuceneQueryBuilder;
-import org.neo4j.kernel.api.impl.schema.trigram.TrigramTokenStream.CodePointBuffer;
+import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
+import org.neo4j.kernel.api.impl.schema.trigram.TrigramTokenStream;
+import org.neo4j.values.storable.Value;
 
-public class TrigramQueryFactory {
+public class LuceneQueryBuilder {
+    private final BooleanQuery.Builder builder = new BooleanQuery.Builder();
 
-    // Need to filter out false positives
-    public static Query exact(String value) {
-        return trigramSearch(value);
+    public void addMustTerm(String field, String text) {
+        builder.add(new TermQuery(new Term(field, text)), BooleanClause.Occur.MUST);
     }
 
-    // Need to filter out false positives
-    public static Query stringPrefix(String prefix) {
-        return trigramSearch(prefix);
+    public void addMustNotHaveField(String field) {
+        builder.add(new ConstantScoreQuery(new WildcardQuery(new Term(field, "*"))), BooleanClause.Occur.MUST_NOT);
     }
 
-    // Need to filter out false positives
-    public static Query stringContains(String contains) {
-        return trigramSearch(contains);
+    public void addShouldQueryText(String query, String[] fields, Analyzer analyzer) throws ParseException {
+        builder.add(parseFulltextQuery(query, fields, analyzer), BooleanClause.Occur.SHOULD);
     }
 
-    // Need to filter out false positives
-    public static Query stringSuffix(String suffix) {
-        return trigramSearch(suffix);
+    public void addTrigram(String value) {
+        builder.add(trigramSearch(value), BooleanClause.Occur.MUST);
     }
 
-    public static MatchAllDocsQuery allValues() {
-        return new MatchAllDocsQuery();
+    public void addConstantMustTerm(String field, String text) {
+        var termQuery = new ConstantScoreQuery(new TermQuery(new Term(field, text)));
+        builder.add(termQuery, BooleanClause.Occur.MUST);
     }
 
-    static boolean needStoreFilter(PropertyIndexQuery predicate) {
-        return !predicate.type().equals(IndexQueryType.ALL_ENTRIES);
+    public Query build() {
+        return builder.build();
+    }
+
+    private Query parseFulltextQuery(String query, String[] propertyNames, Analyzer analyzer) throws ParseException {
+        MultiFieldQueryParser multiFieldQueryParser = new MultiFieldQueryParser(propertyNames, analyzer);
+        multiFieldQueryParser.setAllowLeadingWildcard(true);
+        return multiFieldQueryParser.parse(query);
     }
 
     private static Query trigramSearch(String searchString) {
         if (searchString.isEmpty()) {
-            return allValues();
+            return new MatchAllDocsQuery();
         }
 
         var codePointBuffer = TrigramTokenStream.getCodePoints(searchString);
@@ -88,9 +97,13 @@ public class TrigramQueryFactory {
         return builder.build();
     }
 
-    private static String getNgram(CodePointBuffer codePointBuffer, int ngramIndex, int n) {
+    private static String getNgram(TrigramTokenStream.CodePointBuffer codePointBuffer, int ngramIndex, int n) {
         char[] termCharBuffer = new char[2 * n];
         int length = CharacterUtils.toChars(codePointBuffer.codePoints(), ngramIndex, n, termCharBuffer, 0);
         return new String(termCharBuffer, 0, length);
+    }
+
+    public void addMustSeek(Value... propertyValues) {
+        builder.add(TextDocumentStructure.newSeekQuery(propertyValues), BooleanClause.Occur.MUST);
     }
 }

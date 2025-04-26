@@ -24,17 +24,17 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 
-class VectorQueryFactory {
+public class VectorQueryFactory {
     static Query getById(long entityId) {
         var term = VectorDocumentStructure.newTermForChangeOrRemove(entityId);
         return new TermQuery(term);
     }
 
-    static Query approximateNearestNeighbors(VectorDocumentStructure documentStructure, float[] query, int k) {
+    public static Query approximateNearestNeighbors(VectorDocumentStructure documentStructure, float[] query, int k) {
         return new KnnFloatVectorQuery(documentStructure.vectorValueKeyFor(query.length), query, k);
     }
 
-    static MatchAllDocsQuery allValues() {
+    public static MatchAllDocsQuery allValues() {
         return new MatchAllDocsQuery();
     }
 }

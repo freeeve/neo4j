@@ -24,19 +24,19 @@ import java.util.function.LongPredicate;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Weight;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
+import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
-import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
 
 class PreparedSearch {
-    private final Neo4jIndexSearcher searcher;
+    private final LuceneIndexSearcher searcher;
     private final LongPredicate filter;
 
-    PreparedSearch(Neo4jIndexSearcher searcher, LongPredicate filter) {
+    PreparedSearch(LuceneIndexSearcher searcher, LongPredicate filter) {
         this.searcher = searcher;
         this.filter = filter;
     }
 
-    Neo4jIndexSearcher searcher() {
+    LuceneIndexSearcher searcher() {
         return searcher;
     }
 

@@ -31,7 +31,7 @@ import org.apache.lucene.index.TermStates;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.TermStatistics;
 import org.apache.lucene.util.BytesRef;
-import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
+import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 
 /**
  * Collect, aggregate and cache Lucene index statistics that span multiple index searchers.
@@ -57,9 +57,9 @@ class StatsCollector {
         TermStatistics result;
         List<TermStatistics> statistics = new ArrayList<>(searches.size());
         for (PreparedSearch search : searches) {
-            Neo4jIndexSearcher searcher = search.searcher();
+            LuceneIndexSearcher searcher = search.searcher();
             try {
-                TermStates context = TermStates.build(searcher, term, true);
+                TermStates context = searcher.buildTermStates(term, true);
                 if (context.docFreq() > 0) {
                     var statistic = searcher.termStatistics(term, context.docFreq(), context.totalTermFreq());
                     statistics.add(statistic);

@@ -24,7 +24,6 @@ import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.function.Function;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
@@ -34,7 +33,7 @@ import org.neo4j.internal.kernel.api.QueryContext;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelException;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.api.impl.index.collector.DocValuesCollector;
+import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.collector.DocValuesCollector.InRangeEntityConsumer;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.ValueIndexReader;
@@ -44,14 +43,19 @@ import org.neo4j.logging.Log;
 import org.neo4j.logging.LogProvider;
 
 public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
-    private final IndexDescriptor descriptor;
     private final IndexUsageTracking usageTracker;
+    private final LuceneQueryFactory queryFactory;
+    protected final IndexDescriptor descriptor;
     protected final Log log;
 
     public AbstractLuceneIndexReader(
-            IndexDescriptor descriptor, IndexUsageTracking usageTracker, LogProvider logProvider) {
+            IndexDescriptor descriptor,
+            IndexUsageTracking usageTracker,
+            LuceneQueryFactory queryFactory,
+            LogProvider logProvider) {
         this.descriptor = descriptor;
         this.usageTracker = usageTracker;
+        this.queryFactory = queryFactory;
         this.log = logProvider.getLog(getClass());
     }
 
@@ -64,11 +68,10 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
             PropertyIndexQuery... predicates)
             throws IndexNotApplicableKernelException {
         final var predicate = validateQuery(predicates);
-        final var query = toLuceneQuery(predicate, constraints);
         queryContext.monitor().queried(descriptor);
         usageTracker.queried();
 
-        final var progressor = indexProgressor(query, constraints, client);
+        final var progressor = indexProgressor(queryFactory, predicate, constraints, client);
         final var needStoreFilter = needStoreFilter(predicate);
         client.initializeQuery(descriptor, progressor, false, needStoreFilter, constraints, predicate);
     }
@@ -91,8 +94,6 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
         return predicate;
     }
 
-    protected abstract Query toLuceneQuery(PropertyIndexQuery predicate, IndexQueryConstraints constraints);
-
     protected <E extends Exception> E invalidCompositeQuery(
             Function<String, E> constructor, PropertyIndexQuery... predicates) {
         final var indexType = descriptor.getIndexType();
@@ -108,7 +109,10 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
     }
 
     protected abstract IndexProgressor indexProgressor(
-            Query query, IndexQueryConstraints constraints, IndexProgressor.EntityValueClient client);
+            LuceneQueryFactory query,
+            PropertyIndexQuery predicate,
+            IndexQueryConstraints constraints,
+            IndexProgressor.EntityValueClient client);
 
     protected abstract String entityIdFieldKey();
 
@@ -123,22 +127,15 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
     @Override
     public void close() {}
 
-    protected DocValuesCollector search(IndexSearcher searcher, Query query) {
+    protected BoundedIterable<Long> newAllEntriesValueReaderForPartition(
+            String field, LuceneIndexSearcher searcher, Query query, long fromIdInclusive, long toIdExclusive) {
         try {
-            final var docValuesCollector = new DocValuesCollector();
-            searcher.search(query, docValuesCollector);
-            return docValuesCollector;
+            InRangeEntityConsumer entityConsumer = new InRangeEntityConsumer(fromIdInclusive, toIdExclusive);
+            IndexProgressor indexProgressor = searcher.searchDocValues(query, field, entityConsumer);
+            return new AllEntriesValueReaderForPartition(indexProgressor, entityConsumer);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
-    }
-
-    protected BoundedIterable<Long> newAllEntriesValueReaderForPartition(
-            String field, IndexSearcher searcher, Query query, long fromIdInclusive, long toIdExclusive) {
-        final var collector = search(searcher, query);
-        final var entityConsumer = new InRangeEntityConsumer(fromIdInclusive, toIdExclusive);
-        final var indexProgressor = collector.getIndexProgressor(field, entityConsumer);
-        return new AllEntriesValueReaderForPartition(indexProgressor, entityConsumer);
     }
 
     protected final String indexName() {

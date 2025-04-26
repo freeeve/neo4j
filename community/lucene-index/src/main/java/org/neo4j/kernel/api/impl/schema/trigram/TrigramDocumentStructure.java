@@ -32,9 +32,9 @@ import org.apache.lucene.index.Term;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 
-class TrigramDocumentStructure {
+public class TrigramDocumentStructure {
     static final String ENTITY_ID_KEY = "id";
-    static final String TRIGRAM_VALUE_KEY = "0";
+    public static final String TRIGRAM_VALUE_KEY = "0";
 
     static Term newTermForChangeOrRemove(long nodeId) {
         return new Term(ENTITY_ID_KEY, "" + nodeId);

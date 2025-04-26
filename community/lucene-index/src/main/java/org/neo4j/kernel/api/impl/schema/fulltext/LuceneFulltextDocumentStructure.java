@@ -28,12 +28,8 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.WildcardQuery;
+import org.neo4j.kernel.api.impl.index.LuceneQueryBuilder;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.TextArray;
 import org.neo4j.values.storable.TextValue;
@@ -79,15 +75,14 @@ public class LuceneFulltextDocumentStructure {
     }
 
     static Query newCountEntityEntriesQuery(long nodeId, String[] propertyKeys, Value... propertyValues) {
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        builder.add(new TermQuery(newTermForChangeOrRemove(nodeId)), BooleanClause.Occur.MUST);
+        LuceneQueryBuilder builder = new LuceneQueryBuilder();
+        builder.addMustTerm(FIELD_ENTITY_ID, String.valueOf(nodeId));
         for (int i = 0; i < propertyKeys.length; i++) {
             String propertyKey = propertyKeys[i];
             Value value = propertyValues[i];
             // Only match on entries that doesn't contain fields we don't expect
             if (value.valueGroup() != ValueGroup.TEXT && value.valueGroup() != ValueGroup.TEXT_ARRAY) {
-                Query valueQuery = new ConstantScoreQuery(new WildcardQuery(new Term(propertyKey, "*")));
-                builder.add(valueQuery, BooleanClause.Occur.MUST_NOT);
+                builder.addMustNotHaveField(propertyKey);
             }
             // Why don't we match on the TEXT values that actually should be in the index?
             // 1. The analyzer used for our index can have split the property value into several terms so we cannot

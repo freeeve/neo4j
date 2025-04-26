@@ -24,10 +24,10 @@ import org.eclipse.collections.impl.block.factory.primitive.LongPredicates;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.ScoredEntityResultCollector;
 
-class VectorResultCollector extends ScoredEntityResultCollector {
+public class VectorResultCollector extends ScoredEntityResultCollector {
     private static final LongPredicate ALWAYS_FALSE = LongPredicates.alwaysFalse();
 
-    VectorResultCollector(IndexQueryConstraints constraints) {
+    public VectorResultCollector(IndexQueryConstraints constraints) {
         super(constraints, ALWAYS_FALSE);
     }
 

@@ -26,7 +26,6 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiBits;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.FilteredDocIdSetIterator;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.util.Bits;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
@@ -36,7 +35,7 @@ import org.neo4j.internal.helpers.collection.PrefetchingIterator;
  */
 public class LucenePartitionAllDocumentsReader implements BoundedIterable<Document> {
     private final SearcherReference searcherReference;
-    private final IndexSearcher searcher;
+    private final LuceneIndexSearcher searcher;
     private final IndexReader reader;
 
     public LucenePartitionAllDocumentsReader(SearcherReference searcherReference) {

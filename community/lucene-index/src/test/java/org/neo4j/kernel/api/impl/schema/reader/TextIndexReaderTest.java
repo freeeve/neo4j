@@ -34,7 +34,6 @@ import java.io.IOException;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MultiTermQuery;
-import org.apache.lucene.search.TotalHitCountCollector;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
@@ -47,12 +46,12 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptor;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.api.impl.index.collector.DocValuesCollector;
-import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
+import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.partition.PartitionSearcher;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
 import org.neo4j.kernel.api.impl.schema.sampler.LuceneIndexSampler;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
+import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.IndexReader;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
@@ -63,7 +62,7 @@ import org.neo4j.values.storable.Values;
 class TextIndexReaderTest {
     private static final SchemaDescriptor SCHEMA = SchemaDescriptors.forLabel(0, 0);
     private final PartitionSearcher partitionSearcher = mock(PartitionSearcher.class);
-    private final Neo4jIndexSearcher indexSearcher = mock(Neo4jIndexSearcher.class);
+    private final LuceneIndexSearcher indexSearcher = mock(LuceneIndexSearcher.class);
     private final IndexSamplingConfig samplingConfig = new IndexSamplingConfig(Config.defaults());
     private final TaskCoordinator taskCoordinator = new TaskCoordinator();
 
@@ -87,7 +86,9 @@ class TextIndexReaderTest {
 
         doQuery(simpleIndexReader, PropertyIndexQuery.exact(1, "test"));
 
-        verify(indexSearcher).search(any(BooleanQuery.class), any(DocValuesCollector.class));
+        verify(indexSearcher)
+                .searchDocValues(
+                        any(BooleanQuery.class), any(String.class), any(IndexProgressor.EntityValueClient.class));
     }
 
     @Test
@@ -96,7 +97,9 @@ class TextIndexReaderTest {
 
         doQuery(simpleIndexReader, PropertyIndexQuery.allEntries());
 
-        verify(indexSearcher).search(any(MatchAllDocsQuery.class), any(DocValuesCollector.class));
+        verify(indexSearcher)
+                .searchDocValues(
+                        any(MatchAllDocsQuery.class), any(String.class), any(IndexProgressor.EntityValueClient.class));
     }
 
     @Test
@@ -105,7 +108,9 @@ class TextIndexReaderTest {
 
         doQuery(simpleIndexReader, PropertyIndexQuery.stringPrefix(1, stringValue("bb")));
 
-        verify(indexSearcher).search(any(MultiTermQuery.class), any(DocValuesCollector.class));
+        verify(indexSearcher)
+                .searchDocValues(
+                        any(MultiTermQuery.class), any(String.class), any(IndexProgressor.EntityValueClient.class));
     }
 
     @Test
@@ -125,7 +130,8 @@ class TextIndexReaderTest {
 
         simpleIndexReader.countIndexedEntities(2, CursorContext.NULL_CONTEXT, new int[] {3}, Values.of("testValue"));
 
-        verify(indexSearcher).search(any(BooleanQuery.class), any(TotalHitCountCollector.class));
+        LuceneIndexSearcher luceneIndexSearcher = verify(indexSearcher);
+        luceneIndexSearcher.count(any(BooleanQuery.class));
     }
 
     @Test

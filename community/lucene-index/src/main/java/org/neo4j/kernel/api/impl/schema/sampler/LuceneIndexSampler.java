@@ -28,11 +28,11 @@ import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.util.BytesRef;
 import org.neo4j.internal.helpers.CancellationRequest;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
 import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
 import org.neo4j.kernel.api.impl.schema.populator.DefaultNonUniqueIndexSampler;
@@ -46,12 +46,14 @@ import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
  * Internally uses terms and their document frequencies for sampling.
  */
 public class LuceneIndexSampler implements IndexSampler {
-    private final IndexSearcher indexSearcher;
+    private final LuceneIndexSearcher indexSearcher;
     private final IndexSamplingConfig indexSamplingConfig;
     private final TaskCoordinator taskCoordinator;
 
     public LuceneIndexSampler(
-            IndexSearcher indexSearcher, TaskCoordinator taskCoordinator, IndexSamplingConfig indexSamplingConfig) {
+            LuceneIndexSearcher indexSearcher,
+            TaskCoordinator taskCoordinator,
+            IndexSamplingConfig indexSamplingConfig) {
         this.taskCoordinator = taskCoordinator;
         this.indexSearcher = indexSearcher;
         this.indexSamplingConfig = indexSamplingConfig;

@@ -23,7 +23,7 @@ import org.apache.lucene.analysis.CharacterUtils;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.tokenattributes.CharTermAttribute;
 
-final class TrigramTokenStream extends TokenStream {
+public final class TrigramTokenStream extends TokenStream {
     // 'n' value in 'ngram'
     private static final int N = 3;
     private static final int MAX_CHARS = N * Character.charCount(Character.MAX_CODE_POINT);
@@ -60,7 +60,7 @@ final class TrigramTokenStream extends TokenStream {
         return true;
     }
 
-    static CodePointBuffer getCodePoints(String text) {
+    public static CodePointBuffer getCodePoints(String text) {
         var codePointBuffer = new int[text.length()];
         int codePointCount = 0;
         for (int i = 0; i < text.length(); ) {
@@ -73,5 +73,5 @@ final class TrigramTokenStream extends TokenStream {
         return new CodePointBuffer(codePointBuffer, codePointCount);
     }
 
-    record CodePointBuffer(int[] codePoints, int codePointCount) {}
+    public record CodePointBuffer(int[] codePoints, int codePointCount) {}
 }

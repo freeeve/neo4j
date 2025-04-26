@@ -21,17 +21,16 @@ package org.neo4j.kernel.api.impl.schema.trigram;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.IndexSearcher;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.IndexSampler;
 
-@SuppressWarnings("ClassCanBeRecord")
 public class TrigramIndexSampler implements IndexSampler {
-    private final IndexSearcher indexSearcher;
+    private final LuceneIndexSearcher indexSearcher;
 
-    public TrigramIndexSampler(IndexSearcher indexSearcher) {
+    public TrigramIndexSampler(LuceneIndexSearcher indexSearcher) {
         this.indexSearcher = indexSearcher;
     }
 

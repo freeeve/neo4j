@@ -23,7 +23,7 @@ import java.util.function.LongPredicate;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.ScoredEntityResultCollector;
 
-class FulltextResultCollector extends ScoredEntityResultCollector {
+public class FulltextResultCollector extends ScoredEntityResultCollector {
     FulltextResultCollector(IndexQueryConstraints constraints, LongPredicate exclusionFilter) {
         super(constraints, exclusionFilter);
     }

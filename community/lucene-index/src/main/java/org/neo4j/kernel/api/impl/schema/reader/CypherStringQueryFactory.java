@@ -41,18 +41,18 @@ import org.neo4j.kernel.api.impl.schema.ValueEncoding;
  * The operations are optimised to be used to query such indexes and perform better
  * than the default Lucene equivalent which are optimised for fuzzy fulltext search.
  */
-class CypherStringQueryFactory {
-    static Query stringPrefix(String prefix) {
+public class CypherStringQueryFactory {
+    public static Query stringPrefix(String prefix) {
         Term term = new Term(ValueEncoding.String.key(0), prefix);
         return new PrefixMultiTermsQuery(term);
     }
 
-    static Query stringContains(String substring) {
+    public static Query stringContains(String substring) {
         Term term = new Term(ValueEncoding.String.key(0), substring);
         return new ContainsMultiTermsQuery(term);
     }
 
-    static Query stringSuffix(String suffix) {
+    public static Query stringSuffix(String suffix) {
         Term term = new Term(ValueEncoding.String.key(0), suffix);
         return new SuffixMultiTermsQuery(term);
     }

@@ -38,6 +38,7 @@ import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.collector.ScoredEntityIterator;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 import org.neo4j.kernel.api.impl.schema.AbstractLuceneIndexReader;
+import org.neo4j.kernel.api.impl.schema.LuceneQueryFactory;
 import org.neo4j.kernel.api.impl.schema.LuceneScoredEntityIndexProgressor;
 import org.neo4j.kernel.api.impl.schema.reader.IndexReaderCloseException;
 import org.neo4j.kernel.api.index.IndexProgressor;
@@ -48,7 +49,6 @@ import org.neo4j.logging.LogProvider;
 import org.neo4j.values.storable.Value;
 
 class VectorIndexReader extends AbstractLuceneIndexReader {
-    private final VectorDocumentStructure documentStructure;
     private final OptionalInt dimensions;
     private final List<SearcherReference> searchers;
 
@@ -59,8 +59,7 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
             List<SearcherReference> searchers,
             IndexUsageTracking usageTracker,
             LogProvider logProvider) {
-        super(descriptor, usageTracker, logProvider);
-        this.documentStructure = documentStructure;
+        super(descriptor, usageTracker, new LuceneQueryFactory.VectorQueryFactory(documentStructure), logProvider);
         this.dimensions = vectorIndexConfig.dimensions();
         this.searchers = searchers;
     }
@@ -126,26 +125,13 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
     }
 
     @Override
-    protected Query toLuceneQuery(PropertyIndexQuery predicate, IndexQueryConstraints constraints) {
-        return switch (predicate.type()) {
-            case ALL_ENTRIES -> VectorQueryFactory.allValues();
-            case NEAREST_NEIGHBORS -> {
-                final var nearestNeighborsPredicate = (NearestNeighborsPredicate) predicate;
-                final var k = Math.min(
-                        nearestNeighborsPredicate.numberOfNeighbors(),
-                        constraints.limit().orElse(Integer.MAX_VALUE));
-                final var effectiveK = k + constraints.skip().orElse(0);
-                yield VectorQueryFactory.approximateNearestNeighbors(
-                        documentStructure, nearestNeighborsPredicate.query(), Math.toIntExact(effectiveK));
-            }
-            default -> throw invalidQuery(IllegalArgumentException::new, predicate);
-        };
-    }
-
-    @Override
     protected IndexProgressor indexProgressor(
-            Query query, IndexQueryConstraints constraints, IndexProgressor.EntityValueClient client) {
-        final var iterator = searchLucene(query, constraints);
+            LuceneQueryFactory queryFactory,
+            PropertyIndexQuery predicate,
+            IndexQueryConstraints constraints,
+            EntityValueClient client) {
+        ValuesIterator iterator =
+                searchLucene(queryFactory.createQuery(predicate, constraints, descriptor), constraints);
         return new LuceneScoredEntityIndexProgressor(iterator, client, constraints);
     }
 
@@ -176,9 +162,8 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
             // TODO VECTOR: pre-rewrite query? Not sure what rewriting entails
             final var results = new ArrayList<ValuesIterator>(searchers.size());
             for (final var searcher : searchers) {
-                final var collector = new VectorResultCollector(constraints);
-                searcher.getIndexSearcher().search(query, collector);
-                results.add(collector.iterator());
+                ValuesIterator valuesIterator = searcher.getIndexSearcher().searchVectors(query, constraints);
+                results.add(valuesIterator);
             }
             return ScoredEntityIterator.mergeIterators(results);
         } catch (IOException e) {

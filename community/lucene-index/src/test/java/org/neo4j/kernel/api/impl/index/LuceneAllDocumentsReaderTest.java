@@ -32,7 +32,6 @@ import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexReader;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.Iterators;
-import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
 import org.neo4j.kernel.api.impl.index.partition.PartitionSearcher;
 
 class LuceneAllDocumentsReaderTest {
@@ -80,7 +79,7 @@ class LuceneAllDocumentsReaderTest {
     private static PartitionSearcher createPartitionSearcher(int maxDoc, int partition, int maxSize)
             throws IOException {
         PartitionSearcher partitionSearcher = mock(PartitionSearcher.class);
-        Neo4jIndexSearcher indexSearcher = mock(Neo4jIndexSearcher.class);
+        LuceneIndexSearcher indexSearcher = mock(LuceneIndexSearcher.class);
         IndexReader indexReader = mock(IndexReader.class);
 
         when(partitionSearcher.getIndexSearcher()).thenReturn(indexSearcher);

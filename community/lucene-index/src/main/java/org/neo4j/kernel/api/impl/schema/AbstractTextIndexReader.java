@@ -20,10 +20,12 @@
 package org.neo4j.kernel.api.impl.schema;
 
 import java.io.IOException;
-import org.apache.lucene.search.IndexSearcher;
+import java.io.UncheckedIOException;
 import org.apache.lucene.search.Query;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
+import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.schema.reader.IndexReaderCloseException;
 import org.neo4j.kernel.api.index.IndexProgressor;
@@ -38,15 +40,25 @@ public abstract class AbstractTextIndexReader extends AbstractLuceneIndexReader 
             IndexDescriptor descriptor,
             SearcherReference searcherReference,
             IndexUsageTracking usageTracker,
+            LuceneQueryFactory queryFactory,
             LogProvider logProvider) {
-        super(descriptor, usageTracker, logProvider);
+        super(descriptor, usageTracker, queryFactory, logProvider);
         this.searcherReference = searcherReference;
     }
 
     @Override
     protected IndexProgressor indexProgressor(
-            Query query, IndexQueryConstraints constraints, EntityValueClient client) {
-        return search(getIndexSearcher(), query).getIndexProgressor(entityIdFieldKey(), client);
+            LuceneQueryFactory queryFactory,
+            PropertyIndexQuery predicate,
+            IndexQueryConstraints constraints,
+            EntityValueClient client) {
+        LuceneIndexSearcher searcher = getIndexSearcher();
+        Query query = queryFactory.createQuery(predicate, constraints, descriptor);
+        try {
+            return searcher.searchDocValues(query, entityIdFieldKey(), client);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
@@ -58,7 +70,7 @@ public abstract class AbstractTextIndexReader extends AbstractLuceneIndexReader 
         }
     }
 
-    protected IndexSearcher getIndexSearcher() {
+    protected LuceneIndexSearcher getIndexSearcher() {
         return searcherReference.getIndexSearcher();
     }
 }
