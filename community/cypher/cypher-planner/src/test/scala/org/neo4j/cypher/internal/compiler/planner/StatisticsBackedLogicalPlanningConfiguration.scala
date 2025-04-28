@@ -616,12 +616,25 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
     constrainedLabel: String,
     impliedLabel: String
   ): StatisticsBackedLogicalPlanningConfigurationBuilder = {
+    checkIsValidNodeLabelConstraint(constrainedLabel, impliedLabel)
     addLabel(constrainedLabel)
       .addLabel(impliedLabel)
       .copy(nodeLabelConstraints = nodeLabelConstraints.updatedWith(constrainedLabel) {
         case Some(labels) => Some(labels + impliedLabel)
         case None         => Some(Set(impliedLabel))
       })
+  }
+
+  private def checkIsValidNodeLabelConstraint(constrainedLabel: String, impliedLabel: String): Unit = {
+    nodeLabelConstraints.foreach {
+      case existing @ (label, labels) =>
+        if (label == impliedLabel || labels.contains(constrainedLabel)) {
+          throw new IllegalArgumentException(
+            s"""Node label constraint conflict: ($constrainedLabel -> $impliedLabel) conflicts with $existing.
+               |It is not allowed to have a label be the constrained label for one constraint and required label for another constraint.""".stripMargin
+          )
+        }
+    }
   }
 
   def addProcedure(signature: ProcedureSignature): StatisticsBackedLogicalPlanningConfigurationBuilder = {

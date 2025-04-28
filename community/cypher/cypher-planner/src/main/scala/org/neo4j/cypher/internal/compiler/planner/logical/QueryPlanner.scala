@@ -117,7 +117,7 @@ case object QueryPlanner
       labelInferenceStrategy = context.labelInferenceStrategy,
       idpLogger = IDPLogger.givenDebugOptions(context.debugOptions),
       graphSchemaOptimizations =
-        GraphSchemaOptimizations.fromConfig(enableGraphSchemaOptimizations, context.planContext, from.semanticTable())
+        GraphSchemaOptimizations.fromConfig(enableGraphSchemaOptimizations, context.planContext)
     )
 
     val settings = Settings(

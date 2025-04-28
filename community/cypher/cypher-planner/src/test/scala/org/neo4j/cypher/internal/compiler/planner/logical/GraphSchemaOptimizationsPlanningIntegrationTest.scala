@@ -50,36 +50,17 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .build()
   }
 
-  test("should not plan filter for an indirectly implied label") {
+  test("should not plan filter, one constrained label, multiple implied labels") {
     val planner = plannerBuilder()
       .setLabelCardinality("Entity", 1500)
       .setLabelCardinality("Person", 1000)
       .setLabelCardinality("Actor", 500)
       .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
-      .addNodeLabelConstraint(constrainedLabel = "Person", impliedLabel = "Entity")
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Entity")
       .setAllNodesCardinality(3000)
       .build()
 
-    val query = "MATCH (n:Actor:Entity) RETURN n"
-    val plan = planner.plan(query).stripProduceResults
-    plan shouldEqual planner.subPlanBuilder()
-      .nodeByLabelScan("n", "Actor")
-      .build()
-  }
-
-  test("should not plan filter for multiple implied labels") {
-    val planner = plannerBuilder()
-      .setLabelCardinality("Entity", 1500)
-      .setLabelCardinality("Person", 1000)
-      .setLabelCardinality("Actor", 500)
-      .setLabelCardinality("Artist", 800)
-      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
-      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Artist")
-      .addNodeLabelConstraint(constrainedLabel = "Person", impliedLabel = "Entity")
-      .setAllNodesCardinality(3000)
-      .build()
-
-    val query = "MATCH (n:Actor:Person:Entity:Artist) RETURN n"
+    val query = "MATCH (n:Actor:Person:Entity) RETURN n"
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
       .nodeByLabelScan("n", "Actor")
@@ -93,7 +74,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .setLabelCardinality("Actor", 500)
       .setLabelCardinality("Other", 800)
       .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
-      .addNodeLabelConstraint(constrainedLabel = "Person", impliedLabel = "Entity")
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Entity")
       .setAllNodesCardinality(3000)
       .build()
 
@@ -102,22 +83,6 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     plan shouldEqual planner.subPlanBuilder()
       .intersectionNodeByLabelsScan("n", Seq("Actor", "Person", "Entity", "Other"))
       .build()
-  }
-
-  test("should plan label scan on one of the labels in case of a cyclic constraints") {
-    val planner = plannerBuilder()
-      .setLabelCardinality("A", 1000)
-      .setLabelCardinality("B", 1000)
-      .setLabelCardinality("C", 1000)
-      .addNodeLabelConstraint(constrainedLabel = "A", impliedLabel = "B")
-      .addNodeLabelConstraint(constrainedLabel = "B", impliedLabel = "C")
-      .addNodeLabelConstraint(constrainedLabel = "C", impliedLabel = "A")
-      .setAllNodesCardinality(3000)
-      .build()
-
-    val query = "MATCH (n:A:B:C) RETURN n"
-    val plan = planner.plan(query).stripProduceResults
-    plan shouldBe a[NodeByLabelScan] // can be on any label
   }
 
   test("should plan filter + index scan on implied label") {
@@ -175,7 +140,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
       .setLabelCardinality("Actor", actors)
       .setLabelCardinality("Other", others)
       .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
-      .addNodeLabelConstraint(constrainedLabel = "Person", impliedLabel = "Entity")
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Entity")
       .setAllNodesCardinality(total)
       .build()
 
