@@ -421,7 +421,7 @@ trait RuntimeTestSupportExecution[CONTEXT <: RuntimeContext] extends RuntimeExec
   override def executeAndExplain(
     logicalQuery: LogicalQuery,
     runtime: CypherRuntime[CONTEXT],
-    input: InputValues,
+    input: InputValues = NO_INPUT,
     queryConfig: QueryRuntimeConfig = defaultQueryRuntimeConfig
   ): (RecordingRuntimeResult, InternalPlanDescription) = {
     runtimeTestSupport.executeAndExplain(logicalQuery, runtime, input, queryConfig)
