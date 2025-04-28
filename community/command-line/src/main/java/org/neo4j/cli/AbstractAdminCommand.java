@@ -224,7 +224,7 @@ public abstract class AbstractAdminCommand extends AbstractCommand {
     private void logCrashInformation(Throwable ex, Duration elapsed) {
         try {
             int timeout = Integer.parseInt(System.getenv().getOrDefault(CRASH_INFO_TIMEOUT, "3"));
-            if (elapsed.toMillis() < TimeUnit.SECONDS.toMillis(timeout)) {
+            if (!verbose && elapsed.toMillis() < TimeUnit.SECONDS.toMillis(timeout)) {
                 return;
             }
             var config = createPrefilledConfigBuilder().build();

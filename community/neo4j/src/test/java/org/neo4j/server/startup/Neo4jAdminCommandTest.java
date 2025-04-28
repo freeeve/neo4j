@@ -188,6 +188,26 @@ class Neo4jAdminCommandTest {
 
         @Test
         @DisabledOnOs(OS.WINDOWS)
+        void writeExceptionToFileAndConsoleOnFastFailureInVerboseMode() throws Exception {
+            if (fork.run(
+                    () -> execute("dbms", "test-command", "--throw", "--verbose"), Map.of(CRASH_INFO_TIMEOUT, "60"))) {
+                assertThat(err.toString()).containsSubsequence("Full exception details written to:");
+                assertThat(err.toString()).contains(CommandFailedException.class.getName());
+                // but we do get the error message
+                assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
+            }
+        }
+
+        @Test
+        @DisabledOnOs(OS.WINDOWS)
+        void writeMessageToConsoleOnFastFailure() throws Exception {
+            if (fork.run(() -> execute("dbms", "test-command", "--throw"), Map.of(CRASH_INFO_TIMEOUT, "60"))) {
+                assertThat(err.toString()).containsSubsequence(TestCommand.THROW_MSG);
+            }
+        }
+
+        @Test
+        @DisabledOnOs(OS.WINDOWS)
         void shouldNotAffectVerboseWhenWritingExceptionToFile() throws Exception {
             if (fork.run(
                     () -> {

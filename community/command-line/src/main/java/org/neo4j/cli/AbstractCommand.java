@@ -95,14 +95,14 @@ public abstract class AbstractCommand implements Callable<Integer> {
         }
         try {
             wrappedExecute();
-        } catch (CommandFailedException e) {
+        } catch (Throwable e) {
             if (verbose) {
                 e.printStackTrace(ctx.err());
             } else {
                 ctx.err().println(e.getMessage());
                 ctx.err().println("Run with '--verbose' for a more detailed error message.");
             }
-            return e.getExitCode();
+            return e instanceof CommandFailedException cfe ? cfe.getExitCode() : ExitCode.FAIL;
         }
         return ExitCode.OK;
     }

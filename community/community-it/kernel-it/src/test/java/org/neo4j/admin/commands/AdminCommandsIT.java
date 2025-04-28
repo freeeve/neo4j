@@ -22,16 +22,16 @@ package org.neo4j.admin.commands;
 import static java.nio.file.attribute.PosixFilePermission.OWNER_READ;
 import static java.nio.file.attribute.PosixFilePermission.OWNER_WRITE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.neo4j.dbms.archive.Dumper.DUMP_EXTENSION;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Set;
-import org.apache.commons.lang3.mutable.MutableObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
@@ -72,15 +72,17 @@ class AdminCommandsIT {
 
     private ExecutionContext context;
     private Path dumpFolder;
+    private OutputStream err;
 
     @BeforeEach
     void setup() throws Exception {
-        final var out = mock(PrintStream.class);
-        final var err = mock(PrintStream.class);
+        var out = new ByteArrayOutputStream();
+        err = new ByteArrayOutputStream();
         final var confDir = testDirectory.directory("test.conf");
         final var home = testDirectory.homePath("home");
         dumpFolder = testDirectory.directory("dumpFolder");
-        context = new ExecutionContext(home, confDir, out, err, testDirectory.getFileSystem());
+        context = new ExecutionContext(
+                home, confDir, new PrintStream(out), new PrintStream(err), testDirectory.getFileSystem());
         final var configFile = confDir.resolve("neo4j.conf");
         try (var outputStream = fs.openAsOutputStream(configFile, false);
                 var printOut = new PrintStream(outputStream)) {
@@ -146,14 +148,7 @@ class AdminCommandsIT {
     }
 
     private void assertExpansionError(AbstractCommand command, String... args) {
-        var exception = new MutableObject<Exception>();
-        new CommandLine(command, new ContextInjectingFactory(context))
-                .setExecutionExceptionHandler((ex, commandLine, parseResult) -> {
-                    exception.setValue(ex);
-                    return 1;
-                })
-                .execute(args);
-        assertThat(exception.getValue())
-                .hasMessageContaining("is a command, but config is not explicitly told to expand it.");
+        new CommandLine(command, new ContextInjectingFactory(context)).execute(args);
+        assertThat(err.toString()).contains("is a command, but config is not explicitly told to expand it.");
     }
 }
