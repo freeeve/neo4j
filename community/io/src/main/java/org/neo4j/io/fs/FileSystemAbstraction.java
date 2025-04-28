@@ -44,6 +44,9 @@ import org.neo4j.io.fs.watcher.FileWatcher;
  * Abstraction for all interactions with files.
  */
 public interface FileSystemAbstraction extends Closeable {
+
+    String DEFAULT_TMP_SUFFIX = ".tmp";
+    Predicate<String> IS_DEFAULT_TMP_SUFFIX = s -> s.endsWith(DEFAULT_TMP_SUFFIX);
     /**
      * Used as return value from {@link #getFileDescriptor(StoreChannel)} for a channel where the machine-specific file descriptor
      * for that given file cannot be determined or retrieved.

@@ -33,6 +33,7 @@ import org.neo4j.internal.id.BufferedIdController;
 import org.neo4j.internal.id.BufferingIdGeneratorFactory;
 import org.neo4j.internal.id.IdController;
 import org.neo4j.internal.id.IdGeneratorFactory;
+import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogFilesHelper;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -73,5 +74,13 @@ class CommunityEditionModuleIntegrationTest {
         assertFalse(filter.test(databaseLayout.nodeStore().getFileName().toString()));
         assertTrue(filter.test(TransactionLogFilesHelper.DEFAULT_NAME + ".1"));
         assertTrue(filter.test(TransactionLogFilesHelper.CHECKPOINT_FILE_PREFIX + ".1"));
+    }
+
+    @Test
+    void ignoresTmpFiles() {
+        var filter = ModularDatabaseCreationContext.defaultFileWatcherFilter();
+        assertThat(filter.test(FileSystemAbstraction.DEFAULT_TMP_SUFFIX)).isTrue();
+        assertThat(filter.test("some-file" + FileSystemAbstraction.DEFAULT_TMP_SUFFIX))
+                .isTrue();
     }
 }

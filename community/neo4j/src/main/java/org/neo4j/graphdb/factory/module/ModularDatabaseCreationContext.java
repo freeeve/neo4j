@@ -19,6 +19,8 @@
  */
 package org.neo4j.graphdb.factory.module;
 
+import static org.neo4j.io.fs.FileSystemAbstraction.IS_DEFAULT_TMP_SUFFIX;
+
 import java.util.function.Function;
 import java.util.function.LongFunction;
 import java.util.function.Predicate;
@@ -466,6 +468,7 @@ public class ModularDatabaseCreationContext implements DatabaseCreationContext {
     public static Predicate<String> defaultFileWatcherFilter() {
         return Predicates.any(
                 TransactionLogFilesHelper.DEFAULT_FILENAME_PREDICATE,
-                BufferingIdGeneratorFactory.PAGED_ID_BUFFER_FILE_NAME_FILTER);
+                BufferingIdGeneratorFactory.PAGED_ID_BUFFER_FILE_NAME_FILTER,
+                IS_DEFAULT_TMP_SUFFIX);
     }
 }

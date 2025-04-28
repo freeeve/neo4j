@@ -63,7 +63,7 @@ class SwappingBufferFactory implements BufferFactory, AutoCloseable {
 
     SwappingBufferFactory(FileSystemAbstraction fs, Path workDirectory) throws IOException {
         this.fs = fs;
-        this.file = fs.createTempFile(workDirectory, ".swap", ".tmp");
+        this.file = fs.createTempFile(workDirectory, ".swap", FileSystemAbstraction.DEFAULT_TMP_SUFFIX);
         this.channel = fs.open(file, OPEN_OPTIONS);
     }
 
