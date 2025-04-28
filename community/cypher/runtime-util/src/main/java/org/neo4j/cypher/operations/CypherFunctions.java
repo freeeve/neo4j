@@ -1027,7 +1027,7 @@ public final class CypherFunctions {
             return NO_VALUE;
         } else if (original instanceof TextValue text) {
             return text.reverse();
-        } else if (original instanceof ListValue list) {
+        } else if (original instanceof SequenceValue list) {
             return list.reverse();
         } else {
             throw CypherTypeException.functionArgumentWrongType(

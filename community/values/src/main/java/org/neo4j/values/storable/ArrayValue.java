@@ -26,6 +26,8 @@ import org.neo4j.hashing.HashFunction;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.SequenceValue;
 import org.neo4j.values.ValueMapper;
+import org.neo4j.values.virtual.ListValue;
+import org.neo4j.values.virtual.VirtualValues;
 
 /**
  * Array of one of the storable primitives
@@ -121,6 +123,11 @@ public abstract class ArrayValue extends HashMemoizingValue implements SequenceV
                 return value(offset++);
             }
         };
+    }
+
+    @Override
+    public ListValue reverse() {
+        return VirtualValues.fromArray(this).reverse();
     }
 
     @Override

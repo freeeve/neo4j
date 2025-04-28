@@ -25,6 +25,7 @@ import static org.neo4j.values.storable.Values.NO_VALUE;
 import java.util.Comparator;
 import java.util.Iterator;
 import org.neo4j.values.storable.Values;
+import org.neo4j.values.virtual.ListValue;
 
 /**
  * Values that represent sequences of values (such as Lists or Arrays) need to implement this interface.
@@ -81,6 +82,8 @@ public interface SequenceValue extends Iterable<AnyValue> {
     Iterator<AnyValue> iterator();
 
     IterationPreference iterationPreference();
+
+    ListValue reverse(); // SequenceValue does not extend AnyValue so ListValue is a better return type
 
     default boolean equals(SequenceValue other) {
         if (other == null) {
