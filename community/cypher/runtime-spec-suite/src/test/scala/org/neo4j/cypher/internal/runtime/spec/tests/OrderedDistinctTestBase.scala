@@ -28,7 +28,9 @@ import org.neo4j.cypher.internal.runtime.spec.Edition
 import org.neo4j.cypher.internal.runtime.spec.LogicalQueryBuilder
 import org.neo4j.cypher.internal.runtime.spec.RuntimeTestSuite
 import org.neo4j.graphdb.Node
+import org.neo4j.values.virtual.VirtualValues
 
+import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.util.Try
 
 object OrderedDistinctTestBase
@@ -1008,5 +1010,81 @@ abstract class OrderedDistinctTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x", "y").withRows(expectedRows)
+  }
+
+  test("should preserve order of the LHS") {
+    // given
+    val limit = 10
+    val nodes = givenGraph(nodeGraph(sizeHint))
+
+    // when
+    // NOTE: if we want to preserve LHS order we need to set leverage order
+    //      on all operators on the RHS
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x", "a")
+      .limit(limit).withLeveragedOrder()
+      .apply()
+      .|.top(1, "x ASC").withLeveragedOrder()
+      .|.orderedDistinct(Seq("x"), "x AS a").withLeveragedOrder()
+      .|.unwind("[10,20,30,10,20,30] AS y2").withLeveragedOrder()
+      .|.unwind("[1,2,3,1,2,3] AS y1").withLeveragedOrder()
+      .|.argument("x").withLeveragedOrder()
+      .allNodeScan("x").withLeveragedOrder()
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected: Seq[Array[Node]] = nodes.take(limit).map(n => Array(n, n))
+    runtimeResult should beColumns("x", "a").withRows(inOrder(expected))
+  }
+
+  test("should preserve order of the RHS") {
+    // given
+    val nodes = givenGraph(nodeGraph(sizeHint))
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x", "xs")
+      .apply()
+      .|.aggregation(Seq("x AS x"), Seq("count(x) AS xs"))
+      .|.orderedDistinct(Seq("x"), "x AS a").withLeveragedOrder()
+      .|.unwind("[10,20,30,10,20,30] AS y2").withLeveragedOrder()
+      .|.unwind("[1,2,3,1,2,3] AS y1").withLeveragedOrder()
+      .|.argument("x").withLeveragedOrder()
+      .allNodeScan("x")
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val expected = nodes.map(n => Array(n, 1))
+    runtimeResult should beColumns("x", "xs").withRows(expected)
+  }
+
+  test("should be able to use ORDERED DISTINCT with subquery") {
+    // given
+    val nodes = givenGraph(nodeGraph(sizeHint))
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("ys")
+      .apply()
+      .|.aggregation(Seq.empty, Seq("collect(y) AS ys"))
+      .|.orderedDistinct(Seq("y"), "y AS y").withLeveragedOrder()
+      .|.unwind("range(1, 10) AS i").withLeveragedOrder()
+      .|.allNodeScan("y", "x").withLeveragedOrder()
+      .allNodeScan("x")
+      .build()
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    val results = consume(runtimeResult)
+    results should not be empty
+    results.foreach(row => {
+      row(0).asInstanceOf[java.lang.Iterable[_]].asScala.toList should equal(nodes.map(n =>
+        VirtualValues.node(n.getId)
+      ))
+    })
   }
 }
