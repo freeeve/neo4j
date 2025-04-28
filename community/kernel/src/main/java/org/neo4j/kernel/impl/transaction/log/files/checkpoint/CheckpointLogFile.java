@@ -20,7 +20,6 @@
 package org.neo4j.kernel.impl.transaction.log.files.checkpoint;
 
 import static java.util.Collections.emptyList;
-import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.BIGGEST_HEADER;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 import static org.neo4j.kernel.impl.transaction.log.files.checkpoint.CheckpointInfoFactory.ofLogEntry;
@@ -146,8 +145,9 @@ public class CheckpointLogFile extends LifecycleAdapter implements CheckpointFil
             FileSystemAbstraction fileSystem = context.getFileSystem();
             var header = readLogHeader(fileSystem, currentCheckpointFile, false, context.getMemoryTracker());
             if (header != null) {
+                final var readerBridge = ReaderLogVersionBridge.forFile(this);
                 try (var reader = ReadAheadUtils.newChannel(
-                                this, currentVersion, NO_MORE_CHANNELS, context.getMemoryTracker());
+                                this, currentVersion, readerBridge, context.getMemoryTracker());
                         var logEntryCursor = new LogEntryCursor(checkpointReader, reader)) {
                     log.info("Scanning log file with version %d for checkpoint entries", currentVersion);
                     try {

@@ -44,6 +44,10 @@ public class DetachedCheckpointLogEntrySerializerV5_22 extends LogEntrySerialize
     public static final int RECORD_LENGTH_BYTES = 232;
     public static final int MAX_DESCRIPTION_LENGTH = 75;
 
+    // N.B. if we add a new LogEntryDetachedCheckpoint version this method needs to be maintained/migrated!
+    // EnvelopedCheckpointLogFileTest.envelopedCheckpointsShouldNotCrossFileBoundariesWithDefaultSegmentSize
+    // in particular is ensuring that we don't create checkpoints of a size that can be split across checkpoint files
+    // when enveloped which could potentially cause issues with recovery under corruption.
     public static int checkPointRecordSizeDependingOnVersion(KernelVersion version) {
         if (version.isLessThan(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED)) {
             return RECORD_LENGTH_BYTES;
