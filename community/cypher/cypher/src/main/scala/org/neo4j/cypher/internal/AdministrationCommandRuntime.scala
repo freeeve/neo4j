@@ -234,6 +234,10 @@ object AdministrationCommandRuntime {
     }
   }
 
+  private[internal] def getParameterName(parameter: Either[String, Parameter]): Option[String] =
+    // Either.toOption returns a Some containing the Right value if it exists or a None if this is a Left
+    parameter.toOption.map(_.name)
+
   private[internal] def makeCreateUserExecutionPlan(
     userName: Either[String, Parameter],
     suspended: Boolean,
@@ -568,7 +572,10 @@ object AdministrationCommandRuntime {
       VirtualValues.map(parameterKeys, parameterValues),
       QueryHandler
         .handleNoResult(p =>
-          Some(ThrowException(InvalidArgumentException.alterMissingUser(runtimeStringValue(userName, p))))
+          Some(ThrowException(InvalidArgumentException.alterMissingUser(
+            runtimeStringValue(userName, p),
+            getParameterName(userName).orNull
+          )))
         )
         .handleError((error, p) =>
           (error, error.getCause) match {
@@ -585,7 +592,10 @@ object AdministrationCommandRuntime {
         )
         .handleResult {
           case (0, value: BooleanValue, p) if !value.booleanValue() =>
-            ThrowException(InvalidArgumentException.alterMissingUser(runtimeStringValue(userName, p)))
+            ThrowException(InvalidArgumentException.alterMissingUser(
+              runtimeStringValue(userName, p),
+              getParameterName(userName).orNull
+            ))
           case (1, value: TextValue, p) =>
             maybePw.map {
               newPw =>
@@ -673,7 +683,8 @@ object AdministrationCommandRuntime {
           Some(ThrowException(InvalidArgumentException.renameEntityNotFound(
             entityType,
             runtimeStringValue(fromName, p),
-            runtimeStringValue(toName, p)
+            runtimeStringValue(toName, p),
+            getParameterName(fromName).orNull
           )))
         })
         .handleError((error, p) =>
@@ -1058,7 +1069,10 @@ object AdministrationCommandRuntime {
         context.runtimeContext.cypherVersion match {
           case CypherVersion.Cypher5             => interpretNamespaceAsPartOfName(aliasNameFields, params, paramString)
           case _ if aliasNameFields.wasParameter => interpretNamespaceAsPartOfName(aliasNameFields, params, paramString)
-          case _ => throw compositeDatabaseNotFound(paramString(aliasNameFields.namespaceKey))
+          case _ => throw compositeDatabaseNotFound(
+              paramString(aliasNameFields.namespaceKey),
+              null // null since if it's a parameter it will be caught in the case above
+            )
         }
       } else {
         (params, Set.empty)

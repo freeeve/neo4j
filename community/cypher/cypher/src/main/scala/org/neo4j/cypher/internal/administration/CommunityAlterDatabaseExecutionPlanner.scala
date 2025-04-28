@@ -21,6 +21,7 @@ package org.neo4j.cypher.internal.administration
 
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.checkNamespaceExists
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFields
+import org.neo4j.cypher.internal.AdministrationCommandRuntime.getParameterName
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.internalKey
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.runtimeStringValue
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
@@ -90,7 +91,11 @@ case class CommunityAlterDatabaseExecutionPlanner(
       QueryHandler
         .handleResult((offset, value, params) => {
           if (offset == 0 && (value eq Values.NO_VALUE)) {
-            ThrowException(DatabaseNotFoundHelper.failedAction("alter", runtimeStringValue(databaseName, params)))
+            ThrowException(DatabaseNotFoundHelper.failedAction(
+              "alter",
+              runtimeStringValue(databaseName, params),
+              getParameterName(databaseName.asLegacyName).orNull
+            ))
           } else {
             Continue
           }

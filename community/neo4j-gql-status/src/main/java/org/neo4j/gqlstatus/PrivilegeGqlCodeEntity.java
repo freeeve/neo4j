@@ -50,12 +50,20 @@ public enum PrivilegeGqlCodeEntity {
         return description;
     }
 
-    public static ErrorGqlStatusObject entityNotFound(PrivilegeGqlCodeEntity entity, String name) {
-        return switch (entity) {
-            case USER -> invalidReference(userNotFound(name));
-            case ROLE -> invalidReference(roleNotFound(name));
-            case DATABASE, DATABASE_ALIAS -> invalidReference(databaseNotFound(name));
-        };
+    public static ErrorGqlStatusObject entityNotFound(PrivilegeGqlCodeEntity entity, String name, String paramName) {
+        var cause =
+                switch (entity) {
+                    case USER -> userNotFound(name);
+                    case ROLE -> roleNotFound(name);
+                    case DATABASE, DATABASE_ALIAS -> databaseNotFound(name);
+                };
+
+        return paramName == null
+                ? invalidReference(cause)
+                : invalidReference(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N51)
+                        .withParam(GqlParams.StringParam.param, paramName)
+                        .withCause(cause)
+                        .build());
     }
 
     public static ErrorGqlStatusObject entityAlreadyExists(PrivilegeGqlCodeEntity entity, String name) {

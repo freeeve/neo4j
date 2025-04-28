@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.AdministrationCommandRuntime.Show.showString
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.checkNamespaceExists
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getDatabaseNameFields
 import org.neo4j.cypher.internal.AdministrationCommandRuntime.getNameFields
+import org.neo4j.cypher.internal.AdministrationCommandRuntime.getParameterName
 import org.neo4j.cypher.internal.AdministrationCommandRuntimeContext
 import org.neo4j.cypher.internal.ExecutionEngine
 import org.neo4j.cypher.internal.ExecutionPlan
@@ -79,7 +80,7 @@ case class EnsureNodeExistsExecutionPlanner(
          |${extraFilter("node")}
          |RETURN node""".stripMargin,
       VirtualValues.map(Array(nameFields.nameKey), Array(nameFields.nameValue)),
-      queryHandler(command, action, labelDescription, name, gqlEntity),
+      queryHandler(command, action, labelDescription, name, getParameterName(name), gqlEntity),
       sourcePlan,
       parameterTransformer = ParameterTransformer().convert(nameFields.nameConverter)
     )
@@ -109,6 +110,7 @@ case class EnsureNodeExistsExecutionPlanner(
         action,
         DATABASE_NAME_LABEL_DESCRIPTION,
         aliasName,
+        getParameterName(aliasName.asLegacyName),
         PrivilegeGqlCodeEntity.DATABASE_ALIAS
       ),
       sourcePlan,
@@ -124,6 +126,7 @@ case class EnsureNodeExistsExecutionPlanner(
     action: String,
     labelDescription: String,
     value: T,
+    paramName: Option[String],
     entity: PrivilegeGqlCodeEntity
   )(implicit show: Show[T]) = {
     QueryHandler
@@ -133,7 +136,8 @@ case class EnsureNodeExistsExecutionPlanner(
             // e.g. "drop the specified Role 'myRole'"
             s"$action the specified ${labelDescription.toLowerCase} '${show(value, p)}'",
             entity,
-            show(value, p)
+            show(value, p),
+            paramName.orNull
           )
         ))
       )

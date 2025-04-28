@@ -333,10 +333,10 @@ public class InvalidArgumentException extends Neo4jException {
     }
 
     public static InvalidArgumentException renameEntityNotFound(
-            PrivilegeGqlCodeEntity entity, String fromName, String toName) {
+            PrivilegeGqlCodeEntity entity, String fromName, String toName, String fromParamName) {
         var action = "rename the specified %s '%s' to '%s'"
                 .formatted(entity.description.toLowerCase(Locale.ROOT), fromName, toName);
-        return failedActionEntityNotFound2(action, entity, fromName);
+        return failedActionEntityNotFound2(action, entity, fromName, fromParamName);
     }
 
     public static InvalidArgumentException renameEntityAlreadyExists(
@@ -352,17 +352,18 @@ public class InvalidArgumentException extends Neo4jException {
     }
 
     public static InvalidArgumentException failedActionEntityNotFound(
-            String action, PrivilegeGqlCodeEntity entity, String name) {
+            String action, PrivilegeGqlCodeEntity entity, String name, String paramName) {
         // e.g. Failed to <delete the specified role 'myRole'>: <Role> does not exist.
         return new InvalidArgumentException(
-                entityNotFound(entity, name), "Failed to %s: %s does not exist.".formatted(action, entity.description));
+                entityNotFound(entity, name, paramName),
+                "Failed to %s: %s does not exist.".formatted(action, entity.description));
     }
 
     public static InvalidArgumentException failedActionEntityNotFound2(
-            String action, PrivilegeGqlCodeEntity entity, String name) {
+            String action, PrivilegeGqlCodeEntity entity, String name, String paramName) {
         // e.g. Failed to <rename the role 'oldName' to 'newName'>: The <role> '<oldName>' does not exist.
         return new InvalidArgumentException(
-                entityNotFound(entity, name),
+                entityNotFound(entity, name, paramName),
                 "Failed to %s: The %s '%s' does not exist."
                         .formatted(action, entity.description.toLowerCase(Locale.ROOT), name));
     }
@@ -481,14 +482,17 @@ public class InvalidArgumentException extends Neo4jException {
         return new InvalidArgumentException(gql, msg);
     }
 
-    public static InvalidArgumentException alterMissingUser(String username) {
+    public static InvalidArgumentException alterMissingUser(String username, String paramName) {
         return failedActionEntityNotFound(
-                "alter the specified user '%s'".formatted(username), PrivilegeGqlCodeEntity.USER, username);
+                "alter the specified user '%s'".formatted(username), PrivilegeGqlCodeEntity.USER, username, paramName);
     }
 
-    public static InvalidArgumentException roleMissingUser(String role, String username) {
+    public static InvalidArgumentException roleMissingUser(String role, String username, String paramName) {
         return failedActionEntityNotFound(
-                "grant role '%s' to user '%s'".formatted(role, username), PrivilegeGqlCodeEntity.USER, username);
+                "grant role '%s' to user '%s'".formatted(role, username),
+                PrivilegeGqlCodeEntity.USER,
+                username,
+                paramName);
     }
 
     public static InvalidArgumentException invalidCommandMissingUser(

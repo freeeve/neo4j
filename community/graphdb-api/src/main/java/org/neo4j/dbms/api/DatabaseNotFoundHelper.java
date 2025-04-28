@@ -101,8 +101,8 @@ public class DatabaseNotFoundHelper {
 
     // region [Syntax Error Helpers]
 
-    public static DatabaseNotFoundException compositeDatabaseNotFound(String databaseName) {
-        var gql = entityNotFound(DATABASE, databaseName);
+    public static DatabaseNotFoundException compositeDatabaseNotFound(String databaseName, String paramName) {
+        var gql = entityNotFound(DATABASE, databaseName, paramName);
         var message = gql.gqlStatusObject()
                 .cause()
                 .map(ErrorGqlStatusObject::statusDescription)
@@ -110,8 +110,9 @@ public class DatabaseNotFoundHelper {
         return new DatabaseNotFoundException(gql, message);
     }
 
-    public static DatabaseNotFoundException failedCreateCompositeAlias(String fullName, String namespaceName) {
-        var gql = entityNotFound(DATABASE, namespaceName);
+    public static DatabaseNotFoundException failedCreateCompositeAlias(
+            String fullName, String namespaceName, String paramName) {
+        var gql = entityNotFound(DATABASE, namespaceName, paramName);
         return new DatabaseNotFoundException(
                 gql,
                 format(
@@ -120,8 +121,9 @@ public class DatabaseNotFoundHelper {
                         fullName, namespaceName));
     }
 
-    public static DatabaseNotFoundException failedCreateAlias(String aliasName, String targetName) {
-        var gql = entityNotFound(DATABASE, targetName);
+    public static DatabaseNotFoundException failedCreateAlias(
+            String aliasName, String targetName, String targetParameterName) {
+        var gql = entityNotFound(DATABASE, targetName, targetParameterName);
         return new DatabaseNotFoundException(
                 gql,
                 format(
@@ -129,20 +131,21 @@ public class DatabaseNotFoundHelper {
                         aliasName, targetName));
     }
 
-    public static DatabaseNotFoundException failedDeleteComposite(String name) {
-        var gql = entityNotFound(DATABASE, name);
+    public static DatabaseNotFoundException failedDeleteComposite(String name, String paramName) {
+        var gql = entityNotFound(DATABASE, name, paramName);
         return new DatabaseNotFoundException(
                 gql, format("Failed to delete the specified composite database '%s': Database does not exist.", name));
     }
 
-    public static DatabaseNotFoundException failedAction(String action, String name) {
-        var gql = entityNotFound(DATABASE, name);
+    public static DatabaseNotFoundException failedAction(String action, String name, String paramName) {
+        var gql = entityNotFound(DATABASE, name, paramName);
         return new DatabaseNotFoundException(
                 gql, format("Failed to %s the specified database '%s': Database does not exist.", action, name));
     }
 
-    public static DatabaseNotFoundException failedActionAlias(String action, String alias, String name) {
-        var gql = entityNotFound(DATABASE, name);
+    public static DatabaseNotFoundException failedActionAlias(
+            String action, String alias, String name, String dnNameParamName) {
+        var gql = entityNotFound(DATABASE, name, dnNameParamName);
         return new DatabaseNotFoundException(
                 gql,
                 format(
@@ -150,24 +153,24 @@ public class DatabaseNotFoundHelper {
                         action, alias, name));
     }
 
-    public static DatabaseNotFoundException noNameOrAlias(String name) {
-        var gql = entityNotFound(DATABASE, name);
+    public static DatabaseNotFoundException noNameOrAlias(String name, String paramName) {
+        var gql = entityNotFound(DATABASE, name, paramName);
         return new DatabaseNotFoundException(
                 gql, format("Database '%s' does not exist': No database exists with that name or alias.", name));
     }
 
     public static DatabaseNotFoundException databaseNameNotFoundWithoutDot(String name) {
-        var gql = entityNotFound(DATABASE, name);
+        var gql = entityNotFound(DATABASE, name, null);
         return new DatabaseNotFoundException(gql, format("Database %s not found", name));
     }
 
     public static DatabaseNotFoundException databaseNameNotFoundWithDot(String name) {
-        var gql = entityNotFound(DATABASE, name);
+        var gql = entityNotFound(DATABASE, name, null);
         return new DatabaseNotFoundException(gql, format("Database %s not found.", name));
     }
 
     public static DatabaseNotFoundException graphNotFound(String name) {
-        var gql = entityNotFound(DATABASE, name);
+        var gql = entityNotFound(DATABASE, name, null);
         return new DatabaseNotFoundException(gql, format("Graph not found: %s", name));
     }
 
