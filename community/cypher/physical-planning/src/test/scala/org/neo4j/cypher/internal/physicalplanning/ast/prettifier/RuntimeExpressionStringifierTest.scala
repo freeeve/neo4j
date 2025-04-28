@@ -108,6 +108,7 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     .newArgument(Id(1))
     .newLong("  x@10", nullable = true, typ = CTNode)
     .newReference("y", nullable = true, CTNode)
+    .newLong("  r@11", nullable = false, typ = CTRelationship)
     .build()
 
   private val readTokenContext: ReadTokenContext =
@@ -192,19 +193,19 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     (PrimitiveAnds(Seq(PrimitiveEquals(0, 1), PrimitiveNotEquals(1, 2))), "x = r AND NOT r = a"),
     (IsPrimitiveNull(0), "x IS NULL"),
     (NullCheck(0, varFor("x")), "x"),
-    (NullCheck(0, varFor("z")), "z")
+    (NullCheck(0, varFor("z")), "z"),
+    (NodeElementIdFromSlot(0), "elementId(x)"),
+    (RelationshipElementIdFromSlot(1), "elementId(r)"),
+    (HasALabelFromSlot(0), "x:%")
   )
 
   private val unsupportedExpressions = Table(
     "expressions",
     PropertiesUsingCachedProperties(varFor("x"), Set(cachedNodeProp("x", "prop"))),
-    RelationshipElementIdFromSlot(0),
-    NodeElementIdFromSlot(0),
     HasDegreeLessThanPrimitive(0, None, OUTGOING, literalInt(1)),
     HasDegreeLessThanOrEqualPrimitive(0, None, OUTGOING, literalInt(1)),
     HasDegreePrimitive(0, None, OUTGOING, literalInt(1)),
     HasDegreeGreaterThanOrEqualPrimitive(0, None, OUTGOING, literalInt(1)),
-    HasALabelFromSlot(1),
     HasDegreeGreaterThanPrimitive(1, None, INCOMING, literalInt(1)),
     IdFromSlot(1),
     DefaultValueLiteral(Values.intValue(1)),
@@ -256,13 +257,13 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
     (NodeFromSlot(0, "x"), "x"),
     (RelationshipFromSlot(1, "r"), "r"),
     (NullCheckVariable(0, varFor("x")), "x"),
-    (ReferenceFromSlot(0, "y"), "y")
+    (ReferenceFromSlot(0, "y"), "y"),
+    (VariableRef("x"), "x"),
+    (ExpressionVariable(0, "x"), "x")
   )
 
-  private val unsupportedRuntimeVariables = Table(
-    "runtime variable",
-    VariableRef("x"),
-    ExpressionVariable(0, "x")
+  private val unsupportedRuntimeVariables = Table[RuntimeVariable](
+    "runtime variable"
   )
 
   test("should stringify runtime expression") {
@@ -298,7 +299,9 @@ class RuntimeExpressionStringifierTest extends CypherFunSuite with AstConstructi
       (
         NodePropertyExists(99, 1, "  x@10.prop")(prop("  x@10", "prop", InputPosition.NONE)),
         "`  x@10`.prop IS NOT NULL"
-      )
+      ),
+      (NodeElementIdFromSlot(4), "elementId(`  x@10`)"),
+      (RelationshipElementIdFromSlot(5), "elementId(`  r@11`)")
     )
 
     forEvery(generatedVariables) { (expression, stringified) =>

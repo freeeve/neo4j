@@ -23,16 +23,19 @@ import org.neo4j.cypher.internal.ast.prettifier.ExpressionStringifier
 import org.neo4j.cypher.internal.expressions
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LogicalProperty
+import org.neo4j.cypher.internal.expressions.functions.ElementId
 import org.neo4j.cypher.internal.expressions.functions.Labels
 import org.neo4j.cypher.internal.expressions.functions.Type
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.KeyedSlot
 import org.neo4j.cypher.internal.physicalplanning.SlotConfiguration.VariableSlotKey
+import org.neo4j.cypher.internal.physicalplanning.ast.HasALabelFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.HasAnyLabelFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.HasLabelsFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.HasTypesFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.IsPrimitiveNull
 import org.neo4j.cypher.internal.physicalplanning.ast.LabelsFromSlot
+import org.neo4j.cypher.internal.physicalplanning.ast.NodeElementIdFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.NodeFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.NodeProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.NodePropertyExists
@@ -46,6 +49,7 @@ import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveAnds
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveEquals
 import org.neo4j.cypher.internal.physicalplanning.ast.PrimitiveNotEquals
 import org.neo4j.cypher.internal.physicalplanning.ast.ReferenceFromSlot
+import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipElementIdFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipFromSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipProperty
 import org.neo4j.cypher.internal.physicalplanning.ast.RelationshipPropertyExists
@@ -57,8 +61,10 @@ import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressi
 import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifier.nameFromRefSlot
 import org.neo4j.cypher.internal.physicalplanning.ast.prettifier.RuntimeExpressionStringifier.nameFromSlotOrAlias
 import org.neo4j.cypher.internal.planner.spi.ReadTokenContext
+import org.neo4j.cypher.internal.runtime.ast.ExpressionVariable
 import org.neo4j.cypher.internal.runtime.ast.ParameterFromSlot
 import org.neo4j.cypher.internal.runtime.ast.RuntimeConstant
+import org.neo4j.cypher.internal.runtime.ast.VariableRef
 import org.neo4j.cypher.internal.util.InputPosition
 
 case class RuntimeExpressionStringifier(tokenContext: ReadTokenContext, slots: SlotConfiguration)
@@ -72,6 +78,7 @@ case class RuntimeExpressionStringifier(tokenContext: ReadTokenContext, slots: S
       backtickPropertyAccess(ctx, e.asInstanceOf[LogicalProperty])
     case e @ (_: NodePropertyExists | _: NodePropertyExistsLate | _: RelationshipPropertyExists | _: RelationshipPropertyExistsLate) =>
       backtickPropertyAccess(ctx, e.asInstanceOf[LogicalProperty]) + " IS NOT NULL"
+    case l: HasALabelFromSlot => nameFromLongSlot(slots, l.offset, ctx) + ":%"
     case l: HasLabelsFromSlot =>
       val labels = l.resolvedLabelTokens.map(tokenContext.getLabelName) ++ l.lateLabels
       labelPredicates(labels, nameFromLongSlot(slots, l.offset, ctx), " AND ")
@@ -100,7 +107,15 @@ case class RuntimeExpressionStringifier(tokenContext: ReadTokenContext, slots: S
     case e: NullCheckVariable          => ctx.apply(e.inner)
     case e: NullCheckProperty          => ctx.apply(e.inner)
     case e: NullCheckReferenceProperty => ctx.apply(e.inner)
-    case e                             => throw new UnsupportedOperationException(s"Don't know how to stringify $e")
+    case e: NodeElementIdFromSlot =>
+      val varName = expressions.Variable(nameFromLongSlot(slots, e.offset, ctx))(InputPosition.NONE, isIsolated = false)
+      ElementId.asInvocation(varName)(InputPosition.NONE).asCanonicalStringVal
+    case e: RelationshipElementIdFromSlot =>
+      val varName = expressions.Variable(nameFromLongSlot(slots, e.offset, ctx))(InputPosition.NONE, isIsolated = false)
+      ElementId.asInvocation(varName)(InputPosition.NONE).asCanonicalStringVal
+    case e: VariableRef        => nameFromSlotOrAlias(slots, e.variableName, ctx)
+    case e: ExpressionVariable => nameFromSlotOrAlias(slots, e.name, ctx)
+    case e                     => throw new UnsupportedOperationException(s"Don't know how to stringify $e")
   }
 
   private def backtickPropertyAccess(ctx: ExpressionStringifier, ee: LogicalProperty) = {

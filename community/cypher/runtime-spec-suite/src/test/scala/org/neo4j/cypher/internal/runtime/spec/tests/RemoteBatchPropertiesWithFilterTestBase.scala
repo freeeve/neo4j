@@ -824,7 +824,6 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       ("x:A", Seq(10, 40)),
       ("x:A AND NOT x:B", Seq(10)),
       ("x:A OR x:C", Seq(10, 30, 40)),
-      ("x:A|B", Seq(10, 20, 40)),
       ("x:A AND x:B", Seq(40)),
       ("x:A OR (x:B AND x.prop > 30)", Seq(10, 40)),
       ("x:A AND x.prop > 10", Seq(40)),
@@ -832,7 +831,13 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
       ("x:A OR x.prop > 20", Seq(10, 30, 40)),
       ("x:C OR size(labels(x)) > 1", Seq(30, 40)),
       ("labels(x)[0] = 'C'", Seq(30)),
-      ("labels(x)[1] = 'F'", Seq.empty)
+      ("labels(x)[1] = 'F'", Seq.empty),
+      ("x:A&B", Seq(40)),
+      ("x:A|B", Seq(10, 20, 40)),
+      ("x:%", Seq(10, 20, 30, 40)),
+      ("x:!A", Seq(20, 30)),
+      ("x:!%", Seq.empty),
+      ("x:A&%", Seq(10, 40))
     )
 
   test("should match node labels") {
@@ -899,13 +904,16 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     ("predicate", "expected"),
     ("x:A", Seq(10, 40)),
     ("x:A OR x:B", Seq(10, 20, 40)),
-    ("x:A|C", Seq(10, 30, 40)),
     ("x:A AND x:B", Seq.empty),
     ("x:A AND x.prop > 10", Seq(40)),
     ("x:C AND x.prop > 30", Seq.empty),
     ("x:A OR x.prop > 20", Seq(10, 30, 40)),
     ("type(x) = 'A' OR x.prop = 30", Seq(10, 30, 40)),
-    ("type(x) IN ['B', 'C']", Seq(20, 30))
+    ("type(x) IN ['B', 'C']", Seq(20, 30)),
+    ("x:A&B", Seq.empty),
+    ("x:A|C", Seq(10, 30, 40)),
+    ("x:A|%", Seq(10, 20, 30, 40)),
+    ("x:A|!%", Seq(10, 40))
   )
 
   test("should match relationship types") {
