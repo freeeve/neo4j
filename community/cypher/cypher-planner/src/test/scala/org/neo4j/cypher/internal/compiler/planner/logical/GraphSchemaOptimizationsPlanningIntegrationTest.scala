@@ -154,4 +154,308 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
 
     actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
   }
+
+  test("Should not plan a label filter if that label is implied by the relationship type and end-node constraint") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 50)
+      .setAllRelationshipsCardinality(200)
+      .setRelationshipCardinality("()-[:R]->()", 200)
+      .setRelationshipCardinality("()-[:R]->(:B)", 200)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 100)
+      .addRelationshipEndpointLabelConstraint("()-[:R]->(:B)")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)-[r:R]->(b:B)
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .expandAll("(a)-[:R]->()")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test("Should plan selections when it cannot be implied from its source plan") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 50)
+      .setLabelCardinality("B", 70)
+      .setAllRelationshipsCardinality(200)
+      .setRelationshipCardinality("()-[:R]->()", 100)
+      .setRelationshipCardinality("()-[:R]->(:B)", 100)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 100)
+      .setRelationshipCardinality("()-[:S]->()", 100)
+      .setRelationshipCardinality("(:B)-[:S]->()", 100)
+      .addRelationshipEndpointLabelConstraint("(:B)-[:S]->()")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)-[r:R]->(b:B)-[s:S]->()
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .expandAll("(b)-[:S]->()")
+      .filter("b:B")
+      .expandAll("(a)-[:R]->(b)")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test("Should not plan selections when it can be implied from its source plan") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 50)
+      .setLabelCardinality("B", 70)
+      .setAllRelationshipsCardinality(200)
+      .setRelationshipCardinality("()-[:R]->()", 100)
+      .setRelationshipCardinality("()-[:R]->(:B)", 100)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 100)
+      .setRelationshipCardinality("()-[:S]->()", 100)
+      .setRelationshipCardinality("(:B)-[:S]->()", 100)
+      .addRelationshipEndpointLabelConstraint("()-[:R]->(:B)")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)-[r:R]->(b:B)-[s:S]->()
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .expandAll("(b)-[:S]->()")
+      .expandAll("(a)-[:R]->(b)")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test("Should not plan selection :B but should plan selection :C when :C cannon be implied from its source plan") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 5)
+      .setLabelCardinality("B", 700)
+      .setLabelCardinality("C", 700)
+      .setAllRelationshipsCardinality(200)
+      .setRelationshipCardinality("()-[:R]->()", 100)
+      .setRelationshipCardinality("()-[:R]->(:A)", 100)
+      .setRelationshipCardinality("(:B)-[:R]->()", 100)
+      .setRelationshipCardinality("(:C)-[:R]->()", 100)
+      .setRelationshipCardinality("(:B)-[:R]->(:A)", 100)
+      .setRelationshipCardinality("(:C)-[:R]->(:A)", 100)
+      .setRelationshipCardinality("()-[:S]->()", 100)
+      .setRelationshipCardinality("()-[:S]->(:B)", 100)
+      .setRelationshipCardinality("()-[:S]->(:C)", 100)
+      .addRelationshipEndpointLabelConstraint("(:B)-[:R]->()")
+      .addRelationshipEndpointLabelConstraint("()-[:S]->(:C)")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)<-[r:R]-(bc:B&C)<-[s:S]-()
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .expandAll("(bc)<-[:S]-()")
+      .filter("bc:C")
+      .expandAll("(a)<-[:R]-(bc)")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test(
+    "Should plan a relationshipScan when labels on both sides can be implied by the relationship types and end-node constraints and label scans are more expansive"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(2000)
+      .setLabelCardinality("A", 700)
+      .setLabelCardinality("B", 1200)
+      .setAllRelationshipsCardinality(200)
+      .setRelationshipCardinality("()-[:R]->()", 200)
+      .setRelationshipCardinality("()-[:R]->(:B)", 200)
+      .setRelationshipCardinality("(:A)-[:R]->()", 200)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 200)
+      .addRelationshipEndpointLabelConstraint("(:A)-[:R]->(:B)")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)-[r:R]->(b:B)
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .relationshipTypeScan("(a)-[:R]->()")
+      .build()
+  }
+
+  test("Should plan a label filter when it cannot be implied by the relationship type and end-node constraint") {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 20)
+      .setAllRelationshipsCardinality(200)
+      .setRelationshipCardinality("()-[:R]->()", 200)
+      .setRelationshipCardinality("()-[:R]->(:B)", 200)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 100)
+      .addRelationshipEndpointLabelConstraint("()-[:R]->(:B)")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)-[r1:R]->(m)-[r2]->(b:B)
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .filter("b:B", "NOT r2 = r1")
+      .expandAll("(m)-[r2]->(b)")
+      .expandAll("(a)-[r1:R]->(m)")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test(
+    "Should still plan to start from label B when that is cheaper, even though B is implied by R using an end-node constraint"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(1000)
+      .setLabelCardinality("A", 900)
+      .setLabelCardinality("B", 10)
+      .setAllRelationshipsCardinality(200)
+      .setRelationshipCardinality("()-[:R]->()", 200)
+      .setRelationshipCardinality("()-[:R]->(:B)", 200)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 100)
+      .addRelationshipEndpointLabelConstraint("()-[:R]->(:B)")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)-[r:R]->(b:B)
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .filter("a:A")
+      .expandAll("(b)<-[:R]-(a)")
+      .nodeByLabelScan("b", "B")
+      .build()
+  }
+
+  test(
+    "Should not plan a label filter for B if that label is implied by the relationship type and end-node constraint, but should still plan a label filter for C that is not implied by a constraint"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 90)
+      .setLabelCardinality("C", 90)
+      .setAllRelationshipsCardinality(200)
+      .setRelationshipCardinality("()-[:R]->()", 200)
+      .setRelationshipCardinality("()-[:R]->(:B)", 200)
+      .setRelationshipCardinality("()-[:R]->(:C)", 150)
+      .setRelationshipCardinality("(:A)-[:R]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R]->(:B)", 100)
+      .setRelationshipCardinality("(:A)-[:R]->(:C)", 90)
+      .addRelationshipEndpointLabelConstraint("()-[:R]->(:B)")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)-[r:R]->(bc:B&C)
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .filter("bc:C")
+      .expandAll("(a)-[:R]->(bc)")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test(
+    "Should plan a label filter when not all relationship types in a disjunction imply the label"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 90)
+      .setLabelCardinality("C", 90)
+      .setAllRelationshipsCardinality(2000)
+      .setRelationshipCardinality("()-[:R1]->()", 200)
+      .setRelationshipCardinality("()-[:R1]->(:B)", 200)
+      .setRelationshipCardinality("(:A)-[:R1]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R1]->(:B)", 100)
+      .setRelationshipCardinality("()-[:R2]->()", 200)
+      .setRelationshipCardinality("()-[:R2]->(:B)", 200)
+      .setRelationshipCardinality("(:A)-[:R2]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R2]->(:B)", 100)
+      .addRelationshipEndpointLabelConstraint("()-[:R1]->(:B)")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)-[r:R1|R2]->(b:B)
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .filter("b:B")
+      .expandAll("(a)-[:R1|R2]->(b)")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
+
+  test(
+    "Should not plan a label filter when all relationship types in a disjunction imply the label"
+  ) {
+    val planner = plannerBuilder()
+      .setAllNodesCardinality(100)
+      .setLabelCardinality("A", 10)
+      .setLabelCardinality("B", 90)
+      .setLabelCardinality("C", 90)
+      .setAllRelationshipsCardinality(2000)
+      .setRelationshipCardinality("()-[:R1]->()", 200)
+      .setRelationshipCardinality("()-[:R1]->(:B)", 200)
+      .setRelationshipCardinality("(:A)-[:R1]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R1]->(:B)", 100)
+      .setRelationshipCardinality("()-[:R2]->()", 200)
+      .setRelationshipCardinality("()-[:R2]->(:B)", 200)
+      .setRelationshipCardinality("(:A)-[:R2]->()", 100)
+      .setRelationshipCardinality("(:A)-[:R2]->(:B)", 100)
+      .addRelationshipEndpointLabelConstraint("()-[:R1]->(:B)")
+      .addRelationshipEndpointLabelConstraint("()-[:R2]->(:B)")
+      .build()
+
+    val query =
+      """
+        |MATCH (a:A)-[r:R1|R2]->(b:B)
+        |RETURN a
+        |""".stripMargin
+
+    val res = planner.plan(query).stripProduceResults
+    res shouldEqual planner.subPlanBuilder()
+      .expandAll("(a)-[:R1|R2]->()")
+      .nodeByLabelScan("a", "A")
+      .build()
+  }
 }

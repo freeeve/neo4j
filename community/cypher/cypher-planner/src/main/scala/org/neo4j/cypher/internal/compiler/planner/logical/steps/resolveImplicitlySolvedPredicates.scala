@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.Variable
+import org.neo4j.cypher.internal.ir.PatternRelationship
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.PropertyTypeMapper
@@ -58,7 +59,8 @@ case object resolveImplicitlySolvedPredicates extends SelectionCandidateGenerato
       solvedRelationshipPropertyNotNullPredicates(input, unsolvedNotNullPredicates, context) ++
       solvedNodePropertyIsTypedPredicates(input, unsolvedIsTypedPredicates, context) ++
       solvedRelationshipPropertyIsTypedPredicates(input, unsolvedIsTypedPredicates, context) ++
-      solvedNodeLabelPredicates(input, unsolvedHasLabels, context)
+      solvedHasLabelPredicatesByNodeLabelConstraints(input, unsolvedHasLabels, context) ++
+      solvedHasLabelPredicatesByRelationshipEndPointConstraints(input, unsolvedHasLabels, context)
 
     if (implicitlySolvedPredicates.isEmpty) {
       Iterator.empty
@@ -142,7 +144,7 @@ case object resolveImplicitlySolvedPredicates extends SelectionCandidateGenerato
     } yield predicateCandidate.predicate
   }
 
-  def solvedNodeLabelPredicates(
+  private def solvedHasLabelPredicatesByNodeLabelConstraints(
     plan: LogicalPlan,
     unsolvedHasLabels: Set[(Variable, LabelName, HasLabels)],
     context: LogicalPlanningContext
@@ -156,4 +158,34 @@ case object resolveImplicitlySolvedPredicates extends SelectionCandidateGenerato
       if context.staticComponents.graphSchemaOptimizations.isLabelImplied(unsolvedLabel, knownLabels)
     } yield predExpr
   }
+
+  private def solvedHasLabelPredicatesByRelationshipEndPointConstraints(
+    sourcePlan: LogicalPlan,
+    unsolvedHasLabels: Set[(Variable, LabelName, HasLabels)],
+    context: LogicalPlanningContext
+  ): Set[HasLabels] = {
+    // Get all relationships of the solved source plan
+    val qgPatternRels =
+      context.staticComponents.planningAttributes
+        .solveds(sourcePlan.id)
+        .asSinglePlannerQuery
+        .queryGraph
+        .patternRelationships
+
+    def getTypesOfAdjacentRels(endNodeFilter: PatternRelationship => Boolean) =
+      qgPatternRels
+        .filter(endNodeFilter)
+        .map(_.types.map(_.name).toSet)
+
+    for {
+      (nodeVar, unsolvedLabel, predExpr) <- unsolvedHasLabels
+      // Get all types on the outgoing relationships from the variable of the hasLabel predicate
+      outRelTypes = getTypesOfAdjacentRels(_.inOrder._1 == nodeVar)
+      // Get all types on the incoming relationships to the variable of the hasLabel predicate
+      inRelTypes = getTypesOfAdjacentRels(_.inOrder._2 == nodeVar)
+      // Check if the label in the hasLabel predicate can be implied from one of its adjacent relationship types
+      if context.staticComponents.graphSchemaOptimizations.isLabelImplied(unsolvedLabel.name, outRelTypes, inRelTypes)
+    } yield predExpr
+  }
+
 }

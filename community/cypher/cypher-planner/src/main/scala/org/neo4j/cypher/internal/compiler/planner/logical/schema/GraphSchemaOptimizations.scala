@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
 import org.neo4j.cypher.internal.planner.spi.PlanContext
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.internal.schema.EndpointType
 
 sealed trait GraphSchemaOptimizations {
 
@@ -42,6 +43,21 @@ sealed trait GraphSchemaOptimizations {
    * Returns true if the presence of `labelToCheck` is implied by one or more of the `knownLabels`.
    */
   def isLabelImplied(labelToCheck: LabelName, knownLabels: Set[LabelName]): Boolean
+
+  type DisjunctiveTypes = Set[String]
+
+  /**
+   *
+   * @param labelToCheck Is this label implied by one of its adjacent relationships
+   * @param outRelTypes The set of all disjunctive types of each outgoing relationship. For example ()<-[:A|B|C]-(v:X)-[B]->() gives for variable v: {{A,B,C}, {B}}.
+   * @param inRelTypes The set of all disjunctive types of each incoming relationship. For example ()-[:A|B|C]->(v:X)<-[B]-() gives for variable v: {{A,B,C}, {B}}.
+   * @return true if the presence of `labelToCheck` is implied by a type on at least one of its outgoing or incoming relationships
+   */
+  def isLabelImplied(
+    labelToCheck: String,
+    outRelTypes: Set[DisjunctiveTypes],
+    inRelTypes: Set[DisjunctiveTypes]
+  ): Boolean
 }
 
 object GraphSchemaOptimizations {
@@ -57,6 +73,13 @@ object GraphSchemaOptimizations {
     override def pruneImpliedLabels(labelInfo: LabelInfo): LabelInfo = labelInfo
 
     override def isLabelImplied(labelToCheck: LabelName, knownLabels: Set[LabelName]): Boolean = false
+
+    override def isLabelImplied(
+      labelToCheck: String,
+      outRelTypes: Set[DisjunctiveTypes],
+      inRelTypes: Set[DisjunctiveTypes]
+    ): Boolean =
+      false
   }
 
   final class Enabled(planContext: PlanContext) extends GraphSchemaOptimizations {
@@ -81,6 +104,23 @@ object GraphSchemaOptimizations {
       knownLabels.exists { knownLabel =>
         impliedLabels(knownLabel).contains(labelToCheck)
       }
+    }
+
+    override def isLabelImplied(
+      labelToCheck: String,
+      outRelsTypes: Set[DisjunctiveTypes],
+      inRelsTypes: Set[DisjunctiveTypes]
+    ): Boolean = {
+      def impliedByRels(endpoint: EndpointType, relsTypes: Set[DisjunctiveTypes]) =
+        relsTypes.exists(relTypes =>
+          relTypes.nonEmpty && relTypes.forall(
+            planContext.hasRelationshipEndpointLabelConstraint(_, labelToCheck, endpoint)
+          )
+        )
+
+      val isImpliedByOutgoingRel = () => impliedByRels(EndpointType.START, outRelsTypes)
+      val isImpliedByIncomingRel = () => impliedByRels(EndpointType.END, inRelsTypes)
+      isImpliedByOutgoingRel() || isImpliedByIncomingRel()
     }
   }
 }
