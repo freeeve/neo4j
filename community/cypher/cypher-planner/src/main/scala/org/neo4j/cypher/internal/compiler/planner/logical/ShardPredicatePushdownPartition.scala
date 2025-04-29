@@ -26,26 +26,17 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.Constan
 import org.neo4j.cypher.internal.compiler.planner.logical.schema.GraphSchemaOptimizations
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.index.IndexCompatiblePredicatesProviderContext
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
-import org.neo4j.cypher.internal.expressions.Contains
-import org.neo4j.cypher.internal.expressions.EndsWith
-import org.neo4j.cypher.internal.expressions.Equals
+import org.neo4j.cypher.internal.expressions.BinaryOperatorExpression
 import org.neo4j.cypher.internal.expressions.Expression
-import org.neo4j.cypher.internal.expressions.GreaterThan
-import org.neo4j.cypher.internal.expressions.GreaterThanOrEqual
-import org.neo4j.cypher.internal.expressions.In
-import org.neo4j.cypher.internal.expressions.IsNotNull
-import org.neo4j.cypher.internal.expressions.IsNull
-import org.neo4j.cypher.internal.expressions.LessThan
-import org.neo4j.cypher.internal.expressions.LessThanOrEqual
+import org.neo4j.cypher.internal.expressions.LeftUnaryOperatorExpression
 import org.neo4j.cypher.internal.expressions.ListLiteral
 import org.neo4j.cypher.internal.expressions.Literal
 import org.neo4j.cypher.internal.expressions.LogicalVariable
-import org.neo4j.cypher.internal.expressions.Not
-import org.neo4j.cypher.internal.expressions.NotEquals
+import org.neo4j.cypher.internal.expressions.MultiOperatorExpression
 import org.neo4j.cypher.internal.expressions.Parameter
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
-import org.neo4j.cypher.internal.expressions.StartsWith
+import org.neo4j.cypher.internal.expressions.RightUnaryOperatorExpression
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.RegularSinglePlannerQuery
 import org.neo4j.cypher.internal.ir.SinglePlannerQuery
@@ -272,65 +263,24 @@ object ShardPredicatePushdownPartition {
             }
           case Property(nestedExpression, _) =>
             findAllSupportedPropertyAccesses(nextExpressions :+ nestedExpression, knownUncachedPropertyAccesses)
-          case Contains(lhs, rhs) =>
+          case e: BinaryOperatorExpression =>
             findAllSupportedPropertyAccesses(
-              nextExpressions ++ List(lhs, rhs),
+              nextExpressions ++ List(e.lhs, e.rhs),
               knownUncachedPropertyAccesses
             )
-          case EndsWith(lhs, rhs) =>
+          case e: LeftUnaryOperatorExpression =>
             findAllSupportedPropertyAccesses(
-              nextExpressions ++ List(lhs, rhs),
+              nextExpressions :+ e.rhs,
               knownUncachedPropertyAccesses
             )
-          case StartsWith(lhs, rhs) =>
+          case e: RightUnaryOperatorExpression =>
             findAllSupportedPropertyAccesses(
-              nextExpressions ++ List(lhs, rhs),
+              nextExpressions :+ e.lhs,
               knownUncachedPropertyAccesses
             )
-          case LessThan(lhs, rhs) =>
+          case e: MultiOperatorExpression =>
             findAllSupportedPropertyAccesses(
-              nextExpressions ++ List(lhs, rhs),
-              knownUncachedPropertyAccesses
-            )
-          case LessThanOrEqual(lhs, rhs) =>
-            findAllSupportedPropertyAccesses(
-              nextExpressions ++ List(lhs, rhs),
-              knownUncachedPropertyAccesses
-            )
-          case GreaterThanOrEqual(lhs, rhs) =>
-            findAllSupportedPropertyAccesses(
-              nextExpressions ++ List(lhs, rhs),
-              knownUncachedPropertyAccesses
-            )
-          case GreaterThan(lhs, rhs) =>
-            findAllSupportedPropertyAccesses(
-              nextExpressions ++ List(lhs, rhs),
-              knownUncachedPropertyAccesses
-            )
-          case Equals(lhs, rhs) =>
-            findAllSupportedPropertyAccesses(
-              nextExpressions ++ List(lhs, rhs),
-              knownUncachedPropertyAccesses
-            )
-          case In(lhs, rhs) => findAllSupportedPropertyAccesses(
-              nextExpressions ++ List(lhs, rhs),
-              knownUncachedPropertyAccesses
-            )
-          case NotEquals(lhs, rhs) =>
-            findAllSupportedPropertyAccesses(
-              nextExpressions ++ List(lhs, rhs),
-              knownUncachedPropertyAccesses
-            )
-          case Not(expr) => findAllSupportedPropertyAccesses(
-              nextExpressions :+ expr,
-              knownUncachedPropertyAccesses
-            )
-          case IsNull(expr) => findAllSupportedPropertyAccesses(
-              nextExpressions :+ expr,
-              knownUncachedPropertyAccesses
-            )
-          case IsNotNull(expr) => findAllSupportedPropertyAccesses(
-              nextExpressions :+ expr,
+              nextExpressions ++ e.exprs,
               knownUncachedPropertyAccesses
             )
           case ListLiteral(expressions) =>
@@ -341,7 +291,6 @@ object ShardPredicatePushdownPartition {
           case _: Literal   => findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
           case ConstantTemporalFunction(_) =>
             findAllSupportedPropertyAccesses(nextExpressions, knownUncachedPropertyAccesses)
-
           case _ => Left(PredicatePushdownUnsupported)
         }
     }

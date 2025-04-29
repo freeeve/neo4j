@@ -1908,6 +1908,22 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .build()
   }
 
+  test("Should push down expressions with operators that are constant at runtime") {
+    val query =
+      """
+        |  MATCH (p:Person)
+        |  WHERE p.age IS NOT NULL
+        |    AND 50 > (p.age - 10) AND p.age < 20
+        |  RETURN p
+        |""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+
+    plan shouldEqual planner.subPlanBuilder()
+      .remoteBatchPropertiesWithFilter("cacheNFromStore[p.age]")("p.age IS NOT NULL", "50 > p.age - 10", "p.age < 20")
+      .nodeByLabelScan("p", "Person", IndexOrderNone)
+      .build()
+  }
+
   test("date predicate should be pushed down to the shards") {
     val spdPlannerTemporal = spdPlanner.setAllNodesCardinality(10000)
       .addFunction(
