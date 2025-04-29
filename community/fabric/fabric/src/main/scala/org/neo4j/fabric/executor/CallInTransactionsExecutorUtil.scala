@@ -27,7 +27,10 @@ object CallInTransactionsExecutorUtil {
   // This method exists, because it is pretty hard to access OnErrorBreak object from Java.
   // If you figure out how to do it, feel free to remove it.
   def isOnErrorBreak(inTransactionsParameters: SubqueryCall.InTransactionsParameters): Boolean = {
-    inTransactionsParameters.errorParams.map(_.behaviour).contains(InTransactionsOnErrorBehaviour.OnErrorBreak)
+    val behaviour = inTransactionsParameters.errorParams.map(_.behaviour)
+    behaviour.contains(InTransactionsOnErrorBehaviour.OnErrorBreak) || behaviour.contains(
+      InTransactionsOnErrorBehaviour.OnErrorRetryThenBreak
+    )
   }
 
 }
