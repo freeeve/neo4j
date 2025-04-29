@@ -25,9 +25,6 @@ import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
 
 import java.io.IOException;
 import java.util.UUID;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StringField;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
@@ -38,6 +35,8 @@ import org.neo4j.internal.schema.IndexType;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexBuilder;
 import org.neo4j.kernel.api.index.ValueIndexReader;
@@ -148,9 +147,9 @@ class TextIndexTest {
                 .build();
     }
 
-    private static Document newDocument() {
-        Document doc = new Document();
-        doc.add(new StringField("test", UUID.randomUUID().toString(), Field.Store.YES));
+    private static LuceneDocument newDocument() {
+        LuceneDocument doc = new Lucene9Document();
+        doc.addStringField("test", UUID.randomUUID().toString(), true);
         return doc;
     }
 }

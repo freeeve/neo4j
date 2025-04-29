@@ -27,44 +27,44 @@ import static org.neo4j.kernel.api.impl.LuceneTestUtil.documentRepresentingPrope
 import static org.neo4j.kernel.api.impl.LuceneTestUtil.newSeekQuery;
 import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.NODE_ID_KEY;
 import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.useFieldForUniquenessVerification;
-import static org.neo4j.kernel.api.impl.schema.ValueEncoding.String;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.TermQuery;
 import org.junit.jupiter.api.Test;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneStringValueEncoding;
 
 class TextDocumentStructureTest {
     @Test
     void stringWithMaximumLengthShouldBeAllowed() {
         String longestString = RandomStringUtils.randomAscii(IndexWriter.MAX_TERM_LENGTH);
-        Document document = documentRepresentingProperties(123, longestString);
-        assertEquals(longestString, document.getField(String.key(0)).stringValue());
+        LuceneDocument document = documentRepresentingProperties(123, longestString);
+        assertEquals(longestString, document.get(LuceneStringValueEncoding.key(0)));
     }
 
     @Test
     void shouldBuildDocumentRepresentingStringProperty() {
         // given
-        Document document = documentRepresentingProperties(123, "hello");
+        LuceneDocument document = documentRepresentingProperties(123, "hello");
 
         // then
         assertEquals("123", document.get(NODE_ID_KEY));
-        assertEquals("hello", document.get(String.key(0)));
+        assertEquals("hello", document.get(LuceneStringValueEncoding.key(0)));
     }
 
     @Test
     void shouldBuildDocumentRepresentingMultipleStringProperties() {
         // given
         String[] values = new String[] {"hello", "world"};
-        Document document = documentRepresentingProperties(123, (Object[]) values);
+        LuceneDocument document = documentRepresentingProperties(123, (Object[]) values);
 
         // then
         assertEquals("123", document.get(NODE_ID_KEY));
-        assertThat(document.get(String.key(0))).isEqualTo(values[0]);
-        assertThat(document.get(String.key(1))).isEqualTo(values[1]);
+        assertThat(document.get(LuceneStringValueEncoding.key(0))).isEqualTo(values[0]);
+        assertThat(document.get(LuceneStringValueEncoding.key(1))).isEqualTo(values[1]);
     }
 
     @Test

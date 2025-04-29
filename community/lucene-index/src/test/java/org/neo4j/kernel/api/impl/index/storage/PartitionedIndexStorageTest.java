@@ -36,9 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,6 +49,8 @@ import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.TestIndexWriterModes;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -210,7 +209,7 @@ class PartitionedIndexStorageTest {
         Config config = Config.defaults();
         IndexWriterConfig writerConfig = new IndexWriterConfigBuilder(TestIndexWriterModes.STANDARD, config).build();
         try (IndexWriter writer = directory.newWriter(writerConfig)) {
-            writer.addDocument(randomDocument());
+            writer.addDocument(randomDocument().toLuceneDocument());
             writer.commit();
         }
         return directory;
@@ -238,9 +237,9 @@ class PartitionedIndexStorageTest {
         return folder;
     }
 
-    private static Document randomDocument() {
-        Document doc = new Document();
-        doc.add(new StringField("field", RandomStringUtils.randomNumeric(5), Field.Store.YES));
+    private static LuceneDocument randomDocument() {
+        LuceneDocument doc = new Lucene9Document();
+        doc.addStringField("field", RandomStringUtils.randomNumeric(5), true);
         return doc;
     }
 }

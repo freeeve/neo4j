@@ -22,7 +22,7 @@ package org.neo4j.kernel.api.impl.schema.populator;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.neo4j.kernel.api.impl.LuceneTestUtil.documentRepresentingProperties;
-import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.newTermForChangeOrRemove;
+import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.NODE_ID_KEY;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.add;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.change;
 import static org.neo4j.kernel.api.index.IndexQueryHelper.remove;
@@ -47,13 +47,13 @@ class TextIndexPopulatingTest {
         TextIndexPopulatingUpdater updater = newUpdater(writer);
 
         updater.process(add(1, INDEX_DESCRIPTOR, "foo"));
-        verify(writer).updateDocument(newTermForChangeOrRemove(1), documentRepresentingProperties(1, "foo"));
+        verify(writer).updateDocument(NODE_ID_KEY, 1, documentRepresentingProperties(1, "foo"));
 
         updater.process(add(2, INDEX_DESCRIPTOR, "bar"));
-        verify(writer).updateDocument(newTermForChangeOrRemove(2), documentRepresentingProperties(2, "bar"));
+        verify(writer).updateDocument(NODE_ID_KEY, 2, documentRepresentingProperties(2, "bar"));
 
         updater.process(add(3, INDEX_DESCRIPTOR, "qux"));
-        verify(writer).updateDocument(newTermForChangeOrRemove(3), documentRepresentingProperties(3, "qux"));
+        verify(writer).updateDocument(NODE_ID_KEY, 3, documentRepresentingProperties(3, "qux"));
     }
 
     @Test
@@ -62,10 +62,10 @@ class TextIndexPopulatingTest {
         TextIndexPopulatingUpdater updater = newUpdater(writer);
 
         updater.process(change(1, INDEX_DESCRIPTOR, "before1", "after1"));
-        verify(writer).updateOrDeleteDocument(newTermForChangeOrRemove(1), documentRepresentingProperties(1, "after1"));
+        verify(writer).updateOrDeleteDocument(NODE_ID_KEY, 1, documentRepresentingProperties(1, "after1"));
 
         updater.process(change(2, INDEX_DESCRIPTOR, "before2", "after2"));
-        verify(writer).updateOrDeleteDocument(newTermForChangeOrRemove(2), documentRepresentingProperties(2, "after2"));
+        verify(writer).updateOrDeleteDocument(NODE_ID_KEY, 2, documentRepresentingProperties(2, "after2"));
     }
 
     @Test
@@ -74,13 +74,13 @@ class TextIndexPopulatingTest {
         TextIndexPopulatingUpdater updater = newUpdater(writer);
 
         updater.process(remove(1, INDEX_DESCRIPTOR, "foo"));
-        verify(writer).deleteDocuments(newTermForChangeOrRemove(1));
+        verify(writer).deleteDocuments(NODE_ID_KEY, 1);
 
         updater.process(remove(2, INDEX_DESCRIPTOR, "bar"));
-        verify(writer).deleteDocuments(newTermForChangeOrRemove(2));
+        verify(writer).deleteDocuments(NODE_ID_KEY, 2);
 
         updater.process(remove(3, INDEX_DESCRIPTOR, "baz"));
-        verify(writer).deleteDocuments(newTermForChangeOrRemove(3));
+        verify(writer).deleteDocuments(NODE_ID_KEY, 3);
     }
 
     private static TextIndexPopulatingUpdater newUpdater(LuceneIndexWriter writer) {

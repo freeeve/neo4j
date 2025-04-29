@@ -27,11 +27,11 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexReader;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.Iterators;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
 import org.neo4j.kernel.api.impl.index.partition.PartitionSearcher;
 
 class LuceneAllDocumentsReaderTest {
@@ -58,12 +58,12 @@ class LuceneAllDocumentsReaderTest {
     @Test
     void readAllDocuments() {
         LuceneAllDocumentsReader allDocumentsReader = createAllDocumentsReader();
-        List<Document> documents = Iterators.asList(allDocumentsReader.iterator());
+        List<LuceneDocument> documents = Iterators.asList(allDocumentsReader.iterator());
 
         assertEquals(3, documents.size(), "Should have 1 document from first partition and 2 from second one.");
-        assertEquals("1", documents.get(0).getField("value").stringValue());
-        assertEquals("3", documents.get(1).getField("value").stringValue());
-        assertEquals("4", documents.get(2).getField("value").stringValue());
+        assertEquals("1", documents.get(0).get("value"));
+        assertEquals("3", documents.get(1).get("value"));
+        assertEquals("4", documents.get(2).get("value"));
     }
 
     private LuceneAllDocumentsReader createAllDocumentsReader() {
@@ -97,9 +97,9 @@ class LuceneAllDocumentsReaderTest {
         return String.valueOf(value + (partition * maxSize));
     }
 
-    private static Document createDocument(String value) {
-        Document document = new Document();
-        document.add(new StoredField("value", value));
+    private static LuceneDocument createDocument(String value) {
+        LuceneDocument document = new Lucene9Document();
+        document.addStringField("value", value, true);
         return document;
     }
 }

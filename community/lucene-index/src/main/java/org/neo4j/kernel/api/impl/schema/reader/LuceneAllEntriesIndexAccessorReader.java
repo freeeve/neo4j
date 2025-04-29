@@ -21,19 +21,19 @@ package org.neo4j.kernel.api.impl.schema.reader;
 
 import java.util.Iterator;
 import java.util.function.ToLongFunction;
-import org.apache.lucene.document.Document;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 
 public class LuceneAllEntriesIndexAccessorReader implements BoundedIterable<Long> {
-    private final BoundedIterable<Document> documents;
-    private final ToLongFunction<Document> entityIdReader;
+    private final BoundedIterable<LuceneDocument> documents;
+    private final ToLongFunction<LuceneDocument> entityIdReader;
     private final long fromIdInclusive;
     private final long toIdExclusive;
 
     public LuceneAllEntriesIndexAccessorReader(
-            BoundedIterable<Document> documents,
-            ToLongFunction<Document> entityIdReader,
+            BoundedIterable<LuceneDocument> documents,
+            ToLongFunction<LuceneDocument> entityIdReader,
             long fromIdInclusive,
             long toIdExclusive) {
         this.documents = documents;
@@ -49,7 +49,7 @@ public class LuceneAllEntriesIndexAccessorReader implements BoundedIterable<Long
 
     @Override
     public Iterator<Long> iterator() {
-        Iterator<Document> iterator = documents.iterator();
+        Iterator<LuceneDocument> iterator = documents.iterator();
         return new PrefetchingIterator<>() {
             @Override
             protected Long fetchNextOrNull() {

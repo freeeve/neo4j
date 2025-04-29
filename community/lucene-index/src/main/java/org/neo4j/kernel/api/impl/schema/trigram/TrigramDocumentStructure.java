@@ -19,16 +19,12 @@
  */
 package org.neo4j.kernel.api.impl.schema.trigram;
 
-import static org.apache.lucene.document.Field.Store.NO;
-
 import org.apache.lucene.analysis.TokenStream;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.Term;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 
@@ -36,16 +32,10 @@ public class TrigramDocumentStructure {
     static final String ENTITY_ID_KEY = "id";
     public static final String TRIGRAM_VALUE_KEY = "0";
 
-    static Term newTermForChangeOrRemove(long nodeId) {
-        return new Term(ENTITY_ID_KEY, "" + nodeId);
-    }
-
-    static Document createLuceneDocument(long id, Value value) {
-        var document = new Document();
-        var idField = new StringField(ENTITY_ID_KEY, Long.toString(id), NO);
-        var idValueField = new NumericDocValuesField(ENTITY_ID_KEY, id);
-        document.add(idField);
-        document.add(idValueField);
+    static LuceneDocument createLuceneDocument(long id, Value value) {
+        var document = new Lucene9Document();
+        document.addStringField(ENTITY_ID_KEY, Long.toString(id), false);
+        document.addNumericField(ENTITY_ID_KEY, id);
         if (value.valueGroup() == ValueGroup.TEXT) {
             var tokenStream = new TrigramTokenStream(value.asObject().toString());
             var valueField = new TrigramField(TRIGRAM_VALUE_KEY, tokenStream);
@@ -55,7 +45,7 @@ public class TrigramDocumentStructure {
         return document;
     }
 
-    private static class TrigramField extends Field {
+    public static class TrigramField extends Field {
         private static final FieldType TYPE = new FieldType();
 
         static {

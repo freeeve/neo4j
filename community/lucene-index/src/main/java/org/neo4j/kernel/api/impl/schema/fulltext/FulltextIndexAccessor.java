@@ -20,16 +20,14 @@
 package org.neo4j.kernel.api.impl.schema.fulltext;
 
 import static org.neo4j.kernel.api.impl.schema.fulltext.FulltextIndexSettings.isEventuallyConsistent;
+import static org.neo4j.kernel.api.impl.schema.fulltext.LuceneFulltextDocumentStructure.FIELD_ENTITY_ID;
 import static org.neo4j.kernel.api.impl.schema.fulltext.LuceneFulltextDocumentStructure.documentRepresentingProperties;
-import static org.neo4j.kernel.api.impl.schema.fulltext.LuceneFulltextDocumentStructure.newTermForChangeOrRemove;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.Term;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.FulltextSettings;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
@@ -37,6 +35,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.AbstractLuceneIndexAccessor;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.index.IndexEntriesReader;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
@@ -138,8 +137,8 @@ public class FulltextIndexAccessor
         @Override
         protected void addIdempotent(long entityId, Value[] values) {
             try {
-                Document document = documentRepresentingProperties(entityId, propertyNames, values);
-                writer.updateOrDeleteDocument(newTermForChangeOrRemove(entityId), document);
+                LuceneDocument document = documentRepresentingProperties(entityId, propertyNames, values);
+                writer.updateOrDeleteDocument(FIELD_ENTITY_ID, entityId, document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -148,7 +147,7 @@ public class FulltextIndexAccessor
         @Override
         public void add(long entityId, Value[] values) {
             try {
-                Document document = documentRepresentingProperties(entityId, propertyNames, values);
+                LuceneDocument document = documentRepresentingProperties(entityId, propertyNames, values);
                 writer.nullableAddDocument(document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -158,11 +157,10 @@ public class FulltextIndexAccessor
         @Override
         protected void change(long entityId, Value[] values) {
             try {
-                Term term = newTermForChangeOrRemove(entityId);
-                Document document = documentRepresentingProperties(entityId, propertyNames, values);
+                LuceneDocument document = documentRepresentingProperties(entityId, propertyNames, values);
                 // If the property types have changed away from TEXT we may no longer
                 // have any properties that should be indexed and the old document should be removed.
-                writer.updateOrDeleteDocument(term, document);
+                writer.updateOrDeleteDocument(FIELD_ENTITY_ID, entityId, document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -171,8 +169,7 @@ public class FulltextIndexAccessor
         @Override
         protected void remove(long entityId) {
             try {
-                Term term = newTermForChangeOrRemove(entityId);
-                writer.deleteDocuments(term);
+                writer.deleteDocuments(FIELD_ENTITY_ID, entityId);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

@@ -19,13 +19,9 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
-import static org.apache.lucene.document.Field.Store.NO;
-
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.KnnFloatVectorField;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.Term;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;
 import org.neo4j.values.VectorCandidate;
 
@@ -38,21 +34,17 @@ public abstract class VectorDocumentStructure {
 
     abstract String vectorValueKeyFor(int dimensions);
 
-    Document createLuceneDocument(
+    LuceneDocument createLuceneDocument(
             long id, VectorCandidate candidate, LuceneVectorSimilarityFunction similarityFunction) {
         final var vector = similarityFunction.maybeToValidVector(candidate);
         if (vector == null) {
             return null;
         }
 
-        final var document = new Document();
-        final var idField = new StringField(ENTITY_ID_KEY, Long.toString(id), NO);
-        final var idValueField = new NumericDocValuesField(ENTITY_ID_KEY, id);
-        final var valueField =
-                new KnnFloatVectorField(vectorValueKeyFor(vector.length), vector, similarityFunction.toLucene());
-        document.add(idField);
-        document.add(idValueField);
-        document.add(valueField);
+        LuceneDocument document = new Lucene9Document();
+        document.addStringField(ENTITY_ID_KEY, Long.toString(id), false);
+        document.addNumericField(ENTITY_ID_KEY, id);
+        document.addKnnFloatVectorField(vectorValueKeyFor(vector.length), vector, similarityFunction);
         return document;
     }
 }

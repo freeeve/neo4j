@@ -19,9 +19,9 @@
  */
 package org.neo4j.kernel.api.impl.schema.trigram;
 
-import org.apache.lucene.document.Document;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.schema.populator.LuceneIndexPopulator;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.IndexValueValidator;
@@ -41,7 +41,7 @@ class TrigramIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<ValueInde
     }
 
     @Override
-    protected Document updateAsDocument(ValueIndexEntryUpdate update) {
+    protected LuceneDocument updateAsDocument(ValueIndexEntryUpdate update) {
         var entityId = update.getEntityId();
         var value = update.values()[0];
         validator.validate(entityId, value);

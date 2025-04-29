@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.api.impl.schema.populator;
 
+import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.NODE_ID_KEY;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
@@ -61,13 +63,15 @@ public class TextIndexPopulatingUpdater implements IndexUpdater {
             switch (updateMode) {
                 case ADDED ->
                     writer.updateDocument(
-                            TextDocumentStructure.newTermForChangeOrRemove(entityId),
+                            NODE_ID_KEY,
+                            entityId,
                             TextDocumentStructure.documentRepresentingProperties(entityId, values));
                 case CHANGED ->
                     writer.updateOrDeleteDocument(
-                            TextDocumentStructure.newTermForChangeOrRemove(entityId),
+                            NODE_ID_KEY,
+                            entityId,
                             TextDocumentStructure.documentRepresentingProperties(entityId, values));
-                case REMOVED -> writer.deleteDocuments(TextDocumentStructure.newTermForChangeOrRemove(entityId));
+                case REMOVED -> writer.deleteDocuments(NODE_ID_KEY, entityId);
                 default ->
                     throw new IllegalStateException(
                             "Unknown update mode " + updateMode + " for values " + Arrays.toString(values));

@@ -28,13 +28,13 @@ public class VectorSimilarityFunctions {
     // TODO VECTOR: perhaps some unrolling and/or vector api (when available) could be used here
     //              perhaps investigate some more accurate normalisation techniques
 
-    abstract static class LuceneVectorSimilarityFunction implements VectorSimilarityFunction {
+    public abstract static class LuceneVectorSimilarityFunction implements VectorSimilarityFunction {
         @Override
         public float compare(float[] vector1, float[] vector2) {
             return clamp(toLucene().compare(vector1, vector2), 0.f, 1.f);
         }
 
-        abstract org.apache.lucene.index.VectorSimilarityFunction toLucene();
+        public abstract org.apache.lucene.index.VectorSimilarityFunction toLucene();
     }
 
     public static final VectorSimilarityFunction EUCLIDEAN = new LuceneVectorSimilarityFunction() {

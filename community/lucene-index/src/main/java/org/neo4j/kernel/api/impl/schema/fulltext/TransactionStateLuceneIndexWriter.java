@@ -22,7 +22,6 @@ package org.neo4j.kernel.api.impl.schema.fulltext;
 import java.io.Closeable;
 import java.io.IOException;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.Term;
@@ -35,6 +34,8 @@ import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.FulltextModes;
 import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument.LazyDocumentCastingIterable;
 import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
@@ -54,23 +55,23 @@ class TransactionStateLuceneIndexWriter implements LuceneIndexWriter, Closeable 
     }
 
     @Override
-    public void addDocument(Document document) throws IOException {
-        writer.addDocument(document);
+    public void addDocument(LuceneDocument document) throws IOException {
+        writer.addDocument(document.toLuceneDocument());
     }
 
     @Override
-    public void addDocuments(int numDocs, Iterable<Document> document) throws IOException {
-        writer.addDocuments(document);
+    public void addDocuments(int numDocs, Iterable<LuceneDocument> document) throws IOException {
+        writer.addDocuments(new LazyDocumentCastingIterable(document));
     }
 
     @Override
-    public void updateDocument(Term term, Document document) throws IOException {
-        writer.updateDocument(term, document);
+    public void updateDocument(String idField, long id, LuceneDocument document) throws IOException {
+        writer.updateDocument(new Term(idField, Long.toString(id)), document.toLuceneDocument());
     }
 
     @Override
-    public void deleteDocuments(Term term) throws IOException {
-        writer.deleteDocuments(term);
+    public void deleteDocuments(String idField, long id) throws IOException {
+        writer.deleteDocuments(new Term(idField, Long.toString(id)));
     }
 
     @Override

@@ -29,6 +29,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.IndexFileSnapshotter;
 import org.neo4j.kernel.api.impl.index.backup.WritableIndexSnapshotFileIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
 import org.neo4j.kernel.api.index.ValueIndexReader;
@@ -106,7 +107,7 @@ public interface DatabaseIndex<READER extends ValueIndexReader> extends IndexFil
     void flush() throws IOException;
 
     /**
-     * Creates an iterable over all {@link org.apache.lucene.document.Document document}s in all partitions.
+     * Creates an iterable over all {@link LuceneDocument document}s in all partitions.
      *
      * @return LuceneAllDocumentsReader over all documents
      */

@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
+import static org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure.ENTITY_ID_KEY;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
 
 import java.io.IOException;
@@ -78,7 +79,7 @@ class VectorIndexAccessor extends AbstractLuceneIndexAccessor<VectorIndexReader,
             try {
                 final var document = documentStructure.createLuceneDocument(
                         entityId, VectorCandidate.maybeFrom(values[0]), similarityFunction);
-                writer.updateOrDeleteDocument(VectorDocumentStructure.newTermForChangeOrRemove(entityId), document);
+                writer.updateOrDeleteDocument(ENTITY_ID_KEY, entityId, document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -98,10 +99,9 @@ class VectorIndexAccessor extends AbstractLuceneIndexAccessor<VectorIndexReader,
         @Override
         protected void change(long entityId, Value[] values) {
             try {
-                final var term = VectorDocumentStructure.newTermForChangeOrRemove(entityId);
                 final var document = documentStructure.createLuceneDocument(
                         entityId, VectorCandidate.maybeFrom(values[0]), similarityFunction);
-                writer.updateOrDeleteDocument(term, document);
+                writer.updateOrDeleteDocument(ENTITY_ID_KEY, entityId, document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -110,8 +110,7 @@ class VectorIndexAccessor extends AbstractLuceneIndexAccessor<VectorIndexReader,
         @Override
         protected void remove(long entityId) {
             try {
-                final var term = VectorDocumentStructure.newTermForChangeOrRemove(entityId);
-                writer.deleteDocuments(term);
+                writer.deleteDocuments(ENTITY_ID_KEY, entityId);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

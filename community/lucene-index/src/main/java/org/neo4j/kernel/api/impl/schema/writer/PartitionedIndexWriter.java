@@ -22,13 +22,14 @@ package org.neo4j.kernel.api.impl.schema.writer;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument.LazyDocumentCastingIterable;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 
@@ -56,23 +57,26 @@ public class PartitionedIndexWriter implements LuceneIndexWriter {
     }
 
     @Override
-    public void addDocument(Document doc) throws IOException {
-        getIndexWriter(1).addDocument(doc);
+    public void addDocument(LuceneDocument doc) throws IOException {
+        getIndexWriter(1).addDocument(doc.toLuceneDocument());
     }
 
     @Override
-    public void addDocuments(int numDocs, Iterable<Document> documents) throws IOException {
-        getIndexWriter(numDocs).addDocuments(documents);
+    public void addDocuments(int numDocs, Iterable<LuceneDocument> documents) throws IOException {
+        getIndexWriter(numDocs).addDocuments(new LazyDocumentCastingIterable(documents));
     }
 
     @Override
-    public void updateDocument(Term term, Document doc) throws IOException {
+    public void updateDocument(String idField, long id, LuceneDocument doc) throws IOException {
         List<AbstractIndexPartition> partitions = index.getPartitions();
+        Term term = new Term(idField, Long.toString(id));
         if (WritableDatabaseIndex.hasSinglePartition(partitions)
                 && writablePartition(WritableDatabaseIndex.getFirstPartition(partitions), 1)) {
-            WritableDatabaseIndex.getFirstPartition(partitions).getIndexWriter().updateDocument(term, doc);
+            WritableDatabaseIndex.getFirstPartition(partitions)
+                    .getIndexWriter()
+                    .updateDocument(term, doc.toLuceneDocument());
         } else {
-            deleteDocuments(term);
+            deleteDocuments(idField, id);
             addDocument(doc);
         }
     }
@@ -91,10 +95,10 @@ public class PartitionedIndexWriter implements LuceneIndexWriter {
     }
 
     @Override
-    public void deleteDocuments(Term term) throws IOException {
+    public void deleteDocuments(String idField, long id) throws IOException {
         List<AbstractIndexPartition> partitions = index.getPartitions();
         for (AbstractIndexPartition partition : partitions) {
-            partition.getIndexWriter().deleteDocuments(term);
+            partition.getIndexWriter().deleteDocuments(new Term(idField, Long.toString(id)));
         }
     }
 

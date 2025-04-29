@@ -21,7 +21,6 @@ package org.neo4j.kernel.api.impl.index;
 
 import java.io.IOException;
 import java.util.Iterator;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.MultiBits;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -29,11 +28,12 @@ import org.apache.lucene.search.FilteredDocIdSetIterator;
 import org.apache.lucene.util.Bits;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 
 /**
- * Provides a view of all {@link Document}s in a single partition.
+ * Provides a view of all {@link LuceneDocument}s in a single partition.
  */
-public class LucenePartitionAllDocumentsReader implements BoundedIterable<Document> {
+public class LucenePartitionAllDocumentsReader implements BoundedIterable<LuceneDocument> {
     private final SearcherReference searcherReference;
     private final LuceneIndexSearcher searcher;
     private final IndexReader reader;
@@ -50,18 +50,18 @@ public class LucenePartitionAllDocumentsReader implements BoundedIterable<Docume
     }
 
     @Override
-    public Iterator<Document> iterator() {
+    public Iterator<LuceneDocument> iterator() {
         return documentIterator(iterateAllDocs());
     }
 
-    public Iterator<Document> iterator(int from, int to) {
+    public Iterator<LuceneDocument> iterator(int from, int to) {
         return documentIterator(iterateDocs(from, to));
     }
 
-    private Iterator<Document> documentIterator(DocIdSetIterator idIterator) {
+    private Iterator<LuceneDocument> documentIterator(DocIdSetIterator idIterator) {
         return new PrefetchingIterator<>() {
             @Override
-            protected Document fetchNextOrNull() {
+            protected LuceneDocument fetchNextOrNull() {
                 try {
                     int doc = idIterator.nextDoc();
                     if (doc == DocIdSetIterator.NO_MORE_DOCS) {
@@ -80,7 +80,7 @@ public class LucenePartitionAllDocumentsReader implements BoundedIterable<Docume
         searcherReference.close();
     }
 
-    private Document getDocument(int docId) {
+    private LuceneDocument getDocument(int docId) {
         try {
             return searcher.doc(docId);
         } catch (IOException e) {

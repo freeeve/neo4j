@@ -38,7 +38,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.LongStream;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TopDocs;
@@ -55,6 +54,8 @@ import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.kernel.api.index.IndexPopulator;
@@ -278,7 +279,7 @@ class TextIndexPopulatorTest {
                     hit.nodeIds.length, hits.totalHits.value, "Unexpected number of index results from " + hit.value);
             Set<Long> foundNodeIds = new HashSet<>();
             for (int i = 0; i < hits.totalHits.value; i++) {
-                Document document = searcher.doc(hits.scoreDocs[i].doc);
+                LuceneDocument document = new Lucene9Document(searcher.doc(hits.scoreDocs[i].doc));
                 foundNodeIds.add(parseLong(document.get("id")));
             }
             assertEquals(asSet(hit.nodeIds), foundNodeIds);

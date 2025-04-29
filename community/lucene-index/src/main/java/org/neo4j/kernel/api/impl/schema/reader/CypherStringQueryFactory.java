@@ -30,7 +30,7 @@ import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;
-import org.neo4j.kernel.api.impl.schema.ValueEncoding;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneStringValueEncoding;
 
 /**
  * Lucene queries for text queries using Cypher text operation semantics
@@ -43,17 +43,17 @@ import org.neo4j.kernel.api.impl.schema.ValueEncoding;
  */
 public class CypherStringQueryFactory {
     public static Query stringPrefix(String prefix) {
-        Term term = new Term(ValueEncoding.String.key(0), prefix);
+        Term term = new Term(LuceneStringValueEncoding.key(0), prefix);
         return new PrefixMultiTermsQuery(term);
     }
 
     public static Query stringContains(String substring) {
-        Term term = new Term(ValueEncoding.String.key(0), substring);
+        Term term = new Term(LuceneStringValueEncoding.key(0), substring);
         return new ContainsMultiTermsQuery(term);
     }
 
     public static Query stringSuffix(String suffix) {
-        Term term = new Term(ValueEncoding.String.key(0), suffix);
+        Term term = new Term(LuceneStringValueEncoding.key(0), suffix);
         return new SuffixMultiTermsQuery(term);
     }
 

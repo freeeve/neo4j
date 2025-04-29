@@ -36,10 +36,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongPoint;
-import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.Directory;
@@ -53,7 +49,9 @@ import org.junit.jupiter.api.RepeatedTest;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Directory;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.index.partition.IndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
@@ -146,7 +144,7 @@ class DatabaseIndexIntegrationTest {
     private void generateInitialData() throws IOException {
         IndexWriter indexWriter = firstPartitionWriter();
         for (int i = 0; i < 10; i++) {
-            indexWriter.addDocument(createTestDocument());
+            indexWriter.addDocument(createTestDocument().toLuceneDocument());
         }
     }
 
@@ -184,10 +182,10 @@ class DatabaseIndexIntegrationTest {
         };
     }
 
-    private static Document createTestDocument() {
-        Document document = new Document();
-        document.add(new TextField("text", "textValue", Field.Store.YES));
-        document.add(new LongPoint("long", 1));
+    private static LuceneDocument createTestDocument() {
+        LuceneDocument document = new Lucene9Document();
+        document.addTextField("text", "textValue", true);
+        document.addNumericField("long", 1);
         return document;
     }
 

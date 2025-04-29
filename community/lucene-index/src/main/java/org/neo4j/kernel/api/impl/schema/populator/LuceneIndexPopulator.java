@@ -28,12 +28,12 @@ import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
-import org.apache.lucene.document.Document;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexSample;
@@ -94,7 +94,7 @@ public abstract class LuceneIndexPopulator<INDEX extends DatabaseIndex<?>> imple
         }
     }
 
-    protected abstract Document updateAsDocument(ValueIndexEntryUpdate update);
+    protected abstract LuceneDocument updateAsDocument(ValueIndexEntryUpdate update);
 
     @Override
     public void close(boolean populationCompletedSuccessfully, CursorContext cursorContext) {

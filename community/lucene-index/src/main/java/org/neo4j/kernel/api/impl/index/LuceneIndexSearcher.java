@@ -27,7 +27,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
-import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.Term;
@@ -42,6 +41,8 @@ import org.apache.lucene.search.Weight;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.DocValuesCollector;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
 import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
 import org.neo4j.kernel.api.impl.schema.fulltext.FulltextResultCollector;
 import org.neo4j.kernel.api.impl.schema.vector.VectorResultCollector;
@@ -71,8 +72,8 @@ public class LuceneIndexSearcher implements Closeable {
         return indexSearcher.getIndexReader();
     }
 
-    public Document doc(int docId) throws IOException {
-        return indexSearcher.storedFields().document(docId);
+    public LuceneDocument doc(int docId) throws IOException {
+        return new Lucene9Document(indexSearcher.storedFields().document(docId));
     }
 
     public IndexProgressor searchDocValues(Query query, String field, DocValuesCollector.EntityConsumer entityConsumer)

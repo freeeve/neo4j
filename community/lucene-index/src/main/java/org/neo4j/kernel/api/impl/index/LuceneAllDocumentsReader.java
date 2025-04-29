@@ -26,12 +26,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.lucene.document.Document;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.io.IOUtils;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 
-public class LuceneAllDocumentsReader implements BoundedIterable<Document> {
+public class LuceneAllDocumentsReader implements BoundedIterable<LuceneDocument> {
     private final List<LucenePartitionAllDocumentsReader> partitionReaders;
 
     public LuceneAllDocumentsReader(List<LucenePartitionAllDocumentsReader> partitionReaders) {
@@ -46,8 +46,8 @@ public class LuceneAllDocumentsReader implements BoundedIterable<Document> {
     }
 
     @Override
-    public Iterator<Document> iterator() {
-        Iterator<Iterator<Document>> iterators = partitionReaders.stream()
+    public Iterator<LuceneDocument> iterator() {
+        Iterator<Iterator<LuceneDocument>> iterators = partitionReaders.stream()
                 .map(LucenePartitionAllDocumentsReader::iterator)
                 .toList()
                 .iterator();
@@ -61,9 +61,9 @@ public class LuceneAllDocumentsReader implements BoundedIterable<Document> {
      * @param numPartitions number of desired partitions to return.
      * @return a list of document iterators, each reading its own document ID range.
      */
-    public List<Iterator<Document>> partition(int numPartitions) {
+    public List<Iterator<LuceneDocument>> partition(int numPartitions) {
         int partitionsPerIndexPartition = max(1, numPartitions / partitionReaders.size());
-        List<Iterator<Document>> result = new ArrayList<>();
+        List<Iterator<LuceneDocument>> result = new ArrayList<>();
         for (LucenePartitionAllDocumentsReader partitionReader : partitionReaders) {
             int indexPartitionMaxCount = toIntExact(partitionReader.maxCount());
             int roughCountPerIndexPartition = indexPartitionMaxCount / partitionsPerIndexPartition;

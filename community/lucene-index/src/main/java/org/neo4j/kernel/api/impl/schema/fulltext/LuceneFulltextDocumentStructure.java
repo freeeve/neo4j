@@ -19,59 +19,29 @@
  */
 package org.neo4j.kernel.api.impl.schema.fulltext;
 
-import static org.apache.lucene.document.Field.Store.NO;
-import static org.apache.lucene.document.Field.Store.YES;
-
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StringField;
-import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.neo4j.kernel.api.impl.index.LuceneQueryBuilder;
-import org.neo4j.values.AnyValue;
-import org.neo4j.values.storable.TextArray;
-import org.neo4j.values.storable.TextValue;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneReusableDocuments;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 
 public class LuceneFulltextDocumentStructure {
     public static final String FIELD_ENTITY_ID = "__neo4j__lucene__fulltext__index__internal__id__";
 
-    private static final ThreadLocal<DocWithId> perThreadDocument = ThreadLocal.withInitial(DocWithId::new);
-
     private LuceneFulltextDocumentStructure() {}
-
-    private static DocWithId reuseDocument(long id) {
-        DocWithId doc = perThreadDocument.get();
-        doc.setId(id);
-        return doc;
-    }
 
     /**
      * @return A document with the properties set, or null if no properties were
      * relevant (= none of the properties were of type TEXT - which is the only type we support in the fulltext indexes).
      */
-    public static Document documentRepresentingProperties(long id, String[] propertyNames, Value[] values) {
-        DocWithId document = reuseDocument(id);
-        int setValues = document.setValues(propertyNames, values);
-        return setValues == 0 ? null : document.document;
+    public static LuceneDocument documentRepresentingProperties(long id, String[] propertyNames, Value[] values) {
+        return LuceneReusableDocuments.CURRENT.reusableFulltextDocument(id, propertyNames, values);
     }
 
-    private static Field encodeValueField(String propertyKey, Value value) {
-        TextValue textValue = (TextValue) value;
-        String stringValue = textValue.stringValue();
-        return new TextField(propertyKey, stringValue, NO);
-    }
-
-    static long getNodeId(Document from) {
+    static long getNodeId(LuceneDocument from) {
         String entityId = from.get(FIELD_ENTITY_ID);
         return Long.parseLong(entityId);
-    }
-
-    static Term newTermForChangeOrRemove(long id) {
-        return new Term(FIELD_ENTITY_ID, "" + id);
     }
 
     static Query newCountEntityEntriesQuery(long nodeId, String[] propertyKeys, Value... propertyValues) {
@@ -92,54 +62,5 @@ public class LuceneFulltextDocumentStructure {
             // either.
         }
         return builder.build();
-    }
-
-    private static class DocWithId {
-        private final Document document;
-
-        private final Field idField;
-        private final Field idValueField;
-
-        private DocWithId() {
-            idField = new StringField(FIELD_ENTITY_ID, "", YES);
-            idValueField = new NumericDocValuesField(FIELD_ENTITY_ID, 0L);
-            document = new Document();
-            document.add(idField);
-            document.add(idValueField);
-        }
-
-        private void setId(long id) {
-            removeAllValueFields();
-            idField.setStringValue(Long.toString(id));
-            idValueField.setLongValue(id);
-        }
-
-        private int setValues(String[] names, Value[] values) {
-            int i = 0;
-            int nbrAddedValues = 0;
-            for (String name : names) {
-                Value value = values[i++];
-                if (value != null) {
-                    if (value.valueGroup() == ValueGroup.TEXT) {
-                        document.add(encodeValueField(name, value));
-                        nbrAddedValues++;
-                    }
-                    if (value.valueGroup() == ValueGroup.TEXT_ARRAY) {
-                        var array = (TextArray) value;
-                        for (AnyValue val : array) {
-                            document.add(encodeValueField(name, (Value) val));
-                        }
-                        nbrAddedValues++;
-                    }
-                }
-            }
-            return nbrAddedValues;
-        }
-
-        private void removeAllValueFields() {
-            document.clear();
-            document.add(idField);
-            document.add(idValueField);
-        }
     }
 }

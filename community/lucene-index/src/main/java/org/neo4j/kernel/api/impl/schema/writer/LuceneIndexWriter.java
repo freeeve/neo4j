@@ -20,23 +20,22 @@
 package org.neo4j.kernel.api.impl.schema.writer;
 
 import java.io.IOException;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 
 /**
  * A thin wrapper around {@link org.apache.lucene.index.IndexWriter} that exposes only some part of it's
  * functionality that it really needed and hides a fact that index is partitioned.
  */
 public interface LuceneIndexWriter {
-    void addDocument(Document document) throws IOException;
+    void addDocument(LuceneDocument document) throws IOException;
 
-    void addDocuments(int numDocs, Iterable<Document> document) throws IOException;
+    void addDocuments(int numDocs, Iterable<LuceneDocument> document) throws IOException;
 
-    void updateDocument(Term term, Document document) throws IOException;
+    void updateDocument(String idField, long id, LuceneDocument document) throws IOException;
 
-    void deleteDocuments(Term term) throws IOException;
+    void deleteDocuments(String idField, long id) throws IOException;
 
     void deleteDocuments(Query query) throws IOException;
 
@@ -52,7 +51,7 @@ public interface LuceneIndexWriter {
      * addDocument variant that can handle adds where the document to add has become empty
      * (this can happen if properties doesn't have a value type we support).
      */
-    default void nullableAddDocument(Document document) throws IOException {
+    default void nullableAddDocument(LuceneDocument document) throws IOException {
         if (document != null) {
             addDocument(document);
         }
@@ -64,11 +63,11 @@ public interface LuceneIndexWriter {
      *
      * @param document The updated document or null if any existing version of it should be removed.
      */
-    default void updateOrDeleteDocument(Term term, Document document) throws IOException {
+    default void updateOrDeleteDocument(String idField, long id, LuceneDocument document) throws IOException {
         if (document != null) {
-            updateDocument(term, document);
+            updateDocument(idField, id, document);
         } else {
-            deleteDocuments(term);
+            deleteDocuments(idField, id);
         }
     }
 }

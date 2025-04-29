@@ -129,7 +129,8 @@ class TextIndexIT {
 
             index.getIndexWriter()
                     .updateDocument(
-                            TextDocumentStructure.newTermForChangeOrRemove(100),
+                            TextDocumentStructure.NODE_ID_KEY,
+                            100,
                             TextDocumentStructure.documentRepresentingProperties(100, Values.stringValue("100")));
             index.maybeRefreshBlocking();
 

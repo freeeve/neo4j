@@ -21,14 +21,13 @@ package org.neo4j.kernel.api.impl.schema.text;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.Term;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.AbstractLuceneIndexAccessor;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.ValueIndexReader;
@@ -76,8 +75,8 @@ public class TextIndexAccessor extends AbstractLuceneIndexAccessor<ValueIndexRea
         @Override
         protected void addIdempotent(long entityId, Value[] values) {
             try {
-                Document document = TextDocumentStructure.documentRepresentingProperties(entityId, values);
-                writer.updateOrDeleteDocument(TextDocumentStructure.newTermForChangeOrRemove(entityId), document);
+                LuceneDocument document = TextDocumentStructure.documentRepresentingProperties(entityId, values);
+                writer.updateOrDeleteDocument(TextDocumentStructure.NODE_ID_KEY, entityId, document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -86,7 +85,7 @@ public class TextIndexAccessor extends AbstractLuceneIndexAccessor<ValueIndexRea
         @Override
         protected void add(long entityId, Value[] values) {
             try {
-                Document document = TextDocumentStructure.documentRepresentingProperties(entityId, values);
+                LuceneDocument document = TextDocumentStructure.documentRepresentingProperties(entityId, values);
                 writer.nullableAddDocument(document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
@@ -96,9 +95,8 @@ public class TextIndexAccessor extends AbstractLuceneIndexAccessor<ValueIndexRea
         @Override
         protected void change(long entityId, Value[] values) {
             try {
-                Term term = TextDocumentStructure.newTermForChangeOrRemove(entityId);
-                Document document = TextDocumentStructure.documentRepresentingProperties(entityId, values);
-                writer.updateOrDeleteDocument(term, document);
+                LuceneDocument document = TextDocumentStructure.documentRepresentingProperties(entityId, values);
+                writer.updateOrDeleteDocument(TextDocumentStructure.NODE_ID_KEY, entityId, document);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -107,8 +105,7 @@ public class TextIndexAccessor extends AbstractLuceneIndexAccessor<ValueIndexRea
         @Override
         protected void remove(long entityId) {
             try {
-                Term term = TextDocumentStructure.newTermForChangeOrRemove(entityId);
-                writer.deleteDocuments(term);
+                writer.deleteDocuments(TextDocumentStructure.NODE_ID_KEY, entityId);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
