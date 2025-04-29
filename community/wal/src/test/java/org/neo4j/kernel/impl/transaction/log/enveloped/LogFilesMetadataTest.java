@@ -56,7 +56,8 @@ class LogFilesMetadataTest {
     @Test
     void shouldHandleEmpty() throws IOException {
         var logFilesMetadata = new LogFilesMetadata(logsRepository);
-        assertThat(logFilesMetadata.hasNext()).isFalse();
+        assertThat(logFilesMetadata.next()).isFalse();
+        assertThat(logFilesMetadata.get()).isNull();
     }
 
     @Test
@@ -72,14 +73,28 @@ class LogFilesMetadataTest {
             writeChannel.channel().close();
         }
 
+        // reading forwards
         var logFilesMetadata = new LogFilesMetadata(logsRepository);
         for (var logHeader : logHeaders) {
-            assertThat(logFilesMetadata.hasNext()).isTrue();
-            var next = logFilesMetadata.next();
-            assertThat(next.logHeader()).isEqualTo(logHeader);
-            assertThat(next.version()).isEqualTo(logHeader.getLogVersion());
+            assertThat(logFilesMetadata.next()).isTrue();
+            var metadata = logFilesMetadata.get();
+            assertThat(metadata.logHeader()).isEqualTo(logHeader);
+            assertThat(metadata.version()).isEqualTo(logHeader.getLogVersion());
         }
-        assertThat(logFilesMetadata.hasNext()).isFalse();
+        assertThat(logFilesMetadata.next()).isFalse();
+        assertThat(logFilesMetadata.get()).isNull();
+
+        // reading backwards
+        logFilesMetadata = new LogFilesMetadata(logsRepository, true);
+        for (int i = logHeaders.length - 1; i >= 0; i--) {
+            var logHeader = logHeaders[i];
+            assertThat(logFilesMetadata.next()).isTrue();
+            var metadata = logFilesMetadata.get();
+            assertThat(metadata.logHeader()).isEqualTo(logHeader);
+            assertThat(metadata.version()).isEqualTo(logHeader.getLogVersion());
+        }
+        assertThat(logFilesMetadata.next()).isFalse();
+        assertThat(logFilesMetadata.get()).isNull();
     }
 
     @Test
@@ -104,13 +119,45 @@ class LogFilesMetadataTest {
             writeChannel.channel().close();
         }
 
+        // reading forwards
         var logFilesMetadata = new LogFilesMetadata(logsRepository);
         for (int i = 0; i < logHeaders.length; i++) {
-            assertThat(logFilesMetadata.hasNext()).isTrue();
-            var next = logFilesMetadata.next();
-            assertThat(next.logHeader()).isEqualTo(logHeaders[i]);
-            assertThat(next.version()).isEqualTo(i);
+            assertThat(logFilesMetadata.next()).isTrue();
+            var metadata = logFilesMetadata.get();
+            assertThat(metadata.logHeader()).isEqualTo(logHeaders[i]);
+            assertThat(metadata.version()).isEqualTo(i);
         }
-        assertThat(logFilesMetadata.hasNext()).isFalse();
+        assertThat(logFilesMetadata.next()).isFalse();
+        assertThat(logFilesMetadata.get()).isNull();
+
+        // reading backwards
+        logFilesMetadata = new LogFilesMetadata(logsRepository, true);
+        for (int i = logHeaders.length - 1; i >= 0; i--) {
+            assertThat(logFilesMetadata.next()).isTrue();
+            var metadata = logFilesMetadata.get();
+            assertThat(metadata.logHeader()).isEqualTo(logHeaders[i]);
+            assertThat(metadata.version()).isEqualTo(i);
+        }
+        assertThat(logFilesMetadata.next()).isFalse();
+        assertThat(logFilesMetadata.get()).isNull();
+    }
+
+    @Test
+    void hasNextShouldReturnFalseForPreallocatedFiles() throws IOException {
+        var zeroes = new byte[128];
+        for (int i = 0; i < 2; i++) {
+            var writeChannel = logsRepository.createWriteChannel(i);
+            writeChannel.channel().writeAll(ByteBuffer.wrap(zeroes));
+            writeChannel.channel().flush();
+            writeChannel.channel().close();
+        }
+
+        var logFilesMetadata = new LogFilesMetadata(logsRepository);
+        assertThat(logFilesMetadata.next()).isFalse();
+        assertThat(logFilesMetadata.get()).isNull();
+
+        logFilesMetadata = new LogFilesMetadata(logsRepository, true);
+        assertThat(logFilesMetadata.next()).isFalse();
+        assertThat(logFilesMetadata.get()).isNull();
     }
 }

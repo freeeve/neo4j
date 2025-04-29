@@ -333,13 +333,13 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.initialise();
         var itr = envelopedLogFiles.logFilesMetadata();
         // envelopedLogFiles.initialise() will write a header to the first file
-        assertThat(itr.hasNext()).isTrue();
-        var logHeaderMetadata = itr.next();
+        assertThat(itr.next()).isTrue();
+        var logHeaderMetadata = itr.get();
         assertThat(logHeaderMetadata.logHeader().getLastAppendIndex()).isEqualTo(-1);
         assertThat(logHeaderMetadata.version()).isEqualTo(0);
 
         // the next file exits but is an empty pre-allocatd file and should be ignore
-        assertThat(itr.hasNext()).isFalse();
+        assertThat(itr.next()).isFalse();
     }
 
     @Test

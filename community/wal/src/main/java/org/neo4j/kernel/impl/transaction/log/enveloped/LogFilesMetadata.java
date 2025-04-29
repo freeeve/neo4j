@@ -22,14 +22,15 @@ package org.neo4j.kernel.impl.transaction.log.enveloped;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 
 import java.io.IOException;
-import org.neo4j.collection.RawIterator;
+import org.neo4j.cursor.RawCursor;
 import org.neo4j.memory.EmptyMemoryTracker;
 
-public class LogFilesMetadata implements RawIterator<LogFileMetadata, IOException> {
+public class LogFilesMetadata implements RawCursor<LogFileMetadata, IOException> {
     private final LogsRepository logsRepository;
     private final long[] versions;
     private int currentVersionIndex = -1;
     private LogFileMetadata nextMetadata = null;
+    private final boolean reversed;
 
     LogFilesMetadata(LogsRepository logsRepository) throws IOException {
         this(logsRepository, false);
@@ -38,28 +39,30 @@ public class LogFilesMetadata implements RawIterator<LogFileMetadata, IOExceptio
     LogFilesMetadata(LogsRepository logsRepository, boolean reversed) throws IOException {
         this.logsRepository = logsRepository;
         this.versions = logsRepository.logVersions(reversed);
+        this.reversed = reversed;
     }
 
     @Override
-    public boolean hasNext() {
-        return versions.length != 0 && (currentVersionIndex == -1 || nextMetadata != null);
+    public boolean next() throws IOException {
+        if (versions.length != 0 && currentVersionIndex < versions.length) {
+            setNext();
+            return nextMetadata != null;
+        }
+        return false;
     }
 
     @Override
-    public LogFileMetadata next() throws IOException {
-        if (!hasNext()) {
-            throw new IllegalStateException("No more versions available");
-        }
-        var currentMetadata = nextMetadata;
-        setNext();
-        if (currentVersionIndex == 0) {
-            // this was the first entry
-            return next();
-        }
-        return currentMetadata;
+    public LogFileMetadata get() {
+        return nextMetadata;
+    }
+
+    @Override
+    public void close() throws IOException {
+        // ignored
     }
 
     private void setNext() throws IOException {
+        nextMetadata = null;
         if (++currentVersionIndex != versions.length) {
             var version = versions[currentVersionIndex];
             try (var logChannel = logsRepository.openReadChannel(version)) {
@@ -67,10 +70,12 @@ public class LogFilesMetadata implements RawIterator<LogFileMetadata, IOExceptio
                 var logHeader = readLogHeader(logChannel.channel(), true, null, EmptyMemoryTracker.INSTANCE);
                 if (logHeader != null) {
                     nextMetadata = new LogFileMetadata(logHeader, version, currentPath);
-                    return;
+                } else {
+                    if (reversed) {
+                        setNext(); // keep iterating until we find non-preallocated file
+                    }
                 }
             }
         }
-        nextMetadata = null;
     }
 }
