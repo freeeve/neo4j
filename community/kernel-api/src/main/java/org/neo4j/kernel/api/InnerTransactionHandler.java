@@ -21,7 +21,8 @@ package org.neo4j.kernel.api;
 
 /**
  * This Handler provides the ability to link so-called inner transactions to the transaction this handler was obtained from using
- * {@link #registerInnerTransaction(long)} and to unlink them again using {@link #removeInnerTransaction(long)}.
+ * {@link #removeInnerTransaction(KernelTransaction)} (long)} and to unlink them again using
+ * {@link #removeInnerTransaction(KernelTransaction)}.
  * <p>
  * For linked transactions the guarantees are:
  * <ul>
@@ -31,13 +32,13 @@ package org.neo4j.kernel.api;
  */
 public interface InnerTransactionHandler {
     /**
-     * Link the inner transaction specified by the given {@code innerTransactionId} to the transaction that this handler belongs to.
+     * Link the inner transaction to the transaction that this handler belongs to.
      * The inner transaction will be terminated if the outer transaction gets rolled back.
      * The outer transaction cannot commit if it is linked to inner transactions.
      *
-     * @param innerTransactionId user transaction id of inner transaction
+     * @param innerTransaction to be registered
      */
-    void registerInnerTransaction(long innerTransactionId);
+    void registerInnerTransaction(KernelTransaction innerTransaction);
 
     /**
      * Remove link to inner transaction.

@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
+import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.KernelTransactionHandle;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.test.Race;
@@ -49,11 +50,13 @@ class InnerTransactionHandlerImplTest {
             long innerTransactionId = 42;
             when(innerHandle.getTransactionSequenceNumber()).thenReturn(innerTransactionId);
             when(kernelTransactions.executingTransactions()).thenReturn(Collections.singleton(innerHandle));
+            KernelTransaction innerTransaction = mock(KernelTransaction.class);
+            when(innerTransaction.getTransactionSequenceNumber()).thenReturn(innerTransactionId);
 
             InnerTransactionHandlerImpl terminationHandler = new InnerTransactionHandlerImpl(kernelTransactions);
 
             Race race = new Race();
-            race.addContestant(() -> terminationHandler.registerInnerTransaction(innerTransactionId));
+            race.addContestant(() -> terminationHandler.registerInnerTransaction(innerTransaction));
             race.addContestants(3, () -> terminationHandler.terminateInnerTransactions(Status.Transaction.Terminated));
             race.shuffleContestants();
             race.go();
@@ -68,9 +71,11 @@ class InnerTransactionHandlerImplTest {
         long innerTransactionId = 42;
         when(innerHandle.getTransactionSequenceNumber()).thenReturn(innerTransactionId);
         when(kernelTransactions.executingTransactions()).thenReturn(Collections.singleton(innerHandle));
+        KernelTransaction innerTransaction = mock(KernelTransaction.class);
+        when(innerTransaction.getTransactionSequenceNumber()).thenReturn(innerTransactionId);
 
         InnerTransactionHandlerImpl terminationHandler = new InnerTransactionHandlerImpl(kernelTransactions);
-        terminationHandler.registerInnerTransaction(innerTransactionId);
+        terminationHandler.registerInnerTransaction(innerTransaction);
         terminationHandler.terminateInnerTransactions(Status.Transaction.Terminated);
 
         verify(innerHandle, atLeastOnce()).markForTermination(any());
@@ -82,10 +87,12 @@ class InnerTransactionHandlerImplTest {
         long innerTransactionId = 42;
         when(innerHandle.getTransactionSequenceNumber()).thenReturn(innerTransactionId);
         when(kernelTransactions.executingTransactions()).thenReturn(Collections.singleton(innerHandle));
+        KernelTransaction innerTransaction = mock(KernelTransaction.class);
+        when(innerTransaction.getTransactionSequenceNumber()).thenReturn(innerTransactionId);
 
         InnerTransactionHandlerImpl terminationHandler = new InnerTransactionHandlerImpl(kernelTransactions);
         terminationHandler.terminateInnerTransactions(Status.Transaction.Terminated);
-        terminationHandler.registerInnerTransaction(innerTransactionId);
+        terminationHandler.registerInnerTransaction(innerTransaction);
 
         verify(innerHandle, atLeastOnce()).markForTermination(any());
     }
@@ -96,9 +103,11 @@ class InnerTransactionHandlerImplTest {
         long innerTransactionId = 42;
         when(innerHandle.getTransactionSequenceNumber()).thenReturn(innerTransactionId);
         when(kernelTransactions.executingTransactions()).thenReturn(Collections.singleton(innerHandle));
+        KernelTransaction innerTransaction = mock(KernelTransaction.class);
+        when(innerTransaction.getTransactionSequenceNumber()).thenReturn(innerTransactionId);
 
         InnerTransactionHandlerImpl terminationHandler = new InnerTransactionHandlerImpl(kernelTransactions);
-        terminationHandler.registerInnerTransaction(innerTransactionId);
+        terminationHandler.registerInnerTransaction(innerTransaction);
 
         verify(innerHandle, never()).markForTermination(any());
     }

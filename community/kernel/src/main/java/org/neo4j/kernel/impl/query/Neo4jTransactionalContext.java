@@ -309,10 +309,11 @@ public class Neo4jTransactionalContext implements TransactionalContext {
         OnCloseCallback onClose = null;
         try {
             newTransaction = graph.beginTransaction(transactionType, securityContext, clientInfo);
-            long newTransactionId = newTransaction.kernelTransaction().getTransactionSequenceNumber();
+            var newKernelTransaction = newTransaction.kernelTransaction();
+            long newTransactionId = newKernelTransaction.getTransactionSequenceNumber();
             InnerTransactionHandler innerTransactionHandler = kernelTransaction.getInnerTransactionHandler();
             onClose = () -> innerTransactionHandler.removeInnerTransaction(newTransactionId);
-            innerTransactionHandler.registerInnerTransaction(newTransactionId);
+            innerTransactionHandler.registerInnerTransaction(newKernelTransaction);
 
             KernelStatement newStatement =
                     (KernelStatement) newTransaction.kernelTransaction().acquireStatement();

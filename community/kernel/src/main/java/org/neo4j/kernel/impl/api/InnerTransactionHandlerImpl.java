@@ -24,6 +24,7 @@ import org.eclipse.collections.api.set.primitive.MutableLongSet;
 import org.eclipse.collections.impl.factory.primitive.LongObjectMaps;
 import org.eclipse.collections.impl.factory.primitive.LongSets;
 import org.neo4j.kernel.api.InnerTransactionHandler;
+import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.KernelTransactionHandle;
 import org.neo4j.kernel.api.exceptions.Status;
 
@@ -54,7 +55,8 @@ class InnerTransactionHandlerImpl implements InnerTransactionHandler {
      * We assume this method to only be called from the executing thread.
      */
     @Override
-    public synchronized void registerInnerTransaction(long innerTransactionId) {
+    public synchronized void registerInnerTransaction(KernelTransaction innerTransaction) {
+        var innerTransactionId = innerTransaction.getTransactionSequenceNumber();
         if (closed) {
             throw new IllegalStateException("The inner transaction handler is already closed.");
         } else if (terminationReason != null) {
