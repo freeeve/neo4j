@@ -28,11 +28,11 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.IndexDeletionPolicy;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SnapshotDeletionPolicy;
-import org.apache.lucene.store.Directory;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Directory;
 
 /**
  * Create iterators over Lucene index files for a particular {@link IndexCommit index commit}.
@@ -69,21 +69,17 @@ public final class LuceneIndexSnapshots {
      * @return index file name resource iterator
      * @throws IOException
      */
-    public static ResourceIterator<Path> forIndex(Path indexFolder, Directory directory) throws IOException {
-        if (!hasCommits(directory)) {
+    public static ResourceIterator<Path> forIndex(Path indexFolder, LuceneDirectory directory) throws IOException {
+        if (!directory.hasCommits()) {
             return emptyResourceIterator();
         }
-        Collection<IndexCommit> indexCommits = DirectoryReader.listCommits(directory);
+        Collection<IndexCommit> indexCommits = DirectoryReader.listCommits(directory.toLuceneDirectory());
         IndexCommit indexCommit = Iterables.last(indexCommits);
         return new ReadOnlyIndexSnapshotFileIterator(indexFolder, indexCommit);
     }
 
     private static boolean hasCommits(IndexWriter indexWriter) throws IOException {
-        Directory directory = indexWriter.getDirectory();
-        return hasCommits(directory);
-    }
-
-    private static boolean hasCommits(Directory directory) throws IOException {
-        return DirectoryReader.indexExists(directory) && SegmentInfos.readLatestCommit(directory) != null;
+        LuceneDirectory directory = new Lucene9Directory(indexWriter.getDirectory());
+        return directory.hasCommits();
     }
 }

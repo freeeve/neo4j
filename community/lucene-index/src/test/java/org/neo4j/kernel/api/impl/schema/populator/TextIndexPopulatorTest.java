@@ -62,7 +62,7 @@ import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
 class TextIndexPopulatorTest {
-    private final DirectoryFactory dirFactory = new DirectoryFactory.InMemoryDirectoryFactory();
+    private final DirectoryFactory dirFactory = DirectoryFactory.inMemory();
 
     @Inject
     private TestDirectory testDir;

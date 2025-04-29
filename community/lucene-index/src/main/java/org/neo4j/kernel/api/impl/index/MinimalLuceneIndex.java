@@ -22,10 +22,10 @@ package org.neo4j.kernel.api.impl.index;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.List;
-import org.apache.lucene.store.Directory;
 import org.neo4j.configuration.Config;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.index.partition.IndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
@@ -57,7 +57,7 @@ public class MinimalLuceneIndex<READER extends IndexReader> extends AbstractLuce
     }
 
     @Override
-    public void accessClosedDirectories(ThrowingBiConsumer<Integer, Directory, IOException> visitor) {
+    public void accessClosedDirectories(ThrowingBiConsumer<Integer, LuceneDirectory, IOException> visitor) {
         throw new UnsupportedOperationException("Cannot create readers for index that can only be dropped.");
     }
 }

@@ -243,7 +243,7 @@ class TextIndexPopulatingUpdaterIT {
     }
 
     private TextIndexProvider createIndexProvider() {
-        var directoryFactory = new DirectoryFactory.InMemoryDirectoryFactory();
+        var directoryFactory = DirectoryFactory.inMemory();
         var directoryStructureFactory = directoriesByProvider(testDir.homePath());
         return new TextIndexProvider(
                 fileSystem,

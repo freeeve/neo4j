@@ -21,9 +21,9 @@ package org.neo4j.kernel.api.impl.index;
 
 import java.io.IOException;
 import java.util.List;
-import org.apache.lucene.store.Directory;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
@@ -88,7 +88,7 @@ abstract class AbstractDatabaseIndex<INDEX extends AbstractLuceneIndex<READER>, 
     }
 
     @Override
-    public void accessClosedDirectories(ThrowingBiConsumer<Integer, Directory, IOException> visitor)
+    public void accessClosedDirectories(ThrowingBiConsumer<Integer, LuceneDirectory, IOException> visitor)
             throws IOException {
         luceneIndex.accessClosedDirectories(visitor);
     }

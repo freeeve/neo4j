@@ -33,18 +33,16 @@ import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByPr
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.LongStream;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TotalHits;
-import org.apache.lucene.store.ByteBuffersDirectory;
-import org.apache.lucene.store.Directory;
 import org.eclipse.collections.impl.factory.Sets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +54,7 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.kernel.api.index.IndexPopulator;
@@ -80,7 +79,7 @@ class TextIndexPopulatorTest {
     private TestDirectory testDir;
 
     private TextIndexProvider provider;
-    private Directory directory;
+    private LuceneDirectory directory;
     private IndexPopulator indexPopulator;
     private IndexReader reader;
     private IndexSearcher searcher;
@@ -89,9 +88,8 @@ class TextIndexPopulatorTest {
 
     @BeforeEach
     void before() throws IOException {
-        directory = new ByteBuffersDirectory();
-        DirectoryFactory directoryFactory =
-                new DirectoryFactory.Single(new DirectoryFactory.UncloseableDirectory(directory));
+        directory = DirectoryFactory.CURRENT.inMemoryDirectory();
+        DirectoryFactory directoryFactory = new SingleUnclosingDirectoryFactory(directory);
         provider = new TextIndexProvider(
                 fs,
                 directoryFactory,
@@ -290,7 +288,7 @@ class TextIndexPopulatorTest {
     private void switchToVerification() throws IOException {
         indexPopulator.close(true, NULL_CONTEXT);
         assertEquals(InternalIndexState.ONLINE, provider.getInitialState(index, NULL_CONTEXT, Sets.immutable.empty()));
-        reader = DirectoryReader.open(directory);
+        reader = directory.open();
         searcher = new IndexSearcher(reader);
     }
 
@@ -305,5 +303,24 @@ class TextIndexPopulatorTest {
                 updater.process(update);
             }
         }
+    }
+
+    private record SingleUnclosingDirectoryFactory(LuceneDirectory directory) implements DirectoryFactory {
+        SingleUnclosingDirectoryFactory(LuceneDirectory directory) {
+            this.directory = new LuceneDirectory.DelegatingLuceneDirectory(directory) {
+                @Override
+                public void close() {
+                    // Don't close
+                }
+            };
+        }
+
+        @Override
+        public LuceneDirectory open(Path dir) {
+            return directory;
+        }
+
+        @Override
+        public void close() {}
     }
 }

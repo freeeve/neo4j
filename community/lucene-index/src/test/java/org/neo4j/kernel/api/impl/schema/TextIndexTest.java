@@ -54,7 +54,7 @@ class TextIndexTest {
     @Inject
     private TestDirectory testDir;
 
-    private final DirectoryFactory dirFactory = new DirectoryFactory.InMemoryDirectoryFactory();
+    private final DirectoryFactory dirFactory = DirectoryFactory.inMemory();
     private DatabaseIndex<ValueIndexReader> index;
     private final IndexDescriptor descriptor = IndexPrototype.forSchema(forLabel(3, 5))
             .withName("a")

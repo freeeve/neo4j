@@ -28,19 +28,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.lucene.store.Directory;
 import org.neo4j.internal.helpers.collection.NumberAwareStringComparator;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.fs.FileUtils;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.storage.layout.FolderLayout;
 import org.neo4j.kernel.api.impl.index.storage.layout.IndexFolderLayout;
 
 /**
  * Utility class that manages directory structure for a partitioned lucene index.
  * It is aware of the {@link FileSystemAbstraction file system} structure of all index related folders, lucene
- * {@link Directory directories} and {@link FailureStorage failure storage}.
+ * {@link LuceneDirectory directories} and {@link FailureStorage failure storage}.
  */
 public class PartitionedIndexStorage {
     private static final Comparator<Path> FILE_COMPARATOR = (o1, o2) -> NumberAwareStringComparator.INSTANCE.compare(
@@ -60,13 +60,13 @@ public class PartitionedIndexStorage {
     }
 
     /**
-     * Opens a {@link Directory lucene directory} for the given folder.
+     * Opens a {@link LuceneDirectory lucene directory} for the given folder.
      *
      * @param folder the folder that denotes a lucene directory.
      * @return the lucene directory denoted by the given folder.
      * @throws IOException if directory can't be opened.
      */
-    public Directory openDirectory(Path folder) throws IOException {
+    public LuceneDirectory openDirectory(Path folder) throws IOException {
         return directoryFactory.open(folder);
     }
 
@@ -126,7 +126,7 @@ public class PartitionedIndexStorage {
 
     /**
      * For the given {@link Path folder} removes all nested folders from both {@link FileSystemAbstraction file system}
-     * and {@link Directory lucene directories}.
+     * and {@link LuceneDirectory lucene directories}.
      *
      * @param folder the folder to clean up.
      * @throws IOException if some removal operation fails.
@@ -138,7 +138,7 @@ public class PartitionedIndexStorage {
 
     /**
      * For the given {@link Path folder} removes the folder itself and all nested folders from both
-     * {@link FileSystemAbstraction file system} and {@link Directory lucene directories}.
+     * {@link FileSystemAbstraction file system} and {@link LuceneDirectory lucene directories}.
      *
      * @param folder the folder to remove.
      * @throws IOException if some removal operation fails.
@@ -157,13 +157,13 @@ public class PartitionedIndexStorage {
     }
 
     /**
-     * Opens all {@link Directory lucene directories} contained in the {@link #getIndexFolder() index folder}.
+     * Opens all {@link LuceneDirectory lucene directories} contained in the {@link #getIndexFolder() index folder}.
      *
-     * @return the map from file system  {@link Path directory} to the corresponding {@link Directory lucene directory}.
+     * @return the map from file system  {@link Path directory} to the corresponding {@link LuceneDirectory lucene directory}.
      * @throws IOException if opening of some lucene directory (via {@link DirectoryFactory#open(Path)}) fails.
      */
-    public Map<Path, Directory> openIndexDirectories() throws IOException {
-        Map<Path, Directory> directories = new LinkedHashMap<>();
+    public Map<Path, LuceneDirectory> openIndexDirectories() throws IOException {
+        Map<Path, LuceneDirectory> directories = new LinkedHashMap<>();
         try {
             for (Path dir : listFolders()) {
                 directories.put(dir, directoryFactory.open(dir));
@@ -211,7 +211,7 @@ public class PartitionedIndexStorage {
      * @throws IOException if removal operation fails.
      */
     private void cleanupLuceneDirectory(Path folder) throws IOException {
-        try (Directory dir = directoryFactory.open(folder)) {
+        try (LuceneDirectory dir = directoryFactory.open(folder)) {
             String[] indexFiles = dir.listAll();
             for (String indexFile : indexFiles) {
                 FileUtils.windowsSafeIOOperation(() -> dir.deleteFile(indexFile));

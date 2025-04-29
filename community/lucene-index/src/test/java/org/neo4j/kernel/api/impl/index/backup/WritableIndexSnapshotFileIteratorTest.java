@@ -45,7 +45,7 @@ public class WritableIndexSnapshotFileIteratorTest extends ReadOnlyIndexSnapshot
     protected ResourceIterator<Path> makeSnapshot() throws IOException {
         Config config = Config.defaults();
         IndexWriterConfig writerConfig = new IndexWriterConfigBuilder(TestIndexWriterModes.STANDARD, config).build();
-        indexWriter = new IndexWriter(dir, writerConfig);
+        indexWriter = dir.newWriter(writerConfig);
         return LuceneIndexSnapshots.forIndex(indexDir, indexWriter);
     }
 }

@@ -26,9 +26,9 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.store.Directory;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 
@@ -86,8 +86,8 @@ public class PartitionedIndexWriter implements LuceneIndexWriter {
     }
 
     @Override
-    public void addDirectory(int count, Directory directory) throws IOException {
-        getIndexWriter(count).addIndexes(directory);
+    public void addDirectory(int count, LuceneDirectory directory) throws IOException {
+        getIndexWriter(count).addIndexes(directory.toLuceneDirectory());
     }
 
     @Override

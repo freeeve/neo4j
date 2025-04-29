@@ -27,8 +27,6 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.store.ByteBuffersDirectory;
-import org.apache.lucene.store.Directory;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.io.IOUtils;
@@ -36,7 +34,9 @@ import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.FulltextModes;
 import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
+import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
 
 class TransactionStateLuceneIndexWriter implements LuceneIndexWriter, Closeable {
@@ -44,13 +44,13 @@ class TransactionStateLuceneIndexWriter implements LuceneIndexWriter, Closeable 
     private final Analyzer analyzer;
     private final IndexConfig indexConfig;
     private IndexWriter writer;
-    private final Directory directory;
+    private final LuceneDirectory directory;
 
     TransactionStateLuceneIndexWriter(Config config, Analyzer analyzer, IndexConfig indexConfig) {
         this.config = config;
         this.analyzer = analyzer;
         this.indexConfig = indexConfig;
-        directory = new ByteBuffersDirectory();
+        this.directory = DirectoryFactory.CURRENT.inMemoryDirectory();
     }
 
     @Override
@@ -79,8 +79,8 @@ class TransactionStateLuceneIndexWriter implements LuceneIndexWriter, Closeable 
     }
 
     @Override
-    public void addDirectory(int count, Directory directory) throws IOException {
-        writer.addIndexes(directory);
+    public void addDirectory(int count, LuceneDirectory directory) throws IOException {
+        writer.addIndexes(directory.toLuceneDirectory());
     }
 
     void resetWriterState() throws IOException {
@@ -92,11 +92,9 @@ class TransactionStateLuceneIndexWriter implements LuceneIndexWriter, Closeable 
     }
 
     private void openWriter() throws IOException {
-        writer = new IndexWriter(
-                directory,
-                new IndexWriterConfigBuilder(FulltextModes.TRANSACTION_STATE, config)
-                        .withAnalyzer(analyzer)
-                        .build());
+        writer = directory.newWriter(new IndexWriterConfigBuilder(FulltextModes.TRANSACTION_STATE, config)
+                .withAnalyzer(analyzer)
+                .build());
     }
 
     SearcherReference getNearRealTimeSearcher() throws IOException {

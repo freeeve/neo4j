@@ -32,7 +32,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.store.Directory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +40,7 @@ import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.TestIndexWriterModes;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -52,7 +52,7 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
     private TestDirectory testDir;
 
     Path indexDir;
-    protected Directory dir;
+    protected LuceneDirectory dir;
 
     @BeforeEach
     void setUp() throws IOException {
@@ -89,7 +89,7 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
     private void prepareIndex() throws IOException {
         Config config = Config.defaults();
         IndexWriterConfig writerConfig = new IndexWriterConfigBuilder(TestIndexWriterModes.STANDARD, config).build();
-        try (IndexWriter writer = new IndexWriter(dir, writerConfig)) {
+        try (IndexWriter writer = dir.newWriter(writerConfig)) {
             insertRandomDocuments(writer);
         }
     }
@@ -106,7 +106,7 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
         writer.commit();
     }
 
-    private static Set<String> listDir(Directory dir) throws IOException {
+    private static Set<String> listDir(LuceneDirectory dir) throws IOException {
         String[] files = dir.listAll();
         return Stream.of(files)
                 .filter(file -> !IndexWriter.WRITE_LOCK_NAME.equals(file))

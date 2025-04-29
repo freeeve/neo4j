@@ -41,7 +41,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.store.Directory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
@@ -52,7 +51,7 @@ import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.HeapScopedBuffer;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.TestIndexWriterModes;
-import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory.InMemoryDirectoryFactory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -60,7 +59,7 @@ import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
 class PartitionedIndexStorageTest {
-    private static final InMemoryDirectoryFactory directoryFactory = new InMemoryDirectoryFactory();
+    private static final DirectoryFactory directoryFactory = DirectoryFactory.inMemory();
 
     @Inject
     private DefaultFileSystemAbstraction fs;
@@ -98,7 +97,7 @@ class PartitionedIndexStorageTest {
     @Test
     void prepareFolderRemovesFromLucene() throws IOException {
         Path folder = createRandomFolder(testDir.homePath());
-        Directory dir = createRandomLuceneDir(folder);
+        LuceneDirectory dir = createRandomLuceneDir(folder);
 
         assertFalse(isEmpty(dir.listAll()));
 
@@ -112,7 +111,7 @@ class PartitionedIndexStorageTest {
     void openIndexDirectoriesForEmptyIndex() throws IOException {
         storage.getIndexFolder();
 
-        Map<Path, Directory> directories = storage.openIndexDirectories();
+        Map<Path, LuceneDirectory> directories = storage.openIndexDirectories();
 
         assertTrue(directories.isEmpty());
     }
@@ -123,10 +122,10 @@ class PartitionedIndexStorageTest {
         createRandomLuceneDir(indexFolder).close();
         createRandomLuceneDir(indexFolder).close();
 
-        Map<Path, Directory> directories = storage.openIndexDirectories();
+        Map<Path, LuceneDirectory> directories = storage.openIndexDirectories();
         try {
             assertEquals(2, directories.size());
-            for (Directory dir : directories.values()) {
+            for (LuceneDirectory dir : directories.values()) {
                 assertFalse(isEmpty(dir.listAll()));
             }
         } finally {
@@ -179,12 +178,12 @@ class PartitionedIndexStorageTest {
             }
 
             // WHEN
-            Map<Path, Directory> directories = myStorage.openIndexDirectories();
+            Map<Path, LuceneDirectory> directories = myStorage.openIndexDirectories();
 
             // THEN
             assertEquals(directoryCount, directories.size());
             int previous = 0;
-            for (Map.Entry<Path, Directory> directory : directories.entrySet()) {
+            for (Map.Entry<Path, LuceneDirectory> directory : directories.entrySet()) {
                 int current = parseInt(directory.getKey().getFileName().toString());
                 assertTrue(
                         current > previous,
@@ -205,12 +204,12 @@ class PartitionedIndexStorageTest {
         }
     }
 
-    private Directory createRandomLuceneDir(Path rootFolder) throws IOException {
+    private LuceneDirectory createRandomLuceneDir(Path rootFolder) throws IOException {
         Path folder = createRandomFolder(rootFolder);
-        Directory directory = directoryFactory.open(folder);
+        LuceneDirectory directory = directoryFactory.open(folder);
         Config config = Config.defaults();
         IndexWriterConfig writerConfig = new IndexWriterConfigBuilder(TestIndexWriterModes.STANDARD, config).build();
-        try (IndexWriter writer = new IndexWriter(directory, writerConfig)) {
+        try (IndexWriter writer = directory.newWriter(writerConfig)) {
             writer.addDocument(randomDocument());
             writer.commit();
         }

@@ -105,7 +105,7 @@ public class TextIndexAccessorTest {
     private final long nodeId2 = 2;
     private final Object value = "value";
     private final Object value2 = "40";
-    private DirectoryFactory.InMemoryDirectoryFactory dirFactory;
+    private DirectoryFactory dirFactory;
     private static final IndexDescriptor GENERAL_INDEX = IndexPrototype.forSchema(forLabel(0, PROP_ID))
             .withName("a")
             .withIndexType(IndexType.TEXT)
@@ -143,7 +143,7 @@ public class TextIndexAccessorTest {
     void init(IndexDescriptor index, IOFunction<DirectoryFactory, TextIndexAccessor> accessorFactory)
             throws IOException {
         this.index = index;
-        dirFactory = new DirectoryFactory.InMemoryDirectoryFactory();
+        dirFactory = DirectoryFactory.inMemory();
         accessor = accessorFactory.apply(dirFactory);
     }
 

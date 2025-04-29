@@ -132,7 +132,7 @@ public class DatabaseCompositeIndexAccessorTest {
     private final long nodeId2 = 2;
     private final Object[] values = {"value1", "values2"};
     private final Object[] values2 = {40, 42};
-    private DirectoryFactory.InMemoryDirectoryFactory dirFactory;
+    private DirectoryFactory dirFactory;
     private static final IndexPrototype SCHEMA_INDEX_DESCRIPTOR =
             IndexPrototype.forSchema(SchemaDescriptors.forLabel(0, PROP_ID1, PROP_ID2));
     private static final IndexPrototype UNIQUE_SCHEMA_INDEX_DESCRIPTOR =
@@ -145,7 +145,7 @@ public class DatabaseCompositeIndexAccessorTest {
 
     @BeforeAll
     public void prepareProviders() throws IOException {
-        dirFactory = new DirectoryFactory.InMemoryDirectoryFactory();
+        dirFactory = DirectoryFactory.inMemory();
         providers = getIndexProviders(pageCache, jobScheduler, fileSystem, testDirectory);
     }
 

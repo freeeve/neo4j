@@ -31,7 +31,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,10 +44,7 @@ import org.apache.lucene.index.IndexFileNames;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.IndexInput;
-import org.apache.lucene.store.IndexOutput;
-import org.apache.lucene.store.Lock;
+import org.apache.lucene.store.FilterDirectory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -56,6 +52,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Directory;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.index.partition.IndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
@@ -240,47 +238,20 @@ class DatabaseIndexIntegrationTest {
         }
 
         @Override
-        public Directory open(Path dir) throws IOException {
+        public LuceneDirectory open(Path dir) throws IOException {
             Files.createDirectories(dir);
-            FSDirectory fsDir = FSDirectory.open(dir);
-            return new SyncNotifierDirectory(fsDir, signal);
+            return new Lucene9Directory(new SyncNotifierLuceneDirectory(FSDirectory.open(dir), signal));
         }
 
         @Override
         public void close() {}
 
-        private static class SyncNotifierDirectory extends Directory {
-            private final Directory delegate;
+        private static class SyncNotifierLuceneDirectory extends FilterDirectory {
             private final CountDownLatch signal;
 
-            SyncNotifierDirectory(Directory delegate, CountDownLatch signal) {
-                this.delegate = delegate;
+            SyncNotifierLuceneDirectory(Directory delegate, CountDownLatch signal) {
+                super(delegate);
                 this.signal = signal;
-            }
-
-            @Override
-            public String[] listAll() throws IOException {
-                return delegate.listAll();
-            }
-
-            @Override
-            public void deleteFile(String name) throws IOException {
-                delegate.deleteFile(name);
-            }
-
-            @Override
-            public long fileLength(String name) throws IOException {
-                return delegate.fileLength(name);
-            }
-
-            @Override
-            public IndexOutput createOutput(String name, IOContext context) throws IOException {
-                return delegate.createOutput(name, context);
-            }
-
-            @Override
-            public IndexOutput createTempOutput(String prefix, String suffix, IOContext context) throws IOException {
-                return delegate.createTempOutput(prefix, suffix, context);
             }
 
             @Override
@@ -296,37 +267,7 @@ class DatabaseIndexIntegrationTest {
                     }
                 }
 
-                delegate.sync(names);
-            }
-
-            @Override
-            public void syncMetaData() throws IOException {
-                delegate.syncMetaData();
-            }
-
-            @Override
-            public void rename(String source, String dest) throws IOException {
-                delegate.rename(source, dest);
-            }
-
-            @Override
-            public IndexInput openInput(String name, IOContext context) throws IOException {
-                return delegate.openInput(name, context);
-            }
-
-            @Override
-            public Lock obtainLock(String name) throws IOException {
-                return delegate.obtainLock(name);
-            }
-
-            @Override
-            public void close() throws IOException {
-                delegate.close();
-            }
-
-            @Override
-            public Set<String> getPendingDeletions() throws IOException {
-                return delegate.getPendingDeletions();
+                super.sync(names);
             }
         }
     }

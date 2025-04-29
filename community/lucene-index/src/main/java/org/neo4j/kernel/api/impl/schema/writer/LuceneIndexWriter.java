@@ -23,7 +23,7 @@ import java.io.IOException;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.store.Directory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 
 /**
  * A thin wrapper around {@link org.apache.lucene.index.IndexWriter} that exposes only some part of it's
@@ -41,12 +41,12 @@ public interface LuceneIndexWriter {
     void deleteDocuments(Query query) throws IOException;
 
     /**
-     * Adds the contents of a whole {@link Directory} to this index.
+     * Adds the contents of a whole {@link LuceneDirectory} to this index.
      * @param count number of documents in the given directory.
      * @param directory the directory to add to this index.
      * @throws IOException on I/O error.
      */
-    void addDirectory(int count, Directory directory) throws IOException;
+    void addDirectory(int count, LuceneDirectory directory) throws IOException;
 
     /**
      * addDocument variant that can handle adds where the document to add has become empty

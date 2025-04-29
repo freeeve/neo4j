@@ -21,14 +21,14 @@ package org.neo4j.kernel.api.impl.index.partition;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.apache.lucene.store.Directory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 
 /**
  * Factory to create read only partitions in partitioned index.
  */
 public class ReadOnlyIndexPartitionFactory implements IndexPartitionFactory {
     @Override
-    public AbstractIndexPartition createPartition(Path partitionFolder, Directory directory) throws IOException {
+    public AbstractIndexPartition createPartition(Path partitionFolder, LuceneDirectory directory) throws IOException {
         return new ReadOnlyIndexPartition(partitionFolder, directory);
     }
 }

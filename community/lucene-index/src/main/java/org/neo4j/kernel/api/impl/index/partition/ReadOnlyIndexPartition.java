@@ -24,11 +24,11 @@ import java.nio.file.Path;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.SearcherManager;
-import org.apache.lucene.store.Directory;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.impl.index.backup.LuceneIndexSnapshots;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 
 /**
  * Represents a single read only partition of a partitioned lucene index.
@@ -39,9 +39,9 @@ public class ReadOnlyIndexPartition extends AbstractIndexPartition {
     private final SearcherManager searcherManager;
     private final DirectoryReader directoryReader;
 
-    ReadOnlyIndexPartition(Path partitionFolder, Directory directory) throws IOException {
+    ReadOnlyIndexPartition(Path partitionFolder, LuceneDirectory directory) throws IOException {
         super(partitionFolder, directory);
-        this.directoryReader = DirectoryReader.open(directory);
+        this.directoryReader = directory.open();
         this.searcherManager = new SearcherManager(directoryReader, new Neo4jSearcherFactory());
     }
 
@@ -84,7 +84,8 @@ public class ReadOnlyIndexPartition extends AbstractIndexPartition {
     }
 
     @Override
-    public void accessClosedDirectory(ThrowingBiConsumer<Integer, Directory, IOException> visitor) throws IOException {
+    public void accessClosedDirectory(ThrowingBiConsumer<Integer, LuceneDirectory, IOException> visitor)
+            throws IOException {
         var searcher = searcherManager.acquire();
         int numDocs;
         try {

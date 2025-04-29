@@ -91,7 +91,7 @@ class LuceneIndexProviderTest {
     void shouldFailToInvokePopulatorInReadOnlyMode() {
         var config = Config.defaults();
         TextIndexProvider readOnlyIndexProvider =
-                getLuceneIndexProvider(config, new DirectoryFactory.InMemoryDirectoryFactory(), fileSystem, graphDbDir);
+                getLuceneIndexProvider(config, DirectoryFactory.inMemory(), fileSystem, graphDbDir);
         assertThrows(
                 UnsupportedOperationException.class,
                 () -> readOnlyIndexProvider.getPopulator(
@@ -121,8 +121,8 @@ class LuceneIndexProviderTest {
     @Test
     void indexUpdateNotAllowedInReadOnlyMode() {
         Config readOnlyConfig = Config.defaults(read_only_database_default, true);
-        TextIndexProvider readOnlyIndexProvider = getLuceneIndexProvider(
-                readOnlyConfig, new DirectoryFactory.InMemoryDirectoryFactory(), fileSystem, graphDbDir);
+        TextIndexProvider readOnlyIndexProvider =
+                getLuceneIndexProvider(readOnlyConfig, DirectoryFactory.inMemory(), fileSystem, graphDbDir);
 
         assertThrows(UnsupportedOperationException.class, () -> getIndexAccessor(readOnlyConfig, readOnlyIndexProvider)
                 .newUpdater(IndexUpdateMode.ONLINE, NULL_CONTEXT, false));
@@ -133,8 +133,8 @@ class LuceneIndexProviderTest {
         // IndexAccessor.force is used in check-pointing, and must be allowed in read-only mode as it would otherwise
         // prevent backups from working.
         Config readOnlyConfig = Config.defaults(read_only_database_default, true);
-        TextIndexProvider readOnlyIndexProvider = getLuceneIndexProvider(
-                readOnlyConfig, new DirectoryFactory.InMemoryDirectoryFactory(), fileSystem, graphDbDir);
+        TextIndexProvider readOnlyIndexProvider =
+                getLuceneIndexProvider(readOnlyConfig, DirectoryFactory.inMemory(), fileSystem, graphDbDir);
 
         // We assert that 'force' does not throw an exception
         getIndexAccessor(readOnlyConfig, readOnlyIndexProvider).force(FileFlushEvent.NULL, NULL_CONTEXT);
@@ -192,7 +192,7 @@ class LuceneIndexProviderTest {
     }
 
     private TextIndexProvider createIndexProvider(Config config) {
-        var directoryFactory = new DirectoryFactory.InMemoryDirectoryFactory();
+        var directoryFactory = DirectoryFactory.inMemory();
         var directoryStructureFactory = directoriesByProvider(testDir.homePath());
         return new TextIndexProvider(
                 fileSystem,
