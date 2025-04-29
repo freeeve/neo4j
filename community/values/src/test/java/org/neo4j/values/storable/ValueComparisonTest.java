@@ -32,6 +32,12 @@ import static org.neo4j.values.storable.DurationValue.duration;
 import static org.neo4j.values.storable.LocalDateTimeValue.localDateTime;
 import static org.neo4j.values.storable.LocalTimeValue.localTime;
 import static org.neo4j.values.storable.TimeValue.time;
+import static org.neo4j.values.storable.Values.float32Vector;
+import static org.neo4j.values.storable.Values.float64Vector;
+import static org.neo4j.values.storable.Values.int16Vector;
+import static org.neo4j.values.storable.Values.int32Vector;
+import static org.neo4j.values.storable.Values.int64Vector;
+import static org.neo4j.values.storable.Values.int8Vector;
 import static org.neo4j.values.storable.Values.pointValue;
 
 import java.time.LocalDate;
@@ -101,6 +107,80 @@ public class ValueComparisonTest {
         new float[] {2},
         new short[] {2, 3},
         new byte[] {3, -99, -99},
+
+        // VECTORS
+        int8Vector(),
+        int8Vector((byte) 1),
+        int8Vector((byte) 0, (byte) 1),
+        int8Vector((byte) 1, (byte) 2),
+        int8Vector((byte) 2, (byte) 1),
+        int8Vector((byte) 1, (byte) 2, (byte) 0),
+        int8Vector((byte) 1, (byte) 2, (byte) 1),
+        int8Vector((byte) 1, (byte) 3, (byte) 0),
+        int8Vector((byte) 2, (byte) 0, (byte) 1),
+        int16Vector(),
+        int16Vector((short) 1),
+        int16Vector((short) 0, (short) 1),
+        int16Vector((short) 1, (short) 2),
+        int16Vector((short) 2, (short) 1),
+        int16Vector((short) 1, (short) 2, (short) 0),
+        int16Vector((short) 1, (short) 2, (short) 1),
+        int16Vector((short) 1, (short) 3, (short) 0),
+        int16Vector((short) 2, (short) 0, (short) 1),
+        int32Vector(),
+        int32Vector(1),
+        int32Vector(0, 1),
+        int32Vector(1, 2),
+        int32Vector(2, 1),
+        int32Vector(1, 2, 0),
+        int32Vector(1, 2, 1),
+        int32Vector(1, 3, 0),
+        int32Vector(2, 0, 1),
+        int64Vector(),
+        int64Vector(1),
+        int64Vector(0, 1),
+        int64Vector(1, 2),
+        int64Vector(2, 1),
+        int64Vector(1, 2, 0),
+        int64Vector(1, 2, 1),
+        int64Vector(1, 3, 0),
+        int64Vector(2, 0, 1),
+        float32Vector(),
+        float32Vector(Float.NEGATIVE_INFINITY),
+        float32Vector(-Float.MAX_VALUE),
+        float32Vector(-Float.MIN_VALUE),
+        float32Vector(-0.0f),
+        float32Vector(0.0f),
+        float32Vector(Float.MIN_VALUE),
+        float32Vector(1),
+        float32Vector(Float.MAX_VALUE),
+        float32Vector(Float.POSITIVE_INFINITY),
+        float32Vector(Float.NaN), // TODO check CIP wrt ordering of NaN and if it as an allowed value
+        float32Vector(0, 1),
+        float32Vector(1, 2),
+        float32Vector(2, 1),
+        float32Vector(1, 2, 0),
+        float32Vector(1, 2, 1),
+        float32Vector(1, 3, 0),
+        float32Vector(2, 0, 1),
+        float64Vector(),
+        float64Vector(Double.NEGATIVE_INFINITY),
+        float64Vector(-Double.MAX_VALUE),
+        float64Vector(-Double.MIN_VALUE),
+        float64Vector(-0.0),
+        float64Vector(0.0),
+        float64Vector(Double.MIN_VALUE),
+        float64Vector(1),
+        float64Vector(Double.MAX_VALUE),
+        float64Vector(Double.POSITIVE_INFINITY),
+        float64Vector(Double.NaN), // TODO check CIP wrt ordering of NaN and if it as an allowed value
+        float64Vector(0, 1),
+        float64Vector(1, 2),
+        float64Vector(2, 1),
+        float64Vector(1, 2, 0),
+        float64Vector(1, 2, 1),
+        float64Vector(1, 3, 0),
+        float64Vector(2, 0, 1),
 
         // POINTS
         pointValue(WGS_84, -10.0, -10.0),
