@@ -144,7 +144,6 @@ import org.neo4j.kernel.database.DatabaseReference
 import org.neo4j.kernel.database.NormalizedDatabaseName
 
 import java.util.stream.Collectors
-
 import scala.annotation.tailrec
 import scala.jdk.CollectionConverters.IterableHasAsJava
 

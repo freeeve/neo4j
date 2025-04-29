@@ -164,6 +164,7 @@ import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.StorableType.storableType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
+import org.neo4j.cypher.internal.util.symbols.TypeSpecRange
 import org.neo4j.values.storable.VectorValue
 
 object SemanticExpressionCheck extends SemanticAnalysisTooling {
@@ -465,7 +466,10 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
                 // Maybe we can do even more here - Point / Dates probably have type implications too
                 case CTNode.invariant | CTRelationship.invariant                  => specifyType(storableType, x)
                 case CTMap.invariant if state.isLoadCsvWithHeadersVariable(x.map) => specifyType(CTString.covariant, x)
-                case _                                                            => specifyType(CTAny.covariant, x)
+                case TypeSpecRange(_, extendedType: MapExtendedType) =>
+                  val entryType = extendedType.getEntryType(x.propertyKey.name)
+                  specifyType(entryType, x)
+                case _ => specifyType(CTAny.covariant, x)
               }
           }
 
@@ -755,8 +759,16 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       // MAPS
 
       case x: MapExpression =>
-        check(ctx, x.items.map(_._2)) chain
-          specifyType(CTMap, x)
+        check(ctx, x.items.map(_._2)) chain {
+          (state: SemanticState) =>
+            val entries =
+              x.items
+                .map { case (propKeyName, expr) =>
+                  (propKeyName.name, state.expressionType(expr).specified)
+                }
+                .toMap
+            state.specifyType(x, TypeSpecRange(CTMap, MapExtendedType(CTMap, entries)))
+        }
 
       case x: MapProjection =>
         check(ctx, x.items) chain

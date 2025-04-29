@@ -19,6 +19,8 @@ package org.neo4j.cypher.internal.util.symbols
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
 
+import scala.annotation.tailrec
+
 trait CypherType extends ASTNode {
   def parentType: CypherType
   val isAbstract: Boolean = false
@@ -72,6 +74,7 @@ trait CypherType extends ASTNode {
 
   def parents: Seq[CypherType] = parents(Vector.empty)
 
+  @tailrec
   private def parents(accumulator: Seq[CypherType]): Seq[CypherType] =
     if (this.parentType == this)
       accumulator

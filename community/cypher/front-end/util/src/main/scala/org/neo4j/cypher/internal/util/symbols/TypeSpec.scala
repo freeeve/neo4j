@@ -79,8 +79,10 @@ object TypeSpec {
 
   private def apply(range: TypeRange): TypeSpec = new TypeSpec(Vector(range))
 
-  private def apply(ranges: IterableOnce[TypeRange]): TypeSpec =
+  def apply(ranges: IterableOnce[TypeRange]): TypeSpec =
     new TypeSpec(minimalRanges(ranges))
+
+  def unapply(arg: TypeSpec): Option[Seq[TypeRange]] = Some(arg.ranges)
 
   /**
    * @param ranges a set of TypeRanges
@@ -193,6 +195,9 @@ class TypeSpec(val ranges: Seq[TypeRange]) extends Equals {
     TypeSpec.exact(simpleCoercions)
   }
 
+  def rewrite(f: CypherType => CypherType): TypeSpec =
+    TypeSpec(ranges.map(_.rewrite(f)))
+
   def isEmpty: Boolean = ranges.isEmpty
   def nonEmpty: Boolean = !isEmpty
 
@@ -292,5 +297,16 @@ class TypeSpec(val ranges: Seq[TypeRange]) extends Equals {
     case TypeRange(_: AnyType, Some(u: ListType))  => Some(TypeRange(CTAny, u.innerType))
     case r @ TypeRange(_: AnyType, None)           => Some(r)
     case _                                         => None
+  }
+}
+
+object TypeSpecRange {
+
+  def apply(lower: CypherType, upper: CypherType): TypeSpec =
+    TypeSpec.apply(Seq(TypeRange(lower, upper)))
+
+  def unapply(arg: TypeSpec): Option[(CypherType, CypherType)] = arg match {
+    case TypeSpec(Seq(TypeRange(lower, Some(upper)))) => Some((lower, upper))
+    case _                                            => None
   }
 }

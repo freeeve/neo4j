@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.ast
 
+import org.neo4j.cypher.internal.ast.semantics.MapExtendedType
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck.when
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckable
@@ -141,7 +142,7 @@ case class SetExactPropertiesFromMapItem(variable: Variable, expression: Express
       expectType(CTMap.covariant, expression) chain
       // This was deprecated in Cypher 5 and disallowed in Cypher 25
       when(rhsMustBeMap) {
-        expectType(CTMap.invariant, expression)
+        expectType(MapExtendedType.getTypeSpec(CTMap), expression)
       }
 
   override def mapExpressions(f: Expression => Expression): SetItem = copy(
@@ -161,7 +162,7 @@ case class SetIncludingPropertiesFromMapItem(variable: Variable, expression: Exp
       expectType(CTMap.covariant, expression) chain
       // This was deprecated in Cypher 5 and disallowed in Cypher 25
       when(rhsMustBeMap) {
-        expectType(CTMap.invariant, expression)
+        expectType(MapExtendedType.getTypeSpec(CTMap), expression)
       }
 
   override def mapExpressions(f: Expression => Expression): SetItem = copy(

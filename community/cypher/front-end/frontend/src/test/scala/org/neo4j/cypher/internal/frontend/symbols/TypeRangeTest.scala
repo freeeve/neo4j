@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.symbols
 
+import org.neo4j.cypher.internal.ast.semantics.MapExtendedType
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
 import org.neo4j.cypher.internal.util.symbols.CTFloat
@@ -25,6 +26,7 @@ import org.neo4j.cypher.internal.util.symbols.CTInteger16
 import org.neo4j.cypher.internal.util.symbols.CTInteger32
 import org.neo4j.cypher.internal.util.symbols.CTInteger8
 import org.neo4j.cypher.internal.util.symbols.CTList
+import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTNumber
 import org.neo4j.cypher.internal.util.symbols.CTString
@@ -268,5 +270,12 @@ class TypeRangeTest extends CypherFunSuite {
 
   test("constrain") {
     TypeRange(CTAny, None).constrain(CTInteger) should equal(Some(TypeRange(CTInteger, None)))
+  }
+
+  test("intersect of map types") {
+    val invariant = TypeRange.exact(MapExtendedType(CTMap, CTAny.covariant))
+    val range = MapExtendedType.getTypeRange(CTMap)
+    val actual = invariant intersect range
+    actual should equal(Some(invariant))
   }
 }

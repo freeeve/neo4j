@@ -28,11 +28,16 @@ import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.CrossCompilation
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.InternalNotification
 import org.neo4j.cypher.internal.util.Ref
 import org.neo4j.cypher.internal.util.helpers.TreeElem
 import org.neo4j.cypher.internal.util.helpers.TreeZipper
+import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTNode
+import org.neo4j.cypher.internal.util.symbols.CypherType
+import org.neo4j.cypher.internal.util.symbols.MapType
+import org.neo4j.cypher.internal.util.symbols.TypeRange
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
 
 import scala.collection.immutable.HashMap
@@ -127,9 +132,65 @@ object ExpressionTypeInfo {
 }
 
 final case class ExpressionTypeInfo private (specified: TypeSpec, expected: Option[TypeSpec]) {
-  lazy val actual: TypeSpec = expected.fold(specified)(specified intersectOrCoerce)
+
+  lazy val actual: TypeSpec =
+    expected
+      .map(specified intersectOrCoerce)
+      .getOrElse(specified)
 
   def expect(types: TypeSpec): ExpressionTypeInfo = ExpressionTypeInfo(specified, Some(types))
+
+  def rewrite(f: CypherType => CypherType): ExpressionTypeInfo =
+    ExpressionTypeInfo(specified.rewrite(f), expected.map(_.rewrite(f)))
+}
+
+case class MapExtendedType(outerType: MapType, innerTypes: Map[String, TypeSpec], defaultInnerType: TypeSpec)
+    extends CypherType {
+
+  override def parentType: CypherType =
+    outerType
+
+  override def isNullable: Boolean = outerType.isNullable
+
+  override def withIsNullable(isNullable: Boolean): CypherType = {
+    copy(outerType = outerType.withIsNullable(isNullable).asInstanceOf[MapType])
+  }
+
+  override def withPosition(position: InputPosition): CypherType = {
+    copy(outerType = outerType.withPosition(position).asInstanceOf[MapType])
+  }
+
+  override def sortOrder: Int = outerType.sortOrder
+
+  override def toCypherTypeString: String = outerType.toCypherTypeString
+
+  override def toClassString: String = "MapExt"
+
+  override def position: InputPosition = outerType.position
+
+  /**
+   * For an entry in the map, specified by the propertyName, what is the type?
+   */
+  def getEntryType(propertyName: String): TypeSpec =
+    innerTypes.getOrElse(propertyName, defaultInnerType)
+}
+
+object MapExtendedType {
+
+  /**
+   * outerType.invariant but with MapExtendedType as possible sub-type
+   */
+  def getTypeSpec(outerType: MapType, defaultInnerType: TypeSpec = CTAny.covariant): TypeSpec =
+    new TypeSpec(Vector(getTypeRange(outerType, defaultInnerType)))
+
+  def getTypeRange(outerType: MapType, defaultInnerType: TypeSpec = CTAny.covariant): TypeRange =
+    TypeRange(outerType, MapExtendedType(outerType, defaultInnerType))
+
+  def apply(outerType: MapType, defaultInnerType: TypeSpec): MapExtendedType =
+    MapExtendedType(outerType, Map.empty, defaultInnerType)
+
+  def apply(outerType: MapType, innerTypes: Map[String, TypeSpec]): MapExtendedType =
+    MapExtendedType(outerType, innerTypes, CTAny.covariant)
 }
 
 object Scope {
@@ -319,6 +380,11 @@ object SemanticState {
     (s: SemanticState) => SemanticCheckResult.success(s.recordCurrentScope(node))
 }
 
+/**
+ * @param targetGraph used to check different use clause targets given a regular session database
+ * @param workingGraph used for nested check given a composite session database
+ * @param loadCsvWithHeaderVariables used to specify the type of the map values as strings, when the map comes from LOAD CSV WITH HEADERS
+ */
 case class SemanticState(
   currentScope: ScopeLocation,
   typeTable: ASTAnnotationMap[Expression, ExpressionTypeInfo],
@@ -327,11 +393,9 @@ case class SemanticState(
   features: Set[SemanticFeature] = Set.empty,
   declareVariablesToSuppressDuplicateErrors: Boolean = true,
   semanticCheckHasRunOnce: Boolean = false,
-  targetGraph: Option[GraphReference] =
-    None, // used to check different use clause targets given a regular session database
-  workingGraph: Option[GraphReference] = None, // used for nested check given a composite session database
-  loadCsvWithHeaderVariables: Set[LogicalVariable] =
-    Set.empty // used to specify the type of the map values as strings, when the map comes from LOAD CSV WITH HEADERS
+  targetGraph: Option[GraphReference] = None,
+  workingGraph: Option[GraphReference] = None,
+  loadCsvWithHeaderVariables: Set[LogicalVariable] = Set.empty
 ) {
 
   def scopeTree: Scope = currentScope.rootScope

@@ -162,7 +162,7 @@ class OrderWithUpdatesPlanningIntegrationTestBase(useIDPConnectComponents: Boole
 
   test("DeleteExpression should eliminate provided order and cause planning Sort") {
     shouldEliminateProvidedSortOrder(
-      "WITH *, {prop: n} AS m DELETE m.prop",
+      "WITH *, $param AS m DELETE m.prop",
       { case _: DeleteExpression => true }
     )
   }

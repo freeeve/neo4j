@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.symbols
 
+import org.neo4j.cypher.internal.ast.semantics.MapExtendedType
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
@@ -86,6 +87,7 @@ class CypherTypeTest extends CypherFunSuite {
       CTFloat,
       CTNumber
     )
+    assertLeastUpperBound(MapExtendedType(CTMap, CTAny.covariant), CTMap, CTMap)
   }
 
   private def assertLeastUpperBound(a: CypherType, b: CypherType, result: CypherType): Unit = {

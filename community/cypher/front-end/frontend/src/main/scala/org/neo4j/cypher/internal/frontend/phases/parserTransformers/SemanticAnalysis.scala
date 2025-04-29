@@ -19,6 +19,7 @@ package org.neo4j.cypher.internal.frontend.phases.parserTransformers
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.UnaliasedReturnItem
+import org.neo4j.cypher.internal.ast.semantics.MapExtendedType
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckContext
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheckResult
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
@@ -73,13 +74,26 @@ case class SemanticAnalysis(warn: Option[Boolean], features: SemanticFeature*)
 
     context.errorHandler(errors)
 
+    val cleanedTypeTable =
+      state.typeTable
+        .view.mapValues {
+          _.rewrite {
+            case MapExtendedType(outerType, _, _) =>
+              outerType
+            case otherType => otherType
+          }
+        }
+        .toMap
     val table = from.maybeSemanticTable match {
       case Some(existingTable) =>
         // We might already have a SemanticTable from a previous run, and that might already have tokens.
         // We don't want to lose these
-        existingTable.copy(types = state.typeTable, recordedScopes = state.recordedScopes.view.mapValues(_.scope).toMap)
+        existingTable.copy(
+          types = cleanedTypeTable,
+          recordedScopes = state.recordedScopes.view.mapValues(_.scope).toMap
+        )
       case None =>
-        SemanticTable(types = state.typeTable, recordedScopes = state.recordedScopes.view.mapValues(_.scope).toMap)
+        SemanticTable(types = cleanedTypeTable, recordedScopes = state.recordedScopes.view.mapValues(_.scope).toMap)
     }
 
     val rewrittenStatement =

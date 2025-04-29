@@ -16,10 +16,11 @@
  */
 package org.neo4j.cypher.internal.frontend
 
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.CypherVersion.Cypher5
-import org.neo4j.cypher.internal.ast.Ast.p
-import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.literal
+import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.UnmappedUnion
+import org.neo4j.cypher.internal.ast.semantics.ExpressionTypeInfo
 import org.neo4j.cypher.internal.ast.semantics.SemanticError
 import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidEntityType
 import org.neo4j.cypher.internal.ast.semantics.SemanticError.invalidNumberOfProcedureOrFunctionArguments
@@ -31,6 +32,9 @@ import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.RepeatedRelationshipReference
 import org.neo4j.cypher.internal.util.symbols.CTAny
+import org.neo4j.cypher.internal.util.symbols.CTMap
+import org.neo4j.cypher.internal.util.symbols.CTNode
+import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation.from
@@ -46,7 +50,7 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42I40
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42N29
 import org.neo4j.gqlstatus.GqlStatusInfoCodes.STATUS_42NA5
 
-class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
+class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructionTestSupport {
 
   private val pipelineWithMultiGraphs = pipelineWithSemanticFeatures(
     SemanticFeature.MultipleGraphs
@@ -1923,7 +1927,7 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
     })
   }
 
-  test("Should not find row as the LOAD CSV WITH HEADERS variable") {
+  test("Should not find shadowing variable row as the LOAD CSV WITH HEADERS variable") {
     run(
       """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
         |CREATE (n)
@@ -1934,6 +1938,81 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
     ).assertSemanticState(semanticState => {
       semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set.empty
     })
+  }
+
+  test("should forward node type through map creation and access") {
+    val query =
+      """MATCH (n)
+        |WITH {node : n} AS map
+        |RETURN map.node AS mapNode
+        |""".stripMargin
+    run(query)
+      .assert(_.semanticTable.types(prop("map", "node", p(40, 3, 8))).specified shouldBe CTNode.invariant)
+      .assert(_.semanticTable.types(varFor("mapNode", p(52, 3, 20))).specified shouldBe CTNode.invariant)
+  }
+
+  test("should not assert type on unknown properties of map") {
+    val query =
+      """WITH {key: 'foo'} AS m
+        |RETURN m.key
+        |ORDER BY m.other.name
+        |""".stripMargin
+    run(query)
+      .assert(_.semanticTable.types(prop("m", "other", p(45, 3, 10))).specified shouldBe CTAny.covariant)
+      .assert(
+        _.semanticTable
+          .types(propExpression(prop("m", "other"), "name", p(45, 3, 10)))
+          .specified shouldBe
+          CTAny.covariant
+      )
+  }
+
+  test("Should pass map type from load csv through different Cypher constructs") {
+    val query =
+      """LOAD CSV WITH HEADERS FROM $from AS r
+        |CALL {
+        |  WITH r
+        |  CREATE (n:N)
+        |  SET n = r
+        |  SET n = {key: r.key}
+        |}
+        |CALL (r) {
+        |  CREATE (n:N)
+        |  SET n = r
+        |  SET n = {key: r.key}
+        |}
+        |""".stripMargin
+    run(query)
+      .assert { result =>
+        // In Cypher 25, we do not allow map assignment with anything but exactly a map anymore
+        val expectedExpectedMapType =
+          result.context.cypherVersion match {
+            case CypherVersion.Cypher5 =>
+              CTMap.covariant
+            case CypherVersion.Cypher25 =>
+              CTMap.invariant
+          }
+
+        // first call
+        // map assignment
+        result.semanticTable.types(varFor("r", p(79, 5, 11))) should equal(
+          ExpressionTypeInfo(CTMap.invariant, Some(expectedExpectedMapType))
+        )
+        // entry access
+        result.semanticTable.types(prop("r", "key", p(97, 6, 17))) should equal(
+          ExpressionTypeInfo(CTString.covariant, None)
+        )
+
+        // second call
+        // map assignment
+        result.semanticTable.types(varFor("r", p(142, 10, 11))) should equal(
+          ExpressionTypeInfo(CTMap.invariant, Some(expectedExpectedMapType))
+        )
+        // entry access
+        result.semanticTable.types(prop("r", "key", p(160, 11, 17))) should equal(
+          ExpressionTypeInfo(CTString.covariant, None)
+        )
+      }
   }
 
   override def messageProvider: ErrorMessageProvider = new ErrorMessageProviderAdapter {

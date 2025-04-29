@@ -2217,6 +2217,30 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .build()
   }
 
+  test("should cache property if entity was stored in map at some point") {
+    val query =
+      """MATCH (n)-[:KNOWS]->(known)
+        |WITH n, {other: known} as nodes
+        |WITH n, head(collect(nodes)) AS latest
+        |WITH n, latest.other AS oneFriend
+        |WHERE n.name = oneFriend.name
+        |RETURN n, oneFriend
+        |""".stripMargin
+
+    planner.plan(query) should equal(
+      planner.planBuilder()
+        .produceResults("n", "oneFriend")
+        .filter("cacheN[n.name] = cacheN[oneFriend.name]")
+        .remoteBatchProperties("cacheNFromStore[n.name]", "cacheNFromStore[oneFriend.name]")
+        .projection("latest.other AS oneFriend")
+        .projection("head(anon_0) AS latest")
+        .aggregation(Seq("n AS n"), Seq("collect(nodes) AS anon_0"))
+        .projection("{other: known} AS nodes")
+        .relationshipTypeScan("(n)-[:KNOWS]->(known)", IndexOrderNone)
+        .build()
+    )
+  }
+
   def temporalRuntimeConstant(functionName: String, temporalType: CypherType, dateString: String): RuntimeConstant = {
     RuntimeConstant(
       varFor("anon_0"),

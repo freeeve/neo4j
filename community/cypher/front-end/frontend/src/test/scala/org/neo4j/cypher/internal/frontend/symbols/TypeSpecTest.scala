@@ -16,6 +16,7 @@
  */
 package org.neo4j.cypher.internal.frontend.symbols
 
+import org.neo4j.cypher.internal.ast.semantics.MapExtendedType
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTBoolean
@@ -783,5 +784,17 @@ class TypeSpecTest extends CypherFunSuite {
 
     assertThrows[UnsupportedOperationException](NothingType()(InputPosition.NONE) | CTAny)
     assertThrows[UnsupportedOperationException](NullType()(InputPosition.NONE) & CTAny)
+  }
+
+  test("MapExtension intersectOrCoerce MapWithExtension") {
+    val invariant = MapExtendedType(CTMap, CTAny.covariant).invariant
+    val actual = invariant intersectOrCoerce MapExtendedType.getTypeSpec(CTMap)
+    actual should equal(invariant)
+  }
+
+  test("MapExtension intersect MapWithExtension") {
+    val invariant = MapExtendedType(CTMap, CTAny.covariant).invariant
+    val actual = invariant intersect MapExtendedType.getTypeSpec(CTMap)
+    actual should equal(invariant)
   }
 }

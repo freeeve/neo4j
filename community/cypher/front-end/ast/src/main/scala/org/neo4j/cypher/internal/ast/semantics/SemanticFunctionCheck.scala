@@ -115,10 +115,9 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
       case _: Function =>
         when(invocation.distinct) {
           error(SemanticError.invalidDistinct(invocation.functionName.name, invocation.position))
-        } chain SemanticExpressionCheck.check(ctx, invocation.arguments) chain semanticCheck(
-          ctx,
-          invocation
-        )
+        } chain
+          SemanticExpressionCheck.check(ctx, invocation.arguments) chain
+          semanticCheck(ctx, invocation)
     }
 
   private def checkNoNestedAggregateFunctions(invocation: FunctionInvocation): SemanticCheck =

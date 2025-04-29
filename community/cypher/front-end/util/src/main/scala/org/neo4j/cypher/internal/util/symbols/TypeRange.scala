@@ -20,6 +20,8 @@ import scala.language.postfixOps
 
 object TypeRange {
   def apply(lower: CypherType, upper: CypherType): TypeRange = TypeRange(lower, Some(upper))
+
+  def exact(invariant: CypherType): TypeRange = TypeRange(invariant, invariant)
 }
 
 /**
@@ -45,6 +47,9 @@ case class TypeRange(lower: CypherType, upper: Option[CypherType]) {
     case c: ListType => checkForAny(c.innerType)
     case _           => false
   }
+
+  def rewrite(f: CypherType => CypherType): TypeRange =
+    copy(lower = lower.rewrite(f), upper = upper.map(_.rewrite(f)))
 
   def &(that: TypeRange): Option[TypeRange] = this intersect that
 
