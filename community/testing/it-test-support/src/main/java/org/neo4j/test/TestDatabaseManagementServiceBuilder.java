@@ -57,6 +57,7 @@ import org.neo4j.monitoring.Monitors;
 import org.neo4j.procedure.LazyProcedures;
 import org.neo4j.service.Services;
 import org.neo4j.time.SystemNanoClock;
+import org.opentest4j.TestAbortedException;
 
 /**
  * Test factory for graph databases.
@@ -149,7 +150,7 @@ public class TestDatabaseManagementServiceBuilder extends DatabaseManagementServ
             supplier = factories.stream()
                     .filter(f -> f.name().equals(name))
                     .findAny()
-                    .orElseThrow(() -> new IllegalArgumentException("No factory supplier named " + name));
+                    .orElseThrow(() -> new TestAbortedException("No factory supplier named " + name));
         }
         return supplier;
     }
