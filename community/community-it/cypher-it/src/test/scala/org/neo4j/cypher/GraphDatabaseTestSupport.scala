@@ -107,6 +107,8 @@ trait GraphDatabaseTestSupport
     GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
   )
 
+  protected def spdDatabaseConfig(): Map[Setting[_], Object] = Map()
+
   def dependencies(): Option[Dependencies] = None
 
   def logProvider: InternalLogProvider = NullLogProvider.getInstance()
@@ -277,8 +279,12 @@ trait GraphDatabaseTestSupport
     config: Map[Setting[_], Object] = databaseConfig(),
     maybeExternalPath: Option[Path] = None
   ): Unit = {
+    var _config = config
+    if (expectedShardCount > 0) {
+      _config = _config ++ spdDatabaseConfig()
+    }
     managementService.shutdown()
-    startGraphDatabase(config, maybeExternalPath = maybeExternalPath)
+    startGraphDatabase(_config, maybeExternalPath = maybeExternalPath)
   }
 
   protected def restartWithIndexProvider(
