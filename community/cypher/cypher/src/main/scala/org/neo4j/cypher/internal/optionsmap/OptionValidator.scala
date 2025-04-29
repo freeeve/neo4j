@@ -28,6 +28,7 @@ import org.neo4j.kernel.api.exceptions.InvalidArgumentsException
 import org.neo4j.kernel.database.NormalizedDatabaseName
 import org.neo4j.storageengine.api.StorageEngineFactory
 import org.neo4j.storageengine.api.StorageEngineFactory.allAvailableStorageEngines
+import org.neo4j.string.SecureString
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable._
 import org.neo4j.values.virtual.MapValue
@@ -169,11 +170,15 @@ object SeedSourceDatabaseOption extends OptionValidator[NormalizedDatabaseName] 
   }
 }
 
-object SeedCredentialsOption extends StringOptionValidator {
+object SeedCredentialsOption extends OptionValidator[SecureString] {
   override val KEY: String = "seedCredentials"
 
-  override protected def validateContent(value: String, config: Option[Config])(implicit operation: String): Unit = {
-    // no content validation, any string is accepted
+  override protected def validate(value: AnyValue, config: Option[Config])(implicit operation: String): SecureString = {
+    value match {
+      case text: TextValue =>
+        new SecureString(text.stringValue())
+      case _ => throw InvalidArgumentsException.invalidStringOption(operation, KEY, value)
+    }
   }
 }
 
