@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 case class ZonedDateTimeType(isNullable: Boolean)(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTAny
-  override val toString = "DateTime"
+  override val toClassString = "DateTime"
   override val toCypherTypeString = "ZONED DATETIME"
 
   override def sortOrder: Int = CypherTypeOrder.ZONED_DATETIME.id

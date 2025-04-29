@@ -123,12 +123,12 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("List<T>"),
-          "VECTOR",
+          "Vector",
           7,
           1,
           8
         ),
-        "Type mismatch: expected List<T> but was VECTOR",
+        "Type mismatch: expected List<T> but was Vector",
         p(7, 1, 8)
       )
     )
@@ -139,12 +139,12 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("List<T>"),
-          "VECTOR",
+          "Vector",
           7,
           1,
           8
         ),
-        "Type mismatch: expected List<T> but was VECTOR",
+        "Type mismatch: expected List<T> but was Vector",
         p(7, 1, 8)
       )
     )
@@ -155,12 +155,12 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("List<T>"),
-          "VECTOR",
+          "Vector",
           12,
           1,
           13
         ),
-        "Type mismatch: expected List<T> but was VECTOR",
+        "Type mismatch: expected List<T> but was Vector",
         p(12, 1, 13)
       )
     )
@@ -171,12 +171,12 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("List<T>"),
-          "VECTOR",
+          "Vector",
           12,
           1,
           13
         ),
-        "Type mismatch: expected List<T> but was VECTOR",
+        "Type mismatch: expected List<T> but was Vector",
         p(12, 1, 13)
       )
     )
@@ -187,12 +187,12 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("Float", "Integer", "String", "List<T>"),
-          "VECTOR",
+          "Vector",
           11,
           1,
           12
         ),
-        "Type mismatch: expected Float, Integer, String or List<T> but was VECTOR",
+        "Type mismatch: expected Float, Integer, String or List<T> but was Vector",
         p(11, 1, 12)
       )
     )
@@ -219,12 +219,12 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("String", "List<T>"),
-          "VECTOR",
+          "Vector",
           7,
           1,
           8
         ),
-        "Type mismatch: expected String or List<T> but was VECTOR",
+        "Type mismatch: expected String or List<T> but was Vector",
         p(7, 1, 8)
       )
     )
@@ -235,12 +235,12 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("List<T>"),
-          "VECTOR",
+          "Vector",
           12,
           1,
           13
         ),
-        "Type mismatch: expected List<T> but was VECTOR",
+        "Type mismatch: expected List<T> but was Vector",
         p(12, 1, 13)
       )
     )
@@ -251,12 +251,12 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("List<T>"),
-          "VECTOR",
+          "Vector",
           14,
           1,
           15
         ),
-        "Type mismatch: expected List<T> but was VECTOR",
+        "Type mismatch: expected List<T> but was Vector",
         p(14, 1, 15)
       ),
       SemanticError(
@@ -278,12 +278,12 @@ class VectorValueSemanticAnalysisTest extends CypherFunSuite with NameBasedSeman
       SemanticError(
         GqlHelper.getGql42001_22NB1(
           java.util.List.of("List<T>"),
-          "VECTOR",
+          "Vector",
           37,
           1,
           38
         ),
-        "Type mismatch: expected List<T> but was VECTOR",
+        "Type mismatch: expected List<T> but was Vector",
         p(37, 1, 38)
       ),
       SemanticError(

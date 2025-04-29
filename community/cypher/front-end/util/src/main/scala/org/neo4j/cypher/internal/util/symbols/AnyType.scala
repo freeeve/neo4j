@@ -24,7 +24,7 @@ case class AnyType(isNullable: Boolean)(val position: InputPosition) extends Cyp
 
   override def isAssignableFrom(other: CypherType): Boolean = true
 
-  override val toString = "Any"
+  override val toClassString = "Any"
   override val toCypherTypeString = "ANY"
 
   override def sortOrder: Int = CypherTypeOrder.ANY.id

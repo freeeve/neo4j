@@ -23,7 +23,7 @@ case class Integer8Type(isNullable: Boolean)(val position: InputPosition) extend
 
   override lazy val coercibleTo: Set[CypherType] =
     Set(CTFloat, CTInteger, CTInteger32, CTInteger16) ++ parentType.coercibleTo
-  override val toString = "INTEGER8"
+  override val toClassString = "Integer8"
   override val toCypherTypeString = "INTEGER8"
   override def hasCypherParserSupport: Boolean = false
 

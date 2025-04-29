@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 case class GeometryType(isNullable: Boolean)(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTAny
-  override val toString = "Geometry"
+  override val toClassString = "Geometry"
   override val toCypherTypeString = "GEOMETRY"
 
   override def sortOrder: Int = CypherTypeOrder.POINT.id

@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 case class PathType(isNullable: Boolean)(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTAny
-  override val toString = "Path"
+  override val toClassString = "Path"
   override val toCypherTypeString = "PATH"
 
   override def sortOrder: Int = CypherTypeOrder.PATH.id

@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 case class DurationType(isNullable: Boolean)(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTAny
-  override val toString = "Duration"
+  override val toClassString = "Duration"
   override val toCypherTypeString = "DURATION"
   override def sortOrder: Int = CypherTypeOrder.DURATION.id
 

@@ -33,6 +33,8 @@ trait CypherType extends ASTNode {
 
   def description: String = if (isNullable) toCypherTypeString else s"$toCypherTypeString NOT NULL"
 
+  override def toString: String = if (isNullable) toClassString else s"${toClassString}NotNull"
+
   def withPosition(position: InputPosition): CypherType
 
   def simplify: CypherType = this
@@ -108,6 +110,8 @@ trait CypherType extends ASTNode {
   def rewrite(f: CypherType => CypherType): CypherType = f(this)
 
   def toCypherTypeString: String
+
+  def toClassString: String
 }
 
 object CypherType {

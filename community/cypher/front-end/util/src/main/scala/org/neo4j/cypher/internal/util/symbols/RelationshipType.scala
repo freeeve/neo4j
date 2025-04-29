@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 case class RelationshipType(isNullable: Boolean)(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTMap
-  override val toString = "Relationship"
+  override val toClassString = "Relationship"
   override val toCypherTypeString = "RELATIONSHIP"
 
   override def sortOrder: Int = CypherTypeOrder.RELATIONSHIP.id

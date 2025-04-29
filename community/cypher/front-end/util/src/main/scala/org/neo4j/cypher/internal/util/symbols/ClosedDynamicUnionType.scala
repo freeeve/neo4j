@@ -22,7 +22,7 @@ case class ClosedDynamicUnionType(innerTypes: Set[CypherType])(val position: Inp
   val parentType: CypherType = CTAny
 
   val sortedInnerTypes: List[CypherType] = innerTypes.map(_.simplify).toList.sorted
-  override val toString: String = sortedInnerTypes.map(_.toString).mkString(" | ")
+  override val toClassString: String = sortedInnerTypes.map(_.toString).mkString(" | ")
   override val toCypherTypeString: String = sortedInnerTypes.map(_.description).mkString(" | ")
   override def normalizedCypherTypeString(): String = CypherType.normalizeTypes(this).toCypherTypeString
 

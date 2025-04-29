@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 case class NodeType(isNullable: Boolean)(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTMap
-  override val toString = "Node"
+  override val toClassString = "Node"
   override val toCypherTypeString = "NODE"
 
   override def sortOrder: Int = CypherTypeOrder.NODE.id

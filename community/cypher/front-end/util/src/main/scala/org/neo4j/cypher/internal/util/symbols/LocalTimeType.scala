@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 case class LocalTimeType(isNullable: Boolean)(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTAny
-  override val toString = "LocalTime"
+  override val toClassString = "LocalTime"
   override val toCypherTypeString = "LOCAL TIME"
 
   override def sortOrder: Int = CypherTypeOrder.LOCAL_TIME.id

@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 case class NullType()(val position: InputPosition) extends CypherType {
   val parentType: CypherType = this
-  override val toString = "Null"
+  override val toClassString = "Null"
   override val toCypherTypeString = "NULL"
 
   override def sortOrder: Int = CypherTypeOrder.NULL.id

@@ -26,16 +26,14 @@ case class VectorType(
 
   val parentType: CypherType = CTAny
 
-  override val toCypherTypeString: String = (innerType, dimension) match {
-    case (Some(t), Some(d)) => s"VECTOR<${t.description}>($d)"
-    case (Some(t), None)    => s"VECTOR<${t.description}>"
-    case (None, Some(d))    => s"VECTOR($d)"
-    case _                  => "VECTOR"
+  override val (toCypherTypeString, toClassString): (String, String) = (innerType, dimension) match {
+    case (Some(t), Some(d)) => (s"VECTOR<${t.description}>($d)", s"Vector<$t>($d)")
+    case (Some(t), None)    => (s"VECTOR<${t.description}>", s"Vector<$t>")
+    case (None, Some(d))    => (s"VECTOR($d)", s"Vector($d)")
+    case _                  => ("VECTOR", "Vector")
   }
 
   override def hasCypherParserSupport: Boolean = true
-
-  override val toString: String = if (isNullable) toCypherTypeString else s"$toCypherTypeString!"
 
   def withDimension(dimension: Long): CypherType = this.copy(dimension = Some(dimension))(position)
 

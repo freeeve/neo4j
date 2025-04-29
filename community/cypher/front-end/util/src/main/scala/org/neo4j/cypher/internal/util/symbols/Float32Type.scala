@@ -21,7 +21,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 case class Float32Type(isNullable: Boolean)(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTFloat
   override lazy val coercibleTo: Set[CypherType] = Set(CTFloat)
-  override val toString = "FLOAT32"
+  override val toClassString = "Float32"
   override val toCypherTypeString = "FLOAT32"
   override def hasCypherParserSupport: Boolean = false
 

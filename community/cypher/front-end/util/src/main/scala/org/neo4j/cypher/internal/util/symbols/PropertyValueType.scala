@@ -20,7 +20,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 
 case class PropertyValueType(isNullable: Boolean)(val position: InputPosition) extends CypherType {
   val parentType: CypherType = CTAny
-  override val toString = "Property Value"
+  override val toClassString = "PropertyValue"
   override val toCypherTypeString = "PROPERTY VALUE"
 
   // This is technically a special case of a closed dynamic union

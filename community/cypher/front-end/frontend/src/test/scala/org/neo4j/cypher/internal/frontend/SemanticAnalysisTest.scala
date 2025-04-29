@@ -1710,8 +1710,8 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite {
       case _ => Seq(invalidEntityType(
           "Integer",
           "argument at index 0 of function size()",
-          List("String", "VECTOR", "List<T>"),
-          "Type mismatch: expected String, VECTOR or List<T> but was Integer",
+          List("String", "Vector", "List<T>"),
+          "Type mismatch: expected String, Vector or List<T> but was Integer",
           InputPosition(12, 1, 13)
         ))
     }
