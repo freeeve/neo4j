@@ -171,6 +171,9 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
             .withParam(GqlParams.StringParam.constrDescrOrName, "node property type constraint")
             .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
               .withParam(GqlParams.StringParam.item, "LIST<FLOAT>")
+              .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+                .withParam(GqlParams.StringParam.item, "a nullable type")
+                .build())
               .build())
             .build(),
           "Failed to create node property type constraint: Invalid property type `LIST<FLOAT>`. " +
@@ -202,6 +205,9 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
             .withParam(GqlParams.StringParam.constrDescrOrName, "node property type constraint")
             .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
               .withParam(GqlParams.StringParam.item, "LIST<LIST<FLOAT NOT NULL>>")
+              .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+                .withParam(GqlParams.StringParam.item, "a list")
+                .build())
               .build())
             .build(),
           "Failed to create node property type constraint: Invalid property type `LIST<LIST<FLOAT NOT NULL>>`. " +
@@ -236,6 +242,9 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
             .withParam(GqlParams.StringParam.constrDescrOrName, "relationship property type constraint")
             .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
               .withParam(GqlParams.StringParam.item, "LIST<INTEGER NOT NULL | FLOAT NOT NULL>")
+              .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+                .withParam(GqlParams.StringParam.item, "a union of types")
+                .build())
               .build())
             .build(),
           "Failed to create relationship property type constraint: Invalid property type `LIST<INTEGER NOT NULL | FLOAT NOT NULL>`. " +

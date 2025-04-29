@@ -35,6 +35,10 @@ import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
+import org.neo4j.gqlstatus.ErrorGqlStatusObject
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlParams
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 object CypherTypeChecking extends SemanticAnalysisTooling {
 
@@ -92,7 +96,7 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
   def checkPropertyTypeForConstraint(
     originalPropertyType: CypherType,
     normalizedPropertyType: CypherType,
-    errorFn: (CypherType, String) => SemanticError
+    errorFn: (CypherType, String, Option[ErrorGqlStatusObject]) => SemanticError
   ): SemanticCheck = checkPropertyTypes(originalPropertyType, normalizedPropertyType, errorFn, allowedPropertyTypes)
 
   /**
@@ -102,14 +106,14 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
   def checkPropertyTypeForGraphType(
     originalPropertyType: CypherType,
     normalizedPropertyType: CypherType,
-    errorFn: (CypherType, String) => SemanticError
+    errorFn: (CypherType, String, Option[ErrorGqlStatusObject]) => SemanticError
   ): SemanticCheck =
     checkPropertyTypes(originalPropertyType, normalizedPropertyType, errorFn, allowedPropertyTypesInGraphType)
 
   private def checkPropertyTypes(
     originalPropertyType: CypherType,
     normalizedPropertyType: CypherType,
-    errorFn: (CypherType, String) => SemanticError,
+    errorFn: (CypherType, String, Option[ErrorGqlStatusObject]) => SemanticError,
     allowedTypes: List[CypherType]
   ): SemanticCheck = {
 
@@ -131,21 +135,36 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
       }
 
       if (containsPropertyValueType || !onlyAllowedTypes) {
-        def additionalErrorInfo(pt: CypherType): String = pt match {
+        def additionalErrorInfo(pt: CypherType): (String, Option[ErrorGqlStatusObject]) = pt match {
           case ListType(_: ListType, _) =>
-            " Lists cannot have lists as an inner type."
+            (
+              " Lists cannot have lists as an inner type.",
+              Some(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+                .withParam(GqlParams.StringParam.item, "a list")
+                .build())
+            )
           case ListType(_: ClosedDynamicUnionType, _) =>
-            " Lists cannot have a union of types as an inner type."
+            (
+              " Lists cannot have a union of types as an inner type.",
+              Some(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+                .withParam(GqlParams.StringParam.item, "a union of types")
+                .build())
+            )
           case ListType(inner, _) if inner.isNullable =>
-            " Lists cannot have nullable inner types."
+            (
+              " Lists cannot have nullable inner types.",
+              Some(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+                .withParam(GqlParams.StringParam.item, "a nullable type")
+                .build())
+            )
           case c: ClosedDynamicUnionType if c.sortedInnerTypes.exists(_.isInstanceOf[ListType]) =>
             // If we have lists we want to check them for the above cases as well
             // Unions within unions should have been flattened in parsing so won't be handled here
             c.sortedInnerTypes.filter(_.isInstanceOf[ListType])
               .map(additionalErrorInfo)
-              .find(_.nonEmpty)
-              .getOrElse("")
-          case _ => ""
+              .find(inner => inner._1.nonEmpty)
+              .getOrElse(("", None))
+          case _ => ("", None)
         }
 
         // Don't expand the PROPERTY VALUE in error message as that makes it confusing as to why it's not allowed.
@@ -155,7 +174,7 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
           if (containsPropertyValueType) (originalPropertyType, additionalErrorInfo(originalPropertyType))
           else (normalizedPropertyType, additionalErrorInfo(normalizedPropertyType))
 
-        error(errorFn(propertyType, additionalError))
+        error(errorFn(propertyType, additionalError._1, additionalError._2))
       } else SemanticCheck.success
     }
 
@@ -165,7 +184,7 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
       case r @ SemanticCheckResult(_, Nil) => r
       case SemanticCheckResult(state, _) => SemanticCheckResult(
           state,
-          Seq(errorFn(originalPropertyType, ""))
+          Seq(errorFn(originalPropertyType, "", None))
         )
     } chain allowedTypesCheck
   }

@@ -534,7 +534,7 @@ sealed trait CreateConstraint extends SchemaCommand {
   ): SemanticCheck = CypherTypeChecking.checkPropertyTypeForConstraint(
     originalPropertyType,
     normalizedPropertyType,
-    SemanticError.propertyTypeUnsupportedInConstraint(constraintType.description, _, _)
+    SemanticError.propertyTypeUnsupportedInConstraint(constraintType.description, _, _, _)
   )
 }
 

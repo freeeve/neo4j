@@ -1941,6 +1941,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.DATA_EXCEPTION,
             "invalid Neo4j type",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_22NB9(
+            new GqlStatus("22NB9"),
+            "Lists cannot have { %s } as an inner type in this context.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.item},
+            emptyMap(),
+            Condition.DATA_EXCEPTION,
+            "invalid inner list type",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
             "",

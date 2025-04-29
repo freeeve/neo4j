@@ -447,13 +447,18 @@ object SemanticError {
   def propertyTypeUnsupportedInConstraint(
     constraintTypeDescription: String,
     originalPropertyType: CypherType,
-    additionalError: String
+    additionalError: String,
+    maybeCause: Option[ErrorGqlStatusObject]
   ): SemanticError = {
+
+    val gqlInnerBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
+      .withParam(GqlParams.StringParam.item, originalPropertyType.description)
+
+    if (maybeCause.isDefined) gqlInnerBuilder.withCause(maybeCause.get)
+
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
       .withParam(GqlParams.StringParam.constrDescrOrName, constraintTypeDescription + " constraint")
-      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-        .withParam(GqlParams.StringParam.item, originalPropertyType.description)
-        .build())
+      .withCause(gqlInnerBuilder.build())
       .build()
     new SemanticError(
       gql,
