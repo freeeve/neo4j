@@ -63,7 +63,7 @@ trait Executors {
   def shutdown(): Unit
 }
 
-case class DbAccessor(dbms: FeatureDatabaseManagementService, extraSettings: Settings) {
+case class DbAccessor(dbms: FeatureDatabaseManagementService, extraSettings: Settings, reUseCount: Int) {
   def isCompatible(extraSettings: Settings): Boolean = this.extraSettings == extraSettings
 }
 
@@ -80,8 +80,8 @@ trait ExecutorPool extends Executors {
     executors.poll(5, TimeUnit.MINUTES) match {
       case Some(executor) =>
         try {
-          if (executor.isCompatible(extraSettings)) {
-            DbAccessor(executor.dbms.withNewExecutor(), executor.extraSettings)
+          if (isCompatible(executor, extraSettings)) {
+            DbAccessor(executor.dbms.withNewExecutor(), executor.extraSettings, executor.reUseCount + 1)
           } else {
             shutdownExecutor(executor)
             createExecutor(extraSettings)
@@ -124,6 +124,12 @@ trait ExecutorPool extends Executors {
     }
   }
 
+  private def isCompatible(accessor: DbAccessor, extraSettings: Settings): Boolean = {
+    accessor.isCompatible(extraSettings) &&
+    // We have seen OOMs because SPD uses too much ephemeral disk space. This is a workaround to try to avoid that.
+    (!conf.useSpd || accessor.reUseCount < 256)
+  }
+
   private def createExecutor(extraSettings: Settings): DbAccessor = {
     accessorFrom(startDbms(extraSettings), extraSettings, None)
   }
@@ -148,9 +154,12 @@ trait ExecutorPool extends Executors {
     } else {
       new TestDatabaseManagementServiceBuilder()
     }
-    dbmsBuilder.setDatabaseRootDirectory(
-      Path.of("target", "test data", UUID.randomUUID().toString)
-    ).impermanent().setConfigRaw((conf.neo4jConf ++ extraSettings).asJava).build()
+
+    dbmsBuilder
+      .impermanent()
+      .setDatabaseRootDirectory(Path.of("target", "test data", UUID.randomUUID().toString))
+      .setConfigRaw((conf.neo4jConf ++ extraSettings).asJava)
+      .build()
   }
 
   final private def accessorFrom(
@@ -167,7 +176,8 @@ trait ExecutorPool extends Executors {
 
     DbAccessor(
       dbms = FeatureDatabaseManagementService(dbms, executorFactory, dbName),
-      extraSettings = extraSettings
+      extraSettings = extraSettings,
+      reUseCount = 0
     )
   }
 
@@ -187,7 +197,7 @@ trait ExecutorPool extends Executors {
   }
 
   private def shutdownExecutor(accessor: DbAccessor): Unit = {
-    accessor.dbms.clearQueryCaches() // The ANTLR parser keeps a static cache that survives dbms shutdowns
+    Try(accessor.dbms.clearQueryCaches()) // The ANTLR parser keeps a static cache that survives dbms shutdowns
     accessor.dbms.shutdown()
   }
 }
