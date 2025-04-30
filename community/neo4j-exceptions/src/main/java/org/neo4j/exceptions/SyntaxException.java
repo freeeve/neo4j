@@ -22,6 +22,7 @@ package org.neo4j.exceptions;
 import static java.lang.System.lineSeparator;
 import static java.util.Objects.nonNull;
 
+import java.util.List;
 import java.util.Optional;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
@@ -104,6 +105,17 @@ public class SyntaxException extends Neo4jException {
                         + "The procedure or function `%s` has the signature: `%s`.",
                 expectedCount, actualCount, name, signature);
         return wrongNumberOfArguments(expectedCount, actualCount, name, signature, msg);
+    }
+
+    public static SyntaxException invalidInput(
+            String input, List<String> expected, String legacyMessage, Integer offset) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I06)
+                        .withParam(GqlParams.StringParam.input, input)
+                        .withParam(GqlParams.ListParam.valueList, expected)
+                        .build())
+                .build();
+        return new SyntaxException(gql, legacyMessage, input, offset);
     }
 
     public static SyntaxException wrongNumberOfArguments(

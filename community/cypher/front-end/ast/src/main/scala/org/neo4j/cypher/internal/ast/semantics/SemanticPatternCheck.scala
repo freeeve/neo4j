@@ -485,7 +485,7 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
     def checkNotUndirectedWhenCreating: SemanticCheck = {
       ctx match {
         case SemanticContext.Create | SemanticContext.Insert if x.direction == SemanticDirection.BOTH =>
-          error(s"Only directed relationships are supported in ${name(ctx)}", x.position)
+          SemanticError.onlyDirectedRelationshipAllowed(name(ctx), x.position)
         case _ =>
           SemanticCheck.success
       }
@@ -879,9 +879,9 @@ object SemanticPatternCheck extends SemanticAnalysisTooling {
       ) {
         { (state: SemanticState) =>
           val errors = dynamicLabelExpressions.filter(!_.all).map { dynamicLabel =>
-            SemanticError(
-              s"""Dynamic ${if (isLabels) "labels"
-                else "types"} using `$$any()` are not allowed in CREATE or MERGE.""".stripMargin,
+            SemanticError.invalidUseOfDynamicLabelOrType(
+              if (isLabels) "labels" else "types",
+              ctx.name,
               dynamicLabel.position
             )
           }

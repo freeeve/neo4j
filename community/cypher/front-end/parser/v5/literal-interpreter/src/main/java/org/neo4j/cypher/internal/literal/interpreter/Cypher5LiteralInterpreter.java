@@ -41,9 +41,11 @@ import org.antlr.v4.runtime.tree.ErrorNode;
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.neo4j.cypher.internal.parser.AstRuleCtx;
+import org.neo4j.cypher.internal.parser.RecognitionExceptionWithGql;
 import org.neo4j.cypher.internal.parser.v5.Cypher5Lexer;
 import org.neo4j.cypher.internal.parser.v5.Cypher5Parser;
 import org.neo4j.exceptions.SyntaxException;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.values.storable.DateTimeValue;
 import org.neo4j.values.storable.DateValue;
@@ -89,7 +91,8 @@ public class Cypher5LiteralInterpreter {
             var offset = Optional.ofNullable(parser.getCurrentToken())
                     .map(Token::getStartIndex)
                     .orElse(0);
-            throw new SyntaxException("Invalid cypher expression", cypherExpression, offset);
+            throw SyntaxException.invalidInput(
+                    cypherExpression, List.of("valid Cypher expression"), "Invalid cypher expression", offset);
         }
 
         return result.ast;
@@ -455,6 +458,12 @@ class LiteralErrorListener extends BaseErrorListener {
             String msg,
             RecognitionException e) {
         var offset = offendingSymbol instanceof Token offendingToken ? offendingToken.getStartIndex() : 0;
-        error = Exceptions.chain(error, new SyntaxException(msg, query, offset, e));
+        if (e instanceof RecognitionExceptionWithGql) {
+            var gql = GqlHelper.getGql42001_withCause(
+                    ((RecognitionExceptionWithGql) e).getGqlCauseBuilder(), offset, line, charPositionInLine);
+            error = Exceptions.chain(error, new SyntaxException(gql, msg, query, offset));
+        } else {
+            error = Exceptions.chain(error, new SyntaxException(GqlHelper.getDefaultObject(), msg, query, offset));
+        }
     }
 }

@@ -33,6 +33,10 @@ Apache Software License, Version 2.0
   Jackson-core
   jackson-databind
   Java Native Access
+  Scala Reflect
+
+BSD - Scala License
+  Scala Library
 
 BSD License
   ANTLR 4 Runtime

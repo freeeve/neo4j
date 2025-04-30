@@ -394,6 +394,17 @@ public class CypherTypeException extends Neo4jException {
                 gql, String.format("Cannot raise `%s` to the power of `%s`", leftTypeName, rightTypeName));
     }
 
+    public static CypherTypeException concatenationTypeMismatch(
+            String leftPretty,
+            String leftTypeName,
+            String rightTypeName,
+            String leftCypherType,
+            String rightCypherType) {
+        var gql = GqlHelper.getGql22G03_22N01(leftPretty, List.of(rightCypherType), leftCypherType);
+        return new CypherTypeException(
+                gql, String.format("Cannot concatenate `%s` and `%s`", leftTypeName, rightTypeName));
+    }
+
     public static CypherTypeException propertyParamIsNotMap(String got, String gotPretty, String gotCypherType) {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("MAP"), gotCypherType);
         return new CypherTypeException(

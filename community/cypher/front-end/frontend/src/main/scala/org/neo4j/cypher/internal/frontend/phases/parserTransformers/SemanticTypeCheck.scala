@@ -257,12 +257,7 @@ object SelfReferenceCheckAcrossPatternParts extends VariableReferenceCheck {
     // Returns the set of variables that are defined in a pattern and used in the same pattern for property read
     // E.g. `INSERT (a {prop: 5}), (b {prop: a.prop})
     findSelfReferenceVariables(pattern, pattern, semanticTable)
-      .map(e =>
-        SemanticError(
-          s"Creating an entity (${e.name}) and referencing that entity in a property definition in the same ${clause.name} is not allowed. Only reference variables created in earlier clauses.",
-          e.position
-        )
-      ).toSeq
+      .map(e => SemanticError.invalidEntityReference(e.name, clause.name, e.position)).toSeq
   }
 }
 

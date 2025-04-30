@@ -95,44 +95,28 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     InputPosition(symbol.getStartIndex, symbol.getLine, symbol.getCharPositionInLine + 1)
   }
 
-  private def errorOnDuplicate(
-    token: Token,
-    description: String,
-    isParam: Boolean
-  ): Unit = {
+  private def errorOnDuplicate(token: Token, description: String, isParam: Boolean): Unit =
     if (isParam) {
       _errors :+= exceptionFactory.duplicateClauseParameter(description, inputPosition(token))
     } else {
-      _errors :+= exceptionFactory.syntaxException(
-        s"Duplicate $description clause",
-        inputPosition(token)
-      )
-
+      _errors :+= exceptionFactory.duplicateClause(description, inputPosition(token))
     }
-  }
 
   private def errorOnDuplicateCtx[T <: AstRuleCtx](
     ctx: java.util.List[T],
     description: String,
     isParam: Boolean = false
-  ): Unit = {
-    if (ctx.size > 1) {
-      errorOnDuplicate(nodeChild(ctx.get(1), 0).getSymbol, description, isParam)
-    }
-  }
+  ): Unit = if (ctx.size > 1) errorOnDuplicate(nodeChild(ctx.get(1), 0).getSymbol, description, isParam)
 
   private def errorOnDuplicateRule[T <: ParserRuleContext](
     params: java.util.List[T],
     description: String,
     isParam: Boolean = false
-  ): Unit = {
-    if (params.size() > 1) {
-      errorOnDuplicate(params.get(1).start, description, isParam)
-    }
-  }
+  ): Unit = if (params.size() > 1) errorOnDuplicate(params.get(1).start, description, isParam)
 
-  private def errorOnAliasNameContainingDots(aliasesNames: java.util.List[SymbolicAliasNameOrParameterContext])
-    : Unit = {
+  private def errorOnAliasNameContainingDots(
+    aliasesNames: java.util.List[SymbolicAliasNameOrParameterContext]
+  ): Unit = {
     if (aliasesNames.size() > 0) {
       val aliasName = aliasesNames.get(0)
       if (
@@ -193,8 +177,9 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     }
   }
 
-  private def checkSubqueryInTransactionsParameters(ctx: Cypher25Parser.SubqueryInTransactionsParametersContext)
-    : Unit = {
+  private def checkSubqueryInTransactionsParameters(
+    ctx: Cypher25Parser.SubqueryInTransactionsParametersContext
+  ): Unit = {
     errorOnDuplicateRule(ctx.subqueryInTransactionsBatchParameters(), "OF ROWS", isParam = true)
     errorOnDuplicateRule(ctx.subqueryInTransactionsErrorParameters(), "ON ERROR", isParam = true)
     errorOnDuplicateRule(ctx.subqueryInTransactionsReportParameters(), "REPORT STATUS", isParam = true)
@@ -295,13 +280,15 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
           else ("GRAPHS", c.GRAPHS().getSymbol)
         case c: Cypher25Parser.DBMSTargetContext =>
           ("DBMS", c.DBMS().getSymbol)
-        case _ => throw new IllegalStateException("Unexpected privilege all command")
+        case _ => throw exceptionFactory.internalError("Unexpected privilege all command", pos(ctx))
       }
       (privilege, target) match {
         case (Some(privilege), (target, symbol)) =>
           // This makes GRANT ALL DATABASE PRIVILEGES ON DATABASES * work
           if (!target.startsWith(privilege)) {
-            _errors :+= exceptionFactory.syntaxException(
+            _errors :+= exceptionFactory.invalidInputException(
+              target,
+              List(privilege),
               s"Invalid input '$target': expected \"$privilege\"",
               inputPosition(symbol)
             )
@@ -311,26 +298,18 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     }
   }
 
-  private def checkGlobPart(ctx: Cypher25Parser.GlobPartContext): Unit = {
+  private def checkGlobPart(ctx: Cypher25Parser.GlobPartContext): Unit =
     if (ctx.DOT() == null) {
       ctx.parent.parent match {
         case r: GlobRecursiveContext if r.globPart().escapedSymbolicNameString() != null =>
-          addError()
+          _errors :+= exceptionFactory.invalidGlobEscaping(inputPosition(ctx.start))
 
         case r: GlobContext if r.escapedSymbolicNameString() != null =>
-          addError()
+          _errors :+= exceptionFactory.invalidGlobEscaping(inputPosition(ctx.start))
 
         case _ =>
       }
-
-      def addError(): Unit = {
-        _errors :+= exceptionFactory.syntaxException(
-          "Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all.",
-          inputPosition(ctx.start)
-        )
-      }
     }
-  }
 
   private def checkCreateConstraint(ctx: Cypher25Parser.CreateConstraintContext): Unit = {
 
@@ -374,11 +353,7 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
           )
         }
       case _: ConstraintTypedContext | _: ConstraintIsNotNullContext =>
-      case _ =>
-        _errors :+= exceptionFactory.syntaxException(
-          "Constraint type is not recognized",
-          inputPosition(ctx.constraintType().getStart)
-        )
+      case _ => throw exceptionFactory.internalError("Constraint type is not recognized", pos(ctx))
     }
   }
 
@@ -418,11 +393,7 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
       var i = 0
       keyNames.foreach(k =>
         if (keySet.contains(k)) {
-          _errors :+= exceptionFactory.duplicateClause(
-            s"REMOVE OPTION $k",
-            s"Duplicate 'REMOVE OPTION $k' clause",
-            pos(ctx.symbolicNameString(i))
-          )
+          _errors :+= exceptionFactory.duplicateClause(s"'REMOVE OPTION $k'", pos(ctx.symbolicNameString(i)))
         } else {
           keySet.addOne(k)
           i += 1
@@ -432,17 +403,12 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
 
     if (!ctx.alterDatabaseOption().isEmpty) {
       val optionCtxs = astSeq[Map[String, Expression]](ctx.alterDatabaseOption())
-      // TODO odd why can m be null, shouldn't it fail before this.
       val keyNames = optionCtxs.flatMap(m => if (m != null) m.keys else Seq.empty)
       val keySet = mutable.Set.empty[String]
       var i = 0
       keyNames.foreach(k =>
         if (keySet.contains(k)) {
-          _errors :+= exceptionFactory.duplicateClause(
-            s"SET OPTION $k",
-            s"Duplicate 'SET OPTION $k' clause",
-            pos(ctx.alterDatabaseOption(i))
-          )
+          _errors :+= exceptionFactory.duplicateClause(s"'SET OPTION $k'", pos(ctx.alterDatabaseOption(i)))
         } else {
           keySet.addOne(k)
           i += 1
@@ -451,9 +417,7 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
     }
 
     errorOnDuplicateCtx(ctx.alterDatabaseAccess(), "ACCESS")
-
-    val topology = ctx.alterDatabaseTopology()
-    errorOnDuplicateCtx(topology, "TOPOLOGY")
+    errorOnDuplicateCtx(ctx.alterDatabaseTopology(), "TOPOLOGY")
   }
 
   private def checkAlterDatabaseTopology(ctx: Cypher25Parser.AlterDatabaseTopologyContext): Unit = {
@@ -470,35 +434,34 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
          CREATE LOOKUP INDEX FOR ()-[x]-() ON EACH EACH(x)
      */
     val relPattern = ctx.lookupIndexRelPattern()
-    if (functionName.getText.toUpperCase() == "EACH" && relPattern != null && relPattern.EACH() == null) {
-
-      _errors :+= exceptionFactory.syntaxException(
-        "Missing function name for the LOOKUP INDEX",
-        inputPosition(ctx.LPAREN().getSymbol)
-      )
-    }
+    if (functionName.getText.toUpperCase() == "EACH" && relPattern != null && relPattern.EACH() == null)
+      _errors :+= exceptionFactory.missingLookupIndexFunctionName(inputPosition(ctx.LPAREN().getSymbol))
   }
 
-  private def checkInsertPattern(ctx: Cypher25Parser.InsertPatternContext): Unit = {
-    if (ctx.EQ() != null) {
-      _errors :+= exceptionFactory.syntaxException(
+  private def checkInsertPattern(ctx: Cypher25Parser.InsertPatternContext): Unit =
+    if (ctx.EQ() != null)
+      _errors :+= exceptionFactory.invalidUseOfInsert(
+        "Named patterns are",
+        "remove the name",
         "Named patterns are not allowed in `INSERT`. Use `CREATE` instead or remove the name.",
         pos(ctxChild(ctx, 0))
       )
-    }
-  }
 
   private def checkInsertLabelConjunction(ctx: Cypher25Parser.InsertNodeLabelExpressionContext): Unit = {
     val colons = ctx.COLON()
     val firstIsColon = nodeChild(ctx, 0).getSymbol.getType == Cypher25Parser.COLON
 
     if (firstIsColon && colons.size > 1) {
-      _errors :+= exceptionFactory.syntaxException(
+      _errors :+= exceptionFactory.invalidUseOfInsert(
+        "Colon `:` conjunction is",
+        "conjunction with ampersand `&` instead",
         "Colon `:` conjunction is not allowed in INSERT. Use `CREATE` or conjunction with ampersand `&` instead.",
         inputPosition(colons.get(1).getSymbol)
       )
     } else if (!firstIsColon && colons.size() > 0) {
-      _errors :+= exceptionFactory.syntaxException(
+      _errors :+= exceptionFactory.invalidUseOfInsert(
+        "Colon `:` conjunction is",
+        "conjunction with ampersand `&` instead",
         "Colon `:` conjunction is not allowed in INSERT. Use `CREATE` or conjunction with ampersand `&` instead.",
         inputPosition(colons.get(0).getSymbol)
       )
@@ -539,7 +502,7 @@ final class Cypher25SyntaxChecker(exceptionFactory: CypherExceptionFactory) exte
           versionNumberStr,
           "Cypher version",
           CypherVersion.values().map(_.description).toList,
-          s"Invalid Cypher version '${versionNumberStr}'. Valid Cypher versions are: ${CypherVersion.values().map(_.versionName).mkString(", ")}",
+          s"Invalid Cypher version '$versionNumberStr'. Valid Cypher versions are: ${CypherVersion.values().map(_.versionName).mkString(", ")}",
           pos(ctx.UNSIGNED_DECIMAL_INTEGER())
         )
     }

@@ -28,18 +28,10 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import scala.jdk.CollectionConverters.SeqHasAsJava
 
 trait CypherExceptionFactory {
-
-  @deprecated("Use version with gqlStatusObject instead", since = "2025.05")
-  def syntaxException(message: String, pos: InputPosition): RuntimeException
   def syntaxException(gqlStatusObject: ErrorGqlStatusObject, message: String, pos: InputPosition): RuntimeException
 
-  def duplicateClause(clause: String, legacyMessage: String, pos: InputPosition): RuntimeException = {
-    val gql = GqlHelper.getGql42001_42N19(clause, pos.offset, pos.line, pos.column)
-    syntaxException(
-      gql,
-      legacyMessage,
-      pos
-    )
+  def internalError(message: String, pos: InputPosition): RuntimeException = {
+    syntaxException(GqlHelper.get50N00(this.getClass.getSimpleName, message), message, pos)
   }
 
   def unsupportedRequestOnSystemDatabaseException(
@@ -74,6 +66,57 @@ trait CypherExceptionFactory {
       )
       .build()
     syntaxException(gql, legacyMessage, pos)
+  }
+
+  def invalidInputException(
+    wrongInput: String,
+    expectedInput: List[String],
+    legacyMessage: String,
+    pos: InputPosition
+  ): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I06)
+          .atPosition(pos.offset, pos.line, pos.column)
+          .withParam(GqlParams.StringParam.input, wrongInput)
+          .withParam(GqlParams.ListParam.valueList, expectedInput.asJava)
+          .build()
+      ).build()
+    syntaxException(gql, legacyMessage, pos)
+  }
+
+  def invalidGlobEscaping(pos: InputPosition): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I60)
+          .atPosition(pos.offset, pos.line, pos.column)
+          .build()
+      ).build()
+
+    syntaxException(
+      gql,
+      "Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all.",
+      pos
+    )
+  }
+
+  def missingLookupIndexFunctionName(pos: InputPosition): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I61)
+          .atPosition(pos.offset, pos.line, pos.column)
+          .build()
+      ).build()
+
+    syntaxException(
+      gql,
+      "Missing function name for the LOOKUP INDEX",
+      pos
+    )
+
   }
 
   def invalidUseOfAggregationInOrderBy(
@@ -177,6 +220,23 @@ trait CypherExceptionFactory {
     )
   }
 
+  def duplicateClause(description: String, position: InputPosition): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N19)
+          .withParam(GqlParams.StringParam.syntax, description)
+          .atPosition(position.offset, position.line, position.column)
+          .build()
+      ).build()
+
+    syntaxException(
+      gql,
+      s"Duplicate $description clause",
+      position
+    )
+  }
+
   def stringLiteralWithInvalidQuotes(position: InputPosition): RuntimeException = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
@@ -248,16 +308,32 @@ trait CypherExceptionFactory {
       position
     )
   }
+
+  def invalidUseOfInsert(
+    cause: String,
+    replacement: String,
+    legacyMessage: String,
+    position: InputPosition
+  ): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(position.offset, position.line, position.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I54)
+          .withParam(GqlParams.StringParam.cause, cause)
+          .withParam(GqlParams.StringParam.replacement, replacement)
+          .atPosition(position.offset, position.line, position.column)
+          .build()
+      ).build()
+    syntaxException(
+      gql,
+      legacyMessage,
+      position
+    )
+  }
 }
 
 case class Neo4jCypherExceptionFactory(queryText: String, preParserOffset: Option[InputPosition])
     extends CypherExceptionFactory {
-
-  @deprecated("Use version with gqlStatusObject instead", since = "2025.05")
-  override def syntaxException(message: String, pos: InputPosition): Neo4jException = {
-    val adjustedPosition = pos.withOffset(preParserOffset)
-    new SyntaxException(s"$message ($adjustedPosition)", queryText, adjustedPosition.offset)
-  }
 
   override def syntaxException(
     gqlStatusObject: ErrorGqlStatusObject,

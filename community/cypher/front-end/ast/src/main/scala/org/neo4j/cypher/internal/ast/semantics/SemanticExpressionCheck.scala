@@ -512,10 +512,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
       case x: LabelExpressionPredicate =>
         check(ctx, x.entity) chain
           when(x.labelExpression.containsDynamicLabelOrTypeExpression) {
-            error(
-              s"Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses.",
-              x.position
-            )
+            SemanticError.dynamicEntityTypeNotAllowed(x.position)
           } chain
           expectType(CTNode.covariant | CTRelationship.covariant, x.entity) chain
           checkLabelExpressionForLegacyRelationshipTypeDisjunction(x.entity, x.labelExpression) ifOkChain
@@ -877,7 +874,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
               SemanticError.anExpressionCannotContainUpdates("Exists", x.position)
             } chain
             when(x.query.endsWithFinish) {
-              SemanticError("An Exists Expression cannot contain a query ending with FINISH.", x.position)
+              SemanticError.invalidEndOfQuery("An Exists Expression", x.position)
             } chain
             checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
             SemanticState.recordCurrentScope(x.query)
@@ -900,7 +897,7 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
               SemanticError.aExpressionCannotContainUpdates("Count", x.position)
             } chain
             when(x.query.endsWithFinish) {
-              SemanticError("A Count Expression cannot contain a query ending with FINISH.", x.position)
+              SemanticError.invalidEndOfQuery("A Count Expression", x.position)
             } chain
             checkForShadowedVariables(x.query.folder.findAllByClass[SubqueryCall]) chain
             SemanticState.recordCurrentScope(x.query)

@@ -204,6 +204,7 @@ public class GqlParams {
 
     public enum ListParam implements GqlParam, HasJoinStyle {
         aliasList(new NELIST().withInner(StringParam.alias.processor)), // Comma-separated list of alias names
+        clauseList(new NELIST().withInner(StringParam.clause.processor)), // Comma-separated list of clauses
         dbList(new NELIST().withInner(StringParam.db.processor)), // Comma-separated list of database names
         hintList(new NELIST()
                 .withInner(

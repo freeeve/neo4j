@@ -560,6 +560,92 @@ object SemanticError {
     )
   }
 
+  def invalidUseOfDynamicLabelOrType(
+    entityType: String,
+    clause: String,
+    pos: InputPosition
+  ): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I55)
+        .atPosition(pos.offset, pos.line, pos.column)
+        .withParam(GqlParams.StringParam.entityType, entityType)
+        .withParam(GqlParams.StringParam.clause, clause)
+        .build())
+      .build()
+
+    new SemanticError(
+      gql,
+      s"Dynamic $entityType using `$$any()` are not allowed in CREATE or MERGE.",
+      pos
+    )
+  }
+
+  def dynamicEntityTypeNotAllowed(pos: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I59)
+        .atPosition(pos.offset, pos.line, pos.column)
+        .withParam(GqlParams.ListParam.clauseList, List("MATCH", "CREATE", "MERGE", "SET", "REMOVE").asJava)
+        .build())
+      .build()
+
+    new SemanticError(
+      gql,
+      "Dynamic Label and Types are only allowed in MATCH, CREATE, MERGE, SET and REMOVE clauses.",
+      pos
+    )
+  }
+
+  def onlyDirectedRelationshipAllowed(clause: String, pos: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I56)
+        .atPosition(pos.offset, pos.line, pos.column)
+        .withParam(GqlParams.StringParam.clause, clause)
+        .build())
+      .build()
+
+    new SemanticError(
+      gql,
+      s"Only directed relationships are supported in $clause",
+      pos
+    )
+  }
+
+  def invalidEndOfQuery(exprType: String, pos: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I57)
+        .atPosition(pos.offset, pos.line, pos.column)
+        .withParam(GqlParams.StringParam.exprType, exprType)
+        .withParam(GqlParams.StringParam.clause, "FINISH")
+        .build())
+      .build()
+
+    new SemanticError(
+      gql,
+      s"$exprType cannot contain a query ending with FINISH.",
+      pos
+    )
+  }
+
+  def invalidEntityReference(entity: String, clause: String, pos: InputPosition): SemanticError = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I58)
+        .atPosition(pos.offset, pos.line, pos.column)
+        .withParam(GqlParams.StringParam.expr, entity)
+        .build())
+      .build()
+
+    new SemanticError(
+      gql,
+      s"Creating an entity ($entity) and referencing that entity in a property definition in the same $clause is not allowed. Only reference variables created in earlier clauses.",
+      pos
+    )
+  }
+
   def incompatibleWhenReturnColumns(context: String, position: InputPosition): SemanticError = {
     val gql = GqlHelper.getGql42001_42N39(context, position.offset, position.line, position.column)
     SemanticError(gql, gql.cause().get().gqlStatusObject().getMessage, position)
@@ -605,10 +691,11 @@ object SemanticError {
     )
   }
 
-  def invalidUseOfReturn(name: String, position: InputPosition): SemanticError = {
+  def invalidPositionOfClause(name: String, position: InputPosition): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(position.offset, position.line, position.column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I38)
+        .withParam(GqlParams.StringParam.clause, name)
         .atPosition(position.offset, position.line, position.column)
         .build())
       .build()

@@ -106,7 +106,7 @@ class ExistsTest extends SemanticFunSuite {
       SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
 
     result.errors shouldBe Seq(
-      SemanticError("An Exists Expression cannot contain a query ending with FINISH.", pos)
+      SemanticError.invalidEndOfQuery("An Exists Expression", pos)
     )
   }
 

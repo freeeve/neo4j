@@ -2929,11 +2929,11 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42I38(
             new GqlStatus("42I38"),
             """
-                    'RETURN ...' can only be used at the end of a query or subquery.""",
-            new GqlParams.GqlParam[] {},
+                    '{ %s }...' can only be used at the end of a query or subquery.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "invalid use of RETURN",
+            "invalid position of clause",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I39(
             new GqlStatus("42I39"),
@@ -3055,7 +3055,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             "invalid call signature",
             ErrorClassification.CLIENT_ERROR),
     // Used for syntax errors for features removed in Neo4j 5.0,
-    // which should have a helpful error message in Cypher 5 but the more general 42006 in Cypher 25.
+    // which should have a helpful error message in Cypher 5 but the more general 42I06 in Cypher 25.
     // The full old message will be inserted as the msg parameter.
     STATUS_42I52(
             new GqlStatus("42I52"),
@@ -3074,6 +3074,78 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "unsupported coordinate type",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42I54(
+            new GqlStatus("42I54"),
+            """
+                `{ %s }` not allowed in `INSERT`. Use `CREATE` or { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.cause, GqlParams.StringParam.replacement},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid use of `INSERT`",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42I55(
+            new GqlStatus("42I55"),
+            """
+                    Dynamic { %s } using `$any()` are not allowed in `{ %s }`.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.entityType, GqlParams.StringParam.clause},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid use of dynamic label or type",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42I56(
+            new GqlStatus("42I56"),
+            """
+                    Only directed relationships are supported in `{ %s }`.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid relationship direction",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42I57(
+            new GqlStatus("42I57"),
+            """
+                   { %s } cannot contain a query ending with { %s }.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.exprType, GqlParams.StringParam.clause},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid query ending",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42I58(
+            new GqlStatus("42I58"),
+            """
+                    Entity, { %s }, cannot be created and referenced in the same clause.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid entity reference",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42I59(
+            new GqlStatus("42I59"),
+            """
+                    Dynamic label and types are only allowed in { %s } clauses.""",
+            new GqlParams.GqlParam[] {GqlParams.ListParam.clauseList},
+            Map.of(GqlParams.ListParam.clauseList, GqlParams.JoinStyle.ANDED),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "dynamic entity type not allowed",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42I60(
+            new GqlStatus("42I60"),
+            """
+                    Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all.""",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "invalid glob escaping",
+            ErrorClassification.CLIENT_ERROR),
+    STATUS_42I61(
+            new GqlStatus("42I61"),
+            """
+                    Missing function name for the LOOKUP INDEX.""",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "missing LOOKUP INDEX function name",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
@@ -3490,7 +3562,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N44(
             new GqlStatus("42N44"),
             """
-                    It is not possible to access the variable { %s } declared before the { %s } clause when using DISTINCT` or an aggregation.""",
+                    It is not possible to access the variable { %s } declared before the { %s } clause when using `DISTINCT` or an aggregation.""",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable, GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,

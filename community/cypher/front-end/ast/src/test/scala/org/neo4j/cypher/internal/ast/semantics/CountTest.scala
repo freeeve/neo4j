@@ -204,7 +204,7 @@ class CountTest extends SemanticFunSuite {
       SemanticExpressionCheck.simple(expression).run(SemanticState.clean)
 
     result.errors shouldBe Seq(
-      SemanticError("A Count Expression cannot contain a query ending with FINISH.", pos)
+      SemanticError.invalidEndOfQuery("A Count Expression", pos)
     )
   }
 

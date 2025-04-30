@@ -45,7 +45,11 @@ class SyntaxErrorListener(exceptionFactory: CypherExceptionFactory) extends Base
       case e: RecognitionExceptionWithGql =>
         val gql = GqlHelper.getGql42001_withCause(e.getGqlCauseBuilder, position.offset, position.line, position.column)
         exceptionFactory.syntaxException(gql, msg, position)
-      case _ => exceptionFactory.syntaxException(msg, position)
+      case _ => exceptionFactory.syntaxException(
+          GqlHelper.get50N00("RecognitionException without Gql", msg, position.offset, position.line, position.column),
+          msg,
+          position
+        )
     }
     _syntaxErrors = _syntaxErrors.appended(syntaxException)
   }

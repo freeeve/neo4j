@@ -96,6 +96,7 @@ import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.exceptions.ParameterWrongTypeException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.PropertyCursor;
@@ -984,6 +985,11 @@ public final class CypherFunctions {
             if (trimCharacterString instanceof TextValue trimCharString) {
                 if (trimCharString.length() != 1) {
                     throw new InvalidArgumentException(
+                            GqlHelper.getGql22N38_22N04(
+                                    "trim()",
+                                    trimCharString.prettyPrint(),
+                                    "trimCharacterString",
+                                    List.of("argument to be of length 1")),
                             "The argument `trimCharacterString` in the `trim()` function must be of length 1.");
                 }
             }
@@ -1092,8 +1098,12 @@ public final class CypherFunctions {
             return ((TextValue) lhs).plus((TextValue) rhs);
         }
 
-        throw new CypherTypeException(
-                String.format("Cannot concatenate `%s` and `%s`", lhs.getTypeName(), rhs.getTypeName()));
+        throw CypherTypeException.concatenationTypeMismatch(
+                rhs.prettyPrint(),
+                lhs.getTypeName(),
+                rhs.getTypeName(),
+                CypherTypeValueMapper.valueType(rhs),
+                CypherTypeValueMapper.valueType(lhs));
     }
 
     public static AnyValue normalize(AnyValue input) {

@@ -421,9 +421,9 @@ case class SingleQuery(clauses: Seq[Clause])(val position: InputPosition) extend
               case Seq(match1: Match, match2: Match) if match1.optional && !match2.optional =>
                 Some(SemanticError.invalidUseOfMatch(match2.position))
               case Seq(clause: Return, _) =>
-                Some(SemanticError.invalidUseOfReturn(clause.name, clause.position))
+                Some(SemanticError.invalidPositionOfClause(clause.name, clause.position))
               case Seq(clause: Finish, _) =>
-                Some(SemanticError(s"${clause.name} can only be used at the end of the query.", clause.position))
+                Some(SemanticError.invalidPositionOfClause(clause.name, clause.position))
               case Seq(_: UpdateClause, _: UpdateClause) =>
                 None
               case Seq(_: UpdateClause, _: With) =>

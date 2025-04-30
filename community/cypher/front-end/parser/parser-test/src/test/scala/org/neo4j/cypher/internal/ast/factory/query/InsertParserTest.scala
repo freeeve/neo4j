@@ -703,7 +703,11 @@ class InsertParserTest extends AstParsingTestBase {
   }
 
   test("INSERT (n IS A:B)") {
-    failsParsing[Statements].withMessageStart("Colon `:` conjunction is not allowed in INSERT")
+    failsParsing[Statements].withMessageStart(
+      """Colon `:` conjunction is not allowed in INSERT. Use `CREATE` or conjunction with ampersand `&` instead. (line 1, column 15 (offset: 14))
+        |"INSERT (n IS A:B)"
+        |               ^""".stripMargin
+    )
   }
 
   test("INSERT (n IS !(A&B))") {
@@ -1206,19 +1210,25 @@ class InsertParserTest extends AstParsingTestBase {
 
   test("INSERT (:A:B)") {
     failsParsing[Statements].withMessageStart(
-      "Colon `:` conjunction is not allowed in INSERT. Use `CREATE` or conjunction with ampersand `&` instead. (line 1, column 11 (offset: 10))"
+      """Colon `:` conjunction is not allowed in INSERT. Use `CREATE` or conjunction with ampersand `&` instead. (line 1, column 11 (offset: 10))
+        |"INSERT (:A:B)"
+        |           ^""".stripMargin
     )
   }
 
   test("INSERT (n:A&B:C)") {
     failsParsing[Statements].withMessageStart(
-      "Colon `:` conjunction is not allowed in INSERT. Use `CREATE` or conjunction with ampersand `&` instead. (line 1, column 14 (offset: 13))"
+      """Colon `:` conjunction is not allowed in INSERT. Use `CREATE` or conjunction with ampersand `&` instead. (line 1, column 14 (offset: 13))
+        |"INSERT (n:A&B:C)"
+        |              ^""".stripMargin
     )
   }
 
   test("INSERT (n:A)-[:R]->(:B:C)") {
     failsParsing[Statements].withMessageStart(
-      "Colon `:` conjunction is not allowed in INSERT. Use `CREATE` or conjunction with ampersand `&` instead. (line 1, column 23 (offset: 22))"
+      """Colon `:` conjunction is not allowed in INSERT. Use `CREATE` or conjunction with ampersand `&` instead. (line 1, column 23 (offset: 22))
+        |"INSERT (n:A)-[:R]->(:B:C)"
+        |                       ^""".stripMargin
     )
   }
 

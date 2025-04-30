@@ -22,6 +22,7 @@ import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper.getGql42001_42N71
+import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
 import scala.util.Failure
@@ -31,16 +32,11 @@ class LastClauseTest
     extends CypherFunSuite
     with NameBasedSemanticAnalysisTestSuite {
 
-  def errorCanOnlyBeUsedAtTheEnd(clause: String, offset: Int, line: Int, column: Int): SemanticError =
-    SemanticError(
-      s"$clause can only be used at the end of the query.",
-      InputPosition(offset, line, column)
-    )
-
-  def errorCanOnlyBeUsedAtTheEndGql(clause: String, offset: Int, line: Int, column: Int): SemanticError = {
+  def errorCanOnlyBeUsedAtTheEnd(clause: String, offset: Int, line: Int, column: Int): SemanticError = {
     val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
       .atPosition(offset, line, column)
       .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42I38)
+        .withParam(GqlParams.StringParam.clause, clause)
         .atPosition(offset, line, column)
         .build())
       .build()
@@ -113,13 +109,13 @@ class LastClauseTest
 
   test("""RETURN 1
          |FINISH""".stripMargin) {
-    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("RETURN", 0, 1, 1))
   }
 
   test("""RETURN 1
          |MATCH (a)""".stripMargin) {
     run().hasErrors(
-      errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1),
+      errorCanOnlyBeUsedAtTheEnd("RETURN", 0, 1, 1),
       errorCannotConcludeWith("MATCH", 9, 2, 1)
     )
   }
@@ -127,30 +123,30 @@ class LastClauseTest
   test("""RETURN 1
          |MATCH (a)
          |FINISH""".stripMargin) {
-    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("RETURN", 0, 1, 1))
   }
 
   test("""RETURN 1
          |MATCH (a)
          |RETURN a""".stripMargin) {
-    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("RETURN", 0, 1, 1))
   }
 
   test("""RETURN 1
          |CREATE (a)""".stripMargin) {
-    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("RETURN", 0, 1, 1))
   }
 
   test("""RETURN 1
          |CREATE (a)
          |FINISH""".stripMargin) {
-    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("RETURN", 0, 1, 1))
   }
 
   test("""RETURN 1
          |CREATE (a)
          |RETURN a""".stripMargin) {
-    run().hasErrors(errorCanOnlyBeUsedAtTheEndGql("RETURN", 0, 1, 1))
+    run().hasErrors(errorCanOnlyBeUsedAtTheEnd("RETURN", 0, 1, 1))
   }
 
   test("MATCH (a)") {

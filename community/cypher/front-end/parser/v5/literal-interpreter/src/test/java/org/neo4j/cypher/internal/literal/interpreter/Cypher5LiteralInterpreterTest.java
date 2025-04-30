@@ -251,7 +251,8 @@ public class Cypher5LiteralInterpreterTest {
                         """
                                 Invalid cypher expression
                                 "{}}"
-                                   ^""");
+                                   ^
+                                """);
     }
 
     @Test
