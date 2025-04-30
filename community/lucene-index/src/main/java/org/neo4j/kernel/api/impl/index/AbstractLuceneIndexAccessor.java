@@ -44,7 +44,7 @@ import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.schema.LuceneIndexReaderAcquisitionException;
 import org.neo4j.kernel.api.impl.schema.reader.LuceneAllEntriesIndexAccessorReader;
-import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.kernel.api.index.IndexAccessor;
 import org.neo4j.kernel.api.index.IndexEntriesReader;
 import org.neo4j.kernel.api.index.IndexEntryConflictHandler;
@@ -65,7 +65,7 @@ import org.neo4j.values.storable.Values;
 
 public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReader, INDEX extends DatabaseIndex<READER>>
         implements IndexAccessor {
-    protected final LuceneIndexWriter writer;
+    protected final LucenePartitionIndexWriter writer;
     protected final INDEX luceneIndex;
     protected final IndexDescriptor descriptor;
     private final IndexUpdateIgnoreStrategy ignoreStrategy;

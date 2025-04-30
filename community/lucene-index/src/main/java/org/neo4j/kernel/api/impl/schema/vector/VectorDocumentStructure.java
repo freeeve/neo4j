@@ -20,31 +20,13 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import org.apache.lucene.index.Term;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
-import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;
-import org.neo4j.values.VectorCandidate;
 
 public abstract class VectorDocumentStructure {
-    static final String ENTITY_ID_KEY = "id";
+    public static final String ENTITY_ID_KEY = "id";
 
     static Term newTermForChangeOrRemove(long id) {
         return new Term(ENTITY_ID_KEY, Long.toString(id));
     }
 
-    abstract String vectorValueKeyFor(int dimensions);
-
-    LuceneDocument createLuceneDocument(
-            long id, VectorCandidate candidate, LuceneVectorSimilarityFunction similarityFunction) {
-        final var vector = similarityFunction.maybeToValidVector(candidate);
-        if (vector == null) {
-            return null;
-        }
-
-        LuceneDocument document = new Lucene9Document();
-        document.addStringField(ENTITY_ID_KEY, Long.toString(id), false);
-        document.addNumericField(ENTITY_ID_KEY, id);
-        document.addKnnFloatVectorField(vectorValueKeyFor(vector.length), vector, similarityFunction);
-        return document;
-    }
+    public abstract String vectorValueKeyFor(int dimensions);
 }

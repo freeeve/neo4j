@@ -22,14 +22,13 @@ package org.neo4j.kernel.api.impl.schema.writer;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument.LazyDocumentCastingIterable;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 
@@ -42,10 +41,11 @@ import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
  * or {@link #DEFAULT_MAXIMUM_PARTITION_SIZE} otherwise.
  * First observable partition that satisfy writer criteria is used for writing.
  */
-public class PartitionedIndexWriter implements LuceneIndexWriter {
+public class PartitionedIndexWriter implements LucenePartitionIndexWriter {
     // by default we still keep a spare of 10% to the maximum partition size: During concurrent updates
     // it could happen that 2 threads reserve space in a partition (without claiming it by doing addDocument):
-    private static final Integer DEFAULT_MAXIMUM_PARTITION_SIZE = IndexWriter.MAX_DOCS - (IndexWriter.MAX_DOCS / 10);
+    private static final Integer DEFAULT_MAXIMUM_PARTITION_SIZE =
+            LuceneIndexWriter.MAX_DOCS - (LuceneIndexWriter.MAX_DOCS / 10);
 
     private final WritableDatabaseIndex<?, ?> index;
     private final int maximumPartitionSize;
@@ -58,12 +58,12 @@ public class PartitionedIndexWriter implements LuceneIndexWriter {
 
     @Override
     public void addDocument(LuceneDocument doc) throws IOException {
-        getIndexWriter(1).addDocument(doc.toLuceneDocument());
+        getIndexWriter(1).addDocument(doc);
     }
 
     @Override
     public void addDocuments(int numDocs, Iterable<LuceneDocument> documents) throws IOException {
-        getIndexWriter(numDocs).addDocuments(new LazyDocumentCastingIterable(documents));
+        getIndexWriter(numDocs).addDocuments(documents);
     }
 
     @Override
@@ -72,9 +72,7 @@ public class PartitionedIndexWriter implements LuceneIndexWriter {
         Term term = new Term(idField, Long.toString(id));
         if (WritableDatabaseIndex.hasSinglePartition(partitions)
                 && writablePartition(WritableDatabaseIndex.getFirstPartition(partitions), 1)) {
-            WritableDatabaseIndex.getFirstPartition(partitions)
-                    .getIndexWriter()
-                    .updateDocument(term, doc.toLuceneDocument());
+            WritableDatabaseIndex.getFirstPartition(partitions).getIndexWriter().updateDocument(term, doc);
         } else {
             deleteDocuments(idField, id);
             addDocument(doc);
@@ -91,7 +89,7 @@ public class PartitionedIndexWriter implements LuceneIndexWriter {
 
     @Override
     public void addDirectory(int count, LuceneDirectory directory) throws IOException {
-        getIndexWriter(count).addIndexes(directory.toLuceneDirectory());
+        getIndexWriter(count).addIndexes(directory);
     }
 
     @Override
@@ -102,7 +100,7 @@ public class PartitionedIndexWriter implements LuceneIndexWriter {
         }
     }
 
-    private IndexWriter getIndexWriter(int numDocs) throws IOException {
+    private LuceneIndexWriter getIndexWriter(int numDocs) throws IOException {
         synchronized (index) {
             // We synchronise on the index to coordinate with all writers about how many partitions we
             // have, and when new ones are created. The discovery that a new partition needs to be added,
@@ -111,7 +109,7 @@ public class PartitionedIndexWriter implements LuceneIndexWriter {
         }
     }
 
-    private IndexWriter unsafeGetIndexWriter(int numDocs) throws IOException {
+    private LuceneIndexWriter unsafeGetIndexWriter(int numDocs) throws IOException {
         List<AbstractIndexPartition> indexPartitions = index.getPartitions();
         int size = indexPartitions.size();
         //noinspection ForLoopReplaceableByForEach

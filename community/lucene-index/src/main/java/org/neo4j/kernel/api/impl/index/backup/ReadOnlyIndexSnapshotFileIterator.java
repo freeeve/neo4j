@@ -19,27 +19,23 @@
  */
 package org.neo4j.kernel.api.impl.index.backup;
 
-import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.Iterator;
-import org.apache.lucene.index.IndexCommit;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
 
 /**
- * Iterator over Lucene read only index files for a particular {@link IndexCommit snapshot}.
+ * Iterator over Lucene read only index files for a particular snapshot.
  * Applicable only to a single Lucene index partition.
- *
  */
-class ReadOnlyIndexSnapshotFileIterator extends PrefetchingIterator<Path> implements ResourceIterator<Path> {
+public class ReadOnlyIndexSnapshotFileIterator extends PrefetchingIterator<Path> implements ResourceIterator<Path> {
     private final Path indexDirectory;
     private final Iterator<String> fileNames;
-    private final IndexCommit indexCommit;
 
-    ReadOnlyIndexSnapshotFileIterator(Path indexDirectory, IndexCommit indexCommit) throws IOException {
+    protected ReadOnlyIndexSnapshotFileIterator(Path indexDirectory, Collection<String> fileNames) {
         this.indexDirectory = indexDirectory;
-        this.indexCommit = indexCommit;
-        this.fileNames = this.indexCommit.getFileNames().iterator();
+        this.fileNames = fileNames.iterator();
     }
 
     @Override
@@ -55,11 +51,7 @@ class ReadOnlyIndexSnapshotFileIterator extends PrefetchingIterator<Path> implem
         // nothing by default
     }
 
-    IndexCommit getIndexCommit() {
-        return indexCommit;
-    }
-
-    Path getIndexDirectory() {
+    protected Path getIndexDirectory() {
         return indexDirectory;
     }
 }

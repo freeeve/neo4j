@@ -20,7 +20,6 @@
 package org.neo4j.kernel.api.impl.schema.text;
 
 import java.util.function.Supplier;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
@@ -31,6 +30,7 @@ import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.TextModes;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.builder.AbstractLuceneIndexBuilder;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.api.index.ValueIndexReader;
@@ -91,7 +91,7 @@ public class TextIndexBuilder extends AbstractLuceneIndexBuilder<TextIndexBuilde
     }
 
     /**
-     * Specify {@link Factory} of lucene {@link IndexWriterConfig} to create {@link IndexWriter}s.
+     * Specify {@link Factory} of lucene {@link IndexWriterConfig} to create {@link LuceneIndexWriter}s.
      *
      * @param writerConfigFactory the supplier of writer configs
      * @return index builder

@@ -19,7 +19,7 @@
  */
 package org.neo4j.kernel.api.impl.index;
 
-import static org.neo4j.kernel.api.impl.schema.trigram.TrigramDocumentStructure.TRIGRAM_VALUE_KEY;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.TRIGRAM_VALUE_KEY;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.CharacterUtils;

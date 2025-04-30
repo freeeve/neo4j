@@ -25,7 +25,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
-import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
@@ -36,10 +36,10 @@ import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
  */
 public class TextIndexPopulatingUpdater implements IndexUpdater {
 
-    private final LuceneIndexWriter writer;
+    private final LucenePartitionIndexWriter writer;
     private final IndexUpdateIgnoreStrategy ignoreStrategy;
 
-    public TextIndexPopulatingUpdater(LuceneIndexWriter writer, IndexUpdateIgnoreStrategy ignoreStrategy) {
+    public TextIndexPopulatingUpdater(LucenePartitionIndexWriter writer, IndexUpdateIgnoreStrategy ignoreStrategy) {
         this.writer = writer;
         this.ignoreStrategy = ignoreStrategy;
     }

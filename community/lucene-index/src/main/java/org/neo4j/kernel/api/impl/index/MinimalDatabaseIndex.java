@@ -26,7 +26,7 @@ import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.impl.index.partition.ReadOnlyIndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
-import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.logging.LogProvider;
 
@@ -100,7 +100,7 @@ public class MinimalDatabaseIndex<READER extends ValueIndexReader>
     }
 
     @Override
-    public LuceneIndexWriter getIndexWriter() {
+    public LucenePartitionIndexWriter getIndexWriter() {
         throw new UnsupportedOperationException("Can't get index writer for read only lucene index.");
     }
 

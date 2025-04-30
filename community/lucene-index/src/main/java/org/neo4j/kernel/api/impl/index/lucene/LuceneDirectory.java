@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.util.Collection;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 
@@ -70,7 +69,7 @@ public interface LuceneDirectory extends Closeable {
 
     Collection<String> latestCommitFileNames() throws IOException;
 
-    IndexWriter newWriter(IndexWriterConfig writerConfig) throws IOException;
+    LuceneIndexWriter newWriter(IndexWriterConfig writerConfig) throws IOException;
 
     /**
      * Temporary method to expose the underlying lucene directory while not all classes has been
@@ -138,7 +137,7 @@ public interface LuceneDirectory extends Closeable {
         }
 
         @Override
-        public IndexWriter newWriter(IndexWriterConfig writerConfig) throws IOException {
+        public LuceneIndexWriter newWriter(IndexWriterConfig writerConfig) throws IOException {
             return delegate.newWriter(writerConfig);
         }
 

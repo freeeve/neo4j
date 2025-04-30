@@ -1,0 +1,207 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [https://neo4j.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+package org.neo4j.kernel.api.impl.index.lucene.v9;
+
+import static org.neo4j.internal.helpers.collection.Iterators.emptyResourceIterator;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Iterator;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexCommit;
+import org.apache.lucene.index.IndexDeletionPolicy;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.index.SnapshotDeletionPolicy;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.store.Directory;
+import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.kernel.api.impl.index.backup.ReadOnlyIndexSnapshotFileIterator;
+import org.neo4j.kernel.api.impl.index.backup.SnapshotReleaseException;
+import org.neo4j.kernel.api.impl.index.backup.UnsupportedIndexDeletionPolicy;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
+
+public class Lucene9IndexWriter implements LuceneIndexWriter {
+    private final IndexWriter indexWriter;
+
+    public Lucene9IndexWriter(IndexWriter indexWriter) {
+        this.indexWriter = indexWriter;
+    }
+
+    @Override
+    public LuceneDocument newDocument() {
+        return new Lucene9Document();
+    }
+
+    @Override
+    public void updateDocument(Term term, LuceneDocument document) throws IOException {
+        indexWriter.updateDocument(term, toInternalDocument(document));
+    }
+
+    @Override
+    public void rollback() throws IOException {
+        indexWriter.rollback();
+    }
+
+    @Override
+    public DirectoryReader directoryReader() throws IOException {
+        return DirectoryReader.open(indexWriter, true, false);
+    }
+
+    @Override
+    public void commit() throws IOException {
+        indexWriter.commit();
+    }
+
+    @Override
+    public boolean hasCommits() throws IOException {
+        Directory directory = indexWriter.getDirectory();
+        return DirectoryReader.indexExists(directory) && SegmentInfos.readLatestCommit(directory) != null;
+    }
+
+    @Override
+    public void forceMerge(int maxNumSegments) throws IOException {
+        indexWriter.forceMerge(maxNumSegments);
+    }
+
+    @Override
+    public void markAsOnline() {
+        indexWriter.setLiveCommitData(ONLINE_COMMIT_USER_DATA);
+    }
+
+    @Override
+    public void addDocuments(Iterable<LuceneDocument> documents) throws IOException {
+        indexWriter.addDocuments(convertDocuments(documents));
+    }
+
+    @Override
+    public DocStats getDocStats() {
+        IndexWriter.DocStats docStats = indexWriter.getDocStats();
+        return new DocStats(docStats.maxDoc, docStats.numDocs);
+    }
+
+    @Override
+    public void deleteDocuments(Term term) throws IOException {
+        indexWriter.deleteDocuments(term);
+    }
+
+    @Override
+    public void addIndexes(LuceneDirectory directory) throws IOException {
+        indexWriter.addIndexes(((Lucene9Directory) directory).directory);
+    }
+
+    @Override
+    public void deleteDocuments(Query query) throws IOException {
+        indexWriter.deleteDocuments(query);
+    }
+
+    @Override
+    public ResourceIterator<Path> snapshot(Path indexFolder) throws IOException {
+        IndexDeletionPolicy deletionPolicy = indexWriter.getConfig().getIndexDeletionPolicy();
+        if (deletionPolicy instanceof SnapshotDeletionPolicy snapshotDeletionPolicy) {
+            if (!hasCommits()) {
+                return emptyResourceIterator();
+            }
+            return new WritableIndexSnapshotFileIterator(indexFolder, snapshotDeletionPolicy);
+        } else {
+            throw new UnsupportedIndexDeletionPolicy(
+                    "Can't perform index snapshot with specified index deletion " + "policy: "
+                            + deletionPolicy.toString() + ". " + "Only "
+                            + SnapshotDeletionPolicy.class.getName() + " is " + "supported");
+        }
+    }
+
+    @Override
+    public void addDocument(LuceneDocument document) throws IOException {
+        indexWriter.addDocument(toInternalDocument(document));
+    }
+
+    @Override
+    public void close() throws IOException {
+        indexWriter.close();
+    }
+
+    private static Document toInternalDocument(LuceneDocument document) {
+        return ((Lucene9Document) document).document;
+    }
+
+    private static Iterable<Document> convertDocuments(Iterable<LuceneDocument> documents) {
+        return new DocumentIterable(documents.iterator());
+    }
+
+    private static class DocumentIterable implements Iterable<Document> {
+        private final Iterator<LuceneDocument> iterator;
+
+        public DocumentIterable(Iterator<LuceneDocument> iterator) {
+            this.iterator = iterator;
+        }
+
+        @Override
+        public Iterator<Document> iterator() {
+            return new Iterator<>() {
+                @Override
+                public boolean hasNext() {
+                    return iterator.hasNext();
+                }
+
+                @Override
+                public Document next() {
+                    return toInternalDocument(iterator.next());
+                }
+            };
+        }
+    }
+
+    /**
+     * Iterator over Lucene index files for a particular {@link IndexCommit snapshot}.
+     * Applicable only to a single Lucene index partition.
+     */
+    private static class WritableIndexSnapshotFileIterator extends ReadOnlyIndexSnapshotFileIterator {
+        private final SnapshotDeletionPolicy snapshotDeletionPolicy;
+        private final IndexCommit indexCommit;
+
+        WritableIndexSnapshotFileIterator(Path indexDirectory, SnapshotDeletionPolicy snapshotDeletionPolicy)
+                throws IOException {
+            this(indexDirectory, snapshotDeletionPolicy, snapshotDeletionPolicy.snapshot());
+        }
+
+        private WritableIndexSnapshotFileIterator(
+                Path indexDirectory, SnapshotDeletionPolicy snapshotDeletionPolicy, IndexCommit snapshot)
+                throws IOException {
+            super(indexDirectory, snapshot.getFileNames());
+            this.snapshotDeletionPolicy = snapshotDeletionPolicy;
+            this.indexCommit = snapshot;
+        }
+
+        @Override
+        public void close() {
+            try {
+                snapshotDeletionPolicy.release(indexCommit);
+            } catch (IOException e) {
+                throw new SnapshotReleaseException(
+                        "Unable to release lucene index snapshot for index in: " + getIndexDirectory(), e);
+            }
+        }
+    }
+}

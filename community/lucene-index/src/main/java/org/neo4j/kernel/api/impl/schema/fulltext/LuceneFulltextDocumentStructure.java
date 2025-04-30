@@ -22,7 +22,7 @@ package org.neo4j.kernel.api.impl.schema.fulltext;
 import org.apache.lucene.search.Query;
 import org.neo4j.kernel.api.impl.index.LuceneQueryBuilder;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneReusableDocuments;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 
@@ -36,7 +36,7 @@ public class LuceneFulltextDocumentStructure {
      * relevant (= none of the properties were of type TEXT - which is the only type we support in the fulltext indexes).
      */
     public static LuceneDocument documentRepresentingProperties(long id, String[] propertyNames, Value[] values) {
-        return LuceneReusableDocuments.CURRENT.reusableFulltextDocument(id, propertyNames, values);
+        return LuceneDocumentsFactory.CURRENT.reusableFulltextDocument(id, propertyNames, values);
     }
 
     static long getNodeId(LuceneDocument from) {

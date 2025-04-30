@@ -20,7 +20,6 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import java.util.function.Supplier;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
@@ -31,6 +30,7 @@ import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.VectorModes;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.builder.AbstractLuceneIndexBuilder;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
 import org.neo4j.kernel.api.impl.schema.vector.codec.VectorCodecV2;
 import org.neo4j.logging.LogProvider;
@@ -79,7 +79,7 @@ class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> 
     }
 
     /**
-     * Specify {@link Factory} of lucene {@link IndexWriterConfig} to create {@link IndexWriter}s.
+     * Specify {@link Factory} of lucene {@link IndexWriterConfig} to create {@link LuceneIndexWriter}s.
      *
      * @param writerConfigFactory the supplier of writer configs
      * @return index builder

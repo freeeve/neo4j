@@ -26,7 +26,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
-import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 
 /**
@@ -159,7 +159,7 @@ public class WritableDatabaseIndex<INDEX extends AbstractLuceneIndex<READER>, RE
     }
 
     @Override
-    public LuceneIndexWriter getIndexWriter() {
+    public LucenePartitionIndexWriter getIndexWriter() {
         return luceneIndex.getIndexWriter(this);
     }
 

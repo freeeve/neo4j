@@ -37,7 +37,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 import org.apache.lucene.index.IndexFileNames;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.store.FilterDirectory;
@@ -50,8 +49,9 @@ import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Directory;
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.index.partition.IndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
@@ -142,9 +142,9 @@ class DatabaseIndexIntegrationTest {
     }
 
     private void generateInitialData() throws IOException {
-        IndexWriter indexWriter = firstPartitionWriter();
+        LuceneIndexWriter indexWriter = firstPartitionWriter();
         for (int i = 0; i < 10; i++) {
-            indexWriter.addDocument(createTestDocument().toLuceneDocument());
+            indexWriter.addDocument(createTestDocument());
         }
     }
 
@@ -183,16 +183,16 @@ class DatabaseIndexIntegrationTest {
     }
 
     private static LuceneDocument createTestDocument() {
-        LuceneDocument document = new Lucene9Document();
+        LuceneDocument document = LuceneDocumentsFactory.CURRENT.newDocument();
         document.addTextField("text", "textValue", true);
         document.addNumericField("long", 1);
         return document;
     }
 
-    private IndexWriter firstPartitionWriter() {
+    private LuceneIndexWriter firstPartitionWriter() {
         List<AbstractIndexPartition> partitions = luceneIndex.getPartitions();
         assertEquals(1, partitions.size());
-        AbstractIndexPartition partition = partitions.get(0);
+        AbstractIndexPartition partition = partitions.getFirst();
         return partition.getIndexWriter();
     }
 

@@ -23,44 +23,15 @@ import static org.neo4j.internal.helpers.collection.Iterators.emptyResourceItera
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collection;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexCommit;
-import org.apache.lucene.index.IndexDeletionPolicy;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.SnapshotDeletionPolicy;
 import org.neo4j.graphdb.ResourceIterator;
-import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Directory;
 
 /**
- * Create iterators over Lucene index files for a particular {@link IndexCommit index commit}.
+ * Create iterators over Lucene index files for a particular index commit.
  * Applicable only to a single Lucene index partition.
  */
 public final class LuceneIndexSnapshots {
     private LuceneIndexSnapshots() {}
-
-    /**
-     * Create index snapshot iterator for a writable index.
-     * @param indexFolder index location folder
-     * @param indexWriter index writer
-     * @return index file name iterator
-     * @throws IOException
-     */
-    public static ResourceIterator<Path> forIndex(Path indexFolder, IndexWriter indexWriter) throws IOException {
-        IndexDeletionPolicy deletionPolicy = indexWriter.getConfig().getIndexDeletionPolicy();
-        if (deletionPolicy instanceof SnapshotDeletionPolicy policy) {
-            return hasCommits(indexWriter)
-                    ? new WritableIndexSnapshotFileIterator(indexFolder, policy)
-                    : emptyResourceIterator();
-        } else {
-            throw new UnsupportedIndexDeletionPolicy(
-                    "Can't perform index snapshot with specified index deletion " + "policy: "
-                            + deletionPolicy.getClass().getName() + ". " + "Only "
-                            + SnapshotDeletionPolicy.class.getName() + " is " + "supported");
-        }
-    }
 
     /**
      * Create index snapshot iterator for a read only index.
@@ -70,16 +41,8 @@ public final class LuceneIndexSnapshots {
      * @throws IOException
      */
     public static ResourceIterator<Path> forIndex(Path indexFolder, LuceneDirectory directory) throws IOException {
-        if (!directory.hasCommits()) {
-            return emptyResourceIterator();
-        }
-        Collection<IndexCommit> indexCommits = DirectoryReader.listCommits(directory.toLuceneDirectory());
-        IndexCommit indexCommit = Iterables.last(indexCommits);
-        return new ReadOnlyIndexSnapshotFileIterator(indexFolder, indexCommit);
-    }
-
-    private static boolean hasCommits(IndexWriter indexWriter) throws IOException {
-        LuceneDirectory directory = new Lucene9Directory(indexWriter.getDirectory());
-        return directory.hasCommits();
+        return directory.hasCommits()
+                ? new ReadOnlyIndexSnapshotFileIterator(indexFolder, directory.latestCommitFileNames())
+                : emptyResourceIterator();
     }
 }

@@ -27,7 +27,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneReusableDocuments;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneStringValueEncoding;
 import org.neo4j.values.storable.Value;
 
@@ -37,7 +37,7 @@ public class TextDocumentStructure {
     private TextDocumentStructure() {}
 
     public static LuceneDocument documentRepresentingProperties(long nodeId, Value... values) {
-        return LuceneReusableDocuments.CURRENT.reusableTextDocument(nodeId, values);
+        return LuceneDocumentsFactory.CURRENT.reusableTextDocument(nodeId, values);
     }
 
     public static MatchAllDocsQuery newScanQuery() {

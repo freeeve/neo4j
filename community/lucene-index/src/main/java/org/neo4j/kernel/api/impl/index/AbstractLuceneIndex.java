@@ -21,6 +21,8 @@ package org.neo4j.kernel.api.impl.index;
 
 import static org.neo4j.internal.helpers.collection.Iterators.asResourceIterator;
 import static org.neo4j.internal.helpers.collection.Iterators.iterator;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter.KEY_STATUS;
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter.ONLINE;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -32,7 +34,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
 import org.neo4j.configuration.Config;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.graphdb.ResourceIterator;
@@ -40,13 +41,13 @@ import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.IndexFileSnapshotter;
-import org.neo4j.kernel.api.impl.index.backup.WritableIndexSnapshotFileIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.index.partition.IndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
-import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.kernel.api.impl.schema.writer.PartitionedIndexWriter;
 import org.neo4j.kernel.api.index.IndexReader;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
@@ -62,9 +63,6 @@ import org.neo4j.logging.LogProvider;
  * @see MinimalDatabaseIndex
  */
 public abstract class AbstractLuceneIndex<READER extends IndexReader> implements IndexFileSnapshotter {
-    private static final String KEY_STATUS = "status";
-    private static final String ONLINE = "online";
-    private static final Set<Map.Entry<String, String>> ONLINE_COMMIT_USER_DATA = Set.of(Map.entry(KEY_STATUS, ONLINE));
     protected final PartitionedIndexStorage indexStorage;
     protected final IndexDescriptor descriptor;
     private final IndexPartitionFactory partitionFactory;
@@ -169,7 +167,7 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
         return true;
     }
 
-    public LuceneIndexWriter getIndexWriter(WritableDatabaseIndex<?, ?> writableDatabaseIndex) {
+    public LucenePartitionIndexWriter getIndexWriter(WritableDatabaseIndex<?, ?> writableDatabaseIndex) {
         ensureOpen();
         return new PartitionedIndexWriter(writableDatabaseIndex, config);
     }
@@ -207,7 +205,7 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
     public void flush(boolean merge) throws IOException {
         List<AbstractIndexPartition> partitions = getPartitions();
         for (AbstractIndexPartition partition : partitions) {
-            IndexWriter writer = partition.getIndexWriter();
+            LuceneIndexWriter writer = partition.getIndexWriter();
             writer.commit();
             if (merge) {
                 writer.forceMerge(1);
@@ -249,7 +247,6 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
      * Snapshot of all file in all index partitions.
      *
      * @return iterator over all index files.
-     * @see WritableIndexSnapshotFileIterator
      */
     @Override
     public ResourceIterator<Path> snapshotFiles() throws IOException {
@@ -307,7 +304,7 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
     }
 
     public static AbstractIndexPartition getFirstPartition(List<AbstractIndexPartition> partitions) {
-        return partitions.get(0);
+        return partitions.getFirst();
     }
 
     /**
@@ -387,8 +384,8 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
             addNewPartition();
         }
         AbstractIndexPartition partition = getFirstPartition(getPartitions());
-        IndexWriter indexWriter = partition.getIndexWriter();
-        indexWriter.setLiveCommitData(ONLINE_COMMIT_USER_DATA);
+        LuceneIndexWriter indexWriter = partition.getIndexWriter();
+        indexWriter.markAsOnline();
         flush(false);
     }
 

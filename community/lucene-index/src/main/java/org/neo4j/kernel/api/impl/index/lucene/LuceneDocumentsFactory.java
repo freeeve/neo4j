@@ -19,13 +19,31 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene;
 
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9ReusableDocuments;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9DocumentsFactory;
+import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
+import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
+import org.neo4j.values.VectorCandidate;
 import org.neo4j.values.storable.Value;
 
-public interface LuceneReusableDocuments {
-    LuceneReusableDocuments CURRENT = Lucene9ReusableDocuments.INSTANCE;
+public interface LuceneDocumentsFactory {
+    LuceneDocumentsFactory CURRENT = Lucene9DocumentsFactory.INSTANCE;
 
-    LuceneDocument reusableTextDocument(long nodeId, Value... values);
+    String TRIGRAM_ENTITY_ID_KEY = "id";
+    String TRIGRAM_VALUE_KEY = "0";
+
+    String VECTOR_ENTITY_ID_KEY = "id";
+
+    LuceneDocument reusableTextDocument(long id, Value... values);
 
     LuceneDocument reusableFulltextDocument(long id, String[] propertyNames, Value[] values);
+
+    LuceneDocument createTrigramDocument(long id, Value value);
+
+    LuceneDocument createVectorDocument(
+            VectorDocumentStructure vectorDocumentStructure,
+            long id,
+            VectorCandidate candidate,
+            VectorSimilarityFunctions.LuceneVectorSimilarityFunction similarityFunction);
+
+    LuceneDocument newDocument();
 }

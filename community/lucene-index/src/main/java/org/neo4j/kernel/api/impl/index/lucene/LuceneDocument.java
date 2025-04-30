@@ -19,10 +19,6 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene;
 
-import java.util.Iterator;
-import org.apache.lucene.document.Document;
-import org.apache.lucene.index.IndexableField;
-import org.neo4j.kernel.api.impl.schema.trigram.TrigramDocumentStructure;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
 
 public interface LuceneDocument {
@@ -34,38 +30,7 @@ public interface LuceneDocument {
     void addKnnFloatVectorField(
             String key, float[] vector, VectorSimilarityFunctions.LuceneVectorSimilarityFunction lucene);
 
-    void add(TrigramDocumentStructure.TrigramField valueField);
-
     String get(String key);
 
     void addTextField(String key, String textValue, boolean store);
-
-    Document toLuceneDocument();
-
-    /**
-     * Temporary class to lazily cast LuceneDocument to Document until we have an abstract IndexWriter
-     * that accepts LuceneDocuments directly.
-     */
-    class LazyDocumentCastingIterable implements Iterable<Iterable<? extends IndexableField>> {
-        private final Iterator<LuceneDocument> iterator;
-
-        public LazyDocumentCastingIterable(Iterable<LuceneDocument> document) {
-            iterator = document.iterator();
-        }
-
-        @Override
-        public Iterator<Iterable<? extends IndexableField>> iterator() {
-            return new Iterator<>() {
-                @Override
-                public boolean hasNext() {
-                    return iterator.hasNext();
-                }
-
-                @Override
-                public Iterable<? extends IndexableField> next() {
-                    return iterator.next().toLuceneDocument();
-                }
-            };
-        }
-    }
 }

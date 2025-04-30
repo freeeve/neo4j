@@ -22,21 +22,20 @@ package org.neo4j.kernel.api.impl.index.partition;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.SearcherManager;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.io.IOUtils;
-import org.neo4j.kernel.api.impl.index.backup.LuceneIndexSnapshots;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 
 /**
  * Represents a single writable partition of a partitioned lucene index.
  * @see AbstractIndexPartition
  */
 public class WritableIndexPartition extends AbstractIndexPartition {
-    private final IndexWriter indexWriter;
+    private final LuceneIndexWriter indexWriter;
     private final SearcherManager searcherManager;
     private final DirectoryReader directoryReader;
 
@@ -44,7 +43,7 @@ public class WritableIndexPartition extends AbstractIndexPartition {
             throws IOException {
         super(partitionFolder, directory);
         this.indexWriter = directory.newWriter(writerConfig);
-        this.directoryReader = DirectoryReader.open(indexWriter, true, false);
+        this.directoryReader = indexWriter.directoryReader();
         this.searcherManager = new SearcherManager(directoryReader, new Neo4jSearcherFactory());
     }
 
@@ -52,7 +51,7 @@ public class WritableIndexPartition extends AbstractIndexPartition {
      * {@inheritDoc}
      */
     @Override
-    public IndexWriter getIndexWriter() {
+    public LuceneIndexWriter getIndexWriter() {
         return indexWriter;
     }
 
@@ -85,7 +84,7 @@ public class WritableIndexPartition extends AbstractIndexPartition {
      */
     @Override
     public ResourceIterator<Path> snapshot() throws IOException {
-        return LuceneIndexSnapshots.forIndex(partitionFolder, indexWriter);
+        return indexWriter.snapshot(partitionFolder);
     }
 
     @Override

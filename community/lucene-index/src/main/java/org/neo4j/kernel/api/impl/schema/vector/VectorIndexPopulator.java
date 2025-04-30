@@ -22,6 +22,7 @@ package org.neo4j.kernel.api.impl.schema.vector;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.populator.LuceneIndexPopulator;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;
 import org.neo4j.kernel.api.index.IndexUpdater;
@@ -52,6 +53,7 @@ class VectorIndexPopulator extends LuceneIndexPopulator<DatabaseIndex<VectorInde
     protected LuceneDocument updateAsDocument(ValueIndexEntryUpdate update) {
         final var entityId = update.getEntityId();
         final var candidate = VectorCandidate.maybeFrom(update.values()[0]);
-        return documentStructure.createLuceneDocument(entityId, candidate, similarityFunction);
+        return LuceneDocumentsFactory.CURRENT.createVectorDocument(
+                documentStructure, entityId, candidate, similarityFunction);
     }
 }

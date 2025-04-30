@@ -32,7 +32,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.kernel.api.impl.schema.AbstractTextIndexProvider;
-import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 
 @TestDirectoryExtension
@@ -43,7 +43,7 @@ class TextIndexPopulatingTest {
 
     @Test
     void additionsDeliveredToIndexWriter() throws Exception {
-        LuceneIndexWriter writer = mock(LuceneIndexWriter.class);
+        LucenePartitionIndexWriter writer = mock(LucenePartitionIndexWriter.class);
         TextIndexPopulatingUpdater updater = newUpdater(writer);
 
         updater.process(add(1, INDEX_DESCRIPTOR, "foo"));
@@ -58,7 +58,7 @@ class TextIndexPopulatingTest {
 
     @Test
     void changesDeliveredToIndexWriter() throws Exception {
-        LuceneIndexWriter writer = mock(LuceneIndexWriter.class);
+        LucenePartitionIndexWriter writer = mock(LucenePartitionIndexWriter.class);
         TextIndexPopulatingUpdater updater = newUpdater(writer);
 
         updater.process(change(1, INDEX_DESCRIPTOR, "before1", "after1"));
@@ -70,7 +70,7 @@ class TextIndexPopulatingTest {
 
     @Test
     void removalsDeliveredToIndexWriter() throws Exception {
-        LuceneIndexWriter writer = mock(LuceneIndexWriter.class);
+        LucenePartitionIndexWriter writer = mock(LucenePartitionIndexWriter.class);
         TextIndexPopulatingUpdater updater = newUpdater(writer);
 
         updater.process(remove(1, INDEX_DESCRIPTOR, "foo"));
@@ -83,7 +83,7 @@ class TextIndexPopulatingTest {
         verify(writer).deleteDocuments(NODE_ID_KEY, 3);
     }
 
-    private static TextIndexPopulatingUpdater newUpdater(LuceneIndexWriter writer) {
+    private static TextIndexPopulatingUpdater newUpdater(LucenePartitionIndexWriter writer) {
         return new TextIndexPopulatingUpdater(writer, AbstractTextIndexProvider.UPDATE_IGNORE_STRATEGY);
     }
 }

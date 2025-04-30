@@ -23,7 +23,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.neo4j.configuration.Config;
@@ -35,16 +34,16 @@ import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument.LazyDocumentCastingIterable;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
-import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 
-class TransactionStateLuceneIndexWriter implements LuceneIndexWriter, Closeable {
+class TransactionStateLuceneIndexWriter implements LucenePartitionIndexWriter, Closeable {
     private final Config config;
     private final Analyzer analyzer;
     private final IndexConfig indexConfig;
-    private IndexWriter writer;
+    private LuceneIndexWriter writer;
     private final LuceneDirectory directory;
 
     TransactionStateLuceneIndexWriter(Config config, Analyzer analyzer, IndexConfig indexConfig) {
@@ -56,17 +55,17 @@ class TransactionStateLuceneIndexWriter implements LuceneIndexWriter, Closeable 
 
     @Override
     public void addDocument(LuceneDocument document) throws IOException {
-        writer.addDocument(document.toLuceneDocument());
+        writer.addDocument(document);
     }
 
     @Override
     public void addDocuments(int numDocs, Iterable<LuceneDocument> document) throws IOException {
-        writer.addDocuments(new LazyDocumentCastingIterable(document));
+        writer.addDocuments(document);
     }
 
     @Override
     public void updateDocument(String idField, long id, LuceneDocument document) throws IOException {
-        writer.updateDocument(new Term(idField, Long.toString(id)), document.toLuceneDocument());
+        writer.updateDocument(new Term(idField, Long.toString(id)), document);
     }
 
     @Override
@@ -81,7 +80,7 @@ class TransactionStateLuceneIndexWriter implements LuceneIndexWriter, Closeable 
 
     @Override
     public void addDirectory(int count, LuceneDirectory directory) throws IOException {
-        writer.addIndexes(directory.toLuceneDirectory());
+        writer.addIndexes(directory);
     }
 
     void resetWriterState() throws IOException {
@@ -99,7 +98,7 @@ class TransactionStateLuceneIndexWriter implements LuceneIndexWriter, Closeable 
     }
 
     SearcherReference getNearRealTimeSearcher() throws IOException {
-        DirectoryReader directoryReader = DirectoryReader.open(writer);
+        DirectoryReader directoryReader = writer.directoryReader();
         Neo4jIndexSearcher searcher = new Neo4jIndexSearcher(directoryReader);
         return new DirectSearcherReference(new LuceneIndexSearcher(searcher), directoryReader);
     }

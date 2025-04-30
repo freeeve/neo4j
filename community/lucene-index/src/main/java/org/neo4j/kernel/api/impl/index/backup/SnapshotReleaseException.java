@@ -20,15 +20,11 @@
 package org.neo4j.kernel.api.impl.index.backup;
 
 /**
- * Exception that is thrown by {@link WritableIndexSnapshotFileIterator} in case if exception
- * occurred during index snapshot release
- *
- * @see WritableIndexSnapshotFileIterator
- * @see org.apache.lucene.index.SnapshotDeletionPolicy
- * @see org.apache.lucene.index.IndexCommit
+ * Exception that is thrown by a snapshot in case if exception
+ * occurred during index snapshot release.
  */
-class SnapshotReleaseException extends RuntimeException {
-    SnapshotReleaseException(String message, Throwable e) {
+public class SnapshotReleaseException extends RuntimeException {
+    public SnapshotReleaseException(String message, Throwable e) {
         super(message, e);
     }
 }

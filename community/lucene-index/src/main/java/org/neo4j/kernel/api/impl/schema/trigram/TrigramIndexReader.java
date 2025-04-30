@@ -27,6 +27,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.LuceneQueryBuilder;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.AbstractTextIndexReader;
 import org.neo4j.kernel.api.impl.schema.LuceneQueryFactory;
 import org.neo4j.kernel.api.index.IndexSampler;
@@ -56,7 +57,7 @@ public class TrigramIndexReader extends AbstractTextIndexReader {
 
     @Override
     protected String entityIdFieldKey() {
-        return TrigramDocumentStructure.ENTITY_ID_KEY;
+        return LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY;
     }
 
     @Override
@@ -76,7 +77,7 @@ public class TrigramIndexReader extends AbstractTextIndexReader {
     public long countIndexedEntities(
             long entityId, CursorContext cursorContext, int[] propertyKeyIds, Value... propertyValues) {
         LuceneQueryBuilder entityIdAndValueQuery = new LuceneQueryBuilder();
-        entityIdAndValueQuery.addMustTerm(TrigramDocumentStructure.ENTITY_ID_KEY, String.valueOf(entityId));
+        entityIdAndValueQuery.addMustTerm(LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY, String.valueOf(entityId));
 
         Preconditions.checkState(
                 propertyKeyIds.length == 1,
@@ -94,7 +95,7 @@ public class TrigramIndexReader extends AbstractTextIndexReader {
 
     BoundedIterable<Long> newAllEntriesValueReader(long fromIdInclusive, long toIdExclusive) throws IOException {
         return newAllEntriesValueReaderForPartition(
-                TrigramDocumentStructure.ENTITY_ID_KEY,
+                LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY,
                 getIndexSearcher(),
                 TrigramQueryFactory.allValues(),
                 fromIdInclusive,

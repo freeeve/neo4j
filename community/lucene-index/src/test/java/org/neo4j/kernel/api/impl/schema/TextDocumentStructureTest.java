@@ -29,18 +29,18 @@ import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.NODE_ID_KEY
 import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.useFieldForUniquenessVerification;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
 import org.apache.lucene.search.TermQuery;
 import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneStringValueEncoding;
 
 class TextDocumentStructureTest {
     @Test
     void stringWithMaximumLengthShouldBeAllowed() {
-        String longestString = RandomStringUtils.randomAscii(IndexWriter.MAX_TERM_LENGTH);
+        String longestString = RandomStringUtils.randomAscii(LuceneIndexWriter.MAX_TERM_LENGTH);
         LuceneDocument document = documentRepresentingProperties(123, longestString);
         assertEquals(longestString, document.get(LuceneStringValueEncoding.key(0)));
     }

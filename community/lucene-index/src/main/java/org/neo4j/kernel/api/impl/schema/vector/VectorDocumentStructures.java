@@ -32,7 +32,7 @@ class VectorDocumentStructures {
         static final String VECTOR_VALUE_KEY = "vector";
 
         @Override
-        String vectorValueKeyFor(int dimensions) {
+        public String vectorValueKeyFor(int dimensions) {
             return VECTOR_VALUE_KEY;
         }
     };
@@ -41,7 +41,7 @@ class VectorDocumentStructures {
         static final String VECTOR_VALUE_KEY_SUFFIX = "d-vector";
 
         @Override
-        String vectorValueKeyFor(int dimensions) {
+        public String vectorValueKeyFor(int dimensions) {
             return dimensions + VECTOR_VALUE_KEY_SUFFIX;
         }
     };

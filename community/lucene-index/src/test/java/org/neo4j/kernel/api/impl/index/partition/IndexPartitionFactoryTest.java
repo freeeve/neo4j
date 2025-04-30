@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.apache.lucene.index.IndexWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
@@ -32,7 +31,7 @@ import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.TestIndexWriterModes;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -67,8 +66,8 @@ class IndexPartitionFactoryTest {
                 })
                 .createPartition(testDirectory.homePath(), directory)) {
 
-            try (IndexWriter indexWriter = indexPartition.getIndexWriter()) {
-                indexWriter.addDocument(new Lucene9Document().toLuceneDocument());
+            try (LuceneIndexWriter indexWriter = indexPartition.getIndexWriter()) {
+                indexWriter.addDocument(indexWriter.newDocument());
                 indexWriter.commit();
                 indexPartition.maybeRefreshBlocking();
                 try (SearcherReference searcher = indexPartition.acquireSearcher()) {

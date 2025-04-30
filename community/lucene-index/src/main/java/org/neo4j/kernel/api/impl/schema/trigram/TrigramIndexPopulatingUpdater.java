@@ -22,7 +22,8 @@ package org.neo4j.kernel.api.impl.schema.trigram;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
-import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
+import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.api.index.IndexValueValidator;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
@@ -30,12 +31,14 @@ import org.neo4j.storageengine.api.IndexEntryUpdate;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 
 class TrigramIndexPopulatingUpdater implements IndexUpdater {
-    private final LuceneIndexWriter writer;
+    private final LucenePartitionIndexWriter writer;
     private final IndexUpdateIgnoreStrategy ignoreStrategy;
     private final IndexValueValidator validator;
 
     TrigramIndexPopulatingUpdater(
-            LuceneIndexWriter writer, IndexUpdateIgnoreStrategy ignoreStrategy, IndexValueValidator validator) {
+            LucenePartitionIndexWriter writer,
+            IndexUpdateIgnoreStrategy ignoreStrategy,
+            IndexValueValidator validator) {
         this.writer = writer;
         this.ignoreStrategy = ignoreStrategy;
         this.validator = validator;
@@ -57,15 +60,15 @@ class TrigramIndexPopulatingUpdater implements IndexUpdater {
             switch (updateMode) {
                 case ADDED ->
                     writer.updateDocument(
-                            TrigramDocumentStructure.ENTITY_ID_KEY,
+                            LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY,
                             entityId,
-                            TrigramDocumentStructure.createLuceneDocument(entityId, value));
+                            LuceneDocumentsFactory.CURRENT.createTrigramDocument(entityId, value));
                 case CHANGED ->
                     writer.updateOrDeleteDocument(
-                            TrigramDocumentStructure.ENTITY_ID_KEY,
+                            LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY,
                             entityId,
-                            TrigramDocumentStructure.createLuceneDocument(entityId, value));
-                case REMOVED -> writer.deleteDocuments(TrigramDocumentStructure.ENTITY_ID_KEY, entityId);
+                            LuceneDocumentsFactory.CURRENT.createTrigramDocument(entityId, value));
+                case REMOVED -> writer.deleteDocuments(LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY, entityId);
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);

@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +38,8 @@ import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.TestIndexWriterModes;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -88,7 +88,7 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
     private void prepareIndex() throws IOException {
         Config config = Config.defaults();
         IndexWriterConfig writerConfig = new IndexWriterConfigBuilder(TestIndexWriterModes.STANDARD, config).build();
-        try (IndexWriter writer = dir.newWriter(writerConfig)) {
+        try (LuceneIndexWriter writer = dir.newWriter(writerConfig)) {
             insertRandomDocuments(writer);
         }
     }
@@ -97,18 +97,18 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
         return LuceneIndexSnapshots.forIndex(indexDir, dir);
     }
 
-    private static void insertRandomDocuments(IndexWriter writer) throws IOException {
-        LuceneDocument doc = new Lucene9Document();
+    private static void insertRandomDocuments(LuceneIndexWriter writer) throws IOException {
+        LuceneDocument doc = LuceneDocumentsFactory.CURRENT.newDocument();
         doc.addStringField("a", "b", true);
         doc.addStringField("c", "d", false);
-        writer.addDocument(doc.toLuceneDocument());
+        writer.addDocument(doc);
         writer.commit();
     }
 
     private static Set<String> listDir(LuceneDirectory dir) throws IOException {
         String[] files = dir.listAll();
         return Stream.of(files)
-                .filter(file -> !IndexWriter.WRITE_LOCK_NAME.equals(file))
+                .filter(file -> !LuceneIndexWriter.WRITE_LOCK_NAME.equals(file))
                 .collect(toSet());
     }
 }

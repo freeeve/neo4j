@@ -23,12 +23,14 @@ import java.io.IOException;
 import org.apache.lucene.search.Query;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 
 /**
- * A thin wrapper around {@link org.apache.lucene.index.IndexWriter} that exposes only some part of it's
+ * A thin wrapper around {@link LuceneIndexWriter} that exposes only some part of it's
  * functionality that it really needed and hides a fact that index is partitioned.
  */
-public interface LuceneIndexWriter {
+public interface LucenePartitionIndexWriter {
+
     void addDocument(LuceneDocument document) throws IOException;
 
     void addDocuments(int numDocs, Iterable<LuceneDocument> document) throws IOException;

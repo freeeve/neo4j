@@ -31,7 +31,7 @@ import org.apache.lucene.index.IndexReader;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.partition.PartitionSearcher;
 
 class LuceneAllDocumentsReaderTest {
@@ -98,7 +98,7 @@ class LuceneAllDocumentsReaderTest {
     }
 
     private static LuceneDocument createDocument(String value) {
-        LuceneDocument document = new Lucene9Document();
+        LuceneDocument document = LuceneDocumentsFactory.CURRENT.newDocument();
         document.addStringField("value", value, true);
         return document;
     }

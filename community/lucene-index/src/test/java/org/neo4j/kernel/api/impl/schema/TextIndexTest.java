@@ -36,7 +36,7 @@ import org.neo4j.io.IOUtils;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexBuilder;
 import org.neo4j.kernel.api.index.ValueIndexReader;
@@ -148,7 +148,7 @@ class TextIndexTest {
     }
 
     private static LuceneDocument newDocument() {
-        LuceneDocument doc = new Lucene9Document();
+        LuceneDocument doc = LuceneDocumentsFactory.CURRENT.newDocument();
         doc.addStringField("test", UUID.randomUUID().toString(), true);
         return doc;
     }

@@ -22,16 +22,16 @@ package org.neo4j.kernel.api.impl.index.partition;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.SearcherManager;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 
 /**
  * Represents a single partition of a partitioned lucene index. Each partition is a separate Lucene index.
- * Contains and manages lifecycle of the corresponding {@link LuceneDirectory}, {@link IndexWriter writer} and
+ * Contains and manages lifecycle of the corresponding {@link LuceneDirectory}, {@link LuceneIndexWriter writer} and
  * {@link SearcherManager}.
  */
 public abstract class AbstractIndexPartition implements Closeable {
@@ -55,7 +55,7 @@ public abstract class AbstractIndexPartition implements Closeable {
      * Retrieve index partition writer
      * @return partition writer
      */
-    public abstract IndexWriter getIndexWriter();
+    public abstract LuceneIndexWriter getIndexWriter();
 
     /**
      * Return searcher for requested partition.

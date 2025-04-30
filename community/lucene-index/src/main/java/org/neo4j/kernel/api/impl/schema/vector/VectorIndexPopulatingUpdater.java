@@ -22,8 +22,9 @@ package org.neo4j.kernel.api.impl.schema.vector;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions.LuceneVectorSimilarityFunction;
-import org.neo4j.kernel.api.impl.schema.writer.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.impl.index.schema.IndexUpdateIgnoreStrategy;
 import org.neo4j.storageengine.api.IndexEntryUpdate;
@@ -31,13 +32,13 @@ import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
 import org.neo4j.values.VectorCandidate;
 
 class VectorIndexPopulatingUpdater implements IndexUpdater {
-    private final LuceneIndexWriter writer;
+    private final LucenePartitionIndexWriter writer;
     private final IndexUpdateIgnoreStrategy ignoreStrategy;
     private final VectorDocumentStructure documentStructure;
     private final LuceneVectorSimilarityFunction similarityFunction;
 
     VectorIndexPopulatingUpdater(
-            LuceneIndexWriter writer,
+            LucenePartitionIndexWriter writer,
             IndexUpdateIgnoreStrategy ignoreStrategy,
             VectorDocumentStructure documentStructure,
             LuceneVectorSimilarityFunction similarityFunction) {
@@ -64,12 +65,14 @@ class VectorIndexPopulatingUpdater implements IndexUpdater {
                     writer.updateDocument(
                             VectorDocumentStructure.ENTITY_ID_KEY,
                             entityId,
-                            documentStructure.createLuceneDocument(entityId, candidate, similarityFunction));
+                            LuceneDocumentsFactory.CURRENT.createVectorDocument(
+                                    documentStructure, entityId, candidate, similarityFunction));
                 case CHANGED ->
                     writer.updateOrDeleteDocument(
                             VectorDocumentStructure.ENTITY_ID_KEY,
                             entityId,
-                            documentStructure.createLuceneDocument(entityId, candidate, similarityFunction));
+                            LuceneDocumentsFactory.CURRENT.createVectorDocument(
+                                    documentStructure, entityId, candidate, similarityFunction));
                 case REMOVED -> writer.deleteDocuments(VectorDocumentStructure.ENTITY_ID_KEY, entityId);
             }
         } catch (IOException e) {

@@ -22,13 +22,13 @@ package org.neo4j.kernel.api.impl.index.partition;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.SearcherManager;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.impl.index.backup.LuceneIndexSnapshots;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 
 /**
  * Represents a single read only partition of a partitioned lucene index.
@@ -46,7 +46,7 @@ public class ReadOnlyIndexPartition extends AbstractIndexPartition {
     }
 
     @Override
-    public IndexWriter getIndexWriter() {
+    public LuceneIndexWriter getIndexWriter() {
         throw new UnsupportedOperationException(
                 "Retrieving index writer from read only index partition is unsupported.");
     }

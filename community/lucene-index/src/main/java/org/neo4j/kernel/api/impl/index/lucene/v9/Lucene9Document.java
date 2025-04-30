@@ -26,14 +26,13 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.document.TextField;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.schema.trigram.TrigramDocumentStructure;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
 
 public class Lucene9Document implements LuceneDocument {
     final Document document;
 
-    public Lucene9Document() {
-        this.document = new Document();
+    Lucene9Document() {
+        this(new Document());
     }
 
     public Lucene9Document(Document document) {
@@ -56,19 +55,9 @@ public class Lucene9Document implements LuceneDocument {
     }
 
     @Override
-    public Document toLuceneDocument() {
-        return document;
-    }
-
-    @Override
     public void addKnnFloatVectorField(
             String key, float[] vector, VectorSimilarityFunctions.LuceneVectorSimilarityFunction similarityFunction) {
         document.add(new KnnFloatVectorField(key, vector, similarityFunction.toLucene()));
-    }
-
-    @Override
-    public void add(TrigramDocumentStructure.TrigramField valueField) {
-        document.add(valueField);
     }
 
     @Override
