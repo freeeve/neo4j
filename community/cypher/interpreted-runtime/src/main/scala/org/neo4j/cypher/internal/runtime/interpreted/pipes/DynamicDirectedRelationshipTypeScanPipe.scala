@@ -80,15 +80,15 @@ object DynamicDirectedRelationshipTypeScanPipe {
   ): ClosingLongIterator with RelationshipIterator = {
     val query = state.query
     val typeValue = typeExpr.apply(ctx, state)
+    if (typeValue == Values.NO_VALUE) {
+      throw CypherTypeException.expectedStringNotNull(
+        "Expected relationship type to be a string or list of strings.",
+        typeValue.prettyPrint,
+        CypherTypeValueMapper.valueType(typeValue)
+      )
+    }
     operator match {
       case DynamicElement.All =>
-        if (typeValue == Values.NO_VALUE) {
-          throw CypherTypeException.expectedStringNotNull(
-            "Expected relationship type to be a string or list of strings.",
-            typeValue.prettyPrint,
-            CypherTypeValueMapper.valueType(typeValue)
-          )
-        }
         val typeName = CypherFunctions.getSingleDynamicType(typeValue, state)
         typeName match {
           case _: CypherFunctions.GetSingleDynamicTypeResult.ConflictingDynamicTypes =>

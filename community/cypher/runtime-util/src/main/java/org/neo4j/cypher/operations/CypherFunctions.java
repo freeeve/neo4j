@@ -1522,6 +1522,7 @@ public final class CypherFunctions {
 
     @CalledFromGeneratedCode
     public static String[] getDynamicTypes(AnyValue labelName) throws IllegalTokenNameException {
+        assert labelName != NO_VALUE : "NO_VALUE checks need to happen outside this call";
         if (labelName instanceof TextValue textType) {
             return new String[] {checkValidTokenName(textType.stringValue(), TokenType.RELATIONSHIP_TYPE)};
         } else if (labelName instanceof SequenceValue labelSequence) {
