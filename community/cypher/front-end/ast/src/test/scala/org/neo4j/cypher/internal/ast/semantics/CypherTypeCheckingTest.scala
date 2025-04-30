@@ -18,8 +18,10 @@ package org.neo4j.cypher.internal.ast.semantics
 
 import org.neo4j.cypher.internal.ast
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
+import org.neo4j.cypher.internal.ast.CreateConstraint
 import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.ClosedDynamicUnionType
+import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.FloatType
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 import org.neo4j.cypher.internal.util.symbols.ListType
@@ -28,6 +30,7 @@ import org.neo4j.cypher.internal.util.symbols.PropertyValueCypher5Type
 import org.neo4j.cypher.internal.util.symbols.PropertyValueType
 import org.neo4j.cypher.internal.util.symbols.StringType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -39,266 +42,124 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
   private val pos4 = InputPosition(37, 8, 9)
   private val pos5 = InputPosition(42, 11, 14)
 
-  private val initialState =
-    SemanticState.clean
-      .withFeature(SemanticFeature.VectorType)
+  private val initialState = SemanticState.clean
 
   test("nullable property type should be valid for property type constraint") {
-    val constraintCommand = ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
-      varFor("r"),
-      relTypeName("R"),
-      prop("r", "prop"),
-      IntegerType(isNullable = true)(pos1),
-      None,
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos2)
-
+    val constraintCommand = relPropertyTypeConstraint(IntegerType(isNullable = true)(pos1), pos2)
     constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
   }
 
   test("non-nullable property type should not be valid for property type constraint") {
-    val constraintCommand = ast.CreateConstraint.createNodePropertyTypeConstraint(
-      varFor("n"),
-      labelName("Label"),
-      prop("n", "prop"),
-      IntegerType(isNullable = false)(pos1),
-      None,
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos2)
-
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(
-        initialState,
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-            .withParam(GqlParams.StringParam.constrDescrOrName, "node property type constraint")
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-              .withParam(GqlParams.StringParam.item, "INTEGER NOT NULL")
-              .build())
-            .build(),
-          "Failed to create node property type constraint: Invalid property type `INTEGER NOT NULL`.",
-          pos1
-        )
-      ).errors
+    val constraintCommand = nodePropertyTypeConstraint(IntegerType(isNullable = false)(pos1), pos2)
+    assertPropertyTypeConstraintError(constraintCommand, "node", "INTEGER NOT NULL", pos1)
   }
 
   test("non-property type should not be valid for property type constraint") {
-    val constraintCommand = ast.CreateConstraint.createNodePropertyTypeConstraint(
-      varFor("n"),
-      labelName("Label"),
-      prop("n", "prop"),
-      NodeType(isNullable = true)(pos1),
-      None,
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos2)
-
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(
-        initialState,
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-            .withParam(GqlParams.StringParam.constrDescrOrName, "node property type constraint")
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-              .withParam(GqlParams.StringParam.item, "NODE")
-              .build())
-            .build(),
-          "Failed to create node property type constraint: Invalid property type `NODE`.",
-          pos1
-        )
-      ).errors
+    val constraintCommand = nodePropertyTypeConstraint(NodeType(isNullable = true)(pos1), pos2)
+    assertPropertyTypeConstraintError(constraintCommand, "node", "NODE", pos1)
   }
 
+  // List types
+
   test("nullable list of non-nullable property type should be valid for property type constraint") {
-    val constraintCommand = ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
-      varFor("r"),
-      relTypeName("R"),
-      prop("r", "prop"),
-      ListType(StringType(isNullable = false)(pos1), isNullable = true)(pos2),
-      None,
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos3)
+    val constraintCommand =
+      relPropertyTypeConstraint(ListType(StringType(isNullable = false)(pos1), isNullable = true)(pos2), pos3)
 
     constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
   }
 
   test("non-nullable list of property type should not be valid for property type constraint") {
-    val constraintCommand = ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
-      varFor("r"),
-      relTypeName("R"),
-      prop("r", "prop"),
-      ListType(StringType(isNullable = false)(pos1), isNullable = false)(pos2),
-      None,
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos3)
+    val constraintCommand =
+      relPropertyTypeConstraint(ListType(StringType(isNullable = false)(pos1), isNullable = false)(pos2), pos3)
 
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(
-        initialState,
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-            .withParam(GqlParams.StringParam.constrDescrOrName, "relationship property type constraint")
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-              .withParam(GqlParams.StringParam.item, "LIST<STRING NOT NULL> NOT NULL")
-              .build())
-            .build(),
-          "Failed to create relationship property type constraint: Invalid property type `LIST<STRING NOT NULL> NOT NULL`.",
-          pos2
-        )
-      ).errors
+    assertPropertyTypeConstraintError(constraintCommand, "relationship", "LIST<STRING NOT NULL> NOT NULL", pos2)
   }
 
   test("nullable list of nullable property type should not be valid for property type constraint") {
-    val constraintCommand = ast.CreateConstraint.createNodePropertyTypeConstraint(
-      varFor("n"),
-      labelName("Label"),
-      prop("n", "prop"),
-      ListType(FloatType(isNullable = true)(pos1), isNullable = true)(pos2),
-      None,
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos3)
+    val constraintCommand =
+      nodePropertyTypeConstraint(ListType(FloatType(isNullable = true)(pos1), isNullable = true)(pos2), pos3)
 
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(
-        initialState,
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-            .withParam(GqlParams.StringParam.constrDescrOrName, "node property type constraint")
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-              .withParam(GqlParams.StringParam.item, "LIST<FLOAT>")
-              .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
-                .withParam(GqlParams.StringParam.item, "a nullable type")
-                .build())
-              .build())
-            .build(),
-          "Failed to create node property type constraint: Invalid property type `LIST<FLOAT>`. " +
-            "Lists cannot have nullable inner types.",
-          pos2
-        )
-      ).errors
+    val expectedCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+      .withParam(GqlParams.StringParam.item, "a nullable type")
+      .build()
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "node",
+      "LIST<FLOAT>",
+      expectedCause,
+      "Lists cannot have nullable inner types.",
+      pos2
+    )
   }
 
   test("list of list should not be valid for property type constraint") {
-    val constraintCommand = ast.CreateConstraint.createNodePropertyTypeConstraint(
-      varFor("n"),
-      labelName("Label"),
-      prop("n", "prop"),
-      ListType(
-        ListType(FloatType(isNullable = false)(pos1), isNullable = true)(pos2),
-        isNullable = true
-      )(pos3),
-      None,
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos4)
+    val constraintCommand = nodePropertyTypeConstraint(
+      ListType(ListType(FloatType(isNullable = false)(pos1), isNullable = true)(pos2), isNullable = true)(pos3),
+      pos4
+    )
 
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(
-        initialState,
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-            .withParam(GqlParams.StringParam.constrDescrOrName, "node property type constraint")
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-              .withParam(GqlParams.StringParam.item, "LIST<LIST<FLOAT NOT NULL>>")
-              .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
-                .withParam(GqlParams.StringParam.item, "a list")
-                .build())
-              .build())
-            .build(),
-          "Failed to create node property type constraint: Invalid property type `LIST<LIST<FLOAT NOT NULL>>`. " +
-            "Lists cannot have lists as an inner type.",
-          pos3
-        )
-      ).errors
+    val expectedCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+      .withParam(GqlParams.StringParam.item, "a list")
+      .build()
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "node",
+      "LIST<LIST<FLOAT NOT NULL>>",
+      expectedCause,
+      "Lists cannot have lists as an inner type.",
+      pos3
+    )
   }
 
   test("list of union should not be valid for property type constraint") {
-    val constraintCommand = ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
-      varFor("r"),
-      relTypeName("R"),
-      prop("r", "prop"),
+    val constraintCommand = relPropertyTypeConstraint(
       ListType(
-        ClosedDynamicUnionType(Set(
-          IntegerType(isNullable = false)(pos1),
-          FloatType(isNullable = false)(pos2)
-        ))(pos3),
+        ClosedDynamicUnionType(Set(IntegerType(isNullable = false)(pos1), FloatType(isNullable = false)(pos2)))(pos3),
         isNullable = true
       )(pos4),
-      None,
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos5)
+      pos5
+    )
 
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(
-        initialState,
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-            .withParam(GqlParams.StringParam.constrDescrOrName, "relationship property type constraint")
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-              .withParam(GqlParams.StringParam.item, "LIST<INTEGER NOT NULL | FLOAT NOT NULL>")
-              .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
-                .withParam(GqlParams.StringParam.item, "a union of types")
-                .build())
-              .build())
-            .build(),
-          "Failed to create relationship property type constraint: Invalid property type `LIST<INTEGER NOT NULL | FLOAT NOT NULL>`. " +
-            "Lists cannot have a union of types as an inner type.",
-          pos4
-        )
-      ).errors
+    val expectedCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
+      .withParam(GqlParams.StringParam.item, "a union of types")
+      .build()
+
+    assertPropertyTypeConstraintErrorWithCause(
+      constraintCommand,
+      "relationship",
+      "LIST<INTEGER NOT NULL | FLOAT NOT NULL>",
+      expectedCause,
+      "Lists cannot have a union of types as an inner type.",
+      pos4
+    )
   }
 
+  // Union of types
+
   test("union of valid types should be valid for property type constraint") {
-    val constraintCommand = ast.CreateConstraint.createNodePropertyTypeConstraint(
-      varFor("n"),
-      labelName("Label"),
-      prop("n", "prop"),
+    val constraintCommand = nodePropertyTypeConstraint(
       ClosedDynamicUnionType(Set(
         ListType(IntegerType(isNullable = false)(pos1), isNullable = true)(pos2),
         FloatType(isNullable = true)(pos3)
       ))(pos4),
-      None,
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos5)
+      pos5
+    )
 
     constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe empty
   }
 
   test("union with none valid type should not be valid for property type constraint") {
-    val constraintCommand = ast.CreateConstraint.createNodePropertyTypeConstraint(
-      varFor("n"),
-      labelName("Label"),
-      prop("n", "prop"),
+    val constraintCommand = nodePropertyTypeConstraint(
       ClosedDynamicUnionType(Set(
         IntegerType(isNullable = false)(pos1),
         NodeType(isNullable = false)(pos2)
       ))(pos3),
-      None,
-      ast.IfExistsThrowError,
-      ast.NoOptions
-    )(pos4)
+      pos4
+    )
 
-    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
-      .error(
-        initialState,
-        SemanticError(
-          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-            .withParam(GqlParams.StringParam.constrDescrOrName, "node property type constraint")
-            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-              .withParam(GqlParams.StringParam.item, "INTEGER NOT NULL | NODE NOT NULL")
-              .build())
-            .build(),
-          "Failed to create node property type constraint: Invalid property type `INTEGER NOT NULL | NODE NOT NULL`.",
-          pos3
-        )
-      ).errors
+    assertPropertyTypeConstraintError(constraintCommand, "node", "INTEGER NOT NULL | NODE NOT NULL", pos3)
   }
 
   test("any property value should not be valid for property type constraint") {
@@ -328,35 +189,84 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
 
     propertyValueTypes.foreach { case (propertyType, typeString) =>
       withClue(s"PropertyType = $propertyType \n") {
-        val constraintCommand = ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
-          varFor("r"),
-          relTypeName("R"),
-          prop("r", "prop"),
-          propertyType,
-          None,
-          ast.IfExistsThrowError,
-          ast.NoOptions
-        )(pos2)
-
-        constraintCommand.semanticCheck.run(
-          initialState,
-          SemanticCheckContext.default
-        ).errors shouldBe SemanticCheckResult
-          .error(
-            initialState,
-            SemanticError(
-              ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
-                .withParam(GqlParams.StringParam.constrDescrOrName, "relationship property type constraint")
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-                  .withParam(GqlParams.StringParam.item, typeString)
-                  .build())
-                .build(),
-              s"Failed to create relationship property type constraint: Invalid property type `$typeString`.",
-              pos1
-            )
-          ).errors
+        val constraintCommand = relPropertyTypeConstraint(propertyType, pos2)
+        assertPropertyTypeConstraintError(constraintCommand, "relationship", typeString, pos1)
       }
 
     }
+  }
+
+  // Help methods
+
+  private def nodePropertyTypeConstraint(propertyType: CypherType, position: InputPosition): CreateConstraint = {
+    ast.CreateConstraint.createNodePropertyTypeConstraint(
+      varFor("n"),
+      labelName("Label"),
+      prop("n", "prop"),
+      propertyType,
+      None,
+      ast.IfExistsThrowError,
+      ast.NoOptions
+    )(position)
+  }
+
+  private def relPropertyTypeConstraint(propertyType: CypherType, position: InputPosition): CreateConstraint = {
+    ast.CreateConstraint.createRelationshipPropertyTypeConstraint(
+      varFor("r"),
+      relTypeName("R"),
+      prop("r", "prop"),
+      propertyType,
+      None,
+      ast.IfExistsThrowError,
+      ast.NoOptions
+    )(position)
+  }
+
+  private def assertPropertyTypeConstraintError(
+    constraintCommand: CreateConstraint,
+    elementType: String,
+    cypherType: String,
+    position: InputPosition
+  ): Unit = {
+    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+      .error(
+        initialState,
+        SemanticError(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
+            .withParam(GqlParams.StringParam.constrDescrOrName, s"$elementType property type constraint")
+            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
+              .withParam(GqlParams.StringParam.item, cypherType)
+              .build())
+            .build(),
+          s"Failed to create $elementType property type constraint: Invalid property type `$cypherType`.",
+          position
+        )
+      ).errors
+  }
+
+  private def assertPropertyTypeConstraintErrorWithCause(
+    constraintCommand: CreateConstraint,
+    elementType: String,
+    cypherType: String,
+    cause: ErrorGqlStatusObject,
+    additionalErrorInfo: String,
+    position: InputPosition
+  ): Unit = {
+    constraintCommand.semanticCheck.run(initialState, SemanticCheckContext.default).errors shouldBe SemanticCheckResult
+      .error(
+        initialState,
+        SemanticError(
+          ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
+            .withParam(GqlParams.StringParam.constrDescrOrName, s"$elementType property type constraint")
+            .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
+              .withParam(GqlParams.StringParam.item, cypherType)
+              .withCause(cause)
+              .build())
+            .build(),
+          s"Failed to create $elementType property type constraint: Invalid property type `$cypherType`. " +
+            additionalErrorInfo,
+          position
+        )
+      ).errors
   }
 }
