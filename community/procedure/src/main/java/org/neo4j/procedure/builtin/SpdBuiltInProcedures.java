@@ -53,6 +53,21 @@ public interface SpdBuiltInProcedures {
         }
 
         @Override
+        public void prepareForReplanning() {
+            throw unsupported();
+        }
+
+        @Override
+        public void resampleOutdatedIndexes() {
+            throw unsupported();
+        }
+
+        @Override
+        public void resampleIndex(String indexName) {
+            throw unsupported();
+        }
+
+        @Override
         public void clearQueryCaches() {
             throw unsupported();
         }
@@ -69,6 +84,12 @@ public interface SpdBuiltInProcedures {
     Stream<NodePropertySchemaInfoResult> nodePropertySchema(KernelTransaction kernelTransaction);
 
     Stream<RelationshipPropertySchemaInfoResult> relationshipPropertySchema(KernelTransaction kernelTransaction);
+
+    void prepareForReplanning();
+
+    void resampleOutdatedIndexes();
+
+    void resampleIndex(String indexName);
 
     void clearQueryCaches();
 }

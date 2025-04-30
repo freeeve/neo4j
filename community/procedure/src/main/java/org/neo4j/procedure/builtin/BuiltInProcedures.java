@@ -61,7 +61,6 @@ import org.neo4j.procedure.Mode;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.NotThreadSafe;
 import org.neo4j.procedure.Procedure;
-import org.neo4j.procedure.UnsupportedDatabaseTypes;
 import org.neo4j.storageengine.api.StoreIdProvider;
 
 @SuppressWarnings({"unused", "WeakerAccess"})
@@ -202,11 +201,17 @@ public class BuiltInProcedures {
     @NotThreadSafe
     @Description("Schedule resampling of an index (for example: CALL db.resampleIndex(\"MyIndex\")).")
     @Procedure(name = "db.resampleIndex", mode = READ)
-    @UnsupportedDatabaseTypes(UnsupportedDatabaseTypes.DatabaseType.SPD)
     public void resampleIndex(@Name(value = "indexName", description = "The name of the index.") String indexName)
             throws ProcedureException {
         if (callContext.isSystemDatabase()) {
             return;
+        }
+
+        if (spdBuiltInProcedures.isGraphShard()) {
+            // This will call the same procedure on the shards, because it returns nothing should be fine to just call
+            // this
+            // and carry on
+            spdBuiltInProcedures.resampleIndex(indexName);
         }
 
         IndexProcedures indexProcedures = indexProcedures();
@@ -217,10 +222,16 @@ public class BuiltInProcedures {
     @NotThreadSafe
     @Description("Schedule resampling of all outdated indexes.")
     @Procedure(name = "db.resampleOutdatedIndexes", mode = READ)
-    @UnsupportedDatabaseTypes(UnsupportedDatabaseTypes.DatabaseType.SPD)
     public void resampleOutdatedIndexes() {
         if (callContext.isSystemDatabase()) {
             return;
+        }
+
+        if (spdBuiltInProcedures.isGraphShard()) {
+            // This will call the same procedure on the shards, because it returns nothing should be fine to just call
+            // this
+            // and carry on
+            spdBuiltInProcedures.resampleOutdatedIndexes();
         }
 
         IndexProcedures indexProcedures = indexProcedures();
@@ -234,13 +245,19 @@ public class BuiltInProcedures {
             "Triggers an index resample and waits for it to complete, and after that clears query caches. After this "
                     + "procedure has finished queries will be planned using the latest database statistics.")
     @Procedure(name = "db.prepareForReplanning", mode = READ)
-    @UnsupportedDatabaseTypes(UnsupportedDatabaseTypes.DatabaseType.SPD)
     public void prepareForReplanning(
             @Name(value = "timeOutSeconds", defaultValue = "300", description = "The maximum time to wait in seconds.")
                     long timeOutSeconds)
             throws ProcedureException {
         if (callContext.isSystemDatabase()) {
             return;
+        }
+
+        if (spdBuiltInProcedures.isGraphShard()) {
+            // This will call the same procedure on the shards, because it returns nothing should be fine to just call
+            // this
+            // and carry on
+            spdBuiltInProcedures.prepareForReplanning();
         }
 
         // Resample indexes
