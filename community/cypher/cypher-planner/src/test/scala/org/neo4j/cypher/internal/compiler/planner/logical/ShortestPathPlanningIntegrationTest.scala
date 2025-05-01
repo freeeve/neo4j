@@ -55,6 +55,7 @@ import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
+import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.AllowSameNode
 import org.neo4j.cypher.internal.logical.plans.GetValue
 import org.neo4j.cypher.internal.logical.plans.NestedPlanExistsExpression
 import org.neo4j.cypher.internal.logical.plans.NestedPlanGetByNameExpression
@@ -5131,7 +5132,7 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
   }
 
   testVersionsExcept5(
-    "should plan shortest path with repeatable elements with predicate inside referring to the nodes inside a QPP"
+    "should plan legacy shortest path with repeatable elements with predicate inside referring to the nodes inside a QPP"
   ) { version =>
     val planner = plannerBuilder()
       .setAllNodesCardinality(1000)
@@ -5155,37 +5156,19 @@ class ShortestPathPlanningIntegrationTest extends CypherFunSuite with LogicalPla
         |""".stripMargin
 
     val relPredicate = lessThan(
-      prop(TraversalEndpoint(v"anon_0", To), "location"),
-      prop(TraversalEndpoint(v"anon_1", From), "location")
+      prop(TraversalEndpoint(v"anon_1", To), "location"),
+      prop(TraversalEndpoint(v"anon_2", From), "location")
     )
-
-    val nfa = new TestNFABuilder(0, "startStation")
-      .addTransition(0, 1, "(startStation) (l)")
-      .addTransition(0, 3, "(startStation) (endStation)")
-      .addTransition(1, 2, "(l)-[link:LINK]-(r)", maybeRelPredicate = Some(_ => relPredicate))
-      .addTransition(2, 3, "(r) (endStation)")
-      .setFinalState(3)
-      .build()
 
     planner.plan(version, query) should equal(
       planner.planBuilder()
         .produceResults(column("startStation", "cacheN[startStation.name]"))
-        .statefulShortestPath(
-          "startStation",
-          "endStation",
-          "ANY 1 (startStation) ((`l`)-[`link`]-(`r`)){0, 1} (endStation)",
-          None,
-          Set.empty,
-          Set.empty,
-          Set.empty,
-          Set.empty,
-          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
-          nfa,
-          ExpandInto,
-          false,
-          0,
-          Some(1),
-          Walk
+        .shortestPathExpr(
+          "(startStation)-[link:LINK*0..1]-(endStation)",
+          pathName = Some("anon_3"),
+          nodePredicates = Seq(),
+          relationshipPredicates = Seq(VariablePredicate(varFor("anon_0"), relPredicate)),
+          sameNodeMode = AllowSameNode
         )
         .cartesianProduct()
         .|.nodeIndexOperator(

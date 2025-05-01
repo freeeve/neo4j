@@ -100,7 +100,7 @@ case class StatefulShortestToFindShortestRewriter(
         _,
         _,
         _,
-        TraversalPathMode.Trail
+        TraversalPathMode.Trail | TraversalPathMode.Walk
       )
       // 2.0 start and end nodes are bound and 6.0 selection asks for shortest 1
       if source.availableSymbols.contains(targetNode) &&

@@ -22,8 +22,10 @@ package org.neo4j.cypher.internal.compiler.planner.logical
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.ALL_IF_POSSIBLE
 import org.neo4j.configuration.GraphDatabaseInternalSettings.StatefulShortestPlanningMode.INTO_ONLY
+import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
+import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MatchModes
 import org.neo4j.cypher.internal.compiler.ExecutionModel.Volcano
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningIntegrationTestSupport
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -42,6 +44,7 @@ import org.neo4j.cypher.internal.logical.plans.Expand.ExpandInto
 import org.neo4j.cypher.internal.logical.plans.Expand.VariablePredicate
 import org.neo4j.cypher.internal.logical.plans.FindShortestPaths.AllowSameNode
 import org.neo4j.cypher.internal.logical.plans.StatefulShortestPath
+import org.neo4j.cypher.internal.logical.plans.TraversalPathMode.Walk
 import org.neo4j.cypher.internal.planner.spi.DatabaseMode
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint
 import org.neo4j.cypher.internal.runtime.ast.TraversalEndpoint.Endpoint.From
@@ -64,6 +67,7 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
     .setRelationshipCardinality("(:User)-[]->()", 10)
     // This makes it deterministic which plans ends up on what side of a CartesianProduct.
     .setExecutionModel(Volcano)
+    .addSemanticFeature(MatchModes)
 
   private val planner = plannerBase
     // For the rewrite to trigger, we need an INTO plan
@@ -90,6 +94,30 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
       .projection(Map("p" -> multiOutgoingRelationshipPath("a", "r", "b")))
       .shortestPath(
         "(a)-[r*1..]->(b)",
+        pathName = Some("anon_0"),
+        nodePredicates = Seq(),
+        relationshipPredicates = Seq(),
+        sameNodeMode = AllowSameNode
+      )
+      .cartesianProduct()
+      .|.nodeByLabelScan("b", "User")
+      .nodeByLabelScan("a", "User")
+      .build()
+
+    plan should equal(expected)(SymmetricalLogicalPlanEquality)
+  }
+
+  test("Shortest should be rewritten to legacy shortest for simple varLength pattern - WALK") {
+    val query =
+      s"""
+         |MATCH REPEATABLE ELEMENTS p = ANY SHORTEST (a:User)-[r*1..10]->(b:User)
+         |RETURN *
+         |""".stripMargin
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    val expected = planner.subPlanBuilder()
+      .projection(Map("p" -> multiOutgoingRelationshipPath("a", "r", "b")))
+      .shortestPath(
+        "(a)-[r*1..10]->(b)",
         pathName = Some("anon_0"),
         nodePredicates = Seq(),
         relationshipPredicates = Seq(),
@@ -241,6 +269,70 @@ class StatefulShortestToFindShortestIntegrationTest extends CypherFunSuite with 
         .cartesianProduct()
         .|.allNodeScan("a")
         .allNodeScan("b")
+        .build()
+    )(SymmetricalLogicalPlanEquality)
+  }
+
+  test("Shortest should be rewritten to legacy shortest for simple QPP - WALK") {
+    val query =
+      s"""
+         |MATCH REPEATABLE ELEMENTS ANY SHORTEST (a)-[r]->{1, 10}(b)
+         |RETURN *
+         |""".stripMargin
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan should equal(
+      planner.subPlanBuilder()
+        .shortestPath(
+          "(a)-[r*1..10]->(b)",
+          pathName = Some("anon_0"),
+          nodePredicates = Seq(),
+          relationshipPredicates = Seq(),
+          sameNodeMode = AllowSameNode
+        )
+        .cartesianProduct()
+        .|.allNodeScan("a")
+        .allNodeScan("b")
+        .build()
+    )(SymmetricalLogicalPlanEquality)
+  }
+
+  test("Shortest should not be rewritten to legacy shortest for undirected QPP with min 1 - WALK") {
+    val query =
+      s"""
+         |MATCH REPEATABLE ELEMENTS ANY SHORTEST (a)-[r]-{1, 2}(b)
+         |RETURN *
+         |""".stripMargin
+    val plan = planner.plan(CypherVersion.Cypher25, query).stripProduceResults
+    plan should equal(
+      planner.subPlanBuilder()
+        .statefulShortestPath(
+          "a",
+          "b",
+          "SHORTEST 1 (a) ((`anon_0`)-[`r`]-(`anon_1`)){1, 2} (b)",
+          None,
+          Set(),
+          Set(("r", "r")),
+          Set(),
+          Set(),
+          StatefulShortestPath.Selector.Shortest(CountInteger(1)),
+          new TestNFABuilder(0, "a")
+            .addTransition(0, 1, "(a) (anon_0)")
+            .addTransition(1, 2, "(anon_0)-[r]-(anon_1)")
+            .addTransition(2, 3, "(anon_1) (anon_0)")
+            .addTransition(2, 5, "(anon_1) (b)")
+            .addTransition(3, 4, "(anon_0)-[r]-(anon_1)")
+            .addTransition(4, 5, "(anon_1) (b)")
+            .setFinalState(5)
+            .build(),
+          ExpandInto,
+          false,
+          1,
+          Some(2),
+          Walk
+        )
+        .cartesianProduct()
+        .|.allNodeScan("b")
+        .allNodeScan("a")
         .build()
     )(SymmetricalLogicalPlanEquality)
   }
