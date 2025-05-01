@@ -246,14 +246,17 @@ trait GraphDatabaseTestSupport
     graph = new GraphDatabaseCypherService(graphOps)
   }
 
-  def selectDatabase(name: String): Unit = {
+  def waitForDatabase(name: String): Unit = {
     if (expectedShardCount > 0) {
       await("database created").atMost(1, MINUTES)
         .pollInterval(50, MILLISECONDS)
         .pollInSameThread
         .until(() => managementService.database(name).isAvailable == true)
     }
+  }
 
+  def selectDatabase(name: String): Unit = {
+    waitForDatabase(name)
     graphOps = managementService.database(name)
     graph = new GraphDatabaseCypherService(graphOps)
     onSelectDatabase()
