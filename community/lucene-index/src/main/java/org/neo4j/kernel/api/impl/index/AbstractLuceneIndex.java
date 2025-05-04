@@ -21,8 +21,6 @@ package org.neo4j.kernel.api.impl.index;
 
 import static org.neo4j.internal.helpers.collection.Iterators.asResourceIterator;
 import static org.neo4j.internal.helpers.collection.Iterators.iterator;
-import static org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter.KEY_STATUS;
-import static org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter.ONLINE;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -33,7 +31,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.apache.lucene.index.DirectoryReader;
 import org.neo4j.configuration.Config;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.graphdb.ResourceIterator;
@@ -42,6 +39,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.IndexFileSnapshotter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
@@ -369,9 +367,8 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
         ensureOpen();
         AbstractIndexPartition partition = getFirstPartition(getPartitions());
         LuceneDirectory directory = partition.getDirectory();
-        try (DirectoryReader reader = directory.open()) {
-            Map<String, String> userData = reader.getIndexCommit().getUserData();
-            return ONLINE.equals(userData.get(KEY_STATUS));
+        try (LuceneDirectoryReader reader = directory.open()) {
+            return reader.isOnline();
         }
     }
 

@@ -38,8 +38,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.LongStream;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.TotalHits;
 import org.eclipse.collections.impl.factory.Sets;
@@ -54,8 +52,9 @@ import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexProvider;
 import org.neo4j.kernel.api.index.IndexPopulator;
@@ -82,8 +81,8 @@ class TextIndexPopulatorTest {
     private TextIndexProvider provider;
     private LuceneDirectory directory;
     private IndexPopulator indexPopulator;
-    private IndexReader reader;
-    private IndexSearcher searcher;
+    private LuceneDirectoryReader reader;
+    private LuceneIndexSearcher searcher;
     private static final int propertyKeyId = 666;
     private IndexDescriptor index;
 
@@ -273,13 +272,13 @@ class TextIndexPopulatorTest {
         switchToVerification();
 
         for (Hit hit : expectedHits) {
-            TopDocs hits = searcher.search(TextDocumentStructure.newSeekQuery(hit.value), 10);
+            TopDocs hits = searcher.searchTopN(TextDocumentStructure.newSeekQuery(hit.value), 10);
             assertEquals(TotalHits.Relation.EQUAL_TO, hits.totalHits.relation);
             assertEquals(
                     hit.nodeIds.length, hits.totalHits.value, "Unexpected number of index results from " + hit.value);
             Set<Long> foundNodeIds = new HashSet<>();
             for (int i = 0; i < hits.totalHits.value; i++) {
-                LuceneDocument document = new Lucene9Document(searcher.doc(hits.scoreDocs[i].doc));
+                LuceneDocument document = searcher.doc(hits.scoreDocs[i].doc);
                 foundNodeIds.add(parseLong(document.get("id")));
             }
             assertEquals(asSet(hit.nodeIds), foundNodeIds);
@@ -290,7 +289,7 @@ class TextIndexPopulatorTest {
         indexPopulator.close(true, NULL_CONTEXT);
         assertEquals(InternalIndexState.ONLINE, provider.getInitialState(index, NULL_CONTEXT, Sets.immutable.empty()));
         reader = directory.open();
-        searcher = new IndexSearcher(reader);
+        searcher = reader.newSearcher();
     }
 
     private void addUpdate(IndexPopulator populator, long nodeId, Object value) throws IndexEntryConflictException {

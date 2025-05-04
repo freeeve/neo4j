@@ -32,7 +32,7 @@ import org.apache.lucene.util.BytesRef;
 import org.neo4j.internal.helpers.CancellationRequest;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
 import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
 import org.neo4j.kernel.api.impl.schema.populator.DefaultNonUniqueIndexSampler;

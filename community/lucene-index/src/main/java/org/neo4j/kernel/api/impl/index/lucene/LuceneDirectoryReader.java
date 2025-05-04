@@ -17,29 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.fulltext;
+package org.neo4j.kernel.api.impl.index.lucene;
 
 import java.io.Closeable;
 import java.io.IOException;
-import org.neo4j.kernel.api.impl.index.SearcherReference;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.apache.lucene.search.SearcherManager;
 
-class DirectSearcherReference implements SearcherReference {
-    private final LuceneIndexSearcher searcher;
-    private final Closeable resource;
+public interface LuceneDirectoryReader extends Closeable {
+    String KEY_STATUS = "status";
+    String ONLINE = "online";
 
-    DirectSearcherReference(LuceneIndexSearcher searcher, Closeable resource) {
-        this.searcher = searcher;
-        this.resource = resource;
-    }
+    boolean isOnline() throws IOException;
 
-    @Override
-    public void close() throws IOException {
-        resource.close();
-    }
+    SearcherManager searcherManager() throws IOException;
 
-    @Override
-    public LuceneIndexSearcher getIndexSearcher() {
-        return searcher;
-    }
+    LuceneIndexSearcher newSearcher();
 }

@@ -24,7 +24,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.util.Collection;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.store.Directory;
 
@@ -59,7 +58,7 @@ public interface LuceneDirectory extends Closeable {
 
     boolean indexExists() throws IOException;
 
-    DirectoryReader open() throws IOException;
+    LuceneDirectoryReader open() throws IOException;
 
     boolean checkIndexIsClean() throws IOException;
 
@@ -112,7 +111,7 @@ public interface LuceneDirectory extends Closeable {
         }
 
         @Override
-        public DirectoryReader open() throws IOException {
+        public LuceneDirectoryReader open() throws IOException {
             return delegate.open();
         }
 

@@ -34,6 +34,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
 import org.neo4j.kernel.api.impl.schema.trigram.TrigramTokenStream;
 import org.neo4j.values.storable.Value;

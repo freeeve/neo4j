@@ -29,8 +29,8 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.WildcardQuery;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
-import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.LuceneQueryBuilder;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.schema.trigram.TrigramTokenStream.CodePointBuffer;
 
 public class TrigramQueryFactory {

@@ -21,13 +21,13 @@ package org.neo4j.kernel.api.impl.index.partition;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.SearcherManager;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.impl.index.backup.LuceneIndexSnapshots;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 
 /**
@@ -37,12 +37,12 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
  */
 public class ReadOnlyIndexPartition extends AbstractIndexPartition {
     private final SearcherManager searcherManager;
-    private final DirectoryReader directoryReader;
+    private final LuceneDirectoryReader directoryReader;
 
     ReadOnlyIndexPartition(Path partitionFolder, LuceneDirectory directory) throws IOException {
         super(partitionFolder, directory);
         this.directoryReader = directory.open();
-        this.searcherManager = new SearcherManager(directoryReader, new Neo4jSearcherFactory());
+        this.searcherManager = directoryReader.searcherManager();
     }
 
     @Override

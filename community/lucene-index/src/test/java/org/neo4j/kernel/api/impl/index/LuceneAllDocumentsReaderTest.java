@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.partition.PartitionSearcher;
 
 class LuceneAllDocumentsReaderTest {

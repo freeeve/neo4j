@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.fulltext;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -29,19 +29,21 @@ import java.util.Optional;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermStates;
 import org.apache.lucene.search.CollectionStatistics;
+import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.TermStatistics;
 import org.apache.lucene.util.BytesRef;
-import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneStatsCollector;
+import org.neo4j.kernel.api.impl.schema.fulltext.PreparedSearch;
 
 /**
  * Collect, aggregate and cache Lucene index statistics that span multiple index searchers.
  */
-class StatsCollector {
+class Lucene9StatsCollector implements LuceneStatsCollector {
     private final List<PreparedSearch> searches;
     private final Map<Term, Optional<TermStatistics>> termStatisticsCache;
     private final Map<String, Optional<CollectionStatistics>> collStatisticsCache;
 
-    StatsCollector(List<PreparedSearch> searches) {
+    Lucene9StatsCollector(List<PreparedSearch> searches) {
         this.searches = searches;
         termStatisticsCache = new HashMap<>();
         collStatisticsCache = new HashMap<>();
@@ -57,9 +59,9 @@ class StatsCollector {
         TermStatistics result;
         List<TermStatistics> statistics = new ArrayList<>(searches.size());
         for (PreparedSearch search : searches) {
-            LuceneIndexSearcher searcher = search.searcher();
+            IndexSearcher searcher = ((Lucene9IndexSearcher) search.searcher()).indexSearcher;
             try {
-                TermStates context = searcher.buildTermStates(term, true);
+                TermStates context = TermStates.build(searcher, term, true);
                 if (context.docFreq() > 0) {
                     var statistic = searcher.termStatistics(term, context.docFreq(), context.totalTermFreq());
                     statistics.add(statistic);
@@ -78,7 +80,7 @@ class StatsCollector {
         if (docFreq == 0) {
             return Optional.empty();
         }
-        BytesRef bytesTerm = statistics.get(0).term();
+        BytesRef bytesTerm = statistics.getFirst().term();
         result = new TermStatistics(bytesTerm, docFreq, totalTermFreq);
         return Optional.of(result);
     }
@@ -93,7 +95,8 @@ class StatsCollector {
         List<CollectionStatistics> statistics = new ArrayList<>(searches.size());
         for (PreparedSearch search : searches) {
             try {
-                CollectionStatistics statistic = search.searcher().collectionStatistics(field);
+                IndexSearcher searcher = ((Lucene9IndexSearcher) search.searcher()).indexSearcher;
+                CollectionStatistics statistic = searcher.collectionStatistics(field);
                 if (statistic != null) {
                     statistics.add(statistic);
                 }

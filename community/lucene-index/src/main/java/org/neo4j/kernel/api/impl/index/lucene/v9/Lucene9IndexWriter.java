@@ -39,6 +39,7 @@ import org.neo4j.kernel.api.impl.index.backup.ReadOnlyIndexSnapshotFileIterator;
 import org.neo4j.kernel.api.impl.index.backup.SnapshotReleaseException;
 import org.neo4j.kernel.api.impl.index.backup.UnsupportedIndexDeletionPolicy;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 
@@ -55,8 +56,8 @@ public class Lucene9IndexWriter implements LuceneIndexWriter {
     }
 
     @Override
-    public void updateDocument(Term term, LuceneDocument document) throws IOException {
-        indexWriter.updateDocument(term, toInternalDocument(document));
+    public void updateDocument(String idField, long id, LuceneDocument document) throws IOException {
+        indexWriter.updateDocument(new Term(idField, Long.toString(id)), toInternalDocument(document));
     }
 
     @Override
@@ -65,8 +66,9 @@ public class Lucene9IndexWriter implements LuceneIndexWriter {
     }
 
     @Override
-    public DirectoryReader directoryReader() throws IOException {
-        return DirectoryReader.open(indexWriter, true, false);
+    public LuceneDirectoryReader directoryReader() throws IOException {
+        DirectoryReader directoryReader = DirectoryReader.open(indexWriter, true, false);
+        return new Lucene9DirectoryReader(directoryReader);
     }
 
     @Override
@@ -96,14 +98,13 @@ public class Lucene9IndexWriter implements LuceneIndexWriter {
     }
 
     @Override
-    public DocStats getDocStats() {
-        IndexWriter.DocStats docStats = indexWriter.getDocStats();
-        return new DocStats(docStats.maxDoc, docStats.numDocs);
+    public int getMaxDocs() {
+        return indexWriter.getDocStats().maxDoc;
     }
 
     @Override
-    public void deleteDocuments(Term term) throws IOException {
-        indexWriter.deleteDocuments(term);
+    public void deleteDocuments(String idField, long id) throws IOException {
+        indexWriter.deleteDocuments(new Term(idField, Long.toString(id)));
     }
 
     @Override

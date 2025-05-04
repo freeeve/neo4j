@@ -17,15 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index.partition;
+package org.neo4j.kernel.api.impl.index.lucene;
 
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.SearcherFactory;
-
-public class Neo4jSearcherFactory extends SearcherFactory {
-    @Override
-    public IndexSearcher newSearcher(IndexReader reader, IndexReader previousReader) {
-        return new Neo4jIndexSearcher(reader);
-    }
-}
+/**
+ * Opaque object used to aggregate statistics over multiple searches
+ */
+public interface LuceneStatsCollector {}

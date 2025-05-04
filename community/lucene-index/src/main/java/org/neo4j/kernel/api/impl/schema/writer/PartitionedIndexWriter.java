@@ -22,7 +22,6 @@ package org.neo4j.kernel.api.impl.schema.writer;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
@@ -69,10 +68,9 @@ public class PartitionedIndexWriter implements LucenePartitionIndexWriter {
     @Override
     public void updateDocument(String idField, long id, LuceneDocument doc) throws IOException {
         List<AbstractIndexPartition> partitions = index.getPartitions();
-        Term term = new Term(idField, Long.toString(id));
         if (WritableDatabaseIndex.hasSinglePartition(partitions)
                 && writablePartition(WritableDatabaseIndex.getFirstPartition(partitions), 1)) {
-            WritableDatabaseIndex.getFirstPartition(partitions).getIndexWriter().updateDocument(term, doc);
+            WritableDatabaseIndex.getFirstPartition(partitions).getIndexWriter().updateDocument(idField, id, doc);
         } else {
             deleteDocuments(idField, id);
             addDocument(doc);
@@ -96,7 +94,7 @@ public class PartitionedIndexWriter implements LucenePartitionIndexWriter {
     public void deleteDocuments(String idField, long id) throws IOException {
         List<AbstractIndexPartition> partitions = index.getPartitions();
         for (AbstractIndexPartition partition : partitions) {
-            partition.getIndexWriter().deleteDocuments(new Term(idField, Long.toString(id)));
+            partition.getIndexWriter().deleteDocuments(idField, id);
         }
     }
 
@@ -126,6 +124,6 @@ public class PartitionedIndexWriter implements LucenePartitionIndexWriter {
     }
 
     private boolean writablePartition(AbstractIndexPartition partition, int numDocs) {
-        return maximumPartitionSize - partition.getIndexWriter().getDocStats().maxDoc >= numDocs;
+        return maximumPartitionSize - partition.getIndexWriter().getMaxDocs() >= numDocs;
     }
 }

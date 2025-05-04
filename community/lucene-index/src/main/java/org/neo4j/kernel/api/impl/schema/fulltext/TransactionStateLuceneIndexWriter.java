@@ -22,20 +22,17 @@ package org.neo4j.kernel.api.impl.schema.fulltext;
 import java.io.Closeable;
 import java.io.IOException;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.FulltextModes;
-import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
-import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.writer.LucenePartitionIndexWriter;
 
@@ -65,12 +62,12 @@ class TransactionStateLuceneIndexWriter implements LucenePartitionIndexWriter, C
 
     @Override
     public void updateDocument(String idField, long id, LuceneDocument document) throws IOException {
-        writer.updateDocument(new Term(idField, Long.toString(id)), document);
+        writer.updateDocument(idField, id, document);
     }
 
     @Override
     public void deleteDocuments(String idField, long id) throws IOException {
-        writer.deleteDocuments(new Term(idField, Long.toString(id)));
+        writer.deleteDocuments(idField, id);
     }
 
     @Override
@@ -98,9 +95,8 @@ class TransactionStateLuceneIndexWriter implements LucenePartitionIndexWriter, C
     }
 
     SearcherReference getNearRealTimeSearcher() throws IOException {
-        DirectoryReader directoryReader = writer.directoryReader();
-        Neo4jIndexSearcher searcher = new Neo4jIndexSearcher(directoryReader);
-        return new DirectSearcherReference(new LuceneIndexSearcher(searcher), directoryReader);
+        LuceneDirectoryReader directoryReader = writer.directoryReader();
+        return new DirectSearcherReference(directoryReader.newSearcher(), directoryReader);
     }
 
     @Override

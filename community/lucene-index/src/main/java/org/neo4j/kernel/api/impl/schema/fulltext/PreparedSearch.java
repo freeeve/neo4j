@@ -22,12 +22,12 @@ package org.neo4j.kernel.api.impl.schema.fulltext;
 import java.io.IOException;
 import java.util.function.LongPredicate;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.Weight;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
-import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneStatsCollector;
 
-class PreparedSearch {
+public class PreparedSearch {
     private final LuceneIndexSearcher searcher;
     private final LongPredicate filter;
 
@@ -36,21 +36,15 @@ class PreparedSearch {
         this.filter = filter;
     }
 
-    LuceneIndexSearcher searcher() {
+    public LuceneIndexSearcher searcher() {
         return searcher;
     }
 
-    ValuesIterator search(Query query, IndexQueryConstraints constraints, StatsCollector statsCollector)
+    ValuesIterator search(Query query, IndexQueryConstraints constraints, LuceneStatsCollector statsCollector)
             throws IOException {
         FulltextResultCollector collector = new FulltextResultCollector(constraints, filter);
 
-        // Weights are bonded with the top IndexReaderContext of the index searcher that they are created for.
-        // That's why we have to create a new StatsCachingIndexSearcher, and a new weight, for every index partition.
-        // However, the important thing is that we re-use the statsCollector.
-        StatsCachingIndexSearcher statsCachingIndexSearcher = new StatsCachingIndexSearcher(this, statsCollector);
-        Weight weight = statsCachingIndexSearcher.createWeight(query, collector.scoreMode(), 1);
-
-        searcher.search(weight, collector);
+        searcher.statsCachingSearch(query, collector, statsCollector);
         return collector.iterator();
     }
 }

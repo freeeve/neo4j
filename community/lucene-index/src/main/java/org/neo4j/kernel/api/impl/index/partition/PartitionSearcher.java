@@ -22,8 +22,9 @@ package org.neo4j.kernel.api.impl.index.partition;
 import java.io.IOException;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.ReferenceManager;
-import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9IndexSearcher;
 
 /**
  * Container for {@link IndexSearcher} of the particular {@link AbstractIndexPartition partition}.
@@ -33,7 +34,7 @@ public class PartitionSearcher implements SearcherReference {
     private final LuceneIndexSearcher indexSearcher;
 
     public PartitionSearcher(ReferenceManager<IndexSearcher> referenceManager) throws IOException {
-        this.indexSearcher = new LuceneIndexSearcher(referenceManager);
+        this.indexSearcher = new Lucene9IndexSearcher(referenceManager);
     }
 
     @Override

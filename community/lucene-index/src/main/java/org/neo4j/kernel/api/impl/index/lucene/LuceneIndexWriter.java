@@ -24,9 +24,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.neo4j.graphdb.ResourceIterator;
 
@@ -41,51 +39,31 @@ public interface LuceneIndexWriter extends Closeable {
 
     LuceneDocument newDocument();
 
-    void updateDocument(Term term, LuceneDocument document) throws IOException;
-
-    void rollback() throws IOException;
-
-    DirectoryReader directoryReader() throws IOException;
-
-    void commit() throws IOException;
-
-    boolean hasCommits() throws IOException;
-
-    void forceMerge(int i) throws IOException;
-
-    void markAsOnline();
+    void addDocument(LuceneDocument document) throws IOException;
 
     void addDocuments(Iterable<LuceneDocument> documents) throws IOException;
 
-    DocStats getDocStats();
+    void updateDocument(String idField, long id, LuceneDocument document) throws IOException;
 
-    void deleteDocuments(Term term) throws IOException;
-
-    void addIndexes(LuceneDirectory directory) throws IOException;
+    void deleteDocuments(String idField, long id) throws IOException;
 
     void deleteDocuments(Query query) throws IOException;
 
+    void commit() throws IOException;
+
+    void rollback() throws IOException;
+
+    LuceneDirectoryReader directoryReader() throws IOException;
+
+    boolean hasCommits() throws IOException;
+
+    void forceMerge(int maxNumSegments) throws IOException;
+
+    void markAsOnline();
+
+    int getMaxDocs();
+
+    void addIndexes(LuceneDirectory directory) throws IOException;
+
     ResourceIterator<Path> snapshot(Path indexFolder) throws IOException;
-
-    final class DocStats {
-        /**
-         * The total number of docs in this index, counting docs not yet flushed (still in the RAM
-         * buffer), and also counting deleted docs. <b>NOTE:</b> buffered deletions are not counted. If
-         * you really need these to be counted you should call {@link LuceneIndexWriter#commit()} first.
-         */
-        public final int maxDoc;
-
-        /**
-         * The total number of docs in this index, counting docs not yet flushed (still in the RAM
-         * buffer), but not counting deleted docs.
-         */
-        public final int numDocs;
-
-        public DocStats(int maxDoc, int numDocs) {
-            this.maxDoc = maxDoc;
-            this.numDocs = numDocs;
-        }
-    }
-
-    void addDocument(LuceneDocument document) throws IOException;
 }

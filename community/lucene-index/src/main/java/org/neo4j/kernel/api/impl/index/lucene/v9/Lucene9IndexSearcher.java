@@ -17,106 +17,98 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static org.neo4j.kernel.api.impl.index.collector.ScoredEntityIterator.mergeIterators;
 
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.function.Function;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.index.TermStates;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.CollectorManager;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.TermStatistics;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.Weight;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.DocValuesCollector;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Document;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneStatsCollector;
 import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
 import org.neo4j.kernel.api.impl.schema.fulltext.FulltextResultCollector;
+import org.neo4j.kernel.api.impl.schema.fulltext.PreparedSearch;
 import org.neo4j.kernel.api.impl.schema.vector.VectorResultCollector;
 import org.neo4j.kernel.api.index.IndexProgressor;
 
-public class LuceneIndexSearcher implements Closeable {
-    private final IndexSearcher indexSearcher;
+public class Lucene9IndexSearcher implements LuceneIndexSearcher {
+    final IndexSearcher indexSearcher;
     private final ReferenceManager<IndexSearcher> referenceManager;
 
-    public LuceneIndexSearcher(ReferenceManager<IndexSearcher> referenceManager) throws IOException {
+    public Lucene9IndexSearcher(ReferenceManager<IndexSearcher> referenceManager) throws IOException {
         this.referenceManager = referenceManager;
         this.indexSearcher = referenceManager.acquire();
 
         this.indexSearcher.setQueryCache(null); // Disable query cache
     }
 
-    public LuceneIndexSearcher(IndexSearcher indexSearcher) {
+    public Lucene9IndexSearcher(IndexSearcher indexSearcher) {
         this.referenceManager = null;
         this.indexSearcher = indexSearcher;
     }
 
-    public static int getMaxClauseCount() {
-        return IndexSearcher.getMaxClauseCount();
-    }
-
+    @Override
     public IndexReader getIndexReader() {
         return indexSearcher.getIndexReader();
     }
 
+    @Override
     public LuceneDocument doc(int docId) throws IOException {
         return new Lucene9Document(indexSearcher.storedFields().document(docId));
     }
 
+    @Override
     public IndexProgressor searchDocValues(Query query, String field, DocValuesCollector.EntityConsumer entityConsumer)
             throws IOException {
         return indexSearcher.search(
                 query, new DocValuesCollectorManager(c -> c.getIndexProgressor(field, entityConsumer)));
     }
 
+    @Override
     public IndexProgressor searchDocValues(Query query, String field, IndexProgressor.EntityValueClient client)
             throws IOException {
         return indexSearcher.search(query, new DocValuesCollectorManager(c -> c.getIndexProgressor(field, client)));
     }
 
+    @Override
     public ValuesIterator searchVectors(Query query, IndexQueryConstraints constraints) throws IOException {
         return indexSearcher.search(query, new VectorValuesCollectorManager(constraints));
     }
 
-    public void search(Weight weight, FulltextResultCollector collector) throws IOException {
-        ((Neo4jIndexSearcher) indexSearcher).search(weight, collector);
+    @Override
+    public TopDocs searchTopN(Query query, int n) throws IOException {
+        return indexSearcher.search(query, n);
     }
 
+    @Override
     public int count(Query query) throws IOException {
         return indexSearcher.count(query);
     }
 
+    @Override
     public Query rewrite(Query query) throws IOException {
         return indexSearcher.rewrite(query);
     }
 
-    public IndexReaderContext getTopReaderContext() {
-        return indexSearcher.getTopReaderContext();
-    }
-
-    public Executor getExecutor() {
-        return indexSearcher.getExecutor();
-    }
-
-    public TermStatistics termStatistics(Term term, int i, long l) throws IOException {
-        return indexSearcher.termStatistics(term, i, l);
-    }
-
-    public CollectionStatistics collectionStatistics(String field) throws IOException {
-        return indexSearcher.collectionStatistics(field);
+    @Override
+    public LuceneStatsCollector newStatsCollector(List<PreparedSearch> searches) {
+        return new Lucene9StatsCollector(searches);
     }
 
     @Override
@@ -126,8 +118,42 @@ public class LuceneIndexSearcher implements Closeable {
         }
     }
 
-    public TermStates buildTermStates(Term term, boolean needsStats) throws IOException {
-        return TermStates.build(indexSearcher, term, needsStats);
+    @Override
+    public void statsCachingSearch(Query query, FulltextResultCollector collector, LuceneStatsCollector statsCollector)
+            throws IOException {
+        // Weights are bonded with the top IndexReaderContext of the index searcher that they are created for.
+        // That's why we have to create a new StatsCachingIndexSearcher, and a new weight, for every index partition.
+        // However, the important thing is that we re-use the statsCollector.
+        StatsCachingIndexSearcher statsCachingIndexSearcher =
+                new StatsCachingIndexSearcher(indexSearcher, (Lucene9StatsCollector) statsCollector);
+        Weight weight = statsCachingIndexSearcher.createWeight(query, collector.scoreMode(), 1);
+
+        ((Neo4jIndexSearcher) indexSearcher).search(weight, collector);
+    }
+
+    /**
+     * An index searcher implementation delegates to the given {@link Lucene9StatsCollector} for computing its term and collection statistics.
+     * This makes it possible for this index searcher to create weights and scorers that are calibrated to the aggregate statistics of multiple indexes.
+     * Aggregating the statistics is useful when a full-text index spans multiple partitions, or when transaction state needs to be taken into account as well.
+     * Without the aggregate statistics, the scores computed from each search in the individual partitions, will not be comparable.
+     */
+    private static class StatsCachingIndexSearcher extends IndexSearcher {
+        private final Lucene9StatsCollector collector;
+
+        StatsCachingIndexSearcher(IndexSearcher searcher, Lucene9StatsCollector collector) {
+            super(searcher.getTopReaderContext(), searcher.getExecutor());
+            this.collector = collector;
+        }
+
+        @Override
+        public TermStatistics termStatistics(Term term, int docFreq, long totalTermFreq) {
+            return collector.termStatistics(term);
+        }
+
+        @Override
+        public CollectionStatistics collectionStatistics(String field) {
+            return collector.collectionStatistics(field);
+        }
     }
 
     private static class DocValuesCollectorManager implements CollectorManager<DocValuesCollector, IndexProgressor> {

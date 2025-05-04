@@ -34,6 +34,7 @@ import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.util.Version;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 
 public class Lucene9Directory implements LuceneDirectory {
@@ -64,8 +65,8 @@ public class Lucene9Directory implements LuceneDirectory {
     }
 
     @Override
-    public DirectoryReader open() throws IOException {
-        return DirectoryReader.open(directory);
+    public LuceneDirectoryReader open() throws IOException {
+        return new Lucene9DirectoryReader(DirectoryReader.open(directory));
     }
 
     @Override

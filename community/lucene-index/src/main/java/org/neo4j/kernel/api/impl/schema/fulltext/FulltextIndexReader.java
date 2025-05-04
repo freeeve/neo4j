@@ -44,10 +44,11 @@ import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotApplicableKernelE
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.api.impl.index.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.collector.ScoredEntityIterator;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneStatsCollector;
 import org.neo4j.kernel.api.impl.schema.LuceneScoredEntityIndexProgressor;
 import org.neo4j.kernel.api.impl.schema.reader.IndexReaderCloseException;
 import org.neo4j.kernel.api.index.IndexProgressor;
@@ -237,7 +238,7 @@ public class FulltextIndexReader implements ValueIndexReader {
             if (searchers.isEmpty()) {
                 return ValuesIterator.EMPTY;
             }
-            query = searchers.get(0).getIndexSearcher().rewrite(query);
+            query = searchers.getFirst().getIndexSearcher().rewrite(query);
             boolean includeTransactionState =
                     context.getTransactionStateOrNull() != null && !isEventuallyConsistent(index);
             // If we have transaction state, then we need to make our result collector filter out all results touched by
@@ -257,7 +258,9 @@ public class FulltextIndexReader implements ValueIndexReader {
 
             // The StatsCollector aggregates index statistics across all our partitions.
             // Weights created based on these statistics will produce scores that are comparable across partitions.
-            StatsCollector statsCollector = new StatsCollector(searches);
+
+            LuceneStatsCollector statsCollector =
+                    searchers.getFirst().getIndexSearcher().newStatsCollector(searches);
             List<ValuesIterator> results = new ArrayList<>(searches.size());
 
             for (PreparedSearch search : searches) {

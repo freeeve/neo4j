@@ -19,8 +19,10 @@
  */
 package org.neo4j.kernel.api.impl.index.lucene;
 
-public class LuceneStringValueEncoding {
+public final class LuceneStringValueEncoding {
     private static final String KEY = "string";
+
+    private LuceneStringValueEncoding() {}
 
     public static String key(int propertyNumber) {
         if (propertyNumber == 0) {

@@ -29,6 +29,7 @@ import org.apache.lucene.util.Bits;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 
 /**
  * Provides a view of all {@link LuceneDocument}s in a single partition.
