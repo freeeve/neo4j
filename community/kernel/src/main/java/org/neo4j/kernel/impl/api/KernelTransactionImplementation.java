@@ -1158,7 +1158,7 @@ public class KernelTransactionImplementation
         } catch (TransactionFailureException | RuntimeException | Error e) {
             exception = e;
         } catch (KernelException e) {
-            exception = new TransactionFailureException(e.status(), e, "Unexpected kernel exception");
+            exception = TransactionFailureException.wrapError(e);
         } finally {
             try {
                 closed();
