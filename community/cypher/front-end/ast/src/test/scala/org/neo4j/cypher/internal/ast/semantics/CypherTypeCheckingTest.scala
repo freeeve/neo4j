@@ -80,7 +80,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
       nodePropertyTypeConstraint(ListType(FloatType(isNullable = true)(pos1), isNullable = true)(pos2), pos3)
 
     val expectedCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
-      .withParam(GqlParams.StringParam.item, "a nullable type")
+      .withParam(GqlParams.StringParam.typeDescription, "a nullable type")
       .build()
 
     assertPropertyTypeConstraintErrorWithCause(
@@ -100,7 +100,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
     )
 
     val expectedCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
-      .withParam(GqlParams.StringParam.item, "a list")
+      .withParam(GqlParams.StringParam.typeDescription, "a list")
       .build()
 
     assertPropertyTypeConstraintErrorWithCause(
@@ -123,7 +123,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
     )
 
     val expectedCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
-      .withParam(GqlParams.StringParam.item, "a union of types")
+      .withParam(GqlParams.StringParam.typeDescription, "a union of types")
       .build()
 
     assertPropertyTypeConstraintErrorWithCause(
@@ -235,7 +235,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
           ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
             .withParam(GqlParams.StringParam.constrDescrOrName, s"$elementType property type constraint")
             .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-              .withParam(GqlParams.StringParam.item, cypherType)
+              .withParam(GqlParams.StringParam.valueType, cypherType)
               .build())
             .build(),
           s"Failed to create $elementType property type constraint: Invalid property type `$cypherType`.",
@@ -259,7 +259,7 @@ class CypherTypeCheckingTest extends CypherFunSuite with AstConstructionTestSupp
           ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
             .withParam(GqlParams.StringParam.constrDescrOrName, s"$elementType property type constraint")
             .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-              .withParam(GqlParams.StringParam.item, cypherType)
+              .withParam(GqlParams.StringParam.valueType, cypherType)
               .withCause(cause)
               .build())
             .build(),

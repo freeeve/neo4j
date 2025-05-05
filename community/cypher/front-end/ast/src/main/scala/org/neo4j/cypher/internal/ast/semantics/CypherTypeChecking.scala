@@ -140,21 +140,21 @@ object CypherTypeChecking extends SemanticAnalysisTooling {
             (
               " Lists cannot have lists as an inner type.",
               Some(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
-                .withParam(GqlParams.StringParam.item, "a list")
+                .withParam(GqlParams.StringParam.typeDescription, "a list")
                 .build())
             )
           case ListType(_: ClosedDynamicUnionType, _) =>
             (
               " Lists cannot have a union of types as an inner type.",
               Some(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
-                .withParam(GqlParams.StringParam.item, "a union of types")
+                .withParam(GqlParams.StringParam.typeDescription, "a union of types")
                 .build())
             )
           case ListType(inner, _) if inner.isNullable =>
             (
               " Lists cannot have nullable inner types.",
               Some(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB9)
-                .withParam(GqlParams.StringParam.item, "a nullable type")
+                .withParam(GqlParams.StringParam.typeDescription, "a nullable type")
                 .build())
             )
           case c: ClosedDynamicUnionType if c.sortedInnerTypes.exists(_.isInstanceOf[ListType]) =>

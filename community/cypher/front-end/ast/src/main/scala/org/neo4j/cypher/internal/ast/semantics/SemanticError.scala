@@ -452,7 +452,7 @@ object SemanticError {
   ): SemanticError = {
 
     val gqlInnerBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N90)
-      .withParam(GqlParams.StringParam.item, originalPropertyType.description)
+      .withParam(GqlParams.StringParam.valueType, originalPropertyType.description)
 
     if (maybeCause.isDefined) gqlInnerBuilder.withCause(maybeCause.get)
 

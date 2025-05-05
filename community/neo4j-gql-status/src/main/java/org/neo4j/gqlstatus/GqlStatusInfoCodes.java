@@ -1693,7 +1693,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N90(
             new GqlStatus("22N90"),
             "{ %s } is not supported in property type constraints.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.item},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.valueType},
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "property type unsupported in constraint",
@@ -1944,7 +1944,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22NB9(
             new GqlStatus("22NB9"),
             "Lists cannot have { %s } as an inner type in this context.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.item},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.typeDescription},
             emptyMap(),
             Condition.DATA_EXCEPTION,
             "invalid inner list type",

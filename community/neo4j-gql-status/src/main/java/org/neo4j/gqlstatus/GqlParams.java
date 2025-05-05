@@ -153,6 +153,7 @@ public class GqlParams {
         transactionId(new STRLIT()), // Transaction id
         transactionId1(new STRLIT()),
         transactionId2(new STRLIT()),
+        typeDescription(new VERBATIM()), // Freeform description of a type e.g. 'a list'
         upper(new VERBATIM()), // Upper bound e.g. number out of range (StringParam to handle Durations)
         url(new VERBATIM()), // URL
         user(new IDENT()), // User name
