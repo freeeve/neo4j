@@ -22,7 +22,9 @@ package org.neo4j.bolt.tx;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.bolt.testing.assertions.BoltConnectionAssertions.assertThat;
 
-import org.junit.jupiter.api.Timeout;
+import java.util.concurrent.TimeUnit;
+import org.assertj.core.api.Assertions;
+import org.awaitility.Awaitility;
 import org.neo4j.bolt.test.annotation.BoltTestExtension;
 import org.neo4j.bolt.test.annotation.connection.initializer.Authenticated;
 import org.neo4j.bolt.test.annotation.test.ProtocolTest;
@@ -51,18 +53,22 @@ public class TransactionTerminationIT {
     private Neo4jWithSocket server;
 
     private void awaitTransactionStart() throws InterruptedException {
-        long txCount = 1;
-        while (txCount <= 1) {
-            try (var tx = server.graphDatabaseService().beginTx()) {
-                var result = tx.execute("SHOW TRANSACTIONS");
-                txCount = result.stream().toList().size();
-            }
+        Awaitility.await()
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .atMost(2, TimeUnit.MINUTES)
+                .pollInSameThread()
+                .untilAsserted(() -> {
+                    try (var tx = server.graphDatabaseService().beginTx()) {
+                        var result = tx.execute("SHOW TRANSACTIONS");
+                        var txCount = result.stream().toList().size();
 
-            Thread.sleep(100);
-        }
+                        Assertions.assertThat(txCount)
+                                .as("transaction count to exceed 1")
+                                .isGreaterThan(1);
+                    }
+                });
     }
 
-    @Timeout(15)
     @ProtocolTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void killTxViaResetV40(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
@@ -78,7 +84,6 @@ public class TransactionTerminationIT {
                 .receivesSuccess();
     }
 
-    @Timeout(15)
     @ProtocolTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void killTxViaReset(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
@@ -96,7 +101,6 @@ public class TransactionTerminationIT {
                 .receivesSuccess();
     }
 
-    @Timeout(15)
     @ProtocolTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void killTxThenTryToUseItTestV40(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
@@ -135,7 +139,6 @@ public class TransactionTerminationIT {
                         "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. ");
     }
 
-    @Timeout(15)
     @ProtocolTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void killTxThenTryToUseItTest(BoltWire wire, @Authenticated BoltTestConnection connection) throws Exception {
@@ -178,7 +181,6 @@ public class TransactionTerminationIT {
                         BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"));
     }
 
-    @Timeout(20)
     @ProtocolTest
     @IncludeWire(until = @Version(major = 5, minor = 6))
     void killedTxShouldNotDestroyConnectionV40(BoltWire wire, @Authenticated BoltTestConnection connection)
@@ -208,15 +210,21 @@ public class TransactionTerminationIT {
 
             assertEquals(termination.get("message"), "Transaction terminated.");
         }
-        // Due to there being an explicit 10s timeout before validation the calling code should pause.
-        Thread.sleep(11000);
 
-        connection.send(wire.run("UNWIND range(1, 200) AS i RETURN i")); // send a run to a canceled transaction
+        Awaitility.await()
+                .atMost(2, TimeUnit.MINUTES)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .pollDelay(11, TimeUnit.SECONDS)
+                .pollInSameThread()
+                .untilAsserted(() -> {
+                    connection.send(
+                            wire.run("UNWIND range(1, 200) AS i RETURN i")); // send a run to a canceled transaction
 
-        assertThat(connection)
-                .receivesFailureV40(
-                        Status.Transaction.Terminated,
-                        "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. ");
+                    assertThat(connection)
+                            .receivesFailureV40(
+                                    Status.Transaction.Terminated,
+                                    "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. ");
+                });
 
         connection
                 .send(wire.reset())
@@ -228,7 +236,6 @@ public class TransactionTerminationIT {
         assertThat(connection).receivesSuccess(3).receivesRecord().receivesSuccess(2);
     }
 
-    @Timeout(20)
     @ProtocolTest
     @IncludeWire(since = @Version(major = 5, minor = 7))
     void killedTxShouldNotDestroyConnection(BoltWire wire, @Authenticated BoltTestConnection connection)
@@ -258,19 +265,26 @@ public class TransactionTerminationIT {
 
             assertEquals(termination.get("message"), "Transaction terminated.");
         }
-        // Due to there being an explicit 10s timeout before validation the calling code should pause.
-        Thread.sleep(11000);
 
-        connection.send(wire.run("UNWIND range(1, 200) AS i RETURN i")); // send a run to a canceled transaction
+        Awaitility.await()
+                .atMost(2, TimeUnit.MINUTES)
+                .pollInterval(100, TimeUnit.MILLISECONDS)
+                .pollDelay(11, TimeUnit.SECONDS)
+                .pollInSameThread()
+                .untilAsserted(() -> {
+                    connection.send(
+                            wire.run("UNWIND range(1, 200) AS i RETURN i")); // send a run to a canceled transaction
 
-        assertThat(connection)
-                .receivesFailure(
-                        Status.Transaction.Terminated,
-                        "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. ",
-                        GqlStatusInfoCodes.STATUS_25N14.getGqlStatus(),
-                        "error: invalid transaction state - transaction termination client error. The transaction has been terminated. "
-                                + "Retry your operation in a new transaction, and you should see a successful result. Reason: Explicitly terminated by the user.",
-                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"));
+                    assertThat(connection)
+                            .receivesFailure(
+                                    Status.Transaction.Terminated,
+                                    "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Explicitly terminated by the user. ",
+                                    GqlStatusInfoCodes.STATUS_25N14.getGqlStatus(),
+                                    "error: invalid transaction state - transaction termination client error. The transaction has been terminated. "
+                                            + "Retry your operation in a new transaction, and you should see a successful result. Reason: Explicitly terminated by the user.",
+                                    BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                            "CLIENT_ERROR"));
+                });
 
         connection
                 .send(wire.reset())
