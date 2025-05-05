@@ -943,7 +943,8 @@ public class Database extends AbstractDatabase {
                 databaseHealth,
                 scheduler,
                 logProvider,
-                transactionMetadataCache);
+                transactionMetadataCache,
+                namedDatabaseId.name());
         life.add(transactionAppender);
 
         final LogicalTransactionStore logicalTransactionStore = new PhysicalLogicalTransactionStore(

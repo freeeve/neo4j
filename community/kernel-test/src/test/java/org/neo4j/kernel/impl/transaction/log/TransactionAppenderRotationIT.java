@@ -137,7 +137,8 @@ class TransactionAppenderRotationIT {
                 databasePanic,
                 scheduler,
                 NullLogProvider.getInstance(),
-                new TransactionMetadataCache());
+                new TransactionMetadataCache(),
+                "le db");
     }
 
     private CompleteTransaction prepareTransaction() {

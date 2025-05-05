@@ -39,7 +39,8 @@ public class TransactionAppenderFactory {
             Panic databasePanic,
             JobScheduler scheduler,
             InternalLogProvider logProvider,
-            TransactionMetadataCache metadataCache) {
+            TransactionMetadataCache metadataCache,
+            String databaseName) {
         if (databaseConfig.get(dedicated_transaction_appender)
                 || databaseConfig.get(db_format).contains("multiversion")) {
             var queue = new TransactionLogQueue(
@@ -49,7 +50,8 @@ public class TransactionAppenderFactory {
                     appendIndexProvider,
                     metadataCache,
                     scheduler,
-                    logProvider);
+                    logProvider,
+                    databaseName);
             return new QueueTransactionAppender(queue);
         }
 

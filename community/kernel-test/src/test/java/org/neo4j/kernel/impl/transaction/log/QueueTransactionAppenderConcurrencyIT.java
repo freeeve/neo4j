@@ -198,7 +198,8 @@ class QueueTransactionAppenderConcurrencyIT {
                 appendIndexProvider,
                 metadataCache,
                 jobScheduler,
-                logProvider);
+                logProvider,
+                "le db");
         return new QueueTransactionAppender(logQueue);
     }
 

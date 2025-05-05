@@ -176,7 +176,8 @@ class TransactionLogQueueIT {
                 appendIndexProvider,
                 metadataCache,
                 jobScheduler,
-                logProvider);
+                logProvider,
+                "le db");
     }
 
     private LogFiles buildLogFiles(

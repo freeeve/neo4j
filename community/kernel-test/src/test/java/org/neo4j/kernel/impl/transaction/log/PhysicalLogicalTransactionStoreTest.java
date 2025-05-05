@@ -432,7 +432,8 @@ class PhysicalLogicalTransactionStoreTest {
                 DATABASE_PANIC,
                 jobScheduler,
                 NullLogProvider.getInstance(),
-                positionCache);
+                positionCache,
+                "le db");
     }
 
     private static class FakeRecoveryVisitor implements RecoveryApplier {

@@ -56,6 +56,7 @@ public class TransactionLogQueue extends LifecycleAdapter {
     private final Panic databasePanic;
     private final AppendIndexProvider appendIndexProvider;
     private final TransactionMetadataCache metadataCache;
+    private final String databaseName;
     private final MpscUnboundedXaddArrayQueue<TxQueueElement> txAppendQueue;
     private final JobScheduler jobScheduler;
     private final InternalLog log;
@@ -70,13 +71,15 @@ public class TransactionLogQueue extends LifecycleAdapter {
             AppendIndexProvider appendIndexProvider,
             TransactionMetadataCache metadataCache,
             JobScheduler jobScheduler,
-            InternalLogProvider logProvider) {
+            InternalLogProvider logProvider,
+            String databaseName) {
         this.logFiles = logFiles;
         this.logRotation = logFiles.getLogFile().getLogRotation();
         this.transactionIdStore = transactionIdStore;
         this.databasePanic = databasePanic;
         this.appendIndexProvider = appendIndexProvider;
         this.metadataCache = metadataCache;
+        this.databaseName = databaseName;
         this.txAppendQueue = new MpscUnboundedXaddArrayQueue<>(INITIAL_CAPACITY);
         this.jobScheduler = jobScheduler;
         this.stopped = true;
@@ -85,12 +88,12 @@ public class TransactionLogQueue extends LifecycleAdapter {
 
     public TxQueueElement submit(StorageEngineTransaction batch, LogAppendEvent logAppendEvent) throws IOException {
         if (stopped) {
-            throw new DatabaseShutdownException();
+            throw DatabaseShutdownException.databaseUnavailable(databaseName);
         }
         TxQueueElement txQueueElement = new TxQueueElement(batch, logAppendEvent);
         while (!txAppendQueue.offer(txQueueElement)) {
             if (stopped) {
-                throw new DatabaseShutdownException();
+                throw DatabaseShutdownException.databaseUnavailable(databaseName);
             }
         }
         LockSupport.unpark(logAppender);
@@ -107,7 +110,8 @@ public class TransactionLogQueue extends LifecycleAdapter {
                 logRotation,
                 log,
                 appendIndexProvider,
-                metadataCache);
+                metadataCache,
+                databaseName);
         logAppender = jobScheduler.threadFactory(Group.LOG_WRITER).newThread(transactionWriter);
         logAppender.start();
         stopped = false;
@@ -179,6 +183,7 @@ public class TransactionLogQueue extends LifecycleAdapter {
         private final Panic databasePanic;
         private final LogRotation logRotation;
         private final InternalLog log;
+        private final String databaseName;
         private final int checksum;
         private final AppendIndexProvider appendIndexProvider;
         private final TransactionMetadataCache metadataCache;
@@ -193,7 +198,8 @@ public class TransactionLogQueue extends LifecycleAdapter {
                 LogRotation logRotation,
                 InternalLog log,
                 AppendIndexProvider appendIndexProvider,
-                TransactionMetadataCache metadataCache) {
+                TransactionMetadataCache metadataCache,
+                String databaseName) {
             this.txQueue = txQueue;
             this.transactionLogWriter = logFile.getTransactionLogWriter();
             this.logFile = logFile;
@@ -203,6 +209,7 @@ public class TransactionLogQueue extends LifecycleAdapter {
             this.appendIndexProvider = appendIndexProvider;
             this.metadataCache = metadataCache;
             this.log = log;
+            this.databaseName = databaseName;
             this.waitStrategy = new SpinParkCombineWaitingStrategy();
         }
 
@@ -236,7 +243,8 @@ public class TransactionLogQueue extends LifecycleAdapter {
                 }
             }
 
-            DatabaseShutdownException databaseShutdownException = new DatabaseShutdownException();
+            DatabaseShutdownException databaseShutdownException =
+                    DatabaseShutdownException.databaseUnavailable(databaseName);
             TxQueueElement element;
             while ((element = txQueue.poll()) != null) {
                 element.fail(databaseShutdownException);

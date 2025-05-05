@@ -250,7 +250,8 @@ public class TransactionAppenderConcurrencyTest {
                 databaseHealth,
                 scheduler,
                 NullLogProvider.getInstance(),
-                new TransactionMetadataCache());
+                new TransactionMetadataCache(),
+                "le db");
     }
 
     private static class OutOfMemoryAwareFileSystem extends EphemeralFileSystemAbstraction {

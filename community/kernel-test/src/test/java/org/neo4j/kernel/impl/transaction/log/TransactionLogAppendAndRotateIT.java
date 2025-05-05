@@ -397,7 +397,8 @@ class TransactionLogAppendAndRotateIT {
                 panic,
                 jobScheduler,
                 NullLogProvider.getInstance(),
-                metadataCache);
+                metadataCache,
+                "le db");
     }
 
     private static Runnable endAfterMax(

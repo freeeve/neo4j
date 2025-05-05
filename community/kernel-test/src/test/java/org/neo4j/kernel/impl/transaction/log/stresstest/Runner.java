@@ -117,7 +117,8 @@ public class Runner implements Callable<Long> {
                 databaseHealth,
                 jobScheduler,
                 NullLogProvider.getInstance(),
-                new TransactionMetadataCache());
+                new TransactionMetadataCache(),
+                "le db");
     }
 
     private LogFiles createLogFiles(TransactionIdStore transactionIdStore, FileSystemAbstraction fileSystemAbstraction)
