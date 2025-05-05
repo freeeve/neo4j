@@ -61,12 +61,6 @@ public class TransactionFailureException extends KernelException {
         super(gqlStatusObject, statusCode, message, parameters);
     }
 
-    // Used implicitly from KernelImpl.beginTransaction()
-    @Deprecated
-    public TransactionFailureException(String message, Throwable cause) {
-        super(Status.Transaction.TransactionStartFailed, cause, message);
-    }
-
     private TransactionFailureException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, Status.Transaction.TransactionStartFailed, cause, message);
     }

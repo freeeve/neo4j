@@ -125,7 +125,8 @@ public class KernelImpl extends LifecycleAdapter implements Kernel {
             ClientConnectionInfo connectionInfo,
             TransactionTimeout timeout)
             throws TransactionFailureException {
-        panic.assertNoPanic(TransactionFailureException.class);
+        panic.assertNoPanic((msg, cause) ->
+                TransactionFailureException.internalError(this.getClass().getSimpleName(), msg, cause));
         KernelTransaction transaction = transactions.newInstance(type, loginContext, connectionInfo, timeout);
         transactionMonitor.transactionStarted();
         transactionExecutionMonitor.start(transaction);
