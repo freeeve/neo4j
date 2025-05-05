@@ -96,7 +96,8 @@ class EnvelopedLogFilesTest {
                 totalSegments,
                 EmptyMemoryTracker.INSTANCE,
                 (currentEntry, currentOffset, currentLogFile) ->
-                        pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile));
+                        pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile),
+                new LogFilesPreAllocator());
     }
 
     @AfterEach

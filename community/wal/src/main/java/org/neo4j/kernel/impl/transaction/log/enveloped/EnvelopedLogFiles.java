@@ -22,7 +22,6 @@ package org.neo4j.kernel.impl.transaction.log.enveloped;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.file.Path;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -54,6 +53,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     private final long maxFileSize;
     private final LogHeaderFactory logHeaderFactory;
     private final LogFilesPruner logFilesPruner;
+    private final LogFilesPreAllocator logFilesPreAllocator;
     private LogChannelContext<StoreChannel> currentWriteChannel;
     private EnvelopeWriteChannel appendingChannel;
 
@@ -65,10 +65,12 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             int writerBufferedBlocks,
             int totalSegments,
             MemoryTracker memoryTracker,
-            PruneStrategy pruneStrategy) {
+            PruneStrategy pruneStrategy,
+            LogFilesPreAllocator logFilesPreAllocator) {
         if (totalSegments < 2) {
             throw new IllegalArgumentException("Must have at least 2 segments. Got " + totalSegments);
         }
+        this.logFilesPreAllocator = logFilesPreAllocator;
         this.logHeaderFactory = logHeaderFactory;
         this.logsRepository = new LogsRepository(
                 fs, fileName.getParent(), fileName.getFileName().toString());
@@ -322,27 +324,12 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     private LogChannelContext<StoreChannel> createNewStoreChannel(long version, LogHeader logHeader)
             throws IOException {
         var logChannelCtx = logsRepository.createWriteChannel(version);
-        preallocate(logChannelCtx);
+        logFilesPreAllocator.preAllocateLogFile(logChannelCtx, maxFileSize);
         logChannelCtx.channel().position(0);
         LogFormat.writeLogHeader(logChannelCtx.channel(), logHeader, memoryTracker);
         logChannelCtx.channel().flush(); // ensure header and metadata is flushed to disk
         logChannelCtx.channel().position(segmentBlockSize);
         return logChannelCtx;
-    }
-
-    private void preallocate(LogChannelContext<StoreChannel> logChannelCtx) throws IOException {
-        // TODO - Ugly pre-allocation
-        if (logChannelCtx.channel().size() == maxFileSize) {
-            // already pre-allocated
-            return;
-        }
-        var buffer = ByteBuffer.wrap(new byte[segmentBlockSize]);
-        long preallocated = 0;
-        while (preallocated != maxFileSize) {
-            buffer.position(0);
-            logChannelCtx.channel().write(buffer);
-            preallocated += segmentBlockSize;
-        }
     }
 
     private LogChannelContext<StoreChannel> openWriteChannel(long version, long position) throws IOException {
