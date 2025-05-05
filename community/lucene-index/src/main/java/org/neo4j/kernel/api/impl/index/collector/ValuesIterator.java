@@ -61,7 +61,7 @@ public interface ValuesIterator extends DocValuesAccess, LongIterator {
         @Override
         public abstract float currentScore();
 
-        Adapter(int size) {
+        protected Adapter(int size) {
             this.size = size;
         }
 

@@ -34,7 +34,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 
 /**
- * These tests target our implementation of {@link FulltextResultCollector} when there are enough data so lucene splits it into several segments
+ * These tests target our implementation of FulltextResultCollector when there are enough data so lucene splits it into several segments
  */
 @ExtendWith(RandomExtension.class)
 public class FulltextIndexMoreDataTest extends FulltextProceduresTestSupport {

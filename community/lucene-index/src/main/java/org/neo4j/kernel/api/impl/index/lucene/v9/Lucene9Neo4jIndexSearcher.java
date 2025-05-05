@@ -17,19 +17,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.fulltext;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
-import java.util.function.LongPredicate;
-import org.neo4j.internal.kernel.api.IndexQueryConstraints;
-import org.neo4j.kernel.api.impl.index.collector.ScoredEntityResultCollector;
+import java.io.IOException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.Collector;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Weight;
 
-public class FulltextResultCollector extends ScoredEntityResultCollector {
-    FulltextResultCollector(IndexQueryConstraints constraints, LongPredicate exclusionFilter) {
-        super(constraints, exclusionFilter);
+class Lucene9Neo4jIndexSearcher extends IndexSearcher {
+    Lucene9Neo4jIndexSearcher(IndexReader reader) {
+        super(reader);
     }
 
-    @Override
-    protected String entityIdFieldKey() {
-        return LuceneFulltextDocumentStructure.FIELD_ENTITY_ID;
+    void search(Weight weight, Collector results) throws IOException {
+        search(leafContexts, weight, results);
     }
 }

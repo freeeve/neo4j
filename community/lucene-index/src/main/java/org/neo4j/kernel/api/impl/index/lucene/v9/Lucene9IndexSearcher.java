@@ -26,24 +26,16 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.CollectorManager;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ReferenceManager;
-import org.apache.lucene.search.TermStatistics;
 import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.Weight;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
-import org.neo4j.kernel.api.impl.index.collector.DocValuesCollector;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneStatsCollector;
-import org.neo4j.kernel.api.impl.index.partition.Neo4jIndexSearcher;
-import org.neo4j.kernel.api.impl.schema.fulltext.FulltextResultCollector;
-import org.neo4j.kernel.api.impl.schema.fulltext.PreparedSearch;
+import org.neo4j.kernel.api.impl.index.lucene.LucenePartitionedSearch;
 import org.neo4j.kernel.api.impl.schema.vector.VectorResultCollector;
 import org.neo4j.kernel.api.index.IndexProgressor;
 
@@ -74,7 +66,7 @@ public class Lucene9IndexSearcher implements LuceneIndexSearcher {
     }
 
     @Override
-    public IndexProgressor searchDocValues(Query query, String field, DocValuesCollector.EntityConsumer entityConsumer)
+    public IndexProgressor searchDocValues(Query query, String field, EntityConsumer entityConsumer)
             throws IOException {
         return indexSearcher.search(
                 query, new DocValuesCollectorManager(c -> c.getIndexProgressor(field, entityConsumer)));
@@ -107,11 +99,6 @@ public class Lucene9IndexSearcher implements LuceneIndexSearcher {
     }
 
     @Override
-    public LuceneStatsCollector newStatsCollector(List<PreparedSearch> searches) {
-        return new Lucene9StatsCollector(searches);
-    }
-
-    @Override
     public void close() throws IOException {
         if (referenceManager != null) {
             referenceManager.release(indexSearcher);
@@ -119,57 +106,25 @@ public class Lucene9IndexSearcher implements LuceneIndexSearcher {
     }
 
     @Override
-    public void statsCachingSearch(Query query, FulltextResultCollector collector, LuceneStatsCollector statsCollector)
-            throws IOException {
-        // Weights are bonded with the top IndexReaderContext of the index searcher that they are created for.
-        // That's why we have to create a new StatsCachingIndexSearcher, and a new weight, for every index partition.
-        // However, the important thing is that we re-use the statsCollector.
-        StatsCachingIndexSearcher statsCachingIndexSearcher =
-                new StatsCachingIndexSearcher(indexSearcher, (Lucene9StatsCollector) statsCollector);
-        Weight weight = statsCachingIndexSearcher.createWeight(query, collector.scoreMode(), 1);
-
-        ((Neo4jIndexSearcher) indexSearcher).search(weight, collector);
+    public LucenePartitionedSearch newPartitionedSearcher(int size) {
+        return new Lucene9PartitionedSearch(size);
     }
 
-    /**
-     * An index searcher implementation delegates to the given {@link Lucene9StatsCollector} for computing its term and collection statistics.
-     * This makes it possible for this index searcher to create weights and scorers that are calibrated to the aggregate statistics of multiple indexes.
-     * Aggregating the statistics is useful when a full-text index spans multiple partitions, or when transaction state needs to be taken into account as well.
-     * Without the aggregate statistics, the scores computed from each search in the individual partitions, will not be comparable.
-     */
-    private static class StatsCachingIndexSearcher extends IndexSearcher {
-        private final Lucene9StatsCollector collector;
+    private static class DocValuesCollectorManager
+            implements CollectorManager<Lucene9DocValuesCollector, IndexProgressor> {
+        private final Function<Lucene9DocValuesCollector, IndexProgressor> progressFactory;
 
-        StatsCachingIndexSearcher(IndexSearcher searcher, Lucene9StatsCollector collector) {
-            super(searcher.getTopReaderContext(), searcher.getExecutor());
-            this.collector = collector;
-        }
-
-        @Override
-        public TermStatistics termStatistics(Term term, int docFreq, long totalTermFreq) {
-            return collector.termStatistics(term);
-        }
-
-        @Override
-        public CollectionStatistics collectionStatistics(String field) {
-            return collector.collectionStatistics(field);
-        }
-    }
-
-    private static class DocValuesCollectorManager implements CollectorManager<DocValuesCollector, IndexProgressor> {
-        private final Function<DocValuesCollector, IndexProgressor> progressFactory;
-
-        public DocValuesCollectorManager(Function<DocValuesCollector, IndexProgressor> progressFactory) {
+        public DocValuesCollectorManager(Function<Lucene9DocValuesCollector, IndexProgressor> progressFactory) {
             this.progressFactory = progressFactory;
         }
 
         @Override
-        public DocValuesCollector newCollector() {
-            return new DocValuesCollector();
+        public Lucene9DocValuesCollector newCollector() {
+            return new Lucene9DocValuesCollector();
         }
 
         @Override
-        public IndexProgressor reduce(Collection<DocValuesCollector> collectors) {
+        public IndexProgressor reduce(Collection<Lucene9DocValuesCollector> collectors) {
             List<IndexProgressor> list =
                     collectors.stream().map(progressFactory).toList();
             return new IndexProgressor.ConcatenatingIndexProgressor(list);

@@ -45,10 +45,9 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
-import org.neo4j.kernel.api.impl.index.collector.ScoredEntityIterator;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneStatsCollector;
+import org.neo4j.kernel.api.impl.index.lucene.LucenePartitionedSearch;
 import org.neo4j.kernel.api.impl.schema.LuceneScoredEntityIndexProgressor;
 import org.neo4j.kernel.api.impl.schema.reader.IndexReaderCloseException;
 import org.neo4j.kernel.api.index.IndexProgressor;
@@ -238,7 +237,8 @@ public class FulltextIndexReader implements ValueIndexReader {
             if (searchers.isEmpty()) {
                 return ValuesIterator.EMPTY;
             }
-            query = searchers.getFirst().getIndexSearcher().rewrite(query);
+            LuceneIndexSearcher firstSearcher = searchers.getFirst().getIndexSearcher();
+            query = firstSearcher.rewrite(query);
             boolean includeTransactionState =
                     context.getTransactionStateOrNull() != null && !isEventuallyConsistent(index);
             // If we have transaction state, then we need to make our result collector filter out all results touched by
@@ -246,28 +246,17 @@ public class FulltextIndexReader implements ValueIndexReader {
             // The reason we filter them out entirely, is that we will query the transaction state separately.
             LongPredicate filter =
                     includeTransactionState ? transactionState.isModifiedInTransactionPredicate() : ALWAYS_FALSE;
-            List<PreparedSearch> searches = new ArrayList<>(searchers.size() + 1);
+
+            LucenePartitionedSearch partitionedSearch = firstSearcher.newPartitionedSearcher(searchers.size() + 1);
             for (SearcherReference searcher : searchers) {
-                LuceneIndexSearcher indexSearcher = searcher.getIndexSearcher();
-                searches.add(new PreparedSearch(indexSearcher, filter));
+                partitionedSearch.addPartitionSearcher(searcher.getIndexSearcher(), filter);
             }
             if (includeTransactionState) {
                 SearcherReference reference = transactionState.maybeUpdate(context, cursorContext, memoryTracker);
-                searches.add(new PreparedSearch(reference.getIndexSearcher(), ALWAYS_FALSE));
+                partitionedSearch.addPartitionSearcher(reference.getIndexSearcher(), ALWAYS_FALSE);
             }
 
-            // The StatsCollector aggregates index statistics across all our partitions.
-            // Weights created based on these statistics will produce scores that are comparable across partitions.
-
-            LuceneStatsCollector statsCollector =
-                    searchers.getFirst().getIndexSearcher().newStatsCollector(searches);
-            List<ValuesIterator> results = new ArrayList<>(searches.size());
-
-            for (PreparedSearch search : searches) {
-                results.add(search.search(query, constraints, statsCollector));
-            }
-
-            return ScoredEntityIterator.mergeIterators(results);
+            return partitionedSearch.search(query, constraints);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

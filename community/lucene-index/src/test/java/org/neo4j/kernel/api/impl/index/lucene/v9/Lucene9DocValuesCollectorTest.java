@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index.collector;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -48,11 +48,11 @@ import org.neo4j.kernel.api.impl.index.IndexReaderStub;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.values.storable.Value;
 
-final class DocValuesCollectorTest {
+final class Lucene9DocValuesCollectorTest {
     @Test
     void shouldStartWithEmptyMatchingDocs() {
         // given
-        DocValuesCollector collector = new DocValuesCollector();
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector();
 
         // when
         // then
@@ -62,7 +62,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldCollectAllHitsPerSegment() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector();
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector();
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
@@ -74,9 +74,9 @@ final class DocValuesCollectorTest {
 
         // then
         assertEquals(4, collector.getTotalHits());
-        List<DocValuesCollector.MatchingDocs> allMatchingDocs = collector.getMatchingDocs();
+        List<Lucene9DocValuesCollector.MatchingDocs> allMatchingDocs = collector.getMatchingDocs();
         assertEquals(1, allMatchingDocs.size());
-        DocValuesCollector.MatchingDocs matchingDocs = allMatchingDocs.get(0);
+        Lucene9DocValuesCollector.MatchingDocs matchingDocs = allMatchingDocs.get(0);
         assertSame(readerStub.getContext(), matchingDocs.context);
         assertEquals(4, matchingDocs.totalHits);
         DocIdSetIterator idIterator = matchingDocs.docIdSet;
@@ -90,7 +90,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldCollectOneMatchingDocsPerSegment() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector();
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector();
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
@@ -103,10 +103,10 @@ final class DocValuesCollectorTest {
 
         // then
         assertEquals(4, collector.getTotalHits());
-        List<DocValuesCollector.MatchingDocs> allMatchingDocs = collector.getMatchingDocs();
+        List<Lucene9DocValuesCollector.MatchingDocs> allMatchingDocs = collector.getMatchingDocs();
         assertEquals(2, allMatchingDocs.size());
 
-        DocValuesCollector.MatchingDocs matchingDocs = allMatchingDocs.get(0);
+        Lucene9DocValuesCollector.MatchingDocs matchingDocs = allMatchingDocs.get(0);
         assertSame(readerStub.getContext(), matchingDocs.context);
         assertEquals(2, matchingDocs.totalHits);
         DocIdSetIterator idIterator = matchingDocs.docIdSet;
@@ -126,7 +126,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldNotSaveScoresWhenNotRequired() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector(false);
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(false);
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
@@ -134,7 +134,7 @@ final class DocValuesCollectorTest {
         collector.collect(1);
 
         // then
-        DocValuesCollector.MatchingDocs matchingDocs =
+        Lucene9DocValuesCollector.MatchingDocs matchingDocs =
                 collector.getMatchingDocs().get(0);
         assertNull(matchingDocs.scores);
     }
@@ -142,7 +142,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldNotSaveScoresForIndexProgressorWhenNotRequired() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector(false);
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(false);
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
@@ -164,7 +164,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldSaveScoresWhenRequired() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector(true);
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
@@ -173,7 +173,7 @@ final class DocValuesCollectorTest {
         collector.collect(1);
 
         // then
-        DocValuesCollector.MatchingDocs matchingDocs =
+        Lucene9DocValuesCollector.MatchingDocs matchingDocs =
                 collector.getMatchingDocs().get(0);
         assertArrayEquals(new float[] {13.42f}, matchingDocs.scores, 0.001f);
     }
@@ -181,7 +181,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldSaveScoresForIndexProgressorWhenRequired() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector(true);
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
         float score1 = 13.42f;
         float score2 = 3.14f;
@@ -216,7 +216,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldSaveScoresInADenseArray() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector(true);
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
@@ -227,7 +227,7 @@ final class DocValuesCollectorTest {
         collector.collect(41);
 
         // then
-        DocValuesCollector.MatchingDocs matchingDocs =
+        Lucene9DocValuesCollector.MatchingDocs matchingDocs =
                 collector.getMatchingDocs().get(0);
         assertArrayEquals(new float[] {1.0f, 41.0f}, matchingDocs.scores, 0.001f);
     }
@@ -235,7 +235,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldDynamicallyResizeScoresArray() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector(true);
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
@@ -247,7 +247,7 @@ final class DocValuesCollectorTest {
         }
 
         // then
-        DocValuesCollector.MatchingDocs matchingDocs =
+        Lucene9DocValuesCollector.MatchingDocs matchingDocs =
                 collector.getMatchingDocs().get(0);
         float[] scores = new float[42];
         Arrays.fill(scores, 1.0f);
@@ -257,7 +257,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldReturnDocValuesInRelevanceOrder() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector(true);
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
@@ -277,7 +277,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldSilentlyMergeSegmentsWhenReturnDocValuesInOrder() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector(true);
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(true);
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when
@@ -298,7 +298,7 @@ final class DocValuesCollectorTest {
     @Test
     void shouldReturnEmptyIteratorWhenNoDocValuesInOrder() throws Exception {
         // given
-        DocValuesCollector collector = new DocValuesCollector(false);
+        Lucene9DocValuesCollector collector = new Lucene9DocValuesCollector(false);
         IndexReaderStub readerStub = indexReaderWithMaxDocs(42);
 
         // when

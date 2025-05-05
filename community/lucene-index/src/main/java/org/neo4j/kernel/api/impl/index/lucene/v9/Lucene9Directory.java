@@ -100,11 +100,6 @@ public class Lucene9Directory implements LuceneDirectory {
     }
 
     @Override
-    public Directory toLuceneDirectory() {
-        return directory;
-    }
-
-    @Override
     public void close() throws IOException {
         directory.close();
     }

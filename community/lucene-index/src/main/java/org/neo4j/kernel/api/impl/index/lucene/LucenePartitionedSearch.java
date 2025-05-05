@@ -17,34 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.fulltext;
+package org.neo4j.kernel.api.impl.index.lucene;
 
 import java.io.IOException;
 import java.util.function.LongPredicate;
 import org.apache.lucene.search.Query;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneStatsCollector;
 
-public class PreparedSearch {
-    private final LuceneIndexSearcher searcher;
-    private final LongPredicate filter;
+public interface LucenePartitionedSearch {
+    void addPartitionSearcher(LuceneIndexSearcher indexSearcher, LongPredicate filter);
 
-    PreparedSearch(LuceneIndexSearcher searcher, LongPredicate filter) {
-        this.searcher = searcher;
-        this.filter = filter;
-    }
-
-    public LuceneIndexSearcher searcher() {
-        return searcher;
-    }
-
-    ValuesIterator search(Query query, IndexQueryConstraints constraints, LuceneStatsCollector statsCollector)
-            throws IOException {
-        FulltextResultCollector collector = new FulltextResultCollector(constraints, filter);
-
-        searcher.statsCachingSearch(query, collector, statsCollector);
-        return collector.iterator();
-    }
+    ValuesIterator search(Query query, IndexQueryConstraints constraints) throws IOException;
 }

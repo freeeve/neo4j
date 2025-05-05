@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index.collector;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -49,6 +49,8 @@ import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.DocIdSetBuilder;
 import org.neo4j.internal.helpers.collection.ArrayIterator;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
+import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher.EntityConsumer;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.util.VisibleForTesting;
 import org.neo4j.values.storable.Value;
@@ -61,7 +63,7 @@ import org.neo4j.values.storable.Value;
  * and feeding other collectors while this collector focuses on exposing the required per-segment data structures
  * to the user.
  */
-public class DocValuesCollector extends SimpleCollector {
+class Lucene9DocValuesCollector extends SimpleCollector {
     private LeafReaderContext context;
     private int segmentHits;
     private int totalHits;
@@ -74,14 +76,14 @@ public class DocValuesCollector extends SimpleCollector {
     /**
      * Default Constructor, does not keep scores.
      */
-    public DocValuesCollector() {
+    Lucene9DocValuesCollector() {
         this(false);
     }
 
     /**
      * @param keepScores true if you want to trade correctness for speed
      */
-    public DocValuesCollector(boolean keepScores) {
+    Lucene9DocValuesCollector(boolean keepScores) {
         this.keepScores = keepScores;
     }
 
@@ -255,22 +257,23 @@ public class DocValuesCollector extends SimpleCollector {
     }
 
     /**
-     * Iterates over all per-segment {@link DocValuesCollector.MatchingDocs}.
+     * Iterates over all per-segment {@link Lucene9DocValuesCollector.MatchingDocs}.
      * Provides base functionality for extracting entity ids and other values from documents.
      */
     private abstract static class LongValuesSource {
-        private final Iterator<DocValuesCollector.MatchingDocs> matchingDocs;
+        private final Iterator<Lucene9DocValuesCollector.MatchingDocs> matchingDocs;
         private final String field;
         final int totalHits;
 
         DocIdSetIterator currentIdIterator;
         NumericDocValues currentDocValues;
-        DocValuesCollector.MatchingDocs currentDocs;
+        Lucene9DocValuesCollector.MatchingDocs currentDocs;
         float score;
         int index;
         long next;
 
-        LongValuesSource(Iterable<DocValuesCollector.MatchingDocs> allMatchingDocs, int totalHits, String field) {
+        LongValuesSource(
+                Iterable<Lucene9DocValuesCollector.MatchingDocs> allMatchingDocs, int totalHits, String field) {
             this.totalHits = totalHits;
             this.field = field;
             matchingDocs = allMatchingDocs.iterator();
@@ -321,37 +324,6 @@ public class DocValuesCollector extends SimpleCollector {
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
-            }
-
-            return false;
-        }
-    }
-
-    @FunctionalInterface
-    public interface EntityConsumer {
-        boolean acceptEntity(long reference, float score, Value... values);
-    }
-
-    public static final class InRangeEntityConsumer implements DocValuesCollector.EntityConsumer {
-        private final long fromIdInclusive;
-        private final long toIdExclusive;
-
-        private long reference;
-
-        public InRangeEntityConsumer(long fromIdInclusive, long toIdExclusive) {
-            this.fromIdInclusive = fromIdInclusive;
-            this.toIdExclusive = toIdExclusive;
-        }
-
-        public long reference() {
-            return reference;
-        }
-
-        @Override
-        public boolean acceptEntity(long reference, float score, Value... values) {
-            if (fromIdInclusive <= reference && reference < toIdExclusive) {
-                this.reference = reference;
-                return true;
             }
 
             return false;

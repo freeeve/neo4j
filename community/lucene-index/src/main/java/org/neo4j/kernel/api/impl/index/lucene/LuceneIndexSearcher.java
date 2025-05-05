@@ -21,17 +21,14 @@ package org.neo4j.kernel.api.impl.index.lucene;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.List;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
-import org.neo4j.kernel.api.impl.index.collector.DocValuesCollector;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
-import org.neo4j.kernel.api.impl.schema.fulltext.FulltextResultCollector;
-import org.neo4j.kernel.api.impl.schema.fulltext.PreparedSearch;
 import org.neo4j.kernel.api.index.IndexProgressor;
+import org.neo4j.values.storable.Value;
 
 public interface LuceneIndexSearcher extends Closeable {
     static int getMaxClauseCount() {
@@ -42,8 +39,7 @@ public interface LuceneIndexSearcher extends Closeable {
 
     LuceneDocument doc(int docId) throws IOException;
 
-    IndexProgressor searchDocValues(Query query, String field, DocValuesCollector.EntityConsumer entityConsumer)
-            throws IOException;
+    IndexProgressor searchDocValues(Query query, String field, EntityConsumer entityConsumer) throws IOException;
 
     IndexProgressor searchDocValues(Query query, String field, IndexProgressor.EntityValueClient client)
             throws IOException;
@@ -56,8 +52,36 @@ public interface LuceneIndexSearcher extends Closeable {
 
     Query rewrite(Query query) throws IOException;
 
-    LuceneStatsCollector newStatsCollector(List<PreparedSearch> searches);
+    LucenePartitionedSearch newPartitionedSearcher(int size);
 
-    void statsCachingSearch(Query query, FulltextResultCollector collector, LuceneStatsCollector statsCollector)
-            throws IOException;
+    @FunctionalInterface
+    interface EntityConsumer {
+        boolean acceptEntity(long reference, float score, Value... values);
+    }
+
+    final class InRangeEntityConsumer implements EntityConsumer {
+        private final long fromIdInclusive;
+        private final long toIdExclusive;
+
+        private long reference;
+
+        public InRangeEntityConsumer(long fromIdInclusive, long toIdExclusive) {
+            this.fromIdInclusive = fromIdInclusive;
+            this.toIdExclusive = toIdExclusive;
+        }
+
+        public long reference() {
+            return reference;
+        }
+
+        @Override
+        public boolean acceptEntity(long reference, float score, Value... values) {
+            if (fromIdInclusive <= reference && reference < toIdExclusive) {
+                this.reference = reference;
+                return true;
+            }
+
+            return false;
+        }
+    }
 }

@@ -27,8 +27,8 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9IndexSearcher;
 
 /**
- * Container for {@link IndexSearcher} of the particular {@link AbstractIndexPartition partition}.
- * Manages lifecycle of the underlying {@link IndexSearcher searcher}.
+ * Container for {@link LuceneIndexSearcher} of the particular {@link AbstractIndexPartition partition}.
+ * Manages lifecycle of the underlying {@link LuceneIndexSearcher searcher}.
  */
 public class PartitionSearcher implements SearcherReference {
     private final LuceneIndexSearcher indexSearcher;
