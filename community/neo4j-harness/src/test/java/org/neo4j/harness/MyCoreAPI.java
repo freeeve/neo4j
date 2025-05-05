@@ -42,8 +42,10 @@ public class MyCoreAPI {
             return nodeId;
         } catch (Exception e) {
             log.error("Failed to create node: " + e.getMessage());
-            throw new ProcedureException(
-                    Status.Procedure.ProcedureCallFailed, "Failed to create node: " + e.getMessage(), e);
+            throw ProcedureException.generalProcedureExceptionNoCause(
+                    "<insert name here>",
+                    Status.Procedure.ProcedureCallFailed, /*"Failed to create node: " + e.getMessage(),*/
+                    e);
         }
     }
 
