@@ -60,6 +60,13 @@ public class InvalidArgumentException extends Neo4jException {
         super(gqlStatusObject, message);
     }
 
+    public static InvalidArgumentException invalidFunctionArgument(String functionName, String message) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N38)
+                .withParam(GqlParams.StringParam.value, functionName)
+                .build();
+        return new InvalidArgumentException(gql, message);
+    }
+
     public static InvalidArgumentException internalError(String msgTitle, String message) {
         var gql = GqlHelper.get50N00(msgTitle, message);
         return new InvalidArgumentException(gql, message);

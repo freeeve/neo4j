@@ -56,6 +56,8 @@ import java.util.stream.StreamSupport;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
 import org.neo4j.cypher.internal.expressions.NormalForm;
+import org.neo4j.cypher.internal.expressions.functions.VectorSimilarityCosine;
+import org.neo4j.cypher.internal.expressions.functions.VectorSimilarityEuclidean;
 import org.neo4j.cypher.internal.runtime.DbAccess;
 import org.neo4j.cypher.internal.runtime.ExpressionCursors;
 import org.neo4j.cypher.internal.runtime.QueryContext;
@@ -622,13 +624,18 @@ public final class CypherFunctions {
 
     public static Value vectorSimilarity(VectorSimilarity similarity, AnyValue lhs, AnyValue rhs) {
         final var function = similarity.latestImplementation();
+        final var functionName =
+                switch (similarity) {
+                    case EUCLIDEAN -> VectorSimilarityEuclidean.name();
+                    case COSINE -> VectorSimilarityCosine.name();
+                };
 
         if (lhs == NO_VALUE || rhs == NO_VALUE) {
             return NO_VALUE;
         }
 
-        final var a = toFloatArrayVector(function, lhs, "a");
-        final var b = toFloatArrayVector(function, rhs, "b");
+        final var a = toFloatArrayVector(function, functionName, lhs, "a");
+        final var b = toFloatArrayVector(function, functionName, rhs, "b");
 
         if (a.length != b.length) {
             throw new InvalidArgumentException(invalidSimilarityFunctionInputErrorMessage(
@@ -638,17 +645,25 @@ public final class CypherFunctions {
         return doubleValue(function.compare(a, b));
     }
 
-    public static float[] toFloatArrayVector(VectorSimilarityFunction function, AnyValue arg, String argName) {
+    private static float[] toFloatArrayVector(
+            VectorSimilarityFunction function, String functionName, AnyValue arg, String argName) {
         final VectorCandidate candidate = VectorCandidate.maybeFrom(arg);
         if (candidate == null) {
-            throw new CypherTypeException(invalidSimilarityFunctionInputErrorMessage(
-                    function, "Expected argument %s to be a LIST<INTEGER | FLOAT>".formatted(argName)));
+            throw CypherTypeException.functionArgumentWrongType(
+                    "Expected argument %s to be a LIST<INTEGER | FLOAT>".formatted(argName),
+                    functionName,
+                    arg.prettify(),
+                    List.of("LIST<INTEGER | FLOAT>"),
+                    CypherTypeValueMapper.valueType(arg));
         }
 
         final float[] floatArray = function.maybeToValidVector(candidate);
         if (floatArray == null) {
-            throw new InvalidArgumentException(invalidSimilarityFunctionInputErrorMessage(
-                    function, "Argument %s is not a valid vector for this similarity function".formatted(argName)));
+            throw InvalidArgumentException.invalidFunctionArgument(
+                    functionName,
+                    invalidSimilarityFunctionInputErrorMessage(
+                            function,
+                            "Argument %s is not a valid vector for this similarity function".formatted(argName)));
         }
 
         return floatArray;
