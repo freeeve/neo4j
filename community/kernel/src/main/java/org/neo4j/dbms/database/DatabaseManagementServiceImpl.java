@@ -30,6 +30,7 @@ import org.neo4j.dbms.api.DatabaseExistsException;
 import org.neo4j.dbms.api.DatabaseManagementHelper;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseNotFoundException;
+import org.neo4j.dbms.api.DatabaseNotFoundHelper;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.QueryExecutionException;
 import org.neo4j.graphdb.config.Configuration;
@@ -75,7 +76,7 @@ public class DatabaseManagementServiceImpl implements DatabaseManagementService 
                 .getByName(name)
                 .flatMap(databaseContextProvider::getDatabaseContext)
                 .map(DatabaseContext::databaseFacade)
-                .orElseThrow(() -> new DatabaseNotFoundException(name));
+                .orElseThrow(() -> DatabaseNotFoundHelper.databaseDoesNotExist(name));
     }
 
     @Override
