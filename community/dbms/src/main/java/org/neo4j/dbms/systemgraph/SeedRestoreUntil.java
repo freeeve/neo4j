@@ -98,4 +98,16 @@ public class SeedRestoreUntil {
     public String toString() {
         return toOptionValue();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        SeedRestoreUntil that = (SeedRestoreUntil) o;
+        return Objects.equals(txId, that.txId) && Objects.equals(dateTime, that.dateTime);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(txId, dateTime);
+    }
 }
