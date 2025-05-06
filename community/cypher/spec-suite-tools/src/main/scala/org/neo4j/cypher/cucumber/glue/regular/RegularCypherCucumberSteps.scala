@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Assumptions.assumeFalse
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryExecution
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.QueryResults
+import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeConf
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.describeFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.doDescribeFailure
 import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.findAllGqlCodes
@@ -186,7 +187,7 @@ final class RegularCypherCucumberSteps @Inject() (
         assertThat(actualRows).as(describeResults(actual, expected, "in order")).containsExactlyElementsOf(expectedRows)
       }
       assertEqualHeaders(actual, expected)
-    case failure: QueryFailure => unexpectedFailure(failure)
+    case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
   override protected def resultShouldBeInAnyOrder(expected: DataTable): Unit = lastResult match {
@@ -199,7 +200,7 @@ final class RegularCypherCucumberSteps @Inject() (
           .containsExactlyInAnyOrderElementsOf(expectedRows)
       }
       assertEqualHeaders(actual, expected)
-    case failure: QueryFailure => unexpectedFailure(failure)
+    case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
   override protected def resultShouldBeInOrderIgnoringListOrder(expected: DataTable): Unit = lastResult match {
@@ -213,7 +214,7 @@ final class RegularCypherCucumberSteps @Inject() (
           .containsExactlyElementsOf(rowsWithUnorderedLists(expectedRows))
       }
       assertEqualHeaders(actual, expected)
-    case failure: QueryFailure => unexpectedFailure(failure)
+    case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
   override protected def resultShouldBeInAnyOrderIgnoringListOrder(expected: DataTable): Unit = lastResult match {
@@ -227,7 +228,7 @@ final class RegularCypherCucumberSteps @Inject() (
           .containsExactlyInAnyOrderElementsOf(rowsWithUnorderedLists(expectedRows))
       }
       assertEqualHeaders(actual, expected)
-    case failure: QueryFailure => unexpectedFailure(failure)
+    case failure: QueryFailure => unexpectedFailure(failure, conf)
   }
 
   override protected def sideEffectsShouldBe(expectedTable: DataTable): Unit = {
@@ -254,7 +255,7 @@ final class RegularCypherCucumberSteps @Inject() (
   }
 
   override protected def errorShouldBeRaised(expected: ExpectedError): Unit = lastResult match {
-    case success: QueryResults => unexpectedSuccess(success)
+    case success: QueryResults => unexpectedSuccess(success, conf)
     case failure: QueryFailure =>
       val actual = Neo4jExceptionToExecutionFailed.convert(failure.phase, failure.cause)
       val desc = describeFailure(failure)
@@ -264,7 +265,7 @@ final class RegularCypherCucumberSteps @Inject() (
   }
 
   override protected def errorShouldBeRaised(expectedError: ExpectedGqlError): Unit = lastResult match {
-    case success: QueryResults => unexpectedSuccess(success)
+    case success: QueryResults => unexpectedSuccess(success, conf)
     case failure: QueryFailure => findMatchingGqlFailure(expectedError.code, originalError(failure.cause)) match {
         case Some(actualGql) =>
           val desc = describeFailure(failure)
@@ -327,6 +328,10 @@ final class RegularCypherCucumberSteps @Inject() (
        >${renderAsTable(ConsumedResult(expectedHeaders, toResultRows(expected)))}
        >Query:
        >${actual.query}
+       >
+       >Config (excl tag based config, @conf:...):
+       >${describeConf(conf)}
+       >
        >Plan:
        >${describePlan(actual)}
        >""".stripMargin('>') // | margins messes with the tables
@@ -391,18 +396,23 @@ object RegularCypherCucumberSteps {
     DataTable.create(table).toString
   }
 
-  def unexpectedFailure(failure: QueryFailure): Unit = fail(
+  def describeConf(conf: TestConf): String = conf.neo4jConf.map { case (key, value) => s"$key=$value" }.mkString("\n")
+
+  def unexpectedFailure(failure: QueryFailure, conf: TestConf): Unit = fail(
     s"""
        |Query failed but was expected to succeed.
        |Phase: ${failure.phase}
        |Query:
        |${failure.query}
        |
+       |Config (excl tag based config, @conf:...):
+       |${describeConf(conf)}
+       |
        |Cause: ${Exceptions.stringify(originalError(failure.cause))}
        |""".stripMargin
   )
 
-  def unexpectedSuccess(results: QueryResults): Unit = fail(
+  def unexpectedSuccess(results: QueryResults, conf: TestConf): Unit = fail(
     s"""
        >Query was expected to fail, but executed successfully.
        >
@@ -410,6 +420,9 @@ object RegularCypherCucumberSteps {
        >${RegularCypherCucumberSteps.renderAsTable(results.results)}
        >Query:
        >${results.query}
+       >
+       >Config (excl tag based config, @conf:...):
+       >${describeConf(conf)}
        |""".stripMargin('>') // | margins messes with the tables
   )
 

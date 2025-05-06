@@ -24,6 +24,8 @@ import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.cucumber.CypherCucumber.Tag
 import org.neo4j.cypher.cucumber.glue.regular.TestConf.Settings
 
+import java.util.concurrent.ThreadLocalRandom
+
 import scala.jdk.CollectionConverters.MapHasAsJava
 
 /**
@@ -150,6 +152,57 @@ object TestConf {
     }
   }
 
+  object PipelinedNonFused {
+
+    private def baseConf: TestConf = TestConf(
+      preparserOptions = Map("runtime" -> "pipelined", "operatorEngine" -> "interpreted"),
+      tagContext = Set("pipelined-runtime")
+    )
+
+    object Cypher25 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$PipelinedNonFused$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$PipelinedNonFused$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+  }
+
+  object PipelinedRandMorselSize {
+
+    private def baseConf: TestConf = {
+      val morselSize = ThreadLocalRandom.current().nextInt(8) + 1
+      TestConf(
+        neo4jConf = Map(
+          "internal.cypher.pipelined.batch_size_small" -> morselSize.toString,
+          "internal.cypher.pipelined.batch_size_big" -> morselSize.toString
+        ),
+        preparserOptions = Map("runtime" -> "pipelined", "operatorEngine" -> "interpreted"),
+        tagContext = Set("pipelined-runtime")
+      )
+    }
+
+    object Cypher25 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$PipelinedRandMorselSize$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$PipelinedRandMorselSize$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+  }
+
   object PipelinedFallback {
 
     private def baseConf: TestConf = TestConf(
@@ -196,6 +249,26 @@ object TestConf {
     }
   }
 
+  object SlottedBolt {
+
+    private def baseConf: TestConf = TestConf(
+      useBolt = true,
+      preparserOptions = Map("runtime" -> "slotted")
+    )
+
+    object Cypher25 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SlottedBolt$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SlottedBolt$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+  }
+
   object SlottedCompiled {
 
     private def baseConf: TestConf = TestConf(
@@ -237,6 +310,26 @@ object TestConf {
 
     object Cypher5 extends InjectedTestConf {
       final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Parallel$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+  }
+
+  object ParallelNonFused {
+
+    private def baseConf: TestConf = TestConf(
+      preparserOptions = Map("runtime" -> "parallel", "operatorEngine" -> "interpreted"),
+      tagContext = Set("parallel-runtime")
+    )
+
+    object Cypher25 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelNonFused$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+      final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelNonFused$Cypher5$ObjectFactory"
       final override val conf: TestConf = TestConf.withCypher5(baseConf)
       final class ObjectFactory extends SingletonInjector(injector)
     }
