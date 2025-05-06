@@ -146,6 +146,11 @@ public class StubCursorFactory implements CursorFactory {
         return this;
     }
 
+    public StubCursorFactory withPropertyCursors(PropertyCursor... cursors) {
+        propertyCursors.addAll(Arrays.asList(cursors));
+        return this;
+    }
+
     public StubCursorFactory withFullPropertyCursors(PropertyCursor... cursors) {
         fullPropertyCursors.addAll(Arrays.asList(cursors));
         return this;
@@ -153,6 +158,16 @@ public class StubCursorFactory implements CursorFactory {
 
     public StubCursorFactory withFullNodeCursors(NodeCursor... cursors) {
         fullNodeCursors.addAll(Arrays.asList(cursors));
+        return this;
+    }
+
+    public StubCursorFactory withNodeValueIndexCursors(NodeValueIndexCursor... cursors) {
+        nodeValueIndexCursors.addAll(Arrays.asList(cursors));
+        return this;
+    }
+
+    public StubCursorFactory withRelationshipValueIndexCursors(RelationshipValueIndexCursor... cursors) {
+        relationshipValueIndexCursors.addAll(Arrays.asList(cursors));
         return this;
     }
 

@@ -128,7 +128,7 @@ class CompositeValueIndexCursorTest extends CypherFunSuite {
   private def cursorFor(values: Int*): NodeValueIndexCursor = {
     val stub = new StubNodeValueIndexCursor()
     values.zipWithIndex.foreach {
-      case (v, i) => stub.withNode(i, Values.intValue(v))
+      case (v, i) => stub.withEntity(i, Values.intValue(v))
     }
     stub
   }

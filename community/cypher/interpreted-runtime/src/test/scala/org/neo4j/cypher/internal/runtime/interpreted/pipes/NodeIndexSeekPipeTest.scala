@@ -47,7 +47,7 @@ class NodeIndexSeekPipeTest extends CypherFunSuite {
     val resourceManager = new ResourceManager(monitor)
     val state = QueryStateHelper.emptyWithResourceManager(resourceManager)
 
-    val cursor = new StubNodeValueIndexCursor().withNode(0)
+    val cursor = new StubNodeValueIndexCursor().withEntity(0)
     when(
       state.query.nodeIndexSeek(any[IndexReadSession], any[Boolean], any[IndexOrder], any[Seq[PropertyIndexQuery]])
     ).thenAnswer((_: InvocationOnMock) => {
@@ -74,7 +74,7 @@ class NodeIndexSeekPipeTest extends CypherFunSuite {
     val resourceManager = new ResourceManager(monitor)
     val state = QueryStateHelper.emptyWithResourceManager(resourceManager)
 
-    val cursor = new StubNodeValueIndexCursor().withNode(0)
+    val cursor = new StubNodeValueIndexCursor().withEntity(0)
     when(
       state.query.nodeIndexSeek(any[IndexReadSession], any[Boolean], any[IndexOrder], any[Seq[PropertyIndexQuery]])
     ).thenAnswer((_: InvocationOnMock) => {

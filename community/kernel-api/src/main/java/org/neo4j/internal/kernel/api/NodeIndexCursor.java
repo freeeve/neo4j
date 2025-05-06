@@ -22,7 +22,7 @@ package org.neo4j.internal.kernel.api;
 /**
  * Cursor for scanning the nodes of a schema index.
  */
-public interface NodeIndexCursor extends ReferenceCursor, IndexResultScore {
+public interface NodeIndexCursor extends EntityIndexCursor {
     void node(NodeCursor cursor);
 
     long nodeReference();

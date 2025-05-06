@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.eclipse.collections.api.IntIterable;
@@ -562,6 +563,15 @@ class TxStateTest {
         // Then
         assertTrue(state.hasChanges());
         assertTrue(state.relationshipIsAddedInThisBatch(relId));
+    }
+
+    @ParameterizedTest
+    @MethodSource("relationshipIsModifiedTests")
+    void testRelationshipIsModifiedInThisBatch(RelationshipIsModifiedTest test) {
+        var txState = new TxState();
+        test.txStateConsumer.accept(txState);
+        assertThat(txState.relationshipsIsModifiedInThisBatch(RelationshipIsModifiedTest.REL_ID))
+                .isEqualTo(test.expected());
     }
 
     @Test
@@ -1612,6 +1622,91 @@ class TxStateTest {
                         (NodeStateModifier) (state, nodeId) -> {
                             state.nodeDoChangeProperty(nodeId, 42, Values.stringValue("changed"));
                             state.nodeDoDelete(nodeId);
+                        },
+                        false));
+    }
+
+    private record RelationshipIsModifiedTest(String description, Consumer<TxState> txStateConsumer, boolean expected) {
+
+        static final long REL_ID = 0;
+
+        @Override
+        public String toString() {
+            return description;
+        }
+    }
+
+    private static Stream<RelationshipIsModifiedTest> relationshipIsModifiedTests() {
+        return Stream.of(
+                new RelationshipIsModifiedTest(
+                        "Created relationship isn't modified",
+                        state -> {
+                            state.relationshipDoCreate(RelationshipIsModifiedTest.REL_ID, 1, 2, 3);
+                        },
+                        false),
+                new RelationshipIsModifiedTest(
+                        "Deleted relationship isn't modified",
+                        state -> {
+                            state.relationshipDoDelete(RelationshipIsModifiedTest.REL_ID, 1, 2, 3);
+                        },
+                        false),
+                new RelationshipIsModifiedTest(
+                        "Deleted relationship in this batch isn't modified",
+                        state -> {
+                            state.relationshipDoCreate(RelationshipIsModifiedTest.REL_ID, 1, 2, 3);
+                            state.relationshipDoDeleteAddedInThisBatch(RelationshipIsModifiedTest.REL_ID);
+                        },
+                        false),
+                new RelationshipIsModifiedTest(
+                        "Relationship with new property is modified",
+                        state -> {
+                            state.relationshipDoReplaceProperty(
+                                    RelationshipIsModifiedTest.REL_ID,
+                                    1,
+                                    2,
+                                    3,
+                                    4,
+                                    Values.NO_VALUE,
+                                    Values.stringValue("someValue"));
+                        },
+                        true),
+                new RelationshipIsModifiedTest(
+                        "Relationship with replaced property is modified",
+                        state -> {
+                            state.relationshipDoReplaceProperty(
+                                    RelationshipIsModifiedTest.REL_ID,
+                                    1,
+                                    2,
+                                    3,
+                                    4,
+                                    Values.stringValue("other Value"),
+                                    Values.stringValue("someValue"));
+                        },
+                        true),
+                new RelationshipIsModifiedTest(
+                        "Relationship with removed property is modified",
+                        state -> {
+                            state.relationshipDoRemoveProperty(RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4);
+                        },
+                        true),
+                new RelationshipIsModifiedTest(
+                        "Relationship isn't modified after reset",
+                        state -> {
+                            state.relationshipDoRemoveProperty(RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4);
+                            state.reset();
+                        },
+                        false),
+                new RelationshipIsModifiedTest(
+                        "Relationship with removed property is modified",
+                        state -> {
+                            state.relationshipDoRemoveProperty(RelationshipIsModifiedTest.REL_ID, 1, 2, 3, 4);
+                        },
+                        true),
+                new RelationshipIsModifiedTest("Unknown relationship to tx state isn't modified", state -> {}, false),
+                new RelationshipIsModifiedTest(
+                        "Unknown relationship to tx state isn't modified (with other relationships created)",
+                        state -> {
+                            state.relationshipDoCreate(10, 1, 2, 3);
                         },
                         false));
     }

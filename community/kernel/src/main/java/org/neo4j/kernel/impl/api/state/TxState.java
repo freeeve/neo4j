@@ -487,6 +487,15 @@ public class TxState implements TransactionState {
     }
 
     @Override
+    public boolean relationshipsIsModifiedInThisBatch(long relationshipId) {
+        if (relationshipStatesMap == null) {
+            return false;
+        }
+        var state = relationshipStatesMap.get(relationshipId);
+        return state != null && !state.isCreated() && !state.isDeleted() && state.hasPropertyChanges();
+    }
+
+    @Override
     public void nodeDoAddProperty(long nodeId, int newPropertyKeyId, Value value) {
         NodeStateImpl nodeState = getOrCreateNodeState(nodeId);
         nodeState.addProperty(newPropertyKeyId, value);

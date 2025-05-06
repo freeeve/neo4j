@@ -22,7 +22,7 @@ package org.neo4j.internal.kernel.api;
 /**
  * Cursor for scanning relationships of a schema index.
  */
-public interface RelationshipIndexCursor extends RelationshipCursor, IndexResultScore {
+public interface RelationshipIndexCursor extends RelationshipCursor, EntityIndexCursor {
     /**
      * Reads the relationship, the one that was most recently read from the index via a successful call to
      * {@link #next()} from the store. After a successful call to this method all the {@link RelationshipCursor}

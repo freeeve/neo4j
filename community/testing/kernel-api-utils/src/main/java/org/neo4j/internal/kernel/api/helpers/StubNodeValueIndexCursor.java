@@ -19,73 +19,16 @@
  */
 package org.neo4j.internal.kernel.api.helpers;
 
-import static org.neo4j.values.storable.Values.NO_VALUE;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import org.apache.commons.lang3.ArrayUtils;
-import org.neo4j.internal.kernel.api.DefaultCloseListenable;
-import org.neo4j.internal.kernel.api.KernelReadTracer;
 import org.neo4j.internal.kernel.api.NodeCursor;
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
-import org.neo4j.values.storable.Value;
 
-public class StubNodeValueIndexCursor extends DefaultCloseListenable implements NodeValueIndexCursor {
-    private int position = -1;
-    private final List<NodeData> nodes = new ArrayList<>();
-    private final List<Value[]> values = new ArrayList<>();
-
-    public StubNodeValueIndexCursor withNode(long id, Value... vs) {
-        nodes.add(new NodeData(id, ArrayUtils.EMPTY_INT_ARRAY, Collections.emptyMap()));
-        values.add(vs);
-        return this;
-    }
+public class StubNodeValueIndexCursor extends StubEntityValueIndexCursor implements NodeValueIndexCursor {
 
     @Override
     public void node(NodeCursor cursor) {}
 
     @Override
     public long nodeReference() {
-        return position >= 0 && position < nodes.size() ? nodes.get(position).id : -1;
-    }
-
-    @Override
-    public float score() {
-        return Float.NaN;
-    }
-
-    @Override
-    public boolean next() {
-        return ++position < nodes.size();
-    }
-
-    @Override
-    public void closeInternal() {}
-
-    @Override
-    public boolean isClosed() {
-        return false;
-    }
-
-    @Override
-    public void setTracer(KernelReadTracer tracer) {}
-
-    @Override
-    public void removeTracer() {}
-
-    @Override
-    public int numberOfProperties() {
-        return position >= 0 && position < values.size() ? values.get(position).length : 0;
-    }
-
-    @Override
-    public boolean hasValue() {
-        return values != null;
-    }
-
-    @Override
-    public Value propertyValue(int offset) {
-        return position >= 0 && position < values.size() ? values.get(position)[offset] : NO_VALUE;
+        return reference();
     }
 }

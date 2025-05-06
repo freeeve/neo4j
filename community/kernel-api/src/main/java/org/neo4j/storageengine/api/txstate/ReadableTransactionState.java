@@ -83,6 +83,8 @@ public interface ReadableTransactionState {
 
     boolean relationshipIsDeletedInThisBatch(long relationshipId);
 
+    boolean relationshipsIsModifiedInThisBatch(long relationshipId);
+
     IntDiffSets nodeStateLabelDiffSets(long nodeId);
 
     boolean nodeIsAddedInThisBatch(long nodeId);

@@ -119,7 +119,7 @@ class NodeIndexStringScanPipeTest extends CypherFunSuite with ImplicitDummyPos w
     val resourceManager = new ResourceManager(monitor)
     val state = QueryStateHelper.emptyWithResourceManager(resourceManager)
 
-    val cursor = new StubNodeValueIndexCursor().withNode(0)
+    val cursor = new StubNodeValueIndexCursor().withEntity(0)
     when(
       state.query.nodeIndexSeekByContains(any[IndexReadSession], any[Boolean], any[IndexOrder], any[TextValue])
     ).thenAnswer((_: InvocationOnMock) => {
@@ -146,7 +146,7 @@ class NodeIndexStringScanPipeTest extends CypherFunSuite with ImplicitDummyPos w
     val resourceManager = new ResourceManager(monitor)
     val state = QueryStateHelper.emptyWithResourceManager(resourceManager)
 
-    val cursor = new StubNodeValueIndexCursor().withNode(0)
+    val cursor = new StubNodeValueIndexCursor().withEntity(0)
     when(
       state.query.nodeIndexSeekByContains(any[IndexReadSession], any[Boolean], any[IndexOrder], any[TextValue])
     ).thenAnswer((_: InvocationOnMock) => {
@@ -172,7 +172,7 @@ class NodeIndexStringScanPipeTest extends CypherFunSuite with ImplicitDummyPos w
     val resourceManager = new ResourceManager(monitor)
     val state = QueryStateHelper.emptyWithResourceManager(resourceManager)
 
-    val cursor = new StubNodeValueIndexCursor().withNode(0)
+    val cursor = new StubNodeValueIndexCursor().withEntity(0)
     when(
       state.query.nodeIndexSeekByEndsWith(any[IndexReadSession], any[Boolean], any[IndexOrder], any[TextValue])
     ).thenAnswer((_: InvocationOnMock) => {
@@ -198,7 +198,7 @@ class NodeIndexStringScanPipeTest extends CypherFunSuite with ImplicitDummyPos w
     val resourceManager = new ResourceManager(monitor)
     val state = QueryStateHelper.emptyWithResourceManager(resourceManager)
 
-    val cursor = new StubNodeValueIndexCursor().withNode(0)
+    val cursor = new StubNodeValueIndexCursor().withEntity(0)
     when(
       state.query.nodeIndexSeekByEndsWith(any[IndexReadSession], any[Boolean], any[IndexOrder], any[TextValue])
     ).thenAnswer((_: InvocationOnMock) => {

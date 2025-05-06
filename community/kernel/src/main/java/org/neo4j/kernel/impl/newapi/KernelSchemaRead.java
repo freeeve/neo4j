@@ -79,7 +79,7 @@ public class KernelSchemaRead implements SchemaRead {
                 storageReader, txStateHolder, indexingService, indexStatisticsStore, accessModeProvider);
     }
 
-    static void assertValidIndex(IndexDescriptor index) throws IndexNotFoundKernelException {
+    public static void assertValidIndex(IndexDescriptor index) throws IndexNotFoundKernelException {
         if (index == IndexDescriptor.NO_INDEX) {
             throw IndexNotFoundKernelException.indexNotFound();
         }
