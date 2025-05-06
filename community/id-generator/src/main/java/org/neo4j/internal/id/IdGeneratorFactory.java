@@ -31,7 +31,7 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 
-public interface IdGeneratorFactory {
+public interface IdGeneratorFactory extends IdGeneratorSupplier {
     IdGenerator open(
             PageCache pageCache,
             Path filename,
@@ -58,8 +58,6 @@ public interface IdGeneratorFactory {
             ImmutableSet<OpenOption> openOptions,
             IdSlotDistribution slotDistribution)
             throws IOException;
-
-    IdGenerator get(IdType idType);
 
     void visit(Consumer<IdGenerator> visitor);
 
