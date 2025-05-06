@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.constrained;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
-import static org.neo4j.io.memory.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -49,6 +48,7 @@ import org.neo4j.internal.schema.IndexQuery.IndexQueryType;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.schema.SchemaTestUtil;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -76,7 +76,7 @@ abstract class IndexAccessorCompatibility extends PropertyIndexProviderCompatibi
         IndexPopulator populator = indexProvider.getPopulator(
                 descriptor,
                 indexSamplingConfig,
-                heapBufferFactory(1024),
+                SchemaTestUtil.defaultHeapBufferFactory(),
                 INSTANCE,
                 tokenNameLookup,
                 ElementIdMapper.PLACEHOLDER,

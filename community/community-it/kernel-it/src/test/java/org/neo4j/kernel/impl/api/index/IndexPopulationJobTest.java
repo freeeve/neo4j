@@ -37,7 +37,6 @@ import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 import static org.neo4j.internal.helpers.collection.MapUtil.genericMap;
 import static org.neo4j.internal.helpers.collection.MapUtil.map;
 import static org.neo4j.internal.kernel.api.IndexMonitor.NO_MONITOR;
-import static org.neo4j.io.memory.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.kernel.api.KernelTransaction.Type.IMPLICIT;
 import static org.neo4j.kernel.api.schema.SchemaTestUtil.SIMPLE_NAME_LOOKUP;
@@ -98,6 +97,7 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.IndexUpdater;
+import org.neo4j.kernel.api.schema.SchemaTestUtil;
 import org.neo4j.kernel.impl.api.DatabaseSchemaState;
 import org.neo4j.kernel.impl.api.index.stats.IndexStatisticsStore;
 import org.neo4j.kernel.impl.transaction.state.storeview.IndexStoreViewFactory;
@@ -869,7 +869,7 @@ class IndexPopulationJobTest {
         return indexProvider.getPopulator(
                 completeDescriptor,
                 samplingConfig,
-                heapBufferFactory(1024),
+                SchemaTestUtil.defaultHeapBufferFactory(),
                 INSTANCE,
                 tokenNameLookup,
                 ElementIdMapper.PLACEHOLDER,

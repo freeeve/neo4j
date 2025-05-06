@@ -23,12 +23,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.eclipse.collections.api.factory.Sets.immutable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.internal.kernel.api.InternalIndexState.FAILED;
-import static org.neo4j.io.memory.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.kernel.api.schema.SchemaTestUtil;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.values.ElementIdMapper;
 
@@ -48,7 +48,7 @@ abstract class SpecialisedIndexPopulatorCompatibility
                 indexProvider.getPopulator(
                         descriptor,
                         indexSamplingConfig,
-                        heapBufferFactory(1024),
+                        SchemaTestUtil.defaultHeapBufferFactory(),
                         INSTANCE,
                         tokenNameLookup,
                         ElementIdMapper.PLACEHOLDER,
@@ -69,7 +69,7 @@ abstract class SpecialisedIndexPopulatorCompatibility
                 indexProvider.getPopulator(
                         descriptor,
                         indexSamplingConfig,
-                        heapBufferFactory(1024),
+                        SchemaTestUtil.defaultHeapBufferFactory(),
                         INSTANCE,
                         tokenNameLookup,
                         ElementIdMapper.PLACEHOLDER,
@@ -95,7 +95,7 @@ abstract class SpecialisedIndexPopulatorCompatibility
         final IndexPopulator p = indexProvider.getPopulator(
                 descriptor,
                 indexSamplingConfig,
-                heapBufferFactory(1024),
+                SchemaTestUtil.defaultHeapBufferFactory(),
                 INSTANCE,
                 tokenNameLookup,
                 ElementIdMapper.PLACEHOLDER,

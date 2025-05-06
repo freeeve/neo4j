@@ -26,6 +26,7 @@ import java.io.IOException;
 import org.eclipse.collections.api.factory.Sets;
 import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.values.ElementIdMapper;
@@ -41,7 +42,8 @@ class NativeIndexPopulatorTestCases {
                         layout,
                         descriptor,
                         false,
-                        heapBufferFactory(10 * 1024),
+                        heapBufferFactory(config.get(GraphDatabaseInternalSettings.index_populator_block_size)
+                                .intValue()),
                         config,
                         INSTANCE,
                         tokenNameLookup,

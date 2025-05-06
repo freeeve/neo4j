@@ -1018,7 +1018,7 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
     @Description("Block/buffer size for index population")
     public static final Setting<Long> index_populator_block_size = newBuilder(
                     "internal.dbms.index.populator_block_size", BYTES, mebiBytes(1))
-            .addConstraint(min(20L))
+            .addConstraint(min(kibiBytes(16)))
             .addConstraint(max((long) Integer.MAX_VALUE))
             .build();
 

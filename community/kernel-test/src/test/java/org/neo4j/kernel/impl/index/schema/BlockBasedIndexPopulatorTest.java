@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
-import static org.neo4j.io.memory.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 import static org.neo4j.kernel.api.index.IndexDirectoryStructure.directoriesByProvider;
@@ -75,6 +74,7 @@ import org.neo4j.kernel.api.index.IndexDirectoryStructure;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.api.index.IndexUpdater;
+import org.neo4j.kernel.api.schema.SchemaTestUtil;
 import org.neo4j.kernel.impl.index.schema.BlockBasedIndexPopulator.Monitor;
 import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
 import org.neo4j.logging.NullLogProvider;
@@ -255,7 +255,7 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
             // and waiting for merge to get going
             monitor.barrier.awaitUninterruptibly();
             // this is a bit fuzzy, but what we want is to assert that the scan doesn't represent 100% of the work
-            assertEquals(0.5f, populator.progress(PopulationProgress.DONE).getProgress(), 0.1f);
+            assertEquals(0.6f, populator.progress(PopulationProgress.DONE).getProgress(), 0.1f);
             monitor.barrier.release();
             monitor.mergeFinishedBarrier.awaitUninterruptibly();
             assertEquals(0.7f, populator.progress(PopulationProgress.DONE).getProgress(), 0.1f);
@@ -331,7 +331,8 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
     void shouldDeallocateAllAllocatedMemoryOnClose() throws IndexEntryConflictException, IOException {
         // given
         ThreadSafePeakMemoryTracker memoryTracker = new ThreadSafePeakMemoryTracker();
-        ByteBufferFactory bufferFactory = new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, 100);
+        ByteBufferFactory bufferFactory =
+                new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, SUFFICIENTLY_LARGE_BUFFER_SIZE);
         BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(NO_MONITOR, bufferFactory, memoryTracker);
         boolean closed = false;
         try {
@@ -365,7 +366,8 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
     void shouldDeallocateAllAllocatedMemoryOnDrop() throws IndexEntryConflictException, IOException {
         // given
         ThreadSafePeakMemoryTracker memoryTracker = new ThreadSafePeakMemoryTracker();
-        ByteBufferFactory bufferFactory = new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, 100);
+        ByteBufferFactory bufferFactory =
+                new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, SUFFICIENTLY_LARGE_BUFFER_SIZE);
         BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(NO_MONITOR, bufferFactory, memoryTracker);
         boolean closed = false;
         try {
@@ -398,7 +400,8 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
     void shouldBuildNonUniqueSampleAsPartOfScanCompleted() throws IndexEntryConflictException, IOException {
         // given
         ThreadSafePeakMemoryTracker memoryTracker = new ThreadSafePeakMemoryTracker();
-        try (ByteBufferFactory bufferFactory = new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, 100)) {
+        try (ByteBufferFactory bufferFactory =
+                new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, SUFFICIENTLY_LARGE_BUFFER_SIZE)) {
             BlockBasedIndexPopulator<KEY> populator = instantiatePopulator(NO_MONITOR, bufferFactory, memoryTracker);
             Collection<IndexEntryUpdate> populationUpdates = batchOfUpdates();
             populator.add(populationUpdates, NULL_CONTEXT);
@@ -427,7 +430,8 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
     void shouldFlushTreeOnScanCompleted() throws IndexEntryConflictException, IOException {
         // given
         ThreadSafePeakMemoryTracker memoryTracker = new ThreadSafePeakMemoryTracker();
-        try (ByteBufferFactory bufferFactory = new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, 100)) {
+        try (ByteBufferFactory bufferFactory =
+                new ByteBufferFactory(UnsafeDirectByteBufferAllocator::new, SUFFICIENTLY_LARGE_BUFFER_SIZE)) {
             AtomicInteger checkpoints = new AtomicInteger();
             GBPTree.Monitor treeMonitor = new GBPTree.Monitor.Adaptor() {
                 @Override
@@ -574,12 +578,12 @@ abstract class BlockBasedIndexPopulatorTest<KEY extends NativeIndexKey<KEY>> {
     }
 
     protected BlockBasedIndexPopulator<KEY> instantiatePopulator(Monitor monitor) throws IOException {
-        return instantiatePopulator(monitor, heapBufferFactory(100), INSTANCE);
+        return instantiatePopulator(monitor, SchemaTestUtil.defaultHeapBufferFactory(), INSTANCE);
     }
 
     private Collection<IndexEntryUpdate> batchOfUpdates() {
         List<IndexEntryUpdate> updates = new ArrayList<>();
-        for (int i = 0; i < 50; i++) {
+        for (int i = 0; i < 100_000; i++) {
             updates.add(add(i));
         }
         return updates;

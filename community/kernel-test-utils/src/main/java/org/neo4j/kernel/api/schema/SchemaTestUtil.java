@@ -24,6 +24,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.io.memory.ByteBufferFactory;
 
 public final class SchemaTestUtil {
     private SchemaTestUtil() {}
@@ -56,4 +59,10 @@ public final class SchemaTestUtil {
             return "property" + propertyKeyId;
         }
     };
+
+    public static ByteBufferFactory defaultHeapBufferFactory() {
+        return ByteBufferFactory.heapBufferFactory(Config.defaults()
+                .get(GraphDatabaseInternalSettings.index_populator_block_size)
+                .intValue());
+    }
 }

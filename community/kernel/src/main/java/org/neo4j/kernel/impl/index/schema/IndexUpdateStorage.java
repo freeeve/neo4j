@@ -124,6 +124,9 @@ public class IndexUpdateStorage<KEY extends NativeIndexKey<KEY>> implements Clos
     }
 
     private void ensureCapacity(int entrySize) throws IOException {
+        assert entrySize <= buffer.limit()
+                : "Expected entry to fit in buffer (entry=" + entrySize + " bytes, buffer=" + buffer.limit()
+                        + " bytes)";
         if (entrySize > buffer.remaining()) {
             flush();
         }

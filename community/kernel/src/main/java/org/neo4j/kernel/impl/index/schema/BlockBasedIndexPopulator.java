@@ -49,6 +49,7 @@ import org.neo4j.index.internal.gbptree.Writer;
 import org.neo4j.internal.helpers.Exceptions;
 import org.neo4j.internal.kernel.api.PopulationProgress;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.io.ByteUnit;
 import org.neo4j.io.IOUtils;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.io.memory.ByteBufferFactory.Allocator;
@@ -185,7 +186,11 @@ public abstract class BlockBasedIndexPopulator<KEY extends NativeIndexKey<KEY>> 
     protected abstract IndexValueValidator instantiateValueValidator();
 
     private int smallerBufferSize() {
-        return bufferFactory.bufferSize() / 2;
+        int size = bufferFactory.bufferSize() / 2;
+        assert size >= tree.keyValueSizeCap()
+                : "Expected buffer size >= " + ByteUnit.bytesToString(tree.keyValueSizeCap() * 2) + " but was "
+                        + ByteUnit.bytesToString(size);
+        return size;
     }
 
     @Override

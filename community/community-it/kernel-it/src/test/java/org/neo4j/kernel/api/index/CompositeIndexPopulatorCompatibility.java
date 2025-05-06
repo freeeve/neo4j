@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.internal.helpers.collection.Iterators.asSet;
 import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
-import static org.neo4j.io.memory.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.kernel.impl.index.schema.IndexUsageTracking.NO_USAGE_TRACKING;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.api.IndexEntryUpdate.add;
@@ -39,6 +38,7 @@ import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
+import org.neo4j.kernel.api.schema.SchemaTestUtil;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
 import org.neo4j.kernel.impl.index.schema.NodeValueIterator;
@@ -66,7 +66,7 @@ abstract class CompositeIndexPopulatorCompatibility extends PropertyIndexProvide
                     indexProvider.getPopulator(
                             descriptor,
                             indexSamplingConfig,
-                            heapBufferFactory(1024),
+                            SchemaTestUtil.defaultHeapBufferFactory(),
                             INSTANCE,
                             tokenNameLookup,
                             ElementIdMapper.PLACEHOLDER,
@@ -120,7 +120,7 @@ abstract class CompositeIndexPopulatorCompatibility extends PropertyIndexProvide
                     indexProvider.getPopulator(
                             descriptor,
                             indexSamplingConfig,
-                            heapBufferFactory(1024),
+                            SchemaTestUtil.defaultHeapBufferFactory(),
                             INSTANCE,
                             tokenNameLookup,
                             ElementIdMapper.PLACEHOLDER,
@@ -156,7 +156,7 @@ abstract class CompositeIndexPopulatorCompatibility extends PropertyIndexProvide
                     indexProvider.getPopulator(
                             descriptor,
                             indexSamplingConfig,
-                            heapBufferFactory(1024),
+                            SchemaTestUtil.defaultHeapBufferFactory(),
                             INSTANCE,
                             tokenNameLookup,
                             ElementIdMapper.PLACEHOLDER,

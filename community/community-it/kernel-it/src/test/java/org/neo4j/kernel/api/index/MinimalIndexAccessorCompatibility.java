@@ -22,7 +22,6 @@ package org.neo4j.kernel.api.index;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.neo4j.io.memory.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.api.schema.SchemaTestUtil.SIMPLE_NAME_LOOKUP;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -37,6 +36,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
+import org.neo4j.kernel.api.schema.SchemaTestUtil;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.values.ElementIdMapper;
 import org.neo4j.values.storable.Value;
@@ -60,7 +60,7 @@ class MinimalIndexAccessorCompatibility extends IndexProviderCompatabilityTestBa
             IndexPopulator populator = indexProvider.getPopulator(
                     descriptor,
                     indexSamplingConfig,
-                    heapBufferFactory(1024),
+                    SchemaTestUtil.defaultHeapBufferFactory(),
                     INSTANCE,
                     SIMPLE_NAME_LOOKUP,
                     ElementIdMapper.PLACEHOLDER,

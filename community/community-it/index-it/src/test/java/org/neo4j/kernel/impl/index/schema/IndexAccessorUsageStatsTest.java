@@ -22,7 +22,6 @@ package org.neo4j.kernel.impl.index.schema;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.neo4j.internal.kernel.api.PropertyIndexQuery.allEntries;
-import static org.neo4j.io.memory.ByteBufferFactory.heapBufferFactory;
 import static org.neo4j.token.api.TokenHolder.TYPE_LABEL;
 import static org.neo4j.token.api.TokenHolder.TYPE_PROPERTY_KEY;
 import static org.neo4j.token.api.TokenHolder.TYPE_RELATIONSHIP_TYPE;
@@ -287,7 +286,7 @@ public class IndexAccessorUsageStatsTest {
         var populator = provider.getPopulator(
                 completeDescriptor,
                 samplingConfig,
-                heapBufferFactory(1024),
+                SchemaTestUtil.defaultHeapBufferFactory(),
                 EmptyMemoryTracker.INSTANCE,
                 nameLookup,
                 ElementIdMapper.PLACEHOLDER,
