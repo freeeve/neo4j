@@ -40,6 +40,7 @@ class EphemeralFileData {
     private long lastModified;
     private int locked; // Guarded by lock on 'channels'
     private boolean isMapped; // True if memory mapped
+    private boolean freed = false;
 
     EphemeralFileData(Path file, Clock clock) {
         this(file, new EphemeralDynamicByteBuffer(), clock);
@@ -97,7 +98,12 @@ class EphemeralFileData {
     }
 
     synchronized void free() {
-        fileAsBuffer.free();
+        if (channels.isEmpty()) {
+            fileAsBuffer.free();
+        } else {
+            /* If the file was unlinked, then its data will die with the last open channel. */
+            freed = true;
+        }
     }
 
     void open(EphemeralFileChannel channel) {
@@ -114,7 +120,7 @@ class EphemeralFileData {
         fileAsBuffer = forcedBuffer.copy();
     }
 
-    void close(EphemeralFileChannel channel) {
+    synchronized void close(EphemeralFileChannel channel) {
         synchronized (channels) {
             locked = 0; // Regular file systems seems to release all file locks when closed...
             Iterator<WeakReference<EphemeralFileChannel>> iterator = channels.iterator();
@@ -124,6 +130,9 @@ class EphemeralFileData {
                 if (openChannel == null || openChannel == channel) {
                     iterator.remove();
                 }
+            }
+            if (channels.isEmpty() && freed) {
+                fileAsBuffer.free();
             }
         }
     }
