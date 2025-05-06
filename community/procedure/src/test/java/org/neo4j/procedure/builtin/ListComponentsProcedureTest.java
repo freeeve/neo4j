@@ -20,10 +20,10 @@
 package org.neo4j.procedure.builtin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.values.AnyValue;
@@ -44,16 +44,40 @@ class ListComponentsProcedureTest {
         // When
         try (var result = procedure.apply(null, new AnyValue[0], null)) {
             // Then
-            assertTrue(result.hasNext(), "Expected a result row from the procedure.");
+            var row = filterByComponentName(Iterators.asList(result), "Neo4j Kernel");
 
-            var row = result.next();
-            assertEquals("Neo4j Kernel", ((TextValue) row[0]).stringValue());
             var versions = (ListValue) row[1];
             assertEquals(1, versions.intSize());
             assertEquals("5.27.0", ((TextValue) versions.value(0)).stringValue());
             assertEquals("community", ((TextValue) row[2]).stringValue());
-
-            assertFalse(result.hasNext(), "Expected only one row from the procedure.");
         }
+    }
+
+    @Test
+    void listCypherVersions() throws ProcedureException {
+        var customConfigVersion = "5.27.0";
+        var procedure = new ListComponentsProcedure(
+                new QualifiedName(new String[] {"dbms"}, "components"), "2025.01.0", "community", customConfigVersion);
+
+        try (var result = procedure.apply(null, new AnyValue[0], null)) {
+            var row = filterByComponentName(Iterators.asList(result), "Cypher");
+
+            var versions = (ListValue) row[1];
+            assertEquals(1, versions.intSize());
+            assertEquals("5", ((TextValue) versions.value(0)).stringValue());
+            assertEquals("", ((TextValue) row[2]).stringValue());
+        }
+    }
+
+    private static AnyValue[] filterByComponentName(List<AnyValue[]> data, String name) {
+        return data.stream()
+                .filter(row -> {
+                    if (row[0] instanceof TextValue cell) {
+                        return name.equals(cell.stringValue());
+                    }
+                    return false;
+                })
+                .findFirst()
+                .orElseThrow();
     }
 }

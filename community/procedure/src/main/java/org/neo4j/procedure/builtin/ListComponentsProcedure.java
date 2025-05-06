@@ -19,14 +19,16 @@
  */
 package org.neo4j.procedure.builtin;
 
-import static java.util.Collections.singletonList;
 import static org.neo4j.internal.helpers.collection.Iterators.asRawIterator;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTList;
 import static org.neo4j.internal.kernel.api.procs.Neo4jTypes.NTString;
 import static org.neo4j.internal.kernel.api.procs.ProcedureSignature.procedureSignature;
+import static org.neo4j.values.storable.Values.EMPTY_STRING;
 import static org.neo4j.values.storable.Values.stringValue;
 import static org.neo4j.values.storable.Values.utf8Value;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.neo4j.collection.ResourceRawIterator;
 import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
@@ -36,6 +38,7 @@ import org.neo4j.kernel.api.procedure.Context;
 import org.neo4j.procedure.Mode;
 import org.neo4j.values.AnyValue;
 import org.neo4j.values.storable.TextValue;
+import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.VirtualValues;
 
 /**
@@ -55,14 +58,17 @@ import org.neo4j.values.virtual.VirtualValues;
  * 3. Else, we return the current version.
  */
 public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
+    private static final String SKIP_CYPHER_VERSION = "internal.components.cypher.skip";
+
     public static final String NAME_COLUMN = "name";
     public static final String VERSIONS_COLUMN = "versions";
     public static final String EDITION_COLUMN = "edition";
     public static final String KERNEL_COMPONENT_NAME = "Neo4j Kernel";
 
     private static final TextValue NEO4J_KERNEL = utf8Value(KERNEL_COMPONENT_NAME);
-    private final TextValue neo4jVersion;
-    private final TextValue neo4jEdition;
+    private static final TextValue CYPHER = utf8Value("Cypher");
+    private static final ListValue cypherVersions = VirtualValues.list(stringValue("5"));
+    private final List<AnyValue[]> components;
 
     public ListComponentsProcedure(
             QualifiedName name, String neo4jVersion, String neo4jEdition, String customVersionConfig) {
@@ -76,16 +82,26 @@ public class ListComponentsProcedure extends CallableProcedure.BasicProcedure {
                 .description("List DBMS components and their versions.")
                 .systemProcedure()
                 .build());
-
-        this.neo4jVersion = customVersionConfig != null ? stringValue(customVersionConfig) : stringValue(neo4jVersion);
-        this.neo4jEdition = stringValue(neo4jEdition);
+        this.components = createComponentsList(neo4jVersion, customVersionConfig, neo4jEdition);
     }
 
     @Override
     public ResourceRawIterator<AnyValue[], ProcedureException> apply(
             Context ctx, AnyValue[] input, ResourceMonitor resourceMonitor) throws ProcedureException {
-        return asRawIterator(
-                singletonList(new AnyValue[] {NEO4J_KERNEL, VirtualValues.list(neo4jVersion), neo4jEdition})
-                        .iterator());
+        return asRawIterator(components);
+    }
+
+    private static List<AnyValue[]> createComponentsList(
+            String neo4jVersion, String customVersionConfig, String neo4jEdition) {
+        var version = customVersionConfig != null ? stringValue(customVersionConfig) : stringValue(neo4jVersion);
+        var edition = stringValue(neo4jEdition);
+
+        List<AnyValue[]> components = new ArrayList<>(2);
+        components.add(new AnyValue[] {NEO4J_KERNEL, VirtualValues.list(version), edition});
+        if (Boolean.getBoolean(SKIP_CYPHER_VERSION)) {
+            return components;
+        }
+        components.add(new AnyValue[] {CYPHER, cypherVersions, EMPTY_STRING});
+        return components;
     }
 }

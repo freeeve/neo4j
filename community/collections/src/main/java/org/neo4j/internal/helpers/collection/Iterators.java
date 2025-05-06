@@ -726,6 +726,10 @@ public final class Iterators {
         };
     }
 
+    public static <T, EX extends Exception> ResourceRawIterator<T, EX> asRawIterator(List<T> list) {
+        return asRawIterator(list.iterator());
+    }
+
     /**
      * Returns a ResourceRawIterator based on the specified Stream.
      * NOTE! The returned iterator will NOT close the stream.

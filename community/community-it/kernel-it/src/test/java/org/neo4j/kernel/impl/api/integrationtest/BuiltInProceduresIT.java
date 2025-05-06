@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.internal.helpers.collection.Iterators.asList;
 import static org.neo4j.internal.kernel.api.procs.ProcedureCallContext.EMPTY;
+import static org.neo4j.values.storable.Values.EMPTY_STRING;
 import static org.neo4j.values.storable.Values.stringValue;
 
 import java.util.concurrent.CountDownLatch;
@@ -237,11 +238,14 @@ class BuiltInProceduresIT extends KernelIntegrationTest implements ProcedureITBa
                     ProcedureCallContext.EMPTY);
 
             // Then
-            assertThat(asList(stream)).containsExactly(new AnyValue[] {
-                stringValue("Neo4j Kernel"),
-                VirtualValues.list(stringValue(Version.getNeo4jVersion())),
-                stringValue("community")
-            });
+            assertThat(asList(stream))
+                    .containsExactly(
+                            new AnyValue[] {
+                                stringValue("Neo4j Kernel"),
+                                VirtualValues.list(stringValue(Version.getNeo4jVersion())),
+                                stringValue("community")
+                            },
+                            new AnyValue[] {stringValue("Cypher"), VirtualValues.list(stringValue("5")), EMPTY_STRING});
         }
 
         commit();

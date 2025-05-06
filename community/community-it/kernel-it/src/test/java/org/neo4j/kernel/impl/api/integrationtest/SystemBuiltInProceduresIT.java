@@ -30,6 +30,7 @@ import static org.neo4j.internal.kernel.api.procs.ProcedureCallContext.EMPTY;
 import static org.neo4j.internal.kernel.api.security.LoginContext.AUTH_DISABLED;
 import static org.neo4j.internal.schema.IndexPrototype.uniqueForSchema;
 import static org.neo4j.internal.schema.SchemaDescriptors.forLabel;
+import static org.neo4j.values.storable.Values.EMPTY_STRING;
 import static org.neo4j.values.storable.Values.stringValue;
 
 import java.util.List;
@@ -153,11 +154,14 @@ class SystemBuiltInProceduresIT extends KernelIntegrationTest implements Procedu
                     EMPTY);
 
             // Then
-            assertThat(asList(stream)).containsExactly(new AnyValue[] {
-                stringValue("Neo4j Kernel"),
-                VirtualValues.list(stringValue(Version.getNeo4jVersion())),
-                stringValue("community")
-            });
+            assertThat(asList(stream))
+                    .containsExactly(
+                            new AnyValue[] {
+                                stringValue("Neo4j Kernel"),
+                                VirtualValues.list(stringValue(Version.getNeo4jVersion())),
+                                stringValue("community")
+                            },
+                            new AnyValue[] {stringValue("Cypher"), VirtualValues.list(stringValue("5")), EMPTY_STRING});
         }
 
         commit();
