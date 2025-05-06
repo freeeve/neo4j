@@ -1,0 +1,517 @@
+[
+  {
+    "name": "dbms.cluster.checkConnectivity",
+    "description": "Check the connectivity of this instance to other cluster members. Not all ports are relevant to all members. Valid values for 'port-name' are: [CLUSTER, INTRA_BOLT, RAFT]",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "dbms.cluster.checkConnectivity(port-name = null :: STRING, server = null :: STRING) :: (serverId :: STRING, name :: STRING, address :: STRING, mode-constraint :: STRING, port-name :: STRING, port-address :: STRING, result :: STRING)",
+    "argumentDescription": [
+      {
+        "name": "port-name",
+        "description": "The name of the port: ('CLUSTER', 'RAFT').",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value=null, type=STRING}",
+        "type": "STRING"
+      },
+      {
+        "name": "server",
+        "description": "The id of the server to check connectivity of.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value=null, type=STRING}",
+        "type": "STRING"
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "serverId",
+        "description": "The id of the checked server.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "name",
+        "description": "name :: STRING",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "address",
+        "description": "address :: STRING",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "mode-constraint",
+        "description": "The instance mode constraint of the server.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "port-name",
+        "description": "The name of the checked port.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "port-address",
+        "description": "The address of the checked port.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "result",
+        "description": "Whether the check was successful or not.",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "db.create.setVectorProperty",
+    "description": "Set a vector property on a given node in a more space efficient representation than Cypher's SET.",
+    "mode": "WRITE",
+    "worksOnSystem": false,
+    "signature": "db.create.setVectorProperty(node :: NODE, key :: STRING, vector :: ANY) :: (node :: NODE)",
+    "argumentDescription": [
+      {
+        "name": "node",
+        "description": "The node on which the new property will be stored.",
+        "isDeprecated": false,
+        "type": "NODE"
+      },
+      {
+        "name": "key",
+        "description": "The name of the new property.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "vector",
+        "description": "The object containing the embedding.",
+        "isDeprecated": false,
+        "type": "ANY"
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "node",
+        "description": "The node on which the vector property was set.",
+        "isDeprecated": false,
+        "type": "NODE"
+      }
+    ],
+    "admin": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": true,
+    "deprecatedBy": "db.create.setNodeVectorProperty",
+    "option": {
+      "deprecated": true
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5]
+  },
+  {
+    "name": "db.index.vector.createNodeIndex",
+    "description": "Create a named node vector index for the specified label and property with the given vector dimensionality using either the EUCLIDEAN or COSINE similarity function.\nBoth similarity functions are case-insensitive.\nUse the `db.index.vector.queryNodes` procedure to query the named index.\n",
+    "mode": "SCHEMA",
+    "worksOnSystem": false,
+    "signature": "db.index.vector.createNodeIndex(indexName :: STRING, label :: STRING, propertyKey :: STRING, vectorDimension :: INTEGER, vectorSimilarityFunction :: STRING)",
+    "argumentDescription": [
+      {
+        "name": "indexName",
+        "description": "indexName :: STRING",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "label",
+        "description": "label :: STRING",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "propertyKey",
+        "description": "propertyKey :: STRING",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "vectorDimension",
+        "description": "vectorDimension :: INTEGER",
+        "isDeprecated": false,
+        "type": "INTEGER"
+      },
+      {
+        "name": "vectorSimilarityFunction",
+        "description": "vectorSimilarityFunction :: STRING",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "returnDescription": [
+
+    ],
+    "admin": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": true,
+    "deprecatedBy": "CREATE VECTOR INDEX",
+    "option": {
+      "deprecated": true
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5]
+  },
+  {
+    "name": "db.index.vector.queryNodes",
+    "description": "Query the given node vector index.\nReturns requested number of nearest neighbors to the provided query vector,\nand their similarity score to that query vector, based on the configured similarity function for the index.\nThe similarity score is a value between [0, 1]; where 0 indicates least similar, 1 most similar.\n",
+    "mode": "READ",
+    "worksOnSystem": false,
+    "signature": "db.index.vector.queryNodes(indexName :: STRING, numberOfNearestNeighbours :: INTEGER, query :: ANY) :: (node :: NODE, score :: FLOAT)",
+    "argumentDescription": [
+      {
+        "name": "indexName",
+        "description": "The name of the vector index.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "numberOfNearestNeighbours",
+        "description": "The size of the vector neighbourhood.",
+        "isDeprecated": false,
+        "type": "INTEGER"
+      },
+      {
+        "name": "query",
+        "description": "The object to find approximate matches for.",
+        "isDeprecated": false,
+        "type": "ANY"
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "node",
+        "description": "A node which contains a vector property similar to the query object.",
+        "isDeprecated": false,
+        "type": "NODE"
+      },
+      {
+        "name": "score",
+        "description": "The score measuring how similar the node property is to the query object.",
+        "isDeprecated": false,
+        "type": "FLOAT"
+      }
+    ],
+    "admin": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": false,
+    "deprecatedBy": null,
+    "option": {
+      "deprecated": false
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5, 25]
+  },
+  {
+    "name": "dbms.cluster.readReplicaToggle",
+    "description": "The toggle can pause or resume read replica (deprecated in favor of dbms.cluster.secondaryReplicationDisable)",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "dbms.cluster.readReplicaToggle(databaseName :: STRING, pause :: BOOLEAN) :: (state :: STRING)",
+    "argumentDescription": [
+      {
+        "name": "databaseName",
+        "description": "The name of the database to toggle the secondary replication process for.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "pause",
+        "description": "Whether or not to enable/disable the secondary replication process.",
+        "isDeprecated": false,
+        "type": "BOOLEAN"
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "state",
+        "description": "The current state of the secondary replication process.",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": true,
+    "deprecatedBy": "dbms.cluster.secondaryReplicationDisable",
+    "option": {
+      "deprecated": true
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5]
+  },
+  {
+    "name": "dbms.cluster.routing.getRoutingTable",
+    "description": "Returns the advertised bolt capable endpoints for a given database, divided by each endpoint's capabilities. For example, an endpoint may serve read queries, write queries, and/or future `getRoutingTable` requests.",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "dbms.cluster.routing.getRoutingTable(context :: MAP, database = null :: STRING) :: (ttl :: INTEGER, servers :: LIST<MAP>)",
+    "argumentDescription": [
+      {
+        "name": "context",
+        "description": "Routing context, for example, routing policies.",
+        "isDeprecated": false,
+        "type": "MAP"
+      },
+      {
+        "name": "database",
+        "description": "The database to get a routing table for.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value=null, type=STRING}",
+        "type": "STRING"
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "ttl",
+        "description": "Time to live (in seconds) for the routing table.",
+        "isDeprecated": false,
+        "type": "INTEGER"
+      },
+      {
+        "name": "servers",
+        "description": "Servers grouped by whether they are readers, writers, or routers.",
+        "isDeprecated": false,
+        "type": "LIST<MAP>"
+      }
+    ],
+    "admin": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": true,
+    "deprecatedBy": "dbms.routing.getRoutingTable",
+    "option": {
+      "deprecated": true
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5]
+  },
+  {
+    "name": "dbms.cluster.uncordonServer",
+    "description": "Remove the cordon on a server, returning it to 'enabled'.",
+    "mode": "WRITE",
+    "worksOnSystem": true,
+    "signature": "dbms.cluster.uncordonServer(server :: STRING)",
+    "argumentDescription": [
+      {
+        "name": "server",
+        "description": "The name or id of the server to be uncordoned.",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "returnDescription": [
+
+    ],
+    "admin": false,
+    "rolesExecution": [
+      "PUBLIC",
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": true,
+    "deprecatedBy": "ENABLE SERVER",
+    "option": {
+      "deprecated": true
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5]
+  },
+  {
+    "name": "dbms.quarantineDatabase",
+    "description": "Place a database into quarantine or remove it from it.",
+    "mode": "DBMS",
+    "worksOnSystem": true,
+    "signature": "dbms.quarantineDatabase(databaseName :: STRING, setStatus :: BOOLEAN, reason = No reason given :: STRING) :: (databaseName :: STRING, quarantined :: BOOLEAN, result :: STRING)",
+    "argumentDescription": [
+      {
+        "name": "databaseName",
+        "description": "The name of the database to set the quarantine status of.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "setStatus",
+        "description": "Whether or not to quarantine the database.",
+        "isDeprecated": false,
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "reason",
+        "description": "The reason to quarantine the database.",
+        "isDeprecated": false,
+        "default": "DefaultParameterValue{value=No reason given, type=STRING}",
+        "type": "STRING"
+      }
+    ],
+    "returnDescription": [
+      {
+        "name": "databaseName",
+        "description": "The name of the database.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "quarantined",
+        "description": "Whether or not the database is quarantined.",
+        "isDeprecated": false,
+        "type": "BOOLEAN"
+      },
+      {
+        "name": "result",
+        "description": "Details about the outcome of the procedure.",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": true,
+    "deprecatedBy": "dbms.unquarantineDatabase",
+    "option": {
+      "deprecated": true
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5]
+  },
+  {
+    "name": "dbms.upgrade",
+    "description": "Upgrade the system database schema if it is not the current schema.",
+    "mode": "WRITE",
+    "worksOnSystem": true,
+    "signature": "dbms.upgrade() :: (status :: STRING, upgradeResult :: STRING)",
+    "argumentDescription": [
+
+    ],
+    "returnDescription": [
+      {
+        "name": "status",
+        "description": "The upgrade status of the system database.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "upgradeResult",
+        "description": "Information about the upgrade outcome.",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": true,
+    "deprecatedBy": "Automatic upgrade",
+    "option": {
+      "deprecated": true
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5]
+  },
+  {
+    "name": "dbms.upgradeStatus",
+    "description": "Report the current status of the system database sub-graph schema.",
+    "mode": "READ",
+    "worksOnSystem": true,
+    "signature": "dbms.upgradeStatus() :: (status :: STRING, description :: STRING, resolution :: STRING)",
+    "argumentDescription": [
+
+    ],
+    "returnDescription": [
+      {
+        "name": "status",
+        "description": "The upgrade status of the system database.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "description",
+        "description": "Information describing the upgrade status.",
+        "isDeprecated": false,
+        "type": "STRING"
+      },
+      {
+        "name": "resolution",
+        "description": "Information about the steps necessary to upgrade.",
+        "isDeprecated": false,
+        "type": "STRING"
+      }
+    ],
+    "admin": true,
+    "rolesExecution": [
+      "admin"
+    ],
+    "rolesBoostedExecution": [
+      "admin"
+    ],
+    "isDeprecated": true,
+    "deprecatedBy": "Automatic upgrade",
+    "option": {
+      "deprecated": true
+    },
+    "enterpriseOnly": true,
+    "cypherVersionScope": [5]
+  }
+]
