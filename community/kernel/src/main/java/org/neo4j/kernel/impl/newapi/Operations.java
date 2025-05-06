@@ -88,7 +88,6 @@ import org.neo4j.internal.kernel.api.TokenPredicate;
 import org.neo4j.internal.kernel.api.TokenSet;
 import org.neo4j.internal.kernel.api.Upgrade;
 import org.neo4j.internal.kernel.api.Write;
-import org.neo4j.internal.kernel.api.exceptions.EntityAlreadyExistsException;
 import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException;
 import org.neo4j.internal.kernel.api.exceptions.PropertyKeyIdNotFoundKernelException;
 import org.neo4j.internal.kernel.api.exceptions.TransactionFailureException;
@@ -291,13 +290,6 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         return internalNodeCreate(commandCreationContext, null);
     }
 
-    @Override
-    public void nodeWithSpecificIdCreate(long nodeId) throws EntityAlreadyExistsException {
-        ensureCursors();
-        internalNodeCreate(() -> nodeId, this::assertNodeDoesntExist);
-        ktx.needsHighIdTracking();
-    }
-
     private <E extends Exception> long internalNodeCreateWithLabels(
             NodeIdAllocator idAllocator, int[] labels, ThrowingLongConsumer<E> checkAfterLocked)
             throws E, ConstraintValidationException {
@@ -339,14 +331,6 @@ public class Operations implements Write, SchemaWrite, Upgrade {
     public long nodeCreateWithLabels(int[] labels) throws ConstraintValidationException {
         ensureCursors();
         return internalNodeCreateWithLabels(commandCreationContext, labels, null);
-    }
-
-    @Override
-    public void nodeWithSpecificIdCreateWithLabels(long nodeId, int[] labels)
-            throws EntityAlreadyExistsException, ConstraintValidationException {
-        ensureCursors();
-        internalNodeCreateWithLabels(() -> nodeId, labels, this::assertNodeDoesntExist);
-        ktx.needsHighIdTracking();
     }
 
     private long[] acquireSharedLabelLocks(int[] labels) {
@@ -446,21 +430,6 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             throws EntityNotFoundException {
         ensureCursors();
         return internalRelationshipCreate(commandCreationContext, sourceNode, relationshipType, targetNode, null);
-    }
-
-    @Override
-    public void relationshipWithSpecificIdCreate(
-            long relationshipId, long sourceNode, int relationshipType, long targetNode)
-            throws EntityAlreadyExistsException, EntityNotFoundException {
-        ensureCursors();
-        internalRelationshipCreate(
-                (sourceNode1, targetNode1, relationshipType1, sourceNodeAddedInTx, targetNodeAddedInTx) ->
-                        relationshipId,
-                sourceNode,
-                relationshipType,
-                targetNode,
-                this::assertRelationshipDoesntExist);
-        ktx.needsHighIdTracking();
     }
 
     @Override
@@ -2723,20 +2692,6 @@ public class Operations implements Write, SchemaWrite, Upgrade {
                     this.getClass().getSimpleName(),
                     NODE,
                     ktx.internalTransaction().elementIdMapper().nodeElementId(nodeId));
-        }
-    }
-
-    private void assertNodeDoesntExist(long nodeId) throws EntityAlreadyExistsException {
-        if (kernelRead.nodeExists(nodeId)) {
-            throw new EntityAlreadyExistsException(
-                    NODE, ktx.internalTransaction().elementIdMapper().nodeElementId(nodeId));
-        }
-    }
-
-    private void assertRelationshipDoesntExist(long relationshipId) throws EntityAlreadyExistsException {
-        if (kernelRead.relationshipExists(relationshipId)) {
-            throw new EntityAlreadyExistsException(
-                    RELATIONSHIP, ktx.internalTransaction().elementIdMapper().relationshipElementId(relationshipId));
         }
     }
 
