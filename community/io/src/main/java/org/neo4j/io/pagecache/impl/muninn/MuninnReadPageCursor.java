@@ -22,8 +22,8 @@ package org.neo4j.io.pagecache.impl.muninn;
 import static org.neo4j.io.pagecache.context.TransactionIdSnapshot.isNotVisible;
 
 import java.io.IOException;
-import org.neo4j.io.pagecache.PageSwapper;
 import org.neo4j.io.pagecache.context.CursorContext;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.tracing.PinEvent;
 
 final class MuninnReadPageCursor extends MuninnPageCursor {

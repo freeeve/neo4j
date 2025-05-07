@@ -28,7 +28,6 @@ import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.context.CursorContextFactory.NULL_CONTEXT_FACTORY;
 import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
 import static org.neo4j.logging.LogAssertions.assertThat;
-import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -51,7 +50,6 @@ import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
@@ -245,10 +243,7 @@ class DatabaseStartupTest {
             StorageEngineFactory storageEngineFactory, DatabaseLayout databaseLayout, Consumer<MetadataProvider> tamper)
             throws Exception {
         try (var scheduler = JobSchedulerFactory.createInitialisedScheduler();
-                var pageCache = new MuninnPageCache(
-                        new SingleFilePageSwapperFactory(fs, NULL, INSTANCE),
-                        scheduler,
-                        MuninnPageCache.config(1_000));
+                var pageCache = new MuninnPageCache(fs, scheduler, MuninnPageCache.config(1_000));
                 var metadataProvider = storageEngineFactory.transactionMetaDataStore(
                         fs,
                         databaseLayout,

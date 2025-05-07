@@ -25,8 +25,6 @@ import static org.neo4j.index.internal.gbptree.GBPTreeTestUtil.consistencyCheck;
 import static org.neo4j.io.IOUtils.closeAll;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.io.pagecache.impl.muninn.MuninnPageCache.config;
-import static org.neo4j.io.pagecache.tracing.PageCacheTracer.NULL;
-import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -38,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
@@ -69,10 +66,7 @@ class MultiRootGBPTreeCorruptionTest {
     @BeforeEach
     void start() {
         jobScheduler = new ThreadPoolJobScheduler();
-        pageCache = new MuninnPageCache(
-                new SingleFilePageSwapperFactory(fs, NULL, INSTANCE),
-                jobScheduler,
-                config(10_000).pageSize(256));
+        pageCache = new MuninnPageCache(fs, jobScheduler, config(10_000).pageSize(256));
         tree = new GBPTreeBuilder<>(pageCache, fs, directory.file("tree"), dataLayout, rootLayout).buildMultiRoot();
     }
 

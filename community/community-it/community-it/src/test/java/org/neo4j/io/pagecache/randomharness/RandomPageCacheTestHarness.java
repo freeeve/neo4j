@@ -48,15 +48,12 @@ import org.neo4j.adversaries.fs.AdversarialFileSystemAbstraction;
 import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.fs.StoreChannel;
-import org.neo4j.io.pagecache.PageSwapperFactory;
 import org.neo4j.io.pagecache.PagedFile;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.io.pagecache.tracing.linear.LinearHistoryPageCacheTracerTest;
 import org.neo4j.io.pagecache.tracing.linear.LinearTracers;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.test.scheduler.DaemonThreadFactory;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
@@ -355,12 +352,9 @@ public class RandomPageCacheTestHarness implements Closeable {
             fs = new AdversarialFileSystemAbstraction(adversary, fs);
         }
 
-        PageSwapperFactory swapperFactory = new SingleFilePageSwapperFactory(fs, tracer, EmptyMemoryTracker.INSTANCE);
         JobScheduler jobScheduler = new ThreadPoolJobScheduler();
         MuninnPageCache cache = new MuninnPageCache(
-                swapperFactory,
-                jobScheduler,
-                MuninnPageCache.config(cachePageCount).pageCacheTracer(tracer));
+                fs, jobScheduler, MuninnPageCache.config(cachePageCount).pageCacheTracer(tracer));
         if (filePageSize == 0) {
             filePageSize = cache.pageSize();
         }

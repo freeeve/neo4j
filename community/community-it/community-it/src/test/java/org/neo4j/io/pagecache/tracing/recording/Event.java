@@ -19,7 +19,7 @@
  */
 package org.neo4j.io.pagecache.tracing.recording;
 
-import org.neo4j.io.pagecache.PageSwapper;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 
 public abstract class Event {
     public final PageSwapper io;

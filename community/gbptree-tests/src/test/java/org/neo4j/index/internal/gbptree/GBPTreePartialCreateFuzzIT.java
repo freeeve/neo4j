@@ -32,10 +32,7 @@ import org.neo4j.internal.helpers.ProcessUtils;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
-import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.pagecache.PageCacheExtension;
@@ -89,9 +86,7 @@ class GBPTreePartialCreateFuzzIT {
         Path file = Path.of(args[0]);
         try (FileSystemAbstraction fs = new DefaultFileSystemAbstraction();
                 JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
-            SingleFilePageSwapperFactory swapper =
-                    new SingleFilePageSwapperFactory(fs, PageCacheTracer.NULL, EmptyMemoryTracker.INSTANCE);
-            try (PageCache pageCache = new MuninnPageCache(swapper, jobScheduler, config(10))) {
+            try (PageCache pageCache = new MuninnPageCache(fs, jobScheduler, config(10))) {
                 fs.deleteFile(file);
                 new GBPTreeBuilder<>(pageCache, fs, file, longLayout().build())
                         .build()

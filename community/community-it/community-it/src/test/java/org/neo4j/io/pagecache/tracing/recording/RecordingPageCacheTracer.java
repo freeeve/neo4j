@@ -21,8 +21,8 @@ package org.neo4j.io.pagecache.tracing.recording;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
-import org.neo4j.io.pagecache.PageSwapper;
 import org.neo4j.io.pagecache.PagedFile;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.EvictionEvent;
 import org.neo4j.io.pagecache.tracing.EvictionRunEvent;

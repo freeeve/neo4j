@@ -21,7 +21,7 @@ package org.neo4j.io.pagecache.tracing;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.neo4j.io.pagecache.PageSwapper;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 
 public class DummyPageSwapper implements PageSwapper {
     protected final String filename;

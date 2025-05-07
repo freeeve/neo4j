@@ -72,10 +72,10 @@
  * added back to the list of free pages.
  * <p>
  * Knowledge of how to move file pages in and out of cache pages is contained in a so called
- * {@link org.neo4j.io.pagecache.PageSwapper}. The {@code Page}s themselves only contain a pointer to their respective
+ * {@link org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper}. The {@code Page}s themselves only contain a pointer to their respective
  * memory area, and a value for how big it is. It is the {@code PageSwapper} that knows how to do the IO that moves
  * data in and out of the page memory. Every {@code PagedFile} have their own dedicated {@code PageSwapper}, that is
- * instantiated for the given file by the {@link org.neo4j.io.pagecache.PageSwapperFactory}.
+ * instantiated for the given file by the {@link org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapperFactory}.
  * <p>
  * Once a file has been mapped, and a {@code PagedFile} object made available, the
  * {@link org.neo4j.io.pagecache.PagedFile#io(long, int, CursorContext)

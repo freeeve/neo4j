@@ -23,7 +23,7 @@ import org.mockito.Answers
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.cypher.result.OperatorProfile
-import org.neo4j.io.pagecache.PageSwapper
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer
 import org.neo4j.io.pagecache.tracing.cursor.DefaultPageCursorTracer
 import org.neo4j.kernel.impl.query.statistic.StatisticProvider

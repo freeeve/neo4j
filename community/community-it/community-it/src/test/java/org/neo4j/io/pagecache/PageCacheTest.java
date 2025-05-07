@@ -102,11 +102,13 @@ import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.io.pagecache.impl.FileIsNotMappedException;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.CacheLiveLockException;
 import org.neo4j.io.pagecache.impl.muninn.EvictionBouncer;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCursor;
 import org.neo4j.io.pagecache.impl.muninn.SwapperSet;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapperFactory;
+import org.neo4j.io.pagecache.impl.muninn.swapper.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.randomharness.Record;
 import org.neo4j.io.pagecache.randomharness.StandardRecordFormat;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
@@ -4489,9 +4491,9 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
     void fileMappedWithDeleteOnCloseShouldNotFlushDirtyPagesOnClose() throws Exception {
         PageCacheTracer cacheTracer = PageCacheTracer.NULL;
         AtomicInteger flushCounter = new AtomicInteger();
-        PageSwapperFactory swapperFactory = flushCountingPageSwapperFactory(fs, flushCounter, cacheTracer);
         Path file = file("a");
-        try (PageCache cache = createPageCache(swapperFactory, maxPages, cacheTracer);
+        PageSwapperFactory swapperFactory = flushCountingPageSwapperFactory(fs, flushCounter, cacheTracer);
+        try (PageCache cache = createPageCache(fs, maxPages, cacheTracer, swapperFactory);
                 PagedFile pf = cache.map(file, filePageSize, DEFAULT_DATABASE_NAME, immutable.of(DELETE_ON_CLOSE));
                 PageCursor cursor = pf.io(0, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
             writeRecords(cursor);
@@ -4506,7 +4508,7 @@ public abstract class PageCacheTest<T extends PageCache> extends PageCacheTestSu
         AtomicInteger flushCounter = new AtomicInteger();
         PageSwapperFactory swapperFactory = flushCountingPageSwapperFactory(fs, flushCounter, cacheTracer);
         Path file = file("a");
-        try (PageCache cache = createPageCache(swapperFactory, maxPages, cacheTracer);
+        try (PageCache cache = createPageCache(fs, maxPages, cacheTracer, swapperFactory);
                 PagedFile pf = cache.map(file, filePageSize, DEFAULT_DATABASE_NAME);
                 PageCursor cursor = pf.io(0, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {
             writeRecords(cursor);

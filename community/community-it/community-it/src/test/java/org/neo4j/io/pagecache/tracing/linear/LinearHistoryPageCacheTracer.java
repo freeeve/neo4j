@@ -24,8 +24,8 @@ import static org.neo4j.io.pagecache.tracing.linear.HEvents.FileFlushHEvent;
 import static org.neo4j.io.pagecache.tracing.linear.HEvents.MappedFileHEvent;
 import static org.neo4j.io.pagecache.tracing.linear.HEvents.UnmappedFileHEvent;
 
-import org.neo4j.io.pagecache.PageSwapper;
 import org.neo4j.io.pagecache.PagedFile;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.EvictionRunEvent;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;

@@ -19,6 +19,8 @@
  */
 package org.neo4j.io.pagecache;
 
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
+
 /**
  * These callback implementations are produced by the page cache and given to the page swappers, so that the correct
  * translation tables can be updated when pages are evicted. The PageSwapper implementations are responsible for

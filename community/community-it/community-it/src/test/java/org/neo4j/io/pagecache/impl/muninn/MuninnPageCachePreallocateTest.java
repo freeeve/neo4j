@@ -36,9 +36,8 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.PageSwapper;
-import org.neo4j.io.pagecache.PageSwapperFactory;
 import org.neo4j.io.pagecache.PagedFile;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.memory.LocalMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.test.extension.Inject;
@@ -65,7 +64,7 @@ class MuninnPageCacheExplicitPreallocateTest {
     }
 
     @AfterEach
-    void afterEach() throws Exception {
+    void afterEach() {
         jobScheduler.close();
     }
 
@@ -142,21 +141,21 @@ class MuninnPageCacheExplicitPreallocateTest {
         long memory = MuninnPageCache.memoryRequiredForPages(1024);
         var memoryTracker = new LocalMemoryTracker();
         var allocator = MemoryAllocator.createAllocator(memory, memoryTracker);
-        MuninnPageCache.Configuration configuration =
-                MuninnPageCache.config(allocator).preallocateStoreFiles(automaticPreAllocation);
-        PageSwapperFactory pageSwapperFactory =
-                (path,
-                        filePageSize,
-                        onEviction,
-                        createIfNotExist,
-                        useDirectIO,
-                        ioController,
-                        evictionGuard,
-                        swappers) -> {
-                    when(swapper.swapperId()).thenReturn(swappers.allocate(swapper));
-                    when(swapper.path()).thenReturn(path);
-                    return swapper;
-                };
-        return new MuninnPageCache(pageSwapperFactory, jobScheduler, configuration);
+        MuninnPageCache.Configuration configuration = MuninnPageCache.config(allocator)
+                .preallocateStoreFiles(automaticPreAllocation)
+                .swapperFactory(
+                        (path,
+                                filePageSize,
+                                onEviction,
+                                createIfNotExist,
+                                useDirectIO,
+                                ioController,
+                                evictionGuard,
+                                swappers) -> {
+                            when(swapper.swapperId()).thenReturn(swappers.allocate(swapper));
+                            when(swapper.path()).thenReturn(path);
+                            return swapper;
+                        });
+        return new MuninnPageCache(fs, jobScheduler, configuration);
     }
 }

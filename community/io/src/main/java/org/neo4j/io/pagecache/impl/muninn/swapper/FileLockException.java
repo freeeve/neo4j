@@ -17,15 +17,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.io.pagecache.impl;
+package org.neo4j.io.pagecache.impl.muninn.swapper;
 
-import static org.neo4j.noopens.NoOpensIT.assertByteBufferClosed;
+import java.io.IOException;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.Path;
 
-import org.junit.jupiter.api.BeforeAll;
+/**
+ * Thrown when a file cannot be locked in the process of opening a {@link SingleFilePageSwapper} for it.
+ */
+public class FileLockException extends IOException {
+    FileLockException(Path file, OverlappingFileLockException throwable) {
+        super("Already locked: " + file, throwable);
+    }
 
-public class SingleFilePageSwapperWithFallbackTest extends SingleFilePageSwapperTest {
-    @BeforeAll
-    static void before() {
-        assertByteBufferClosed();
+    FileLockException(Path file) {
+        super(
+                "This file is locked by another process, please ensure you don't have another Neo4j process or tool using it: '"
+                        + file + "'.'");
     }
 }

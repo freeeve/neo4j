@@ -19,7 +19,7 @@
  */
 package org.neo4j.io.pagecache.tracing;
 
-import org.neo4j.io.pagecache.PageSwapper;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 
 /**
  * Begin a mass-flushing of file pages.

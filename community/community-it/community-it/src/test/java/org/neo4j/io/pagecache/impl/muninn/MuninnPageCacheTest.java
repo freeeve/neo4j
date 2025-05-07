@@ -97,8 +97,6 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCacheTest;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PageEvictionCallback;
-import org.neo4j.io.pagecache.PageSwapper;
-import org.neo4j.io.pagecache.PageSwapperFactory;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
@@ -107,8 +105,10 @@ import org.neo4j.io.pagecache.context.TransactionIdSnapshotFactory;
 import org.neo4j.io.pagecache.context.VersionContext;
 import org.neo4j.io.pagecache.context.VersionContextSupplier;
 import org.neo4j.io.pagecache.impl.FileIsNotMappedException;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.multiversion.SingleThreadedTestContextFactory;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapperFactory;
+import org.neo4j.io.pagecache.impl.muninn.swapper.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.DelegatingPageCacheTracer;
@@ -176,11 +176,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         customFixture.withReservedBytes(reservedBytes);
         var cacheTracer = PageCacheTracer.NULL;
         try (var pageCache = customFixture.createPageCache(
-                        new SingleFilePageSwapperFactory(fs, cacheTracer, EmptyMemoryTracker.INSTANCE),
-                        10,
-                        cacheTracer,
-                        jobScheduler,
-                        DISABLED_BUFFER_FACTORY);
+                        fs, 10, cacheTracer, jobScheduler, DISABLED_BUFFER_FACTORY, null);
                 var pageFile = map(pageCache, file("a"), pageCache.pageSize(), immutable.of(MULTI_VERSIONED))) {
             assertEquals(reservedBytes, pageFile.pageReservedBytes());
             assertEquals(PAGE_SIZE, pageFile.pageSize());
@@ -950,7 +946,7 @@ public class MuninnPageCacheTest extends PageCacheTest<MuninnPageCache> {
         int maxPages = 4096 /* chunk size */ + 250;
         int dirtyPages = 4096 + 10;
         PageSwapperFactory swapperFactory = new MultiChunkSwapperFilePageSwapperFactory(pageCacheTracer);
-        try (MuninnPageCache pageCache = createPageCache(swapperFactory, maxPages, pageCacheTracer);
+        try (MuninnPageCache pageCache = createPageCache(fs, maxPages, pageCacheTracer, swapperFactory);
                 PagedFile pagedFile = map(pageCache, file("a"), (int) ByteUnit.kibiBytes(8))) {
             for (int pageId = 0; pageId < dirtyPages; pageId++) {
                 try (PageCursor cursor = pagedFile.io(pageId, PF_SHARED_WRITE_LOCK, NULL_CONTEXT)) {

@@ -34,11 +34,10 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import org.neo4j.function.ThrowingFunction;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapper;
 
 public class StoreFileChannel implements StoreChannel {
     private static final boolean PRINT_REFLECTION_EXCEPTIONS =
-            flag(SingleFilePageSwapper.class, "printReflectionExceptions", false);
+            flag(StoreFileChannel.class, "printReflectionExceptions", false);
     private static final Class<?> CLS_FILE_CHANNEL_IMPL = getInternalFileChannelClass();
     private static final MethodHandle POSITION_LOCK_GETTER = getPositionLockGetter();
     private static final MethodHandle MAKE_CHANNEL_UNINTERRUPTIBLE = getUninterruptibleSetter();

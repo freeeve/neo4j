@@ -76,7 +76,6 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.io.pagecache.impl.muninn.VersionStorage;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
@@ -102,7 +101,6 @@ import org.neo4j.kernel.impl.transaction.log.LogTailLogVersionsMetadata;
 import org.neo4j.kernel.impl.transaction.log.files.LogFilesMatcher;
 import org.neo4j.logging.InternalLogProvider;
 import org.neo4j.logging.internal.LogService;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.MemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.storageengine.StoreIdGenerator;
@@ -419,8 +417,6 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
             PageCacheTracer tracer,
             JobScheduler jobScheduler,
             MemoryTracker memoryTracker) {
-        SingleFilePageSwapperFactory swapperFactory =
-                new SingleFilePageSwapperFactory(fileSystem, tracer, EmptyMemoryTracker.INSTANCE);
         MemoryAllocator memoryAllocator = createAllocator(config.get(pagecache_memory), memoryTracker);
         MuninnPageCache.Configuration configuration = MuninnPageCache.config(memoryAllocator)
                 .pageCacheTracer(tracer)
@@ -429,7 +425,7 @@ public class BatchingNeoStores implements AutoCloseable, MemoryStatsVisitor.Visi
                 .faultLockStriping(1 << 11)
                 .reservedPageBytes(PageCache.RESERVED_BYTES)
                 .disableEvictionThread();
-        return new MuninnPageCache(swapperFactory, jobScheduler, configuration);
+        return new MuninnPageCache(fileSystem, jobScheduler, configuration);
     }
 
     private StoreFactory newStoreFactory(

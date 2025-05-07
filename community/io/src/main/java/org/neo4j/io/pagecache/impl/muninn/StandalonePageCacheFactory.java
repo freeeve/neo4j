@@ -25,8 +25,6 @@ import static org.neo4j.io.pagecache.impl.muninn.MuninnPageCache.config;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.PageSwapperFactory;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
@@ -43,34 +41,27 @@ public final class StandalonePageCacheFactory {
 
     public static PageCache createPageCache(
             FileSystemAbstraction fileSystem, JobScheduler jobScheduler, PageCacheTracer cacheTracer) {
-        SingleFilePageSwapperFactory factory =
-                new SingleFilePageSwapperFactory(fileSystem, cacheTracer, EmptyMemoryTracker.INSTANCE);
-        int pageSize = PageCache.PAGE_SIZE;
-        return createPageCache(factory, jobScheduler, cacheTracer, pageSize);
+        return createPageCache(fileSystem, jobScheduler, cacheTracer, PageCache.PAGE_SIZE);
     }
 
     public static PageCache createPageCache(FileSystemAbstraction fileSystem, JobScheduler jobScheduler) {
-        PageCacheTracer cacheTracer = PageCacheTracer.NULL;
-        int pageSize = PageCache.PAGE_SIZE;
-        SingleFilePageSwapperFactory factory =
-                new SingleFilePageSwapperFactory(fileSystem, cacheTracer, EmptyMemoryTracker.INSTANCE);
-        return createPageCache(factory, jobScheduler, cacheTracer, pageSize);
+        return createPageCache(fileSystem, jobScheduler, PageCacheTracer.NULL, PageCache.PAGE_SIZE);
     }
 
     public static PageCache createPageCache(FileSystemAbstraction fileSystem, JobScheduler jobScheduler, int pageSize) {
-        PageCacheTracer cacheTracer = PageCacheTracer.NULL;
-        SingleFilePageSwapperFactory factory =
-                new SingleFilePageSwapperFactory(fileSystem, cacheTracer, EmptyMemoryTracker.INSTANCE);
-        return createPageCache(factory, jobScheduler, cacheTracer, pageSize);
+        return createPageCache(fileSystem, jobScheduler, PageCacheTracer.NULL, pageSize);
     }
 
     private static PageCache createPageCache(
-            PageSwapperFactory factory, JobScheduler jobScheduler, PageCacheTracer cacheTracer, int pageSize) {
+            FileSystemAbstraction fileSystemAbstraction,
+            JobScheduler jobScheduler,
+            PageCacheTracer cacheTracer,
+            int pageSize) {
         long expectedMemory = Math.max(MebiByte.toBytes(8), 10L * pageSize);
         MemoryAllocator memoryAllocator = MemoryAllocator.createAllocator(expectedMemory, EmptyMemoryTracker.INSTANCE);
         MuninnPageCache.Configuration configuration =
                 config(memoryAllocator).pageCacheTracer(cacheTracer).pageSize(pageSize);
-        return createPageCache(factory, configuration, jobScheduler);
+        return createPageCache(fileSystemAbstraction, configuration, jobScheduler);
     }
 
     public static PageCache createPageCache(
@@ -78,13 +69,14 @@ public final class StandalonePageCacheFactory {
             JobScheduler jobScheduler,
             PageCacheTracer cacheTracer,
             MuninnPageCache.Configuration configuration) {
-        SingleFilePageSwapperFactory factory =
-                new SingleFilePageSwapperFactory(fileSystem, cacheTracer, EmptyMemoryTracker.INSTANCE);
-        return createPageCache(factory, configuration, jobScheduler);
+        configuration.pageCacheTracer(cacheTracer);
+        return createPageCache(fileSystem, configuration, jobScheduler);
     }
 
     private static MuninnPageCache createPageCache(
-            PageSwapperFactory factory, MuninnPageCache.Configuration configuration, JobScheduler jobScheduler) {
-        return new MuninnPageCache(factory, jobScheduler, configuration);
+            FileSystemAbstraction fileSystemAbstraction,
+            MuninnPageCache.Configuration configuration,
+            JobScheduler jobScheduler) {
+        return new MuninnPageCache(fileSystemAbstraction, jobScheduler, configuration);
     }
 }

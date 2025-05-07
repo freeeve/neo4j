@@ -50,13 +50,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.internal.unsafe.UnsafeUtil;
+import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.pagecache.IOController;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCacheOpenOptions;
-import org.neo4j.io.pagecache.PageSwapperFactory;
 import org.neo4j.io.pagecache.PagedFile;
 import org.neo4j.io.pagecache.buffer.IOBufferFactory;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapperFactory;
+import org.neo4j.io.pagecache.impl.muninn.swapper.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.tracing.DatabaseFlushEvent;
 import org.neo4j.io.pagecache.tracing.EvictionRunEvent;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
@@ -222,17 +224,18 @@ public class MuninnPageCache implements PageCache {
     }
 
     public static class Configuration {
-        private final MemoryAllocator memoryAllocator;
-        private final SystemNanoClock clock;
-        private final MemoryTracker memoryTracker;
-        private final PageCacheTracer pageCacheTracer;
-        private final int pageSize;
-        private final IOBufferFactory bufferFactory;
-        private final int faultLockStriping;
-        private final boolean enableEvictionThread;
-        private final boolean preallocateStoreFiles;
-        private final int reservedPageSize;
-        private final boolean closeAllocatorOnShutdown;
+        private MemoryAllocator memoryAllocator;
+        private SystemNanoClock clock;
+        private MemoryTracker memoryTracker;
+        private PageCacheTracer pageCacheTracer;
+        private int pageSize;
+        private IOBufferFactory bufferFactory;
+        private int faultLockStriping;
+        private boolean enableEvictionThread;
+        private boolean preallocateStoreFiles;
+        private int reservedPageSize;
+        private boolean closeAllocatorOnShutdown;
+        private PageSwapperFactory swapperFactory;
 
         private Configuration(
                 MemoryAllocator memoryAllocator,
@@ -263,180 +266,80 @@ public class MuninnPageCache implements PageCache {
          * @param memoryAllocator the source of native memory the page cache should use
          */
         public Configuration memoryAllocator(MemoryAllocator memoryAllocator) {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    enableEvictionThread,
-                    preallocateStoreFiles,
-                    reservedPageSize,
-                    closeAllocatorOnShutdown);
+            this.memoryAllocator = memoryAllocator;
+            return this;
         }
 
         /**
          * @param clock {@link SystemNanoClock} to use for internal time keeping
          */
         public Configuration clock(SystemNanoClock clock) {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    enableEvictionThread,
-                    preallocateStoreFiles,
-                    reservedPageSize,
-                    closeAllocatorOnShutdown);
+            this.clock = clock;
+            return this;
         }
 
         /**
          * @param memoryTracker underlying buffers allocation memory tracker
          */
         public Configuration memoryTracker(MemoryTracker memoryTracker) {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    enableEvictionThread,
-                    preallocateStoreFiles,
-                    reservedPageSize,
-                    closeAllocatorOnShutdown);
+            this.memoryTracker = memoryTracker;
+            return this;
         }
 
         /**
          * @param pageCacheTracer global page cache tracer
          */
         public Configuration pageCacheTracer(PageCacheTracer pageCacheTracer) {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    enableEvictionThread,
-                    preallocateStoreFiles,
-                    reservedPageSize,
-                    closeAllocatorOnShutdown);
+            this.pageCacheTracer = pageCacheTracer;
+            return this;
         }
 
         /**
          * @param pageSize page size. Only ever use this in tests!
          */
         public Configuration pageSize(int pageSize) {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    enableEvictionThread,
-                    preallocateStoreFiles,
-                    reservedPageSize,
-                    closeAllocatorOnShutdown);
+            this.pageSize = pageSize;
+            return this;
         }
 
         /**
          * @param bufferFactory temporal flush buffer factories
          */
         public Configuration bufferFactory(IOBufferFactory bufferFactory) {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    enableEvictionThread,
-                    preallocateStoreFiles,
-                    reservedPageSize,
-                    closeAllocatorOnShutdown);
+            this.bufferFactory = bufferFactory;
+            return this;
         }
 
         /**
          * @param reservedPageBytes number of reserved bytes per page
          */
         public Configuration reservedPageBytes(int reservedPageBytes) {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    enableEvictionThread,
-                    preallocateStoreFiles,
-                    reservedPageBytes,
-                    closeAllocatorOnShutdown);
+            this.reservedPageSize = reservedPageBytes;
+            return this;
         }
 
         /**
          * @param faultLockStriping size of the latch map for each paged file used for fault lock striping.
          */
         public Configuration faultLockStriping(int faultLockStriping) {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    enableEvictionThread,
-                    preallocateStoreFiles,
-                    reservedPageSize,
-                    closeAllocatorOnShutdown);
+            this.faultLockStriping = faultLockStriping;
+            return this;
         }
 
         /**
          * Disables the background eviction thread.
          */
         public Configuration disableEvictionThread() {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    false,
-                    preallocateStoreFiles,
-                    reservedPageSize,
-                    closeAllocatorOnShutdown);
+            this.enableEvictionThread = false;
+            return this;
         }
 
         /**
          * Configure store files pre-allocation.
          */
         public Configuration preallocateStoreFiles(boolean preallocateStoreFiles) {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    enableEvictionThread,
-                    preallocateStoreFiles,
-                    reservedPageSize,
-                    closeAllocatorOnShutdown);
+            this.preallocateStoreFiles = preallocateStoreFiles;
+            return this;
         }
 
         /**
@@ -444,18 +347,13 @@ public class MuninnPageCache implements PageCache {
          * WARNING: when this option is set to true, leaked cursors can result in bad access and vm crash
          */
         public Configuration closeAllocatorOnShutdown(boolean closeAllocatorOnShutdown) {
-            return new Configuration(
-                    memoryAllocator,
-                    clock,
-                    memoryTracker,
-                    pageCacheTracer,
-                    pageSize,
-                    bufferFactory,
-                    faultLockStriping,
-                    enableEvictionThread,
-                    preallocateStoreFiles,
-                    reservedPageSize,
-                    closeAllocatorOnShutdown);
+            this.closeAllocatorOnShutdown = closeAllocatorOnShutdown;
+            return this;
+        }
+
+        public Configuration swapperFactory(PageSwapperFactory swapperFactory) {
+            this.swapperFactory = swapperFactory;
+            return this;
         }
     }
 
@@ -488,18 +386,18 @@ public class MuninnPageCache implements PageCache {
 
     /**
      * Create page cache.
-     * @param swapperFactory page cache swapper factory
      * @param jobScheduler {@link JobScheduler} for scheduling of internal jobs
      * @param configuration additional configuration for the page cache
      */
-    public MuninnPageCache(PageSwapperFactory swapperFactory, JobScheduler jobScheduler, Configuration configuration) {
+    public MuninnPageCache(
+            FileSystemAbstraction fileSystemAbstraction, JobScheduler jobScheduler, Configuration configuration) {
         verifyHacks();
         verifyCachePageSizeIsPowerOfTwo(configuration.pageSize);
         requireNonNull(jobScheduler);
         int maxPages = calculatePageCount(configuration.memoryAllocator, configuration.pageSize);
 
         this.pageCacheId = pageCacheIdCounter.incrementAndGet();
-        this.swapperFactory = swapperFactory;
+        this.swapperFactory = getSwapperFactory(fileSystemAbstraction, configuration);
         this.cachePageSize = configuration.pageSize;
         this.pageReservedBytes = requireNonNegative(configuration.reservedPageSize);
         this.keepFree = calculatePagesToKeepFree(maxPages);
@@ -526,6 +424,15 @@ public class MuninnPageCache implements PageCache {
         // Expose the total number of pages
         pageCacheTracer.maxPages(maxPages, cachePageSize);
         this.mappedFiles = new ConcurrentHashMap<>();
+    }
+
+    private static PageSwapperFactory getSwapperFactory(
+            FileSystemAbstraction fileSystemAbstraction, Configuration configuration) {
+        var configuredFactory = configuration.swapperFactory;
+        return configuredFactory != null
+                ? configuredFactory
+                : new SingleFilePageSwapperFactory(
+                        fileSystemAbstraction, configuration.pageCacheTracer, configuration.memoryTracker);
     }
 
     /**

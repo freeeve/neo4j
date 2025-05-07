@@ -17,23 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.io.pagecache.impl;
+package org.neo4j.io.pagecache.impl.muninn.swapper;
 
 import java.io.IOException;
-import java.nio.channels.OverlappingFileLockException;
-import java.nio.file.Path;
+import org.neo4j.io.fs.StoreChannel;
 
-/**
- * Thrown when a file cannot be locked in the process of opening a {@link SingleFilePageSwapper} for it.
- */
-public class FileLockException extends IOException {
-    public FileLockException(Path file, OverlappingFileLockException throwable) {
-        super("Already locked: " + file, throwable);
-    }
+sealed interface BlockSwapper permits UnsafeBlockSwapper, FallbackBlockSwapper {
+    /**
+     * Reads from channel to specified location in memory
+     */
+    int swapIn(StoreChannel channel, long bufferAddress, long fileOffset, int bufferSize) throws IOException;
 
-    public FileLockException(Path file) {
-        super(
-                "This file is locked by another process, please ensure you don't have another Neo4j process or tool using it: '"
-                        + file + "'.'");
-    }
+    /**
+     * Writes to channel from specified location in memory
+     */
+    void swapOut(StoreChannel channel, long bufferAddress, long fileOffset, int bufferLength) throws IOException;
 }

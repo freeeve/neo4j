@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.io.pagecache.impl;
+package org.neo4j.io.pagecache.impl.muninn.swapper;
 
 import static java.lang.invoke.MethodHandles.lookup;
 import static org.apache.commons.lang3.SystemUtils.IS_OS_LINUX;
@@ -47,7 +47,6 @@ import org.neo4j.io.pagecache.IOController;
 import org.neo4j.io.pagecache.OutOfDiskSpaceException;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PageEvictionCallback;
-import org.neo4j.io.pagecache.PageSwapper;
 import org.neo4j.io.pagecache.impl.muninn.EvictionBouncer;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.io.pagecache.impl.muninn.SwapperSet;
@@ -60,7 +59,7 @@ import org.neo4j.io.pagecache.tracing.PageFileSwapperTracer;
  * It additionally tracks the file size precisely, to avoid calling into the
  * file system whenever the size of the given file is queried.
  */
-public class SingleFilePageSwapper implements PageSwapper {
+class SingleFilePageSwapper implements PageSwapper {
     private final FileSystemAbstraction fs;
     private final Path path;
     private final IOController ioController;

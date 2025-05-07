@@ -30,11 +30,8 @@ import org.eclipse.collections.api.set.ImmutableSet;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.PageSwapperFactory;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 
@@ -85,10 +82,8 @@ public class PageCacheStressTest {
     public void run() throws Exception {
         try (FileSystemAbstraction fs = new DefaultFileSystemAbstraction();
                 JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
-            PageSwapperFactory swapperFactory =
-                    new SingleFilePageSwapperFactory(fs, tracer, EmptyMemoryTracker.INSTANCE);
             try (PageCache pageCacheUnderTest = new MuninnPageCache(
-                    swapperFactory, jobScheduler, config(numberOfCachePages).pageCacheTracer(tracer))) {
+                    fs, jobScheduler, config(numberOfCachePages).pageCacheTracer(tracer))) {
                 PageCacheStresser pageCacheStresser =
                         new PageCacheStresser(numberOfPages, numberOfThreads, workingDirectory, openOptions);
                 pageCacheStresser.stress(pageCacheUnderTest, tracer, condition);

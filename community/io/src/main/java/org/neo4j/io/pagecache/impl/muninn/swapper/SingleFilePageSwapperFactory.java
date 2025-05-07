@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.io.pagecache.impl;
+package org.neo4j.io.pagecache.impl.muninn.swapper;
 
 import java.io.IOException;
 import java.nio.file.NoSuchFileException;
@@ -28,8 +28,6 @@ import org.neo4j.internal.unsafe.UnsafeUtil;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.IOController;
 import org.neo4j.io.pagecache.PageEvictionCallback;
-import org.neo4j.io.pagecache.PageSwapper;
-import org.neo4j.io.pagecache.PageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.EvictionBouncer;
 import org.neo4j.io.pagecache.impl.muninn.SwapperSet;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
@@ -39,7 +37,7 @@ import org.neo4j.util.VisibleForTesting;
 /**
  * A factory for SingleFilePageSwapper instances.
  *
- * @see org.neo4j.io.pagecache.impl.SingleFilePageSwapper
+ * @see SingleFilePageSwapper
  */
 public class SingleFilePageSwapperFactory implements PageSwapperFactory {
     private final FileSystemAbstraction fs;

@@ -22,7 +22,7 @@ package org.neo4j.io.pagecache.tracing.cursor;
 import static org.apache.commons.lang3.StringUtils.EMPTY;
 
 import java.io.Closeable;
-import org.neo4j.io.pagecache.PageSwapper;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 import org.neo4j.io.pagecache.tracing.PageFileSwapperTracer;
 import org.neo4j.io.pagecache.tracing.PinEvent;
 import org.neo4j.io.pagecache.tracing.PrefetchEvent;

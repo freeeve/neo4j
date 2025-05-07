@@ -43,10 +43,10 @@ import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.PageCacheOpenOptions;
 import org.neo4j.io.pagecache.PageCursor;
 import org.neo4j.io.pagecache.PageEvictionCallback;
-import org.neo4j.io.pagecache.PageSwapper;
-import org.neo4j.io.pagecache.PageSwapperFactory;
 import org.neo4j.io.pagecache.PagedFile;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapperFactory;
+import org.neo4j.io.pagecache.impl.muninn.swapper.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.kernel.impl.scheduler.JobSchedulerFactory;
 import org.neo4j.kernel.lifecycle.LifeSupport;
@@ -125,7 +125,7 @@ class MuninnPageCursorTest {
 
     private void testByteOrder(ByteOrder byteOrder) throws IOException {
         Path file = directory.file("file" + byteOrder);
-        try (PageCache pageCache = startPageCache(customSwapper(defaultPageSwapperFactory(), () -> {}))) {
+        try (PageCache pageCache = startPageCache()) {
             try (PagedFile pagedFile =
                     pageCache.map(file, PageCache.PAGE_SIZE, DEFAULT_DATABASE_NAME, getOpenOptions(byteOrder))) {
                 // Write cursor
@@ -147,12 +147,20 @@ class MuninnPageCursorTest {
         return Sets.immutable.of(StandardOpenOption.CREATE, PageCacheOpenOptions.BIG_ENDIAN);
     }
 
-    private PageCache startPageCache(PageSwapperFactory pageSwapperFactory) {
-        return new MuninnPageCache(pageSwapperFactory, jobScheduler, MuninnPageCache.config(1_000));
+    private PageCache startPageCache() {
+        return createPageCacheWithConfig(MuninnPageCache.config(1_000));
+    }
+
+    private PageCache startPageCache(PageSwapperFactory swapperFactory) {
+        return createPageCacheWithConfig(MuninnPageCache.config(1_000).swapperFactory(swapperFactory));
+    }
+
+    private MuninnPageCache createPageCacheWithConfig(MuninnPageCache.Configuration config) {
+        return new MuninnPageCache(fs, jobScheduler, config);
     }
 
     private void createSomeData(Path file) throws IOException {
-        try (PageCache pageCache = startPageCache(defaultPageSwapperFactory());
+        try (PageCache pageCache = startPageCache();
                 PagedFile pagedFile = pageCache.map(
                         file,
                         PageCache.PAGE_SIZE,

@@ -32,13 +32,10 @@ import org.neo4j.adversaries.pagecache.AdversarialPageCache;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.mem.MemoryAllocator;
 import org.neo4j.io.pagecache.PageCache;
-import org.neo4j.io.pagecache.PageSwapperFactory;
 import org.neo4j.io.pagecache.checking.AccessCheckingPageCache;
-import org.neo4j.io.pagecache.impl.SingleFilePageSwapperFactory;
 import org.neo4j.io.pagecache.impl.muninn.MuninnPageCache;
 import org.neo4j.io.pagecache.tracing.DefaultPageCacheTracer;
 import org.neo4j.io.pagecache.tracing.PageCacheTracer;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.memory.LocalMemoryTracker;
 import org.neo4j.scheduler.JobScheduler;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
@@ -72,30 +69,18 @@ public class PageCacheSupport {
      * @return the opened {@link PageCache}.
      */
     public PageCache getPageCache(FileSystemAbstraction fs, PageCacheConfig overriddenConfig) {
-        SingleFilePageSwapperFactory factory =
-                new SingleFilePageSwapperFactory(fs, new DefaultPageCacheTracer(), EmptyMemoryTracker.INSTANCE);
-        return getPageCache(factory, overriddenConfig, new Random());
-    }
-
-    public PageCache getPageCache(FileSystemAbstraction fs, PageCacheConfig overriddenConfig, Random random) {
-        SingleFilePageSwapperFactory factory =
-                new SingleFilePageSwapperFactory(fs, new DefaultPageCacheTracer(), EmptyMemoryTracker.INSTANCE);
-        return getPageCache(factory, overriddenConfig, random);
-    }
-
-    public PageCache getPageCache(PageSwapperFactory swapperFactory) {
-        return getPageCache(swapperFactory, config(), new Random());
+        return getPageCache(fs, overriddenConfig, new Random());
     }
 
     /**
      * Opens a new {@link PageCache} with the provided file system and config.
      *
-     * @param factory {@link PageSwapperFactory} to use for the {@link PageCache}.
+     * @param fileSystem {@link FileSystemAbstraction} to use for the {@link PageCache}.
      * @param overriddenConfig specific {@link PageCacheConfig} overriding config provided in {@link PageCacheSupport}
      * constructor, if any.
      * @return the opened {@link PageCache}.
      */
-    public PageCache getPageCache(PageSwapperFactory factory, PageCacheConfig overriddenConfig, Random random) {
+    public PageCache getPageCache(FileSystemAbstraction fileSystem, PageCacheConfig overriddenConfig, Random random) {
         closeExistingPageCache();
         var memoryTracker = new LocalMemoryTracker();
         MemoryAllocator mman = MemoryAllocator.createAllocator(
@@ -107,13 +92,14 @@ public class PageCacheSupport {
                 MuninnPageCache.config(mman).memoryTracker(memoryTracker).clock(clock);
         Integer pageSize = selectConfig(baseConfig.pageSize, overriddenConfig.pageSize, null);
         configuration = pageSize != null ? configuration.pageSize(pageSize) : configuration;
-        PageCacheTracer cacheTracer = selectConfig(baseConfig.tracer, overriddenConfig.tracer, PageCacheTracer.NULL);
+        PageCacheTracer cacheTracer =
+                selectConfig(baseConfig.tracer, overriddenConfig.tracer, new DefaultPageCacheTracer());
         configuration = configuration.pageCacheTracer(cacheTracer);
         Integer reservedPageBytes =
                 selectConfig(baseConfig.reservedPageBytes, overriddenConfig.reservedPageBytes, null);
         configuration = reservedPageBytes != null ? configuration.reservedPageBytes(reservedPageBytes) : configuration;
         initializeJobScheduler();
-        pageCache = new MuninnPageCache(factory, jobScheduler, configuration);
+        pageCache = new MuninnPageCache(fileSystem, jobScheduler, configuration);
         pageCachePostConstruct(overriddenConfig, random);
         return pageCache;
     }

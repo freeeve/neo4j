@@ -20,7 +20,7 @@
 package org.neo4j.io.pagecache.tracing;
 
 import java.io.IOException;
-import org.neo4j.io.pagecache.PageSwapper;
+import org.neo4j.io.pagecache.impl.muninn.swapper.PageSwapper;
 
 /**
  * The eviction of a page has begun.

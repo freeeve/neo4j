@@ -17,19 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.io.pagecache.impl;
+package org.neo4j.io.pagecache.impl.muninn.swapper;
 
-import java.io.IOException;
-import org.neo4j.io.fs.StoreChannel;
+import static org.neo4j.noopens.NoOpensIT.assertByteBufferClosed;
 
-sealed interface BlockSwapper permits UnsafeBlockSwapper, FallbackBlockSwapper {
-    /**
-     * Reads from channel to specified location in memory
-     */
-    int swapIn(StoreChannel channel, long bufferAddress, long fileOffset, int bufferSize) throws IOException;
+import org.junit.jupiter.api.BeforeAll;
+import org.neo4j.io.pagecache.impl.SingleFilePageSwapperTest;
 
-    /**
-     * Writes to channel from specified location in memory
-     */
-    void swapOut(StoreChannel channel, long bufferAddress, long fileOffset, int bufferLength) throws IOException;
+public class SingleFilePageSwapperWithFallbackTest extends SingleFilePageSwapperTest {
+    @BeforeAll
+    static void before() {
+        assertByteBufferClosed();
+    }
 }
