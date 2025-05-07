@@ -145,17 +145,17 @@ class ServerManagementCommandParserTest extends AdministrationAndSchemaCommandPa
 
   test("ENABLE SERVER $name OPTIONS { tags: ['snake', 'flower'] }") {
     val listLiteral = ListLiteral(List(literalString("snake"), literalString("flower")))(InputPosition(36, 1, 37))
-    val optionsMap = OptionsMap(Map("tags" -> listLiteral))
+    val optionsMap = OptionsMap(Map("tags" -> listLiteral))(pos)
     assertAst(EnableServer(Right(stringParam("name")), optionsMap)(defaultPos))
   }
 
   test("ENABLE SERVER 'name' OPTIONS { modeConstraint: $mode }") {
-    val optionsMap = OptionsMap(Map("modeConstraint" -> parameter("mode", CTAny)))
+    val optionsMap = OptionsMap(Map("modeConstraint" -> parameter("mode", CTAny)))(pos)
     assertAst(EnableServer(literal("name"), optionsMap)(defaultPos))
   }
 
   test("ENABLE SERVER 'name' OPTIONS $op") {
-    val optionsParam = OptionsParam(parameter("op", CTMap))
+    val optionsParam = OptionsParam(parameter("op", CTMap))(pos)
     assertAst(EnableServer(literal("name"), optionsParam)(defaultPos))
   }
 
@@ -178,17 +178,17 @@ class ServerManagementCommandParserTest extends AdministrationAndSchemaCommandPa
   // ALTER
 
   test("ALTER SERVER 'name' SET OPTIONS { modeConstraint: 'PRIMARY'}") {
-    val optionsMap = OptionsMap(Map("modeConstraint" -> literalString("PRIMARY")))
+    val optionsMap = OptionsMap(Map("modeConstraint" -> literalString("PRIMARY")))(pos)
     assertAst(AlterServer(literal("name"), optionsMap)(defaultPos))
   }
 
   test("ALTER SERVER $name SET OPTIONS {}") {
-    val optionsMap = OptionsMap(Map.empty)
+    val optionsMap = OptionsMap(Map.empty)(pos)
     assertAst(AlterServer(Right(stringParam("name")), optionsMap)(defaultPos))
   }
 
   test("ALTER SERVER 'name' SET OPTIONS $map") {
-    assertAst(AlterServer(literal("name"), OptionsParam(parameter("map", CTMap)))(defaultPos))
+    assertAst(AlterServer(literal("name"), OptionsParam(parameter("map", CTMap))(pos))(defaultPos))
   }
 
   test("ALTER SERVER 'name'") {

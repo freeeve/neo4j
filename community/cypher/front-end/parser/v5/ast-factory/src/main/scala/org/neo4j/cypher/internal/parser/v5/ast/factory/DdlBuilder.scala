@@ -111,8 +111,8 @@ trait DdlBuilder extends Cypher5ParserListener {
   override def exitCommandOptions(ctx: Cypher5Parser.CommandOptionsContext): Unit = {
     val map = ctx.mapOrParameter().ast[Either[Map[String, Expression], Parameter]]()
     ctx.ast = map match {
-      case Left(m)  => OptionsMap(m)
-      case Right(p) => OptionsParam(p)
+      case Left(m)  => OptionsMap(m)(InputPosition.NONE)
+      case Right(p) => OptionsParam(p)(InputPosition.NONE)
     }
   }
 
@@ -462,7 +462,7 @@ trait DdlBuilder extends Cypher5ParserListener {
       val defaultLanguage = astOptFromList[CypherVersion](ctx.defaultLanguageSpecification(), None)
       val options =
         if (ctx.alterDatabaseOption().isEmpty) NoOptions
-        else OptionsMap(astSeq[Map[String, Expression]](ctx.alterDatabaseOption()).reduce(_ ++ _))
+        else OptionsMap(astSeq[Map[String, Expression]](ctx.alterDatabaseOption()).reduce(_ ++ _))(InputPosition.NONE)
       AlterDatabase(
         dbName,
         ctx.EXISTS() != null,

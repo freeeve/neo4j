@@ -78,8 +78,12 @@ public class RewritableJavascript {
             return;
         }
         ReflectMethod method = getCopyConstructor(cls);
-        Value<Object> result = emit(() -> method.invoke(object.get(), children.get()));
-        exit(() -> result.get());
+        if (method != null) {
+            Value<Object> result = emit(() -> method.invoke(object.get(), children.get()));
+            exit(() -> result.get());
+        } else {
+            unsupportedCase();
+        }
     }
 
     @Meta
@@ -91,8 +95,12 @@ public class RewritableJavascript {
             return;
         }
         ReflectMethod method = getCopyConstructor(cls);
-        int result = method.getParameterTypes().length;
-        exit(() -> result);
+        if (method != null) {
+            int result = method.getParameterTypes().length;
+            exit(() -> result);
+        } else {
+            unsupportedCase();
+        }
     }
 
     @Meta
@@ -104,9 +112,13 @@ public class RewritableJavascript {
             return;
         }
         ReflectMethod method = getCopyConstructor(cls);
-        ReflectClass<?>[] paramTypes = method.getParameterTypes();
-        ReflectClass<?> lastParam = paramTypes[paramTypes.length - 1];
-        boolean result = lastParam.isAssignableFrom(InputPosition.class);
-        exit(() -> result);
+        if (method != null) {
+            ReflectClass<?>[] paramTypes = method.getParameterTypes();
+            ReflectClass<?> lastParam = paramTypes[paramTypes.length - 1];
+            boolean result = lastParam.isAssignableFrom(InputPosition.class);
+            exit(() -> result);
+        } else {
+            unsupportedCase();
+        }
     }
 }

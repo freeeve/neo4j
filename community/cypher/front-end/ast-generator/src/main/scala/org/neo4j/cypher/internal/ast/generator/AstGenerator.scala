@@ -2668,12 +2668,12 @@ class AstGenerator(
   def _optionsMapAsEitherOrNone: Gen[Options] = for {
     map <- oneOrMore(tuple(_identifier, _expression)).map(_.toMap)
     param <- _mapParameter
-    finalMap <- oneOf(OptionsMap(map), OptionsParam(param), NoOptions)
+    finalMap <- oneOf(OptionsMap(map)(pos), OptionsParam(param)(pos), NoOptions)
   } yield finalMap
 
   def _optionsForAlterDatabaseOrNone: Gen[Options] = for {
     map <- oneOrMore(tuple(_identifier, _expression)).map(_.toMap)
-    finalMap <- oneOf(OptionsMap(map), NoOptions)
+    finalMap <- oneOf(OptionsMap(map)(pos), NoOptions)
   } yield finalMap
 
   def _optionsToRemove(hasSetClause: Boolean): Gen[Set[String]] =
@@ -2690,7 +2690,7 @@ class AstGenerator(
   def _optionsMapAsEither: Gen[Options] = for {
     map <- oneOrMore(tuple(_identifier, _expression)).map(_.toMap)
     param <- _mapParameter
-    finalMap <- oneOf(OptionsMap(map), OptionsParam(param))
+    finalMap <- oneOf(OptionsMap(map)(pos), OptionsParam(param)(pos))
   } yield finalMap
 
   def _optionalMapAsEither: Gen[Either[Map[String, Expression], Parameter]] = for {

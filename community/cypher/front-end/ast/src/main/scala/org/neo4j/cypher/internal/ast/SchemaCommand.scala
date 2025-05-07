@@ -16,7 +16,6 @@
  */
 package org.neo4j.cypher.internal.ast
 
-import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.CypherTypeChecking
 import org.neo4j.cypher.internal.ast.semantics.SemanticAnalysisTooling
 import org.neo4j.cypher.internal.ast.semantics.SemanticCheck
@@ -51,39 +50,6 @@ sealed trait SchemaCommand extends StatementWithGraph with SemanticAnalysisTooli
   override def returnColumns: List[LogicalVariable] = List.empty
 
   override def containsUpdates: Boolean = true
-
-  // The validation of the values (provider, config keys and config values) are done at runtime.
-  protected def checkOptionsMap(schemaString: String, options: Options): SemanticCheck =
-    SemanticCheck.fromContext { context =>
-      val (validOptions, errorMessageOverride) =
-        if (context.cypherVersion == CypherVersion.Cypher5)
-          (
-            Seq("indexProvider", "indexConfig"),
-            Some(
-              s"Failed to create $schemaString: Invalid option provided, valid options are `indexProvider` and `indexConfig`."
-            )
-          )
-        else (Seq("indexConfig"), None)
-
-      options match {
-        case OptionsMap(ops) =>
-          val invalidKeys = ops.view.filterKeys(k =>
-            !validOptions.exists(_.equalsIgnoreCase(k))
-          )
-
-          if (invalidKeys.isEmpty)
-            SemanticCheck.success
-          else
-            SemanticCheck.error(SemanticError.invalidOption(
-              invalidKeys.keys.mkString(" and "),
-              validOptions,
-              errorMessageOverride,
-              position
-            ))
-
-        case _ => SemanticCheck.success
-      }
-    }
 
   protected def checkSingleProperty(schemaString: String, properties: List[Property]): SemanticCheck = {
     when(properties.size > 1) {
@@ -380,7 +346,7 @@ sealed trait CreateSingleLabelPropertyIndex extends CreateIndex {
   }
 
   override def semanticCheck: SemanticCheck =
-    checkOptionsMap(entityIndexDescription, options) chain
+    options.checkOptionsForSchema(entityIndexDescription) chain
       super.semanticCheck chain {
         if (indexType.singlePropertyOnly) checkSingleProperty(indexType.allDescription, properties)
         else SemanticCheck.success
@@ -412,7 +378,7 @@ sealed trait CreateFulltextIndex extends CreateIndex {
   }
 
   override def semanticCheck: SemanticCheck =
-    checkOptionsMap(entityIndexDescription, options) chain super.semanticCheck
+    options.checkOptionsForSchema(entityIndexDescription) chain super.semanticCheck
 }
 
 object CreateFulltextIndex {
@@ -445,7 +411,7 @@ sealed trait CreateLookupIndex extends CreateIndex {
         else (Type.name, indexType.relDescription)
       SemanticCheck.error(SemanticError.invalidFunctionForIndex(entityIndexDescription, name, validFunction, position))
     case _ =>
-      checkOptionsMap(indexType.allDescription, options) chain
+      options.checkOptionsForSchema(indexType.allDescription) chain
         super.semanticCheck chain
         SemanticExpressionCheck.simple(function)
   }
@@ -559,7 +525,7 @@ sealed trait CreateConstraint extends SchemaCommand {
         position
       ))
     case _ =>
-      checkOptionsMap(s"${constraintType.description} constraint", options)
+      options.checkOptionsForSchema(s"${constraintType.description} constraint")
   }
 
   protected def checkPropertyTypes(

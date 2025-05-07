@@ -396,7 +396,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
           "existingDataSeedInstance" -> StringLiteral("84c3ee6f-260e-47db-a4b6-589c807f2c2e")(
             (1, 77, 76).withInputLength(38)
           )
-        )),
+        ))(pos),
         NoWait()(pos),
         None,
         None,
@@ -417,7 +417,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
           "existingDataSeedInstance" -> StringLiteral("84c3ee6f-260e-47db-a4b6-589c807f2c2e")(
             (1, 77, 76).withInputLength(38)
           )
-        )),
+        ))(pos),
         IndefiniteWait()(pos),
         None,
         None,
@@ -431,7 +431,7 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
       CreateDatabase(
         NamespacedName("foo")((1, 17, 16)),
         IfExistsThrowError,
-        OptionsParam(ExplicitParameter("param", CTMap)((1, 29, 28))),
+        OptionsParam(ExplicitParameter("param", CTMap)((1, 29, 28)))(pos),
         NoWait()(pos),
         None,
         None,
@@ -744,15 +744,30 @@ class CreateDatabaseAdministrationCommandParserTest extends AdministrationAndSch
   }
 
   test("CREATE DATABASE foo IF NOT EXISTS DEFAULT LANGUAGE CYPHER 25 OPTIONS { txLogEnrichment:'FULL' }") {
-    parsesTo[Statements](CreateDatabase(
-      literalFoo,
-      IfExistsDoNothing,
-      OptionsMap(Map("txLogEnrichment" -> literalString("FULL"))),
-      NoWait()(pos),
-      None,
-      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25),
-      None
-    )(pos))
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(
+          CreateDatabase(
+            literalFoo,
+            IfExistsDoNothing,
+            OptionsMap(Map("txLogEnrichment" -> literalString("FULL")))(defaultPos),
+            NoWait()(pos),
+            None,
+            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25),
+            None
+          )(pos)
+        )
+      case _ => _.toAst(
+          CreateDatabase(
+            literalFoo,
+            IfExistsDoNothing,
+            OptionsMap(Map("txLogEnrichment" -> literalString("FULL")))(pos),
+            NoWait()(pos),
+            None,
+            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25),
+            None
+          )(pos)
+        )
+    }
   }
 
   test("CREATE DATABASE foo DEFAULT LANGUAGE CYPHER 25 TOPOLOGY 1 PRIMARY WAIT") {

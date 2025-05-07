@@ -168,7 +168,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("node", "prop")),
           None,
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0"))),
+          ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))(pos),
           fromCypher5
         )(pos)
       )
@@ -191,7 +191,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
               "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
               "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
             )
-          )),
+          ))(pos),
           fromCypher5
         )(pos)
       )
@@ -207,7 +207,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("node", "prop")),
           None,
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed")))),
+          ast.OptionsMap(Map("indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed"))))(pos),
           fromCypher5
         )(pos)
       )
@@ -223,7 +223,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("node", "prop")),
           None,
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
+          ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))(pos),
           fromCypher5
         )(pos)
       )
@@ -239,7 +239,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("node", "prop")),
           None,
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty),
+          ast.OptionsMap(Map.empty)(pos),
           fromCypher5
         )(pos)
       )
@@ -255,7 +255,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("node", "prop")),
           None,
           ast.IfExistsThrowError,
-          ast.OptionsParam(parameter("param", CTMap)),
+          ast.OptionsParam(parameter("param", CTMap))(pos),
           fromCypher5
         )(pos)
       )
@@ -360,7 +360,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
               "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
               "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
             )
-          )),
+          ))(pos),
           fromCypher5
         )(pos)
       )
@@ -481,7 +481,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
               "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
               "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
             )
-          )),
+          ))(pos),
           fromCypher5
         )(pos)
       )
@@ -497,7 +497,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("node", "prop")),
           None,
           ast.IfExistsThrowError,
-          ast.OptionsParam(parameter("options", CTMap)),
+          ast.OptionsParam(parameter("options", CTMap))(pos),
           fromCypher5
         )(pos)
       )
@@ -609,7 +609,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("node", "prop")),
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0"))),
+          ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))(pos),
           fromCypher5
         )(pos)
       )
@@ -632,7 +632,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
               "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
               "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
             )
-          )),
+          ))(pos),
           fromCypher5
         )(pos)
       )
@@ -648,7 +648,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("node", "prop")),
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed")))),
+          ast.OptionsMap(Map("indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed"))))(pos),
           fromCypher5
         )(pos)
       )
@@ -664,7 +664,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("node", "prop")),
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
+          ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))(pos),
           fromCypher5
         )(pos)
       )
@@ -680,7 +680,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("node", "prop1"), prop("node", "prop2")),
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty),
+          ast.OptionsMap(Map.empty)(pos),
           fromCypher5
         )(pos)
       )
@@ -838,7 +838,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("r2", "prop")),
           None,
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("key" -> literalString("value"))),
+          ast.OptionsMap(Map("key" -> literalString("value")))(pos),
           fromCypher5
         )(pos)
       )
@@ -966,7 +966,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("r2", "prop")),
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("key" -> literalString("value"))),
+          ast.OptionsMap(Map("key" -> literalString("value")))(pos),
           fromCypher5
         )(pos)
       )
@@ -1096,7 +1096,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("r2", "prop")),
           None,
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("key" -> literalString("value"))),
+          ast.OptionsMap(Map("key" -> literalString("value")))(pos),
           fromCypher5
         )(pos)
       )
@@ -1224,7 +1224,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           Seq(prop("r2", "prop")),
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("key" -> literalString("value"))),
+          ast.OptionsMap(Map("key" -> literalString("value")))(pos),
           fromCypher5
         )(pos)
       )
@@ -1404,7 +1404,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         prop("node", "prop"),
         Some("my_constraint"),
         ast.IfExistsThrowError,
-        ast.OptionsMap(Map.empty)
+        ast.OptionsMap(Map.empty)(pos)
       )(pos)
     )
   }
@@ -1537,7 +1537,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         prop("r", "prop"),
         None,
         ast.IfExistsThrowError,
-        ast.OptionsMap(Map.empty)
+        ast.OptionsMap(Map.empty)(pos)
       )(pos)
     )
   }
@@ -1800,7 +1800,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           StringType(isNullable = true)(pos),
           Some("my_constraint"),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(pos)
         )(pos)
       )
     }
@@ -1936,7 +1936,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
           BooleanType(isNullable = true)(pos),
           None,
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(pos)
         )(pos)
       )
     }
@@ -2832,7 +2832,7 @@ class ConstraintCommandsParserTest extends AdministrationAndSchemaCommandParserT
         prop("n", "prop"),
         Some("my_constraint"),
         ast.IfExistsThrowError,
-        ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))
+        ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))(pos)
       )(pos)
     )
   }

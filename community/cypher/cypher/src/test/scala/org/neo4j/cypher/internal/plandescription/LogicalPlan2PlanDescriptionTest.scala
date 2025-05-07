@@ -2913,7 +2913,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           List(key("prop")),
           Some(Right(parameter("indexName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         63.2
       ),
@@ -2988,7 +2988,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           relType("Label"),
           List(key("prop")),
           Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         63.2
       ),
@@ -3038,7 +3038,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           List(key("prop1"), key("prop2")),
           Some(Left("$indexName")),
-          OptionsParam(parameter("options", CTMap))
+          OptionsParam(parameter("options", CTMap))(pos)
         ),
         63.2
       ),
@@ -3097,7 +3097,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           None,
           EntityType.NODE,
           Some(Left("$indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("token-lookup-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("token-lookup-1.0")))(pos)
         ),
         63.2
       ),
@@ -3160,7 +3160,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           None,
           EntityType.RELATIONSHIP,
           Some(Left("indexName")),
-          OptionsMap(Map("indexConfig" -> MapExpression(Seq.empty)(pos)))
+          OptionsMap(Map("indexConfig" -> MapExpression(Seq.empty)(pos)))(pos)
         ),
         63.2
       ),
@@ -3210,7 +3210,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Left(List(label("Label1"), label("Label2"))),
           List(key("prop")),
           Some(Right(parameter("$indexName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("fulltext-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("fulltext-1.0")))(pos)
         ),
         63.2
       ),
@@ -3294,7 +3294,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Right(List(relType("Label"))),
           List(key("prop")),
           Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("fulltext-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("fulltext-1.0")))(pos)
         ),
         63.2
       ),
@@ -3344,7 +3344,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           Left(List(label("Label"))),
           List(key("prop")),
           Some(Left("indexName")),
-          OptionsParam(parameter("ops", CTMap))
+          OptionsParam(parameter("ops", CTMap))(pos)
         ),
         63.2
       ),
@@ -3386,7 +3386,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           List(key("prop")),
           Some(Right(parameter("indexName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("text-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("text-1.0")))(pos)
         ),
         63.2
       ),
@@ -3461,7 +3461,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           relType("Label"),
           List(key("prop")),
           Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("text-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("text-1.0")))(pos)
         ),
         63.2
       ),
@@ -3511,7 +3511,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           List(key("prop")),
           Some(Left("indexName")),
-          OptionsParam(parameter("options", CTMap))
+          OptionsParam(parameter("options", CTMap))(pos)
         ),
         63.2
       ),
@@ -3553,7 +3553,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           List(key("prop")),
           Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("point-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("point-1.0")))(pos)
         ),
         63.2
       ),
@@ -3634,7 +3634,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           relType("Label"),
           List(key("prop")),
           Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("point-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("point-1.0")))(pos)
         ),
         63.2
       ),
@@ -3684,7 +3684,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           List(key("prop")),
           Some(Left("indexName")),
-          OptionsParam(parameter("options", CTMap))
+          OptionsParam(parameter("options", CTMap))(pos)
         ),
         63.2
       ),
@@ -3726,7 +3726,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           List(key("prop")),
           Some(Right(parameter("indexName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))(pos)
         ),
         63.2
       ),
@@ -3801,7 +3801,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           relType("Label"),
           List(key("prop")),
           Some(Left("indexName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("vector-1.0")))(pos)
         ),
         63.2
       ),
@@ -3853,7 +3853,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           List(key("prop")),
           Some(Left("indexName")),
-          OptionsParam(parameter("options", CTMap))
+          OptionsParam(parameter("options", CTMap))(pos)
         ),
         63.2
       ),
@@ -4012,7 +4012,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           List(prop("x", "prop")),
           Some(Left("$constraintName")),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         63.2
       ),
@@ -4070,7 +4070,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           Seq(prop(" x", "prop")),
           None,
-          OptionsParam(parameter("options", CTMap))
+          OptionsParam(parameter("options", CTMap))(pos)
         ),
         63.2
       ),
@@ -4156,7 +4156,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           relType("REL-TYPE"),
           List(prop("x", "prop-prop")),
           Some(Right(parameter("constraintName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         63.2
       ),
@@ -4214,7 +4214,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           relType("REL_TYPE"),
           Seq(prop(" x", "prop")),
           None,
-          OptionsParam(parameter("options", CTMap))
+          OptionsParam(parameter("options", CTMap))(pos)
         ),
         63.2
       ),
@@ -4269,7 +4269,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           List(prop("x", "prop")),
           Some(Right(parameter("constraintName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         63.2
       ),
@@ -4327,7 +4327,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           label("Label"),
           Seq(prop(" x", "prop")),
           None,
-          OptionsParam(parameter("options", CTMap))
+          OptionsParam(parameter("options", CTMap))(pos)
         ),
         63.2
       ),
@@ -4407,7 +4407,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           relType("REL_TYPE"),
           List(prop("x", "prop")),
           Some(Right(parameter("constraintName", CTString))),
-          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))
+          OptionsMap(Map("indexProvider" -> stringLiteral("range-1.0")))(pos)
         ),
         63.2
       ),
@@ -4465,7 +4465,7 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           relType("REL_TYPE"),
           Seq(prop(" x", "prop")),
           None,
-          OptionsParam(parameter("options", CTMap))
+          OptionsParam(parameter("options", CTMap))(pos)
         ),
         63.2
       ),
@@ -7815,7 +7815,10 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           suspended = None,
           defaultDatabase = None,
           nativeAuth =
-            Some(NativeAuth(List(Password(varFor("password"), false)(pos), PasswordChange(false)(pos)))(pos)),
+            Some(NativeAuth(List(
+              Password(varFor("password"), isEncrypted = false)(pos),
+              PasswordChange(requireChange = false)(pos)
+            ))(pos)),
           externalAuths = Seq.empty
         ),
         1.0
@@ -7834,9 +7837,9 @@ class LogicalPlan2PlanDescriptionTest extends CypherFunSuite with TableDrivenPro
           util.Left("name"),
           suspended = Some(false),
           defaultDatabase = None,
-          nativeAuth = Some(NativeAuth(List(PasswordChange(true)(pos)))(pos)),
+          nativeAuth = Some(NativeAuth(List(PasswordChange(requireChange = true)(pos)))(pos)),
           Seq.empty,
-          RemoveAuth(false, List(stringLiteral("provider")))
+          RemoveAuth(all = false, List(stringLiteral("provider")))
         ),
         1.0
       ),

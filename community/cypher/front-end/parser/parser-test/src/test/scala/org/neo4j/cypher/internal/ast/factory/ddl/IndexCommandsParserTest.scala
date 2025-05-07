@@ -308,7 +308,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0"))),
+            ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))(pos),
             true
           )(pos),
           comparePosition = false
@@ -331,7 +331,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
                 "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
                 "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
               )
-            )),
+            ))(pos),
             true
           )(pos),
           comparePosition = false
@@ -354,7 +354,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
                 "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
                 "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
               )
-            )),
+            ))(pos),
             true
           )(pos),
           comparePosition = false
@@ -368,7 +368,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed")))),
+            ast.OptionsMap(Map("indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed"))))(pos),
             true
           )(pos),
           comparePosition = false
@@ -382,7 +382,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsParam(parameter("options", CTMap)),
+            ast.OptionsParam(parameter("options", CTMap))(pos),
             true
           )(pos),
           comparePosition = false
@@ -396,7 +396,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))(pos),
             true
           )(pos),
           comparePosition = false
@@ -410,7 +410,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map.empty),
+            ast.OptionsMap(Map.empty)(pos),
             true
           )(pos),
           comparePosition = false
@@ -663,7 +663,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0"))),
+            ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))(pos),
             false
           )(pos),
           comparePosition = false
@@ -682,7 +682,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ast.OptionsMap(Map(
               "indexProvider" -> literalString("range-1.0"),
               "indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed"))
-            )),
+            ))(pos),
             false
           )(pos),
           comparePosition = false
@@ -701,7 +701,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ast.OptionsMap(Map(
               "indexProvider" -> literalString("range-1.0"),
               "indexConfig" -> mapOf("someConfig" -> literalString("toShowItCanBeParsed"))
-            )),
+            ))(pos),
             false
           )(pos),
           comparePosition = false
@@ -715,7 +715,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexConfig" -> mapOf())),
+            ast.OptionsMap(Map("indexConfig" -> mapOf()))(pos),
             false
           )(pos),
           comparePosition = false
@@ -729,7 +729,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsParam(parameter("options", CTMap)),
+            ast.OptionsParam(parameter("options", CTMap))(pos),
             false
           )(pos),
           comparePosition = false
@@ -743,7 +743,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("nonValidOption" -> literalInt(42))),
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))(pos),
             false
           )(pos),
           comparePosition = false
@@ -757,7 +757,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map.empty),
+            ast.OptionsMap(Map.empty)(pos),
             false
           )(pos),
           comparePosition = false
@@ -1046,7 +1046,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("anyOption" -> literalInt(42)))
+            ast.OptionsMap(Map("anyOption" -> literalInt(42)))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1058,7 +1058,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map.empty)
+            ast.OptionsMap(Map.empty)(pos)
           )(pos),
           comparePosition = false
         )
@@ -1283,7 +1283,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("fulltext-1.0")))
+            ast.OptionsMap(Map("indexProvider" -> literalString("fulltext-1.0")))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1303,7 +1303,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ast.OptionsMap(Map(
               "indexProvider" -> literalString("fulltext-1.0"),
               "indexConfig" -> mapOf("fulltext.analyzer" -> literalString("some_analyzer"))
-            ))
+            ))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1323,7 +1323,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ast.OptionsMap(Map(
               "indexProvider" -> literalString("fulltext-1.0"),
               "indexConfig" -> mapOf("fulltext.eventually_consistent" -> falseLiteral)
-            ))
+            ))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1343,7 +1343,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ast.OptionsMap(Map("indexConfig" -> mapOf(
               "fulltext.analyzer" -> literalString("some_analyzer"),
               "fulltext.eventually_consistent" -> trueLiteral
-            )))
+            )))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1358,7 +1358,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1373,7 +1373,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map.empty)
+            ast.OptionsMap(Map.empty)(pos)
           )(pos),
           comparePosition = false
         )
@@ -1388,7 +1388,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsParam(parameter("options", CTMap))
+            ast.OptionsParam(parameter("options", CTMap))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1625,7 +1625,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("text-1.0")))
+            ast.OptionsMap(Map("indexProvider" -> literalString("text-1.0")))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1646,7 +1646,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
                 "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
                 "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
               )
-            ))
+            ))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1667,7 +1667,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
                 "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
                 "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
               )
-            ))
+            ))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1685,7 +1685,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ast.OptionsMap(Map("indexConfig" -> mapOf(
               "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
               "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
-            )))
+            )))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1698,7 +1698,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsParam(parameter("options", CTMap))
+            ast.OptionsParam(parameter("options", CTMap))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1711,7 +1711,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1724,7 +1724,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map.empty)
+            ast.OptionsMap(Map.empty)(pos)
           )(pos),
           comparePosition = false
         )
@@ -1966,7 +1966,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("point-1.0")))
+            ast.OptionsMap(Map("indexProvider" -> literalString("point-1.0")))(pos)
           )(pos),
           comparePosition = false
         )
@@ -1987,7 +1987,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
                 "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
                 "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
               )
-            ))
+            ))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2008,7 +2008,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
                 "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
                 "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
               )
-            ))
+            ))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2026,7 +2026,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ast.OptionsMap(Map("indexConfig" -> mapOf(
               "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
               "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
-            )))
+            )))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2039,7 +2039,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsParam(parameter("options", CTMap))
+            ast.OptionsParam(parameter("options", CTMap))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2052,7 +2052,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2065,7 +2065,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map.empty)
+            ast.OptionsMap(Map.empty)(pos)
           )(pos),
           comparePosition = false
         )
@@ -2306,7 +2306,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("vector-1.0")))
+            ast.OptionsMap(Map("indexProvider" -> literalString("vector-1.0")))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2327,7 +2327,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
                 "vector.dimensions" -> literalInt(50),
                 "vector.similarity_function" -> literalString("euclidean")
               )
-            ))
+            ))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2348,7 +2348,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
                 "vector.dimensions" -> literalInt(50),
                 "vector.similarity_function" -> literalString("cosine")
               )
-            ))
+            ))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2366,7 +2366,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             ast.OptionsMap(Map("indexConfig" -> mapOf(
               "vector.dimensions" -> literalInt(50),
               "vector.similarity_function" -> literalString("cosine")
-            )))
+            )))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2379,7 +2379,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsParam(parameter("options", CTMap))
+            ast.OptionsParam(parameter("options", CTMap))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2392,7 +2392,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             None,
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))
+            ast.OptionsMap(Map("nonValidOption" -> literalInt(42)))(pos)
           )(pos),
           comparePosition = false
         )
@@ -2405,7 +2405,7 @@ class IndexCommandsParserTest extends AdministrationAndSchemaCommandParserTestBa
             Some(Left("my_index")),
             posN2(testName),
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map.empty)
+            ast.OptionsMap(Map.empty)(pos)
           )(pos),
           comparePosition = false
         )

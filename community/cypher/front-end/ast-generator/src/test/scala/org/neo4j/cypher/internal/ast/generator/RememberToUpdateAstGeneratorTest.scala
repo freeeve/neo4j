@@ -82,6 +82,7 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.ast.ExternalAuth",
     "org.neo4j.cypher.internal.ast.InputDataStream",
     "org.neo4j.cypher.internal.ast.NativeAuth",
+    "org.neo4j.cypher.internal.ast.NoOptions.", // This is a case object, and in this class that seems to need a trailing `.`
     "org.neo4j.cypher.internal.ast.ProjectingUnionAll",
     "org.neo4j.cypher.internal.ast.ProjectingUnionDistinct",
     "org.neo4j.cypher.internal.ast.RemoveDynamicPropertyItem",

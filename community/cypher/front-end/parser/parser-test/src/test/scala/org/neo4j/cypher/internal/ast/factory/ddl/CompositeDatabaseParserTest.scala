@@ -29,6 +29,7 @@ import org.neo4j.cypher.internal.ast.NoOptions
 import org.neo4j.cypher.internal.ast.NoWait
 import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.Restrict
+import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TimeoutAfter
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
@@ -133,25 +134,53 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
   }
 
   test("CREATE COMPOSITE DATABASE name OPTIONS {}") {
-    parsesTo[Statements](CreateCompositeDatabase(
-      namespacedName("name"),
-      IfExistsThrowError,
-      OptionsMap(Map.empty),
-      NoWait()(pos),
-      None
-    )(pos))
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(
+          CreateCompositeDatabase(
+            namespacedName("name"),
+            IfExistsThrowError,
+            OptionsMap(Map.empty)(defaultPos),
+            NoWait()(pos),
+            None
+          )(pos)
+        )
+      case _ => _.toAstPositioned(
+          CreateCompositeDatabase(
+            namespacedName("name"),
+            IfExistsThrowError,
+            OptionsMap(Map.empty)(pos),
+            NoWait()(pos),
+            None
+          )(pos)
+        )
+    }
   }
 
   test("CREATE COMPOSITE DATABASE name OPTIONS {someKey: 'someValue'} NOWAIT") {
-    parsesTo[Statements](CreateCompositeDatabase(
-      namespacedName("name"),
-      IfExistsThrowError,
-      OptionsMap(Map(
-        "someKey" -> literalString("someValue")
-      )),
-      NoWait()(pos),
-      None
-    )(pos))
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(
+          CreateCompositeDatabase(
+            namespacedName("name"),
+            IfExistsThrowError,
+            OptionsMap(Map(
+              "someKey" -> literalString("someValue")
+            ))(defaultPos),
+            NoWait()(pos),
+            None
+          )(pos)
+        )
+      case _ => _.toAstPositioned(
+          CreateCompositeDatabase(
+            namespacedName("name"),
+            IfExistsThrowError,
+            OptionsMap(Map(
+              "someKey" -> literalString("someValue")
+            ))(pos),
+            NoWait()(pos),
+            None
+          )(pos)
+        )
+    }
   }
 
   test("CREATE COMPOSITE DATABASE name TOPOLOGY 1 PRIMARY") {
@@ -268,15 +297,30 @@ class CompositeDatabaseParserTest extends AdministrationAndSchemaCommandParserTe
   }
 
   test("CREATE COMPOSITE DATABASE foo DEFAULT LANGUAGE CYPHER 25 OPTIONS {someKey: 'someValue'} ") {
-    parsesTo[Statements](CreateCompositeDatabase(
-      literalFoo,
-      IfExistsThrowError,
-      OptionsMap(Map(
-        "someKey" -> literalString("someValue")
-      )),
-      NoWait()(pos),
-      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
-    )(pos))
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(
+          CreateCompositeDatabase(
+            literalFoo,
+            IfExistsThrowError,
+            OptionsMap(Map(
+              "someKey" -> literalString("someValue")
+            ))(defaultPos),
+            NoWait()(pos),
+            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+          )(pos)
+        )
+      case _ => _.toAstPositioned(
+          CreateCompositeDatabase(
+            literalFoo,
+            IfExistsThrowError,
+            OptionsMap(Map(
+              "someKey" -> literalString("someValue")
+            ))(pos),
+            NoWait()(pos),
+            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+          )(pos)
+        )
+    }
   }
 
   test("CREATE COMPOSITE DATABASE foo OPTIONS {someKey: 'someValue'} DEFAULT LANGUAGE CYPHER 25") {

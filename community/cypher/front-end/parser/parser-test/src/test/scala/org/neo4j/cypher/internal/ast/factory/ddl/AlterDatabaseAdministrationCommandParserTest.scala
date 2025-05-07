@@ -23,9 +23,11 @@ import org.neo4j.cypher.internal.ast.NoWait
 import org.neo4j.cypher.internal.ast.OptionsMap
 import org.neo4j.cypher.internal.ast.ReadOnlyAccess
 import org.neo4j.cypher.internal.ast.ReadWriteAccess
+import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.TimeoutAfter
 import org.neo4j.cypher.internal.ast.Topology
+import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.expressions.Null
 import org.neo4j.cypher.internal.expressions.SignedDecimalIntegerLiteral
 import org.neo4j.cypher.internal.expressions.StringLiteral
@@ -228,7 +230,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         ifExists = false,
         None,
         None,
-        OptionsMap(Map("txLogEnrichment" -> StringLiteral("FULL")(pos.withInputLength(0)))),
+        OptionsMap(Map("txLogEnrichment" -> StringLiteral("FULL")(pos.withInputLength(0))))(pos),
         Set.empty,
         NoWait()(pos),
         None
@@ -243,7 +245,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         ifExists = false,
         None,
         None,
-        OptionsMap(Map("key" -> SignedDecimalIntegerLiteral("1")(pos))),
+        OptionsMap(Map("key" -> SignedDecimalIntegerLiteral("1")(pos)))(pos),
         Set.empty,
         NoWait()(pos),
         None
@@ -258,7 +260,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         ifExists = false,
         None,
         None,
-        OptionsMap(Map("key" -> SignedDecimalIntegerLiteral("-1")(pos))),
+        OptionsMap(Map("key" -> SignedDecimalIntegerLiteral("-1")(pos)))(pos),
         Set.empty,
         NoWait()(pos),
         None
@@ -273,7 +275,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         ifExists = false,
         None,
         None,
-        OptionsMap(Map("key" -> Null()(pos))),
+        OptionsMap(Map("key" -> Null()(pos)))(pos),
         Set.empty,
         NoWait()(pos),
         None
@@ -282,21 +284,38 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
   }
 
   test("ALTER DATABASE foo SET OPTION key1 1 SET OPTION key2 'two'") {
-    parsesTo[Statements](
-      AlterDatabase(
-        literalFoo,
-        ifExists = false,
-        None,
-        None,
-        OptionsMap(Map(
-          "key1" -> SignedDecimalIntegerLiteral("1")(pos),
-          "key2" -> StringLiteral("two")(pos.withInputLength(0))
-        )),
-        Set.empty,
-        NoWait()(pos),
-        None
-      )(pos)
-    )
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(
+          AlterDatabase(
+            literalFoo,
+            ifExists = false,
+            None,
+            None,
+            OptionsMap(Map(
+              "key1" -> SignedDecimalIntegerLiteral("1")(pos),
+              "key2" -> StringLiteral("two")(pos.withInputLength(0))
+            ))(defaultPos),
+            Set.empty,
+            NoWait()(pos),
+            None
+          )(pos)
+        )
+      case _ => _.toAst(
+          AlterDatabase(
+            literalFoo,
+            ifExists = false,
+            None,
+            None,
+            OptionsMap(Map(
+              "key1" -> SignedDecimalIntegerLiteral("1")(pos),
+              "key2" -> StringLiteral("two")(pos.withInputLength(0))
+            ))(pos),
+            Set.empty,
+            NoWait()(pos),
+            None
+          )(pos)
+        )
+    }
   }
 
   test("ALTER DATABASE foo SET ACCESS READ ONLY SET TOPOLOGY 1 PRIMARY SET OPTION txLogEnrichment 'FULL'") {
@@ -306,7 +325,7 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
         ifExists = false,
         Some(ReadOnlyAccess),
         Some(Topology(Some(Left(1)), None)),
-        OptionsMap(Map("txLogEnrichment" -> StringLiteral("FULL")(pos.withInputLength(0)))),
+        OptionsMap(Map("txLogEnrichment" -> StringLiteral("FULL")(pos.withInputLength(0))))(pos),
         Set.empty,
         NoWait()(pos),
         None
@@ -624,16 +643,32 @@ class AlterDatabaseAdministrationCommandParserTest extends AdministrationAndSche
   }
 
   test("ALTER DATABASE foo SET OPTION badger 'snake' SET DEFAULT LANGUAGE CYPHER 25 WAIT") {
-    parsesTo[Statements](AlterDatabase(
-      literalFoo,
-      ifExists = false,
-      None,
-      None,
-      OptionsMap(Map("badger" -> literalString("snake"))),
-      Set.empty,
-      IndefiniteWait()(pos),
-      Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
-    )(pos))
+    parsesIn[Statement] {
+      case Cypher5 => _.toAst(
+          AlterDatabase(
+            literalFoo,
+            ifExists = false,
+            None,
+            None,
+            OptionsMap(Map("badger" -> literalString("snake")))(defaultPos),
+            Set.empty,
+            IndefiniteWait()(pos),
+            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+          )(pos)
+        )
+      case _ => _.toAstPositioned(
+          AlterDatabase(
+            literalFoo,
+            ifExists = false,
+            None,
+            None,
+            OptionsMap(Map("badger" -> literalString("snake")))(pos),
+            Set.empty,
+            IndefiniteWait()(pos),
+            Some(org.neo4j.cypher.internal.CypherVersion.Cypher25)
+          )(pos)
+        )
+    }
   }
 
   test("ALTER DATABASE foo IF EXISTS SET DEFAULT LANGUAGE CYPHER 25 SET TOPOLOGY 1 PRIMARY") {

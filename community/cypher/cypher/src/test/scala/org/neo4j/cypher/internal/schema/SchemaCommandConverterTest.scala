@@ -166,7 +166,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new NodeRange(commandName(ixName), label.name, asList("name"), false))
       }
 
@@ -185,7 +185,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsDoNothing,
-          ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))(InputPosition.NONE)
         )) == new NodeRange(commandName(ixName), label.name, asList("name"), true))
       }
 
@@ -209,7 +209,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         assert(converterForDefaultCypherVersion.apply(lookupNodeIndex(
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new NodeLookup(commandName(ixName), false))
       }
 
@@ -220,7 +220,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         assert(converterForCypher5.apply(lookupNodeIndex(
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("token-lookup-1.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("token-lookup-1.0")))(InputPosition.NONE)
         )) == new NodeLookup(commandName(ixName), false))
       }
 
@@ -247,7 +247,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new NodeText(commandName(ixName), label.name, "name", false))
       }
 
@@ -257,7 +257,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("text-1.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("text-1.0")))(InputPosition.NONE)
         )) == new NodeText(commandName(ixName), label.name, "name", false))
       }
 
@@ -267,7 +267,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("text-2.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("text-2.0")))(InputPosition.NONE)
         )) == new NodeText(commandName(ixName), label.name, "name", false))
       }
 
@@ -294,7 +294,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new NodePoint(commandName(ixName), label.name, "name", false, IndexConfig.empty()))
       }
 
@@ -304,7 +304,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("point-1.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("point-1.0")))(InputPosition.NONE)
         )) == new NodePoint(
           commandName(ixName),
           label.name,
@@ -324,7 +324,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           ast.OptionsMap(Map("indexConfig" -> mapOf(
             "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
             "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
-          )))
+          )))(InputPosition.NONE)
         )) == new NodePoint(
           commandName(ixName),
           label.name,
@@ -356,7 +356,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
                 "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
               )
-            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))(InputPosition.NONE)
           )) == new NodePoint(
             commandName(ixName),
             label.name,
@@ -390,7 +390,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new NodeVector(commandName(ixName), label.name, "name", false, VECTOR_CONFIG_V2))
       }
 
@@ -401,7 +401,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           ast.IfExistsThrowError,
           ast.OptionsMap(Map("indexConfig" -> mapOf(
             "vector.dimensions" -> literalInt(1536)
-          )))
+          )))(InputPosition.NONE)
         )) == new NodeVector(
           commandName(ixName),
           label.name,
@@ -421,7 +421,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           ast.OptionsMap(Map("indexConfig" -> mapOf(
             "vector.dimensions" -> literalInt(768),
             "vector.hnsw.m" -> literalInt(8)
-          )))
+          )))(InputPosition.NONE)
         )) == new NodeVector(
           commandName(ixName),
           label.name,
@@ -453,7 +453,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 "vector.dimensions" -> literalInt(768),
                 "vector.similarity_function" -> literalString("COSINE")
               )
-            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))(InputPosition.NONE)
           )) == new NodeVector(
             commandName(ixName),
             label.name,
@@ -486,7 +486,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 "vector.dimensions" -> literalInt(768),
                 "vector.similarity_function" -> literalString("COSINE")
               )
-            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))(InputPosition.NONE)
           )) == new NodeVector(
             commandName(ixName),
             label.name,
@@ -503,7 +503,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("vector-2.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("vector-2.0")))(InputPosition.NONE)
         )) == new NodeVector(
           commandName(ixName),
           label.name,
@@ -599,7 +599,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(label.name),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new NodeFulltext(
           commandName(ixName),
           asList(label.name),
@@ -619,7 +619,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           ast.IfExistsThrowError,
           ast.OptionsMap(Map("indexConfig" -> mapOf(
             "fulltext.eventually_consistent" -> literalBoolean(false)
-          )))
+          )))(InputPosition.NONE)
         )) == new NodeFulltext(
           commandName(ixName),
           asList(label.name),
@@ -651,7 +651,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               "indexConfig" -> mapOf(
                 "fulltext.eventually_consistent" -> literalBoolean(true)
               )
-            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))(InputPosition.NONE)
           )) == new NodeFulltext(
             commandName(ixName),
             asList(label.name),
@@ -715,7 +715,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new RelationshipRange(commandName(ixName), relType.name, asList("name"), false))
       }
 
@@ -739,7 +739,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("range-1.0")))(InputPosition.NONE)
         )) == new RelationshipRange(
           commandName(ixName),
           relType.name,
@@ -771,7 +771,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new RelationshipText(commandName(ixName), relType.name, "name", false))
       }
 
@@ -781,7 +781,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("text-1.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("text-1.0")))(InputPosition.NONE)
         )) == new RelationshipText(
           commandName(ixName),
           relType.name,
@@ -796,7 +796,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("text-2.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("text-2.0")))(InputPosition.NONE)
         )) == new RelationshipText(
           commandName(ixName),
           relType.name,
@@ -840,7 +840,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new RelationshipPoint(
           commandName(ixName),
           relType.name,
@@ -856,7 +856,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("point-1.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("point-1.0")))(InputPosition.NONE)
         )) == new RelationshipPoint(
           commandName(ixName),
           relType.name,
@@ -876,7 +876,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           ast.OptionsMap(Map("indexConfig" -> mapOf(
             "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
             "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
-          )))
+          )))(InputPosition.NONE)
         )) == new RelationshipPoint(
           commandName(ixName),
           relType.name,
@@ -908,7 +908,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 "spatial.wgs-84.max" -> listOf(literalFloat(60.0), literalFloat(60.0)),
                 "spatial.wgs-84.min" -> listOf(literalFloat(-40.0), literalFloat(-40.0))
               )
-            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))(InputPosition.NONE)
           )) == new RelationshipPoint(
             commandName(ixName),
             relType.name,
@@ -954,7 +954,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(prop("name")),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new RelationshipVector(
           commandName(ixName),
           relType.name,
@@ -973,7 +973,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           ast.IfExistsThrowError,
           ast.OptionsMap(Map("indexConfig" -> mapOf(
             "vector.dimensions" -> literalInt(1536)
-          )))
+          )))(InputPosition.NONE)
         )) == new RelationshipVector(
           commandName(ixName),
           relType.name,
@@ -1005,7 +1005,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 "vector.dimensions" -> literalInt(768),
                 "vector.similarity_function" -> literalString("COSINE")
               )
-            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))(InputPosition.NONE)
           )) == new RelationshipVector(
             commandName(ixName),
             relType.name,
@@ -1038,7 +1038,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 "vector.dimensions" -> literalInt(768),
                 "vector.similarity_function" -> literalString("COSINE")
               )
-            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))(InputPosition.NONE)
           )) == new RelationshipVector(
             commandName(ixName),
             relType.name,
@@ -1103,7 +1103,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           List(relType.name),
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new RelationshipFulltext(
           commandName(ixName),
           asList(relType.name),
@@ -1123,7 +1123,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           ast.IfExistsThrowError,
           ast.OptionsMap(Map("indexConfig" -> mapOf(
             "fulltext.eventually_consistent" -> literalBoolean(false)
-          )))
+          )))(InputPosition.NONE)
         )) == new RelationshipFulltext(
           commandName(ixName),
           asList(relType.name),
@@ -1155,7 +1155,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               "indexConfig" -> mapOf(
                 "fulltext.eventually_consistent" -> literalBoolean(true)
               )
-            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))
+            ) ++ ixProvider.map(i => "indexProvider" -> literalString(i)))(InputPosition.NONE)
           )) == new RelationshipFulltext(
             commandName(ixName),
             asList(relType.name),
@@ -1248,7 +1248,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         assert(converterForDefaultCypherVersion.apply(lookupRelIndex(
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map.empty)
+          ast.OptionsMap(Map.empty)(InputPosition.NONE)
         )) == new RelationshipLookup(commandName(ixName), false))
       }
 
@@ -1259,7 +1259,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
         assert(converterForCypher5.apply(lookupRelIndex(
           indexName(ixName),
           ast.IfExistsThrowError,
-          ast.OptionsMap(Map("indexProvider" -> literalString("token-lookup-1.0")))
+          ast.OptionsMap(Map("indexProvider" -> literalString("token-lookup-1.0")))(InputPosition.NONE)
         )) == new RelationshipLookup(commandName(ixName), false))
       }
   }
@@ -1290,7 +1290,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
           converterForCypher5.apply(createIndex(
             None,
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))
+            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))(InputPosition.NONE)
           ))
         }
         error.getMessage should includeAllOf("Unable to find the IndexProviderDescriptor for the name: duff")
@@ -1310,7 +1310,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               converterForCypher5.apply(createIndex(
                 None,
                 ast.IfExistsThrowError,
-                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))
+                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))(InputPosition.NONE)
               ))
             }
             error.getMessage should includeAllOf(
@@ -1342,7 +1342,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               ast.IfExistsThrowError,
               ast.OptionsMap(Map(
                 "duff" -> literalInt(13)
-              ))
+              ))(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf(expectedErrors: _*)
@@ -1360,7 +1360,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
             converterForDefaultCypherVersion.apply(createIndex(
               None,
               ast.IfExistsThrowError,
-              ast.OptionsParam(parameterMap)
+              ast.OptionsParam(parameterMap)(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf("Parameterised options are not allowed in import schema commands")
@@ -1412,7 +1412,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
             List(prop("name")),
             None,
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))
+            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))(InputPosition.NONE)
           ))
         }
         error.getMessage should includeAllOf("Unable to find the IndexProviderDescriptor for the name: duff")
@@ -1433,7 +1433,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 List(prop("name")),
                 None,
                 ast.IfExistsThrowError,
-                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))
+                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))(InputPosition.NONE)
               ))
             }
             error.getMessage should includeAllOf(
@@ -1459,7 +1459,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 "spatial.cartesian.max" -> listOf(literalFloat(100.0), literalFloat(100.0)),
                 "spatial.cartesian.min" -> listOf(literalFloat(-100.0), literalFloat(-100.0))
               )
-            ))
+            ))(InputPosition.NONE)
           ))
         }
         error.getMessage should includeAllOf(
@@ -1490,7 +1490,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               ast.IfExistsThrowError,
               ast.OptionsMap(Map(
                 "duff" -> literalInt(13)
-              ))
+              ))(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf(expectedErrors: _*)
@@ -1509,7 +1509,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               List(prop("name")),
               None,
               ast.IfExistsThrowError,
-              ast.OptionsParam(parameterMap)
+              ast.OptionsParam(parameterMap)(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf("Parameterised options are not allowed in import schema commands")
@@ -1569,7 +1569,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
             List(prop("name")),
             None,
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))
+            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))(InputPosition.NONE)
           ))
         }
         error.getMessage should includeAllOf("Unable to find the IndexProviderDescriptor for the name: duff")
@@ -1590,7 +1590,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 List(prop("name")),
                 None,
                 ast.IfExistsThrowError,
-                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))
+                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))(InputPosition.NONE)
               ))
             }
             error.getMessage should includeAllOf(
@@ -1623,7 +1623,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               ast.IfExistsThrowError,
               ast.OptionsMap(Map(
                 "duff" -> literalInt(13)
-              ))
+              ))(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf(expectedErrors: _*)
@@ -1642,7 +1642,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               List(prop("name")),
               None,
               ast.IfExistsThrowError,
-              ast.OptionsParam(parameterMap)
+              ast.OptionsParam(parameterMap)(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf("Parameterised options are not allowed in import schema commands")
@@ -1702,7 +1702,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
             List(prop("name")),
             None,
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))
+            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))(InputPosition.NONE)
           ))
         }
         error.getMessage should includeAllOf("Unable to find the IndexProviderDescriptor for the name: duff")
@@ -1723,7 +1723,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 List(prop("name")),
                 None,
                 ast.IfExistsThrowError,
-                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))
+                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))(InputPosition.NONE)
               ))
             }
             error.getMessage should includeAllOf(
@@ -1756,7 +1756,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               ast.IfExistsThrowError,
               ast.OptionsMap(Map(
                 "duff" -> literalInt(13)
-              ))
+              ))(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf(expectedErrors: _*)
@@ -1775,7 +1775,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               List(prop("name")),
               None,
               ast.IfExistsThrowError,
-              ast.OptionsParam(parameterMap)
+              ast.OptionsParam(parameterMap)(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf("Parameterised options are not allowed in import schema commands")
@@ -1835,7 +1835,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
             List(prop("name")),
             None,
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))
+            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))(InputPosition.NONE)
           ))
         }
         error.getMessage should includeAllOf("Unable to find the IndexProviderDescriptor for the name: duff")
@@ -1856,7 +1856,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 List(prop("name")),
                 None,
                 ast.IfExistsThrowError,
-                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))
+                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))(InputPosition.NONE)
               ))
             }
             error.getMessage should includeAllOf(
@@ -1889,7 +1889,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               ast.IfExistsThrowError,
               ast.OptionsMap(Map(
                 "duff" -> literalInt(13)
-              ))
+              ))(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf(expectedErrors: _*)
@@ -1908,7 +1908,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               List(prop("name")),
               None,
               ast.IfExistsThrowError,
-              ast.OptionsParam(parameterMap)
+              ast.OptionsParam(parameterMap)(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf("Parameterised options are not allowed in import schema commands")
@@ -1928,7 +1928,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 "vector.dimensions" -> literalInt(1536),
                 "vector.quantization.enabled" -> literalBoolean(true)
               )
-            ))
+            ))(InputPosition.NONE)
           ))
         }
         error.getMessage should includeAllOf(
@@ -1968,7 +1968,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
             List(entity),
             None,
             ast.IfExistsThrowError,
-            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))
+            ast.OptionsMap(Map("indexProvider" -> literalString("duff")))(InputPosition.NONE)
           ))
         }
         error.getMessage should includeAllOf("Unable to find the IndexProviderDescriptor for the name: duff")
@@ -1990,7 +1990,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
                 List(entity),
                 None,
                 ast.IfExistsThrowError,
-                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))
+                ast.OptionsMap(Map("indexProvider" -> literalString(indexName)))(InputPosition.NONE)
               ))
             }
             error.getMessage should includeAllOf(
@@ -2023,7 +2023,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               ast.IfExistsThrowError,
               ast.OptionsMap(Map(
                 "duff" -> literalInt(13)
-              ))
+              ))(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf(expectedErrors: _*)
@@ -2043,7 +2043,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               List(entity),
               None,
               ast.IfExistsThrowError,
-              ast.OptionsParam(parameterMap)
+              ast.OptionsParam(parameterMap)(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf("Parameterised options are not allowed in import schema commands")
@@ -2290,7 +2290,7 @@ class SchemaCommandConverterTest extends CypherFunSuite {
               prop("name"),
               indexName("my_index"),
               ast.IfExistsThrowError,
-              ast.OptionsParam(parameterMap)
+              ast.OptionsParam(parameterMap)(InputPosition.NONE)
             ))
           }
           error.getMessage should includeAllOf("Parameterised options are not allowed in import schema commands")
