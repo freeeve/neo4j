@@ -25,7 +25,6 @@ import static org.neo4j.configuration.SettingValueParsers.BOOL;
 import static org.neo4j.configuration.SettingValueParsers.DOUBLE;
 import static org.neo4j.configuration.SettingValueParsers.INT;
 
-import org.apache.lucene.index.IndexWriterConfig;
 import org.neo4j.annotations.service.ServiceProvider;
 import org.neo4j.configuration.Description;
 import org.neo4j.configuration.Internal;
@@ -55,7 +54,7 @@ public class LuceneSettings implements SettingsDeclaration {
                     "internal.dbms.index.lucene.population_max_buffered_docs",
                     INT,
                     // Pass in DISABLE_AUTO_FLUSH to prevent triggering a flush due to number of buffered documents
-                    IndexWriterConfig.DISABLE_AUTO_FLUSH)
+                    LuceneIndexWriterConfig.DISABLE_AUTO_FLUSH)
             .build();
 
     @Internal
@@ -113,7 +112,7 @@ public class LuceneSettings implements SettingsDeclaration {
     public static final Setting<Double> lucene_standard_ram_buffer_size = newBuilder(
                     "internal.dbms.index.lucene.standard_ram_buffer_size",
                     DOUBLE,
-                    IndexWriterConfig.DEFAULT_RAM_BUFFER_SIZE_MB)
+                    LuceneIndexWriterConfig.DEFAULT_RAM_BUFFER_SIZE_MB)
             .build();
 
     @Internal

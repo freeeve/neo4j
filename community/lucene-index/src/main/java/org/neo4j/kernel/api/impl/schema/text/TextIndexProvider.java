@@ -36,7 +36,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
-import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.TextModes;
+import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.AbstractTextIndexProvider;
 import org.neo4j.kernel.api.impl.schema.TextIndexCapability;
@@ -93,7 +93,7 @@ public class TextIndexProvider extends AbstractTextIndexProvider {
             ElementIdMapper elementIdMapper,
             ImmutableSet<OpenOption> openOptions,
             StorageEngineIndexingBehaviour indexingBehaviour) {
-        final var writerConfigBuilder = new IndexWriterConfigBuilder(TextModes.POPULATION, config);
+        final var writerConfigBuilder = new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT_POPULATION, config);
         final var index = TextIndexBuilder.create(descriptor, readOnlyChecker, config, logProvider)
                 .withFileSystem(fileSystem)
                 .withSamplingConfig(samplingConfig)

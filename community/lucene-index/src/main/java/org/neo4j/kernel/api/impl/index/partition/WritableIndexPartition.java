@@ -21,7 +21,6 @@ package org.neo4j.kernel.api.impl.index.partition;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.SearcherManager;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.graphdb.ResourceIterator;
@@ -29,6 +28,7 @@ import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
 
 /**
  * Represents a single writable partition of a partitioned lucene index.
@@ -39,7 +39,7 @@ public class WritableIndexPartition extends AbstractIndexPartition {
     private final SearcherManager searcherManager;
     private final LuceneDirectoryReader directoryReader;
 
-    public WritableIndexPartition(Path partitionFolder, LuceneDirectory directory, IndexWriterConfig writerConfig)
+    public WritableIndexPartition(Path partitionFolder, LuceneDirectory directory, LuceneIndexWriterConfig writerConfig)
             throws IOException {
         super(partitionFolder, directory);
         this.indexWriter = directory.newWriter(writerConfig);

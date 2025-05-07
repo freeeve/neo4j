@@ -28,7 +28,13 @@ import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.KeepOnlyLastCommitDeletionPolicy;
+import org.apache.lucene.index.LogByteSizeMergePolicy;
+import org.apache.lucene.index.MergePolicy;
+import org.apache.lucene.index.MergeScheduler;
+import org.apache.lucene.index.MergeTrigger;
 import org.apache.lucene.index.SegmentInfos;
+import org.apache.lucene.index.SnapshotDeletionPolicy;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
@@ -36,6 +42,7 @@ import org.apache.lucene.util.Version;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
 
 public class Lucene9Directory implements LuceneDirectory {
     final Directory directory;
@@ -94,8 +101,8 @@ public class Lucene9Directory implements LuceneDirectory {
     }
 
     @Override
-    public LuceneIndexWriter newWriter(IndexWriterConfig writerConfig) throws IOException {
-        IndexWriter indexWriter = new IndexWriter(directory, writerConfig);
+    public LuceneIndexWriter newWriter(LuceneIndexWriterConfig writerConfig) throws IOException {
+        IndexWriter indexWriter = new IndexWriter(directory, convertConfig(writerConfig));
         return new Lucene9IndexWriter(indexWriter);
     }
 
@@ -127,5 +134,73 @@ public class Lucene9Directory implements LuceneDirectory {
                 return input.readVInt();
             }
         }
+    }
+
+    private static IndexWriterConfig convertConfig(LuceneIndexWriterConfig config) {
+        if (config.analyzerOnly) {
+            return new IndexWriterConfig(config.analyzer);
+        }
+
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(config.analyzer);
+        if (config.RAMBufferSizeMB != null) {
+            indexWriterConfig.setRAMBufferSizeMB(config.RAMBufferSizeMB);
+        }
+        if (config.maxBufferedDocs != null) {
+            indexWriterConfig.setMaxBufferedDocs(config.maxBufferedDocs);
+        }
+        if (config.maxFullFlushMergeWaitMillis != null) {
+            indexWriterConfig.setMaxFullFlushMergeWaitMillis(config.maxFullFlushMergeWaitMillis);
+        }
+
+        indexWriterConfig.setCommitOnClose(config.commitOnClose);
+        indexWriterConfig.setUseCompoundFile(config.userCompoundFile);
+
+        if (config.codec != null) {
+            indexWriterConfig.setCodec(config.codec);
+        }
+        if (config.useOnThreadConcurrentMergeScheduler) {
+            indexWriterConfig.setMergeScheduler(new OnThreadConcurrentMergeScheduler());
+        }
+        if (config.useSnapshotDeletionPolicy) {
+            indexWriterConfig.setIndexDeletionPolicy(
+                    new SnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy()));
+        }
+
+        LogByteSizeMergePolicy mergePolicy = new LogByteSizeMergePolicy();
+        mergePolicy.setNoCFSRatio(config.noCFSRatio);
+        mergePolicy.setMinMergeMB(config.minMergeMB);
+        mergePolicy.setMaxMergeMB(config.maxMergeMB);
+        mergePolicy.setMergeFactor(config.mergeFactor);
+        indexWriterConfig.setMergePolicy(mergePolicy);
+
+        return indexWriterConfig;
+    }
+
+    /**
+     * This is a {@link MergeScheduler} which is a version of {@link org.apache.lucene.index.SerialMergeScheduler},
+     * but with the important difference that multiple threads can run merge of difference sources in parallel.
+     * I.e. in the scenario of index population where the population threads that adds documents go and do merge
+     * on their individual threads, in parallel with the other population threads. This effectively comes close
+     * to the {@link org.apache.lucene.index.ConcurrentMergeScheduler} parallel-wise w/o spawning additional
+     * background threads.
+     */
+    static class OnThreadConcurrentMergeScheduler extends MergeScheduler {
+        @Override
+        public void merge(MergeSource mergeSource, MergeTrigger trigger) throws IOException {
+            while (true) {
+                MergePolicy.OneMerge merge = nextMergeSynchronized(mergeSource);
+                if (merge == null) {
+                    break;
+                }
+                mergeSource.merge(merge);
+            }
+        }
+
+        private synchronized MergePolicy.OneMerge nextMergeSynchronized(MergeSource mergeSource) {
+            return mergeSource.getNextMerge();
+        }
+
+        @Override
+        public void close() {}
     }
 }

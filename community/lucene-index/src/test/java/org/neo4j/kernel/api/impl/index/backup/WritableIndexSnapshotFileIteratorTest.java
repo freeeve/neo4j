@@ -21,13 +21,13 @@ package org.neo4j.kernel.api.impl.index.backup;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
-import org.neo4j.kernel.api.impl.index.TestIndexWriterModes;
+import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
 
 public class WritableIndexSnapshotFileIteratorTest extends ReadOnlyIndexSnapshotFileIteratorTest {
     private LuceneIndexWriter indexWriter;
@@ -44,7 +44,7 @@ public class WritableIndexSnapshotFileIteratorTest extends ReadOnlyIndexSnapshot
     @Override
     protected ResourceIterator<Path> makeSnapshot() throws IOException {
         Config config = Config.defaults();
-        IndexWriterConfig writerConfig = new IndexWriterConfigBuilder(TestIndexWriterModes.STANDARD, config).build();
+        LuceneIndexWriterConfig writerConfig = new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT, config).build();
         indexWriter = dir.newWriter(writerConfig);
         return indexWriter.snapshot(indexDir);
     }

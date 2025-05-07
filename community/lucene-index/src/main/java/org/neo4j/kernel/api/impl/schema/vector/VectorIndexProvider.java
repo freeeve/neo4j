@@ -38,7 +38,7 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.memory.ByteBufferFactory;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
-import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.VectorModes;
+import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.kernel.api.impl.schema.AbstractLuceneIndexProvider;
@@ -119,7 +119,8 @@ public class VectorIndexProvider extends AbstractLuceneIndexProvider {
         final var dimensions = vectorIndexConfig.dimensions();
 
         final var codec = new VectorCodecV2(vectorIndexConfig);
-        final var writerConfigBuilder = new IndexWriterConfigBuilder(VectorModes.POPULATION, config).withCodec(codec);
+        final var writerConfigBuilder =
+                new IndexWriterConfigBuilder(IndexWriterConfigMode.VECTOR_POPULATION, config).withCodec(codec);
         final var luceneIndex = VectorIndexBuilder.create(
                         descriptor, vectorIndexConfig, documentStructure, readOnlyChecker, config, logProvider)
                 .withFileSystem(fileSystem)

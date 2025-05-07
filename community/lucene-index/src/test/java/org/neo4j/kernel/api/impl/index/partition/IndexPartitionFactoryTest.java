@@ -28,8 +28,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
+import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
-import org.neo4j.kernel.api.impl.index.TestIndexWriterModes;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
@@ -62,7 +62,7 @@ class IndexPartitionFactoryTest {
     void createWritablePartition() throws Exception {
         try (AbstractIndexPartition indexPartition = new WritableIndexPartitionFactory(() -> {
                     Config config = Config.defaults();
-                    return new IndexWriterConfigBuilder(TestIndexWriterModes.STANDARD, config).build();
+                    return new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT, config).build();
                 })
                 .createPartition(testDirectory.homePath(), directory)) {
 
@@ -84,7 +84,7 @@ class IndexPartitionFactoryTest {
         Path location = testDirectory.homePath();
         try (AbstractIndexPartition ignored = new WritableIndexPartitionFactory(() -> {
                     Config config = Config.defaults();
-                    return new IndexWriterConfigBuilder(TestIndexWriterModes.STANDARD, config).build();
+                    return new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT, config).build();
                 })
                 .createPartition(location, DirectoryFactory.PERSISTENT.open(location))) {
             // empty

@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -29,6 +29,7 @@ import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.MergeScheduler;
 import org.apache.lucene.index.MergeTrigger;
 import org.junit.jupiter.api.Test;
+import org.neo4j.kernel.api.impl.index.lucene.v9.Lucene9Directory.OnThreadConcurrentMergeScheduler;
 import org.neo4j.test.Barrier;
 import org.neo4j.test.OtherThreadExecutor;
 

@@ -20,17 +20,17 @@
 package org.neo4j.kernel.api.impl.schema.vector;
 
 import java.util.function.Supplier;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.function.Factory;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
-import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.VectorModes;
+import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.builder.AbstractLuceneIndexBuilder;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
 import org.neo4j.kernel.api.impl.schema.vector.codec.VectorCodecV2;
 import org.neo4j.logging.LogProvider;
@@ -40,7 +40,7 @@ class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> 
     private final VectorIndexConfig vectorIndexConfig;
     private final VectorDocumentStructure documentStructure;
     private final Config config;
-    private Supplier<IndexWriterConfig> writerConfigFactory;
+    private Supplier<LuceneIndexWriterConfig> writerConfigFactory;
 
     private VectorIndexBuilder(
             IndexDescriptor descriptor,
@@ -56,7 +56,8 @@ class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> 
         this.config = config;
 
         final var codec = new VectorCodecV2(vectorIndexConfig);
-        final var writerConfigBuilder = new IndexWriterConfigBuilder(VectorModes.STANDARD, config).withCodec(codec);
+        final var writerConfigBuilder =
+                new IndexWriterConfigBuilder(IndexWriterConfigMode.VECTOR, config).withCodec(codec);
         this.writerConfigFactory = writerConfigBuilder::build;
     }
 
@@ -79,12 +80,12 @@ class VectorIndexBuilder extends AbstractLuceneIndexBuilder<VectorIndexBuilder> 
     }
 
     /**
-     * Specify {@link Factory} of lucene {@link IndexWriterConfig} to create {@link LuceneIndexWriter}s.
+     * Specify {@link Factory} of lucene {@link LuceneIndexWriterConfig} to create {@link LuceneIndexWriter}s.
      *
      * @param writerConfigFactory the supplier of writer configs
      * @return index builder
      */
-    VectorIndexBuilder withWriterConfig(Supplier<IndexWriterConfig> writerConfigFactory) {
+    VectorIndexBuilder withWriterConfig(Supplier<LuceneIndexWriterConfig> writerConfigFactory) {
         this.writerConfigFactory = writerConfigFactory;
         return this;
     }

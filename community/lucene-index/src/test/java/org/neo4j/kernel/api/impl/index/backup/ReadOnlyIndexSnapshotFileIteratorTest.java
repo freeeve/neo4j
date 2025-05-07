@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.stream.Stream;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,11 +34,12 @@ import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
-import org.neo4j.kernel.api.impl.index.TestIndexWriterModes;
+import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
 import org.neo4j.kernel.api.impl.index.storage.DirectoryFactory;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
@@ -87,7 +87,7 @@ public class ReadOnlyIndexSnapshotFileIteratorTest {
 
     private void prepareIndex() throws IOException {
         Config config = Config.defaults();
-        IndexWriterConfig writerConfig = new IndexWriterConfigBuilder(TestIndexWriterModes.STANDARD, config).build();
+        LuceneIndexWriterConfig writerConfig = new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT, config).build();
         try (LuceneIndexWriter writer = dir.newWriter(writerConfig)) {
             insertRandomDocuments(writer);
         }

@@ -20,17 +20,17 @@
 package org.neo4j.kernel.api.impl.schema.text;
 
 import java.util.function.Supplier;
-import org.apache.lucene.index.IndexWriterConfig;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DatabaseReadOnlyChecker;
 import org.neo4j.function.Factory;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
-import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.TextModes;
+import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.builder.AbstractLuceneIndexBuilder;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
 import org.neo4j.kernel.api.impl.index.partition.WritableIndexPartitionFactory;
 import org.neo4j.kernel.api.impl.index.storage.PartitionedIndexStorage;
 import org.neo4j.kernel.api.index.ValueIndexReader;
@@ -49,7 +49,7 @@ public class TextIndexBuilder extends AbstractLuceneIndexBuilder<TextIndexBuilde
     private final IndexDescriptor descriptor;
     private final Config config;
     private IndexSamplingConfig samplingConfig;
-    private Supplier<IndexWriterConfig> writerConfigFactory;
+    private Supplier<LuceneIndexWriterConfig> writerConfigFactory;
 
     private TextIndexBuilder(
             IndexDescriptor descriptor,
@@ -61,7 +61,7 @@ public class TextIndexBuilder extends AbstractLuceneIndexBuilder<TextIndexBuilde
         this.config = config;
         this.samplingConfig = new IndexSamplingConfig(config);
 
-        final var writerConfigBuilder = new IndexWriterConfigBuilder(TextModes.STANDARD, config);
+        final var writerConfigBuilder = new IndexWriterConfigBuilder(IndexWriterConfigMode.TEXT, config);
         this.writerConfigFactory = writerConfigBuilder::build;
     }
 
@@ -91,12 +91,12 @@ public class TextIndexBuilder extends AbstractLuceneIndexBuilder<TextIndexBuilde
     }
 
     /**
-     * Specify {@link Factory} of lucene {@link IndexWriterConfig} to create {@link LuceneIndexWriter}s.
+     * Specify {@link Factory} of lucene {@link LuceneIndexWriterConfig} to create {@link LuceneIndexWriter}s.
      *
      * @param writerConfigFactory the supplier of writer configs
      * @return index builder
      */
-    public TextIndexBuilder withWriterConfig(Supplier<IndexWriterConfig> writerConfigFactory) {
+    public TextIndexBuilder withWriterConfig(Supplier<LuceneIndexWriterConfig> writerConfigFactory) {
         this.writerConfigFactory = writerConfigFactory;
         return this;
     }

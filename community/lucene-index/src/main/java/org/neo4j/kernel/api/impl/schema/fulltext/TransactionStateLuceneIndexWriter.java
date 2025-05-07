@@ -27,7 +27,7 @@ import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.impl.index.IndexWriterConfigBuilder;
-import org.neo4j.kernel.api.impl.index.IndexWriterConfigModes.FulltextModes;
+import org.neo4j.kernel.api.impl.index.IndexWriterConfigMode;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
@@ -89,7 +89,7 @@ class TransactionStateLuceneIndexWriter implements LucenePartitionIndexWriter, C
     }
 
     private void openWriter() throws IOException {
-        writer = directory.newWriter(new IndexWriterConfigBuilder(FulltextModes.TRANSACTION_STATE, config)
+        writer = directory.newWriter(new IndexWriterConfigBuilder(IndexWriterConfigMode.TRANSACTION_STATE, config)
                 .withAnalyzer(analyzer)
                 .build());
     }

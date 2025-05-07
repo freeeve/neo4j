@@ -26,11 +26,8 @@ import static org.neo4j.kernel.api.impl.index.lucene.LuceneSettings.lucene_nocfs
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.codecs.Codec;
-import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.KeepOnlyLastCommitDeletionPolicy;
-import org.apache.lucene.index.LogByteSizeMergePolicy;
-import org.apache.lucene.index.SnapshotDeletionPolicy;
 import org.neo4j.configuration.Config;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
 
 /**
  * Helper factory for standard lucene index writer configuration.
@@ -39,12 +36,12 @@ public final class IndexWriterConfigBuilder {
 
     private static final Analyzer KEYWORD_ANALYZER = new KeywordAnalyzer();
 
-    private final IndexWriterConfigModes.Mode mode;
+    private final IndexWriterConfigMode mode;
     private final Config config;
     private Analyzer analyzer = KEYWORD_ANALYZER;
     private Codec codec;
 
-    public IndexWriterConfigBuilder(IndexWriterConfigModes.Mode mode, Config config) {
+    public IndexWriterConfigBuilder(IndexWriterConfigMode mode, Config config) {
         this.mode = mode;
         this.config = config;
     }
@@ -59,9 +56,9 @@ public final class IndexWriterConfigBuilder {
         return this;
     }
 
-    public IndexWriterConfig build() {
-        final var writerConfig = new IndexWriterConfig(analyzer)
-                .setIndexDeletionPolicy(new SnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy()))
+    public LuceneIndexWriterConfig build() {
+        final var writerConfig = new LuceneIndexWriterConfig(analyzer)
+                .setUseSnapshotDeletionPolicy(true)
                 .setUseCompoundFile(true)
                 .setMaxFullFlushMergeWaitMillis(0);
 
@@ -69,11 +66,11 @@ public final class IndexWriterConfigBuilder {
             writerConfig.setCodec(codec);
         }
 
-        final var mergePolicy = new LogByteSizeMergePolicy();
-        mergePolicy.setNoCFSRatio(config.get(lucene_nocfs_ratio));
-        mergePolicy.setMinMergeMB(config.get(lucene_min_merge));
-        mergePolicy.setMaxMergeMB(config.get(lucene_max_merge));
-        writerConfig.setMergePolicy(mode.visitWithConfig(mergePolicy, config));
+        writerConfig.setMergingParameters(
+                config.get(lucene_nocfs_ratio),
+                config.get(lucene_min_merge),
+                config.get(lucene_max_merge),
+                mode.getMergeFactor(config));
 
         return mode.visitWithConfig(writerConfig, config);
     }

@@ -43,10 +43,10 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 
-public class Lucene9IndexWriter implements LuceneIndexWriter {
+class Lucene9IndexWriter implements LuceneIndexWriter {
     private final IndexWriter indexWriter;
 
-    public Lucene9IndexWriter(IndexWriter indexWriter) {
+    Lucene9IndexWriter(IndexWriter indexWriter) {
         this.indexWriter = indexWriter;
     }
 
