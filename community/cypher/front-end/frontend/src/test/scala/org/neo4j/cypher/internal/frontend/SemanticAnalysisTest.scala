@@ -35,6 +35,7 @@ import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTMap
 import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTString
+import org.neo4j.cypher.internal.util.symbols.StorableType.storableType
 import org.neo4j.gqlstatus.ErrorGqlStatusObject
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation.from
@@ -1871,73 +1872,54 @@ class SemanticAnalysisTest extends SemanticAnalysisTestSuite with AstConstructio
     run(query).hasNoErrors
   }
 
-  test("Should not find any LOAD CSV WITH HEADERS variables") {
-    run(
+  test("Without LOAD CSV, properties of a node should be of any storable type") {
+    val query =
       """MATCH (row)
         |WITH row.id AS rid
-        |CREATE (a: A { id: rid});
-      """.stripMargin
-    ).assertSemanticState(semanticState => {
-      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set.empty
-    })
+        |CREATE (a: A { id: rid});""".stripMargin
+    run(query)
+      .assert(_.semanticTable.types(varFor("rid", p(27, 2, 16))).specified shouldBe storableType)
   }
 
-  test("Should find row as the LOAD CSV WITH HEADERS variable") {
-    run(
+  test("With LOAD CSV WITH HEADERS, properties should be of string type - direct use") {
+    val query =
       """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
-        |CREATE (a: A { id: row.id});
-      """.stripMargin
-    ).assertSemanticState(semanticState => {
-      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set("row")
-    })
+        |CREATE (a: A { id: row.id});""".stripMargin
+    run(query)
+      .assert(_.semanticTable.types(prop("row", "id", p(72, 2, 20))).specified shouldBe CTString.covariant)
   }
 
-  test("Should find rowWith as the LOAD CSV WITH HEADERS variable2") {
-    run(
+  test("With LOAD CSV WITH HEADERS, properties should be of string type - one projection") {
+    val query =
       """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS rowWith
         |WITH rowWith.id AS rid
         |CREATE (a: A { id: rid});
       """.stripMargin
-    ).assertSemanticState(semanticState => {
-      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set("rowWith")
-    })
+    run(query)
+      .assert(_.semanticTable.types(varFor("rid", p(76, 2, 20))).specified shouldBe CTString.covariant)
   }
 
-  test("Should find rowAlias as the LOAD CSV WITH HEADERS variable") {
-    run(
+  test("With LOAD CSV WITH HEADERS, properties should be of string type - two projections") {
+    val query =
       """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
         |WITH row AS rowAlias
         |WITH rowAlias.id AS rid
         |CREATE (a: A { id: rid});
       """.stripMargin
-    ).assertSemanticState(semanticState => {
-      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set("rowAlias")
-    })
-  }
-
-  test("Should find row and rowAlias as the LOAD CSV WITH HEADERS variable") {
-    run(
-      """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
-        |WITH row, row AS rowAlias
-        |WITH row.id AS rid, rowAlias
-        |CREATE (a: A { id: rid});
-      """.stripMargin
-    ).assertSemanticState(semanticState => {
-      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set("row", "rowAlias")
-    })
+    run(query)
+      .assert(_.semanticTable.types(varFor("rid", p(94, 3, 21))).specified shouldBe CTString.covariant)
   }
 
   test("Should not find shadowing variable row as the LOAD CSV WITH HEADERS variable") {
-    run(
+    val query =
       """LOAD CSV WITH HEADERS FROM 'file:///test.csv' AS row
         |CREATE (n)
         |WITH n AS row
         |WITH row.id AS rid
         |CREATE (a: A { id: rid});
       """.stripMargin
-    ).assertSemanticState(semanticState => {
-      semanticState.loadCsvWithHeaderVariables.map(_.name) shouldEqual Set.empty
-    })
+    run(query)
+      .assert(_.semanticTable.types(varFor("rid", p(93, 4, 16))).specified shouldBe storableType)
   }
 
   test("should forward node type through map creation and access") {

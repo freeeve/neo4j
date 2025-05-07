@@ -331,10 +331,6 @@ trait SemanticAnalysisTooling {
   def ensureDefined(v: LogicalVariable): SemanticState => Either[SemanticError, SemanticState] =
     (_: SemanticState).ensureVariableDefined(v)
 
-  def addLoadCsvWithHeadersVariable(v: LogicalVariable): SemanticState => Either[SemanticError, SemanticState] = {
-    (s: SemanticState) => Right(s.copy(loadCsvWithHeaderVariables = s.loadCsvWithHeaderVariables + v))
-  }
-
   def declareVariable(
     v: LogicalVariable,
     possibleTypes: TypeSpec

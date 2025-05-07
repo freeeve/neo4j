@@ -460,17 +460,13 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
 
         check(ctx, x.map) chain
           expectType(allowedTypes, x.map) chain
-          typeSwitchWithState(x.map) {
-            (state: SemanticState, expr: TypeSpec) =>
-              expr match {
-                // Maybe we can do even more here - Point / Dates probably have type implications too
-                case CTNode.invariant | CTRelationship.invariant                  => specifyType(storableType, x)
-                case CTMap.invariant if state.isLoadCsvWithHeadersVariable(x.map) => specifyType(CTString.covariant, x)
-                case TypeSpecRange(_, extendedType: MapExtendedType) =>
-                  val entryType = extendedType.getEntryType(x.propertyKey.name)
-                  specifyType(entryType, x)
-                case _ => specifyType(CTAny.covariant, x)
-              }
+          typeSwitch(x.map) {
+            // Maybe we can do even more here - Point / Dates probably have type implications too
+            case CTNode.invariant | CTRelationship.invariant => specifyType(storableType, x)
+            case TypeSpecRange(_, extendedType: MapExtendedType) =>
+              val entryType = extendedType.getEntryType(x.propertyKey.name)
+              specifyType(entryType, x)
+            case _ => specifyType(CTAny.covariant, x)
           }
 
       case x: CachedProperty =>

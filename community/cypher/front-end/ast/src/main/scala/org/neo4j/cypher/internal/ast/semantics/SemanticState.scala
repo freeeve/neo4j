@@ -41,7 +41,6 @@ import org.neo4j.cypher.internal.util.symbols.TypeRange
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
 
 import scala.collection.immutable.HashMap
-import scala.language.postfixOps
 
 object SymbolUse {
   def apply(variable: LogicalVariable): SymbolUse = SymbolUse(Ref(variable))
@@ -135,7 +134,7 @@ final case class ExpressionTypeInfo private (specified: TypeSpec, expected: Opti
 
   lazy val actual: TypeSpec =
     expected
-      .map(specified intersectOrCoerce)
+      .map(specified intersectOrCoerce _)
       .getOrElse(specified)
 
   def expect(types: TypeSpec): ExpressionTypeInfo = ExpressionTypeInfo(specified, Some(types))
@@ -383,7 +382,6 @@ object SemanticState {
 /**
  * @param targetGraph used to check different use clause targets given a regular session database
  * @param workingGraph used for nested check given a composite session database
- * @param loadCsvWithHeaderVariables used to specify the type of the map values as strings, when the map comes from LOAD CSV WITH HEADERS
  */
 case class SemanticState(
   currentScope: ScopeLocation,
@@ -394,8 +392,7 @@ case class SemanticState(
   declareVariablesToSuppressDuplicateErrors: Boolean = true,
   semanticCheckHasRunOnce: Boolean = false,
   targetGraph: Option[GraphReference] = None,
-  workingGraph: Option[GraphReference] = None,
-  loadCsvWithHeaderVariables: Set[LogicalVariable] = Set.empty
+  workingGraph: Option[GraphReference] = None
 ) {
 
   def scopeTree: Scope = currentScope.rootScope
@@ -526,11 +523,4 @@ case class SemanticState(
   def recordTargetGraph(targetGraph: GraphReference): SemanticState = copy(targetGraph = Some(targetGraph))
 
   def recordWorkingGraph(graph: Option[GraphReference]): SemanticState = copy(workingGraph = graph)
-
-  def isLoadCsvWithHeadersVariable(expr: Expression): Boolean = {
-    expr match {
-      case v: LogicalVariable if loadCsvWithHeaderVariables.contains(v) => true
-      case _                                                            => false
-    }
-  }
 }
