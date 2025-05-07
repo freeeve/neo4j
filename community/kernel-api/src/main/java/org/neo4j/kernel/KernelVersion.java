@@ -24,6 +24,7 @@ import org.eclipse.collections.api.map.primitive.ImmutableByteObjectMap;
 import org.eclipse.collections.impl.factory.primitive.ByteObjectMaps;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.graphdb.config.Configuration;
 
 /**
  * One version scheme to unify various internal versions into one with the intent of conceptual simplification and simplification of version bumping.
@@ -119,7 +120,7 @@ public enum KernelVersion {
 
     private final byte version;
 
-    public static KernelVersion getLatestVersion(Config config) {
+    public static KernelVersion getLatestVersion(Configuration config) {
         Byte version = config.get(GraphDatabaseInternalSettings.latest_kernel_version);
         return version == null ? LATEST : KernelVersion.getForVersion(version);
     }

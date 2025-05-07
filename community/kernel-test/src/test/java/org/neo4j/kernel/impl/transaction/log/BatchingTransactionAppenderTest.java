@@ -46,6 +46,7 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.latest_runti
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.KernelVersion.DEFAULT_BOOTSTRAP_VERSION;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.log.LogChannelUtils.getReadChannel;
 import static org.neo4j.kernel.impl.transaction.log.LogChannelUtils.getWriteChannel;
 import static org.neo4j.kernel.impl.transaction.log.LogIndexEncoding.encodeLogIndex;
@@ -503,7 +504,7 @@ class BatchingTransactionAppenderTest {
         try (var writeChannel = getWriteChannel(fs, path, kernelVersion)) {
             when(logFile.getTransactionLogWriter())
                     .thenReturn(new TransactionLogWriter(
-                            writeChannel, () -> kernelVersion, supportedKernelVersions, LogRotation.NO_ROTATION));
+                            writeChannel, fixed(kernelVersion), supportedKernelVersions, LogRotation.NO_ROTATION));
             long txId = 15;
             when(transactionIdStore.nextCommittingTransactionId()).thenReturn(txId);
             when(transactionIdStore.getLastCommittedTransaction())

@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.V10;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.V6;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogSegments.DEFAULT_LOG_SEGMENT_SIZE;
@@ -278,9 +279,9 @@ class TransactionLogFilesTest {
     @Test
     void envelopedFileWithZeroChecksumHasEntries() throws Exception {
         KernelVersion kernelVersion = VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED;
-        LogFile logFile = createLogFiles(() -> kernelVersion).getLogFile();
+        LogFile logFile = createLogFiles(fixed(kernelVersion)).getLogFile();
         try (PhysicalLogVersionedStoreChannel channel = logFile.createLogChannelForVersion(
-                        1, () -> 1L, () -> kernelVersion, BASE_TX_CHECKSUM, () -> V10);
+                        1, () -> 1L, fixed(kernelVersion), BASE_TX_CHECKSUM, () -> V10);
                 EnvelopeWriteChannel envelopeWriteChannel = getEnvelopeChannel(channel)) {
             // Some magic bytes that just happen to give a checksum of 0
             byte[] bytes;

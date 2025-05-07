@@ -22,6 +22,7 @@ package org.neo4j.kernel.impl.transaction.log.checkpoint;
 import static java.util.Objects.requireNonNull;
 import static org.neo4j.kernel.KernelVersion.VERSION_APPEND_INDEX_INTRODUCED;
 import static org.neo4j.kernel.KernelVersion.VERSION_CHECKPOINT_NOT_COMPLETED_POSITION_INTRODUCED;
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntrySerializationSets.serializationSet;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 
@@ -254,7 +255,7 @@ public class DetachedCheckpointAppender extends LifecycleAdapter implements Chec
     }
 
     public Path rotate(KernelVersion kernelVersion) throws IOException {
-        channel = rotateChannel(channel, () -> kernelVersion);
+        channel = rotateChannel(channel, fixed(kernelVersion));
         writer.setChannel(channel, logHeader(channel.getLogVersion()));
         return channel.getPath();
     }

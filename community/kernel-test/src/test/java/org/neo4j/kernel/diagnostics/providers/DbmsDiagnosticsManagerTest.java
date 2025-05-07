@@ -397,7 +397,7 @@ class DbmsDiagnosticsManagerTest {
         databaseDependencies.satisfyDependency(DeviceMapper.UNKNOWN_MAPPER);
         LogFiles logFiles = databaseDependencies.satisfyDependency(
                 logFilesBasedOnlyBuilder(directory.homePath(), directory.getFileSystem())
-                        .withKernelVersionProvider(() -> LatestVersions.LATEST_KERNEL_VERSION)
+                        .withKernelVersionProvider(LatestVersions.LATEST_KERNEL_VERSION_PROVIDER)
                         .build());
         LogTailMetadata logTailMetadata = databaseDependencies.satisfyDependency(logFiles.getTailMetadata());
         TransactionIdStore txIdStore = databaseDependencies.satisfyDependency(mock(TransactionIdStore.class));

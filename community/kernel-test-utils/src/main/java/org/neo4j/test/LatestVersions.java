@@ -24,12 +24,14 @@ import org.neo4j.dbms.database.DbmsRuntimeVersion;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
+import org.neo4j.kernel.KernelVersionProviders;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 
 public final class LatestVersions {
     public static final KernelVersion LATEST_KERNEL_VERSION = KernelVersion.getLatestVersion(Config.defaults());
-    public static final KernelVersionProvider LATEST_KERNEL_VERSION_PROVIDER = () -> LATEST_KERNEL_VERSION;
+    public static final KernelVersionProvider LATEST_KERNEL_VERSION_PROVIDER =
+            KernelVersionProviders.fixed(LATEST_KERNEL_VERSION);
     public static final DbmsRuntimeVersion LATEST_RUNTIME_VERSION =
             DbmsRuntimeVersion.getLatestVersion(Config.defaults());
     public static final BinarySupportedKernelVersions BINARY_VERSIONS =

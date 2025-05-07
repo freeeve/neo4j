@@ -23,8 +23,8 @@ import java.io.IOException;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.KernelVersionProvider;
+import org.neo4j.kernel.KernelVersionProviders;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.LogFormatVersionProvider;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
@@ -66,7 +66,7 @@ public class LogTailExtractor {
      */
     public LogTailMetadata getTailMetadata(DatabaseLayout databaseLayout, MemoryTracker memoryTracker)
             throws IOException {
-        return buildLogFiles(databaseLayout, memoryTracker, () -> KernelVersion.getLatestVersion(config))
+        return buildLogFiles(databaseLayout, memoryTracker, KernelVersionProviders.latestFromConfig(config))
                 .getTailMetadata();
     }
 

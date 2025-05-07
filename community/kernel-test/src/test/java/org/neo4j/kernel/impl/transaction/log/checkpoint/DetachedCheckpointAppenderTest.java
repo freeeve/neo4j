@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.mock;
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.log.LogPosition.UNSPECIFIED;
 import static org.neo4j.kernel.impl.transaction.log.rotation.LogRotation.NO_ROTATION;
 import static org.neo4j.storageengine.AppendIndexProvider.BASE_APPEND_INDEX;
@@ -274,7 +275,7 @@ class DetachedCheckpointAppenderTest {
         return LogFilesBuilder.builder(
                         databaseLayout,
                         fileSystem,
-                        () -> initialKernelVersion,
+                        fixed(initialKernelVersion),
                         () -> LogFormat.fromKernelVersion(initialKernelVersion))
                 .withRotationThreshold(rotationThreshold)
                 .withTransactionIdStore(transactionIdStore)

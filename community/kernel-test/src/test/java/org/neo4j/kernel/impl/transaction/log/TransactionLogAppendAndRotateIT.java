@@ -35,6 +35,7 @@ import static org.neo4j.kernel.KernelVersion.GLORIOUS_FUTURE;
 import static org.neo4j.kernel.KernelVersion.V5_11;
 import static org.neo4j.kernel.KernelVersion.V5_12;
 import static org.neo4j.kernel.KernelVersion.V5_13;
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.api.txid.TransactionIdGenerator.EMPTY;
 import static org.neo4j.kernel.impl.transaction.log.TransactionAppenderFactory.createTransactionAppender;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
@@ -171,7 +172,7 @@ class TransactionLogAppendAndRotateIT {
     @ValueSource(booleans = {true, false})
     void shouldRotateLogWhenSeeingNewKernelVersion(boolean useQueueAppender) throws Throwable {
         // Start on version 5_11. This should mean no rotation on 5_11 commits
-        KernelVersionProvider startVersionProvider = () -> V5_11;
+        KernelVersionProvider startVersionProvider = fixed(V5_11);
 
         Setup setup = setupLogAppender(startVersionProvider, useQueueAppender);
 
@@ -212,7 +213,7 @@ class TransactionLogAppendAndRotateIT {
     @ValueSource(booleans = {true, false})
     void shouldRotateIfFirstCommandHasNewVersion(boolean useQueueAppender) throws Throwable {
         // Start on version 5_11. This should mean rotation on first commit
-        KernelVersionProvider startVersionProvider = () -> V5_11;
+        KernelVersionProvider startVersionProvider = fixed(V5_11);
 
         Setup setup = setupLogAppender(startVersionProvider, useQueueAppender);
 
@@ -233,7 +234,7 @@ class TransactionLogAppendAndRotateIT {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void rotateCommandHasCorrectPositionFromNewFile(boolean useQueueAppender) throws Throwable {
-        KernelVersionProvider startVersionProvider = () -> V5_11;
+        KernelVersionProvider startVersionProvider = fixed(V5_11);
 
         Setup setup = setupLogAppender(startVersionProvider, useQueueAppender);
 
@@ -285,7 +286,7 @@ class TransactionLogAppendAndRotateIT {
     void rotatedFilesShouldGetTheHeaderMatchingTheVersion(boolean useQueueAppender) throws Throwable {
         // Start on version 5_11. This should mean rotation on first commit
 
-        Setup setup = setupLogAppender(() -> V5_11, useQueueAppender);
+        Setup setup = setupLogAppender(fixed(V5_11), useQueueAppender);
 
         setup.appender.append(
                 new CompleteTransaction(
@@ -307,7 +308,7 @@ class TransactionLogAppendAndRotateIT {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void rotationShouldHappenOnNewVersionEvenInBatch(boolean useQueueAppender) throws Throwable {
-        Setup setup = setupLogAppender(() -> V5_11, useQueueAppender);
+        Setup setup = setupLogAppender(fixed(V5_11), useQueueAppender);
 
         CompleteTransaction batch = new CompleteTransaction(
                 txWithVersion(V5_11), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY);

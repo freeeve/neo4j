@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.common.Subject.ANONYMOUS;
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.log.GivenCommandBatchCursor.exhaust;
 import static org.neo4j.kernel.impl.transaction.log.TestLogEntryReader.logEntryReader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
@@ -112,7 +113,7 @@ class ReversedSingleFileCommandBatchCursorTest {
         logFiles = LogFilesBuilder.builder(
                         databaseLayout,
                         fs,
-                        () -> LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES,
+                        fixed(LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES),
                         () -> LogFormat.fromKernelVersion(LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES))
                 .withRotationThreshold(ByteUnit.mebiBytes(10))
                 .withLogVersionRepository(logVersionRepository)
@@ -295,7 +296,7 @@ class ReversedSingleFileCommandBatchCursorTest {
         TransactionLogWriter writer = new TransactionLogWriter(
                 channel,
                 new CorruptedLogEntryWriter<>(channel),
-                () -> LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES,
+                fixed(LATEST_KERNEL_VERSION_WITHOUT_ENVELOPES),
                 LogRotation.NO_ROTATION);
         long txId = ++this.txId;
         writer.append(

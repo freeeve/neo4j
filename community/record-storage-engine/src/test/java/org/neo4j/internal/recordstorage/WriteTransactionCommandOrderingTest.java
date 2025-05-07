@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 
 import java.util.ArrayList;
@@ -165,7 +166,7 @@ class WriteTransactionCommandOrderingTest {
 
         KernelVersion latestVersion = LatestVersions.LATEST_KERNEL_VERSION;
         return new TransactionRecordState(
-                () -> latestVersion,
+                fixed(latestVersion),
                 recordChangeSet,
                 neoStores,
                 null,

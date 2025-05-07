@@ -21,6 +21,7 @@ package org.neo4j.kernel.impl.transaction.log.files.checkpoint;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.neo4j.kernel.KernelVersion.GLORIOUS_FUTURE;
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent.NULL;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_COMMIT_TIMESTAMP;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CONSENSUS_INDEX;
@@ -156,7 +157,7 @@ class EnvelopedCheckpointLogFileTest {
         return LogFilesBuilder.builder(
                         databaseLayout,
                         fileSystem,
-                        () -> KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED,
+                        fixed(KernelVersion.VERSION_ENVELOPED_TRANSACTION_LOGS_INTRODUCED),
                         () -> LogFormat.V10)
                 .withConfig(futureEnabledConf)
                 .withRotationThreshold(rotationThreshold)

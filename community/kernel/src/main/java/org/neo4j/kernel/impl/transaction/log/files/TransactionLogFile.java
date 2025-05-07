@@ -19,6 +19,7 @@
  */
 package org.neo4j.kernel.impl.transaction.log.files;
 
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.log.LogVersionBridge.NO_MORE_CHANNELS;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.writeLogHeader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
@@ -387,7 +388,7 @@ public class TransactionLogFile extends LifecycleAdapter implements LogFile {
         channel = rotate(
                 channel,
                 () -> lastAppendIndex,
-                () -> kernelVersion,
+                fixed(kernelVersion),
                 () -> checksum,
                 context.getLogFormatVersionProvider());
         writer.setChannel(channel, channelAllocator.readLogHeaderForVersion(channel.getLogVersion()));

@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.common.Subject.ANONYMOUS;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.latest_kernel_version;
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.log.GivenCommandBatchCursor.exhaust;
 import static org.neo4j.kernel.impl.transaction.log.TestLogEntryReader.logEntryReader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
@@ -142,7 +143,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
         var storeId = new StoreId(1, 2, "engine-1", "format-1", 3, 4);
         config = Config.defaults(latest_kernel_version, kernelVersion.version());
         LogFiles logFiles = LogFilesBuilder.builder(
-                        databaseLayout, fs, () -> kernelVersion, () -> LogFormat.fromKernelVersion(kernelVersion))
+                        databaseLayout, fs, fixed(kernelVersion), () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withRotationThreshold(ROTATION_THRESHOLD)
                 .withLogVersionRepository(logVersionRepository)
                 .withTransactionIdStore(transactionIdStore)
@@ -295,7 +296,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
     void readWhenPreAllocatedFile() throws IOException {
         int readableTransactions = 100;
         try (PhysicalLogVersionedStoreChannel channel = logFile.createLogChannelForVersion(
-                0L, () -> 1L, () -> KernelVersion.GLORIOUS_FUTURE, BASE_TX_CHECKSUM, () -> LogFormat.V10)) {
+                0L, () -> 1L, fixed(KernelVersion.GLORIOUS_FUTURE), BASE_TX_CHECKSUM, () -> LogFormat.V10)) {
             var zeros = ByteBuffer.allocate(DEFAULT_LOG_SEGMENT_SIZE);
             for (int i = 0; i < ROTATION_THRESHOLD / DEFAULT_LOG_SEGMENT_SIZE; i++) {
                 channel.writeAll(zeros);
@@ -468,7 +469,7 @@ class ReversedEnvelopedCommandBatchCursorTest {
     private void appendCorruptedTransaction() throws IOException {
         var channel = logFile.getTransactionLogWriter().getChannel();
         TransactionLogWriter writer = new TransactionLogWriter(
-                channel, new CorruptedLogEntryWriter<>(channel), () -> kernelVersion, LogRotation.NO_ROTATION);
+                channel, new CorruptedLogEntryWriter<>(channel), fixed(kernelVersion), LogRotation.NO_ROTATION);
         long transactionId = ++txId;
         writer.append(
                 tx(random.intBetween(100, 1000)),

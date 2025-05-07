@@ -33,6 +33,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.neo4j.kernel.KernelVersion.DEFAULT_BOOTSTRAP_VERSION;
 import static org.neo4j.kernel.KernelVersion.GLORIOUS_FUTURE;
+import static org.neo4j.kernel.KernelVersionProviders.fixed;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogFormat.writeLogHeader;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogHeaderReader.readLogHeader;
 import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
@@ -188,7 +189,7 @@ class TransactionLogFileTest {
         LogFilesBuilder.builder(
                         databaseLayout,
                         fileSystem,
-                        () -> kernelVersion,
+                        fixed(kernelVersion),
                         () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
@@ -368,7 +369,7 @@ class TransactionLogFileTest {
         // GIVEN a file which returns 1/2 log header size worth of bytes
         FileSystemAbstraction fs = mock(FileSystemAbstraction.class);
         LogFiles logFiles = LogFilesBuilder.builder(
-                        databaseLayout, fs, () -> kernelVersion, () -> LogFormat.fromKernelVersion(kernelVersion))
+                        databaseLayout, fs, fixed(kernelVersion), () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
@@ -398,7 +399,7 @@ class TransactionLogFileTest {
         // GIVEN a file which returns 1/2 log header size worth of bytes
         FileSystemAbstraction fs = mock(FileSystemAbstraction.class);
         LogFiles logFiles = LogFilesBuilder.builder(
-                        databaseLayout, fs, () -> kernelVersion, () -> LogFormat.fromKernelVersion(kernelVersion))
+                        databaseLayout, fs, fixed(kernelVersion), () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
                 .withCommandReaderFactory(TestCommandReaderFactory.INSTANCE)
@@ -906,7 +907,7 @@ class TransactionLogFileTest {
         var builder = LogFilesBuilder.builder(
                         databaseLayout,
                         wrappingFileSystem,
-                        () -> kernelVersion,
+                        fixed(kernelVersion),
                         () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withRotationThreshold(rotationThreshold)
                 .withTransactionIdStore(transactionIdStore)
@@ -941,7 +942,7 @@ class TransactionLogFileTest {
         LogFiles logFiles = LogFilesBuilder.builder(
                         databaseLayout,
                         fileSystem,
-                        () -> kernelVersion,
+                        fixed(kernelVersion),
                         () -> LogFormat.fromKernelVersion(kernelVersion))
                 .withTransactionIdStore(transactionIdStore)
                 .withLogVersionRepository(logVersionRepository)
