@@ -35,20 +35,19 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
     UnwrapTopLevelBraces.instance(TestState(None), new TestContext(mock[Monitors]))
 
   test("braces") {
-    assertRewrite(CypherVersion.Cypher25, "{ RETURN 1 AS x }", "RETURN 1 AS x")
+    assertRewrite("{ RETURN 1 AS x }", "RETURN 1 AS x")
   }
 
   test("nested braces") {
-    assertRewrite(CypherVersion.Cypher25, "{ { { RETURN 1 AS x } } }", "RETURN 1 AS x")
+    assertRewrite("{ { { RETURN 1 AS x } } }", "RETURN 1 AS x")
   }
 
   test("braces with use") {
-    assertRewrite(CypherVersion.Cypher25, "USE graph { RETURN 1 AS x }", "USE graph RETURN 1 AS x")
+    assertRewrite("USE graph { RETURN 1 AS x }", "USE graph RETURN 1 AS x")
   }
 
   test("nested braces with use ") {
     assertRewrite(
-      CypherVersion.Cypher25,
       "USE graph { { USE innerGraph { RETURN 1 AS x } } }",
       "USE innerGraph RETURN 1 AS x"
     )
@@ -56,7 +55,6 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   test("nested braces with use on all") {
     assertRewrite(
-      CypherVersion.Cypher25,
       "USE graph { USE innerGraph { USE innerInnerGraph { RETURN 1 AS x } } }",
       "USE innerInnerGraph RETURN 1 AS x"
     )
@@ -64,7 +62,6 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   test("when in top level braces") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """USE graph { WHEN true THEN RETURN 1 AS x } """.stripMargin,
       """
         |WHEN true THEN USE `graph`
@@ -75,7 +72,6 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   test("when in tlb with top level braces as arguments with inner union") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """
         |{
         |   WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
@@ -89,11 +85,44 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |  UNION
         |  RETURN 2 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |WHEN false THEN CALL (*) {
         |  RETURN 1 AS x
         |  UNION
         |  RETURN 2 AS x
+        |}
+        |RETURN x AS x
+        |ELSE CALL (*) {
+        |  RETURN 3 AS x
+        |  UNION
+        |  RETURN 3 AS x
+        |}
+        |RETURN x AS x
+        """.stripMargin
+    )
+  }
+
+  test("when in tlb with top level braces as arguments with inner union with return all") {
+    assertRewrite(
+      """
+        |{
+        |   WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
+        |   WHEN false THEN { RETURN 1 AS x UNION WITH 2 AS x RETURN * }
+        |   ELSE { RETURN 3 AS x UNION RETURN 3 AS x }
+        | }
+        | """.stripMargin,
+      """
+        |WHEN false THEN CALL (*) {
+        |  RETURN 1 AS x
+        |  UNION
+        |  RETURN 2 AS x
+        |}
+        |RETURN x AS x
+        |WHEN false THEN CALL (*) {
+        |  RETURN 1 AS x
+        |  UNION
+        |  WITH 2 AS x
+        |  RETURN *
         |}
         |RETURN *
         |ELSE CALL (*) {
@@ -101,14 +130,13 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |  UNION
         |  RETURN 3 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         """.stripMargin
     )
   }
 
   test("when with top level braces as arguments with inner union") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """
         | WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
         | WHEN false THEN { RETURN 1 AS x UNION RETURN 2 AS x }
@@ -119,26 +147,25 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |  UNION
         |  RETURN 2 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |WHEN false THEN CALL (*) {
         |  RETURN 1 AS x
         |  UNION
         |  RETURN 2 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |ELSE CALL (*) {
         |  RETURN 3 AS x
         |  UNION
         |  RETURN 3 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         """.stripMargin
     )
   }
 
   test("when with top level braces as arguments") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """
         | WHEN false THEN { RETURN 1 AS x }
         | WHEN false THEN { RETURN 1 AS x }
@@ -147,22 +174,21 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |WHEN false THEN CALL (*) {
         |  RETURN 1 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |WHEN false THEN CALL (*) {
         |  RETURN 1 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |ELSE CALL (*) {
         |  RETURN 3 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         """.stripMargin
     )
   }
 
   test("when with top level braces and graph as arguments") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """
         |   WHEN false THEN USE innerGraph { RETURN 1 AS x }
         |   WHEN false THEN USE innerGraph { RETURN 2 AS x }
@@ -173,23 +199,22 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |  USE `innerGraph`
         |  RETURN 1 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |WHEN false THEN CALL (*) {
         |  USE `innerGraph`
         |  RETURN 2 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |ELSE CALL (*) {
         |  RETURN 3 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |""".stripMargin
     )
   }
 
   test("when in top level braces with top level braces as arguments") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """
         |USE graph {
         |   WHEN false THEN USE innerGraph { RETURN 1 AS x }
@@ -202,24 +227,23 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |  USE `innerGraph`
         |  RETURN 1 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |WHEN false THEN CALL (*) {
         |  USE `innerGraph`
         |  RETURN 2 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |ELSE CALL (*) {
         |  USE `graph`
         |  RETURN 3 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |""".stripMargin
     )
   }
 
   test("union with top level braces as arguments") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """
         | { RETURN 1 AS x }
         |UNION
@@ -228,34 +252,31 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         | CALL (*) {
         |    RETURN 1 AS x
         | }
-        | RETURN *
+        | RETURN x AS x
         |UNION
         | CALL (*) {
         |    RETURN 2 AS x
         | }
-        | RETURN *""".stripMargin
+        | RETURN x AS x""".stripMargin
     )
   }
 
   test("union all and union") {
     assertRewrite(
-      CypherVersion.Cypher25,
       " { { RETURN 1 AS x UNION RETURN 2 AS x } UNION ALL { RETURN 3 AS x UNION RETURN 4 AS x } }",
-      " CALL (*) { RETURN 1 AS x UNION RETURN 2 AS x } RETURN * UNION ALL CALL (*) { RETURN 3 AS x UNION RETURN 4 AS x } RETURN * "
+      " CALL (*) { RETURN 1 AS x UNION RETURN 2 AS x } RETURN x AS x UNION ALL CALL (*) { RETURN 3 AS x UNION RETURN 4 AS x } RETURN x AS x"
     )
   }
 
   test("union and union all") {
     assertRewrite(
-      CypherVersion.Cypher25,
       " { { RETURN 1 AS x UNION ALL RETURN 2 AS x } UNION { RETURN 3 AS x UNION ALL RETURN 4 AS x } }",
-      " CALL (*) { RETURN 1 AS x UNION ALL RETURN 2 AS x } RETURN * UNION CALL (*) { RETURN 3 AS x UNION ALL RETURN 4 AS x } RETURN *"
+      " CALL (*) { RETURN 1 AS x UNION ALL RETURN 2 AS x } RETURN x AS x UNION CALL (*) { RETURN 3 AS x UNION ALL RETURN 4 AS x } RETURN x AS x"
     )
   }
 
   test("nested union all and union") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """ {
         |   {
         |      {
@@ -279,32 +300,30 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |      UNION ALL
         |      RETURN 2 AS x
         |   }
-        |   RETURN *
+        |   RETURN x AS x
         |   UNION
         |   RETURN 3 AS x
         |}
-        |RETURN *
+        |RETURN x AS x
         |UNION ALL
         |CALL (*) {
         |   RETURN 4 AS x
         |   UNION
         |   RETURN 5 AS x
         |}
-        |RETURN * """.stripMargin
+        |RETURN x AS x""".stripMargin
     )
   }
 
   test("nested union and union all") {
     assertRewrite(
-      CypherVersion.Cypher25,
       " { { RETURN 1 AS x UNION ALL RETURN 2 AS x } UNION { RETURN 3 AS x UNION ALL { RETURN 4 AS x UNION RETURN 5 AS x  } } }",
-      " CALL (*) { RETURN 1 AS x UNION ALL RETURN 2 AS x } RETURN * UNION CALL (*) { RETURN 3 AS x UNION ALL CALL (*) { RETURN 4 AS x UNION RETURN 5 AS x } RETURN * } RETURN *"
+      " CALL (*) { RETURN 1 AS x UNION ALL RETURN 2 AS x } RETURN x AS x UNION CALL (*) { RETURN 3 AS x UNION ALL CALL (*) { RETURN 4 AS x UNION RETURN 5 AS x } RETURN x AS x } RETURN x AS x"
     )
   }
 
   test("union multiple arms") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """{ RETURN 1 AS x }
         |UNION
         |{ RETURN 2 AS x }
@@ -312,19 +331,18 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |{ RETURN 3 AS x }
         |UNION
         |{ RETURN 4 AS x }""".stripMargin,
-      """CALL (*) { RETURN 1 AS x } RETURN *
+      """CALL (*) { RETURN 1 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { RETURN 2 AS x } RETURN *
+        |CALL (*) { RETURN 2 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { RETURN 3 AS x } RETURN *
+        |CALL (*) { RETURN 3 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { RETURN 4 AS x } RETURN *""".stripMargin
+        |CALL (*) { RETURN 4 AS x } RETURN x AS x""".stripMargin
     )
   }
 
   test("wrapped union") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """{ RETURN 1 AS x
         |UNION
         | RETURN 2 AS x }""".stripMargin,
@@ -336,7 +354,6 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   test("wrapped union with use") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """USE graph { RETURN 1 AS x
         |UNION
         | RETURN 2 AS x }""".stripMargin,
@@ -350,7 +367,6 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   test("wrapped union multiple arms") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """{ { RETURN 1 AS x }
         |UNION
         |{ RETURN 2 AS x }
@@ -358,19 +374,18 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |{ RETURN 3 AS x }
         |UNION
         |{ RETURN 4 AS x } }""".stripMargin,
-      """CALL (*) { RETURN 1 AS x } RETURN *
+      """CALL (*) { RETURN 1 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { RETURN 2 AS x } RETURN *
+        |CALL (*) { RETURN 2 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { RETURN 3 AS x } RETURN *
+        |CALL (*) { RETURN 3 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { RETURN 4 AS x } RETURN *""".stripMargin
+        |CALL (*) { RETURN 4 AS x } RETURN x AS x""".stripMargin
     )
   }
 
   test("union no return") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """{ CREATE (n) }
         |UNION
         |{ CREATE (n) }""".stripMargin,
@@ -382,7 +397,6 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   test("union multiple arms no return") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """{ CREATE (n) }
         |UNION
         |{ CREATE (n) }
@@ -402,38 +416,35 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   test("union with use") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """USE graphLeft { RETURN 1 AS x }
         |UNION
         |USE graphRight { RETURN 2 AS x }""".stripMargin,
-      """CALL (*) { USE graphLeft RETURN 1 AS x } RETURN *
+      """CALL (*) { USE graphLeft RETURN 1 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { USE graphRight RETURN 2 AS x } RETURN *""".stripMargin
+        |CALL (*) { USE graphRight RETURN 2 AS x } RETURN x AS x""".stripMargin
     )
   }
 
   test("union multiple arms with some use") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """USE graphLeft { RETURN 1 AS x }
         |UNION
         |{ RETURN 2 AS x }
         |UNION
         |USE graphLeft { RETURN 3 AS x }
         |UNION { RETURN 4 AS x }""".stripMargin,
-      """CALL (*) { USE graphLeft RETURN 1 AS x } RETURN *
+      """CALL (*) { USE graphLeft RETURN 1 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { RETURN 2 AS x } RETURN *
+        |CALL (*) { RETURN 2 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { USE graphLeft RETURN 3 AS x } RETURN *
+        |CALL (*) { USE graphLeft RETURN 3 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { RETURN 4 AS x } RETURN *""".stripMargin
+        |CALL (*) { RETURN 4 AS x } RETURN x AS x""".stripMargin
     )
   }
 
   test("wrapped union multiple arms with outerUse") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """USE outerGraph {
         |   USE innerGraph { RETURN 1 AS x }
         |   UNION
@@ -443,19 +454,18 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |   UNION
         |   USE innerGraph { RETURN 4 AS x }
         |}""".stripMargin,
-      """CALL (*) { USE innerGraph RETURN 1 AS x } RETURN *
+      """CALL (*) { USE innerGraph RETURN 1 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { USE innerGraph RETURN 2 AS x } RETURN *
+        |CALL (*) { USE innerGraph RETURN 2 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { USE innerGraph RETURN 3 AS x } RETURN *
+        |CALL (*) { USE innerGraph RETURN 3 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { USE innerGraph RETURN 4 AS x } RETURN *""".stripMargin
+        |CALL (*) { USE innerGraph RETURN 4 AS x } RETURN x AS x""".stripMargin
     )
   }
 
   test("wrapped union multiple different arms with outerUse") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """USE outerGraph {
         |   USE innerGraph { RETURN 1 AS x }
         |   UNION
@@ -465,11 +475,11 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |   UNION
         |   RETURN 4 AS x
         |}""".stripMargin,
-      """CALL (*) { USE innerGraph RETURN 1 AS x } RETURN *
+      """CALL (*) { USE innerGraph RETURN 1 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { USE innerGraph RETURN 2 AS x } RETURN *
+        |CALL (*) { USE innerGraph RETURN 2 AS x } RETURN x AS x
         |UNION
-        |CALL (*) { USE outerGraph RETURN 3 AS x } RETURN *
+        |CALL (*) { USE outerGraph RETURN 3 AS x } RETURN x AS x
         |UNION
         |USE outerGraph RETURN 4 AS x """.stripMargin
     )
@@ -477,7 +487,6 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   test("union with use and no return") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """USE leftGraph { CREATE (n) }
         |UNION
         |USE rightGraph { CREATE (n) }""".stripMargin,
@@ -489,7 +498,6 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   test("union with nested use in single query within union") {
     assertRewriteWithFeatures(
-      CypherVersion.Cypher25,
       """USE leftGraph {
         |MATCH (n) RETURN n
         |UNION ALL
@@ -506,7 +514,6 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
 
   test("nested unions #1") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """
         | { RETURN 1 AS x UNION RETURN 2 AS x }
         |UNION
@@ -517,20 +524,19 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |    UNION
         |    RETURN 2 AS x
         | }
-        | RETURN *
+        | RETURN x AS x
         |UNION
         | CALL (*) {
         |    RETURN 3 AS x
         |    UNION
         |    RETURN 4 AS x
         | }
-        | RETURN *""".stripMargin
+        | RETURN x AS x""".stripMargin
     )
   }
 
   test("nested unions #2") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """
         | { RETURN 1 AS x UNION RETURN 2 AS x UNION RETURN 3 AS x }
         |UNION
@@ -543,20 +549,19 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |    UNION
         |    RETURN 3 AS x
         | }
-        | RETURN *
+        | RETURN x AS x
         |UNION
         | CALL (*) {
         |    RETURN 3 AS x
         |    UNION
         |    RETURN 4 AS x
         | }
-        | RETURN *""".stripMargin
+        | RETURN x AS x""".stripMargin
     )
   }
 
   test("nested unions #3") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """
         | { RETURN 1 AS x UNION { RETURN 10 AS x UNION ALL RETURN 10 AS x } UNION RETURN 3 AS x }
         |UNION
@@ -570,24 +575,23 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |       UNION ALL
         |       RETURN 10 AS x
         |    }
-        |    RETURN *
+        |    RETURN x AS x
         |    UNION
         |    RETURN 3 AS x
         | }
-        | RETURN *
+        | RETURN x AS x
         |UNION
         | CALL (*) {
         |    RETURN 3 AS x
         |    UNION
         |    RETURN 4 AS x
         | }
-        | RETURN *""".stripMargin
+        | RETURN x AS x""".stripMargin
     )
   }
 
   test("nested unions #4") {
     assertRewrite(
-      CypherVersion.Cypher25,
       """
         |USE outerGraph {
         | { RETURN 1 AS x UNION USE innerGraph { RETURN 10 AS x UNION ALL RETURN 10 AS x } UNION RETURN 3 AS x }
@@ -606,12 +610,12 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
         |       USE innerGraph
         |       RETURN 10 AS x
         |    }
-        |    RETURN *
+        |    RETURN x AS x
         |    UNION
         |    USE outerGraph
         |    RETURN 3 AS x
         | }
-        | RETURN *
+        | RETURN x AS x
         |UNION
         | USE outerGraph
         | RETURN 3 AS x
@@ -621,8 +625,8 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
     )
   }
 
-  override protected def assertRewrite(version: CypherVersion, originalQuery: String, expectedQuery: String): Unit = {
-    val (expected, result) = getRewrite(version, originalQuery, expectedQuery)
+  override protected def assertRewrite(originalQuery: String, expectedQuery: String): Unit = {
+    val (expected, result) = getRewrite(CypherVersion.Cypher25, originalQuery, expectedQuery)
     assert(
       normalizeReturn(result.asInstanceOf[Query]) === expected,
       s"\n$originalQuery\nshould be rewritten to:\n${prettifier.asString(expected)}\nbut was rewritten to:\n${prettifier.asString(result.asInstanceOf[Statement])}"
@@ -630,11 +634,10 @@ class UnwrapTopLevelBracesTest extends CypherFunSuite with RewriteTest {
   }
 
   override protected def assertRewriteWithFeatures(
-    version: CypherVersion,
     originalQuery: String,
     expectedQuery: String
   ): Unit = {
-    val (expected, result) = getRewriteWithFeatures(version, originalQuery, expectedQuery)
+    val (expected, result) = getRewriteWithFeatures(CypherVersion.Cypher25, originalQuery, expectedQuery)
     assert(
       normalizeReturn(result.asInstanceOf[Query]) === expected,
       s"\n$originalQuery\nshould be rewritten to:\n${prettifier.asString(expected)}\nbut was rewritten to:\n${prettifier.asString(result.asInstanceOf[Statement])}"

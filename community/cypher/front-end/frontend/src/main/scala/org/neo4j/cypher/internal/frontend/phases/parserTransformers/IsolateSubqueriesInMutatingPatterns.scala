@@ -24,7 +24,6 @@ import org.neo4j.cypher.internal.ast.Foreach
 import org.neo4j.cypher.internal.ast.ImportingWithSubqueryCall
 import org.neo4j.cypher.internal.ast.Merge
 import org.neo4j.cypher.internal.ast.ReturnItems
-import org.neo4j.cypher.internal.ast.ScopeClauseSubqueryCall
 import org.neo4j.cypher.internal.ast.SetClause
 import org.neo4j.cypher.internal.ast.SingleQuery
 import org.neo4j.cypher.internal.ast.Statement
@@ -187,10 +186,6 @@ case object IsolateSubqueriesInMutatingPatterns extends StatementRewriter
     topDown(Rewriter.lift {
       // Using top-down we will rewrite the subquery call before the inner query
       case call: ImportingWithSubqueryCall =>
-        val rewrittenQuery =
-          call.innerQuery.mapEachSingleQuery(ua => rewrite(ua.singleQuery, inSubqueryContext = true))
-        call.copy(innerQuery = rewrittenQuery)(call.position)
-      case call: ScopeClauseSubqueryCall =>
         val rewrittenQuery =
           call.innerQuery.mapEachSingleQuery(ua => rewrite(ua.singleQuery, inSubqueryContext = true))
         call.copy(innerQuery = rewrittenQuery)(call.position)

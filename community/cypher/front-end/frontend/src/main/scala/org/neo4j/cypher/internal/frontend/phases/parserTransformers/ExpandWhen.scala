@@ -185,10 +185,18 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
          */
         val defaultQuery = default.map(d => branchQuery(d.query, branches.size, pos))
 
-        val branchQueries = branches.zipWithIndex.map {
+        val allBranches = branches.zipWithIndex.map {
           case (branch, idx) =>
             branchQuery(branch.query, idx, pos)
         } ++ defaultQuery
+
+        val branchQueries = allBranches.map { case sq @ SingleQuery(clauses) =>
+          val lastWithExclude = clauses.last match {
+            case ret: Return => ret.copy(excludedNames = Set(conditionalListName))(ret.position)
+            case x           => x
+          }
+          sq.copy(clauses.dropRight(1) :+ lastWithExclude)(sq.position)
+        }
 
         val subquery = ScopeClauseSubqueryCall(
           branchQueries.tail.foldLeft[Query](branchQueries.head) { case (acc, query) =>
@@ -201,9 +209,7 @@ case object ExpandWhen extends StatementRewriter with StepSequencer.Step with Pa
         )(pos)
 
         val tailClause =
-          if (wh.isReturning) Return(
-            returnItems(wh, Seq.empty, Set(conditionalListName))
-          )(pos)
+          if (wh.isReturning) Return(returnItems(wh, Seq.empty, Set(conditionalListName)))(pos)
           else Finish()(pos)
 
         SingleQuery(Seq(selectionWith, subquery, tailClause))(pos)

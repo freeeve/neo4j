@@ -775,12 +775,19 @@ case class TopLevelBraces(
 
   private def wrapQuery(innerQuery: Query, position: InputPosition): SingleQuery = {
     val lastClause =
-      if (innerQuery.isReturning)
-        Return(ReturnItems(includeExisting = true, Seq.empty)(position))(position)
-          .copy()(position)
-      else Finish()(position)
+      if (innerQuery.isReturning) {
+        val returnVariables = innerQuery.returnVariables
+        Return(returnItems =
+          ReturnItems(
+            returnVariables.includeExisting,
+            returnVariables.explicitVariables.map(v =>
+              AliasedReturnItem(v.copyId, v.copyId)(position)
+            )
+          )(position)
+        )(position)
+      } else Finish()(position)
 
-    val sq = SingleQuery(
+    SingleQuery(
       Seq(
         ScopeClauseSubqueryCall(
           innerQuery,
@@ -792,7 +799,7 @@ case class TopLevelBraces(
         lastClause
       )
     )(position)
-    sq
+
   }
 
   override def semanticCheckInConditionalQueryContext: SemanticCheck = semanticCheck
@@ -1071,11 +1078,8 @@ sealed trait UnmappedUnion extends Union {
     val lhsScope = if (lhs.isReturning) lhs.finalScope(state.scope(lhs).getOrElse(Scope.empty)) else Scope.empty
     val rhsScope = if (rhs.isReturning) rhs.finalScope(state.scope(rhs).getOrElse(Scope.empty)) else Scope.empty
     val errors =
-      if (lhsScope.symbolNames == rhsScope.symbolNames) {
-        Seq.empty
-      } else {
-        Seq(SemanticError.incompatibleReturnColumns(errorParam, position))
-      }
+      if (lhsScope.symbolNames == rhsScope.symbolNames) Seq.empty
+      else Seq(SemanticError.incompatibleReturnColumns(errorParam, position))
     SemanticCheckResult(state, errors)
   }
 }
