@@ -167,7 +167,7 @@ trait TransactionPipeWrapper {
         val outerRow = batchIterator.next()
 
         if (shouldBreak) {
-          throw CypherExecutionInterruptedException.concurrentBatchTransactionInterrupted()
+          throw CypherExecutionInterruptedException.concurrentBatchTransactionInterrupted(this.getClass)
         }
 
         outerRow.invalidateCachedProperties()
