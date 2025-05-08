@@ -30,19 +30,23 @@ import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 
 public class InvalidSpatialArgumentException extends InvalidArgumentException {
 
-    @Deprecated
-    private InvalidSpatialArgumentException(String message) {
-        super(message);
-    }
-
     private InvalidSpatialArgumentException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
 
     public static InvalidSpatialArgumentException invalidDimension(String crs, int dimension, double... coordinate) {
-        return new InvalidSpatialArgumentException(format(
-                "Cannot create point, CRS %s expects %d dimensions, but got coordinates %s",
-                crs, dimension, Arrays.toString(coordinate)));
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N24)
+                        .withParam(GqlParams.StringParam.valueType, "point")
+                        .withParam(GqlParams.StringParam.coordinates, Arrays.toString(coordinate))
+                        .build())
+                .build();
+
+        return new InvalidSpatialArgumentException(
+                gql,
+                format(
+                        "Cannot create point, CRS %s expects %d dimensions, but got coordinates %s",
+                        crs, dimension, Arrays.toString(coordinate)));
     }
 
     public static InvalidSpatialArgumentException infiniteCoordinateValue(double... coordinate) {
