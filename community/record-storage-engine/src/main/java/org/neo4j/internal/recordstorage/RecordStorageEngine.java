@@ -709,7 +709,7 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     @Override
     public Collection<Path> listStorageFiles(StorageFileSelection selection) {
         List<Path> files = new ArrayList<>();
-        if (selection.includeAtomicStoreFiles()) {
+        if (selection.includeAtomicStoreFiles() && selection.includeRecoverableFiles()) {
             files.add(databaseLayout.countStore());
             files.add(databaseLayout.relationshipGroupDegreesStore());
         }

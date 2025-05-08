@@ -19,9 +19,21 @@
  */
 package org.neo4j.storageengine.api;
 
+/**
+ * @param includeAtomicStoreFiles "atomic" means that the file cannot be e.g. streamed concurrently with a checkpoint,
+ * rather has bo be streamed from start to end without concurrent checkpoint being made.
+ * @param includeReplayableStoreFiles "replayable" means that the file can be streamed concurrently with a checkpoint
+ * @param includeIdFiles whether to include ID generator files
+ * @param includeRecoverableFiles this could potentially apply to both "atomic" and "replayable" and dictates
+ * whether to include files that can be recovered/rebuilt if missing.
+ */
 public record StorageFileSelection(
-        boolean includeAtomicStoreFiles, boolean includeReplayableStoreFiles, boolean includeIdFiles) {
-    public StorageFileSelection() {
-        this(false, false, false);
+        boolean includeAtomicStoreFiles,
+        boolean includeReplayableStoreFiles,
+        boolean includeIdFiles,
+        boolean includeRecoverableFiles) {
+    public StorageFileSelection(
+            boolean includeAtomicStoreFiles, boolean includeReplayableStoreFiles, boolean includeIdFiles) {
+        this(includeAtomicStoreFiles, includeReplayableStoreFiles, includeIdFiles, true);
     }
 }

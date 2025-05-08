@@ -946,7 +946,7 @@ class FulltextIndexConsistencyCheckIT {
     private static Collection<Path> getStoreFiles(GraphDatabaseAPI db) {
         return db.getDependencyResolver()
                 .resolveDependency(StorageEngine.class)
-                .listStorageFiles(new StorageFileSelection(true, true, false));
+                .listStorageFiles(new StorageFileSelection(true, true, false, false));
     }
 
     private static long getNodeId(Transaction tx, Node node) {

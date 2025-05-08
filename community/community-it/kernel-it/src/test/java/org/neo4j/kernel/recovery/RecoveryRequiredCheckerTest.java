@@ -85,6 +85,7 @@ class RecoveryRequiredCheckerTest {
 
     private StorageEngineFactory storageEngineFactory;
     private Collection<Path> storeFiles;
+    private Collection<Path> mandatoryStoreFiles;
     private Collection<Path> idFiles;
 
     @BeforeEach
@@ -249,10 +250,8 @@ class RecoveryRequiredCheckerTest {
                     getRecoveryCheckerWithDefaultConfig(fileSystem, pageCache, storageEngineFactory);
             assertFalse(checker.isRecoveryRequiredAt(databaseLayout, INSTANCE));
 
-            final var path = random.among(storeFiles.stream()
+            final var path = random.among(mandatoryStoreFiles.stream()
                     .filter(Predicate.not(databaseLayout.pathForExistsMarker()::equals))
-                    .filter(p -> !p.getFileName().toString().contains("counts"))
-                    .filter(p -> !p.getFileName().toString().contains("degrees"))
                     .toList());
             fileSystem.deleteFileOrThrow(path);
 
@@ -409,6 +408,9 @@ class RecoveryRequiredCheckerTest {
             storeFiles = database.getDependencyResolver()
                     .resolveDependency(StorageEngine.class)
                     .listStorageFiles(new StorageFileSelection(true, true, false));
+            mandatoryStoreFiles = database.getDependencyResolver()
+                    .resolveDependency(StorageEngine.class)
+                    .listStorageFiles(new StorageFileSelection(true, true, false, false));
             idFiles = database.getDependencyResolver()
                     .resolveDependency(StorageEngine.class)
                     .listStorageFiles(new StorageFileSelection(false, false, true));
