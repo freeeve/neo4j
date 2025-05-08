@@ -78,7 +78,7 @@ public class BackupMetadataV2 extends BackupMetadataV1 {
         return additionalFields;
     }
 
-    void writeToStreamV2(OutputStream compressionStream) throws IOException {
+    public void writeToStreamV2(OutputStream compressionStream) throws IOException {
         writeToStreamV1(compressionStream);
         writeMap(compressionStream, getAdditionalFields());
     }
