@@ -54,6 +54,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPosition;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogVersionedStoreChannel;
 import org.neo4j.kernel.impl.transaction.log.PhysicalLogVersionedStoreChannel;
+import org.neo4j.kernel.impl.transaction.log.ReaderLogVersionBridge;
 import org.neo4j.kernel.impl.transaction.log.entry.AbstractVersionAwareLogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntry;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEntryCommit;
@@ -319,7 +320,11 @@ public class DetachedLogTailScanner {
 
                     var logEntryReader = new VersionAwareLogEntryReader(
                             commandReaderFactory, binarySupportedKernelVersions, memoryTracker);
-                    try (var reader = logFile.getReader(lookupPosition, NO_MORE_CHANNELS);
+                    var logHeader = logFile.extractHeader(logVersion);
+                    final var readerBridge = logHeader.getLogFormatVersion().usesSegments()
+                            ? ReaderLogVersionBridge.forFile(logFile)
+                            : NO_MORE_CHANNELS;
+                    try (var reader = logFile.getReader(lookupPosition, readerBridge);
                             var cursor = new LogEntryCursor(logEntryReader, reader)) {
                         AbstractVersionAwareLogEntry entry;
                         LogPosition position;
@@ -350,7 +355,7 @@ public class DetachedLogTailScanner {
                         position = reader.getCurrentLogPosition();
                         corruptedTransactionLogs = logEntryReader.hasBrokenLastEntry();
                         if (!corruptedTransactionLogs) {
-                            verifyReaderPosition(logVersion, position);
+                            verifyReaderPosition(position.getLogVersion(), position);
                         }
                     }
                     logVersion++;
