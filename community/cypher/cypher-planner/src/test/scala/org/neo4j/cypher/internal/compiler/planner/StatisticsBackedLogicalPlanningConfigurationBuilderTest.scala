@@ -25,6 +25,7 @@ import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlannin
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexCapabilities
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.IndexDefinition
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelDef
+import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.RelationshipEndpointLabelConstraintDefinition
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.getProvidesOrder
 import org.neo4j.cypher.internal.compiler.planner.StatisticsBackedLogicalPlanningConfigurationBuilder.getWithValues
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPQueryGraphSolver
@@ -534,5 +535,95 @@ class StatisticsBackedLogicalPlanningConfigurationBuilderTest extends CypherFunS
     planner.planContext.getNodeLabelConstraints("Constrained") shouldEqual Set("Implied", "Implied2")
     planner.planContext.hasNodeLabelConstraint("Constrained", "Implied") shouldEqual true
     planner.planContext.hasNodeLabelConstraint("Constrained", "Implied2") shouldEqual true
+  }
+
+  test("processGraphCount for relationship endpoint constraints") {
+    val json =
+      s"""
+         |{
+         |  "relationships":[
+         |    {"count":500},
+         |    {"count":20,"relationshipType":"ACTED_IN"}
+         |  ],
+         |  "nodes":[
+         |    {"count":150},
+         |    {"count":80,"label":"Actor"},
+         |    {"count":20, "label": "Movie"}
+         |  ],
+         |  "indexes":[
+         |    {
+         |      "estimatedUniqueSize": 0,
+         |      "relationshipTypes": [],
+         |      "totalSize": 0,
+         |      "updatesSinceEstimation": 0,
+         |      "indexType": "LOOKUP",
+         |      "indexProvider": "token-lookup-1.0"
+         |    },
+         |    {
+         |      "updatesSinceEstimation":0,
+         |      "totalSize":1,
+         |      "properties":["since"],
+         |      "relationshipTypes":["ACTED_IN"],
+         |      "indexType":"${IndexType.RANGE.name}",
+         |      "indexProvider":"${AllIndexProviderDescriptors.RANGE_DESCRIPTOR.name()}",
+         |      "estimatedUniqueSize": 1
+         |    }
+         |  ],
+         |  "constraints":[
+         |  {
+         |    "relationshipType": "ACTED_IN",
+         |    "type": "Relationship endpoint label constraint",
+         |    "endpointType": "START",
+         |    "enforcedLabel": "Actor"
+         |   },
+         |   {
+         |    "relationshipType": "ACTED_IN",
+         |    "type": "Relationship endpoint label constraint",
+         |    "endpointType": "END",
+         |    "enforcedLabel": "Movie"
+         |   }
+         |  ]
+         |}
+         |""".stripMargin
+
+    val graphCountData = GraphCountsJson.parseAsGraphCountDataFromString(json)
+    val builder = plannerBuilder().processGraphCounts(graphCountData)
+    builder.relationshipEndpointLabelConstraints should contain(
+      RelationshipEndpointLabelConstraintDefinition(
+        relType = "ACTED_IN",
+        endPoint = EndpointType.START,
+        label = "Actor"
+      )
+    )
+    builder.relationshipEndpointLabelConstraints should contain(
+      RelationshipEndpointLabelConstraintDefinition(relType = "ACTED_IN", endPoint = EndpointType.END, label = "Movie")
+    )
+  }
+
+  test("processGraphCount for node label existence constraints") {
+    val json =
+      s"""
+         |{
+         |  "nodes":[
+         |    {"count":150},
+         |    {"count":10,"label":"Actor"},
+         |    {"count":120, "label": "Person"}
+         |  ],
+         |  "indexes":[],
+         |  "constraints":[
+         |  {
+         |    "type": "Node label existence constraint",
+         |    "label": "Actor",
+         |    "enforcedLabel": "Person"
+         |   }
+         |  ]
+         |}
+         |""".stripMargin
+
+    val graphCountData = GraphCountsJson.parseAsGraphCountDataFromString(json)
+    val builder = plannerBuilder().processGraphCounts(graphCountData)
+    builder.nodeLabelConstraints should contain(
+      "Actor" -> Set("Person")
+    )
   }
 }

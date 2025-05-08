@@ -1055,16 +1055,34 @@ case class StatisticsBackedLogicalPlanningConfigurationBuilder private (
 
     val withConstraints = (builder: StatisticsBackedLogicalPlanningConfigurationBuilder) =>
       graphCountData.constraints.foldLeft(builder) {
-        case (builder, Constraint(Some(label), None, Seq(property), ConstraintType.EXISTS, Seq())) =>
+        case (builder, Constraint(Some(label), None, Seq(property), None, ConstraintType.EXISTS, Seq(), _)) =>
           builder.addNodeExistenceConstraint(label, property)
-        case (builder, Constraint(None, Some(relType), Seq(property), ConstraintType.EXISTS, Seq())) =>
+        case (builder, Constraint(None, Some(relType), Seq(property), None, ConstraintType.EXISTS, Seq(), _)) =>
           builder.addRelationshipExistenceConstraint(relType, property)
-        case (builder, Constraint(_, _, _, ConstraintType.UNIQUE, Seq())) =>
+        case (builder, Constraint(_, _, _, _, ConstraintType.UNIQUE, Seq(), _)) =>
           builder // Will get found by matchingUniquenessConstraintExists
-        case (builder, Constraint(Some(label), None, properties, ConstraintType.UNIQUE_EXISTS, Seq())) =>
+        case (builder, Constraint(Some(label), None, properties, None, ConstraintType.UNIQUE_EXISTS, Seq(), _)) =>
           properties.foldLeft(builder)(_.addNodeExistenceConstraint(label, _))
-        case (builder, Constraint(None, Some(relType), properties, ConstraintType.UNIQUE_EXISTS, Seq())) =>
+        case (builder, Constraint(None, Some(relType), properties, None, ConstraintType.UNIQUE_EXISTS, Seq(), _)) =>
           properties.foldLeft(builder)(_.addRelationshipExistenceConstraint(relType, _))
+        case (
+            builder,
+            Constraint(Some(label), None, Nil, Some(enforcedLabel), ConstraintType.NODE_LABEL_EXISTENCE, _, _)
+          ) =>
+          builder.addNodeLabelConstraint(label, enforcedLabel)
+        case (
+            builder,
+            Constraint(
+              None,
+              Some(relType),
+              Nil,
+              Some(enforcedLabel),
+              ConstraintType.RELATIONSHIP_ENDPOINT_LABEL,
+              _,
+              Some(endpointType)
+            )
+          ) =>
+          builder.addRelationshipEndpointLabelConstraint(relType, enforcedLabel, endpointType)
         case (_, constraint) => throw new IllegalArgumentException(s"Unsupported constraint: $constraint")
       }
 

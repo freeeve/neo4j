@@ -38,6 +38,7 @@ import org.neo4j.cypher.internal.expressions.StringLiteral
 import org.neo4j.cypher.internal.parser.AstParserFactory
 import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.internal.schema.ConstraintType
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.IndexType.RANGE
@@ -51,7 +52,7 @@ import scala.util.Try
 object GraphCountsJson {
 
   val allFormatsExceptRowSerializer: Formats =
-    DefaultFormats + IndexTypeSerializer + IndexProviderSerializer + ConstraintTypeSerializer + SchemaValueTypes.Serializer
+    DefaultFormats + IndexTypeSerializer + IndexProviderSerializer + ConstraintTypeSerializer + SchemaValueTypes.Serializer + EndpointTypeSerializer
   val allFormats: Formats = allFormatsExceptRowSerializer + RowSerializer
 
   /**
@@ -215,14 +216,14 @@ case class GraphCountData(
   def matchingUniquenessConstraintExists(index: Index): Boolean = {
     index match {
       case Index(Some(Seq(label)), None, RANGE, properties, _, _, _, _) => constraints.exists {
-          case Constraint(Some(`label`), None, `properties`, ConstraintType.UNIQUE, _)        => true
-          case Constraint(Some(`label`), None, `properties`, ConstraintType.UNIQUE_EXISTS, _) => true
-          case _                                                                              => false
+          case Constraint(Some(`label`), None, `properties`, _, ConstraintType.UNIQUE, _, _)        => true
+          case Constraint(Some(`label`), None, `properties`, _, ConstraintType.UNIQUE_EXISTS, _, _) => true
+          case _                                                                                    => false
         }
       case Index(None, Some(Seq(relType)), RANGE, properties, _, _, _, _) => constraints.exists {
-          case Constraint(None, Some(`relType`), `properties`, ConstraintType.UNIQUE, _)        => true
-          case Constraint(None, Some(`relType`), `properties`, ConstraintType.UNIQUE_EXISTS, _) => true
-          case _                                                                                => false
+          case Constraint(None, Some(`relType`), `properties`, _, ConstraintType.UNIQUE, _, _)        => true
+          case Constraint(None, Some(`relType`), `properties`, _, ConstraintType.UNIQUE_EXISTS, _, _) => true
+          case _                                                                                      => false
         }
       case _ => false
     }
@@ -233,8 +234,10 @@ case class Constraint(
   label: Option[String],
   relationshipType: Option[String],
   properties: Seq[String],
+  enforcedLabel: Option[String],
   `type`: ConstraintType,
-  propertyTypes: Seq[SchemaValueType]
+  propertyTypes: Seq[SchemaValueType],
+  endpointType: Option[EndpointType]
 )
 
 case class Index(
@@ -315,6 +318,19 @@ case object ConstraintTypeSerializer extends CustomSerializer[ConstraintType](fo
           case ConstraintType.PROPERTY_TYPE               => JString("Property type constraint")
           case ConstraintType.RELATIONSHIP_ENDPOINT_LABEL => JString("Relationship endpoint label constraint")
           case ConstraintType.NODE_LABEL_EXISTENCE        => JString("Node label existence constraint")
+        }
+      )
+    )
+
+case object EndpointTypeSerializer extends CustomSerializer[EndpointType](format =>
+      (
+        {
+          case JString("START") => EndpointType.START
+          case JString("END")   => EndpointType.END
+        },
+        {
+          case EndpointType.START => JString("START")
+          case EndpointType.END   => JString("END")
         }
       )
     )

@@ -26,6 +26,7 @@ import org.json4s.native.JsonMethods
 import org.neo4j.cypher.graphcounts.GraphCountsJson.allFormats
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 import org.neo4j.internal.schema.ConstraintType
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.IndexProviderDescriptor
 import org.neo4j.internal.schema.IndexType
 import org.neo4j.internal.schema.constraints.SchemaValueType
@@ -51,8 +52,10 @@ class GraphCountsJsonTest extends CypherFunSuite {
         Some("DeprecatedRelyingParty"),
         None,
         List("relyingPartyId"),
+        None,
         ConstraintType.UNIQUE,
-        Nil
+        Nil,
+        None
       )
     )
   }
@@ -73,8 +76,10 @@ class GraphCountsJsonTest extends CypherFunSuite {
         None,
         Some("Foo"),
         List("relyingPartyId"),
+        None,
         ConstraintType.EXISTS,
-        Nil
+        Nil,
+        None
       )
     )
   }
@@ -293,15 +298,19 @@ class GraphCountsJsonTest extends CypherFunSuite {
             label = Some("SSLCertificate"),
             relationshipType = None,
             properties = List("serialNumber"),
+            enforcedLabel = None,
             `type` = ConstraintType.UNIQUE,
-            propertyTypes = Nil
+            propertyTypes = Nil,
+            endpointType = None
           ),
           Constraint(
             label = Some("SSLCertificate"),
             relationshipType = None,
             properties = List("serialNumber"),
+            enforcedLabel = None,
             `type` = ConstraintType.PROPERTY_TYPE,
-            propertyTypes = List(SchemaValueType.STRING)
+            propertyTypes = List(SchemaValueType.STRING),
+            endpointType = None
           )
         ),
         Seq(Index(
@@ -336,8 +345,10 @@ class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks 
           label = Some("Label"),
           relationshipType = None,
           properties = List("prop"),
+          enforcedLabel = None,
           `type` = ConstraintType.UNIQUE,
-          propertyTypes = Nil
+          propertyTypes = Nil,
+          endpointType = None
         ),
       """{
         |    "relationshipType": "REL",
@@ -351,7 +362,9 @@ class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks 
           relationshipType = Some("REL"),
           properties = List("prop"),
           `type` = ConstraintType.UNIQUE,
-          propertyTypes = Nil
+          propertyTypes = Nil,
+          enforcedLabel = None,
+          endpointType = None
         ),
       """{
         |    "label": "Label",
@@ -365,7 +378,9 @@ class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks 
           relationshipType = None,
           properties = List("prop"),
           `type` = ConstraintType.EXISTS,
-          propertyTypes = Nil
+          propertyTypes = Nil,
+          enforcedLabel = None,
+          endpointType = None
         ),
       """{
         |    "relationshipType": "REL",
@@ -379,7 +394,9 @@ class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks 
           relationshipType = Some("REL"),
           properties = List("prop"),
           `type` = ConstraintType.EXISTS,
-          propertyTypes = Nil
+          propertyTypes = Nil,
+          enforcedLabel = None,
+          endpointType = None
         ),
       """{
         |    "label": "Label",
@@ -393,7 +410,9 @@ class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks 
           relationshipType = None,
           properties = List("prop"),
           `type` = ConstraintType.UNIQUE_EXISTS,
-          propertyTypes = Nil
+          propertyTypes = Nil,
+          enforcedLabel = None,
+          endpointType = None
         ),
       """{
         |    "relationshipType": "REL",
@@ -407,7 +426,9 @@ class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks 
           relationshipType = Some("REL"),
           properties = List("prop"),
           `type` = ConstraintType.UNIQUE_EXISTS,
-          propertyTypes = Nil
+          propertyTypes = Nil,
+          enforcedLabel = None,
+          endpointType = None
         ),
       """{
         |    "label": "Label",
@@ -424,7 +445,9 @@ class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks 
           relationshipType = None,
           properties = List("prop"),
           `type` = ConstraintType.PROPERTY_TYPE,
-          propertyTypes = List(SchemaValueType.INTEGER)
+          propertyTypes = List(SchemaValueType.INTEGER),
+          enforcedLabel = None,
+          endpointType = None
         ),
       """{
         |    "relationshipType": "REL",
@@ -441,31 +464,53 @@ class ConstraintsJsonTest extends CypherFunSuite with TableDrivenPropertyChecks 
           relationshipType = Some("REL"),
           properties = List("prop"),
           `type` = ConstraintType.PROPERTY_TYPE,
-          propertyTypes = List(SchemaValueType.INTEGER)
+          propertyTypes = List(SchemaValueType.INTEGER),
+          enforcedLabel = None,
+          endpointType = None
         ),
       """{
         |    "relationshipType": "REL",
         |    "type": "Relationship endpoint label constraint",
-        |    "endpointLabelId": "Integer"
+        |    "enforcedLabel": "NODE",
+        |    "endpointType": "START",
         |}""".stripMargin ->
         Constraint(
           label = None,
           relationshipType = Some("REL"),
           properties = List.empty,
           `type` = ConstraintType.RELATIONSHIP_ENDPOINT_LABEL,
-          propertyTypes = Nil
+          propertyTypes = Nil,
+          enforcedLabel = Some("NODE"),
+          endpointType = Some(EndpointType.START)
+        ),
+      """{
+        |    "relationshipType": "REL",
+        |    "type": "Relationship endpoint label constraint",
+        |    "enforcedLabel": "NODE",
+        |    "endpointType": "END",
+        |}""".stripMargin ->
+        Constraint(
+          label = None,
+          relationshipType = Some("REL"),
+          properties = List.empty,
+          `type` = ConstraintType.RELATIONSHIP_ENDPOINT_LABEL,
+          propertyTypes = Nil,
+          enforcedLabel = Some("NODE"),
+          endpointType = Some(EndpointType.END)
         ),
       """{
         |    "label": "Label",
         |    "type": "Node label existence constraint",
-        |    "requiredLabelId": "Integer"
+        |    "enforcedLabel": "Label2"
         |}""".stripMargin ->
         Constraint(
           label = Some("Label"),
           relationshipType = None,
           properties = List.empty,
           `type` = ConstraintType.NODE_LABEL_EXISTENCE,
-          propertyTypes = Nil
+          propertyTypes = Nil,
+          enforcedLabel = Some("Label2"),
+          endpointType = None
         )
     )
 

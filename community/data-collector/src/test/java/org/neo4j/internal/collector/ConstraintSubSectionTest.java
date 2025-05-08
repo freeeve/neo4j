@@ -184,14 +184,16 @@ class ConstraintSubSectionTest {
                 "relationshipType", "REL",
                 "type", "Relationship endpoint label constraint",
                 "endpointType", "START",
-                "properties", List.of());
+                "properties", List.of(),
+                "enforcedLabel", "Label");
         assertEquals(serializeConstraint(Constraint.ENDPOINT_START), expectedDataStart);
 
         Map<String, Object> expectedDataEnd = Map.of(
                 "relationshipType", "REL",
                 "type", "Relationship endpoint label constraint",
                 "endpointType", "END",
-                "properties", List.of());
+                "properties", List.of(),
+                "enforcedLabel", "Label");
         assertEquals(serializeConstraint(Constraint.ENDPOINT_END), expectedDataEnd);
     }
 
@@ -200,7 +202,8 @@ class ConstraintSubSectionTest {
         Map<String, Object> expectedData = Map.of(
                 "label", "Label",
                 "type", "Node label existence constraint",
-                "properties", List.of());
+                "properties", List.of(),
+                "enforcedLabel", "Label2");
         assertEquals(serializeConstraint(Constraint.NODE_LABEL_EXISTENCE), expectedData);
     }
 }

@@ -82,6 +82,12 @@ final class ConstraintSubSection {
                 RelationshipEndpointLabelConstraintDescriptor relationshipEndpointLabelConstraintDescriptor =
                         constraint.asRelationshipEndpointLabelConstraint();
                 data.put("type", "Relationship endpoint label constraint");
+
+                data.put(
+                        "enforcedLabel",
+                        anonymizer.label(
+                                tokens.labelGetName(relationshipEndpointLabelConstraintDescriptor.endpointLabelId()),
+                                relationshipEndpointLabelConstraintDescriptor.endpointLabelId()));
                 data.put(
                         "endpointType",
                         relationshipEndpointLabelConstraintDescriptor
@@ -90,6 +96,9 @@ final class ConstraintSubSection {
                 break;
             case NODE_LABEL_EXISTENCE:
                 data.put("type", "Node label existence constraint");
+                var requiredLabelId =
+                        constraint.asNodeLabelExistenceConstraint().requiredLabelId();
+                data.put("enforcedLabel", anonymizer.label(tokens.labelGetName(requiredLabelId), requiredLabelId));
             default:
         }
 
