@@ -41,15 +41,14 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
-import org.scalatest.Ignore;
 
-public class GqlStatusInfoCodesTest {
+class GqlStatusInfoCodesTest {
 
     @Test
     void verifyParametersCorrectlyWritten() {
@@ -67,7 +66,7 @@ public class GqlStatusInfoCodesTest {
                                 p,
                                 p.process("⚠️this-should-be-ok-since-boolean-processor-is-StringValueOf-%s⚠️"
                                         .formatted(p.name())));
-                    } else if (GqlParams.ListParam.class == e && p instanceof GqlParams.ListParam par) {
+                    } else if (GqlParams.ListParam.class == e && p instanceof GqlParams.ListParam) {
                         allUniqueParams.put(p, List.of("⚠️very-unique-param-value-%s⚠️".formatted(p.name())));
                     } else if (GqlParams.NumberParam.class == e) {
                         allUniqueParams.put(p, veryUniqueNumber++);
@@ -80,8 +79,7 @@ public class GqlStatusInfoCodesTest {
 
         for (GqlStatusInfoCodes gqlCode : GqlStatusInfoCodes.values()) {
             final var keys = gqlCode.getStatusParameterKeys();
-            final var keySet = new HashSet<GqlParams.GqlParam>();
-            keySet.addAll(keys);
+            final var keySet = new HashSet<>(keys);
             assertThat(gqlCode.parameterCount())
                     .describedAs("Number of parameters needs to match the message template")
                     .isEqualTo(gqlCode.messageFormatParameterCount());
@@ -312,7 +310,7 @@ public class GqlStatusInfoCodesTest {
             var cond = gqlCode.getCondition();
             var subCond = gqlCode.getSubCondition();
             var tc = new TotalCondition(cond, subCond);
-            if (!knownCombinations.keySet().contains(tc)) {
+            if (!knownCombinations.containsKey(tc)) {
                 knownCombinations.put(tc, gqlCode);
             } else {
                 errorMessages.add("\n" + gqlCode + " and " + knownCombinations.get(tc));
@@ -388,7 +386,7 @@ public class GqlStatusInfoCodesTest {
     void verifyJoinStyle() {
         var joinStyledCodes = Arrays.stream(GqlStatusInfoCodes.values())
                 .filter(e -> !emptyMap().equals(e.getJoinStyles()))
-                .collect(Collectors.toList());
+                .toList();
         String joinWord = ",";
         for (var gqlCode : joinStyledCodes) {
             var statusParameterKeys = gqlCode.getStatusParameterKeys();
@@ -420,7 +418,7 @@ public class GqlStatusInfoCodesTest {
         }
     }
 
-    @Ignore
+    @Disabled
     void verifyGqlStatusHaveNotChanged() {
         final var params = new HashMap<GqlParams.GqlParam, Object>();
         Reflections reflections = new Reflections("org.neo4j.gqlstatus", new SubTypesScanner(false));

@@ -32,8 +32,7 @@ import java.util.Map;
 public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_00000(
             new GqlStatus("00000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -41,8 +40,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_00001(
             new GqlStatus("00001"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -50,8 +48,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_00N50(
             new GqlStatus("00N50"),
-            """
-                    The database { %s } does not exist. Verify that the spelling is correct or create the database for the command to take effect.""",
+            "The database { %s } does not exist. Verify that the spelling is correct or create the database for the command to take effect.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -59,8 +56,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNRECOGNIZED),
     STATUS_00N70(
             new GqlStatus("00N70"),
-            """
-                    The command { %s } has no effect. The role or privilege is already assigned.""",
+            "The command { %s } has no effect. The role or privilege is already assigned.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cmd},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -68,8 +64,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.SECURITY),
     STATUS_00N71(
             new GqlStatus("00N71"),
-            """
-                    The command { %s } has no effect. The role or privilege is not assigned.""",
+            "The command { %s } has no effect. The role or privilege is not assigned.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cmd},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -77,8 +72,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.SECURITY),
     STATUS_00N72(
             new GqlStatus("00N72"),
-            """
-                    The auth provider { %s } is not defined in the configuration. Verify that the spelling is correct or define { %s } in the configuration.""",
+            "The auth provider { %s } is not defined in the configuration. Verify that the spelling is correct or define { %s } in the configuration.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.auth, GqlParams.StringParam.auth},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -86,8 +80,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.SECURITY),
     STATUS_00N80(
             new GqlStatus("00N80"),
-            """
-                    The command 'ENABLE SERVER' has no effect. Server { %s } is already enabled. Verify that this is the intended server.""",
+            "The command 'ENABLE SERVER' has no effect. Server { %s } is already enabled. Verify that this is the intended server.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -95,8 +88,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.TOPOLOGY),
     STATUS_00N81(
             new GqlStatus("00N81"),
-            """
-                    The command 'CORDON SERVER' has no effect. The server { %s } is already cordoned. Verify that this is the intended server.""",
+            "The command 'CORDON SERVER' has no effect. The server { %s } is already cordoned. Verify that this is the intended server.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -104,8 +96,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.TOPOLOGY),
     STATUS_00N82(
             new GqlStatus("00N82"),
-            """
-                    The command 'REALLOCATE DATABASES' has no effect. No databases were reallocated. No better allocation is currently possible.""",
+            "The command 'REALLOCATE DATABASES' has no effect. No databases were reallocated. No better allocation is currently possible.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -113,8 +104,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.TOPOLOGY),
     STATUS_00N83(
             new GqlStatus("00N83"),
-            """
-                    Cordoned servers existed when making an allocation decision. Server(s) { %s } are cordoned. This can impact allocation decisions.""",
+            "Cordoned servers existed when making an allocation decision. Server(s) { %s } are cordoned. This can impact allocation decisions.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.serverList},
             Map.of(GqlParams.ListParam.serverList, GqlParams.JoinStyle.ANDED),
             Condition.SUCCESSFUL_COMPLETION,
@@ -122,8 +112,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.TOPOLOGY),
     STATUS_00N84(
             new GqlStatus("00N84"),
-            """
-                    The command 'ALTER DATABASE' has no effect. The requested topology matched the current topology. No allocations were changed.""",
+            "The command 'ALTER DATABASE' has no effect. The requested topology matched the current topology. No allocations were changed.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -131,8 +120,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.TOPOLOGY),
     STATUS_00NA0(
             new GqlStatus("00NA0"),
-            """
-                    The command { %s } has no effect. The index or constraint specified by { %s } already exists.""",
+            "The command { %s } has no effect. The index or constraint specified by { %s } already exists.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cmd, GqlParams.StringParam.idxOrConstrPat},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -140,8 +128,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.SCHEMA),
     STATUS_00NA1(
             new GqlStatus("00NA1"),
-            """
-                    The command { %s } has no effect. The specified index or constraint { %s } does not exist.""",
+            "The command { %s } has no effect. The specified index or constraint { %s } does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cmd, GqlParams.StringParam.idxOrConstr},
             emptyMap(),
             Condition.SUCCESSFUL_COMPLETION,
@@ -149,8 +136,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.SCHEMA),
     STATUS_01000(
             new GqlStatus("01000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.WARNING,
@@ -158,8 +144,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_01004(
             new GqlStatus("01004"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.WARNING,
@@ -167,8 +152,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_01G03(
             new GqlStatus("01G03"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.WARNING,
@@ -176,8 +160,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_01G04(
             new GqlStatus("01G04"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.WARNING,
@@ -185,8 +168,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_01G11(
             new GqlStatus("01G11"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.WARNING,
@@ -194,8 +176,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNRECOGNIZED),
     STATUS_01N00(
             new GqlStatus("01N00"),
-            """
-                    { %s }""",
+            "{ %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.item},
             emptyMap(),
             Condition.WARNING,
@@ -203,8 +184,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.DEPRECATION),
     STATUS_01N01(
             new GqlStatus("01N01"),
-            """
-                    { %s } is deprecated. It is replaced by { %s }.""",
+            "{ %s } is deprecated. It is replaced by { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.feat1, GqlParams.StringParam.feat2},
             emptyMap(),
             Condition.WARNING,
@@ -212,8 +192,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.DEPRECATION),
     STATUS_01N02(
             new GqlStatus("01N02"),
-            """
-                    { %s } is deprecated and will be removed without a replacement.""",
+            "{ %s } is deprecated and will be removed without a replacement.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.feat},
             emptyMap(),
             Condition.WARNING,
@@ -221,8 +200,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.DEPRECATION),
     STATUS_01N30(
             new GqlStatus("01N30"),
-            """
-                    Unable to create a plan with 'JOIN ON { %s }'. Try to change the join key(s) or restructure your query.""",
+            "Unable to create a plan with 'JOIN ON { %s }'. Try to change the join key(s) or restructure your query.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.variableList},
             Map.of(GqlParams.ListParam.variableList, GqlParams.JoinStyle.COMMAD),
             Condition.WARNING,
@@ -230,8 +208,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.HINT),
     STATUS_01N31(
             new GqlStatus("01N31"),
-            """
-                    Unable to create a plan with { %s } because the index does not exist.""",
+            "Unable to create a plan with { %s } because the index does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescr},
             emptyMap(),
             Condition.WARNING,
@@ -239,8 +216,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.HINT),
     STATUS_01N40(
             new GqlStatus("01N40"),
-            """
-                    The query cannot be executed with { %s }; instead, { %s } is used. Cause: { %s }.""",
+            "The query cannot be executed with { %s }; instead, { %s } is used. Cause: { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.preparserInput1, GqlParams.StringParam.preparserInput2, GqlParams.StringParam.msg
             },
@@ -250,8 +226,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNSUPPORTED),
     STATUS_01N42(
             new GqlStatus("01N42"),
-            """
-                    Unknown warning.""",
+            "Unknown warning.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.WARNING,
@@ -259,8 +234,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_01N50(
             new GqlStatus("01N50"),
-            """
-                    The label { %s } does not exist in database { %s }. Verify that the spelling is correct.""",
+            "The label { %s } does not exist in database { %s }. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.label, GqlParams.StringParam.db},
             emptyMap(),
             Condition.WARNING,
@@ -268,8 +242,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNRECOGNIZED),
     STATUS_01N51(
             new GqlStatus("01N51"),
-            """
-                    The relationship type { %s } does not exist in database { %s }. Verify that the spelling is correct.""",
+            "The relationship type { %s } does not exist in database { %s }. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.relType, GqlParams.StringParam.db},
             emptyMap(),
             Condition.WARNING,
@@ -277,8 +250,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNRECOGNIZED),
     STATUS_01N52(
             new GqlStatus("01N52"),
-            """
-                    The property { %s } does not exist in database { %s }. Verify that the spelling is correct.""",
+            "The property { %s } does not exist in database { %s }. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.propKey, GqlParams.StringParam.db},
             emptyMap(),
             Condition.WARNING,
@@ -286,8 +258,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNRECOGNIZED),
     STATUS_01N60(
             new GqlStatus("01N60"),
-            """
-                    The query plan cannot be cached and is not executable without 'EXPLAIN' due to the undefined parameter(s) { %s }. Provide the parameter(s).""",
+            "The query plan cannot be cached and is not executable without 'EXPLAIN' due to the undefined parameter(s) { %s }. Provide the parameter(s).",
             new GqlParams.GqlParam[] {GqlParams.ListParam.paramList},
             Map.of(GqlParams.ListParam.paramList, GqlParams.JoinStyle.ANDED),
             Condition.WARNING,
@@ -295,8 +266,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.GENERIC),
     STATUS_01N61(
             new GqlStatus("01N61"),
-            """
-                    The expression { %s } cannot be satisfied because relationships must have exactly one type.""",
+            "The expression { %s } cannot be satisfied because relationships must have exactly one type.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.labelExpr},
             emptyMap(),
             Condition.WARNING,
@@ -304,8 +274,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.GENERIC),
     STATUS_01N62(
             new GqlStatus("01N62"),
-            """
-                    Execution of the procedure { %s } generated the warning { %s }""",
+            "Execution of the procedure { %s } generated the warning { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.proc, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.WARNING,
@@ -313,8 +282,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.GENERIC),
     STATUS_01N63(
             new GqlStatus("01N63"),
-            """
-                    { %s } is repeated in { %s }, which leads to no results.""",
+            "{ %s } is repeated in { %s }, which leads to no results.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable, GqlParams.StringParam.pat},
             emptyMap(),
             Condition.WARNING,
@@ -322,8 +290,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.GENERIC),
     STATUS_01N70(
             new GqlStatus("01N70"),
-            """
-                    The command { %s } has no effect. Make sure nothing is misspelled. This notification will become an error in a future major version. Cause: { %s }""",
+            "The command { %s } has no effect. Make sure nothing is misspelled. This notification will become an error in a future major version. Cause: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cmd, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.WARNING,
@@ -331,8 +298,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.SECURITY),
     STATUS_01N71(
             new GqlStatus("01N71"),
-            """
-                    Use the setting 'dbms.security.require_local_user' to enable external auth.""",
+            "Use the setting 'dbms.security.require_local_user' to enable external auth.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.WARNING,
@@ -349,8 +315,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
 
     STATUS_01N80(
             new GqlStatus("01N80"),
-            """
-                        Server `{ %s }` at address `{ %s }` failed: { %s }""",
+            "Server `{ %s }` at address `{ %s }` failed: { %s }",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.server, GqlParams.StringParam.serverAddress, GqlParams.StringParam.msg
             },
@@ -360,8 +325,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.TOPOLOGY),
     STATUS_01N81(
             new GqlStatus("01N81"),
-            """
-                        Server `{ %s }` at address `{ %s }` is still catching up.""",
+            "Server `{ %s }` at address `{ %s }` is still catching up.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server, GqlParams.StringParam.serverAddress},
             emptyMap(),
             Condition.WARNING,
@@ -369,8 +333,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.TOPOLOGY),
     STATUS_01N82(
             new GqlStatus("01N82"),
-            """
-                        Server `{ %s }` is not available.""",
+            "Server `{ %s }` is not available.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.WARNING,
@@ -379,8 +342,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
 
     STATUS_02000(
             new GqlStatus("02000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.NO_DATA,
@@ -388,8 +350,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_02N42(
             new GqlStatus("02N42"),
-            """
-                    Unknown GQLSTATUS from old server.""",
+            "Unknown GQLSTATUS from old server.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.NO_DATA,
@@ -397,8 +358,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_03000(
             new GqlStatus("03000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INFORMATIONAL,
@@ -406,8 +366,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_03N42(
             new GqlStatus("03N42"),
-            """
-                    Unknown notification.""",
+            "Unknown notification.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INFORMATIONAL,
@@ -415,8 +374,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.UNKNOWN),
     STATUS_03N60(
             new GqlStatus("03N60"),
-            """
-                    The variable { %s } in the subquery uses the same name as a variable from the outer query. Use 'WITH { %s }' in the subquery to import the one from the outer scope unless you want it to be a new variable.""",
+            "The variable { %s } in the subquery uses the same name as a variable from the outer query. Use 'WITH { %s }' in the subquery to import the one from the outer scope unless you want it to be a new variable.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable, GqlParams.StringParam.variable},
             emptyMap(),
             Condition.INFORMATIONAL,
@@ -424,8 +382,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.GENERIC),
     STATUS_03N61(
             new GqlStatus("03N61"),
-            """
-                    The use of `OPTIONAL` is redundant as `CALL { %s }` is a void procedure.""",
+            "The use of `OPTIONAL` is redundant as `CALL { %s }` is a void procedure.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
             emptyMap(),
             Condition.INFORMATIONAL,
@@ -433,8 +390,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.GENERIC),
     STATUS_03N62(
             new GqlStatus("03N62"),
-            """
-                    The use of `OPTIONAL` is redundant as `CALL` is a unit subquery.""",
+            "The use of `OPTIONAL` is redundant as `CALL` is a unit subquery.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INFORMATIONAL,
@@ -450,8 +406,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.GENERIC),
     STATUS_03N90(
             new GqlStatus("03N90"),
-            """
-                    The disconnected pattern { %s } builds a cartesian product. A cartesian product may produce a large amount of data and slow down query processing.""",
+            "The disconnected pattern { %s } builds a cartesian product. A cartesian product may produce a large amount of data and slow down query processing.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.pat},
             emptyMap(),
             Condition.INFORMATIONAL,
@@ -459,8 +414,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.PERFORMANCE),
     STATUS_03N91(
             new GqlStatus("03N91"),
-            """
-                    The provided pattern { %s } is unbounded. Shortest path with an unbounded pattern may result in long execution times. Use an upper limit (e.g. '[*..5]') on the number of node hops in your pattern.""",
+            "The provided pattern { %s } is unbounded. Shortest path with an unbounded pattern may result in long execution times. Use an upper limit (e.g. '[*..5]') on the number of node hops in your pattern.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.pat},
             emptyMap(),
             Condition.INFORMATIONAL,
@@ -468,8 +422,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.PERFORMANCE),
     STATUS_03N92(
             new GqlStatus("03N92"),
-            """
-                    The query runs with exhaustive shortest path due to the existential predicate(s) { %s }. It may be possible to use 'WITH' to separate the 'MATCH' from the existential predicate(s).""",
+            "The query runs with exhaustive shortest path due to the existential predicate(s) { %s }. It may be possible to use 'WITH' to separate the 'MATCH' from the existential predicate(s).",
             new GqlParams.GqlParam[] {GqlParams.ListParam.predList},
             Map.of(GqlParams.ListParam.predList, GqlParams.JoinStyle.ANDED),
             Condition.INFORMATIONAL,
@@ -477,8 +430,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.PERFORMANCE),
     STATUS_03N93(
             new GqlStatus("03N93"),
-            """
-                    'LOAD CSV' in combination with 'MATCH' or 'MERGE' on a label that does not have an index may result in long execution times. Consider adding an index for label { %s }.""",
+            "'LOAD CSV' in combination with 'MATCH' or 'MERGE' on a label that does not have an index may result in long execution times. Consider adding an index for label { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.label},
             emptyMap(),
             Condition.INFORMATIONAL,
@@ -486,8 +438,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.PERFORMANCE),
     STATUS_03N94(
             new GqlStatus("03N94"),
-            """
-                    The query execution plan contains the 'Eager' operator. 'LOAD CSV' in combination with 'Eager' can consume a lot of memory.""",
+            "The query execution plan contains the 'Eager' operator. 'LOAD CSV' in combination with 'Eager' can consume a lot of memory.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INFORMATIONAL,
@@ -495,8 +446,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.PERFORMANCE),
     STATUS_03N95(
             new GqlStatus("03N95"),
-            """
-                    An index already exists on the relationship type or the label(s) { %s }. It is not possible to use indexes for dynamic properties. Consider using static properties.""",
+            "An index already exists on the relationship type or the label(s) { %s }. It is not possible to use indexes for dynamic properties. Consider using static properties.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.labelList},
             Map.of(GqlParams.ListParam.labelList, GqlParams.JoinStyle.ANDED),
             Condition.INFORMATIONAL,
@@ -504,8 +454,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.PERFORMANCE),
     STATUS_03N96(
             new GqlStatus("03N96"),
-            """
-                    Failed to generate code, falling back to interpreted { %s } engine. A stacktrace can be found in the debug.log. Cause: { %s }.""",
+            "Failed to generate code, falling back to interpreted { %s } engine. A stacktrace can be found in the debug.log. Cause: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting, GqlParams.StringParam.cause},
             emptyMap(),
             Condition.INFORMATIONAL,
@@ -513,8 +462,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             NotificationClassification.PERFORMANCE),
     STATUS_08000(
             new GqlStatus("08000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -522,8 +470,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_08007(
             new GqlStatus("08007"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -531,8 +478,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_08N00(
             new GqlStatus("08N00"),
-            """
-                    Unable to connect to database { %s }. Unable to get bolt address of the leader. Check the status of the database. Retrying your request at a later time may succeed.""",
+            "Unable to connect to database { %s }. Unable to get bolt address of the leader. Check the status of the database. Retrying your request at a later time may succeed.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -540,8 +486,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_08N01(
             new GqlStatus("08N01"),
-            """
-                    Unable to write to database { %s } on this server. Server-side routing is disabled. Either connect to the database leader directly or enable server-side routing by setting '{ %s }=true'.""",
+            "Unable to write to database { %s } on this server. Server-side routing is disabled. Either connect to the database leader directly or enable server-side routing by setting '{ %s }=true'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db, GqlParams.StringParam.cfgSetting},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -549,8 +494,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N02(
             new GqlStatus("08N02"),
-            """
-                    Unable to connect to database { %s }. Server-side routing is disabled. Either connect to { %s } directly, or enable server-side routing by setting '{ %s }=true'.""",
+            "Unable to connect to database { %s }. Server-side routing is disabled. Either connect to { %s } directly, or enable server-side routing by setting '{ %s }=true'.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.db, GqlParams.StringParam.db, GqlParams.StringParam.cfgSetting
             },
@@ -560,8 +504,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N03(
             new GqlStatus("08N03"),
-            """
-                    Failed to write to graph { %s }. Check the defined access mode in both driver and database.""",
+            "Failed to write to graph { %s }. Check the defined access mode in both driver and database.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -569,8 +512,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N04(
             new GqlStatus("08N04"),
-            """
-                    Routing with { %s } is not supported in embedded sessions. Connect to the database directly or try running the query using a Neo4j driver or the HTTP API.""",
+            "Routing with { %s } is not supported in embedded sessions. Connect to the database directly or try running the query using a Neo4j driver or the HTTP API.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -578,8 +520,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N05(
             new GqlStatus("08N05"),
-            """
-                    Routing administration commands is not supported in embedded sessions. Connect to the system database directly or try running the query using a Neo4j driver or the HTTP API.""",
+            "Routing administration commands is not supported in embedded sessions. Connect to the system database directly or try running the query using a Neo4j driver or the HTTP API.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -587,8 +528,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N06(
             new GqlStatus("08N06"),
-            """
-                    General network protocol error.""",
+            "General network protocol error.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -596,8 +536,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N07(
             new GqlStatus("08N07"),
-            """
-                    This member is not the leader.""",
+            "This member is not the leader.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -605,8 +544,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N08(
             new GqlStatus("08N08"),
-            """
-                    This database is read only on this server.""",
+            "This database is read only on this server.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -614,8 +552,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N09(
             new GqlStatus("08N09"),
-            """
-                    The database { %s } is currently unavailable. Check the database status. Retry your request at a later time.""",
+            "The database { %s } is currently unavailable. Check the database status. Retry your request at a later time.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -623,8 +560,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_08N10(
             new GqlStatus("08N10"),
-            """
-                    Message { %s } cannot be handled by session in the { %s } state.""",
+            "Message { %s } cannot be handled by session in the { %s } state.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg, GqlParams.StringParam.boltServerState},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -632,8 +568,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N11(
             new GqlStatus("08N11"),
-            """
-                    The request is invalid and could not be processed by the server. See cause for further details.""",
+            "The request is invalid and could not be processed by the server. See cause for further details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -641,8 +576,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N12(
             new GqlStatus("08N12"),
-            """
-                    Failed to parse the supplied bookmark. Verify it is correct or check the debug log for more information.""",
+            "Failed to parse the supplied bookmark. Verify it is correct or check the debug log for more information.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -650,8 +584,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N13(
             new GqlStatus("08N13"),
-            """
-                    The database { %s } is not up to the requested bookmark { %s }. The latest transaction ID is { %s }.""",
+            "The database { %s } is not up to the requested bookmark { %s }. The latest transaction ID is { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.db, GqlParams.StringParam.transactionId1, GqlParams.StringParam.transactionId2
             },
@@ -661,8 +594,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_08N14(
             new GqlStatus("08N14"),
-            """
-                    Unable to provide a routing table for the database identifed by the alias { %s } because the request comes from another alias { %s } and alias chains are not permitted.""",
+            "Unable to provide a routing table for the database identifed by the alias { %s } because the request comes from another alias { %s } and alias chains are not permitted.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.alias1, GqlParams.StringParam.alias2},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -670,8 +602,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N15(
             new GqlStatus("08N15"),
-            """
-                    Policy definition of the routing policy { %s } could not be found. Verify that the spelling is correct.""",
+            "Policy definition of the routing policy { %s } could not be found. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.routingPolicy},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -679,8 +610,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N16(
             new GqlStatus("08N16"),
-            """
-                    Remote execution failed with message { %s }.""",
+            "Remote execution failed with message { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -688,8 +618,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_08N17(
             new GqlStatus("08N17"),
-            """
-                    Remote execution failed with message { %s }.""",
+            "Remote execution failed with message { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -697,8 +626,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_08N18(
             new GqlStatus("08N18"),
-            """
-                    Remote execution failed with message { %s }.""",
+            "Remote execution failed with message { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -706,8 +634,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_08N19(
             new GqlStatus("08N19"),
-            """
-                    Communication with shard { %s } failed. with message '{ %s }'.""",
+            "Communication with shard { %s } failed. with message '{ %s }'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -715,8 +642,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_08N20(
             new GqlStatus("08N20"),
-            """
-                    Communication with shard { %s } failed. with message '{ %s }'.""",
+            "Communication with shard { %s } failed. with message '{ %s }'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -724,8 +650,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_08N21(
             new GqlStatus("08N21"),
-            """
-                    Communication with shard { %s } failed. with message '{ %s }'.""",
+            "Communication with shard { %s } failed. with message '{ %s }'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.CONNECTION_EXCEPTION,
@@ -733,8 +658,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22000(
             new GqlStatus("22000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -742,8 +666,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22001(
             new GqlStatus("22001"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -751,8 +674,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22003(
             new GqlStatus("22003"),
-            """
-                    The numeric value { %s } is outside the required range.""",
+            "The numeric value { %s } is outside the required range.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.value
             }, // StringParam since sometimes we will have ex. value > Long.MaxValue which would need to be parsed out
             // (and then back to String in the end)
@@ -762,8 +684,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22004(
             new GqlStatus("22004"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -771,8 +692,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22007(
             new GqlStatus("22007"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -780,8 +700,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22008(
             new GqlStatus("22008"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -789,8 +708,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22011(
             new GqlStatus("22011"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -798,8 +716,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22012(
             new GqlStatus("22012"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -807,8 +724,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22015(
             new GqlStatus("22015"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -816,8 +732,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22018(
             new GqlStatus("22018"),
-            """
-                    The character value { %s } is an invalid argument for the specified cast.""",
+            "The character value { %s } is an invalid argument for the specified cast.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -825,8 +740,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_2201E(
             new GqlStatus("2201E"),
-            """
-                    The value { %s } is an invalid argument for the specified natural logarithm.""",
+            "The value { %s } is an invalid argument for the specified natural logarithm.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -834,8 +748,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_2201F(
             new GqlStatus("2201F"),
-            """
-                    The value { %s } is an invalid argument for the specified power function.""",
+            "The value { %s } is an invalid argument for the specified power function.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -843,8 +756,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22027(
             new GqlStatus("22027"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -852,8 +764,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_2202F(
             new GqlStatus("2202F"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -861,8 +772,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G02(
             new GqlStatus("22G02"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -870,8 +780,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G03(
             new GqlStatus("22G03"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -879,8 +788,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G04(
             new GqlStatus("22G04"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -888,8 +796,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G05(
             new GqlStatus("22G05"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -897,8 +804,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22G06(
             new GqlStatus("22G06"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -906,8 +812,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G07(
             new GqlStatus("22G07"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -915,8 +820,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0B(
             new GqlStatus("22G0B"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -924,8 +828,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0C(
             new GqlStatus("22G0C"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -933,8 +836,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0F(
             new GqlStatus("22G0F"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -942,8 +844,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0H(
             new GqlStatus("22G0H"),
-            """
-                    The duration format { %s } is invalid.""",
+            "The duration format { %s } is invalid.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.format},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -951,8 +852,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0M(
             new GqlStatus("22G0M"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -960,8 +860,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0N(
             new GqlStatus("22G0N"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -969,8 +868,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0P(
             new GqlStatus("22G0P"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -978,8 +876,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0Q(
             new GqlStatus("22G0Q"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -987,8 +884,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0R(
             new GqlStatus("22G0R"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -996,8 +892,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0S(
             new GqlStatus("22G0S"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1005,8 +900,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0T(
             new GqlStatus("22G0T"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1014,8 +908,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0U(
             new GqlStatus("22G0U"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1023,8 +916,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0V(
             new GqlStatus("22G0V"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1032,8 +924,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0W(
             new GqlStatus("22G0W"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1041,8 +932,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0X(
             new GqlStatus("22G0X"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1050,8 +940,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0Y(
             new GqlStatus("22G0Y"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1059,8 +948,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G0Z(
             new GqlStatus("22G0Z"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1068,8 +956,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G10(
             new GqlStatus("22G10"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1077,8 +964,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G11(
             new GqlStatus("22G11"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1086,8 +972,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G13(
             new GqlStatus("22G13"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1095,8 +980,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22G14(
             new GqlStatus("22G14"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1104,8 +988,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_22N00(
             new GqlStatus("22N00"),
-            """
-                    The provided value is unsupported and cannot be processed.""",
+            "The provided value is unsupported and cannot be processed.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1113,8 +996,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N01(
             new GqlStatus("22N01"),
-            """
-                    Expected the value { %s } to be of type { %s }, but was of type { %s }.""",
+            "Expected the value { %s } to be of type { %s }, but was of type { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.value, GqlParams.ListParam.valueTypeList, GqlParams.StringParam.valueType
             },
@@ -1124,8 +1006,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N02(
             new GqlStatus("22N02"),
-            """
-                    Expected { %s } to be a positive number but found { %s } instead.""",
+            "Expected { %s } to be a positive number but found { %s } instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.option, GqlParams.NumberParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1133,8 +1014,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N03(
             new GqlStatus("22N03"),
-            """
-                    Expected { %s } to be of type { %s } and in the range { %s } to { %s } but found { %s }.""",
+            "Expected { %s } to be of type { %s } and in the range { %s } to { %s } but found { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.component,
                 GqlParams.StringParam.valueType,
@@ -1148,8 +1028,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N04(
             new GqlStatus("22N04"),
-            """
-                    Invalid input { %s } for { %s }. Expected { %s }.""",
+            "Invalid input { %s } for { %s }. Expected { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.input, GqlParams.StringParam.context, GqlParams.ListParam.inputList,
             },
@@ -1159,8 +1038,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N05(
             new GqlStatus("22N05"),
-            """
-                    Invalid input { %s } for { %s }.""",
+            "Invalid input { %s } for { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.context},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1169,8 +1047,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22N06(
             // See also 22NB6
             new GqlStatus("22N06"),
-            """
-                    Invalid input. { %s } needs to be specified.""",
+            "Invalid input. { %s } needs to be specified.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.inputList},
             Map.of(GqlParams.ListParam.inputList, GqlParams.JoinStyle.ANDED),
             Condition.DATA_EXCEPTION,
@@ -1178,8 +1055,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N07(
             new GqlStatus("22N07"),
-            """
-                    Invalid pre-parser option(s): { %s }.""",
+            "Invalid pre-parser option(s): { %s }.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.optionList},
             Map.of(GqlParams.ListParam.optionList, GqlParams.JoinStyle.COMMAD),
             Condition.DATA_EXCEPTION,
@@ -1187,8 +1063,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N08(
             new GqlStatus("22N08"),
-            """
-                    Invalid pre-parser option, cannot combine { %s } with { %s }.""",
+            "Invalid pre-parser option, cannot combine { %s } with { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.option1, GqlParams.StringParam.option2},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1196,8 +1071,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N09(
             new GqlStatus("22N09"),
-            """
-                    Invalid pre-parser option, cannot specify multiple conflicting values for { %s }.""",
+            "Invalid pre-parser option, cannot specify multiple conflicting values for { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.option},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1205,8 +1079,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N10(
             new GqlStatus("22N10"),
-            """
-                    Invalid pre-parser option, specified { %s } is not valid for option { %s }. Valid options are: { %s }.""",
+            "Invalid pre-parser option, specified { %s } is not valid for option { %s }. Valid options are: { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.input, GqlParams.StringParam.option, GqlParams.ListParam.optionList,
             },
@@ -1216,8 +1089,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N11(
             new GqlStatus("22N11"),
-            """
-                    Invalid argument: cannot process { %s }.""",
+            "Invalid argument: cannot process { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1225,8 +1097,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N12(
             new GqlStatus("22N12"),
-            """
-                    Invalid argument: cannot process { %s }.""",
+            "Invalid argument: cannot process { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1234,8 +1105,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N13(
             new GqlStatus("22N13"),
-            """
-                    Specified time zones must include a date component.""",
+            "Specified time zones must include a date component.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1243,8 +1113,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N14(
             new GqlStatus("22N14"),
-            """
-                    Cannot select both { %s } and { %s }.""",
+            "Cannot select both { %s } and { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.temporal1, GqlParams.StringParam.temporal2},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1252,8 +1121,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N15(
             new GqlStatus("22N15"),
-            """
-                    Cannot read the specified { %s } component from { %s }.""",
+            "Cannot read the specified { %s } component from { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.component, GqlParams.StringParam.temporal},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1261,8 +1129,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N16(
             new GqlStatus("22N16"),
-            """
-                    Importing entity values to a graph with a USE clause is not supported. Attempted to import { %s } to { %s }.""",
+            "Importing entity values to a graph with a USE clause is not supported. Attempted to import { %s } to { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr, GqlParams.StringParam.graph},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1270,8 +1137,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N18(
             new GqlStatus("22N18"),
-            """
-                    A { %s } POINT must contain { %s }.""",
+            "A { %s } POINT must contain { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.crs, GqlParams.ListParam.mapKeyList,
             },
@@ -1281,8 +1147,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N19(
             new GqlStatus("22N19"),
-            """
-                    A POINT must contain either 'x' and 'y', or 'latitude' and 'longitude'.""",
+            "A POINT must contain either 'x' and 'y', or 'latitude' and 'longitude'.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1290,8 +1155,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N20(
             new GqlStatus("22N20"),
-            """
-                    Cannot create POINT with { %s }D coordinate reference system (CRS) and { %s } coordinates. Use the equivalent { %s }D coordinate reference system instead.""",
+            "Cannot create POINT with { %s }D coordinate reference system (CRS) and { %s } coordinates. Use the equivalent { %s }D coordinate reference system instead.",
             new GqlParams.GqlParam[] {
                 GqlParams.NumberParam.dim1, GqlParams.NumberParam.value, GqlParams.NumberParam.dim2
             },
@@ -1301,8 +1165,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N21(
             new GqlStatus("22N21"),
-            """
-                    Unsupported coordinate reference system (CRS): { %s }.""",
+            "Unsupported coordinate reference system (CRS): { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.crs},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1310,8 +1173,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N22(
             new GqlStatus("22N22"),
-            """
-                    Cannot specify both coordinate reference system (CRS) and spatial reference identifier (SRID). """,
+            "Cannot specify both coordinate reference system (CRS) and spatial reference identifier (SRID).",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1319,8 +1181,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N23(
             new GqlStatus("22N23"),
-            """
-                    Cannot create WGS84 POINT with invalid coordinate: { %s }. The valid range for the latitude coordinate is [-90, 90].""",
+            "Cannot create WGS84 POINT with invalid coordinate: { %s }. The valid range for the latitude coordinate is [-90, 90].",
             new GqlParams.GqlParam[] {GqlParams.StringParam.coordinates},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1328,8 +1189,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N24(
             new GqlStatus("22N24"),
-            """
-                    Cannot construct a { %s } from { %s }.""",
+            "Cannot construct a { %s } from { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.coordinates},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1337,8 +1197,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N25(
             new GqlStatus("22N25"),
-            """
-                    Cannot construct a { %s } from { %s }.""",
+            "Cannot construct a { %s } from { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.temporal},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1346,8 +1205,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N26(
             new GqlStatus("22N26"),
-            """
-                    Unknown rounding mode. Valid values are: CEILING, FLOOR, UP, DOWN, HALF_EVEN, HALF_UP, HALF_DOWN, UNNECESSARY.""",
+            "Unknown rounding mode. Valid values are: CEILING, FLOOR, UP, DOWN, HALF_EVEN, HALF_UP, HALF_DOWN, UNNECESSARY.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1355,8 +1213,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N27(
             new GqlStatus("22N27"),
-            """
-                    Invalid input { %s } for { %s }. Expected to be { %s }.""",
+            "Invalid input { %s } for { %s }. Expected to be { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.input, GqlParams.StringParam.context, GqlParams.ListParam.valueTypeList
             },
@@ -1366,8 +1223,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N28(
             new GqlStatus("22N28"),
-            """
-                    The result of the operation { %s } has caused an overflow.""",
+            "The result of the operation { %s } has caused an overflow.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.operation},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1375,8 +1231,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N29(
             new GqlStatus("22N29"),
-            """
-                    Unknown coordinate reference system (CRS).""",
+            "Unknown coordinate reference system (CRS).",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1384,8 +1239,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N30(
             new GqlStatus("22N30"),
-            """
-                    At least one temporal unit must be specified.""",
+            "At least one temporal unit must be specified.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1393,8 +1247,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N31(
             new GqlStatus("22N31"),
-            """
-                    'MERGE' cannot be used with graph element property values that are null or NaN.""",
+            "'MERGE' cannot be used with graph element property values that are null or NaN.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1402,8 +1255,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N32(
             new GqlStatus("22N32"),
-            """
-                    'ORDER BY' expressions must be deterministic.""",
+            "'ORDER BY' expressions must be deterministic.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1411,8 +1263,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N33(
             new GqlStatus("22N33"),
-            """
-                    Shortest path expressions must contain start and end nodes. Cannot find: { %s }.""",
+            "Shortest path expressions must contain start and end nodes. Cannot find: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1420,8 +1271,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N34(
             new GqlStatus("22N34"),
-            """
-                    Cannot use { %s } function inside an aggregate function.""",
+            "Cannot use { %s } function inside an aggregate function.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.funType},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1429,8 +1279,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N35(
             new GqlStatus("22N35"),
-            """
-                    Cannot parse { %s } as a DATE. Calendar dates need to be specified using the format 'YYYY-MM', while ordinal dates need to be specified using the format 'YYYY-DDD'.""",
+            "Cannot parse { %s } as a DATE. Calendar dates need to be specified using the format 'YYYY-MM', while ordinal dates need to be specified using the format 'YYYY-DDD'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1438,8 +1287,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N36(
             new GqlStatus("22N36"),
-            """
-                    Cannot parse { %s } as a { %s }. """,
+            "Cannot parse { %s } as a { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.valueType},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1447,8 +1295,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N37(
             new GqlStatus("22N37"),
-            """
-                    Cannot coerce { %s } to { %s }.""",
+            "Cannot coerce { %s } to { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.value, GqlParams.StringParam.valueType},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1456,8 +1303,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N38(
             new GqlStatus("22N38"),
-            """
-                    Invalid argument to the function { %s }.""",
+            "Invalid argument to the function { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1465,8 +1311,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N39(
             new GqlStatus("22N39"),
-            """
-                    Value { %s } cannot be stored in properties.""",
+            "Value { %s } cannot be stored in properties.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1474,8 +1319,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N40(
             new GqlStatus("22N40"),
-            """
-                    Cannot assign { %s } of a { %s }. """,
+            "Cannot assign { %s } of a { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.component, GqlParams.StringParam.valueType},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1483,8 +1327,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N41(
             new GqlStatus("22N41"),
-            """
-                    The 'MERGE' clause did not find a matching node { %s } and cannot create a new node due to conflicts with existing uniqueness constraints.""",
+            "The 'MERGE' clause did not find a matching node { %s } and cannot create a new node due to conflicts with existing uniqueness constraints.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1492,8 +1335,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N42(
             new GqlStatus("22N42"),
-            """
-                    The 'MERGE' clause did not find a matching relationship { %s } and cannot create a new relationship due to conflicts with existing uniqueness constraints.""",
+            "The 'MERGE' clause did not find a matching relationship { %s } and cannot create a new relationship due to conflicts with existing uniqueness constraints.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1501,8 +1343,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N43(
             new GqlStatus("22N43"),
-            """
-                    Could not load external resource from { %s }.""",
+            "Could not load external resource from { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.url},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1510,8 +1351,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N44(
             new GqlStatus("22N44"),
-            """
-                    Parallel runtime has been disabled, enable it or upgrade to a bigger Aura instance.""",
+            "Parallel runtime has been disabled, enable it or upgrade to a bigger Aura instance.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1519,8 +1359,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N46(
             new GqlStatus("22N46"),
-            """
-                    Parallel runtime does not support updating queries or a change in the state of transactions. Use another runtime.""",
+            "Parallel runtime does not support updating queries or a change in the state of transactions. Use another runtime.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1528,8 +1367,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N47(
             new GqlStatus("22N47"),
-            """
-                    No workers are configured for the parallel runtime. Set 'server.cypher.parallel.worker_limit' to a larger value.""",
+            "No workers are configured for the parallel runtime. Set 'server.cypher.parallel.worker_limit' to a larger value.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1537,8 +1375,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N48(
             new GqlStatus("22N48"),
-            """
-                    Cannot use the specified runtime { %s } due to { %s } not being supported. Use another runtime.""",
+            "Cannot use the specified runtime { %s } due to { %s } not being supported. Use another runtime.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.runtime, GqlParams.StringParam.cause},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1546,8 +1383,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N49(
             new GqlStatus("22N49"),
-            """
-                    Cannot read a CSV field larger than the set buffer size. Ensure the field does not have an unterminated quote, or increase the buffer size via 'dbms.import.csv.buffer_size'.""",
+            "Cannot read a CSV field larger than the set buffer size. Ensure the field does not have an unterminated quote, or increase the buffer size via 'dbms.import.csv.buffer_size'.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1555,8 +1391,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N51(
             new GqlStatus("22N51"),
-            """
-                    A graph reference with the name { %s } was not found. Verify that the spelling is correct.""",
+            "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1564,8 +1399,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N52(
             new GqlStatus("22N52"),
-            """
-                    'PROFILE' and 'EXPLAIN' cannot be combined.""",
+            "'PROFILE' and 'EXPLAIN' cannot be combined.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1573,8 +1407,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N53(
             new GqlStatus("22N53"),
-            """
-                    Cannot 'PROFILE' query before results are materialized.""",
+            "Cannot 'PROFILE' query before results are materialized.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1582,8 +1415,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N54(
             new GqlStatus("22N54"),
-            """
-                    Multiple conflicting entries specified for { %s }.""",
+            "Multiple conflicting entries specified for { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.mapKey},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1591,8 +1423,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N55(
             new GqlStatus("22N55"),
-            """
-                    Map requires key { %s } but was missing from field { %s }.""",
+            "Map requires key { %s } but was missing from field { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.mapKey, GqlParams.StringParam.field},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1600,8 +1431,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N56(
             new GqlStatus("22N56"),
-            """
-                    Protocol message length limit exceeded (limit: { %s }).""",
+            "Protocol message length limit exceeded (limit: { %s }).",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.boltMsgLenLimit},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1609,8 +1439,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N57(
             new GqlStatus("22N57"),
-            """
-                    Protocol type is invalid. Invalid number of struct components (received { %s } but expected { %s }).""",
+            "Protocol type is invalid. Invalid number of struct components (received { %s } but expected { %s }).",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.count1, GqlParams.NumberParam.count2},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1618,8 +1447,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N58(
             new GqlStatus("22N58"),
-            """
-                    Cannot read the specified { %s } component from { %s }.""",
+            "Cannot read the specified { %s } component from { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.component, GqlParams.NumberParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1627,8 +1455,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N59(
             new GqlStatus("22N59"),
-            """
-                    The { %s } token with id { %s } does not exist.""",
+            "The { %s } token with id { %s } does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.tokenType, GqlParams.NumberParam.tokenId},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1636,8 +1463,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_22N62(
             new GqlStatus("22N62"),
-            """
-                    The relationship type { %s } does not exist.""",
+            "The relationship type { %s } does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.relType},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1645,8 +1471,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_22N63(
             new GqlStatus("22N63"),
-            """
-                    The property key { %s } does not exist.""",
+            "The property key { %s } does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.propKey},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1654,8 +1479,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_22N64(
             new GqlStatus("22N64"),
-            """
-                    The constraint { %s } does not exist.""",
+            "The constraint { %s } does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1663,8 +1487,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N65(
             new GqlStatus("22N65"),
-            """
-                    An equivalent constraint already exists: { %s }""",
+            "An equivalent constraint already exists: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1672,8 +1495,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N66(
             new GqlStatus("22N66"),
-            """
-                    A conflicting constraint already exists: { %s }""",
+            "A conflicting constraint already exists: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1681,8 +1503,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N67(
             new GqlStatus("22N67"),
-            """
-                    A constraint with the same name already exists: { %s }""",
+            "A constraint with the same name already exists: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constr},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1690,8 +1511,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N68(
             new GqlStatus("22N68"),
-            """
-                    Dependent constraints cannot be managed individually and must be managed together with its graph type.""",
+            "Dependent constraints cannot be managed individually and must be managed together with its graph type.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1699,8 +1519,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_22N69(
             new GqlStatus("22N69"),
-            """
-                    The index specified by { %s } does not exist.""",
+            "The index specified by { %s } does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1708,8 +1527,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N70(
             new GqlStatus("22N70"),
-            """
-                    An equivalent index already exists: { %s }""",
+            "An equivalent index already exists: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1717,8 +1535,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N71(
             new GqlStatus("22N71"),
-            """
-                    An index with the same name already exists: { %s }""",
+            "An index with the same name already exists: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1726,8 +1543,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N73(
             new GqlStatus("22N73"),
-            """
-                    Constraint conflicts with already existing index { %s }.""",
+            "Constraint conflicts with already existing index { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1735,8 +1551,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N74(
             new GqlStatus("22N74"),
-            """
-                    Index conflicts with already existing index owned by constraint { %s }.""",
+            "Index conflicts with already existing index owned by constraint { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constr},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1744,8 +1559,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N75(
             new GqlStatus("22N75"),
-            """
-                    The constraint specified by { %s } includes a label, relationship type, or property key with name { %s } more than once.""",
+            "The constraint specified by { %s } includes a label, relationship type, or property key with name { %s } more than once.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName, GqlParams.StringParam.token},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1753,8 +1567,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N76(
             new GqlStatus("22N76"),
-            """
-                    The index specified by { %s } includes a label, relationship type, or property key with name { %s } more than once.""",
+            "The index specified by { %s } includes a label, relationship type, or property key with name { %s } more than once.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName, GqlParams.StringParam.token},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1762,8 +1575,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N77(
             new GqlStatus("22N77"),
-            """
-                    { %s } ({ %s }) with { %s } { %s } must have the following properties: { %s }.""",
+            "{ %s } ({ %s }) with { %s } { %s } must have the following properties: { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.entityType,
                 GqlParams.NumberParam.entityId,
@@ -1777,8 +1589,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N78(
             new GqlStatus("22N78"),
-            """
-                    { %s } ({ %s }) with { %s } { %s } must have the property { %s } with value type { %s }.""",
+            "{ %s } ({ %s }) with { %s } { %s } must have the property { %s } with value type { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.entityType,
                 GqlParams.NumberParam.entityId,
@@ -1793,8 +1604,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N79(
             new GqlStatus("22N79"),
-            """
-                    Property uniqueness constraint violated: { %s }.""",
+            "Property uniqueness constraint violated: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.reasonList},
             Map.of(GqlParams.ListParam.reasonList, GqlParams.JoinStyle.COMMAD),
             Condition.DATA_EXCEPTION,
@@ -1802,8 +1612,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N80(
             new GqlStatus("22N80"),
-            """
-                    Index entry conflict: { %s }.""",
+            "Index entry conflict: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1811,8 +1620,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N81(
             new GqlStatus("22N81"),
-            """
-                    Invalid input: { %s } is not supported in { %s }.""",
+            "Invalid input: { %s } is not supported in { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.exprType, GqlParams.StringParam.context},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1820,8 +1628,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N82(
             new GqlStatus("22N82"),
-            """
-                    Input { %s } contains invalid characters for { %s }. Special characters may require that the input is quoted using backticks.""",
+            "Input { %s } contains invalid characters for { %s }. Special characters may require that the input is quoted using backticks.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.context},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1829,8 +1636,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N83(
             new GqlStatus("22N83"),
-            """
-                    Expected name to contain at most { %s } components separated by '.'.""",
+            "Expected name to contain at most { %s } components separated by '.'.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.upper},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1838,8 +1644,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N84(
             new GqlStatus("22N84"),
-            """
-                    Expected the string to be no more than { %s } characters long.""",
+            "Expected the string to be no more than { %s } characters long.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.upper},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1847,8 +1652,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N85(
             new GqlStatus("22N85"),
-            """
-                    Expected the string to be at least { %s } characters long.""",
+            "Expected the string to be at least { %s } characters long.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.lower},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1856,8 +1660,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N86(
             new GqlStatus("22N86"),
-            """
-                    Expected a nonzero number.""",
+            "Expected a nonzero number.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1865,8 +1668,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N87(
             new GqlStatus("22N87"),
-            """
-                    Expected a number that is zero or greater.""",
+            "Expected a number that is zero or greater.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1874,8 +1676,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N88(
             new GqlStatus("22N88"),
-            """
-                    { %s } is not a valid CIDR IP.""",
+            "{ %s } is not a valid CIDR IP.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1883,8 +1684,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N89(
             new GqlStatus("22N89"),
-            """
-                    Expected the new password to be different from the old password.""",
+            "Expected the new password to be different from the old password.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1892,8 +1692,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N90(
             new GqlStatus("22N90"),
-            """
-                    { %s } is not supported in property type constraints.""",
+            "{ %s } is not supported in property type constraints.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.item},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1901,8 +1700,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N91(
             new GqlStatus("22N91"),
-            """
-                    Failed to alter the specified database alias { %s }. Altering remote alias to a local alias or vice versa is not supported. Drop and recreate the alias instead.""",
+            "Failed to alter the specified database alias { %s }. Altering remote alias to a local alias or vice versa is not supported. Drop and recreate the alias instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.alias},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1910,8 +1708,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N92(
             new GqlStatus("22N92"),
-            """
-                    This query requires a RETURN clause.""",
+            "This query requires a RETURN clause.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1919,8 +1716,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N93(
             new GqlStatus("22N93"),
-            """
-                    A required YIELD clause is missing.""",
+            "A required YIELD clause is missing.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1928,8 +1724,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N94(
             new GqlStatus("22N94"),
-            """
-                    'YIELD *' is not supported in this context. Explicitly specify which columns to yield. """,
+            "'YIELD *' is not supported in this context. Explicitly specify which columns to yield.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1937,8 +1732,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N95(
             new GqlStatus("22N95"),
-            """
-                    Invalid JSON input. Please check the format.""",
+            "Invalid JSON input. Please check the format.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1946,8 +1740,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N96(
             new GqlStatus("22N96"),
-            """
-                    Unable to map the JSON input. Please verify the structure.""",
+            "Unable to map the JSON input. Please verify the structure.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1955,8 +1748,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N97(
             new GqlStatus("22N97"),
-            """
-                    Unexpected struct tag: { %s }.""",
+            "Unexpected struct tag: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1964,8 +1756,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N98(
             new GqlStatus("22N98"),
-            """
-                    Unable to deserialize request. Expected first field to be { %s }, but was '{ %s }'.""",
+            "Unable to deserialize request. Expected first field to be { %s }, but was '{ %s }'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.field, GqlParams.StringParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1973,8 +1764,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22N99(
             new GqlStatus("22N99"),
-            """
-                    Unable to deserialize request. Expected { %s }, found { %s }.""",
+            "Unable to deserialize request. Expected { %s }, found { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.token, GqlParams.StringParam.value},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1982,8 +1772,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA0(
             new GqlStatus("22NA0"),
-            """
-                    Failed to administer property rule.""",
+            "Failed to administer property rule.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -1991,8 +1780,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA1(
             new GqlStatus("22NA1"),
-            """
-                    The property { %s } must appear on the left hand side of the { %s } operator.  """,
+            "The property { %s } must appear on the left hand side of the { %s } operator.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.propKey, GqlParams.StringParam.operation},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2000,8 +1788,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA2(
             new GqlStatus("22NA2"),
-            """
-                    The expression: { %s } is not supported. Property rules can only contain one property.""",
+            "The expression: { %s } is not supported. Property rules can only contain one property.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2009,8 +1796,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA3(
             new GqlStatus("22NA3"),
-            """
-                    'NaN' is not supported for property-based access control.""",
+            "'NaN' is not supported for property-based access control.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2018,8 +1804,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA4(
             new GqlStatus("22NA4"),
-            """
-                    The property value access rule pattern { %s } always evaluates to 'NULL'.""",
+            "The property value access rule pattern { %s } always evaluates to 'NULL'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.pred},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2027,8 +1812,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA5(
             new GqlStatus("22NA5"),
-            """
-                    The property value access rule pattern { %s } always evaluates to 'NULL'. Use 'IS NULL' instead.""",
+            "The property value access rule pattern { %s } always evaluates to 'NULL'. Use 'IS NULL' instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.pred},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2036,8 +1820,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA6(
             new GqlStatus("22NA6"),
-            """
-                    The property value access rule pattern { %s } always evaluates to 'NULL'. Use 'IS NOT NULL' instead.""",
+            "The property value access rule pattern { %s } always evaluates to 'NULL'. Use 'IS NOT NULL' instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.pred},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2045,8 +1828,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA7(
             new GqlStatus("22NA7"),
-            """
-                    The expression: { %s } is not supported. Only single, literal-based predicate expressions are allowed for property-based access control.""",
+            "The expression: { %s } is not supported. Only single, literal-based predicate expressions are allowed for property-based access control.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2054,8 +1836,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA8(
             new GqlStatus("22NA8"),
-            """
-                    Underlying error: { %s }""",
+            "Underlying error: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cause},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2063,8 +1844,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NA9(
             new GqlStatus("22NA9"),
-            """
-                    Invalid input. Unexpected key { %s }, expected keys are { %s }.""",
+            "Invalid input. Unexpected key { %s }, expected keys are { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.mapKey, GqlParams.ListParam.mapKeyList},
             Map.of(GqlParams.ListParam.mapKeyList, GqlParams.JoinStyle.ORED),
             Condition.DATA_EXCEPTION,
@@ -2072,8 +1852,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NB0(
             new GqlStatus("22NB0"),
-            """
-                    The property value access rule pattern { %s } always evaluates to 'NULL'. Use `WHERE` syntax in combination with `IS NULL` instead.""",
+            "The property value access rule pattern { %s } always evaluates to 'NULL'. Use `WHERE` syntax in combination with `IS NULL` instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.pred},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2081,8 +1860,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NB1(
             new GqlStatus("22NB1"),
-            """
-                    Type mismatch: expected to be { %s } but was { %s }.""",
+            "Type mismatch: expected to be { %s } but was { %s }.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.valueTypeList, GqlParams.StringParam.input},
             Map.of(GqlParams.ListParam.valueTypeList, GqlParams.JoinStyle.ORED),
             Condition.DATA_EXCEPTION,
@@ -2090,8 +1868,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NB2(
             new GqlStatus("22NB2"),
-            """
-                    Graph type { %s } constraint { %s } is incompatible with graph type { %s } constraint { %s } because they have different graph type dependence.""",
+            "Graph type { %s } constraint { %s } is incompatible with graph type { %s } constraint { %s } because they have different graph type dependence.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.graphTypeDependence1,
                 GqlParams.StringParam.constrDescrOrName1,
@@ -2104,8 +1881,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NB3(
             new GqlStatus("22NB3"),
-            """
-                    { %s } ({ %s }) with { %s } { %s } must have the { %s } { %s }.""",
+            "{ %s } ({ %s }) with { %s } { %s } must have the { %s } { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.entityType,
                 GqlParams.NumberParam.entityId,
@@ -2120,8 +1896,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NB4(
             new GqlStatus("22NB4"),
-            """
-                    Relationship ({ %s }) with type { %s } requires its { %s } node ({ %s }) to have the label { %s }.""",
+            "Relationship ({ %s }) with type { %s } requires its { %s } node ({ %s }) to have the label { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.NumberParam.entityId1,
                 GqlParams.StringParam.relType,
@@ -2135,8 +1910,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NB5(
             new GqlStatus("22NB5"),
-            """
-                    Unknown time zone identifier { %s }.""",
+            "Unknown time zone identifier { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2145,8 +1919,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_22NB6(
             // See also 22N06
             new GqlStatus("22NB6"),
-            """
-                Invalid input. { %s } is not allowed to be an empty string.""",
+            "Invalid input. { %s } is not allowed to be an empty string.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.item},
             Map.of(),
             Condition.DATA_EXCEPTION,
@@ -2154,8 +1927,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NB7(
             new GqlStatus("22NB7"),
-            """
-                It is not supported to create element ids on composite databases. Create the element id for { %s } { %s } on the constituent instead.""",
+            "It is not supported to create element ids on composite databases. Create the element id for { %s } { %s } on the constituent instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.entityType, GqlParams.StringParam.entityId},
             Map.of(),
             Condition.DATA_EXCEPTION,
@@ -2163,8 +1935,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_22NB8(
             new GqlStatus("22NB8"),
-            """
-                    { %s } is not a recognized Neo4j type.""",
+            "{ %s } is not a recognized Neo4j type.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.DATA_EXCEPTION,
@@ -2172,8 +1943,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_25000(
             new GqlStatus("25000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2181,8 +1951,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_25G01(
             new GqlStatus("25G01"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2190,8 +1959,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_25G02(
             new GqlStatus("25G02"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2199,8 +1967,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_25G03(
             new GqlStatus("25G03"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2208,8 +1975,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_25G04(
             new GqlStatus("25G04"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2217,8 +1983,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_25N01(
             new GqlStatus("25N01"),
-            """
-                    Failed to execute the query { %s } due to conflicting statement types (read query, write query, schema modification, or administration command). To execute queries in the same transaction, they must be either of the same type, or be a combination of schema modifications and read commands.""",
+            "Failed to execute the query { %s } due to conflicting statement types (read query, write query, schema modification, or administration command). To execute queries in the same transaction, they must be either of the same type, or be a combination of schema modifications and read commands.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.query},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2226,8 +1991,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_25N02(
             new GqlStatus("25N02"),
-            """
-                    Unable to complete transaction. See debug log for details.""",
+            "Unable to complete transaction. See debug log for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2235,8 +1999,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_25N03(
             new GqlStatus("25N03"),
-            """
-                    Transaction is being used concurrently by another request.""",
+            "Transaction is being used concurrently by another request.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2244,8 +2007,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_25N04(
             new GqlStatus("25N04"),
-            """
-                    Transaction { %s } does not exist.""",
+            "Transaction { %s } does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.transactionId},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2253,8 +2015,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_25N05(
             new GqlStatus("25N05"),
-            """
-                    Transaction has been closed.""",
+            "Transaction has been closed.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2262,8 +2023,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_25N06(
             new GqlStatus("25N06"),
-            """
-                    Failed to start transaction. See debug log for details.""",
+            "Failed to start transaction. See debug log for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2271,8 +2031,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_25N07(
             new GqlStatus("25N07"),
-            """
-                    Failed to start constituent transaction. See debug log for details.""",
+            "Failed to start constituent transaction. See debug log for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2280,8 +2039,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_25N08(
             new GqlStatus("25N08"),
-            """
-                    The lease for the transaction is no longer valid.""",
+            "The lease for the transaction is no longer valid.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2289,8 +2047,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_25N09(
             new GqlStatus("25N09"),
-            """
-                    The transaction failed due to an internal error.""",
+            "The transaction failed due to an internal error.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2298,8 +2055,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_25N11(
             new GqlStatus("25N11"),
-            """
-                    There was a conflict detected between the transaction state and applied updates. Please retry the transaction.""",
+            "There was a conflict detected between the transaction state and applied updates. Please retry the transaction.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2307,8 +2063,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_25N12(
             new GqlStatus("25N12"),
-            """
-                    Index { %s } was dropped in this transaction and cannot be used.""",
+            "Index { %s } was dropped in this transaction and cannot be used.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2316,8 +2071,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_25N13(
             new GqlStatus("25N13"),
-            """
-                    A { %s } was accessed after being deleted in this transaction. Verify the transaction statements.""",
+            "A { %s } was accessed after being deleted in this transaction. Verify the transaction statements.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.entityType},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2325,8 +2079,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_25N14(
             new GqlStatus("25N14"),
-            """
-                    The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }""",
+            "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2334,8 +2087,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_25N15(
             new GqlStatus("25N15"),
-            """
-                    The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }""",
+            "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2343,8 +2095,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_25N16(
             new GqlStatus("25N16"),
-            """
-                    The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }""",
+            "The transaction has been terminated. Retry your operation in a new transaction, and you should see a successful result. Reason: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.INVALID_TRANSACTION_STATE,
@@ -2352,8 +2103,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_2D000(
             new GqlStatus("2D000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_TERMINATION,
@@ -2361,8 +2111,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_2DN01(
             new GqlStatus("2DN01"),
-            """
-                    Failed to commit transaction.""",
+            "Failed to commit transaction.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_TERMINATION,
@@ -2370,8 +2119,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_2DN02(
             new GqlStatus("2DN02"),
-            """
-                    Failed to commit constituent transaction. See debug log for details.""",
+            "Failed to commit constituent transaction. See debug log for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_TERMINATION,
@@ -2379,8 +2127,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_2DN03(
             new GqlStatus("2DN03"),
-            """
-                    Failed to terminate transaction. See debug log for details.""",
+            "Failed to terminate transaction. See debug log for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_TERMINATION,
@@ -2388,8 +2135,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_2DN04(
             new GqlStatus("2DN04"),
-            """
-                    Failed to terminate constituent transaction. See debug log for details.""",
+            "Failed to terminate constituent transaction. See debug log for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_TERMINATION,
@@ -2397,8 +2143,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_2DN05(
             new GqlStatus("2DN05"),
-            """
-                    There was an error on applying the transaction. See logs for more information.""",
+            "There was an error on applying the transaction. See logs for more information.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_TERMINATION,
@@ -2406,8 +2151,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_2DN06(
             new GqlStatus("2DN06"),
-            """
-                    There was an error on appending the transaction. See logs for more information.""",
+            "There was an error on appending the transaction. See logs for more information.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_TERMINATION,
@@ -2415,8 +2159,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_2DN07(
             new GqlStatus("2DN07"),
-            """
-                    Unable to commit transaction because it still have non-closed inner transactions.""",
+            "Unable to commit transaction because it still have non-closed inner transactions.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.INVALID_TRANSACTION_TERMINATION,
@@ -2424,8 +2167,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_40000(
             new GqlStatus("40000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.TRANSACTION_ROLLBACK,
@@ -2433,8 +2175,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_40003(
             new GqlStatus("40003"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.TRANSACTION_ROLLBACK,
@@ -2442,8 +2183,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_40N01(
             new GqlStatus("40N01"),
-            """
-                    Failed to rollback transaction. See debug log for details.""",
+            "Failed to rollback transaction. See debug log for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.TRANSACTION_ROLLBACK,
@@ -2451,8 +2191,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_40N02(
             new GqlStatus("40N02"),
-            """
-                    Failed to rollback constituent transaction. See debug log for details.""",
+            "Failed to rollback constituent transaction. See debug log for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.TRANSACTION_ROLLBACK,
@@ -2460,8 +2199,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_42000(
             new GqlStatus("42000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2469,8 +2207,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42001(
             new GqlStatus("42001"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2478,8 +2215,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42004(
             new GqlStatus("42004"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2487,8 +2223,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42006(
             new GqlStatus("42006"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2496,8 +2231,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42007(
             new GqlStatus("42007"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2505,8 +2239,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42008(
             new GqlStatus("42008"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2514,8 +2247,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42009(
             new GqlStatus("42009"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2523,8 +2255,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42010(
             new GqlStatus("42010"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2532,8 +2263,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42011(
             new GqlStatus("42011"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2541,8 +2271,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42012(
             new GqlStatus("42012"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2550,8 +2279,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42013(
             new GqlStatus("42013"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2559,8 +2287,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42014(
             new GqlStatus("42014"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2568,8 +2295,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42015(
             new GqlStatus("42015"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2577,8 +2303,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_42I00(
             new GqlStatus("42I00"),
-            """
-                    'CASE' expressions must have the same number of 'WHEN' and 'THEN' operands.""",
+            "'CASE' expressions must have the same number of 'WHEN' and 'THEN' operands.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2586,8 +2311,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I01(
             new GqlStatus("42I01"),
-            """
-                    Invalid use of { %s } inside 'FOREACH'.""",
+            "Invalid use of { %s } inside 'FOREACH'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2595,8 +2319,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I02(
             new GqlStatus("42I02"),
-            """
-                    Failed to parse comment. A comment starting with '/*' must also have a closing '*/'.""",
+            "Failed to parse comment. A comment starting with '/*' must also have a closing '*/'.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2604,8 +2327,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I03(
             new GqlStatus("42I03"),
-            """
-                    A Cypher query has to contain at least one clause.""",
+            "A Cypher query has to contain at least one clause.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2613,8 +2335,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I04(
             new GqlStatus("42I04"),
-            """
-                    { %s } cannot be used in a { %s } clause.""",
+            "{ %s } cannot be used in a { %s } clause.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr, GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2622,8 +2343,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I05(
             new GqlStatus("42I05"),
-            """
-                    The FIELDTERMINATOR specified for LOAD CSV can only be one character wide.""",
+            "The FIELDTERMINATOR specified for LOAD CSV can only be one character wide.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2631,8 +2351,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I06(
             new GqlStatus("42I06"),
-            """
-                    Invalid input { %s }, expected: { %s }.""",
+            "Invalid input { %s }, expected: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.ListParam.valueList},
             Map.of(GqlParams.ListParam.valueList, GqlParams.JoinStyle.ORED),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2640,8 +2359,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I07(
             new GqlStatus("42I07"),
-            """
-                    The given { %s } literal { %s } is invalid.""",
+            "The given { %s } literal { %s } is invalid.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2649,8 +2367,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I08(
             new GqlStatus("42I08"),
-            """
-                    The lower bound of the variable length relationship used in the { %s } function must be 0 or 1.""",
+            "The lower bound of the variable length relationship used in the { %s } function must be 0 or 1.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2658,8 +2375,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I09(
             new GqlStatus("42I09"),
-            """
-                    Expected MAP to contain the same number of keys and values, but got keys { %s } and values { %s }.""",
+            "Expected MAP to contain the same number of keys and values, but got keys { %s } and values { %s }.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.mapKeyList, GqlParams.ListParam.valueList},
             Map.of(
                     GqlParams.ListParam.mapKeyList,
@@ -2671,8 +2387,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I10(
             new GqlStatus("42I10"),
-            """
-                    Mixing label expression symbols (`|`, `&`, `!`, and `%`) with colon (`:`) between labels is not allowed. This expression could be expressed as { %s }.""",
+            "Mixing label expression symbols (`|`, `&`, `!`, and `%`) with colon (`:`) between labels is not allowed. This expression could be expressed as { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.syntax},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2680,8 +2395,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I11(
             new GqlStatus("42I11"),
-            """
-                    A { %s } name cannot be empty or contain any null-bytes: { %s }.""",
+            "A { %s } name cannot be empty or contain any null-bytes: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.tokenType, GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2689,8 +2403,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I12(
             new GqlStatus("42I12"),
-            """
-                    Quantified path patterns cannot be nested.""",
+            "Quantified path patterns cannot be nested.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2698,8 +2411,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I13(
             new GqlStatus("42I13"),
-            """
-                    The procedure or function call does not provide the required number of arguments; expected { %s } but got { %s }. The procedure or function { %s } has the signature: { %s }.""",
+            "The procedure or function call does not provide the required number of arguments; expected { %s } but got { %s }. The procedure or function { %s } has the signature: { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.NumberParam.count1,
                 GqlParams.NumberParam.count2,
@@ -2712,8 +2424,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I14(
             new GqlStatus("42I14"),
-            """
-                    Exactly one relationship type must be specified for { %s }.""",
+            "Exactly one relationship type must be specified for { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2721,8 +2432,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I15(
             new GqlStatus("42I15"),
-            """
-                    Expected exactly one statement per query but got: { %s }.""",
+            "Expected exactly one statement per query but got: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.count},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2730,8 +2440,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I16(
             new GqlStatus("42I16"),
-            """
-                    Map with keys { %s } is not a valid POINT. Use either Cartesian or geographic coordinates.""",
+            "Map with keys { %s } is not a valid POINT. Use either Cartesian or geographic coordinates.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.mapKeyList},
             Map.of(GqlParams.ListParam.mapKeyList, GqlParams.JoinStyle.ANDED),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2739,8 +2448,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I17(
             new GqlStatus("42I17"),
-            """
-                    A quantifier must not have a lower bound greater than the upper bound.""",
+            "A quantifier must not have a lower bound greater than the upper bound.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2748,8 +2456,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I18(
             new GqlStatus("42I18"),
-            """
-                    The aggregation column contains implicit grouping expressions referenced by the variables { %s }. Implicit grouping expressions are variables not explicitly declared as grouping keys.""",
+            "The aggregation column contains implicit grouping expressions referenced by the variables { %s }. Implicit grouping expressions are variables not explicitly declared as grouping keys.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.variableList},
             Map.of(GqlParams.ListParam.variableList, GqlParams.JoinStyle.COMMAD),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2757,8 +2464,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I19(
             new GqlStatus("42I19"),
-            """
-                    Failed to parse string literal. The query must contain an even number of non-escaped quotes.""",
+            "Failed to parse string literal. The query must contain an even number of non-escaped quotes.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2766,8 +2472,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I20(
             new GqlStatus("42I20"),
-            """
-                    Label expressions and relationship type expressions cannot contain { %s }. To express a label disjunction use { %s } instead.""",
+            "Label expressions and relationship type expressions cannot contain { %s }. To express a label disjunction use { %s } instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.labelExpr},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2775,8 +2480,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I21(
             new GqlStatus("42I21"),
-            """
-                    Not allowed to reference { %s } from within a parenthesized/quantified path pattern like { %s } in the same graph pattern.""",
+            "Not allowed to reference { %s } from within a parenthesized/quantified path pattern like { %s } in the same graph pattern.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.variableList, GqlParams.StringParam.pat},
             Map.of(GqlParams.ListParam.variableList, GqlParams.JoinStyle.COMMAD),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2784,8 +2488,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I22(
             new GqlStatus("42I22"),
-            """
-                    The right hand side of a UNION clause must be a single query.""",
+            "The right hand side of a UNION clause must be a single query.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2793,8 +2496,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I23(
             new GqlStatus("42I23"),
-            """
-                    The { %s } function cannot contain a quantified path pattern.""",
+            "The { %s } function cannot contain a quantified path pattern.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2802,8 +2504,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I24(
             new GqlStatus("42I24"),
-            """
-                    Aggregate expression { %s } is not allowed in this context.""",
+            "Aggregate expression { %s } is not allowed in this context.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2811,8 +2512,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I25(
             new GqlStatus("42I25"),
-            """
-                    'CALL { ... } IN TRANSACTIONS' is not supported after a write clause.""",
+            "'CALL { ... } IN TRANSACTIONS' is not supported after a write clause.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2820,8 +2520,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I26(
             new GqlStatus("42I26"),
-            """
-                    'DELETE ...' does not support removing labels from a node. Use 'REMOVE ...' instead.""",
+            "'DELETE ...' does not support removing labels from a node. Use 'REMOVE ...' instead.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2829,8 +2528,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I27(
             new GqlStatus("42I27"),
-            """
-                    `DISTINCT` cannot be used with the { %s } function.""",
+            "`DISTINCT` cannot be used with the { %s } function.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2838,8 +2536,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I28(
             new GqlStatus("42I28"),
-            """
-                    Importing WITH can consist only of direct references to outside variables. { %s } is not allowed.""",
+            "Importing WITH can consist only of direct references to outside variables. { %s } is not allowed.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2847,8 +2544,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I29(
             new GqlStatus("42I29"),
-            """
-                    The IS keyword cannot be used together with multiple labels in { %s }. Rewrite the expression as { %s }.""",
+            "The IS keyword cannot be used together with multiple labels in { %s }. Rewrite the expression as { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input, GqlParams.StringParam.replacement},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2856,8 +2552,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I30(
             new GqlStatus("42I30"),
-            """
-                    Label expressions cannot be used in { %s }.""",
+            "Label expressions cannot be used in { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2865,8 +2560,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I31(
             new GqlStatus("42I31"),
-            """
-                    'MATCH ...' cannot directly follow an 'OPTIONAL MATCH ...'. Use a WITH clause between them.""",
+            "'MATCH ...' cannot directly follow an 'OPTIONAL MATCH ...'. Use a WITH clause between them.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2874,8 +2568,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I32(
             new GqlStatus("42I32"),
-            """
-                    Node and relationship pattern predicates cannot be used in { %s }. They can only be used in a `MATCH` clause or inside a pattern comprehension.""",
+            "Node and relationship pattern predicates cannot be used in { %s }. They can only be used in a `MATCH` clause or inside a pattern comprehension.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.context},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2883,8 +2576,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I33(
             new GqlStatus("42I33"),
-            """
-                    Closed Dynamic Union types cannot be appended with 'NOT NULL', specify 'NOT NULL' on inner types instead.""",
+            "Closed Dynamic Union types cannot be appended with 'NOT NULL', specify 'NOT NULL' on inner types instead.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2892,8 +2584,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I34(
             new GqlStatus("42I34"),
-            """
-                    A pattern expression can only be used to test the existence of a pattern. Use a pattern comprehension instead.""",
+            "A pattern expression can only be used to test the existence of a pattern. Use a pattern comprehension instead.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2901,8 +2592,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I35(
             new GqlStatus("42I35"),
-            """
-                    Relationship type expressions can only be used in 'MATCH ...'.""",
+            "Relationship type expressions can only be used in 'MATCH ...'.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2910,8 +2600,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I36(
             new GqlStatus("42I36"),
-            """
-                    'REPORT STATUS' can only be used when specifying 'ON ERROR CONTINUE' or 'ON ERROR BREAK'.""",
+            "'REPORT STATUS' can only be used when specifying 'ON ERROR CONTINUE' or 'ON ERROR BREAK'.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2919,8 +2608,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I37(
             new GqlStatus("42I37"),
-            """
-                    'RETURN *' is not allowed when there are no variables in scope.""",
+            "'RETURN *' is not allowed when there are no variables in scope.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2928,8 +2616,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I38(
             new GqlStatus("42I38"),
-            """
-                    '{ %s }...' can only be used at the end of a query or subquery.""",
+            "'{ %s }...' can only be used at the end of a query or subquery.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2937,8 +2624,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I39(
             new GqlStatus("42I39"),
-            """
-                    Mixing the { %s } function with path selectors or explicit match modes is not allowed.""",
+            "Mixing the { %s } function with path selectors or explicit match modes is not allowed.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2946,8 +2632,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I40(
             new GqlStatus("42I40"),
-            """
-                    UNION and UNION ALL cannot be combined.""",
+            "UNION and UNION ALL cannot be combined.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2955,8 +2640,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I41(
             new GqlStatus("42I41"),
-            """
-                    Variable length relationships cannot be used in { %s }.""",
+            "Variable length relationships cannot be used in { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.value},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2964,8 +2648,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I42(
             new GqlStatus("42I42"),
-            """
-                    Cannot use YIELD on a call to a void procedure.""",
+            "Cannot use YIELD on a call to a void procedure.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2973,8 +2656,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I43(
             new GqlStatus("42I43"),
-            """
-                    'YIELD *' can only be used with a standalone procedure call.""",
+            "'YIELD *' can only be used with a standalone procedure call.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2982,8 +2664,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I44(
             new GqlStatus("42I44"),
-            """
-                    Cannot use a join hint for a single node pattern.""",
+            "Cannot use a join hint for a single node pattern.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -2991,8 +2672,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I45(
             new GqlStatus("42I45"),
-            """
-                    Multiple path patterns cannot be used in the same clause in combination with a selective path selector.{ %s }""",
+            "Multiple path patterns cannot be used in the same clause in combination with a selective path selector.{ %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.action},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3000,8 +2680,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I46(
             new GqlStatus("42I46"),
-            """
-                    Node pattern pairs are only supported for quantified path patterns.""",
+            "Node pattern pairs are only supported for quantified path patterns.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3009,8 +2688,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I47(
             new GqlStatus("42I47"),
-            """
-                    Parser Error: { %s }.""",
+            "Parser Error: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3018,8 +2696,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I48(
             new GqlStatus("42I48"),
-            """
-                    Subqueries are not allowed in a MERGE clause.""",
+            "Subqueries are not allowed in a MERGE clause.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3027,8 +2704,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I49(
             new GqlStatus("42I49"),
-            """
-                    Unknown inequality operator '!='. The operator for inequality in Cypher is '<>'.""",
+            "Unknown inequality operator '!='. The operator for inequality in Cypher is '<>'.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3036,8 +2712,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I50(
             new GqlStatus("42I50"),
-            """
-                    Invalid input { %s }... A { %s } name cannot be longer than { %s }.""",
+            "Invalid input { %s }... A { %s } name cannot be longer than { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.input, GqlParams.StringParam.tokenType, GqlParams.NumberParam.value
             },
@@ -3047,8 +2722,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I51(
             new GqlStatus("42I51"),
-            """
-                    The procedure or function { %s } must have the signature: { %s }.""",
+            "The procedure or function { %s } must have the signature: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procFun, GqlParams.StringParam.sig},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3059,8 +2733,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     // The full old message will be inserted as the msg parameter.
     STATUS_42I52(
             new GqlStatus("42I52"),
-            """
-                    { %s }""",
+            "{ %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3068,8 +2741,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I53(
             new GqlStatus("42I53"),
-            """
-                    Unknown coordinate type: { %s }.""",
+            "Unknown coordinate type: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3077,8 +2749,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I54(
             new GqlStatus("42I54"),
-            """
-                `{ %s }` not allowed in `INSERT`. Use `CREATE` or { %s }.""",
+            "`{ %s }` not allowed in `INSERT`. Use `CREATE` or { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cause, GqlParams.StringParam.replacement},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3086,8 +2757,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I55(
             new GqlStatus("42I55"),
-            """
-                    Dynamic { %s } using `$any()` are not allowed in `{ %s }`.""",
+            "Dynamic { %s } using `$any()` are not allowed in `{ %s }`.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.entityType, GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3095,8 +2765,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I56(
             new GqlStatus("42I56"),
-            """
-                    Only directed relationships are supported in `{ %s }`.""",
+            "Only directed relationships are supported in `{ %s }`.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3104,8 +2773,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I57(
             new GqlStatus("42I57"),
-            """
-                   { %s } cannot contain a query ending with { %s }.""",
+            "{ %s } cannot contain a query ending with { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.exprType, GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3113,8 +2781,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I58(
             new GqlStatus("42I58"),
-            """
-                    Entity, { %s }, cannot be created and referenced in the same clause.""",
+            "Entity, { %s }, cannot be created and referenced in the same clause.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3122,8 +2789,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I59(
             new GqlStatus("42I59"),
-            """
-                    Dynamic label and types are only allowed in { %s } clauses.""",
+            "Dynamic label and types are only allowed in { %s } clauses.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.clauseList},
             Map.of(GqlParams.ListParam.clauseList, GqlParams.JoinStyle.ANDED),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3131,8 +2797,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I60(
             new GqlStatus("42I60"),
-            """
-                    Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all.""",
+            "Each part of the glob (a block of text up until a dot) must either be fully escaped or not escaped at all.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3140,8 +2805,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42I61(
             new GqlStatus("42I61"),
-            """
-                    Missing function name for the LOOKUP INDEX.""",
+            "Missing function name for the LOOKUP INDEX.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3149,8 +2813,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N00(
             new GqlStatus("42N00"),
-            """
-                    A graph reference with the name { %s } was not found. Verify that the spelling is correct.""",
+            "A graph reference with the name { %s } was not found. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3158,8 +2821,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N01(
             new GqlStatus("42N01"),
-            """
-                    The constituent graph { %s } was not found in the in composite database { %s }. Verify that the spelling is correct.""",
+            "The constituent graph { %s } was not found in the in composite database { %s }. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph, GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3167,8 +2829,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N02(
             new GqlStatus("42N02"),
-            """
-                    Writing in read access mode not allowed. """,
+            "Writing in read access mode not allowed.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3176,8 +2837,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N03(
             new GqlStatus("42N03"),
-            """
-                    Writing to multiple graphs in the same transaction is not allowed. Use CALL IN TRANSACTION or create separate transactions in your application.""",
+            "Writing to multiple graphs in the same transaction is not allowed. Use CALL IN TRANSACTION or create separate transactions in your application.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3185,8 +2845,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N04(
             new GqlStatus("42N04"),
-            """
-                    Failed to access database identified by { %s } while connected to session database { %s }. Connect to { %s } directly.""",
+            "Failed to access database identified by { %s } while connected to session database { %s }. Connect to { %s } directly.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2, GqlParams.StringParam.db3},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3194,8 +2853,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N05(
             new GqlStatus("42N05"),
-            """
-                    Failed to access database identified by { %s } while connected to composite session database { %s }. Connect to { %s } directly or create an alias in the composite database.""",
+            "Failed to access database identified by { %s } while connected to composite session database { %s }. Connect to { %s } directly or create an alias in the composite database.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2, GqlParams.StringParam.db3},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3203,8 +2861,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N06(
             new GqlStatus("42N06"),
-            """
-                    { %s } is not supported on composite databases.""",
+            "{ %s } is not supported on composite databases.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.action},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3212,8 +2869,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N07(
             new GqlStatus("42N07"),
-            """
-                    The variable { %s } is shadowing a variable with the same name from the outer scope and needs to be renamed.""",
+            "The variable { %s } is shadowing a variable with the same name from the outer scope and needs to be renamed.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3221,8 +2877,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N08(
             new GqlStatus("42N08"),
-            """
-                    The procedure { %s } was not found. Verify that the spelling is correct.""",
+            "The procedure { %s } was not found. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procFun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3230,8 +2885,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N09(
             new GqlStatus("42N09"),
-            """
-                    A user with the name { %s } was not found. Verify that the spelling is correct.""",
+            "A user with the name { %s } was not found. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.user},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3239,8 +2893,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N0A(
             new GqlStatus("42N0A"),
-            """
-                    { %s } is not allowed with a shard target. Connect to { %s } in order to read or write data from { %s }.""",
+            "{ %s } is not allowed with a shard target. Connect to { %s } in order to read or write data from { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.action, GqlParams.StringParam.db1, GqlParams.StringParam.db2
             },
             emptyMap(),
@@ -3249,8 +2902,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N0B(
             new GqlStatus("42N0B"),
-            """
-                    The database identified by { %s } is sharded. Drop the database { %s } before recreating.""",
+            "The database identified by { %s } is sharded. Drop the database { %s } before recreating.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3258,8 +2910,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N10(
             new GqlStatus("42N10"),
-            """
-                    A role with the name { %s } was not found. Verify that the spelling is correct.""",
+            "A role with the name { %s } was not found. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.role},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3267,8 +2918,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N11(
             new GqlStatus("42N11"),
-            """
-                    A graph reference with the name { %s } already exists.""",
+            "A graph reference with the name { %s } already exists.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.dbList},
             Map.of(GqlParams.ListParam.dbList, GqlParams.JoinStyle.ORED),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3276,8 +2926,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N12(
             new GqlStatus("42N12"),
-            """
-                    A user with the name { %s } already exists.""",
+            "A user with the name { %s } already exists.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.user},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3285,8 +2934,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N13(
             new GqlStatus("42N13"),
-            """
-                    A role with the name { %s } already exists.""",
+            "A role with the name { %s } already exists.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.role},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3294,8 +2942,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N14(
             new GqlStatus("42N14"),
-            """
-                    { %s } cannot be used together with { %s }.""",
+            "{ %s } cannot be used together with { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause, GqlParams.StringParam.cmd},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3303,8 +2950,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N15(
             new GqlStatus("42N15"),
-            """
-                    { %s } is a reserved keyword and cannot be used in this place.""",
+            "{ %s } is a reserved keyword and cannot be used in this place.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.syntax},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3312,8 +2958,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N16(
             new GqlStatus("42N16"),
-            """
-                    Only single property { %s } are supported.""",
+            "Only single property { %s } are supported.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idxType},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3321,8 +2966,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N17(
             new GqlStatus("42N17"),
-            """
-                    { %s } is not allowed on the system database.""",
+            "{ %s } is not allowed on the system database.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3330,8 +2974,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N18(
             new GqlStatus("42N18"),
-            """
-                    The database is in read-only mode.""",
+            "The database is in read-only mode.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3339,8 +2982,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N19(
             new GqlStatus("42N19"),
-            """
-                    Duplicate { %s } clause.""",
+            "Duplicate { %s } clause.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.syntax},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3348,8 +2990,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N20(
             new GqlStatus("42N20"),
-            """
-                    The list range operator '[ ]' cannot be empty.""",
+            "The list range operator '[ ]' cannot be empty.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3357,8 +2998,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N21(
             new GqlStatus("42N21"),
-            """
-                    Expression in { %s } must be aliased (use AS).""",
+            "Expression in { %s } must be aliased (use AS).",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3366,8 +3006,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N22(
             new GqlStatus("42N22"),
-            """
-                    A COLLECT subquery must end with a single return column.""",
+            "A COLLECT subquery must end with a single return column.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3375,8 +3014,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N23(
             new GqlStatus("42N23"),
-            """
-                    The aggregating function must be included in the { %s } clause for use in 'ORDER BY ...'.""",
+            "The aggregating function must be included in the { %s } clause for use in 'ORDER BY ...'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3384,8 +3022,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N24(
             new GqlStatus("42N24"),
-            """
-                    A WITH clause is required between { %s } and { %s }.""",
+            "A WITH clause is required between { %s } and { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input1, GqlParams.StringParam.input2},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3393,8 +3030,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N25(
             new GqlStatus("42N25"),
-            """
-                    Procedure call inside a query does not support naming results implicitly. Use YIELD instead.""",
+            "Procedure call inside a query does not support naming results implicitly. Use YIELD instead.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3402,8 +3038,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N26(
             new GqlStatus("42N26"),
-            """
-                    Multiple join hints for the same variable { %s } are not supported.""",
+            "Multiple join hints for the same variable { %s } are not supported.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3411,8 +3046,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N28(
             new GqlStatus("42N28"),
-            """
-                    Only statically inferrable patterns and variables are allowed in { %s }.""",
+            "Only statically inferrable patterns and variables are allowed in { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3420,8 +3054,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N29(
             new GqlStatus("42N29"),
-            """
-                    Pattern expressions are not allowed to introduce new variables: { %s }.""",
+            "Pattern expressions are not allowed to introduce new variables: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3429,8 +3062,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N31(
             new GqlStatus("42N31"),
-            """
-                    Expected { %s } to be { %s } in the range { %s } to { %s } but found { %s }.""",
+            "Expected { %s } to be { %s } in the range { %s } to { %s } but found { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.component,
                 GqlParams.StringParam.valueType,
@@ -3444,8 +3076,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N32(
             new GqlStatus("42N32"),
-            """
-                    Parameter maps cannot be used in { %s } patterns. Use a literal map instead.""",
+            "Parameter maps cannot be used in { %s } patterns. Use a literal map instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.keyword},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3453,8 +3084,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N34(
             new GqlStatus("42N34"),
-            """
-                    Path cannot be bound in a quantified path pattern.""",
+            "Path cannot be bound in a quantified path pattern.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3462,8 +3092,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N35(
             new GqlStatus("42N35"),
-            """
-                    The path selector { %s } is not supported within quantified or parenthesized path patterns.""",
+            "The path selector { %s } is not supported within quantified or parenthesized path patterns.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.selector},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3471,8 +3100,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N36(
             new GqlStatus("42N36"),
-            """
-                    Procedure call is missing parentheses.""",
+            "Procedure call is missing parentheses.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3480,8 +3108,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N37(
             new GqlStatus("42N37"),
-            """
-                    Relationship pattern predicates cannot be use in variable length relationships.""",
+            "Relationship pattern predicates cannot be use in variable length relationships.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3489,8 +3116,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N38(
             new GqlStatus("42N38"),
-            """
-                    Return items must have unique names.""",
+            "Return items must have unique names.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3498,8 +3124,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N39(
             new GqlStatus("42N39"),
-            """
-                    All { %s } must have the same return column names. Use `AS` to ensure columns have the same name.""",
+            "All { %s } must have the same return column names. Use `AS` to ensure columns have the same name.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.context},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3507,8 +3132,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N3A(
             new GqlStatus("42N3A"),
-            """
-                    All { %s } need to either return rows or update the graph.""",
+            "All { %s } need to either return rows or update the graph.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.context},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3516,8 +3140,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N3B(
             new GqlStatus("42N3B"),
-            """
-                    All { %s } must return the same number of columns.""",
+            "All { %s } must return the same number of columns.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.context},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3525,8 +3148,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N3C(
             new GqlStatus("42N3C"),
-            """
-                    Not possible to enclose { %s } in 'CALL { ... }'. Use 'CALL () { ... }' instead.""",
+            "Not possible to enclose { %s } in 'CALL { ... }'. Use 'CALL () { ... }' instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3534,8 +3156,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N40(
             new GqlStatus("42N40"),
-            """
-                    The { %s } function must contain one relationship pattern.""",
+            "The { %s } function must contain one relationship pattern.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3543,8 +3164,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N41(
             new GqlStatus("42N41"),
-            """
-                    The reduce function requires a '| expression' after the accumulator.""",
+            "The reduce function requires a '| expression' after the accumulator.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3552,8 +3172,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N42(
             new GqlStatus("42N42"),
-            """
-                    Sub-path assignment is not supported.""",
+            "Sub-path assignment is not supported.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3561,8 +3180,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N44(
             new GqlStatus("42N44"),
-            """
-                    It is not possible to access the variable { %s } declared before the { %s } clause when using `DISTINCT` or an aggregation.""",
+            "It is not possible to access the variable { %s } declared before the { %s } clause when using `DISTINCT` or an aggregation.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable, GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3570,8 +3188,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N45(
             new GqlStatus("42N45"),
-            """
-                    Unexpected end of input, expected 'CYPHER', 'EXPLAIN', 'PROFILE' or a query.""",
+            "Unexpected end of input, expected 'CYPHER', 'EXPLAIN', 'PROFILE' or a query.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3579,8 +3196,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N46(
             new GqlStatus("42N46"),
-            """
-                    { %s } is not a recognized Cypher type.""",
+            "{ %s } is not a recognized Cypher type.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3588,8 +3204,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N47(
             new GqlStatus("42N47"),
-            """
-                    'CALL { ... } IN TRANSACTIONS' is not supported in '... UNION ...'.""",
+            "'CALL { ... } IN TRANSACTIONS' is not supported in '... UNION ...'.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3597,8 +3212,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N48(
             new GqlStatus("42N48"),
-            """
-                    The function { %s } was not found. Verify that the spelling is correct.""",
+            "The function { %s } was not found. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3606,8 +3220,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N49(
             new GqlStatus("42N49"),
-            """
-                    Unknown Normal Form: { %s }.""",
+            "Unknown Normal Form: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3615,8 +3228,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N50(
             new GqlStatus("42N50"),
-            """
-                    The procedure return column { %s } is not defined for this procedure. Verify that the spelling is correct.""",
+            "The procedure return column { %s } is not defined for this procedure. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3624,8 +3236,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N51(
             new GqlStatus("42N51"),
-            """
-                    Invalid parameter { %s }.""",
+            "Invalid parameter { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.param},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3633,8 +3244,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N52(
             new GqlStatus("42N52"),
-            """
-                    { %s } is not a recognized Cypher type.""",
+            "{ %s } is not a recognized Cypher type.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3642,8 +3252,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N53(
             new GqlStatus("42N53"),
-            """
-                    The quantified path pattern may yield an infinite number of rows under match mode 'REPEATABLE ELEMENTS'. Add an upper bound to the quantified path pattern.""",
+            "The quantified path pattern may yield an infinite number of rows under match mode 'REPEATABLE ELEMENTS'. Add an upper bound to the quantified path pattern.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3651,8 +3260,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N54(
             new GqlStatus("42N54"),
-            """
-                    The match mode { %s } is not supported.""",
+            "The match mode { %s } is not supported.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.matchMode},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3660,8 +3268,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N55(
             new GqlStatus("42N55"),
-            """
-                    The path selector { %s } is not supported.""",
+            "The path selector { %s } is not supported.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.selector},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3669,8 +3276,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N56(
             new GqlStatus("42N56"),
-            """
-                    Properties are not supported in the { %s } function.""",
+            "Properties are not supported in the { %s } function.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3678,8 +3284,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N57(
             new GqlStatus("42N57"),
-            """
-                    { %s } cannot contain any updating clauses.""",
+            "{ %s } cannot contain any updating clauses.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.expr},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3687,8 +3292,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N58(
             new GqlStatus("42N58"),
-            """
-                    Nested 'CALL { ... } IN TRANSACTIONS is not supported.""",
+            "Nested 'CALL { ... } IN TRANSACTIONS is not supported.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3696,8 +3300,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N59(
             new GqlStatus("42N59"),
-            """
-                    Variable { %s } already declared.""",
+            "Variable { %s } already declared.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3705,8 +3308,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N62(
             new GqlStatus("42N62"),
-            """
-                    Variable { %s } not defined.""",
+            "Variable { %s } not defined.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3714,8 +3316,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N63(
             new GqlStatus("42N63"),
-            """
-                    All inner types in a Closed Dynamic Union must be nullable, or be appended with 'NOT NULL'.""",
+            "All inner types in a Closed Dynamic Union must be nullable, or be appended with 'NOT NULL'.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3723,8 +3324,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N64(
             new GqlStatus("42N64"),
-            """
-                    A quantified or parenthesized path pattern must have at least one node or relationship pattern.""",
+            "A quantified or parenthesized path pattern must have at least one node or relationship pattern.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3732,8 +3332,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N65(
             new GqlStatus("42N65"),
-            """
-                    The { %s } function requires bound node variables when it is not part of a 'MATCH ...'.""",
+            "The { %s } function requires bound node variables when it is not part of a 'MATCH ...'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3741,8 +3340,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N66(
             new GqlStatus("42N66"),
-            """
-                    Bound relationships are not allowed in calls to the { %s } function.""",
+            "Bound relationships are not allowed in calls to the { %s } function.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3750,8 +3348,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N67(
             new GqlStatus("42N67"),
-            """
-                    Duplicated { %s } parameter.""",
+            "Duplicated { %s } parameter.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.param},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3759,8 +3356,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N68(
             new GqlStatus("42N68"),
-            """
-                    Variables cannot be defined more than once in a { %s } clause.""",
+            "Variables cannot be defined more than once in a { %s } clause.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3768,8 +3364,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N69(
             new GqlStatus("42N69"),
-            """
-                    The { %s } function is only allowed as a top-level element and not inside an { %s }.""",
+            "The { %s } function is only allowed as a top-level element and not inside an { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun, GqlParams.StringParam.expr},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3777,8 +3372,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N70(
             new GqlStatus("42N70"),
-            """
-                    The function { %s } requires a WHERE clause.""",
+            "The function { %s } requires a WHERE clause.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3786,8 +3380,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N71(
             new GqlStatus("42N71"),
-            """
-                    A query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call without a YIELD clause.""",
+            "A query must conclude with a RETURN clause, a FINISH clause, an update clause, a unit subquery call, or a procedure call without a YIELD clause.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3795,8 +3388,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N72(
             new GqlStatus("42N72"),
-            """
-                    Calling graph functions is only supported on composite databases. Use the name directly or connect to a composite database with the desired constituents.""",
+            "Calling graph functions is only supported on composite databases. Use the name directly or connect to a composite database with the desired constituents.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3804,8 +3396,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N73(
             new GqlStatus("42N73"),
-            """
-                    The USE clause must be the first clause of a query or an operand to '... UNION ...' . In a CALL sub-query, it can also be the second clause if the first clause is an importing WITH.""",
+            "The USE clause must be the first clause of a query or an operand to '... UNION ...' . In a CALL sub-query, it can also be the second clause if the first clause is an importing WITH.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3813,8 +3404,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N74(
             new GqlStatus("42N74"),
-            """
-                    Failed to access { %s } and { %s }. Child USE clauses must target the same graph as their parent query. Run in separate (sub)queries instead.""",
+            "Failed to access { %s } and { %s }. Child USE clauses must target the same graph as their parent query. Run in separate (sub)queries instead.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3822,8 +3412,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N75(
             new GqlStatus("42N75"),
-            """
-                    A call to the graph function { %s } is only allowed as the top-level argument of a USE clause.""",
+            "A call to the graph function { %s } is only allowed as the top-level argument of a USE clause.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3831,8 +3420,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N76(
             new GqlStatus("42N76"),
-            """
-                    The hint(s) { %s } cannot be fulfilled.""",
+            "The hint(s) { %s } cannot be fulfilled.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.hintList},
             Map.of(GqlParams.ListParam.hintList, GqlParams.JoinStyle.ANDED),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3840,8 +3428,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N77(
             new GqlStatus("42N77"),
-            """
-                    The hint { %s } cannot be fulfilled. The query does not contain a compatible predicate for { %s } on { %s }.""",
+            "The hint { %s } cannot be fulfilled. The query does not contain a compatible predicate for { %s } on { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.hint, GqlParams.StringParam.entityType, GqlParams.StringParam.variable
             },
@@ -3851,8 +3438,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N78(
             new GqlStatus("42N78"),
-            """
-                    Node { %s } has already been bound and cannot be modified by the { %s } clause.""",
+            "Node { %s } has already been bound and cannot be modified by the { %s } clause.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.variable, GqlParams.StringParam.clause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3860,17 +3446,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N81(
             new GqlStatus("42N81"),
-            """
-                    Expected { %s }, but got { %s }. """,
+            "Expected { %s }, but got { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.param, GqlParams.ListParam.paramList},
             Map.of(GqlParams.ListParam.paramList, GqlParams.JoinStyle.ANDED),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
-            "missing request parameter ",
+            "missing request parameter",
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N82(
             new GqlStatus("42N82"),
-            """
-                    The database identified by { %s } has one or more aliases. Drop the aliases { %s } before dropping the database.""",
+            "The database identified by { %s } has one or more aliases. Drop the aliases { %s } before dropping the database.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db, GqlParams.ListParam.aliasList},
             Map.of(GqlParams.ListParam.aliasList, GqlParams.JoinStyle.ANDED),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3878,8 +3462,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N83(
             new GqlStatus("42N83"),
-            """
-                    Cannot impersonate a user while password change required.""",
+            "Cannot impersonate a user while password change required.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3887,8 +3470,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N84(
             new GqlStatus("42N84"),
-            """
-                    WHERE clause without YIELD clause. Use 'TERMINATE TRANSACTION ... YIELD ... WHERE ...'.""",
+            "WHERE clause without YIELD clause. Use 'TERMINATE TRANSACTION ... YIELD ... WHERE ...'.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3896,8 +3478,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N85(
             new GqlStatus("42N85"),
-            """
-                    Allowed and denied database options are mutually exclusive.""",
+            "Allowed and denied database options are mutually exclusive.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3905,8 +3486,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N86(
             new GqlStatus("42N86"),
-            """
-                    { %s } failed. Parameterized database and graph names do not support wildcards.""",
+            "{ %s } failed. Parameterized database and graph names do not support wildcards.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.syntax},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3914,8 +3494,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N87(
             new GqlStatus("42N87"),
-            """
-                    The database or alias name { %s } conflicts with the name { %s } of an existing database or alias.""",
+            "The database or alias name { %s } conflicts with the name { %s } of an existing database or alias.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db1, GqlParams.StringParam.db2},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3923,8 +3502,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N89(
             new GqlStatus("42N89"),
-            """
-                    Failed evaluating the given driver settings. { %s }""",
+            "Failed evaluating the given driver settings. { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cause},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3932,8 +3510,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N90(
             new GqlStatus("42N90"),
-            """
-                    Composite databases cannot be altered (database: { %s }).""",
+            "Composite databases cannot be altered (database: { %s }).",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3942,8 +3519,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N91(
             // Never used, this error scenario is unreachable
             new GqlStatus("42N91"),
-            """
-                    Cannot index nested properties (property: { %s }).""",
+            "Cannot index nested properties (property: { %s }).",
             new GqlParams.GqlParam[] {GqlParams.StringParam.propKey},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3951,8 +3527,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N92(
             new GqlStatus("42N92"),
-            """
-                    Cannot combine old and new auth syntax for the same auth provider.""",
+            "Cannot combine old and new auth syntax for the same auth provider.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3961,8 +3536,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_42N93(
             // Never used, 22N06 was used instead
             new GqlStatus("42N93"),
-            """
-                    No auth given for user.""",
+            "No auth given for user.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3970,8 +3544,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N94(
             new GqlStatus("42N94"),
-            """
-                    'ALTER USER' requires at least one clause.""",
+            "'ALTER USER' requires at least one clause.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3979,8 +3552,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N95(
             new GqlStatus("42N95"),
-            """
-                    The combination of provider and id is already in use.""",
+            "The combination of provider and id is already in use.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3988,8 +3560,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N96(
             new GqlStatus("42N96"),
-            """
-                    User has no auth provider. Add at least one auth provider for the user or consider suspending them.""",
+            "User has no auth provider. Add at least one auth provider for the user or consider suspending them.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -3997,8 +3568,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N97(
             new GqlStatus("42N97"),
-            """
-                    Clause { %s } is mandatory for auth provider { %s }.""",
+            "Clause { %s } is mandatory for auth provider { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.clause, GqlParams.StringParam.auth},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4006,8 +3576,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N98(
             new GqlStatus("42N98"),
-            """
-                    Cannot modify the user record of the current user.""",
+            "Cannot modify the user record of the current user.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4015,8 +3584,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N99(
             new GqlStatus("42N99"),
-            """
-                    Cannot delete the user record of the current user.""",
+            "Cannot delete the user record of the current user.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4024,8 +3592,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA0(
             new GqlStatus("42NA0"),
-            """
-                    Query contains operations that must be executed on the constituent.""",
+            "Query contains operations that must be executed on the constituent.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4033,8 +3600,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA1(
             new GqlStatus("42NA1"),
-            """
-                    Graph access operations are not supported on composite databases.""",
+            "Graph access operations are not supported on composite databases.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4042,8 +3608,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA2(
             new GqlStatus("42NA2"),
-            """
-                    Database operations are not supported on composite databases.""",
+            "Database operations are not supported on composite databases.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4051,8 +3616,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA3(
             new GqlStatus("42NA3"),
-            """
-                    Schema operations are not supported on composite databases.""",
+            "Schema operations are not supported on composite databases.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4060,8 +3624,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA4(
             new GqlStatus("42NA4"),
-            """
-                    Transaction operations are not supported on composite databases.""",
+            "Transaction operations are not supported on composite databases.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4069,8 +3632,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA5(
             new GqlStatus("42NA5"),
-            """
-                    Accessing multiple graphs in the same query is only supported on composite databases. Connect to a composite database with the desired constituents.""",
+            "Accessing multiple graphs in the same query is only supported on composite databases. Connect to a composite database with the desired constituents.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4078,8 +3640,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA6(
             new GqlStatus("42NA6"),
-            """
-                   Aliases are not allowed to target composite databases.""",
+            "Aliases are not allowed to target composite databases.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4087,8 +3648,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA7(
             new GqlStatus("42NA7"),
-            """
-                    No database is corresponding to { %s }. Verify that the elementId is correct.""",
+            "No database is corresponding to { %s }. Verify that the elementId is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4096,8 +3656,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA8(
             new GqlStatus("42NA8"),
-            """
-                    Invalid reference in command { %s }.""",
+            "Invalid reference in command { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cmd},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4105,8 +3664,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NA9(
             new GqlStatus("42NA9"),
-            """
-                    The system database supports a restricted set of Cypher clauses. The supported clause structure for procedure calls is: 'CALL', 'YIELD', 'RETURN'. 'YIELD' and 'RETURN' clauses are optional. The order of the clauses is fixed and each can only occur once.""",
+            "The system database supports a restricted set of Cypher clauses. The supported clause structure for procedure calls is: 'CALL', 'YIELD', 'RETURN'. 'YIELD' and 'RETURN' clauses are optional. The order of the clauses is fixed and each can only occur once.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4114,8 +3672,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NFC(
             new GqlStatus("42NFC"),
-            """
-                    Authentication and/or authorization could not be validated. See security logs for details.""",
+            "Authentication and/or authorization could not be validated. See security logs for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4123,8 +3680,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_42NFD(
             new GqlStatus("42NFD"),
-            """
-                    Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.""",
+            "Permission denied. The credentials you provided were valid, but must be changed before you can use this instance.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4132,8 +3688,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NFE(
             new GqlStatus("42NFE"),
-            """
-                    Authentication and/or authorization info expired.""",
+            "Authentication and/or authorization info expired.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4141,8 +3696,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42NFF(
             new GqlStatus("42NFF"),
-            """
-                    Access denied, see the security logs for details.""",
+            "Access denied, see the security logs for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
@@ -4150,8 +3704,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N00(
             new GqlStatus("50N00"),
-            """
-                    Internal exception raised { %s }: { %s }""",
+            "Internal exception raised { %s }: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msgTitle, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4159,8 +3712,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_50N01(
             new GqlStatus("50N01"),
-            """
-                    Remote execution by { %s } raised { %s }: { %s }""",
+            "Remote execution by { %s } raised { %s }: { %s }",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.server, GqlParams.StringParam.msgTitle, GqlParams.StringParam.msg
             },
@@ -4170,8 +3722,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_50N05(
             new GqlStatus("50N05"),
-            """
-                    Deadlock detected while trying to acquire locks. See log for more details.""",
+            "Deadlock detected while trying to acquire locks. See log for more details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4179,8 +3730,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_50N06(
             new GqlStatus("50N06"),
-            """
-                    Remote execution failed. See cause for more details.""",
+            "Remote execution failed. See cause for more details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4188,8 +3738,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N07(
             new GqlStatus("50N07"),
-            """
-                    Execution failed. See cause and debug log for details.""",
+            "Execution failed. See cause and debug log for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4197,8 +3746,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N09(
             new GqlStatus("50N09"),
-            """
-                    The server transitioned into a server state that is not valid in the current context: { %s }. """,
+            "The server transitioned into a server state that is not valid in the current context: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.boltServerState},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4206,8 +3754,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_50N10(
             new GqlStatus("50N10"),
-            """
-                    Unable to drop { %s }.""",
+            "Unable to drop { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idxDescrOrName},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4215,8 +3762,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_50N11(
             new GqlStatus("50N11"),
-            """
-                    Unable to create { %s }.""",
+            "Unable to create { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4224,8 +3770,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_50N12(
             new GqlStatus("50N12"),
-            """
-                    Unable to drop { %s }.""",
+            "Unable to drop { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4233,8 +3778,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N13(
             new GqlStatus("50N13"),
-            """
-                    Unable to validate constraint { %s }.""",
+            "Unable to validate constraint { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.constrDescrOrName},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4242,8 +3786,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N14(
             new GqlStatus("50N14"),
-            """
-                    A constraint imposed by the database was violated.""",
+            "A constraint imposed by the database was violated.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4251,8 +3794,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N15(
             new GqlStatus("50N15"),
-            """
-                    The system attempted to execute an unsupported operation on index { %s }. See debug.log for more information.""",
+            "The system attempted to execute an unsupported operation on index { %s }. See debug.log for more information.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4260,8 +3802,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N16(
             new GqlStatus("50N16"),
-            """
-                    Remote execution failed. See cause for more details.""",
+            "Remote execution failed. See cause for more details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4269,8 +3810,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_50N17(
             new GqlStatus("50N17"),
-            """
-                    Remote execution failed. See cause for more details.""",
+            "Remote execution failed. See cause for more details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4278,8 +3818,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_50N18(
             new GqlStatus("50N18"),
-            """
-                    Communication with shard { %s } failed. See cause for more details.""",
+            "Communication with shard { %s } failed. See cause for more details.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4287,8 +3826,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_50N19(
             new GqlStatus("50N19"),
-            """
-                    Communication with shard { %s } failed. See cause for more details.""",
+            "Communication with shard { %s } failed. See cause for more details.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4296,8 +3834,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_50N20(
             new GqlStatus("50N20"),
-            """
-                    Communication with shard { %s } failed. See cause for more details.""",
+            "Communication with shard { %s } failed. See cause for more details.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.graph},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4305,8 +3842,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N21(
             new GqlStatus("50N21"),
-            """
-                    The { %s } was not found for { %s }. Verify that the spelling is correct.""",
+            "The { %s } was not found for { %s }. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.schemaDescrType, GqlParams.StringParam.schemaDescr},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4314,8 +3850,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_50N22(
             new GqlStatus("50N22"),
-            """
-                    Failed to parse { %s } as a graph name. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters.""",
+            "Failed to parse { %s } as a graph name. Graph name parts that contain unsupported characters for unescaped identifiers require backtick escaping. Graph name parts with special characters may require additional escaping of those characters.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4323,8 +3858,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_50N23(
             new GqlStatus("50N23"),
-            """
-                    Transaction retry aborted after { %s } attempts. Retry timed out with a maximum retry duration of { %s } { %s }.""",
+            "Transaction retry aborted after { %s } attempts. Retry timed out with a maximum retry duration of { %s } { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.NumberParam.count, GqlParams.NumberParam.timeAmount, GqlParams.StringParam.timeUnit
             },
@@ -4334,8 +3868,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_50N42(
             new GqlStatus("50N42"),
-            """
-                    Unexpected error has occurred. See debug log for details.""",
+            "Unexpected error has occurred. See debug log for details.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.GENERAL_PROCESSING_EXCEPTION,
@@ -4343,8 +3876,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_51N00(
             new GqlStatus("51N00"),
-            """
-                    Failed to register procedure/function.""",
+            "Failed to register procedure/function.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4352,8 +3884,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N01(
             new GqlStatus("51N01"),
-            """
-                    The field { %s } in the class { %s } is annotated as a '@Context' field, but it is declared as static. '@Context' fields must be public, non-final and non-static.""",
+            "The field { %s } in the class { %s } is annotated as a '@Context' field, but it is declared as static. '@Context' fields must be public, non-final and non-static.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procField, GqlParams.StringParam.procClass},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4361,8 +3892,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N02(
             new GqlStatus("51N02"),
-            """
-                    Unable to set up injection for procedure { %s }. The field { %s } has type { %s } which is not a supported injectable component.""",
+            "Unable to set up injection for procedure { %s }. The field { %s } has type { %s } which is not a supported injectable component.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.procClass, GqlParams.StringParam.procField, GqlParams.StringParam.procFieldType
             },
@@ -4372,8 +3902,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N03(
             new GqlStatus("51N03"),
-            """
-                    Unable to set up injection for { %s }, failed to access field { %s }.""",
+            "Unable to set up injection for { %s }, failed to access field { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procClass, GqlParams.StringParam.procField},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4381,8 +3910,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N04(
             new GqlStatus("51N04"),
-            """
-                    The field { %s } on { %s } must be annotated as a '@Context' field in order to store its state.""",
+            "The field { %s } on { %s } must be annotated as a '@Context' field in order to store its state.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procField, GqlParams.StringParam.procClass},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4390,8 +3918,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N05(
             new GqlStatus("51N05"),
-            """
-                    The field { %s } on { %s } must be declared non-final and public.""",
+            "The field { %s } on { %s } must be declared non-final and public.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procField, GqlParams.StringParam.procClass},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4399,8 +3926,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N06(
             new GqlStatus("51N06"),
-            """
-                    The argument at position { %s } in { %s } requires a '@Name' annotation and a non-empty name.""",
+            "The argument at position { %s } in { %s } requires a '@Name' annotation and a non-empty name.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.pos, GqlParams.StringParam.procMethod},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4408,8 +3934,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N07(
             new GqlStatus("51N07"),
-            """
-                    The { %s } contains a non-default argument after a default argument. Non-default arguments are not allowed to be positioned after default arguments.""",
+            "The { %s } contains a non-default argument after a default argument. Non-default arguments are not allowed to be positioned after default arguments.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procFun},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4417,8 +3942,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N08(
             new GqlStatus("51N08"),
-            """
-                    The class { %s } must contain exactly one '@UserAggregationResult' method and exactly one '@UserAggregationUpdate' method.""",
+            "The class { %s } must contain exactly one '@UserAggregationResult' method and exactly one '@UserAggregationUpdate' method.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procClass},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4426,8 +3950,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N09(
             new GqlStatus("51N09"),
-            """
-                    The '@UserAggregationUpdate' method { %s } of { %s } must be public and have the return type 'void'.""",
+            "The '@UserAggregationUpdate' method { %s } of { %s } must be public and have the return type 'void'.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procMethod, GqlParams.StringParam.procClass},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4435,8 +3958,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N10(
             new GqlStatus("51N10"),
-            """
-                    The method { %s } of { %s } must be public.""",
+            "The method { %s } of { %s } must be public.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procMethod, GqlParams.StringParam.procClass},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4444,8 +3966,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N11(
             new GqlStatus("51N11"),
-            """
-                    The class { %s } must be public.""",
+            "The class { %s } must be public.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procClass},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4453,8 +3974,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N12(
             new GqlStatus("51N12"),
-            """
-                    The procedure { %s } has zero return columns and must be defined as void.""",
+            "The procedure { %s } has zero return columns and must be defined as void.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4462,8 +3982,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N13(
             new GqlStatus("51N13"),
-            """
-                    Unable to register the procedure or function { %s } because the name is already in use.""",
+            "Unable to register the procedure or function { %s } because the name is already in use.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procFun},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4471,8 +3990,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N14(
             new GqlStatus("51N14"),
-            """
-                    The procedure { %s } has a duplicate { %s } field, { %s }.""",
+            "The procedure { %s } has a duplicate { %s } field, { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.proc, GqlParams.StringParam.procFieldType, GqlParams.StringParam.procField
             },
@@ -4482,8 +4000,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N15(
             new GqlStatus("51N15"),
-            """
-                    Type mismatch for map key. Required 'STRING', but found { %s }.""",
+            "Type mismatch for map key. Required 'STRING', but found { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.valueType},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4491,8 +4008,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N16(
             new GqlStatus("51N16"),
-            """
-                    Type mismatch for the default value. Required { %s }, but found { %s }.""",
+            "Type mismatch for the default value. Required { %s }, but found { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.valueType, GqlParams.StringParam.input},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4500,8 +4016,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N17(
             new GqlStatus("51N17"),
-            """
-                    Procedures and functions cannot be defined in the root namespace, or use a reserved namespace. Use the package name instead (e.g., org.example.com.{ %s }).""",
+            "Procedures and functions cannot be defined in the root namespace, or use a reserved namespace. Use the package name instead (e.g., org.example.com.{ %s }).",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procFun},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4509,8 +4024,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N18(
             new GqlStatus("51N18"),
-            """
-                    The method { %s } has an invalid return type. Procedures must return a stream of records, where each record is of a defined concrete class.""",
+            "The method { %s } has an invalid return type. Procedures must return a stream of records, where each record is of a defined concrete class.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procMethod},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4518,17 +4032,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N20(
             new GqlStatus("51N20"),
-            """
-                    The field { %s } is not injectable. Ensure the field is marked as public and non-final.""",
+            "The field { %s } is not injectable. Ensure the field is marked as public and non-final.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procField},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
-            "cannot inject field ",
+            "cannot inject field",
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N21(
             new GqlStatus("51N21"),
-            """
-                    The procedure registration failed because the procedure registry was busy. Try again.""",
+            "The procedure registration failed because the procedure registry was busy. Try again.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4536,8 +4048,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N22(
             new GqlStatus("51N22"),
-            """
-                    Finding the shortest path for the given pattern requires an exhaustive search. To enable exhaustive searches, set 'cypher.forbid_exhaustive_shortestpath' to false.""",
+            "Finding the shortest path for the given pattern requires an exhaustive search. To enable exhaustive searches, set 'cypher.forbid_exhaustive_shortestpath' to false.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4545,8 +4056,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N23(
             new GqlStatus("51N23"),
-            """
-                    Cannot find the shortest path when the start and end nodes are the same. To enable this behavior, set 'dbms.cypher.forbid_shortestpath_common_nodes' to false.""",
+            "Cannot find the shortest path when the start and end nodes are the same. To enable this behavior, set 'dbms.cypher.forbid_shortestpath_common_nodes' to false.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4554,8 +4064,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N24(
             new GqlStatus("51N24"),
-            """
-                    Could not find a query plan within given time and space limits.""",
+            "Could not find a query plan within given time and space limits.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4563,8 +4072,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N25(
             new GqlStatus("51N25"),
-            """
-                    Cannot compile query due to excessive updates to indexes and constraints.""",
+            "Cannot compile query due to excessive updates to indexes and constraints.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4572,8 +4080,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N26(
             new GqlStatus("51N26"),
-            """
-                    { %s } is not available. This implementation of Cypher does not support { %s }.""",
+            "{ %s } is not available. This implementation of Cypher does not support { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.item, GqlParams.StringParam.feat},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4581,8 +4088,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N27(
             new GqlStatus("51N27"),
-            """
-                    { %s } is not supported in { %s }.""",
+            "{ %s } is not supported in { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.feat, GqlParams.StringParam.edition},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4590,8 +4096,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N28(
             new GqlStatus("51N28"),
-            """
-                    This Cypher command must be executed against the database { %s }.""",
+            "This Cypher command must be executed against the database { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4599,8 +4104,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N29(
             new GqlStatus("51N29"),
-            """
-                    The command { %s } must be executed on the current 'LEADER' server.""",
+            "The command { %s } must be executed on the current 'LEADER' server.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cmd},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4608,8 +4112,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N30(
             new GqlStatus("51N30"),
-            """
-                    { %s } is not supported in { %s }.""",
+            "{ %s } is not supported in { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.item, GqlParams.StringParam.context},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4617,8 +4120,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N31(
             new GqlStatus("51N31"),
-            """
-                    { %s } is not supported in { %s }.""",
+            "{ %s } is not supported in { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.item, GqlParams.StringParam.context},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4626,8 +4128,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N32(
             new GqlStatus("51N32"),
-            """
-                    Server is in panic.""",
+            "Server is in panic.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4635,8 +4136,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N33(
             new GqlStatus("51N33"),
-            """
-                    This member failed to replicate transaction, try again.""",
+            "This member failed to replicate transaction, try again.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4644,8 +4144,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N34(
             new GqlStatus("51N34"),
-            """
-                    Failed to write to the database due to a cluster leader change. Retrying your request at a later time may succeed.""",
+            "Failed to write to the database due to a cluster leader change. Retrying your request at a later time may succeed.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4653,8 +4152,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N35(
             new GqlStatus("51N35"),
-            """
-                    The location of { %s } has changed while the transaction was running.""",
+            "The location of { %s } has changed while the transaction was running.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4662,8 +4160,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N36(
             new GqlStatus("51N36"),
-            """
-                    There is not enough memory to perform the current task.""",
+            "There is not enough memory to perform the current task.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4671,8 +4168,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N37(
             new GqlStatus("51N37"),
-            """
-                    There is not enough stack size to perform the current task.""",
+            "There is not enough stack size to perform the current task.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4680,8 +4176,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N38(
             new GqlStatus("51N38"),
-            """
-                    There are insufficient threads available for executing the current task.""",
+            "There are insufficient threads available for executing the current task.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4689,8 +4184,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N39(
             new GqlStatus("51N39"),
-            """
-                    Expected set of files not found on disk. Please restore from backup.""",
+            "Expected set of files not found on disk. Please restore from backup.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4698,8 +4192,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N40(
             new GqlStatus("51N40"),
-            """
-                    Database { %s } failed to start. Try restarting it.""",
+            "Database { %s } failed to start. Try restarting it.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4707,8 +4200,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N41(
             new GqlStatus("51N41"),
-            """
-                    Server or database admin operation not possible.""",
+            "Server or database admin operation not possible.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4716,8 +4208,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N42(
             new GqlStatus("51N42"),
-            """
-                    Unable to check if allocator { %s } is available.""",
+            "Unable to check if allocator { %s } is available.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.alloc},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4725,8 +4216,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N43(
             new GqlStatus("51N43"),
-            """
-                    Cannot deallocate server(s) { %s }.""",
+            "Cannot deallocate server(s) { %s }.",
             new GqlParams.GqlParam[] {GqlParams.ListParam.serverList},
             Map.of(GqlParams.ListParam.serverList, GqlParams.JoinStyle.ANDED),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4734,8 +4224,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N44(
             new GqlStatus("51N44"),
-            """
-                    Cannot drop server { %s }.""",
+            "Cannot drop server { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4743,8 +4232,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N45(
             new GqlStatus("51N45"),
-            """
-                    Cannot cordon server { %s }.""",
+            "Cannot cordon server { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4752,8 +4240,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N46(
             new GqlStatus("51N46"),
-            """
-                    Cannot alter server { %s }.""",
+            "Cannot alter server { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4761,8 +4248,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N47(
             new GqlStatus("51N47"),
-            """
-                    Cannot rename server { %s }.""",
+            "Cannot rename server { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4770,8 +4256,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N48(
             new GqlStatus("51N48"),
-            """
-                    Cannot enable server { %s }.""",
+            "Cannot enable server { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4779,8 +4264,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N49(
             new GqlStatus("51N49"),
-            """
-                    Cannot alter database { %s }.""",
+            "Cannot alter database { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4788,8 +4272,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N50(
             new GqlStatus("51N50"),
-            """
-                    Cannot recreate database { %s }.""",
+            "Cannot recreate database { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4797,8 +4280,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N51(
             new GqlStatus("51N51"),
-            """
-                    Cannot create database { %s }.""",
+            "Cannot create database { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4806,8 +4288,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N52(
             new GqlStatus("51N52"),
-            """
-                    Cannot alter database topology. Number of primaries { %s } needs to be at least 1 and may not exceed { %s }.""",
+            "Cannot alter database topology. Number of primaries { %s } needs to be at least 1 and may not exceed { %s }.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.count, GqlParams.NumberParam.upper},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4817,8 +4298,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     ,
     STATUS_51N53(
             new GqlStatus("51N53"),
-            """
-                    Cannot alter database topology. Number of secondaries { %s } needs to be at least 0 and may not exceed { %s }.""",
+            "Cannot alter database topology. Number of secondaries { %s } needs to be at least 0 and may not exceed { %s }.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.count, GqlParams.NumberParam.upper},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4826,8 +4306,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N54(
             new GqlStatus("51N54"),
-            """
-                    Failed to calculate reallocation for databases. { %s }""",
+            "Failed to calculate reallocation for databases. { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4835,8 +4314,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N55(
             new GqlStatus("51N55"),
-            """
-                    Failed to create the database { %s }. The limit of databases is reached. Either increase the limit using the config setting { %s } or drop a database.""",
+            "Failed to create the database { %s }. The limit of databases is reached. Either increase the limit using the config setting { %s } or drop a database.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db, GqlParams.StringParam.cfgSetting},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4844,8 +4322,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N56(
             new GqlStatus("51N56"),
-            """
-                    The number of { %s } seeding servers { %s } is larger than the desired number of { %s } allocations { %s }.""",
+            "The number of { %s } seeding servers { %s } is larger than the desired number of { %s } allocations { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.serverType,
                 GqlParams.NumberParam.count1,
@@ -4858,8 +4335,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N57(
             new GqlStatus("51N57"),
-            """
-                    Unexpected error while picking allocations. { %s }""",
+            "Unexpected error while picking allocations. { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.msg},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4867,8 +4343,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N58(
             new GqlStatus("51N58"),
-            """
-                    Invalid database shard topology. The number of { %s } { %s } needs to be at least 1 and may not exceed { %s }.""",
+            "Invalid database shard topology. The number of { %s } { %s } needs to be at least 1 and may not exceed { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.context, GqlParams.NumberParam.count, GqlParams.NumberParam.upper
             },
@@ -4878,8 +4353,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N59(
             new GqlStatus("51N59"),
-            """
-                    The DBMS is unable to handle the request, please retry later or contact the system operator. More information is present in the logs.""",
+            "The DBMS is unable to handle the request, please retry later or contact the system operator. More information is present in the logs.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4887,8 +4361,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N60(
             new GqlStatus("51N60"),
-            """
-                    The DBMS is unable to determine the enterprise license acceptance status.""",
+            "The DBMS is unable to determine the enterprise license acceptance status.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4896,8 +4369,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N61(
             new GqlStatus("51N61"),
-            """
-                    Index { %s } population failed.""",
+            "Index { %s } population failed.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4905,8 +4377,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N62(
             new GqlStatus("51N62"),
-            """
-                    Unable to use index { %s } because it is in a failed state. See logs for more information.""",
+            "Unable to use index { %s } because it is in a failed state. See logs for more information.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idx},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4914,8 +4385,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_51N63(
             new GqlStatus("51N63"),
-            """
-                    Index is not ready yet. Wait until it finishes populating and retry the transaction.""",
+            "Index is not ready yet. Wait until it finishes populating and retry the transaction.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4923,8 +4393,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N64(
             new GqlStatus("51N64"),
-            """
-                    The index dropped while sampling.""",
+            "The index dropped while sampling.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4932,8 +4401,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N65(
             new GqlStatus("51N65"),
-            """
-                    Vector index { %s } has a dimensionality of { %s }, but indexed vectors have { %s }.""",
+            "Vector index { %s } has a dimensionality of { %s }, but indexed vectors have { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.idx, GqlParams.NumberParam.dim1, GqlParams.NumberParam.dim2
             },
             emptyMap(),
@@ -4942,8 +4410,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N66(
             new GqlStatus("51N66"),
-            """
-                    Insufficient resources to complete the request.""",
+            "Insufficient resources to complete the request.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4951,8 +4418,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N67(
             new GqlStatus("51N67"),
-            """
-                    Unexpected CDC selector { %s } at { %s }, expected selector to be a { %s } selector.""",
+            "Unexpected CDC selector { %s } at { %s }, expected selector to be a { %s } selector.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.selectorType1, GqlParams.StringParam.input, GqlParams.StringParam.selectorType2
             },
@@ -4962,8 +4428,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N68(
             new GqlStatus("51N68"),
-            """
-                    Change Data Capture is not currently enabled for this database.""",
+            "Change Data Capture is not currently enabled for this database.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4971,8 +4436,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N69(
             new GqlStatus("51N69"),
-            """
-                    It is not possible to perform { %s } on the system database.""",
+            "It is not possible to perform { %s } on the system database.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.operation},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4980,8 +4444,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N70(
             new GqlStatus("51N70"),
-            """
-                    Cannot get routing table for { %s } because Bolt is not enabled. Please update your configuration such that 'server.bolt.enabled' is set to true.""",
+            "Cannot get routing table for { %s } because Bolt is not enabled. Please update your configuration such that 'server.bolt.enabled' is set to true.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4989,8 +4452,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N71(
             new GqlStatus("51N71"),
-            """
-                    Feature: { %s } is not available in a sharded database.""",
+            "Feature: { %s } is not available in a sharded database.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.feat},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -4998,8 +4460,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N72(
             new GqlStatus("51N72"),
-            """
-                    Failed to allocate memory in a memory pool. See { %s } in the neo4j.conf file.""",
+            "Failed to allocate memory in a memory pool. See { %s } in the neo4j.conf file.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -5007,8 +4468,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_51N73(
             new GqlStatus("51N73"),
-            """
-                    The transaction uses more memory than it is allowed. The maximum allowed size for a transaction can be configured with { %s } in the neo4j.conf file.""",
+            "The transaction uses more memory than it is allowed. The maximum allowed size for a transaction can be configured with { %s } in the neo4j.conf file.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -5016,8 +4476,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_51N74(
             new GqlStatus("51N74"),
-            """
-                    Failed to start a new transaction. The limit of concurrent transactions is reached. Increase the number of concurrent transactions using { %s } in the neo4j.conf file.""",
+            "Failed to start a new transaction. The limit of concurrent transactions is reached. Increase the number of concurrent transactions using { %s } in the neo4j.conf file.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.cfgSetting},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
@@ -5025,8 +4484,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_52N01(
             new GqlStatus("52N01"),
-            """
-                    Execution of the procedure { %s } timed out after { %s } { %s }.""",
+            "Execution of the procedure { %s } timed out after { %s } { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.proc, GqlParams.NumberParam.timeAmount, GqlParams.StringParam.timeUnit
             },
@@ -5036,8 +4494,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N02(
             new GqlStatus("52N02"),
-            """
-                    Execution of the procedure { %s } failed due to a client error.""",
+            "Execution of the procedure { %s } failed due to a client error.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5045,8 +4502,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N03(
             new GqlStatus("52N03"),
-            """
-                    Execution of the procedure { %s } failed due to an invalid specified execution mode { %s }.""",
+            "Execution of the procedure { %s } failed due to an invalid specified execution mode { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.proc, GqlParams.StringParam.procExeMode},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5054,8 +4510,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N05(
             new GqlStatus("52N05"),
-            """
-                    Cannot invoke procedure on this member because it is not a secondary for the database { %s }.""",
+            "Cannot invoke procedure on this member because it is not a secondary for the database { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5063,8 +4518,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N06(
             new GqlStatus("52N06"),
-            """
-                    Unexpected number of arguments (expected 0-2 but received { %s }).""",
+            "Unexpected number of arguments (expected 0-2 but received { %s }).",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.count},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5072,8 +4526,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N07(
             new GqlStatus("52N07"),
-            """
-                    Unrecognised port name { %s } (valid values are: { %s }.""",
+            "Unrecognised port name { %s } (valid values are: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.port, GqlParams.ListParam.portList},
             Map.of(GqlParams.ListParam.portList, GqlParams.JoinStyle.ANDED),
             Condition.PROCEDURE_EXCEPTION,
@@ -5081,8 +4534,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N08(
             new GqlStatus("52N08"),
-            """
-                    Unable to parse server id { %s }.""",
+            "Unable to parse server id { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5090,8 +4542,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N09(
             new GqlStatus("52N09"),
-            """
-                    Execution of the procedure { %s } failed due to a database error.""",
+            "Execution of the procedure { %s } failed due to a database error.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5099,8 +4550,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_52N10(
             new GqlStatus("52N10"),
-            """
-                    An address key is included in the query string provided to the GetRoutingTableProcedure, but its value could not be parsed.""",
+            "An address key is included in the query string provided to the GetRoutingTableProcedure, but its value could not be parsed.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5108,8 +4558,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N11(
             new GqlStatus("52N11"),
-            """
-                    An unexpected error has occurred. Please refer to the server's debug log for more information.""",
+            "An unexpected error has occurred. Please refer to the server's debug log for more information.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5117,8 +4566,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N12(
             new GqlStatus("52N12"),
-            """
-                    The previous default database { %s } is still running.""",
+            "The previous default database { %s } is still running.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5126,8 +4574,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N13(
             new GqlStatus("52N13"),
-            """
-                    New default database { %s } does not exist.""",
+            "New default database { %s } does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.db},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5135,8 +4582,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N14(
             new GqlStatus("52N14"),
-            """
-                    System database cannot be set as default.""",
+            "System database cannot be set as default.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5144,8 +4590,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N15(
             new GqlStatus("52N15"),
-            """
-                    Provided allocator { %s } is not available or was not initialized. Verify that the spelling is correct.""",
+            "Provided allocator { %s } is not available or was not initialized. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.alloc},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5153,8 +4598,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N16(
             new GqlStatus("52N16"),
-            """
-                    Invalid arguments to procedure.""",
+            "Invalid arguments to procedure.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5162,8 +4606,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N17(
             new GqlStatus("52N17"),
-            """
-                    Setting/removing the quarantine marker failed.""",
+            "Setting/removing the quarantine marker failed.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5171,8 +4614,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N18(
             new GqlStatus("52N18"),
-            """
-                    The number of seeding servers { %s } is larger than the defined number of allocations { %s }.""",
+            "The number of seeding servers { %s } is larger than the defined number of allocations { %s }.",
             new GqlParams.GqlParam[] {GqlParams.NumberParam.countSeeders, GqlParams.NumberParam.countAllocs},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5180,8 +4622,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N19(
             new GqlStatus("52N19"),
-            """
-                    The specified seeding server with id { %s } was not found. Verify that the spelling is correct.""",
+            "The specified seeding server with id { %s } was not found. Verify that the spelling is correct.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.server},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5189,8 +4630,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N20(
             new GqlStatus("52N20"),
-            """
-                    The recreation of a database is not supported when seed updating is not enabled.""",
+            "The recreation of a database is not supported when seed updating is not enabled.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5198,8 +4638,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N21(
             new GqlStatus("52N21"),
-            """
-                    Failed to clean the system graph.""",
+            "Failed to clean the system graph.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5207,8 +4646,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N22(
             new GqlStatus("52N22"),
-            """
-                    Invalid argument { %s } for { %s } on procedure { %s }. The expected format of { %s } is { %s }.""",
+            "Invalid argument { %s } for { %s } on procedure { %s }. The expected format of { %s } is { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.field,
                 GqlParams.StringParam.procParam,
@@ -5222,8 +4660,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N23(
             new GqlStatus("52N23"),
-            """
-                    The following namespaces are not reloadable: { %s }""",
+            "The following namespaces are not reloadable: { %s }",
             new GqlParams.GqlParam[] {GqlParams.ListParam.namespaceList},
             Map.of(GqlParams.ListParam.namespaceList, GqlParams.JoinStyle.ANDED),
             Condition.PROCEDURE_EXCEPTION,
@@ -5231,8 +4668,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N24(
             new GqlStatus("52N24"),
-            """
-                    Failed to reload procedures. See logs for more information.""",
+            "Failed to reload procedures. See logs for more information.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5240,8 +4676,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_52N25(
             new GqlStatus("52N25"),
-            """
-                    JMX error while accessing { %s }. See logs for more information.""",
+            "JMX error while accessing { %s }. See logs for more information.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.param},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5249,8 +4684,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.DATABASE_ERROR),
     STATUS_52N26(
             new GqlStatus("52N26"),
-            """
-                    { %s } is not a valid change identifier.""",
+            "{ %s } is not a valid change identifier.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.param},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5258,8 +4692,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N27(
             new GqlStatus("52N27"),
-            """
-                    The commit timestamp for the provided transaction ID does not match the one in the transaction log.""",
+            "The commit timestamp for the provided transaction ID does not match the one in the transaction log.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5267,8 +4700,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N28(
             new GqlStatus("52N28"),
-            """
-                    { %s } is not a valid change identifier. Transaction ID does not exist.""",
+            "{ %s } is not a valid change identifier. Transaction ID does not exist.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.transactionId},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5276,8 +4708,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N29(
             new GqlStatus("52N29"),
-            """
-                    Given ChangeIdentifier describes a transaction that occurred before any enrichment records exist.""",
+            "Given ChangeIdentifier describes a transaction that occurred before any enrichment records exist.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5285,8 +4716,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N30(
             new GqlStatus("52N30"),
-            """
-                    Given ChangeIdentifier describes a transaction that hasn't yet occurred.""",
+            "Given ChangeIdentifier describes a transaction that hasn't yet occurred.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5294,8 +4724,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.TRANSIENT_ERROR),
     STATUS_52N31(
             new GqlStatus("52N31"),
-            """
-                    Change identifier { %s } does not belong to this database.""",
+            "Change identifier { %s } does not belong to this database.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.param},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5303,8 +4732,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N32(
             new GqlStatus("52N32"),
-            """
-                    Change identifier { %s } has an invalid sequence number { %s }.""",
+            "Change identifier { %s } has an invalid sequence number { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.param1, GqlParams.StringParam.param2},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5312,8 +4740,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N33(
             new GqlStatus("52N33"),
-            """
-                    Failed to invoke procedure/function { %s } caused by: { %s }.""",
+            "Failed to invoke procedure/function { %s } caused by: { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.sig, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5321,8 +4748,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N34(
             new GqlStatus("52N34"),
-            """
-                    { %s } is restricted and accesses database internals. Procedure restriction is controlled by the dbms.security.procedures.unrestricted setting. Only un-restrict procedures you can trust with access to database internals.""",
+            "{ %s } is restricted and accesses database internals. Procedure restriction is controlled by the dbms.security.procedures.unrestricted setting. Only un-restrict procedures you can trust with access to database internals.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5330,8 +4756,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N35(
             new GqlStatus("52N35"),
-            """
-                    Failed to compile procedure defined in { %s }: { %s }""",
+            "Failed to compile procedure defined in { %s }: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.procClass, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5339,8 +4764,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N36(
             new GqlStatus("52N36"),
-            """
-                    Invalid argument { %s } for { %s } on procedure { %s }. The expected format of { %s } is outlined in the { %s } API documentation.""",
+            "Invalid argument { %s } for { %s } on procedure { %s }. The expected format of { %s } is outlined in the { %s } API documentation.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.field,
                 GqlParams.StringParam.procParam,
@@ -5354,8 +4778,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_52N37(
             new GqlStatus("52N37"),
-            """
-                    Execution of the procedure { %s } failed.""",
+            "Execution of the procedure { %s } failed.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.proc},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5363,8 +4786,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_52N38(
             new GqlStatus("52N38"),
-            """
-                    Cannot find a start position in the logs.""",
+            "Cannot find a start position in the logs.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5372,8 +4794,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_52N39(
             new GqlStatus("52N39"),
-            """
-                    The log scanner is no longer active.""",
+            "The log scanner is no longer active.",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.PROCEDURE_EXCEPTION,
@@ -5381,8 +4802,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_52U00(
             new GqlStatus("52U00"),
-            """
-                    Execution of the procedure { %s } failed due to { %s }: { %s }.""",
+            "Execution of the procedure { %s } failed due to { %s }: { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.proc, GqlParams.StringParam.msgTitle, GqlParams.StringParam.msg
             },
@@ -5392,8 +4812,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_53N34(
             new GqlStatus("53N34"),
-            """
-                    { %s } is restricted and accesses database internals. User-defined function restriction is controlled by the dbms.security.procedures.unrestricted setting. Only un-restrict user-defined functions you can trust with access to database internals.""",
+            "{ %s } is restricted and accesses database internals. User-defined function restriction is controlled by the dbms.security.procedures.unrestricted setting. Only un-restrict user-defined functions you can trust with access to database internals.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.FUNCTION_EXCEPTION,
@@ -5401,8 +4820,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_53N35(
             new GqlStatus("53N35"),
-            """
-                    Failed to compile function defined in { %s }: { %s }""",
+            "Failed to compile function defined in { %s }: { %s }",
             new GqlParams.GqlParam[] {GqlParams.StringParam.funClass, GqlParams.StringParam.msg},
             emptyMap(),
             Condition.FUNCTION_EXCEPTION,
@@ -5410,8 +4828,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_53N37(
             new GqlStatus("53N37"),
-            """
-                    Execution of the function { %s } failed.""",
+            "Execution of the function { %s } failed.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.fun},
             emptyMap(),
             Condition.FUNCTION_EXCEPTION,
@@ -5419,8 +4836,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_53U00(
             new GqlStatus("53U00"),
-            """
-                    Execution of the function { %s } failed due to { %s }: { %s }.""",
+            "Execution of the function { %s } failed due to { %s }: { %s }.",
             new GqlParams.GqlParam[] {
                 GqlParams.StringParam.fun, GqlParams.StringParam.msgTitle, GqlParams.StringParam.msg
             },
@@ -5430,8 +4846,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_G1000(
             new GqlStatus("G1000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DEPENDENT_OBJECT_ERROR,
@@ -5439,8 +4854,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_G1001(
             new GqlStatus("G1001"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DEPENDENT_OBJECT_ERROR,
@@ -5448,8 +4862,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_G1002(
             new GqlStatus("G1002"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DEPENDENT_OBJECT_ERROR,
@@ -5457,8 +4870,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_G1003(
             new GqlStatus("G1003"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.DEPENDENT_OBJECT_ERROR,
@@ -5466,8 +4878,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.UNKNOWN),
     STATUS_G2000(
             new GqlStatus("G2000"),
-            """
-                    """,
+            "",
             new GqlParams.GqlParam[] {},
             emptyMap(),
             Condition.GRAPH_TYPE_VIOLATION,

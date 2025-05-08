@@ -53,15 +53,11 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof ErrorGqlStatusObjectImplementation gql
+        return obj instanceof ErrorGqlStatusObjectImplementation gql
                 && Objects.equals(gqlStatusInfoCode, gql.gqlStatusInfoCode)
                 && Objects.equals(diagnosticRecord, gql.diagnosticRecord)
                 && Objects.equals(cause, gql.cause)
-                && Objects.equals(paramMap, gql.paramMap)) {
-            return true;
-        } else {
-            return false;
-        }
+                && Objects.equals(paramMap, gql.paramMap);
     }
 
     public static Builder from(GqlStatusInfoCodes gqlStatusInfo) {
@@ -166,7 +162,7 @@ public class ErrorGqlStatusObjectImplementation extends CommonGqlStatusObjectImp
 
     public static class Builder {
         private ErrorGqlStatusObject cause = null;
-        private Map<GqlParams.GqlParam, Object> paramMap = new HashMap<>();
+        private final Map<GqlParams.GqlParam, Object> paramMap = new HashMap<>();
         private final GqlStatusInfoCodes gqlStatusInfoCode;
         private final DiagnosticRecord.Builder diagnosticRecordBuilder = DiagnosticRecord.from();
 

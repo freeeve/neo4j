@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Locale;
 import org.junit.jupiter.api.Test;
 
-public class ProcessorTest {
+class ProcessorTest {
 
     private static String expectedIDENT(String s) {
         return "`" + s + "`";
@@ -60,7 +60,7 @@ public class ProcessorTest {
     // Fixing changes to format in these tests should be as easy as changing the corresponding
     // expectedPROCESSOR()-method
     @Test
-    public void testIDENT() {
+    void testIDENT() {
         assertEquals(expectedIDENT("abc"), processorIdent.process("abc"));
         assertEquals(expectedIDENT("abc()"), processorIdent.process("abc()"));
         assertEquals(expectedIDENT("{ %s } abc"), processorIdent.process("{ %s } abc"));
@@ -68,7 +68,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testCALLABLE_IDENT() {
+    void testCALLABLE_IDENT() {
         assertEquals(expectedCALLABLE_IDENT("abc"), processorCallableIdent.process("abc"));
         assertEquals(expectedCALLABLE_IDENT("abc()"), processorCallableIdent.process("abc()"));
         assertEquals(expectedCALLABLE_IDENT("{ %s } abc"), processorCallableIdent.process("{ %s } abc"));
@@ -76,7 +76,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testSTRLIT() {
+    void testSTRLIT() {
         assertEquals(expectedSTRLIT("abc"), processorStrlit.process("abc"));
         assertEquals(expectedSTRLIT("abc()"), processorStrlit.process("abc()"));
         assertEquals(expectedSTRLIT("{ %s } abc"), processorStrlit.process("{ %s } abc"));
@@ -84,7 +84,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testPARAM() {
+    void testPARAM() {
         assertEquals("$" + expectedIDENT("abc"), processorParam.process("abc"));
         assertEquals("$" + expectedIDENT("abc()"), processorParam.process("abc()"));
         assertEquals("$" + expectedIDENT("{ %s } abc"), processorParam.process("{ %s } abc"));
@@ -92,7 +92,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testUPPER() {
+    void testUPPER() {
         assertEquals(expectedUPPER("abc"), processorUpper.process("abc"));
         assertEquals(expectedUPPER("abc()"), processorUpper.process("abc()"));
         assertEquals(expectedUPPER("{ %s } abc"), processorUpper.process("{ %s } abc"));
@@ -100,7 +100,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testUPPER_with_STRLIT() {
+    void testUPPER_with_STRLIT() {
         assertEquals(expectedSTRLIT(expectedUPPER("abc")), processorUpperStrlit.process("abc"));
         assertEquals(expectedSTRLIT(expectedUPPER("abc()")), processorUpperStrlit.process("abc()"));
         assertEquals(expectedSTRLIT(expectedUPPER("{ %s } abc")), processorUpperStrlit.process("{ %s } abc"));
@@ -108,7 +108,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testUPPER_with_IDENT() {
+    void testUPPER_with_IDENT() {
         assertEquals(expectedUPPER(expectedIDENT("abc")), processorUpperIdent.process("abc"));
         assertEquals(expectedUPPER(expectedIDENT("abc()")), processorUpperIdent.process("abc()"));
         assertEquals(expectedUPPER(expectedIDENT("{ %s } abc")), processorUpperIdent.process("{ %s } abc"));
@@ -116,7 +116,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testUPPER_with_CALLABLE_IDENT() {
+    void testUPPER_with_CALLABLE_IDENT() {
         assertEquals(expectedUPPER(expectedCALLABLE_IDENT("abc")), processorUpperCallableIdent.process("abc"));
         assertEquals(expectedUPPER(expectedCALLABLE_IDENT("abc()")), processorUpperCallableIdent.process("abc()"));
         assertEquals(
@@ -125,7 +125,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testNELIST_with_VERBATIM() {
+    void testNELIST_with_VERBATIM() {
         assertEquals("abc", processorNelistVerbatim.process(List.of("abc"), null));
         assertEquals("abc(), cbd()", processorNelistVerbatim.process(List.of("abc()", "cbd()"), null));
         assertEquals(
@@ -133,7 +133,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testNELIST_with_IDENT() {
+    void testNELIST_with_IDENT() {
         assertEquals(expectedIDENT("abc"), processorNelistIdent.process(List.of("abc"), null));
         assertEquals(
                 expectedIDENT("abc()") + ", " + expectedIDENT("cbd()"),
@@ -144,7 +144,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testNELIST_with_CALLABLE_IDENT() {
+    void testNELIST_with_CALLABLE_IDENT() {
         assertEquals(expectedCALLABLE_IDENT("abc"), processorNelistCallableIdent.process(List.of("abc"), null));
         assertEquals(
                 expectedCALLABLE_IDENT("abc()") + ", " + expectedCALLABLE_IDENT("cbd()"),
@@ -156,7 +156,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testNELIST_with_STRLIT() {
+    void testNELIST_with_STRLIT() {
         assertEquals(expectedSTRLIT("abc"), processorNelistStrlit.process(List.of("abc"), null));
         assertEquals(
                 expectedSTRLIT("abc()") + ", " + expectedSTRLIT("cbd()"),
@@ -167,7 +167,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testANDEDNELIST_with_VERBATIM() {
+    void testANDEDNELIST_with_VERBATIM() {
         var joinStyle = GqlParams.JoinStyle.ANDED;
         assertEquals("abc", processorNelistVerbatim.process(List.of("abc"), joinStyle));
         assertEquals("abc() and cbd()", processorNelistVerbatim.process(List.of("abc()", "cbd()"), joinStyle));
@@ -177,7 +177,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testANDEDNELIST_with_IDENT() {
+    void testANDEDNELIST_with_IDENT() {
         var joinStyle = GqlParams.JoinStyle.ANDED;
         assertEquals(expectedIDENT("abc"), processorNelistIdent.process(List.of("abc"), joinStyle));
         assertEquals(
@@ -189,7 +189,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testANDEDNELIST_with_CALLABLE_IDENT() {
+    void testANDEDNELIST_with_CALLABLE_IDENT() {
         var joinStyle = GqlParams.JoinStyle.ANDED;
         assertEquals(expectedCALLABLE_IDENT("abc"), processorNelistCallableIdent.process(List.of("abc"), joinStyle));
         assertEquals(
@@ -202,7 +202,7 @@ public class ProcessorTest {
     }
 
     @Test
-    public void testANDEDNELIST_with_STRLIT() {
+    void testANDEDNELIST_with_STRLIT() {
         var joinStyle = GqlParams.JoinStyle.ANDED;
 
         assertEquals(expectedSTRLIT("abc"), processorNelistStrlit.process(List.of("abc"), joinStyle));
@@ -216,7 +216,7 @@ public class ProcessorTest {
 
     // More readable, but tedious fixing of format-changes
     @Test
-    public void testLiteralMessages() {
+    void testLiteralMessages() {
         assertEquals("", processorNelistVerbatim.process(List.of(""), GqlParams.JoinStyle.ANDED));
         assertEquals("", processorNelistVerbatim.process(List.of(""), GqlParams.JoinStyle.ORED));
         assertEquals("", processorNelistVerbatim.process(List.of(""), GqlParams.JoinStyle.COMMAD));

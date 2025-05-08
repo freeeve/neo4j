@@ -19,16 +19,20 @@
  */
 package org.neo4j.gqlstatus;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.Test;
 
-public class ConditionTest {
+class ConditionTest {
 
     @Test
-    public void testCorrectNaming() {
+    void testCorrectNaming() {
         for (Condition cond : Condition.values()) {
             String name = cond.name();
             for (char c : name.toCharArray()) {
-                assert (c == '_') || (Character.isUpperCase(c));
+                assertTrue(
+                        c == '_' || Character.isUpperCase(c),
+                        String.format("Expected character to be uppercase or underscore.but got %s.", c));
             }
         }
     }

@@ -422,16 +422,7 @@ public class GqlParams {
         }
     }
 
-    public static class CHAR_RANGE extends Processor {
-        @Override
-        public String process(Object o) {
-            return "`" + o + "`";
-        }
-    }
-
     public static class BOOLEAN extends Processor {}
-
-    public static class PELIST extends ListProcessor {}
 
     public static class NELIST extends ListProcessor {}
 }
