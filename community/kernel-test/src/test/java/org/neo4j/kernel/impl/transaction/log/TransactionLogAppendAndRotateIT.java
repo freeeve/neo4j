@@ -108,6 +108,8 @@ import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 @Neo4jLayoutExtension
 @ExtendWith(LifeExtension.class)
 class TransactionLogAppendAndRotateIT {
+    private static final TestLogAppendEvent TEST_LOG_APPEND_EVENT = new TestLogAppendEvent();
+
     @Inject
     private FileSystemAbstraction fileSystem;
 
@@ -150,7 +152,7 @@ class TransactionLogAppendAndRotateIT {
                                                 StoreCursors.NULL,
                                                 Commitment.NO_COMMITMENT,
                                                 EMPTY),
-                                        LogAppendEvent.NULL);
+                                        TEST_LOG_APPEND_EVENT);
                     } catch (Exception e) {
                         setup.end().set(true);
                         fail(e.getMessage(), e);
@@ -176,7 +178,7 @@ class TransactionLogAppendAndRotateIT {
         setup.appender.append(
                 new CompleteTransaction(
                         txWithVersion(V5_11), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
-                LogAppendEvent.NULL);
+                TEST_LOG_APPEND_EVENT);
 
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(0);
 
@@ -184,7 +186,7 @@ class TransactionLogAppendAndRotateIT {
             setup.appender.append(
                     new CompleteTransaction(
                             txWithVersion(V5_12), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
-                    LogAppendEvent.NULL);
+                    TEST_LOG_APPEND_EVENT);
         }
 
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(1);
@@ -193,7 +195,7 @@ class TransactionLogAppendAndRotateIT {
             setup.appender.append(
                     new CompleteTransaction(
                             txWithVersion(V5_13), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
-                    LogAppendEvent.NULL);
+                    TEST_LOG_APPEND_EVENT);
         }
 
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(2);
@@ -217,7 +219,7 @@ class TransactionLogAppendAndRotateIT {
         setup.appender.append(
                 new CompleteTransaction(
                         txWithVersion(V5_12), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
-                LogAppendEvent.NULL);
+                TEST_LOG_APPEND_EVENT);
 
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(1);
 
@@ -238,7 +240,7 @@ class TransactionLogAppendAndRotateIT {
         setup.appender.append(
                 new CompleteTransaction(
                         txWithVersion(V5_11), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
-                LogAppendEvent.NULL);
+                TEST_LOG_APPEND_EVENT);
 
         // position of append is in the initial file
         var noRotationStartPosition1 = setup.metadataCache
@@ -250,7 +252,7 @@ class TransactionLogAppendAndRotateIT {
         setup.appender.append(
                 new CompleteTransaction(
                         txWithVersion(V5_11), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
-                LogAppendEvent.NULL);
+                TEST_LOG_APPEND_EVENT);
 
         // position of second append is still in the initial file
         var noRotationStartPosition2 = setup.metadataCache
@@ -265,7 +267,7 @@ class TransactionLogAppendAndRotateIT {
         setup.appender.append(
                 new CompleteTransaction(
                         txWithVersion(V5_12), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY),
-                LogAppendEvent.NULL);
+                TEST_LOG_APPEND_EVENT);
 
         // now we did rotation
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(1);
@@ -292,7 +294,7 @@ class TransactionLogAppendAndRotateIT {
                         StoreCursors.NULL,
                         Commitment.NO_COMMITMENT,
                         EMPTY),
-                LogAppendEvent.NULL);
+                TEST_LOG_APPEND_EVENT);
 
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(1);
 
@@ -316,7 +318,7 @@ class TransactionLogAppendAndRotateIT {
         two.next(three);
         three.next(new CompleteTransaction(
                 txWithVersion(GLORIOUS_FUTURE), NULL_CONTEXT, StoreCursors.NULL, Commitment.NO_COMMITMENT, EMPTY));
-        setup.appender.append(batch, LogAppendEvent.NULL);
+        setup.appender.append(batch, TEST_LOG_APPEND_EVENT);
 
         assertThat(setup.monitoring.numberOfRotations()).isEqualTo(1);
 
@@ -516,6 +518,13 @@ class TransactionLogAppendAndRotateIT {
 
         int numberOfRotations() {
             return rotations.get();
+        }
+    }
+
+    private static class TestLogAppendEvent extends LogAppendEvent.Empty {
+        @Override
+        public void appendedBytes(long bytes) {
+            assertThat(bytes).isGreaterThanOrEqualTo(0);
         }
     }
 }

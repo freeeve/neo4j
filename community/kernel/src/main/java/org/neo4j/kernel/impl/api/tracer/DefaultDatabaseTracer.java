@@ -281,6 +281,7 @@ public class DefaultDatabaseTracer implements DatabaseTracer {
     private class DefaultLogAppendEvent implements LogAppendEvent {
         @Override
         public void appendedBytes(long bytes) {
+            assert bytes >= 0;
             appendedBytes.add(bytes);
         }
 

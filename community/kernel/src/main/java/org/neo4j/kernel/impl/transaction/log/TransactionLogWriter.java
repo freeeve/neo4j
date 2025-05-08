@@ -102,6 +102,7 @@ public class TransactionLogWriter {
             // That means we know we are the only ones using the logfile here, and don't need to lock
             logRotation.locklessRotateLogFile(logAppendEvent, kernelVersion, appendIndex - 1, previousChecksum);
             previousKernelVersion = kernelVersion;
+            channel.resetAppendedBytesCounter();
         }
         channel.getCurrentLogPosition(logPositionMarker);
 
