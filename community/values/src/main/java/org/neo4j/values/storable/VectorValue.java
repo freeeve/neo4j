@@ -68,6 +68,8 @@ public abstract sealed class VectorValue extends HashMemoizingScalarValue implem
      */
     protected abstract long longBits(int i);
 
+    public abstract String nestedTypeName();
+
     @Override
     public long updateHash(HashFunction hashFunction, long hash) {
         int len = dimensions();

@@ -101,6 +101,11 @@ public final class Float32Vector extends FloatingPointVector {
     }
 
     @Override
+    public String nestedTypeName() {
+        return NESTED_TYPE_NAME;
+    }
+
+    @Override
     protected int computeHashToMemoize() {
         return NumberValues.hash(coordinates);
     }

@@ -261,6 +261,14 @@ public class CypherTypeException extends Neo4jException {
                 gql, String.format("Expected %s to be a %s, but it was a %s", got, expectedType, gotType));
     }
 
+    public static CypherTypeException wrongVectorDimension(
+            String gotPretty, String nestedTypeName, long expectedDimension, int gotDimension) {
+        var expectedType = String.format("VECTOR<%s>(%d)", nestedTypeName, expectedDimension);
+        var gotCypherType = String.format("VECTOR<%s>(%d)", nestedTypeName, gotDimension);
+        var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of(expectedType), gotCypherType);
+        return new CypherTypeException(gql, String.format("Expected a %s, but got %s", expectedType, gotCypherType));
+    }
+
     public static CypherTypeException howTreatPredicate(String got, String gotPretty, String gotCypherType) {
         var gql = GqlHelper.getGql22G03_22N01(gotPretty, List.of("BOOLEAN"), gotCypherType);
         return new CypherTypeException(gql, String.format("Don't know how to treat a predicate: %s", got), null);

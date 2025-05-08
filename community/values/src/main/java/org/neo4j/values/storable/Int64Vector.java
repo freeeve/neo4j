@@ -101,6 +101,11 @@ public final class Int64Vector extends IntegralVector {
     }
 
     @Override
+    public String nestedTypeName() {
+        return NESTED_TYPE_NAME;
+    }
+
+    @Override
     protected int computeHashToMemoize() {
         return NumberValues.hash(coordinates);
     }

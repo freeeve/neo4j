@@ -199,8 +199,8 @@ final class VectorUtils {
     static Value assertDimension(VectorValue vectorValue, AnyValue dimension) {
         long dimensionValue = getDimension(dimension);
         if (vectorValue.dimensions() != dimensionValue) {
-            throw new CypherTypeException(format(
-                    "Expected a vector of dimension %d, but got: %d;", dimensionValue, vectorValue.dimensions()));
+            throw CypherTypeException.wrongVectorDimension(
+                    vectorValue.prettyPrint(), vectorValue.nestedTypeName(), dimensionValue, vectorValue.dimensions());
         }
         return vectorValue;
     }
