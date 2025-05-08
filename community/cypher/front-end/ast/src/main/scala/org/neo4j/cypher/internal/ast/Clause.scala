@@ -2004,6 +2004,9 @@ case class Return(
   private def checkVariableScope: SemanticState => Seq[SemanticError] = s =>
     returnItems match {
       case ReturnItems(star, _, _, _)
+        if star && s.currentScope.isEmpty && context == ScopeClauseSubqueryCall =>
+        Seq(SemanticError.invalidUseOfReturnStar(position))
+      case ReturnItems(star, _, _, _)
         if star && (s.currentScope.isEmpty && s.currentScope.parent.fold(true)(_.isEmpty)) =>
         Seq(SemanticError.invalidUseOfReturnStar(position))
       case _ =>
@@ -2307,13 +2310,15 @@ case class ScopeClauseSubqueryCall(
       when(innerQuery.isReturning) {
         val outerScopeSymbolNames = outer.currentScope.symbolNames
         val outputSymbolNames = innerQuery.finalScope(innerScope).symbolNames
-        val intersect = outputSymbolNames.intersect(outerScopeSymbolNames).diff(importedSymbolNames)
+        val intersection = outputSymbolNames.intersect(outerScopeSymbolNames)
+        val difference =
+          if (innerQuery.returnVariables.includeExisting) intersection.diff(importedSymbolNames) else intersection
 
         val scopeForDeclaringVariables = innerQuery.finalScope(innerScope)
         val filteredVariables =
           scopeForDeclaringVariables.symbolTable.values.filter(x => !importedSymbolNames.contains(x.name))
 
-        innerQuery.getReturns.flatMap(v => intersect.map((v, _))).foldSemanticCheck { case (ret, name) =>
+        innerQuery.getReturns.flatMap(v => difference.map((v, _))).foldSemanticCheck { case (ret, name) =>
           val position = ret.returnItems.items.find(_.name == name) match {
             case _ @Some(AliasedReturnItem(_, variable)) => variable.position
             case _                                       => ret.position
