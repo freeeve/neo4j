@@ -24,28 +24,26 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 public class DatabaseReferenceImplTest {
-    @Test
-    void shouldSeeLegacyAsShard() {
-        assertThat(DatabaseReferenceImpl.SPD.isShardName("foo-shard-00")).isTrue();
-        assertThat(DatabaseReferenceImpl.SPD.isShardName("badger-shard-99")).isTrue();
-    }
 
     @Test
     void shouldSeeAsShard() {
-        assertThat(DatabaseReferenceImpl.SPD.isShardName("badger-p000")).isTrue();
-        assertThat(DatabaseReferenceImpl.SPD.isShardName("snake-p999")).isTrue();
+        assertThat(DatabaseReferenceImpl.PropertyShard.isPropertyShardName("badger-p000"))
+                .isTrue();
+        assertThat(DatabaseReferenceImpl.PropertyShard.isPropertyShardName("snake-p999"))
+                .isTrue();
     }
 
     @Test
     void shouldParseShardIndex() {
-        assertThat(DatabaseReferenceImpl.SPD.shardIndex("badger-shard-27")).isEqualTo(27);
-        assertThat(DatabaseReferenceImpl.SPD.shardIndex("badger-p027")).isEqualTo(27);
-        assertThat(DatabaseReferenceImpl.SPD.shardIndex("badger-p108")).isEqualTo(108);
+        assertThat(DatabaseReferenceImpl.PropertyShard.propertyShardIndex("badger-p027"))
+                .isEqualTo(27);
+        assertThat(DatabaseReferenceImpl.PropertyShard.propertyShardIndex("badger-p108"))
+                .isEqualTo(108);
     }
 
     @Test
     void tooManyDigits() {
-        assertThat(DatabaseReferenceImpl.SPD.isShardName("foo-shard-000")).isFalse();
-        assertThat(DatabaseReferenceImpl.SPD.isShardName("foo-p0000")).isFalse();
+        assertThat(DatabaseReferenceImpl.PropertyShard.isPropertyShardName("foo-p0000"))
+                .isFalse();
     }
 }

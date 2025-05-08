@@ -196,6 +196,13 @@ public interface TopologyGraphDbmsModel {
     String DATABASE_NAME = DATABASE_NAME_LABEL.name();
     String DATABASE_NAME_LABEL_DESCRIPTION = "Database alias";
 
+    Label SPD_LABEL = Label.label("Spd");
+    String SPD = SPD_LABEL.name();
+    Label GRAPH_SHARD_LABEL = Label.label("GraphShard");
+    String GRAPH_SHARD = GRAPH_SHARD_LABEL.name();
+    Label PROPERTY_SHARD_LABEL = Label.label("PropertyShard");
+    String PROPERTY_SHARD = PROPERTY_SHARD_LABEL.name();
+
     Label COMPOSITE_DATABASE_LABEL = Label.label("CompositeDatabase");
     String COMPOSITE_DATABASE = COMPOSITE_DATABASE_LABEL.name();
     String NAME_PROPERTY = "name";
@@ -274,9 +281,9 @@ public interface TopologyGraphDbmsModel {
     String SUPPORTED_COMPONENT_VERSIONS_UUID_PROPERTY = "__uuid";
     RelationshipType LATEST_SUPPORTED_COMPONENT_VERSIONS_RELATIONSHIP =
             RelationshipType.withName("LATEST_SUPPORTED_VERSIONS");
-    RelationshipType HAS_SHARD = RelationshipType.withName("HAS_SHARD");
-    String HAS_SHARD_INDEX_PROPERTY = "index";
-    String GRAPH_SHARD = "GraphShard";
+    RelationshipType HAS_PROPERTY_SHARD = RelationshipType.withName("HAS_PROPERTY_SHARD");
+    RelationshipType HAS_GRAPH_SHARD = RelationshipType.withName("HAS_GRAPH_SHARD");
+    String HAS_PROPERTY_SHARD_INDEX_PROPERTY = "index";
     Label ALLOCATION_HINTS_LABEL = Label.label("AllocationHints");
     RelationshipType HAS_ALLOCATION_HINTS_RELATIONSHIP = RelationshipType.withName("HAS_ALLOCATION_HINTS");
     RelationshipType IS_MIRROR_OF_RELATIONSHIP = RelationshipType.withName("IS_MIRROR_OF");

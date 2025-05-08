@@ -133,11 +133,17 @@ public class InvalidSemanticsException extends Neo4jException {
     }
 
     public static InvalidSemanticsException invalidShardTarget(String action, String db1, String db2) {
-        var gql = GqlHelper.getGql42001_42N0A(action, db1, db2);
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42N0A)
+                        .withParam(GqlParams.StringParam.action, action)
+                        .withParam(GqlParams.StringParam.db1, db1)
+                        .withParam(GqlParams.StringParam.db2, db2)
+                        .build())
+                .build();
         return new InvalidSemanticsException(
                 gql,
                 String.format(
-                        "%s is not allowed with a shard target. Connect to `%s` in order to read or write data from `%s`.",
+                        "%s is not allowed with a shard target. Target the sharded database `%s` instead of `%s`.",
                         action, db1, db2));
     }
 

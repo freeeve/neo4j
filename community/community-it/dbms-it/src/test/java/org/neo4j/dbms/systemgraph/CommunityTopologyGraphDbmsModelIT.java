@@ -23,7 +23,7 @@ import static java.util.UUID.randomUUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE;
-import static org.neo4j.kernel.database.DatabaseReferenceImpl.SPD.shardName;
+import static org.neo4j.kernel.database.DatabaseReferenceImpl.PropertyShard.propertyShardName;
 
 import java.util.List;
 import java.util.Map;
@@ -37,6 +37,7 @@ import org.neo4j.configuration.helpers.RemoteUri;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.cypher.internal.CypherVersion;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.database.NormalizedCatalogEntry;
@@ -122,60 +123,106 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
     @Test
     void canReturnAllShardedPropertyDatabaseReferences() {
         // given
-        var foo0 = newDatabase(b -> b.withDatabase(shardName("foo", 0)));
-        var foo1 = newDatabase(b -> b.withDatabase(shardName("foo", 1)));
-        var foo = newDatabase(b -> b.withDatabase("foo").withShards(foo0, foo1));
-        createInternalReferenceForDatabase(tx, foo0.name(), true, foo0);
-        createInternalReferenceForDatabase(tx, foo1.name(), true, foo1);
-        createInternalReferenceForDatabase(tx, foo.name(), true, foo);
+        String foo = "foo";
+        var fooG = newDatabase(b -> b.withDatabase(DatabaseReferenceImpl.GraphShard.graphShardName(foo)));
+        var fooP0 = newDatabase(b -> b.withDatabase(propertyShardName(foo, 0)));
+        var fooP1 = newDatabase(b -> b.withDatabase(propertyShardName(foo, 1)));
+        var fooNamedDatabase =
+                createSpdReferenceForDatabase(tx, foo, fooG, List.of(Pair.of(0, fooP0), Pair.of(1, fooP1)));
 
-        var bar0 = newDatabase(b -> b.withDatabase(shardName("bar", 0)));
-        var bar1 = newDatabase(b -> b.withDatabase(shardName("bar", 1)));
-        var bar2 = newDatabase(b -> b.withDatabase(shardName("bar", 2)));
-        var bar3 = newDatabase(b -> b.withDatabase(shardName("bar", 3)));
-        var bar = newDatabase(b -> b.withDatabase("bar").withShards(bar0, bar1, bar2, bar3));
-        createInternalReferenceForDatabase(tx, bar0.name(), true, bar0);
-        createInternalReferenceForDatabase(tx, bar1.name(), true, bar1);
-        createInternalReferenceForDatabase(tx, bar2.name(), true, bar2);
-        createInternalReferenceForDatabase(tx, bar3.name(), true, bar3);
-        createInternalReferenceForDatabase(tx, bar.name(), true, bar);
+        String bar = "bar";
+        var barP0 = newDatabase(b -> b.withDatabase(propertyShardName(bar, 0)));
+        var barP1 = newDatabase(b -> b.withDatabase(propertyShardName(bar, 1)));
+        var barP2 = newDatabase(b -> b.withDatabase(propertyShardName(bar, 2)));
+        var barP3 = newDatabase(b -> b.withDatabase(propertyShardName(bar, 3)));
+        var barG = newDatabase(b -> b.withDatabase(DatabaseReferenceImpl.GraphShard.graphShardName(bar)));
+        var barNamedDatabase = createSpdReferenceForDatabase(
+                tx, bar, barG, List.of(Pair.of(0, barP0), Pair.of(1, barP1), Pair.of(2, barP2), Pair.of(3, barP3)));
 
         // then
-        var foo0Ref = new DatabaseReferenceImpl.SPDShard(foo0.normalizedName(), foo0, true, foo.name());
-        var foo1Ref = new DatabaseReferenceImpl.SPDShard(foo1.normalizedName(), foo1, true, foo.name());
-        var fooShards = Map.<Integer, DatabaseReference>of(
-                0, foo0Ref,
-                1, foo1Ref);
-        var fooRef = new DatabaseReferenceImpl.SPD(foo.normalizedName(), foo, fooShards);
-        var bar0Ref = new DatabaseReferenceImpl.SPDShard(bar0.normalizedName(), bar0, true, bar.name());
-        var bar1Ref = new DatabaseReferenceImpl.SPDShard(bar1.normalizedName(), bar1, true, bar.name());
-        var bar2Ref = new DatabaseReferenceImpl.SPDShard(bar2.normalizedName(), bar2, true, bar.name());
-        var bar3Ref = new DatabaseReferenceImpl.SPDShard(bar3.normalizedName(), bar3, true, bar.name());
-        var barShards = Map.<Integer, DatabaseReference>of(
-                0, bar0Ref,
-                1, bar1Ref,
-                2, bar2Ref,
-                3, bar3Ref);
-        var barRef = new DatabaseReferenceImpl.SPD(bar.normalizedName(), bar, barShards);
+        var fooP0Ref = new DatabaseReferenceImpl.PropertyShard(fooP0.normalizedName(), fooP0, foo);
+        var fooP1Ref = new DatabaseReferenceImpl.PropertyShard(fooP1.normalizedName(), fooP1, foo);
+        var fooShards = Map.of(
+                0, fooP0Ref,
+                1, fooP1Ref);
+        var fooGRef = new DatabaseReferenceImpl.GraphShard(fooG.normalizedName(), fooG, "foo", fooShards);
+        var fooSpdRef =
+                new DatabaseReferenceImpl.VirtualSPD(new NormalizedDatabaseName(foo), fooNamedDatabase, fooGRef, true);
+
+        var barP0Ref = new DatabaseReferenceImpl.PropertyShard(barP0.normalizedName(), barP0, bar);
+        var barP1Ref = new DatabaseReferenceImpl.PropertyShard(barP1.normalizedName(), barP1, bar);
+        var barP2Ref = new DatabaseReferenceImpl.PropertyShard(barP2.normalizedName(), barP2, bar);
+        var barP3Ref = new DatabaseReferenceImpl.PropertyShard(barP3.normalizedName(), barP3, bar);
+        var barShards = Map.of(
+                0, barP0Ref,
+                1, barP1Ref,
+                2, barP2Ref,
+                3, barP3Ref);
+        var barGRef = new DatabaseReferenceImpl.GraphShard(barG.normalizedName(), barG, "bar", barShards);
+        var barSpdRef = new DatabaseReferenceImpl.VirtualSPD(name(bar), barNamedDatabase, barGRef, true);
 
         assertThat(dbmsModel().getAllDatabaseReferences())
-                .containsExactlyInAnyOrder(fooRef, foo0Ref, foo1Ref, barRef, bar0Ref, bar1Ref, bar2Ref, bar3Ref);
-        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(foo.name())))
-                .hasValue(fooRef);
-        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar.name())))
-                .hasValue(barRef);
-        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(foo0.name())))
-                .hasValue(fooRef.entityDetailStores().get(0));
-        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(foo1.name())))
-                .hasValue(fooRef.entityDetailStores().get(1));
-        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar0.name())))
-                .hasValue(barRef.entityDetailStores().get(0));
-        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar1.name())))
-                .hasValue(barRef.entityDetailStores().get(1));
-        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar2.name())))
-                .hasValue(barRef.entityDetailStores().get(2));
-        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar3.name())))
-                .hasValue(barRef.entityDetailStores().get(3));
+                .containsExactlyInAnyOrder(
+                        fooSpdRef, fooGRef, fooP0Ref, fooP1Ref, barSpdRef, barGRef, barP0Ref, barP1Ref, barP2Ref,
+                        barP3Ref);
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(foo)))
+                .hasValue(fooSpdRef);
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(foo)))
+                .hasValue(fooSpdRef);
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(bar)))
+                .hasValue(barSpdRef);
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(bar)))
+                .hasValue(barSpdRef);
+
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(fooG.name())))
+                .hasValue(fooSpdRef.graphShard());
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(fooG.name())))
+                .hasValue(fooSpdRef.graphShard());
+
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(fooG.name())))
+                .hasValue(fooGRef);
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(fooG.name())))
+                .hasValue(fooGRef);
+
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(fooP0.name())))
+                .hasValue(fooSpdRef.graphShard().propertyShards().get(0));
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(fooP0.name())))
+                .hasValue(fooSpdRef.graphShard().propertyShards().get(0));
+
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(fooP1.name())))
+                .hasValue(fooSpdRef.graphShard().propertyShards().get(1));
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(fooP1.name())))
+                .hasValue(fooSpdRef.graphShard().propertyShards().get(1));
+
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(barG.name())))
+                .hasValue(barSpdRef.graphShard());
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(barG.name())))
+                .hasValue(barSpdRef.graphShard());
+
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(barG.name())))
+                .hasValue(barGRef);
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(barG.name())))
+                .hasValue(barGRef);
+
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(barP0.name())))
+                .hasValue(barSpdRef.graphShard().propertyShards().get(0));
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(barP0.name())))
+                .hasValue(barSpdRef.graphShard().propertyShards().get(0));
+
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(barP1.name())))
+                .hasValue(barSpdRef.graphShard().propertyShards().get(1));
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(barP1.name())))
+                .hasValue(barSpdRef.graphShard().propertyShards().get(1));
+
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(barP2.name())))
+                .hasValue(barSpdRef.graphShard().propertyShards().get(2));
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(barP2.name())))
+                .hasValue(barSpdRef.graphShard().propertyShards().get(2));
+
+        assertThat(dbmsModel().getDatabaseRefByAlias(new NormalizedCatalogEntry(barP3.name())))
+                .hasValue(barSpdRef.graphShard().propertyShards().get(3));
+        assertThat(dbmsModel().getDatabaseRefByDisplayName(new NormalizedDatabaseName(barP3.name())))
+                .hasValue(barSpdRef.graphShard().propertyShards().get(3));
     }
 
     @Test

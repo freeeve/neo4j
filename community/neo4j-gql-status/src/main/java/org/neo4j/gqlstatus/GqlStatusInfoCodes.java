@@ -2901,7 +2901,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             ErrorClassification.CLIENT_ERROR),
     STATUS_42N0A(
             new GqlStatus("42N0A"),
-            "{ %s } is not allowed with a shard target. Connect to { %s } in order to read or write data from { %s }.",
+            "{ %s } is not allowed with a shard target. Target the sharded database { %s } instead of { %s }.",
             new GqlParams.GqlParam[] {GqlParams.StringParam.action, GqlParams.StringParam.db1, GqlParams.StringParam.db2
             },
             emptyMap(),

@@ -28,7 +28,7 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_UUID_PROPERTY;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -78,7 +78,7 @@ public class DefaultTopologyInfoServiceIT {
         var nonExistingDatabase = DatabaseIdFactory.from("unknown", UUID.randomUUID());
         var existingDatabases =
                 dbms.listDatabases().stream().map(this::getIdForName).collect(Collectors.toSet());
-        var allDatabases = new ArrayList<>(existingDatabases);
+        var allDatabases = new HashSet<>(existingDatabases);
         allDatabases.add(nonExistingDatabase);
 
         // when

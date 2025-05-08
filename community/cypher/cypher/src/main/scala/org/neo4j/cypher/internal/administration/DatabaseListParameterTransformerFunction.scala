@@ -61,6 +61,7 @@ import java.util
 
 import scala.jdk.CollectionConverters.IterableHasAsScala
 import scala.jdk.CollectionConverters.SeqHasAsJava
+import scala.jdk.CollectionConverters.SetHasAsJava
 
 class DatabaseListParameterTransformerFunction(
   referenceResolver: DatabaseReferenceRepository,
@@ -93,16 +94,31 @@ class DatabaseListParameterTransformerFunction(
         (allReferences, Set.empty)
     }
 
-    val accessibleDatabases = filteredReferences.toList
+    val spdDatabases = filteredReferences.collect {
+      case ref: DatabaseReferenceImpl.VirtualSPD
+        if ref.isPrimary && securityContext.databaseAccessMode().canSeeDatabase(ref) =>
+        DatabaseIdFactory.from(ref.alias().name(), ref.graphShard().id())
+    }
+
+    val spdMetadata: List[AnyValue] = {
+      val dbInfos: util.Set[DatabaseDetails] =
+        infoService.databases(transaction, spdDatabases.asJava, detailLevels(verbose, maybeYield))
+      dbInfos.asScala.map(info => DatabaseDetailsMapper.toMapValue(info, defaultDatabase, homeDatabase)).toList
+    }
+
+    val accessibleDatabases = filteredReferences
       .collect {
-        case db if db.isPrimary && securityContext.databaseAccessMode().canSeeDatabase(db) =>
+        case db
+          if db.isPrimary && !db.isInstanceOf[
+            DatabaseReferenceImpl.VirtualSPD
+          ] && securityContext.databaseAccessMode().canSeeDatabase(db) =>
           DatabaseIdFactory.from(db.alias().name(), db.id())
       }
 
-    val dbMetadata: util.List[AnyValue] = {
-      val dbInfos: util.List[DatabaseDetails] =
+    val dbMetadata: List[AnyValue] = {
+      val dbInfos: util.Set[DatabaseDetails] =
         infoService.databases(transaction, accessibleDatabases.asJava, detailLevels(verbose, maybeYield))
-      dbInfos.asScala.map(info => DatabaseDetailsMapper.toMapValue(info, defaultDatabase, homeDatabase)).toList.asJava
+      dbInfos.asScala.map(info => DatabaseDetailsMapper.toMapValue(info, defaultDatabase, homeDatabase)).toList
     }
 
     (
@@ -111,7 +127,7 @@ class DatabaseListParameterTransformerFunction(
         userParams,
         VirtualValues.map(
           Array(accessibleDbsKey),
-          Array(VirtualValues.fromList(dbMetadata))
+          Array(VirtualValues.fromList((dbMetadata ++ spdMetadata).asJava))
         ).updatedWith(generateUsernameParameter(securityContext))
       ),
       notifications

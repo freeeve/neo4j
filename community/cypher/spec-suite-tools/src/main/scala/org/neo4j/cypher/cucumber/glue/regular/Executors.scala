@@ -212,7 +212,7 @@ final class SpdExecutorPool @Inject() (override val conf: TestConf) extends Exec
     val dbms = super.startDbms(extraSettings)
     val systemDb = dbms.database(SYSTEM_DATABASE_NAME)
     systemDb.executeTransactionally(
-      "CALL internal.dbms.spd.createSPDWithPropertyShardSecondariesOnly(\"neo4j\", 1, 0, 3, 1)"
+      s"CYPHER 25 CREATE DATABASE neo4j GRAPH SHARD { TOPOLOGY 1 PRIMARY 0 SECONDARIES } PROPERTY SHARDS { COUNT 3 TOPOLOGY 1 REPLICA}"
     )
 
     val spdAvailabilityQuery = "CALL internal.dbms.spd.available()"

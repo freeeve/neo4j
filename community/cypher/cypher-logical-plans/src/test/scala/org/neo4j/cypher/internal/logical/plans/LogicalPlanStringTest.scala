@@ -332,7 +332,7 @@ object LogicalPlanStringTest {
       classOf[CatalogName],
       classOf[ListSet[_]],
       classOf[AssertSecurityDisabled],
-      classOf[AssertNotShardTarget],
+      classOf[AssertNotInvalidActionOnShard],
       classOf[AssertNotShardedDatabase]
     )
 

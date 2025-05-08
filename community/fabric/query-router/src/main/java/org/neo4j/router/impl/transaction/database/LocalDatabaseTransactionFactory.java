@@ -166,7 +166,7 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
     }
 
     private TransactionalContext.DatabaseMode dbMode(Location.Local location) {
-        if (location.databaseReference() instanceof DatabaseReferenceImpl.SPD) {
+        if (location.databaseReference() instanceof DatabaseReferenceImpl.GraphShard) {
             return TransactionalContext.DatabaseMode.SHARDED;
         } else {
             return TransactionalContext.DatabaseMode.SINGLE;

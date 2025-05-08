@@ -22,8 +22,14 @@ package org.neo4j.dbms.systemgraph;
 import static org.neo4j.dbms.systemgraph.DriverSettings.Keys.CONNECTION_POOL_ACQUISITION_TIMEOUT;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD_LABEL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_GRAPH_SHARD;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_INDEX_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.IS_MIRROR_OF_RELATIONSHIP;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTY_SHARD_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.SPD_LABEL;
 
 import java.net.URI;
 import java.util.List;
@@ -31,6 +37,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.neo4j.configuration.connectors.BoltConnector;
@@ -43,6 +50,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.kernel.database.DatabaseIdFactory;
 import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
@@ -58,8 +66,9 @@ public final class CommunityTopologyGraphDbmsModelUtil {
     static Stream<Internal> getAllPrimaryStandardDatabaseReferencesInRoot(Transaction tx) {
         return tx.findNodes(TopologyGraphDbmsModel.DATABASE_LABEL).stream()
                 .filter(node -> !node.hasProperty(TopologyGraphDbmsModel.DATABASE_VIRTUAL_PROPERTY))
-                .filter(node -> node.getDegree(TopologyGraphDbmsModel.HAS_SHARD, Direction.INCOMING) == 0
-                        && node.getDegree(TopologyGraphDbmsModel.HAS_SHARD, Direction.OUTGOING) == 0)
+                .filter(node -> !node.hasLabel(SPD_LABEL))
+                .filter(node -> !node.hasLabel(GRAPH_SHARD_LABEL))
+                .filter(node -> !node.hasLabel(PROPERTY_SHARD_LABEL))
                 .filter(node -> node.getDegree(IS_MIRROR_OF_RELATIONSHIP, Direction.OUTGOING) == 0)
                 .map(node -> new Internal(
                         new NormalizedDatabaseName(getDatabaseId(node).name()), getDatabaseId(node), true));
@@ -95,7 +104,19 @@ public final class CommunityTopologyGraphDbmsModelUtil {
         });
     }
 
-    public static Optional<Internal> createInternalSpdReference(Node alias, NamedDatabaseId targetedDatabase) {
+    public static Optional<DatabaseReferenceImpl.GraphShard> createGraphShardReference(
+            Node db, Map<Integer, DatabaseReferenceImpl.PropertyShard> propertyShards) {
+        return ignoreConcurrentDeletes(() -> CommunityTopologyGraphDbmsModelUtil.ignoreConcurrentDeletes(() -> {
+            var databaseId = getDatabaseId(db);
+            var aliasName = (String) db.getProperty(DATABASE_NAME_PROPERTY);
+            String owningDatabase = readGraphShardOwningDatabase(db).orElseThrow();
+            return Optional.of(new DatabaseReferenceImpl.GraphShard(
+                    new NormalizedDatabaseName(aliasName), databaseId, owningDatabase, propertyShards));
+        }));
+    }
+
+    public static Optional<DatabaseReferenceImpl.VirtualSPD> createVirtualSpdReference(
+            Node alias, Node spdNode, NamedDatabaseId targetedDatabase) {
         return ignoreConcurrentDeletes(() -> {
             var aliasName = new NormalizedDatabaseName(getPropertyOnNode(
                     TopologyGraphDbmsModel.DATABASE_NAME, alias, TopologyGraphDbmsModel.NAME_PROPERTY, String.class));
@@ -109,9 +130,31 @@ public final class CommunityTopologyGraphDbmsModelUtil {
                     alias,
                     TopologyGraphDbmsModel.PRIMARY_PROPERTY,
                     Boolean.class);
-            // note: shards of this reference are disregarded and therefore omitted
+            var graphShardNode = spdNode.getSingleRelationship(HAS_GRAPH_SHARD, Direction.OUTGOING)
+                    .getEndNode();
+            var propertyShards = StreamSupport.stream(
+                            graphShardNode
+                                    .getRelationships(Direction.OUTGOING, HAS_PROPERTY_SHARD)
+                                    .spliterator(),
+                            false)
+                    .flatMap(rel -> createSPDPropertyShardReference(aliasName.name(), rel.getEndNode()).stream()
+                            .map(ref -> Pair.of((int) rel.getProperty(HAS_PROPERTY_SHARD_INDEX_PROPERTY), ref)))
+                    .collect(Collectors.toMap(Pair::first, Pair::other));
+            var graphShard = createGraphShardReference(graphShardNode, propertyShards).stream()
+                    .toList()
+                    .getFirst();
+
             return Optional.of(
-                    new DatabaseReferenceImpl.SPD(aliasName, namespace, targetedDatabase, Map.of(), primary));
+                    new DatabaseReferenceImpl.VirtualSPD(aliasName, namespace, targetedDatabase, graphShard, primary));
+        });
+    }
+
+    public static Optional<DatabaseReferenceImpl.PropertyShard> createSPDPropertyShardReference(
+            String owningDatabaseName, Node db) {
+        return ignoreConcurrentDeletes(() -> {
+            var normalizedName = new NormalizedDatabaseName((String) db.getProperty(DATABASE_NAME_PROPERTY));
+            var id = CommunityTopologyGraphDbmsModelUtil.getDatabaseId(db);
+            return Optional.of(new DatabaseReferenceImpl.PropertyShard(normalizedName, id, owningDatabaseName));
         });
     }
 
@@ -417,20 +460,31 @@ public final class CommunityTopologyGraphDbmsModelUtil {
         }
     }
 
-    public static Optional<String> readOwningDatabase(Node aliasNode) {
+    public static Optional<String> readGraphShardOwningDatabase(Node graphShardDb) {
         return ignoreConcurrentDeletes(() -> {
-            var relationships =
-                    aliasNode.getRelationships(Direction.INCOMING, TopologyGraphDbmsModel.HAS_SHARD).stream()
-                            .map(Relationship::getStartNode)
-                            .toList(); // exhaust cursor
-            if (relationships.isEmpty()) {
-                return Optional.of(aliasNode.getProperty(DATABASE_NAME_PROPERTY).toString());
+            var virtualSpd = graphShardDb.getRelationships(Direction.INCOMING, HAS_GRAPH_SHARD).stream()
+                    .map(Relationship::getStartNode)
+                    .toList();
+            if (virtualSpd.isEmpty()) {
+                return Optional.empty();
             } else {
-                return Optional.of(relationships
+                return Optional.of(virtualSpd
                         .getFirst()
                         .getProperty(DATABASE_NAME_PROPERTY)
                         .toString());
             }
+        });
+    }
+
+    public static Optional<String> readPropertyShardOwningDatabase(Node propertyShardDb) {
+        return ignoreConcurrentDeletes(() -> {
+            var graphShard = propertyShardDb.getRelationships(Direction.INCOMING, HAS_PROPERTY_SHARD).stream()
+                    .map(Relationship::getStartNode)
+                    .toList(); // exhaust cursor
+            if (graphShard.isEmpty()) {
+                return Optional.empty();
+            }
+            return readGraphShardOwningDatabase(graphShard.getFirst());
         });
     }
 

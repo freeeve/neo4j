@@ -1203,7 +1203,7 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         )
           .map(plans.EnsureDatabaseSafeToDelete(_, dbName, aliasAction))
           .map(plans.EnsureValidNonSystemDatabase(_, "DROP DATABASE", dbName, "delete"))
-          .map(plans.AssertNotShardTarget(_, dbName, "DROP DATABASE", "delete"))
+          .map(plans.AssertNotInvalidActionOnShard(_, dbName, "DROP DATABASE", "delete"))
           .map(plans.DropDatabase(_, dbName, additionalAction, composite, aliasAction))
           .map(wrapInWait(_, dbName, waitUntilComplete))
           .map(plans.LogSystemCommand(_, prettifier.asString(c)))
@@ -1314,9 +1314,10 @@ case object AdministrationCommandPlanBuilder extends Phase[PlannerContext, BaseS
         }
         val ensureValidDatabase =
           plans.EnsureValidNonSystemDatabase(source, "CREATE DATABASE ALIAS", targetName, "create", Some(aliasName))
-        val assertNoShard = plans.AssertNotShardTarget(ensureValidDatabase, targetName, "CREATE ALIAS", "create")
+        val assertNotInvalidActionOnShard =
+          plans.AssertNotInvalidActionOnShard(ensureValidDatabase, targetName, "CREATE ALIAS", "create")
         val aliasCommand =
-          plans.CreateLocalDatabaseAlias(assertNoShard, aliasName, targetName, properties, replace)
+          plans.CreateLocalDatabaseAlias(assertNotInvalidActionOnShard, aliasName, targetName, properties, replace)
         Some(plans.LogSystemCommand(aliasCommand, prettifier.asString(c)))
 
       // CREATE DATABASE ALIAS name AT

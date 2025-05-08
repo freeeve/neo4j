@@ -216,7 +216,7 @@ public class QueryRouterImpl implements QueryRouter {
     }
 
     private boolean isRpcCall(DatabaseReference databaseReference) {
-        return databaseReference instanceof DatabaseReferenceImpl.SPDShard;
+        return databaseReference instanceof DatabaseReferenceImpl.PropertyShard;
     }
 
     @Override

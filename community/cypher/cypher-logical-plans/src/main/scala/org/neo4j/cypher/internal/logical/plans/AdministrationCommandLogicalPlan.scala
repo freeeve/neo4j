@@ -662,7 +662,7 @@ case class AssertNotShardedDatabase(
 )(implicit idGen: IdGen)
     extends DatabaseAdministrationLogicalPlan(Some(source))
 
-case class AssertNotShardTarget(
+case class AssertNotInvalidActionOnShard(
   source: AdministrationCommandLogicalPlan,
   name: DatabaseName,
   action: String,

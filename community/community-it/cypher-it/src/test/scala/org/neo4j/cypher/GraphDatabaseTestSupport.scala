@@ -59,6 +59,7 @@ import org.neo4j.kernel.api.procedure.CallableProcedure
 import org.neo4j.kernel.api.procedure.CallableUserAggregationFunction
 import org.neo4j.kernel.api.procedure.CallableUserFunction
 import org.neo4j.kernel.api.procedure.GlobalProcedures
+import org.neo4j.kernel.database.DatabaseReferenceImpl.GraphShard
 import org.neo4j.kernel.impl.coreapi.InternalTransaction
 import org.neo4j.kernel.impl.index.schema.AbstractIndexProviderFactory
 import org.neo4j.kernel.impl.index.schema.BuiltInDelegatingIndexProviderFactory
@@ -163,16 +164,21 @@ trait GraphDatabaseTestSupport
     if (expectedShardCount > 0) {
       // need to start a db here, but this is community so might need to check if this should be moved to enterprise
       managementService.database(SYSTEM_DATABASE_NAME).executeTransactionally(
-        "CALL internal.dbms.spd.createSPDWithPropertyShardSecondariesOnly(\"neo4j\", 1, 0, " + expectedShardCount + ", 1)"
+        // 1 primary, 0 secondaries
+        "CYPHER 25 CREATE DATABASE `%s` GRAPH SHARD { TOPOLOGY 1 PRIMARY 0 SECONDARIES } PROPERTY SHARDS { COUNT %s TOPOLOGY 1 REPLICA}".formatted(
+          dbName,
+          expectedShardCount
+        )
       )
 
       assertEventually(
-        () => managementService.listDatabases().contains(dbName),
+        () => managementService.listDatabases().contains(GraphShard.graphShardName(dbName)),
         new Condition[Boolean]((value: Boolean) => value, "Should be true."),
         60L,
         TimeUnit.SECONDS
       )
 
+      // TODO fix me
       assertEventually(
         () => {
           val detail: String = managementService.database(SYSTEM_DATABASE_NAME).executeTransactionally(
@@ -186,9 +192,11 @@ trait GraphDatabaseTestSupport
         60L,
         TimeUnit.SECONDS
       )
+      graphOps = managementService.database(GraphShard.graphShardName(dbName))
+    } else {
+      graphOps = managementService.database(dbName)
     }
 
-    graphOps = managementService.database(dbName)
     graph = new GraphDatabaseCypherService(graphOps)
     onNewGraphDatabase()
   }

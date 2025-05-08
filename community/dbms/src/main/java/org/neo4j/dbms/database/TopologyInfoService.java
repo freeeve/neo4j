@@ -19,7 +19,6 @@
  */
 package org.neo4j.dbms.database;
 
-import java.util.List;
 import java.util.Set;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.database.NamedDatabaseId;
@@ -27,8 +26,8 @@ import org.neo4j.kernel.database.NamedDatabaseId;
 public interface TopologyInfoService {
     Set<ServerDetails> servers(Transaction transaction);
 
-    List<DatabaseDetails> databases(
-            Transaction transaction, List<NamedDatabaseId> databaseIds, RequestedExtras requestedExtras);
+    Set<DatabaseDetails> databases(
+            Transaction transaction, Set<NamedDatabaseId> databaseIds, RequestedExtras requestedExtras);
 
     record RequestedExtras(boolean txInfo, boolean storeInfo) {
         public static final RequestedExtras ALL = new RequestedExtras(true, true);

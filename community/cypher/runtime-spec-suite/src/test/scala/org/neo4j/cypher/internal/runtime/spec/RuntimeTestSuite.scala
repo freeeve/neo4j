@@ -62,6 +62,7 @@ import org.neo4j.kernel.api.KernelTransaction
 import org.neo4j.kernel.api.procedure.CallableProcedure
 import org.neo4j.kernel.api.procedure.CallableUserAggregationFunction
 import org.neo4j.kernel.api.procedure.CallableUserFunction
+import org.neo4j.kernel.database.DatabaseReferenceImpl.PropertyShard
 import org.neo4j.kernel.impl.coreapi.InternalTransaction
 import org.neo4j.kernel.impl.factory.GraphDatabaseFacade
 import org.neo4j.kernel.impl.query.NonRecordingQuerySubscriber
@@ -212,7 +213,7 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
     val system = dbms.dbms.database(SYSTEM_DATABASE_NAME)
 
     system.executeTransactionally(
-      s"CALL internal.dbms.spd.createSPDWithPropertyShardSecondariesOnly('${DEFAULT_DATABASE_NAME}', ${spdConfig.primaries}, 0, ${spdConfig.shards}, 1)",
+      s"CYPHER 25 CREATE DATABASE $DEFAULT_DATABASE_NAME GRAPH SHARD { TOPOLOGY ${spdConfig.primaries} PRIMARY 0 SECONDARIES } PROPERTY SHARDS { COUNT ${spdConfig.shards} TOPOLOGY 1 REPLICA}",
       util.Map.of(),
       ResultTransformer.EMPTY_TRANSFORMER,
       Duration.ofSeconds(60)
@@ -232,17 +233,16 @@ abstract class BaseRuntimeTestSuite[CONTEXT <: RuntimeContext](
 
     // Let's create the default indexes that could not be created when the database was created
     val dbs =
-      dbms.dbms.listDatabases().stream().filter(dbName => !dbName.equals(SYSTEM_DATABASE_NAME)).filter(dbName =>
-        !dbName.contains("shard")
-      ).map(dbName =>
-        dbms.dbms.database(dbName)
-      ).toList
-    dbs.forEach(db => {
+      dbms.dbms.listDatabases().asScala
+        .filterNot(dbName => dbName.equals(SYSTEM_DATABASE_NAME))
+        .filterNot(dbName => PropertyShard.isPropertyShardName(dbName))
+        .map(dbName => dbms.dbms.database(dbName)).toList
+    dbs.foreach(db => {
       db.executeTransactionally("CREATE LOOKUP INDEX node_label_lookup_index FOR (n) ON EACH labels(n)")
       db.executeTransactionally("CREATE LOOKUP INDEX rel_type_lookup_index FOR ()-[r]-() ON EACH type(r)")
     })
 
-    dbs.forEach(db => {
+    dbs.foreach(db => {
       val tx = db.beginTx()
       try {
         tx.schema().awaitIndexesOnline(60, SECONDS)

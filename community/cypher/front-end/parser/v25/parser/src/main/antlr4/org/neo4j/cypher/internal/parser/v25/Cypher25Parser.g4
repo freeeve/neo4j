@@ -1598,7 +1598,7 @@ shards
    ;
 
 graphShard
-   : GRAPH SHARD LCURLY (SET? topology)? RCURLY
+   : GRAPH SHARD LCURLY (topology)? RCURLY
    ;
 
 propertyShard

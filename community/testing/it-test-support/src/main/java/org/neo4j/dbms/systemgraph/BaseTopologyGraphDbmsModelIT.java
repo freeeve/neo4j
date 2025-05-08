@@ -61,8 +61,10 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DELETED_DATABASE
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DISPLAY_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DRIVER_SETTINGS_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DatabaseStatus.OFFLINE;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_SHARD;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_SHARD_INDEX_PROPERTY;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD_LABEL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_GRAPH_SHARD;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HAS_PROPERTY_SHARD_INDEX_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HOSTED_ON_INITIAL_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HOSTED_ON_MODE_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.HOSTED_ON_RAFT_MEMBER_ID_PROPERTY;
@@ -82,10 +84,12 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAMESPACE_PROPER
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PRIMARY_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTIES_RELATIONSHIP;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.PROPERTY_SHARD_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_PASSWORD_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOTE_USERNAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.REMOVED_INSTANCE_LABEL;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.SPD_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.SUPPORTED_COMPONENT_VERSIONS_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGETS_RELATIONSHIP;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.TARGET_NAME_PROPERTY;
@@ -102,6 +106,7 @@ import static org.neo4j.values.storable.DurationValue.duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -127,6 +132,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.kernel.database.DatabaseIdFactory;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.database.NormalizedDatabaseName;
@@ -435,8 +441,8 @@ public abstract class BaseTopologyGraphDbmsModelIT {
                         DATABASE_LABEL,
                         DATABASE_UUID_PROPERTY,
                         databaseId.databaseId().uuid().toString());
-                var relationship = node.createRelationshipTo(otherDatabase, HAS_SHARD);
-                relationship.setProperty(HAS_SHARD_INDEX_PROPERTY, index++);
+                var relationship = node.createRelationshipTo(otherDatabase, HAS_PROPERTY_SHARD);
+                relationship.setProperty(HAS_PROPERTY_SHARD_INDEX_PROPERTY, index++);
             }
             return this;
         }
@@ -533,6 +539,72 @@ public abstract class BaseTopologyGraphDbmsModelIT {
         referenceNode.setProperty(NAMESPACE_PROPERTY, namespace);
         referenceNode.createRelationshipTo(databaseNode, TARGETS_RELATIONSHIP);
         return referenceNode;
+    }
+
+    protected NamedDatabaseId createSpdReferenceForDatabase(
+            Transaction tx,
+            String name,
+            NamedDatabaseId graphShard,
+            List<Pair<Integer, NamedDatabaseId>> propertyShards) {
+        return createSpdReferenceForDatabase(tx, DEFAULT_NAMESPACE, name, graphShard, propertyShards);
+    }
+
+    protected NamedDatabaseId createSpdReferenceForDatabase(
+            Transaction tx,
+            String namespace,
+            String name,
+            NamedDatabaseId graphShard,
+            List<Pair<Integer, NamedDatabaseId>> propertyShards) {
+        // CREATE (spdDatabaseNameNode:DATABASE_NAME)-[TARGETS]->(spdDatabaseNode:DATABASE & SPD)
+        var spdUuid = UUID.randomUUID();
+        NormalizedDatabaseName spdName = new NormalizedDatabaseName(name);
+        Node spdDatabaseNameNode = tx.createNode(DATABASE_NAME_LABEL);
+        spdDatabaseNameNode.setProperty(PRIMARY_PROPERTY, true);
+        spdDatabaseNameNode.setProperty(DATABASE_NAME_PROPERTY, spdName.name());
+        spdDatabaseNameNode.setProperty(NAMESPACE_PROPERTY, namespace);
+        spdDatabaseNameNode.setProperty(DISPLAY_NAME_PROPERTY, displayName(namespace, spdName.name()));
+        Node spdDatabaseNode = tx.createNode(DATABASE_LABEL, SPD_LABEL);
+        spdDatabaseNode.setProperty(DATABASE_NAME_PROPERTY, spdName.name());
+        spdDatabaseNode.setProperty(DATABASE_UUID_PROPERTY, spdUuid.toString());
+        spdDatabaseNode.setProperty(
+                DATABASE_STATUS_PROPERTY, TopologyGraphDbmsModel.DatabaseStatus.ONLINE.statusName());
+        spdDatabaseNameNode.createRelationshipTo(spdDatabaseNode, TARGETS_RELATIONSHIP);
+
+        // (graphShardDatabaseNameNode)-[:TARGETS]->(graphShardDatabaseNode)
+        var graphShardDatabaseNode = findDatabase(graphShard, tx);
+        graphShardDatabaseNode.addLabel(GRAPH_SHARD_LABEL);
+        var graphShardDatabaseNameNode = tx.createNode(DATABASE_NAME_LABEL);
+        graphShardDatabaseNameNode.setProperty(PRIMARY_PROPERTY, true);
+        String graphShardName = NormalizedDatabaseName.normalize(graphShard.name());
+        graphShardDatabaseNameNode.setProperty(DATABASE_NAME_PROPERTY, graphShardName);
+        graphShardDatabaseNameNode.setProperty(DISPLAY_NAME_PROPERTY, graphShardName);
+        graphShardDatabaseNameNode.setProperty(NAMESPACE_PROPERTY, DEFAULT_NAMESPACE);
+        graphShardDatabaseNameNode.createRelationshipTo(graphShardDatabaseNode, TARGETS_RELATIONSHIP);
+
+        // (spdDatabaseNode)-[HAS_GRAPH_SHARD]->(graphShard)
+        spdDatabaseNode.createRelationshipTo(graphShardDatabaseNode, HAS_GRAPH_SHARD);
+
+        propertyShards.forEach(shard -> {
+            var propertyShardDatabaseNode = findDatabase(shard.other(), tx);
+            propertyShardDatabaseNode.addLabel(PROPERTY_SHARD_LABEL);
+            // (graphShardDatabaseNode)-[HAS_PROPERTY_SHARD {index: <int>}]->(propertyShard)
+            var targets = graphShardDatabaseNode.createRelationshipTo(propertyShardDatabaseNode, HAS_PROPERTY_SHARD);
+            targets.setProperty(HAS_PROPERTY_SHARD_INDEX_PROPERTY, shard.first());
+
+            // create databaseNameLabel
+            // (propertyShardDatabaseNameNode)-[:TARGETS]->(propertyShardDatabaseNode)
+            var propertyShardDatabaseNameNode = tx.createNode(DATABASE_NAME_LABEL);
+            propertyShardDatabaseNameNode.setProperty(PRIMARY_PROPERTY, true);
+            String propertyShardName =
+                    NormalizedDatabaseName.normalize(shard.other().name());
+            propertyShardDatabaseNameNode.setProperty(DATABASE_NAME_PROPERTY, propertyShardName);
+            propertyShardDatabaseNameNode.setProperty(DISPLAY_NAME_PROPERTY, propertyShardName);
+
+            propertyShardDatabaseNameNode.setProperty(NAMESPACE_PROPERTY, DEFAULT_NAMESPACE);
+            propertyShardDatabaseNameNode.createRelationshipTo(propertyShardDatabaseNode, TARGETS_RELATIONSHIP);
+        });
+
+        return DatabaseIdFactory.from(name, spdUuid);
     }
 
     private String displayName(String namespace, String name) {
