@@ -65,7 +65,7 @@ public class StoreFilesDiagnostics extends NamedDiagnosticsProvider {
         logger.log(
                 "Storage files stored on file store: " + deviceMapper.describePath(databaseLayout.databaseDirectory()));
         logger.log("Storage files: (filename : modification date - size)");
-        MappedFileCounter mappedCounter = new MappedFileCounter();
+        MappedFileCounter mappedCounter = new MappedFileCounter(logger);
         long totalSize = logStoreFiles(logger, "  ", databaseLayout.databaseDirectory(), mappedCounter);
         logger.log("Storage summary: ");
         logger.log("  Total size of store: " + bytesToString(totalSize));
@@ -145,11 +145,12 @@ public class StoreFilesDiagnostics extends NamedDiagnosticsProvider {
         private long size;
         private final Predicate<Path> mappedIndexFilter;
 
-        MappedFileCounter() {
+        MappedFileCounter(DiagnosticsLogger logger) {
             try {
                 mappedCandidates.addAll(storageEngineFactory.listStorageFiles(fs, databaseLayout));
             } catch (IOException e) {
                 // Hmm, there was no storage here
+                logger.log("Expected store files, but got '%s'" + e.getMessage());
             }
             mappedIndexFilter = new NativeIndexFileFilter(databaseLayout.databaseDirectory());
         }

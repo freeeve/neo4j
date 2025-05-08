@@ -80,7 +80,8 @@ class KernelDiagnosticsIT {
         // when
         DatabaseLayout databaseLayout = db.databaseLayout();
         DeviceMapper deviceMapper = db.getDependencyResolver().resolveDependency(DeviceMapper.class);
-        StorageEngineFactory storageEngineFactory = StorageEngineFactory.defaultStorageEngine();
+        StorageEngineFactory storageEngineFactory =
+                db.getDependencyResolver().resolveDependency(StorageEngineFactory.class);
         StoreFilesDiagnostics files = new StoreFilesDiagnostics(storageEngineFactory, fs, databaseLayout, deviceMapper);
         SizeCapture capture = new SizeCapture();
         files.dump(capture::log);
