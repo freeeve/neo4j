@@ -461,7 +461,6 @@ public abstract class PropertyCursorTestBase<G extends KernelAPIReadTestSupport>
         }
     }
 
-    @SkipOnSpd(reason = "Shard property reading loose the specific kernel integral data types")
     @Test
     void supportExcludingWithChangesInTxState() throws Exception {
         try (KernelTransaction tx = beginTransaction()) {

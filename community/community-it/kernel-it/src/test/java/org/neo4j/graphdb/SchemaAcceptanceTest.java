@@ -107,6 +107,7 @@ import org.neo4j.test.extension.ImpermanentDbmsExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.OtherThread;
 import org.neo4j.test.extension.OtherThreadExtension;
+import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.test.extension.actors.Actor;
 import org.neo4j.test.extension.actors.ActorsExtension;
 import org.neo4j.util.concurrent.BinaryLatch;
@@ -1326,6 +1327,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
     void nodeKeyConstraintsMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
@@ -1339,6 +1341,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
     void relationshipKeyConstraintsMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
@@ -1352,6 +1355,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
     void propertyExistenceConstraintsMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
@@ -1365,6 +1369,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
     void propertyExistenceConstraintsOnRelationshipMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
@@ -1378,6 +1383,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
     void nodePropertyTypeConstraintsMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
@@ -1391,6 +1397,7 @@ class SchemaAcceptanceTest extends SchemaAcceptanceTestBase {
     }
 
     @Test
+    @SkipOnSpd(reason = "SPD uses enterprise and will not block constraint")
     void relationshipPropertyTypeConstraintsMustNotBeAvailableInCommunityEdition() {
         try (Transaction tx = db.beginTx()) {
             ConstraintCreator constraintCreator =
