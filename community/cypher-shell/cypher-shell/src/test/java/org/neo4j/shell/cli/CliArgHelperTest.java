@@ -357,17 +357,17 @@ class CliArgHelperTest extends LocaleDependentTestBase {
     void nonsenseArgsGiveError() {
         String failure = parseAndFail("-notreally");
 
-        assertTrue(failure.contains("cypher-shell [-h]"));
-        assertTrue(failure.contains("cypher-shell: error: unrecognized arguments: '-notreally'"));
+        assertThat(failure).contains("usage: cypher-shell");
+        assertThat(failure).contains("cypher-shell: error: unrecognized arguments: '-notreally'");
     }
 
     @Test
     void nonsenseUrlGivesError() {
         String failure = parseAndFail("--address", "host port");
 
-        assertTrue(failure.contains("cypher-shell [-h]"));
-        assertTrue(failure.contains("cypher-shell: error: Failed to parse address"));
-        assertTrue(failure.contains("\nAddress should be of the form:"));
+        assertThat(failure).contains("usage: cypher-shell");
+        assertThat(failure).contains("cypher-shell: error: Failed to parse address");
+        assertThat(failure).contains("\nAddress should be of the form:");
     }
 
     @Test
@@ -463,6 +463,18 @@ class CliArgHelperTest extends LocaleDependentTestBase {
     @Test
     void history() {
         assertThat(parse().getHistoryBehaviour()).isInstanceOf(CypherShellTerminal.DefaultHistory.class);
+        assertThat(parse("--history", "in-memory").getHistoryBehaviour())
+                .isInstanceOf(CypherShellTerminal.InMemoryHistory.class);
+        assertThat(parse("--history", "/some/path/file.history").getHistoryBehaviour())
+                .isEqualTo(new CypherShellTerminal.FileHistory(Path.of("/some/path/file.history")));
+        assertThatThrownBy(() -> parse("--history")).hasMessageContaining("Failed to parse arguments: [--history]");
+    }
+
+    @Test
+    void historyEnv() {
+        env.put("NEO4J_CYPHER_SHELL_HISTORY", "path/from/env");
+        final var expected = new CypherShellTerminal.FileHistory(Path.of("path/from/env"));
+        assertThat(parse().getHistoryBehaviour()).isEqualTo(expected);
         assertThat(parse("--history", "in-memory").getHistoryBehaviour())
                 .isInstanceOf(CypherShellTerminal.InMemoryHistory.class);
         assertThat(parse("--history", "/some/path/file.history").getHistoryBehaviour())
@@ -580,7 +592,7 @@ positional arguments:
   cypher                 An optional string of Cypher to execute and then exit.
 
 named arguments:
-  -h, --help             show this help message and exit
+  -h, --help             Show this help message and exit.
   --fail-fast            Exit and report failure on the first  error  when reading from a file (this
                          is the default behavior).
   --fail-at-end          Exit and report failures at the end of the input when reading from a file.
@@ -613,8 +625,9 @@ named arguments:
                          omitted.
   --history HISTORY-BEHAVIOUR
                          File path of a query  and  a  command  history  file or `in-memory` for in-
-                         memory history. Defaults  to  <user home>/.neo4j/.cypher_shell_history. Can
-                         also be set using the environment variable NEO4J_CYPHER_SHELL_HISTORY.
+                         memory history. If the option is omitted, history is saved to <user home>/.
+                         neo4j/.cypher_shell_history.  Can  also  be   set   using  the  environment
+                         variable NEO4J_CYPHER_SHELL_HISTORY.
   --notifications        Enable notifications in interactive mode. (default: false)
   --idle-timeout IDLE-TIMEOUT
                          Closes  the  application  after  the  specified  amount  of  idle  time  in

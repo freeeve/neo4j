@@ -262,6 +262,7 @@ public class CliArgHelper {
     private static ArgumentParser setupParser() {
         ArgumentParser parser = ArgumentParsers.newFor("cypher-shell")
                 .defaultFormatWidth(100)
+                .addHelp(false)
                 .build()
                 .defaultHelp(true)
                 .description(format(
@@ -273,6 +274,11 @@ public class CliArgHelper {
                                 + "%n%n"
                                 + "Example of piping a file:%n"
                                 + "  cat some-cypher.txt | cypher-shell"));
+
+        parser.addArgument("-h", "--help")
+                .action(Arguments.help())
+                .help("Show this help message and exit.")
+                .setDefault(Arguments.SUPPRESS);
 
         ArgumentGroup connGroup = parser.addArgumentGroup("connection arguments");
         connGroup
@@ -400,8 +406,8 @@ public class CliArgHelper {
 
         parser.addArgument("--history")
                 .help(
-                        "File path of a query and a command history file or `in-memory` for in-memory history. Defaults to <user home>/.neo4j/.cypher_shell_history. Can also be set using the environment variable "
-                                + HISTORY_ENV_VAR + ".")
+                        "File path of a query and a command history file or `in-memory` for in-memory history. If the option is omitted, history is saved to <user home>/.neo4j/.cypher_shell_history. Can also be set using the environment variable %s."
+                                .formatted(HISTORY_ENV_VAR))
                 .dest("history-behaviour")
                 .type(new HistoryBehaviourHandler())
                 .setDefault((CypherShellTerminal.HistoryBehaviour) null);
