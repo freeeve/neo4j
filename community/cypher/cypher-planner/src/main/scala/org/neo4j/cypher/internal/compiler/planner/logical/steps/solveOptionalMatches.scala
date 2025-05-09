@@ -28,7 +28,6 @@ import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.unnestO
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.helpers.CachedFunction
-import org.neo4j.cypher.internal.ir.helpers.CachedFunction.CacheKey
 import org.neo4j.cypher.internal.logical.plans.AggregatingPlan
 import org.neo4j.cypher.internal.logical.plans.CachedProperties
 import org.neo4j.cypher.internal.logical.plans.LogicalLeafPlan
@@ -81,8 +80,7 @@ case object applyOptional extends OptionalSolver {
   ): OptionalSolver.Solver = {
     val innerContext: LogicalPlanningContext =
       context.withModifiedPlannerState(_.withFusedLabelInfo(enclosingQg.selections.labelInfo))
-    def doPlan(cachedContext: CachedFunction.CacheKey[CachedProperties, Unit]): BestPlans = {
-      val previouslyCachedProperties = cachedContext.cacheKey
+    def doPlan(previouslyCachedProperties: CachedProperties): BestPlans = {
       context.staticComponents.queryGraphSolver.plan(
         optionalQg,
         removeColumnsWithoutDependencies(interestingOrderConfig),
@@ -106,7 +104,7 @@ case object applyOptional extends OptionalSolver {
         if (lhsCachedProperties.isEmpty)
           innerPlanWithoutPreviouslyCachedProperties
         else {
-          cachedPlanInnerOfOptionalMatch(CacheKey(lhsCachedProperties)())
+          cachedPlanInnerOfOptionalMatch(lhsCachedProperties)
         }
       inner.allResults.iterator.map { inner =>
         val innerWithFixedArguments = inner.endoRewrite(bottomUp(
