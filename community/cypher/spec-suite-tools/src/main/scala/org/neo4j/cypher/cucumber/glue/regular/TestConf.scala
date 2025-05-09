@@ -375,8 +375,7 @@ object TestConf {
     "internal.dbms.single_raft_enabled" -> "true",
     "internal.dbms.replication_enabled" -> "true",
     "internal.initial.dbms.default_database.enable" -> "false",
-    "internal.dbms.sharded_property_database.enabled" -> "true",
-    "internal.dbms.sharded_property_database.shard_count" -> "2" // remove with kernel check
+    "internal.dbms.sharded_property_database.enabled" -> "true"
   )
 
   object SpdBolt extends InjectedTestConf {
