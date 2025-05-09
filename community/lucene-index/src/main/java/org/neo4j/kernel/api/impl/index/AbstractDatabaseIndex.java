@@ -75,7 +75,7 @@ abstract class AbstractDatabaseIndex<INDEX extends AbstractLuceneIndex<READER>, 
      * {@inheritDoc}
      */
     @Override
-    public LuceneAllDocumentsReader allDocumentsReader() {
+    public LucenePartitionsAllDocumentsReader allDocumentsReader() {
         return luceneIndex.allDocumentsReader();
     }
 

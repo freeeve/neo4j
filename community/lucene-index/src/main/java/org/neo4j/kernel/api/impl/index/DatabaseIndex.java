@@ -110,7 +110,7 @@ public interface DatabaseIndex<READER extends ValueIndexReader> extends IndexFil
      *
      * @return LuceneAllDocumentsReader over all documents
      */
-    LuceneAllDocumentsReader allDocumentsReader();
+    LucenePartitionsAllDocumentsReader allDocumentsReader();
 
     /**
      * Snapshot of all file in all index partitions.

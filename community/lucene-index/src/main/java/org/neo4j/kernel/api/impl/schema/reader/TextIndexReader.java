@@ -32,7 +32,6 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.AbstractTextIndexReader;
 import org.neo4j.kernel.api.impl.schema.LuceneQueryFactory;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
-import org.neo4j.kernel.api.impl.schema.sampler.LuceneIndexSampler;
 import org.neo4j.kernel.api.index.IndexSampler;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
@@ -62,7 +61,7 @@ public class TextIndexReader extends AbstractTextIndexReader {
 
     @Override
     public IndexSampler createSampler() {
-        return new LuceneIndexSampler(getIndexSearcher(), taskCoordinator, samplingConfig);
+        return getIndexSearcher().newIndexSampler(taskCoordinator, samplingConfig);
     }
 
     @Override

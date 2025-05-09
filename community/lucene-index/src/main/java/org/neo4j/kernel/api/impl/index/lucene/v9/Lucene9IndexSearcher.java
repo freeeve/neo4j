@@ -22,6 +22,7 @@ package org.neo4j.kernel.api.impl.index.lucene.v9;
 import static org.neo4j.kernel.api.impl.index.collector.ScoredEntityIterator.mergeIterators;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
@@ -30,22 +31,28 @@ import org.apache.lucene.search.CollectorManager;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ReferenceManager;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneAllDocumentsReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LucenePartitionedSearch;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneSearcherManager;
+import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
 import org.neo4j.kernel.api.impl.schema.vector.VectorResultCollector;
 import org.neo4j.kernel.api.index.IndexProgressor;
+import org.neo4j.kernel.api.index.IndexSampler;
+import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 
-public class Lucene9IndexSearcher implements LuceneIndexSearcher {
+class Lucene9IndexSearcher implements LuceneIndexSearcher {
     final IndexSearcher indexSearcher;
     private final ReferenceManager<IndexSearcher> referenceManager;
 
-    public Lucene9IndexSearcher(ReferenceManager<IndexSearcher> referenceManager) throws IOException {
-        this.referenceManager = referenceManager;
+    Lucene9IndexSearcher(LuceneSearcherManager searcherManager) throws IOException {
+        this.referenceManager = ((Lucene9SearcherManager) searcherManager).searcherManager;
         this.indexSearcher = referenceManager.acquire();
 
         this.indexSearcher.setQueryCache(null); // Disable query cache
@@ -56,8 +63,7 @@ public class Lucene9IndexSearcher implements LuceneIndexSearcher {
         this.indexSearcher = indexSearcher;
     }
 
-    @Override
-    public IndexReader getIndexReader() {
+    IndexReader getIndexReader() {
         return indexSearcher.getIndexReader();
     }
 
@@ -89,8 +95,15 @@ public class Lucene9IndexSearcher implements LuceneIndexSearcher {
     }
 
     @Override
-    public TopDocs searchTopN(LuceneQueryContext queryContext, int n) throws IOException {
-        return indexSearcher.search(toInternal(queryContext), n);
+    public List<LuceneDocument> searchTopN(LuceneQueryContext queryContext, int n) throws IOException {
+        TopDocs search = indexSearcher.search(toInternal(queryContext), n);
+        ScoreDoc[] scoreDocs = search.scoreDocs;
+
+        ArrayList<LuceneDocument> results = new ArrayList<>(scoreDocs.length);
+        for (ScoreDoc scoreDoc : scoreDocs) {
+            results.add(doc(scoreDoc.doc));
+        }
+        return results;
     }
 
     @Override
@@ -123,6 +136,21 @@ public class Lucene9IndexSearcher implements LuceneIndexSearcher {
     @Override
     public LucenePartitionedSearch newPartitionedSearcher(int size) {
         return new Lucene9PartitionedSearch(size);
+    }
+
+    @Override
+    public LuceneAllDocumentsReader newAllDocumentsReader() {
+        return new Lucene9AllDocumentsReader(this);
+    }
+
+    @Override
+    public int numDocs() {
+        return indexSearcher.getIndexReader().numDocs();
+    }
+
+    @Override
+    public IndexSampler newIndexSampler(TaskCoordinator taskCoordinator, IndexSamplingConfig samplingConfig) {
+        return new Lucene9IndexSampler(this, taskCoordinator, samplingConfig);
     }
 
     private static Query toInternal(LuceneQueryContext queryContext) {

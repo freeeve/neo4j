@@ -27,6 +27,7 @@ import org.apache.lucene.search.SearcherFactory;
 import org.apache.lucene.search.SearcherManager;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneSearcherManager;
 
 public class Lucene9DirectoryReader implements LuceneDirectoryReader {
     private final DirectoryReader reader;
@@ -41,12 +42,13 @@ public class Lucene9DirectoryReader implements LuceneDirectoryReader {
     }
 
     @Override
-    public SearcherManager searcherManager() throws IOException {
-        return new SearcherManager(reader, SEARCHER_FACTORY);
+    public LuceneSearcherManager newSearcherManager() throws IOException {
+        SearcherManager searcherManager = new SearcherManager(reader, SEARCHER_FACTORY);
+        return new Lucene9SearcherManager(searcherManager);
     }
 
     @Override
-    public LuceneIndexSearcher newSearcher() {
+    public LuceneIndexSearcher newDirectSearcher() {
         return new Lucene9IndexSearcher(new Lucene9Neo4jIndexSearcher(reader));
     }
 

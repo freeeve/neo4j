@@ -72,9 +72,7 @@ class IndexPartitionFactoryTest {
                 indexPartition.maybeRefreshBlocking();
                 try (SearcherReference searcher = indexPartition.acquireSearcher()) {
                     assertEquals(
-                            1,
-                            searcher.getIndexSearcher().getIndexReader().numDocs(),
-                            "We should be able to see newly added document ");
+                            1, searcher.getIndexSearcher().numDocs(), "We should be able to see newly added document ");
                 }
             }
         }

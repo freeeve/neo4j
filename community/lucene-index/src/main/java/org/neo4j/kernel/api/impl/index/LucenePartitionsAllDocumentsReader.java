@@ -29,26 +29,30 @@ import java.util.List;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.io.IOUtils;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneAllDocumentsReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 
-public class LuceneAllDocumentsReader implements BoundedIterable<LuceneDocument> {
-    private final List<LucenePartitionAllDocumentsReader> partitionReaders;
+public class LucenePartitionsAllDocumentsReader implements BoundedIterable<LuceneDocument> {
+    private final List<LuceneAllDocumentsReader> partitionReaders;
+    private final List<SearcherReference> searchers;
 
-    public LuceneAllDocumentsReader(List<LucenePartitionAllDocumentsReader> partitionReaders) {
+    public LucenePartitionsAllDocumentsReader(
+            List<LuceneAllDocumentsReader> partitionReaders, List<SearcherReference> searchers) {
         this.partitionReaders = partitionReaders;
+        this.searchers = searchers;
     }
 
     @Override
     public long maxCount() {
         return partitionReaders.stream()
-                .mapToLong(LucenePartitionAllDocumentsReader::maxCount)
+                .mapToLong(LuceneAllDocumentsReader::maxCount)
                 .sum();
     }
 
     @Override
     public Iterator<LuceneDocument> iterator() {
         Iterator<Iterator<LuceneDocument>> iterators = partitionReaders.stream()
-                .map(LucenePartitionAllDocumentsReader::iterator)
+                .map(LuceneAllDocumentsReader::iterator)
                 .toList()
                 .iterator();
 
@@ -64,7 +68,7 @@ public class LuceneAllDocumentsReader implements BoundedIterable<LuceneDocument>
     public List<Iterator<LuceneDocument>> partition(int numPartitions) {
         int partitionsPerIndexPartition = max(1, numPartitions / partitionReaders.size());
         List<Iterator<LuceneDocument>> result = new ArrayList<>();
-        for (LucenePartitionAllDocumentsReader partitionReader : partitionReaders) {
+        for (LuceneAllDocumentsReader partitionReader : partitionReaders) {
             int indexPartitionMaxCount = toIntExact(partitionReader.maxCount());
             int roughCountPerIndexPartition = indexPartitionMaxCount / partitionsPerIndexPartition;
             for (int i = 0; i < partitionsPerIndexPartition; i++) {
@@ -81,5 +85,6 @@ public class LuceneAllDocumentsReader implements BoundedIterable<LuceneDocument>
     @Override
     public void close() throws IOException {
         IOUtils.closeAll(partitionReaders);
+        IOUtils.closeAll(searchers);
     }
 }

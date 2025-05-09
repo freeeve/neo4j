@@ -90,7 +90,7 @@ class TransactionStateLuceneIndexWriter implements LucenePartitionIndexWriter, C
 
     SearcherReference getNearRealTimeSearcher() throws IOException {
         LuceneDirectoryReader directoryReader = writer.directoryReader();
-        return new DirectSearcherReference(directoryReader.newSearcher(), directoryReader);
+        return new DirectSearcherReference(directoryReader.newDirectSearcher(), directoryReader);
     }
 
     @Override

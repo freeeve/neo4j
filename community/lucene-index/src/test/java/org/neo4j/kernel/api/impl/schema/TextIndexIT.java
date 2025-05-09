@@ -51,7 +51,7 @@ import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.pagecache.tracing.FileFlushEvent;
 import org.neo4j.kernel.api.exceptions.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.impl.index.DatabaseIndex;
-import org.neo4j.kernel.api.impl.index.LuceneAllDocumentsReader;
+import org.neo4j.kernel.api.impl.index.LucenePartitionsAllDocumentsReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSettings;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexAccessor;
 import org.neo4j.kernel.api.impl.schema.text.TextIndexBuilder;
@@ -212,7 +212,7 @@ class TextIndexIT {
 
             reopenIndex.maybeRefreshBlocking();
 
-            try (LuceneAllDocumentsReader allDocumentsReader = reopenIndex.allDocumentsReader()) {
+            try (LucenePartitionsAllDocumentsReader allDocumentsReader = reopenIndex.allDocumentsReader()) {
                 assertEquals(111, allDocumentsReader.maxCount(), "All documents should be visible");
             }
         }

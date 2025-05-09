@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.sampler;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -39,13 +39,12 @@ import org.neo4j.configuration.Config;
 import org.neo4j.internal.helpers.collection.MapUtil;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.kernel.api.impl.index.IndexReaderStub;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
 import org.neo4j.kernel.api.index.IndexSample;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 
-class LuceneIndexSamplerTest {
-    private final LuceneIndexSearcher indexSearcher = mock(LuceneIndexSearcher.class, Mockito.RETURNS_DEEP_STUBS);
+class Lucene9IndexSamplerTest {
+    private final Lucene9IndexSearcher indexSearcher = mock(Lucene9IndexSearcher.class, Mockito.RETURNS_DEEP_STUBS);
     private final TaskCoordinator taskControl = new TaskCoordinator();
     private final IndexSamplingConfig indexSamplingConfig = new IndexSamplingConfig(Config.defaults());
 
@@ -56,11 +55,11 @@ class LuceneIndexSamplerTest {
         IndexReaderStub indexReader = new IndexReaderStub(new SamplingFields(fieldTermsMap));
         when(indexSearcher.getIndexReader()).thenReturn(indexReader);
 
-        LuceneIndexSampler luceneIndexSampler = createSampler();
+        Lucene9IndexSampler lucene9IndexSampler = createSampler();
         taskControl.cancel();
         IndexNotFoundKernelException notFoundKernelException = assertThrows(
                 IndexNotFoundKernelException.class,
-                () -> luceneIndexSampler.sampleIndex(NULL_CONTEXT, new AtomicBoolean()));
+                () -> lucene9IndexSampler.sampleIndex(NULL_CONTEXT, new AtomicBoolean()));
         assertEquals("Index dropped while sampling.", notFoundKernelException.getMessage());
     }
 
@@ -77,8 +76,8 @@ class LuceneIndexSamplerTest {
         assertEquals(new IndexSample(4, 2, 4), createSampler().sampleIndex(NULL_CONTEXT, new AtomicBoolean()));
     }
 
-    private LuceneIndexSampler createSampler() {
-        return new LuceneIndexSampler(indexSearcher, taskControl, indexSamplingConfig);
+    private Lucene9IndexSampler createSampler() {
+        return new Lucene9IndexSampler(indexSearcher, taskControl, indexSamplingConfig);
     }
 
     private static Terms getTerms(String value, int frequency) throws IOException {

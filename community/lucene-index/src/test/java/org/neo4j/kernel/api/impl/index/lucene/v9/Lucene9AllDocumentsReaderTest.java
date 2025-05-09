@@ -17,48 +17,40 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.apache.lucene.index.IndexReader;
 import org.junit.jupiter.api.Test;
 import org.neo4j.internal.helpers.collection.Iterators;
+import org.neo4j.kernel.api.impl.index.LucenePartitionsAllDocumentsReader;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneAllDocumentsReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.partition.PartitionSearcher;
 
-class LuceneAllDocumentsReaderTest {
+class Lucene9AllDocumentsReaderTest {
     private final PartitionSearcher partitionSearcher1 = createPartitionSearcher(1, 0, 2);
     private final PartitionSearcher partitionSearcher2 = createPartitionSearcher(2, 1, 2);
 
-    LuceneAllDocumentsReaderTest() throws IOException {}
+    Lucene9AllDocumentsReaderTest() throws IOException {}
 
     @Test
     void allDocumentsMaxCount() {
-        LuceneAllDocumentsReader allDocumentsReader = createAllDocumentsReader();
+        LucenePartitionsAllDocumentsReader allDocumentsReader = createAllDocumentsReader();
         assertEquals(3, allDocumentsReader.maxCount());
     }
 
     @Test
-    void closeCorrespondingSearcherOnClose() throws IOException {
-        LuceneAllDocumentsReader allDocumentsReader = createAllDocumentsReader();
-        allDocumentsReader.close();
-
-        verify(partitionSearcher1).close();
-        verify(partitionSearcher2).close();
-    }
-
-    @Test
     void readAllDocuments() {
-        LuceneAllDocumentsReader allDocumentsReader = createAllDocumentsReader();
+        LucenePartitionsAllDocumentsReader allDocumentsReader = createAllDocumentsReader();
         List<LuceneDocument> documents = Iterators.asList(allDocumentsReader.iterator());
 
         assertEquals(3, documents.size(), "Should have 1 document from first partition and 2 from second one.");
@@ -67,20 +59,22 @@ class LuceneAllDocumentsReaderTest {
         assertEquals("4", documents.get(2).get("value"));
     }
 
-    private LuceneAllDocumentsReader createAllDocumentsReader() {
-        return new LuceneAllDocumentsReader(createPartitionReaders());
+    private LucenePartitionsAllDocumentsReader createAllDocumentsReader() {
+        return new LucenePartitionsAllDocumentsReader(createPartitionReaders(), Collections.emptyList());
     }
 
-    private List<LucenePartitionAllDocumentsReader> createPartitionReaders() {
-        LucenePartitionAllDocumentsReader reader1 = new LucenePartitionAllDocumentsReader(partitionSearcher1);
-        LucenePartitionAllDocumentsReader reader2 = new LucenePartitionAllDocumentsReader(partitionSearcher2);
+    private List<LuceneAllDocumentsReader> createPartitionReaders() {
+        LuceneAllDocumentsReader reader1 =
+                new Lucene9AllDocumentsReader((Lucene9IndexSearcher) partitionSearcher1.getIndexSearcher());
+        LuceneAllDocumentsReader reader2 =
+                new Lucene9AllDocumentsReader((Lucene9IndexSearcher) partitionSearcher2.getIndexSearcher());
         return Arrays.asList(reader1, reader2);
     }
 
     private static PartitionSearcher createPartitionSearcher(int maxDoc, int partition, int maxSize)
             throws IOException {
         PartitionSearcher partitionSearcher = mock(PartitionSearcher.class);
-        LuceneIndexSearcher indexSearcher = mock(LuceneIndexSearcher.class);
+        Lucene9IndexSearcher indexSearcher = mock(Lucene9IndexSearcher.class);
         IndexReader indexReader = mock(IndexReader.class);
 
         when(partitionSearcher.getIndexSearcher()).thenReturn(indexSearcher);

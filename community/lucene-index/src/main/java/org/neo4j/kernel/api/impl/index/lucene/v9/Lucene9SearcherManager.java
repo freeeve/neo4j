@@ -17,31 +17,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index.partition;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import java.io.IOException;
-import org.neo4j.kernel.api.impl.index.SearcherReference;
+import org.apache.lucene.search.SearcherManager;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneSearcherManager;
 
-/**
- * Container for {@link LuceneIndexSearcher} of the particular {@link AbstractIndexPartition partition}.
- * Manages lifecycle of the underlying {@link LuceneIndexSearcher searcher}.
- */
-public class PartitionSearcher implements SearcherReference {
-    private final LuceneIndexSearcher indexSearcher;
+class Lucene9SearcherManager implements LuceneSearcherManager {
+    final SearcherManager searcherManager;
 
-    public PartitionSearcher(LuceneSearcherManager searcherManager) throws IOException {
-        this.indexSearcher = searcherManager.acquire();
+    Lucene9SearcherManager(SearcherManager searcherManager) {
+        this.searcherManager = searcherManager;
     }
 
     @Override
-    public LuceneIndexSearcher getIndexSearcher() {
-        return indexSearcher;
+    public LuceneIndexSearcher acquire() throws IOException {
+        return new Lucene9IndexSearcher(this);
+    }
+
+    @Override
+    public void maybeRefreshBlocking() throws IOException {
+        searcherManager.maybeRefreshBlocking();
     }
 
     @Override
     public void close() throws IOException {
-        indexSearcher.close();
+        searcherManager.close();
     }
 }

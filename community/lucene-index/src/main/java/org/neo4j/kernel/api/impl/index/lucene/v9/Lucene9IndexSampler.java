@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.sampler;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -32,7 +32,6 @@ import org.apache.lucene.util.BytesRef;
 import org.neo4j.internal.helpers.CancellationRequest;
 import org.neo4j.internal.kernel.api.exceptions.schema.IndexNotFoundKernelException;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
 import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
 import org.neo4j.kernel.api.impl.schema.populator.DefaultNonUniqueIndexSampler;
@@ -45,13 +44,13 @@ import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
  * Sampler for non-unique Lucene schema index.
  * Internally uses terms and their document frequencies for sampling.
  */
-public class LuceneIndexSampler implements IndexSampler {
-    private final LuceneIndexSearcher indexSearcher;
+class Lucene9IndexSampler implements IndexSampler {
+    private final Lucene9IndexSearcher indexSearcher;
     private final IndexSamplingConfig indexSamplingConfig;
     private final TaskCoordinator taskCoordinator;
 
-    public LuceneIndexSampler(
-            LuceneIndexSearcher indexSearcher,
+    Lucene9IndexSampler(
+            Lucene9IndexSearcher indexSearcher,
             TaskCoordinator taskCoordinator,
             IndexSamplingConfig indexSamplingConfig) {
         this.taskCoordinator = taskCoordinator;

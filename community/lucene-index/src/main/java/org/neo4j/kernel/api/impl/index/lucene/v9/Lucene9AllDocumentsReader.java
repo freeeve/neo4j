@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.index;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -26,22 +26,20 @@ import org.apache.lucene.index.MultiBits;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.FilteredDocIdSetIterator;
 import org.apache.lucene.util.Bits;
-import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
+import org.neo4j.kernel.api.impl.index.LuceneDocumentRetrievalException;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneAllDocumentsReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
-import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 
 /**
  * Provides a view of all {@link LuceneDocument}s in a single partition.
  */
-public class LucenePartitionAllDocumentsReader implements BoundedIterable<LuceneDocument> {
-    private final SearcherReference searcherReference;
-    private final LuceneIndexSearcher searcher;
+class Lucene9AllDocumentsReader implements LuceneAllDocumentsReader {
+    private final Lucene9IndexSearcher searcher;
     private final IndexReader reader;
 
-    public LucenePartitionAllDocumentsReader(SearcherReference searcherReference) {
-        this.searcherReference = searcherReference;
-        this.searcher = searcherReference.getIndexSearcher();
+    Lucene9AllDocumentsReader(Lucene9IndexSearcher searcher) {
+        this.searcher = searcher;
         this.reader = searcher.getIndexReader();
     }
 
@@ -55,6 +53,7 @@ public class LucenePartitionAllDocumentsReader implements BoundedIterable<Lucene
         return documentIterator(iterateAllDocs());
     }
 
+    @Override
     public Iterator<LuceneDocument> iterator(int from, int to) {
         return documentIterator(iterateDocs(from, to));
     }
@@ -77,9 +76,7 @@ public class LucenePartitionAllDocumentsReader implements BoundedIterable<Lucene
     }
 
     @Override
-    public void close() throws IOException {
-        searcherReference.close();
-    }
+    public void close() throws IOException {}
 
     private LuceneDocument getDocument(int docId) {
         try {

@@ -21,20 +21,20 @@ package org.neo4j.kernel.api.impl.index.lucene;
 
 import java.io.Closeable;
 import java.io.IOException;
-import org.apache.lucene.index.IndexReader;
+import java.util.List;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.TopDocs;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
+import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
 import org.neo4j.kernel.api.index.IndexProgressor;
+import org.neo4j.kernel.api.index.IndexSampler;
+import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.values.storable.Value;
 
 public interface LuceneIndexSearcher extends Closeable {
     static int getMaxClauseCount() {
         return IndexSearcher.getMaxClauseCount();
     }
-
-    IndexReader getIndexReader();
 
     LuceneDocument doc(int docId) throws IOException;
 
@@ -46,7 +46,7 @@ public interface LuceneIndexSearcher extends Closeable {
 
     ValuesIterator searchVectors(LuceneQueryContext queryContext, IndexQueryConstraints constraints) throws IOException;
 
-    TopDocs searchTopN(LuceneQueryContext queryContext, int n) throws IOException;
+    List<LuceneDocument> searchTopN(LuceneQueryContext queryContext, int n) throws IOException;
 
     int count(LuceneQueryContext queryContext) throws IOException;
 
@@ -55,6 +55,16 @@ public interface LuceneIndexSearcher extends Closeable {
     LuceneQueryContext newQueryContext();
 
     LucenePartitionedSearch newPartitionedSearcher(int size);
+
+    LuceneAllDocumentsReader newAllDocumentsReader();
+
+    /**
+     * Returns the number of documents in this index.
+     * @return number of documents in this index.
+     */
+    int numDocs();
+
+    IndexSampler newIndexSampler(TaskCoordinator taskCoordinator, IndexSamplingConfig samplingConfig);
 
     @FunctionalInterface
     interface EntityConsumer {

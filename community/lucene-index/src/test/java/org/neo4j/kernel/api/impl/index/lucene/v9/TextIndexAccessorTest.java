@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.sampler;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.emptySet;
@@ -341,7 +341,7 @@ public class TextIndexAccessorTest {
         BinaryLatch dropLatch = new BinaryLatch();
         BinaryLatch sampleLatch = new BinaryLatch();
 
-        LuceneIndexSampler indexSampler = spy((LuceneIndexSampler) indexReader.createSampler());
+        Lucene9IndexSampler indexSampler = spy((Lucene9IndexSampler) indexReader.createSampler());
         doAnswer(inv -> {
                     var obj = inv.callRealMethod();
                     dropLatch.release(); // We have now started the sampling, let the index try to drop

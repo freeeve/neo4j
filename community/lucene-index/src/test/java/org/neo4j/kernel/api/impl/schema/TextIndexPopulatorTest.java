@@ -36,10 +36,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.LongStream;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.TotalHits;
 import org.eclipse.collections.impl.factory.Sets;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -271,17 +270,18 @@ class TextIndexPopulatorTest {
     private void assertIndexedValues(Hit... expectedHits) throws IOException {
         switchToVerification();
 
-        for (Hit hit : expectedHits) {
-            TopDocs hits = searcher.searchTopN(TextDocumentStructure.newSeekQuery(searcher, hit.value), 10);
-            assertEquals(TotalHits.Relation.EQUAL_TO, hits.totalHits.relation);
+        for (Hit expectedHit : expectedHits) {
+            List<LuceneDocument> hits =
+                    searcher.searchTopN(TextDocumentStructure.newSeekQuery(searcher, expectedHit.value), 10);
             assertEquals(
-                    hit.nodeIds.length, hits.totalHits.value, "Unexpected number of index results from " + hit.value);
+                    expectedHit.nodeIds.length,
+                    hits.size(),
+                    "Unexpected number of index results from " + expectedHit.value);
             Set<Long> foundNodeIds = new HashSet<>();
-            for (int i = 0; i < hits.totalHits.value; i++) {
-                LuceneDocument document = searcher.doc(hits.scoreDocs[i].doc);
-                foundNodeIds.add(parseLong(document.get("id")));
+            for (LuceneDocument hit : hits) {
+                foundNodeIds.add(parseLong(hit.get("id")));
             }
-            assertEquals(asSet(hit.nodeIds), foundNodeIds);
+            assertEquals(asSet(expectedHit.nodeIds), foundNodeIds);
         }
     }
 
@@ -289,7 +289,7 @@ class TextIndexPopulatorTest {
         indexPopulator.close(true, NULL_CONTEXT);
         assertEquals(InternalIndexState.ONLINE, provider.getInitialState(index, NULL_CONTEXT, Sets.immutable.empty()));
         reader = directory.open();
-        searcher = reader.newSearcher();
+        searcher = reader.newDirectSearcher();
     }
 
     private void addUpdate(IndexPopulator populator, long nodeId, Object value) throws IndexEntryConflictException {

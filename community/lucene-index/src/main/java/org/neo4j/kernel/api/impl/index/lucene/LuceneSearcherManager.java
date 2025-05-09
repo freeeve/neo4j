@@ -22,27 +22,8 @@ package org.neo4j.kernel.api.impl.index.lucene;
 import java.io.Closeable;
 import java.io.IOException;
 
-public interface LuceneDirectoryReader extends Closeable {
-    String KEY_STATUS = "status";
-    String ONLINE = "online";
+public interface LuceneSearcherManager extends Closeable {
+    LuceneIndexSearcher acquire() throws IOException;
 
-    boolean isOnline() throws IOException;
-
-    /**
-     * Creates a new {@link LuceneSearcherManager} that will manage multiple searchers.
-     * The manager needs to be closed after usage, and this will also close all underlying
-     * managed {@link LuceneIndexSearcher}.
-     *
-     * @return a new searcher manager.
-     */
-    LuceneSearcherManager newSearcherManager() throws IOException;
-
-    /**
-     * Create a new direct {@link LuceneIndexSearcher}. Direct means that it's not owned
-     * by a {@link LuceneSearcherManager} and care must be taken to properly close the
-     * searcher when done using it.
-     *
-     * @return a new searcher.
-     */
-    LuceneIndexSearcher newDirectSearcher();
+    void maybeRefreshBlocking() throws IOException;
 }

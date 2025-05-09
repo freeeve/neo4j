@@ -211,7 +211,7 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
 
     public IndexEntriesReader[] newAllEntriesValueReader(
             ToLongFunction<LuceneDocument> entityIdReader, int numPartitions) {
-        LuceneAllDocumentsReader allDocumentsReader = luceneIndex.allDocumentsReader();
+        LucenePartitionsAllDocumentsReader allDocumentsReader = luceneIndex.allDocumentsReader();
         List<Iterator<LuceneDocument>> partitions = allDocumentsReader.partition(numPartitions);
         AtomicInteger closeCount = new AtomicInteger(partitions.size());
         List<IndexEntriesReader> readers = partitions.stream()
@@ -257,13 +257,13 @@ public abstract class AbstractLuceneIndexAccessor<READER extends ValueIndexReade
 
     private static class PartitionIndexEntriesReader implements IndexEntriesReader {
         private final AtomicInteger closeCount;
-        private final LuceneAllDocumentsReader allDocumentsReader;
+        private final LucenePartitionsAllDocumentsReader allDocumentsReader;
         private final ToLongFunction<LuceneDocument> entityIdReader;
         private final Iterator<LuceneDocument> partitionDocuments;
 
         PartitionIndexEntriesReader(
                 AtomicInteger closeCount,
-                LuceneAllDocumentsReader allDocumentsReader,
+                LucenePartitionsAllDocumentsReader allDocumentsReader,
                 ToLongFunction<LuceneDocument> entityIdReader,
                 Iterator<LuceneDocument> partitionDocuments) {
             this.closeCount = closeCount;

@@ -21,7 +21,6 @@ package org.neo4j.kernel.api.impl.index.partition;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import org.apache.lucene.search.SearcherManager;
 import org.neo4j.function.ThrowingBiConsumer;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.io.IOUtils;
@@ -29,6 +28,7 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneSearcherManager;
 
 /**
  * Represents a single writable partition of a partitioned lucene index.
@@ -36,7 +36,7 @@ import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriterConfig;
  */
 public class WritableIndexPartition extends AbstractIndexPartition {
     private final LuceneIndexWriter indexWriter;
-    private final SearcherManager searcherManager;
+    private final LuceneSearcherManager searcherManager;
     private final LuceneDirectoryReader directoryReader;
 
     public WritableIndexPartition(Path partitionFolder, LuceneDirectory directory, LuceneIndexWriterConfig writerConfig)
@@ -44,7 +44,7 @@ public class WritableIndexPartition extends AbstractIndexPartition {
         super(partitionFolder, directory);
         this.indexWriter = directory.newWriter(writerConfig);
         this.directoryReader = indexWriter.directoryReader();
-        this.searcherManager = directoryReader.searcherManager();
+        this.searcherManager = directoryReader.newSearcherManager();
     }
 
     /**
@@ -94,7 +94,7 @@ public class WritableIndexPartition extends AbstractIndexPartition {
         var searcher = searcherManager.acquire();
         int numDocs;
         try {
-            numDocs = searcher.getIndexReader().numDocs();
+            numDocs = searcher.numDocs();
         } finally {
             searcherManager.close();
         }

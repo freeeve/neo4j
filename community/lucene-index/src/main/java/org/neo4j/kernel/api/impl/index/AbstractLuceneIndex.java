@@ -38,9 +38,11 @@ import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.IOUtils;
 import org.neo4j.kernel.api.IndexFileSnapshotter;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneAllDocumentsReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectoryReader;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
 import org.neo4j.kernel.api.impl.index.partition.AbstractIndexPartition;
 import org.neo4j.kernel.api.impl.index.partition.IndexPartitionFactory;
@@ -222,7 +224,7 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
      *
      * @return LuceneAllDocumentsReader over all documents
      */
-    public LuceneAllDocumentsReader allDocumentsReader() {
+    public LucenePartitionsAllDocumentsReader allDocumentsReader() {
         ensureOpen();
         List<SearcherReference> searchers = new ArrayList<>(partitions.size());
         try {
@@ -230,11 +232,12 @@ public abstract class AbstractLuceneIndex<READER extends IndexReader> implements
                 searchers.add(partition.acquireSearcher());
             }
 
-            List<LucenePartitionAllDocumentsReader> partitionReaders = searchers.stream()
-                    .map(LucenePartitionAllDocumentsReader::new)
+            List<LuceneAllDocumentsReader> partitionReaders = searchers.stream()
+                    .map(SearcherReference::getIndexSearcher)
+                    .map(LuceneIndexSearcher::newAllDocumentsReader)
                     .toList();
 
-            return new LuceneAllDocumentsReader(partitionReaders);
+            return new LucenePartitionsAllDocumentsReader(partitionReaders, searchers);
         } catch (IOException e) {
             IOUtils.closeAllSilently(searchers);
             throw new UncheckedIOException(e);
