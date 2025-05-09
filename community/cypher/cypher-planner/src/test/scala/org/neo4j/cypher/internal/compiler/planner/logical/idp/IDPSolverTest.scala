@@ -390,7 +390,8 @@ class IDPSolverTest extends CypherFunSuite {
       input: Iterable[X],
       resolved: => String,
       resolvedPerPlan: LogicalPlan => String,
-      heuristic: SelectorHeuristic
+      heuristic: SelectorHeuristic,
+      planDescriptor: X => Option[String]
     ): Option[X] = {
       val elements = input.toList.sortBy(x => projector(x))
       if (elements.nonEmpty) Some(elements.maxBy(x => projector(x).length)) else None
@@ -407,7 +408,8 @@ class IDPSolverTest extends CypherFunSuite {
       input: Iterable[X],
       resolved: => String,
       resolvedPerPlan: LogicalPlan => String,
-      heuristic: SelectorHeuristic
+      heuristic: SelectorHeuristic,
+      planDescriptor: X => Option[String]
     ): Option[X] = {
       val (elementsWithLetters, elementsWithNumbers) =
         input.toList.sortBy(x => projector(x)).partition(x => projector(x).forall(_.isLetter))

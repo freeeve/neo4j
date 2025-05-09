@@ -19,6 +19,7 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical
 
+import org.neo4j.cypher.internal.compiler.planner.logical.SelectorHeuristic.defaultPlanDescriptor
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.BestResults
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
@@ -45,7 +46,8 @@ trait ProjectingSelector[P] {
     input: Iterable[X],
     resolved: => String,
     resolvedPerPlan: LogicalPlan => String,
-    heuristic: SelectorHeuristic
+    heuristic: SelectorHeuristic,
+    planDescriptor: X => Option[String] = defaultPlanDescriptor[X](_)
   ): Option[X]
 
   def ofBestResults(
@@ -67,6 +69,8 @@ trait ProjectingSelector[P] {
 
 object SelectorHeuristic {
   val constant: SelectorHeuristic = (_: LogicalPlan) => 0
+
+  def defaultPlanDescriptor[X](plan: X): Option[String] = None
 }
 
 @FunctionalInterface

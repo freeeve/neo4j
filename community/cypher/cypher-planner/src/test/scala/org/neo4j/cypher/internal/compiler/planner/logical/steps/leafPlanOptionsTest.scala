@@ -74,7 +74,8 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
             input: Iterable[X],
             resolved: => String,
             resolvedPerPlan: LogicalPlan => String,
-            heuristic: SelectorHeuristic
+            heuristic: SelectorHeuristic,
+            planDescriptor: X => Option[String]
           ): Option[X] = {
             val logicalPlans = input.map(i => (i, projector(i))).toSeq
               .sortBy {
@@ -219,7 +220,8 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
             input: Iterable[X],
             resolved: => String,
             resolvedPerPlan: LogicalPlan => String,
-            heuristic: SelectorHeuristic
+            heuristic: SelectorHeuristic,
+            planDescriptor: X => Option[String]
           ): Option[X] = input.headOption
         },
       applySelections = (_, _, _, _) => plan,
@@ -258,7 +260,8 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
             input: Iterable[X],
             resolved: => String,
             resolvedPerPlan: LogicalPlan => String,
-            heuristic: SelectorHeuristic
+            heuristic: SelectorHeuristic,
+            planDescriptor: X => Option[String]
           ): Option[X] = input.headOption
         },
       applySelections = (plan, _, _, _) => plan,
@@ -299,7 +302,8 @@ class leafPlanOptionsTest extends CypherFunSuite with LogicalPlanningTestSupport
             input: Iterable[X],
             resolved: => String,
             resolvedPerPlan: LogicalPlan => String,
-            heuristic: SelectorHeuristic
+            heuristic: SelectorHeuristic,
+            planDescriptor: X => Option[String]
           ): Option[X] = input.headOption
         },
       applySelections = (plan, _, _, _) => plan,

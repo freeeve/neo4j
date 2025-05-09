@@ -22,6 +22,7 @@ package org.neo4j.cypher.internal.compiler.planner.logical.idp
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.compiler.planner.logical.ProjectingSelector
 import org.neo4j.cypher.internal.compiler.planner.logical.Selector
+import org.neo4j.cypher.internal.compiler.planner.logical.SelectorHeuristic
 import org.neo4j.cypher.internal.compiler.planner.logical.idp.IDPCache.SatisfiedExtraRequirements
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.exceptions.InternalException
@@ -116,13 +117,16 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
     // utility functions
     def candidateSelector(resolved: => String): Selector[Result] =
       projectingSelector.apply[Result](identity[Result], _, resolved)
-    def goalSelector(resolved: => String): Selector[(Goal, Result)] = projectingSelector.apply[(Goal, Result)](
-      {
-        case (_, result) => result
-      },
-      _,
-      resolved
-    )
+    def goalSelector(resolved: => String): Selector[(Goal, Result)] =
+      projectingSelector.applyWithResolvedPerPlan[(Goal, Result)](
+        // project the result
+        _._2,
+        _,
+        resolved,
+        _ => "",
+        SelectorHeuristic.constant,
+        planDescriptor = { case (goal, _) => Some(s"Goal: ${goal.bitSet}") }
+      )
 
     def generateBestCandidates(maxBlockSize: Int): Int = {
       var largestFinishedIteration = 0
@@ -195,13 +199,13 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
       largestFinishedIteration
     }
 
-    def findBestCandidateInBlock(blockSize: Int): Goal = {
+    def findBestCandidateInBlock(blockSize: Int, iteration: Int): Goal = {
       // Find all candidates that solve the highest number of relationships, ignoring sorted plans.
       val blockCandidates: Iterable[(Goal, Result)] = table.unsortedPlansOfSize(blockSize).toVector
       // Select the best of those. These candidates solve different things.
       // The best of the candidates is likely to appear in larger plans, so it is a good idea to compact that one.
       val bestInBlock: Option[(Goal, Result)] =
-        goalSelector(s"Best candidate for block size $blockSize")(blockCandidates)
+        goalSelector(s"Best candidate for block size $blockSize (IDP iteration #$iteration)")(blockCandidates)
       val (goal, _) = bestInBlock.getOrElse {
         throw InternalException.foundNoSolutionForBlock(blockSize, blockCandidates.toString(), table.toString)
       }
@@ -241,7 +245,7 @@ class IDPSolver[Solvable: IDPLoggable, Result, Context](
           GraphDatabaseInternalSettings.cypher_idp_solver_duration_threshold.name()
         )
       }
-      val bestGoal = findBestCandidateInBlock(largestFinished)
+      val bestGoal = findBestCandidateInBlock(largestFinished, iterations)
       monitor.endIteration(iterations, largestFinished, table.size)
       // Compaction is either done at the very end of the algorithm, or when we hit a table size or time limit.
       // In the latter case, the goal is the one with the best (unsorted) result.

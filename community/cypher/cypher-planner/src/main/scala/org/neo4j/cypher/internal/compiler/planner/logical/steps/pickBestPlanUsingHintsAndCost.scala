@@ -39,7 +39,8 @@ object pickBestPlanUsingHintsAndCost extends CandidateSelectorFactory {
         input: Iterable[X],
         resolved: => String,
         resolvedPerPlan: LogicalPlan => String,
-        heuristic: SelectorHeuristic
+        heuristic: SelectorHeuristic,
+        planDescriptor: X => Option[String]
       ): Option[X] = {
         context.staticComponents.costComparisonListener.report(
           projector,
@@ -48,7 +49,8 @@ object pickBestPlanUsingHintsAndCost extends CandidateSelectorFactory {
           context,
           resolved,
           resolvedPerPlan,
-          heuristic
+          heuristic,
+          planDescriptor
         )
 
         // don't run minBy for only one element, since that will unnecessary call score() for that element
