@@ -19,19 +19,22 @@
  */
 package org.neo4j.kernel.api.impl.schema;
 
-import org.apache.lucene.search.Query;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.kernel.api.impl.schema.reader.CypherStringQueryFactory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
 
 public abstract class LuceneQueryFactory {
 
     protected LuceneQueryFactory() {}
 
-    public abstract Query createQuery(
-            PropertyIndexQuery predicate, IndexQueryConstraints constraints, IndexDescriptor descriptor);
+    public abstract LuceneQueryContext createQuery(
+            LuceneIndexSearcher searcher,
+            PropertyIndexQuery predicate,
+            IndexQueryConstraints constraints,
+            IndexDescriptor descriptor);
 
     public static class TextQueryFactory extends LuceneQueryFactory {
         public static final LuceneQueryFactory INSTANCE = new TextQueryFactory();
@@ -39,23 +42,28 @@ public abstract class LuceneQueryFactory {
         private TextQueryFactory() {}
 
         @Override
-        public Query createQuery(
-                PropertyIndexQuery predicate, IndexQueryConstraints constraints, IndexDescriptor descriptor) {
+        public LuceneQueryContext createQuery(
+                LuceneIndexSearcher searcher,
+                PropertyIndexQuery predicate,
+                IndexQueryConstraints constraints,
+                IndexDescriptor descriptor) {
             return switch (predicate.type()) {
-                case ALL_ENTRIES -> TextDocumentStructure.newScanQuery();
+                case ALL_ENTRIES -> searcher.newQueryContext().matchAll();
                 case EXACT ->
-                    TextDocumentStructure.newSeekQuery(((PropertyIndexQuery.ExactPredicate) predicate).value());
+                    TextDocumentStructure.newSeekQuery(
+                            searcher, ((PropertyIndexQuery.ExactPredicate) predicate).value());
                 case STRING_PREFIX -> {
                     final var spp = (PropertyIndexQuery.StringPrefixPredicate) predicate;
-                    yield CypherStringQueryFactory.stringPrefix(spp.prefix().stringValue());
+                    yield searcher.newQueryContext().stringPrefix(spp.prefix().stringValue());
                 }
                 case STRING_CONTAINS -> {
                     final var scp = (PropertyIndexQuery.StringContainsPredicate) predicate;
-                    yield CypherStringQueryFactory.stringContains(scp.contains().stringValue());
+                    yield searcher.newQueryContext()
+                            .stringContains(scp.contains().stringValue());
                 }
                 case STRING_SUFFIX -> {
                     final var ssp = (PropertyIndexQuery.StringSuffixPredicate) predicate;
-                    yield CypherStringQueryFactory.stringSuffix(ssp.suffix().stringValue());
+                    yield searcher.newQueryContext().stringSuffix(ssp.suffix().stringValue());
                 }
                 default -> throw invalidQuery(descriptor, predicate);
             };
@@ -68,31 +76,32 @@ public abstract class LuceneQueryFactory {
         private TrigramQueryFactory() {}
 
         @Override
-        public Query createQuery(
-                PropertyIndexQuery predicate, IndexQueryConstraints constraints, IndexDescriptor descriptor) {
+        public LuceneQueryContext createQuery(
+                LuceneIndexSearcher searcher,
+                PropertyIndexQuery predicate,
+                IndexQueryConstraints constraints,
+                IndexDescriptor descriptor) {
             return switch (predicate.type()) {
-                case ALL_ENTRIES -> org.neo4j.kernel.api.impl.schema.trigram.TrigramQueryFactory.allValues();
+                case ALL_ENTRIES -> searcher.newQueryContext().matchAll();
                 case EXACT -> {
                     final var value = ((PropertyIndexQuery.ExactPredicate) predicate)
                             .value()
                             .asObject()
                             .toString();
-                    yield org.neo4j.kernel.api.impl.schema.trigram.TrigramQueryFactory.exact(value);
+                    yield searcher.newQueryContext().trigramSearch(value);
                 }
                 case STRING_PREFIX -> {
                     final var spp = (PropertyIndexQuery.StringPrefixPredicate) predicate;
-                    yield org.neo4j.kernel.api.impl.schema.trigram.TrigramQueryFactory.stringPrefix(
-                            spp.prefix().stringValue());
+                    yield searcher.newQueryContext().trigramSearch(spp.prefix().stringValue());
                 }
                 case STRING_CONTAINS -> {
                     final var scp = (PropertyIndexQuery.StringContainsPredicate) predicate;
-                    yield org.neo4j.kernel.api.impl.schema.trigram.TrigramQueryFactory.stringContains(
-                            scp.contains().stringValue());
+                    yield searcher.newQueryContext()
+                            .trigramSearch(scp.contains().stringValue());
                 }
                 case STRING_SUFFIX -> {
                     final var ssp = (PropertyIndexQuery.StringSuffixPredicate) predicate;
-                    yield org.neo4j.kernel.api.impl.schema.trigram.TrigramQueryFactory.stringSuffix(
-                            ssp.suffix().stringValue());
+                    yield searcher.newQueryContext().trigramSearch(ssp.suffix().stringValue());
                 }
                 default -> throw invalidQuery(descriptor, predicate);
             };
@@ -107,18 +116,23 @@ public abstract class LuceneQueryFactory {
         }
 
         @Override
-        public Query createQuery(
-                PropertyIndexQuery predicate, IndexQueryConstraints constraints, IndexDescriptor descriptor) {
+        public LuceneQueryContext createQuery(
+                LuceneIndexSearcher searcher,
+                PropertyIndexQuery predicate,
+                IndexQueryConstraints constraints,
+                IndexDescriptor descriptor) {
             return switch (predicate.type()) {
-                case ALL_ENTRIES -> org.neo4j.kernel.api.impl.schema.vector.VectorQueryFactory.allValues();
+                case ALL_ENTRIES -> searcher.newQueryContext().matchAll();
                 case NEAREST_NEIGHBORS -> {
                     final var nearestNeighborsPredicate = (PropertyIndexQuery.NearestNeighborsPredicate) predicate;
                     final var k = Math.min(
                             nearestNeighborsPredicate.numberOfNeighbors(),
                             constraints.limit().orElse(Integer.MAX_VALUE));
                     final var effectiveK = k + constraints.skip().orElse(0);
-                    yield org.neo4j.kernel.api.impl.schema.vector.VectorQueryFactory.approximateNearestNeighbors(
-                            documentStructure, nearestNeighborsPredicate.query(), Math.toIntExact(effectiveK));
+
+                    yield searcher.newQueryContext()
+                            .approximateNearestNeighbors(
+                                    documentStructure, nearestNeighborsPredicate.query(), Math.toIntExact(effectiveK));
                 }
                 default -> throw invalidQuery(descriptor, predicate);
             };

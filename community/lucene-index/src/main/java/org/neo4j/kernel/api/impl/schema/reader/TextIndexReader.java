@@ -26,9 +26,9 @@ import java.io.UncheckedIOException;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.api.impl.index.LuceneQueryBuilder;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.AbstractTextIndexReader;
 import org.neo4j.kernel.api.impl.schema.LuceneQueryFactory;
 import org.neo4j.kernel.api.impl.schema.TaskCoordinator;
@@ -78,13 +78,13 @@ public class TextIndexReader extends AbstractTextIndexReader {
     @Override
     public long countIndexedEntities(
             long entityId, CursorContext cursorContext, int[] propertyKeyIds, Value... propertyValues) {
-        LuceneQueryBuilder entityIdAndValueQuery = new LuceneQueryBuilder();
-        entityIdAndValueQuery.addMustTerm(NODE_ID_KEY, String.valueOf(entityId));
-        entityIdAndValueQuery.addMustSeek(propertyValues);
+        LuceneIndexSearcher luceneIndexSearcher = getIndexSearcher();
+        LuceneQueryContext queryContext = luceneIndexSearcher.newQueryContext();
+        queryContext.addMustTerm(NODE_ID_KEY, String.valueOf(entityId));
+        queryContext.addMustSeek(propertyValues);
 
         try {
-            LuceneIndexSearcher luceneIndexSearcher = getIndexSearcher();
-            return luceneIndexSearcher.count(entityIdAndValueQuery.build());
+            return luceneIndexSearcher.count(queryContext);
             // A <label,propertyKeyId,nodeId> tuple should only match at most a single propertyValue
         } catch (IOException e) {
             throw new UncheckedIOException(e);

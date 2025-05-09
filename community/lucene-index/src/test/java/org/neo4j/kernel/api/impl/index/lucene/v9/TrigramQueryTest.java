@@ -17,58 +17,37 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.trigram;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.util.HashSet;
-import java.util.function.Function;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryVisitor;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
 import org.neo4j.kernel.impl.api.LuceneIndexValueValidator;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 
 @ExtendWith(RandomExtension.class)
-class TrigramQueryFactoryTest {
+class TrigramQueryTest {
     @Inject
     private RandomSupport random;
 
-    @ParameterizedTest
-    @EnumSource
-    void shouldHandleLargeSearchStrings(TrigramQuery trigramQuery) {
+    @Test
+    void shouldHandleLargeSearchStrings() {
         // Given
         var size = LuceneIndexValueValidator.MAX_TERM_LENGTH;
 
         // When
-        var query = trigramQuery.query(random.nextAlphaNumericString(size, size));
+        var query = new Lucene9QueryContext().trigramSearch(random.nextAlphaNumericString(size, size));
 
         // Then
         var terms = new HashSet<Term>();
-        query.visit(QueryVisitor.termCollector(terms));
+        query.build().visit(QueryVisitor.termCollector(terms));
         assertThat(terms.size()).isGreaterThanOrEqualTo(1).isLessThanOrEqualTo(IndexSearcher.getMaxClauseCount());
-    }
-
-    private enum TrigramQuery {
-        EXACT(s -> TrigramQueryFactory.exact(s)),
-        PREFIX(s -> TrigramQueryFactory.stringPrefix(s)),
-        SUFFIX(s -> TrigramQueryFactory.stringSuffix(s)),
-        CONTAINS(s -> TrigramQueryFactory.stringContains(s));
-
-        final Function<String, Query> queryFunction;
-
-        TrigramQuery(Function<String, Query> queryFunction) {
-            this.queryFunction = queryFunction;
-        }
-
-        Query query(String searchString) {
-            return queryFunction.apply(searchString);
-        }
     }
 }

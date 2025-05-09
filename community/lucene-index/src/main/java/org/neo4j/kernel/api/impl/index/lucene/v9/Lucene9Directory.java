@@ -148,22 +148,17 @@ public class Lucene9Directory implements LuceneDirectory {
         if (config.maxBufferedDocs != null) {
             indexWriterConfig.setMaxBufferedDocs(config.maxBufferedDocs);
         }
-        if (config.maxFullFlushMergeWaitMillis != null) {
-            indexWriterConfig.setMaxFullFlushMergeWaitMillis(config.maxFullFlushMergeWaitMillis);
-        }
 
-        indexWriterConfig.setCommitOnClose(config.commitOnClose);
-        indexWriterConfig.setUseCompoundFile(config.userCompoundFile);
+        indexWriterConfig.setCommitOnClose(true);
+        indexWriterConfig.setUseCompoundFile(true);
+        indexWriterConfig.setMaxFullFlushMergeWaitMillis(0);
+        indexWriterConfig.setIndexDeletionPolicy(new SnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy()));
 
         if (config.codec != null) {
             indexWriterConfig.setCodec(config.codec);
         }
         if (config.useOnThreadConcurrentMergeScheduler) {
             indexWriterConfig.setMergeScheduler(new OnThreadConcurrentMergeScheduler());
-        }
-        if (config.useSnapshotDeletionPolicy) {
-            indexWriterConfig.setIndexDeletionPolicy(
-                    new SnapshotDeletionPolicy(new KeepOnlyLastCommitDeletionPolicy()));
         }
 
         LogByteSizeMergePolicy mergePolicy = new LogByteSizeMergePolicy();

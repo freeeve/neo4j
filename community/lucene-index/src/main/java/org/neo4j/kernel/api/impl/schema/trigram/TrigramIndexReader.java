@@ -24,10 +24,11 @@ import java.io.UncheckedIOException;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.IndexQuery;
 import org.neo4j.io.pagecache.context.CursorContext;
-import org.neo4j.kernel.api.impl.index.LuceneQueryBuilder;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.AbstractTextIndexReader;
 import org.neo4j.kernel.api.impl.schema.LuceneQueryFactory;
 import org.neo4j.kernel.api.index.IndexSampler;
@@ -62,7 +63,7 @@ public class TrigramIndexReader extends AbstractTextIndexReader {
 
     @Override
     protected boolean needStoreFilter(PropertyIndexQuery predicate) {
-        return TrigramQueryFactory.needStoreFilter(predicate);
+        return !predicate.type().equals(IndexQuery.IndexQueryType.ALL_ENTRIES);
     }
 
     /**
@@ -76,17 +77,17 @@ public class TrigramIndexReader extends AbstractTextIndexReader {
     @Override
     public long countIndexedEntities(
             long entityId, CursorContext cursorContext, int[] propertyKeyIds, Value... propertyValues) {
-        LuceneQueryBuilder entityIdAndValueQuery = new LuceneQueryBuilder();
-        entityIdAndValueQuery.addMustTerm(LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY, String.valueOf(entityId));
+        LuceneQueryContext queryContext = getIndexSearcher().newQueryContext();
+        queryContext.addMustTerm(LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY, String.valueOf(entityId));
 
         Preconditions.checkState(
                 propertyKeyIds.length == 1,
                 "Text index does not support composite indexing. Tried to query index with multiple property keys.");
         final var value = propertyValues[0].asObject().toString();
-        entityIdAndValueQuery.addTrigram(value);
+        queryContext.addExactTrigram(value);
 
         try {
-            return getIndexSearcher().count(entityIdAndValueQuery.build());
+            return getIndexSearcher().count(queryContext);
             // A <label,propertyKeyId,nodeId> tuple should only match at most a single propertyValue
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -97,7 +98,7 @@ public class TrigramIndexReader extends AbstractTextIndexReader {
         return newAllEntriesValueReaderForPartition(
                 LuceneDocumentsFactory.TRIGRAM_ENTITY_ID_KEY,
                 getIndexSearcher(),
-                TrigramQueryFactory.allValues(),
+                getIndexSearcher().newQueryContext().matchAll(),
                 fromIdInclusive,
                 toIdExclusive);
     }

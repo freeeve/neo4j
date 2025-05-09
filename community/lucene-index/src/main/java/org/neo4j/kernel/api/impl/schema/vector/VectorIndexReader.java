@@ -24,7 +24,6 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalInt;
-import org.apache.lucene.search.Query;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
@@ -37,6 +36,7 @@ import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.collector.ScoredEntityIterator;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.AbstractLuceneIndexReader;
 import org.neo4j.kernel.api.impl.schema.LuceneQueryFactory;
 import org.neo4j.kernel.api.impl.schema.LuceneScoredEntityIndexProgressor;
@@ -72,11 +72,18 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
         //              LeafReader::getFloatVectorValues seems promising with something like DocValuesCollector.
         //              Otherwise, perhaps k-ANN of k=1, filter=getById, (score-1) < epsilon?
 
+        if (searchers.isEmpty()) {
+            return 0;
+        }
         var count = 0L;
-        final var query = VectorQueryFactory.getById(entityId);
+        final var queryContext = searchers
+                .getFirst()
+                .getIndexSearcher()
+                .newQueryContext()
+                .exactTerm(VectorDocumentStructure.ENTITY_ID_KEY, entityId);
         for (final var searcher : searchers) {
             try {
-                count += searcher.getIndexSearcher().count(query);
+                count += searcher.getIndexSearcher().count(queryContext);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -130,8 +137,15 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
             PropertyIndexQuery predicate,
             IndexQueryConstraints constraints,
             EntityValueClient client) {
-        ValuesIterator iterator =
-                searchLucene(queryFactory.createQuery(predicate, constraints, descriptor), constraints);
+        ValuesIterator iterator;
+        if (searchers.isEmpty()) {
+            iterator = ValuesIterator.EMPTY;
+        } else {
+            iterator = searchLucene(
+                    queryFactory.createQuery(
+                            searchers.getFirst().getIndexSearcher(), predicate, constraints, descriptor),
+                    constraints);
+        }
         return new LuceneScoredEntityIndexProgressor(iterator, client, constraints);
     }
 
@@ -155,14 +169,14 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
         }
     }
 
-    private ValuesIterator searchLucene(Query query, IndexQueryConstraints constraints) {
+    private ValuesIterator searchLucene(LuceneQueryContext queryContext, IndexQueryConstraints constraints) {
         // TODO VECTOR: FulltextIndexReader handles transaction state in a similar way
         //              with QueryContext, CursorContext, MemoryTracker
         try {
             // TODO VECTOR: pre-rewrite query? Not sure what rewriting entails
             final var results = new ArrayList<ValuesIterator>(searchers.size());
             for (final var searcher : searchers) {
-                ValuesIterator valuesIterator = searcher.getIndexSearcher().searchVectors(query, constraints);
+                ValuesIterator valuesIterator = searcher.getIndexSearcher().searchVectors(queryContext, constraints);
                 results.add(valuesIterator);
             }
             return ScoredEntityIterator.mergeIterators(results);
@@ -172,12 +186,16 @@ class VectorIndexReader extends AbstractLuceneIndexReader {
     }
 
     BoundedIterable<Long> newAllEntriesValueReader(long fromIdInclusive, long toIdExclusive) throws IOException {
-        final var field = VectorDocumentStructure.ENTITY_ID_KEY;
-        final var query = VectorQueryFactory.allValues();
+        if (searchers.isEmpty()) {
+            return BoundedIterable.empty();
+        }
+        String field = VectorDocumentStructure.ENTITY_ID_KEY;
+        LuceneQueryContext queryContext =
+                searchers.getFirst().getIndexSearcher().newQueryContext().matchAll();
         final var iterables = new ArrayList<BoundedIterable<Long>>(searchers.size());
         for (final var searcher : searchers) {
             iterables.add(newAllEntriesValueReaderForPartition(
-                    field, searcher.getIndexSearcher(), query, fromIdInclusive, toIdExclusive));
+                    field, searcher.getIndexSearcher(), queryContext, fromIdInclusive, toIdExclusive));
         }
         return BoundedIterable.concat(iterables);
     }

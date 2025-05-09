@@ -19,10 +19,10 @@
  */
 package org.neo4j.kernel.api.impl.schema.fulltext;
 
-import org.apache.lucene.search.Query;
-import org.neo4j.kernel.api.impl.index.LuceneQueryBuilder;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueGroup;
 
@@ -44,15 +44,16 @@ public class LuceneFulltextDocumentStructure {
         return Long.parseLong(entityId);
     }
 
-    static Query newCountEntityEntriesQuery(long nodeId, String[] propertyKeys, Value... propertyValues) {
-        LuceneQueryBuilder builder = new LuceneQueryBuilder();
-        builder.addMustTerm(FIELD_ENTITY_ID, String.valueOf(nodeId));
+    static LuceneQueryContext newCountEntityEntriesQuery(
+            LuceneIndexSearcher indexSearcher, long nodeId, String[] propertyKeys, Value... propertyValues) {
+        LuceneQueryContext queryContext = indexSearcher.newQueryContext();
+        queryContext.addMustTerm(FIELD_ENTITY_ID, String.valueOf(nodeId));
         for (int i = 0; i < propertyKeys.length; i++) {
             String propertyKey = propertyKeys[i];
             Value value = propertyValues[i];
             // Only match on entries that doesn't contain fields we don't expect
             if (value.valueGroup() != ValueGroup.TEXT && value.valueGroup() != ValueGroup.TEXT_ARRAY) {
-                builder.addMustNotHaveField(propertyKey);
+                queryContext.addMustNotHaveField(propertyKey);
             }
             // Why don't we match on the TEXT values that actually should be in the index?
             // 1. The analyzer used for our index can have split the property value into several terms so we cannot
@@ -61,6 +62,6 @@ public class LuceneFulltextDocumentStructure {
             //    only such characters there will be no reference to the field at all, so we cannot use a wildcard query
             // either.
         }
-        return builder.build();
+        return queryContext;
     }
 }

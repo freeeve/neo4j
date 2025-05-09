@@ -272,7 +272,7 @@ class TextIndexPopulatorTest {
         switchToVerification();
 
         for (Hit hit : expectedHits) {
-            TopDocs hits = searcher.searchTopN(TextDocumentStructure.newSeekQuery(hit.value), 10);
+            TopDocs hits = searcher.searchTopN(TextDocumentStructure.newSeekQuery(searcher, hit.value), 10);
             assertEquals(TotalHits.Relation.EQUAL_TO, hits.totalHits.relation);
             assertEquals(
                     hit.nodeIds.length, hits.totalHits.value, "Unexpected number of index results from " + hit.value);

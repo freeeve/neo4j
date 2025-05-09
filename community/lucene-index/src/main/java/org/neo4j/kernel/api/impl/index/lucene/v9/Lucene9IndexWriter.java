@@ -32,7 +32,6 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SnapshotDeletionPolicy;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.store.Directory;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.kernel.api.impl.index.backup.ReadOnlyIndexSnapshotFileIterator;
@@ -110,11 +109,6 @@ class Lucene9IndexWriter implements LuceneIndexWriter {
     @Override
     public void addIndexes(LuceneDirectory directory) throws IOException {
         indexWriter.addIndexes(((Lucene9Directory) directory).directory);
-    }
-
-    @Override
-    public void deleteDocuments(Query query) throws IOException {
-        indexWriter.deleteDocuments(query);
     }
 
     @Override

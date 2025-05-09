@@ -36,6 +36,7 @@ import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LucenePartitionedSearch;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.vector.VectorResultCollector;
 import org.neo4j.kernel.api.index.IndexProgressor;
 
@@ -50,7 +51,7 @@ public class Lucene9IndexSearcher implements LuceneIndexSearcher {
         this.indexSearcher.setQueryCache(null); // Disable query cache
     }
 
-    public Lucene9IndexSearcher(IndexSearcher indexSearcher) {
+    Lucene9IndexSearcher(IndexSearcher indexSearcher) {
         this.referenceManager = null;
         this.indexSearcher = indexSearcher;
     }
@@ -66,36 +67,50 @@ public class Lucene9IndexSearcher implements LuceneIndexSearcher {
     }
 
     @Override
-    public IndexProgressor searchDocValues(Query query, String field, EntityConsumer entityConsumer)
+    public IndexProgressor searchDocValues(LuceneQueryContext queryContext, String field, EntityConsumer entityConsumer)
             throws IOException {
         return indexSearcher.search(
-                query, new DocValuesCollectorManager(c -> c.getIndexProgressor(field, entityConsumer)));
+                toInternal(queryContext),
+                new DocValuesCollectorManager(c -> c.getIndexProgressor(field, entityConsumer)));
     }
 
     @Override
-    public IndexProgressor searchDocValues(Query query, String field, IndexProgressor.EntityValueClient client)
+    public IndexProgressor searchDocValues(
+            LuceneQueryContext queryContext, String field, IndexProgressor.EntityValueClient client)
             throws IOException {
-        return indexSearcher.search(query, new DocValuesCollectorManager(c -> c.getIndexProgressor(field, client)));
+        return indexSearcher.search(
+                toInternal(queryContext), new DocValuesCollectorManager(c -> c.getIndexProgressor(field, client)));
     }
 
     @Override
-    public ValuesIterator searchVectors(Query query, IndexQueryConstraints constraints) throws IOException {
-        return indexSearcher.search(query, new VectorValuesCollectorManager(constraints));
+    public ValuesIterator searchVectors(LuceneQueryContext queryContext, IndexQueryConstraints constraints)
+            throws IOException {
+        return indexSearcher.search(toInternal(queryContext), new VectorValuesCollectorManager(constraints));
     }
 
     @Override
-    public TopDocs searchTopN(Query query, int n) throws IOException {
-        return indexSearcher.search(query, n);
+    public TopDocs searchTopN(LuceneQueryContext queryContext, int n) throws IOException {
+        return indexSearcher.search(toInternal(queryContext), n);
     }
 
     @Override
-    public int count(Query query) throws IOException {
-        return indexSearcher.count(query);
+    public int count(LuceneQueryContext queryContext) throws IOException {
+        return indexSearcher.count(toInternal(queryContext));
     }
 
     @Override
-    public Query rewrite(Query query) throws IOException {
-        return indexSearcher.rewrite(query);
+    public LuceneQueryContext newQueryContext() {
+        return new Lucene9QueryContext();
+    }
+
+    @Override
+    public LuceneQueryContext rewrite(LuceneQueryContext queryContext) throws IOException {
+        Query originalQuery = toInternal(queryContext);
+        Query rewrite = indexSearcher.rewrite(originalQuery);
+        if (originalQuery == rewrite) {
+            return queryContext;
+        }
+        return Lucene9QueryContext.wrap(rewrite);
     }
 
     @Override
@@ -108,6 +123,10 @@ public class Lucene9IndexSearcher implements LuceneIndexSearcher {
     @Override
     public LucenePartitionedSearch newPartitionedSearcher(int size) {
         return new Lucene9PartitionedSearch(size);
+    }
+
+    private static Query toInternal(LuceneQueryContext queryContext) {
+        return ((Lucene9QueryContext) queryContext).build();
     }
 
     private static class DocValuesCollectorManager

@@ -32,10 +32,7 @@ public class LuceneIndexWriterConfig {
     public Integer maxBufferedDocs;
     public Double RAMBufferSizeMB;
     public boolean commitOnClose = true;
-    public boolean useSnapshotDeletionPolicy;
-    public boolean userCompoundFile;
     public Codec codec;
-    public Integer maxFullFlushMergeWaitMillis;
     public double noCFSRatio;
     public double minMergeMB;
     public double maxMergeMB;
@@ -74,21 +71,6 @@ public class LuceneIndexWriterConfig {
 
     public LuceneIndexWriterConfig setCommitOnClose(boolean commitOnClose) {
         this.commitOnClose = commitOnClose;
-        return this;
-    }
-
-    public LuceneIndexWriterConfig setUseSnapshotDeletionPolicy(boolean useSnapshotDeletionPolicy) {
-        this.useSnapshotDeletionPolicy = useSnapshotDeletionPolicy;
-        return this;
-    }
-
-    public LuceneIndexWriterConfig setUseCompoundFile(boolean userCompoundFile) {
-        this.userCompoundFile = userCompoundFile;
-        return this;
-    }
-
-    public LuceneIndexWriterConfig setMaxFullFlushMergeWaitMillis(int maxFullFlushMergeWaitMillis) {
-        this.maxFullFlushMergeWaitMillis = maxFullFlushMergeWaitMillis;
         return this;
     }
 

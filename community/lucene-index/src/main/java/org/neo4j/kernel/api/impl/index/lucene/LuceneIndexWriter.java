@@ -25,7 +25,6 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.search.Query;
 import org.neo4j.graphdb.ResourceIterator;
 
 public interface LuceneIndexWriter extends Closeable {
@@ -46,8 +45,6 @@ public interface LuceneIndexWriter extends Closeable {
     void updateDocument(String idField, long id, LuceneDocument document) throws IOException;
 
     void deleteDocuments(String idField, long id) throws IOException;
-
-    void deleteDocuments(Query query) throws IOException;
 
     void commit() throws IOException;
 

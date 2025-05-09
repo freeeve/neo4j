@@ -24,14 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.kernel.api.impl.LuceneTestUtil.documentRepresentingProperties;
-import static org.neo4j.kernel.api.impl.LuceneTestUtil.newSeekQuery;
 import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.NODE_ID_KEY;
 import static org.neo4j.kernel.api.impl.schema.TextDocumentStructure.useFieldForUniquenessVerification;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.ConstantScoreQuery;
-import org.apache.lucene.search.TermQuery;
 import org.junit.jupiter.api.Test;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
@@ -65,35 +61,6 @@ class TextDocumentStructureTest {
         assertEquals("123", document.get(NODE_ID_KEY));
         assertThat(document.get(LuceneStringValueEncoding.key(0))).isEqualTo(values[0]);
         assertThat(document.get(LuceneStringValueEncoding.key(1))).isEqualTo(values[1]);
-    }
-
-    @Test
-    void shouldBuildQueryRepresentingStringProperty() {
-        // given
-        BooleanQuery booleanQuery = (BooleanQuery) newSeekQuery("Characters");
-        ConstantScoreQuery query =
-                (ConstantScoreQuery) booleanQuery.clauses().get(0).getQuery();
-
-        // then
-        assertEquals("Characters", ((TermQuery) query.getQuery()).getTerm().text());
-    }
-
-    @Test
-    void shouldBuildQueryRepresentingMultipleProperties() {
-        // given
-        BooleanQuery booleanQuery = (BooleanQuery) newSeekQuery("foo", "bar");
-
-        ConstantScoreQuery fooScoreQuery =
-                (ConstantScoreQuery) booleanQuery.clauses().get(0).getQuery();
-        TermQuery fooTermQuery = (TermQuery) fooScoreQuery.getQuery();
-
-        ConstantScoreQuery barScoreQuery =
-                (ConstantScoreQuery) booleanQuery.clauses().get(1).getQuery();
-        TermQuery barTermQuery = (TermQuery) barScoreQuery.getQuery();
-
-        // then
-        assertEquals("foo", fooTermQuery.getTerm().text());
-        assertEquals("bar", barTermQuery.getTerm().text());
     }
 
     @Test

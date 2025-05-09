@@ -17,44 +17,209 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-package org.neo4j.kernel.api.impl.schema.reader;
+package org.neo4j.kernel.api.impl.index.lucene.v9;
+
+import static org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory.TRIGRAM_VALUE_KEY;
 
 import java.io.IOException;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.CharacterUtils;
 import org.apache.lucene.index.FilteredTermsEnum;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.index.TermsEnum;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParserBase;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.KnnFloatVectorQuery;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryVisitor;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.util.AttributeSource;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.StringHelper;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneStringValueEncoding;
+import org.neo4j.kernel.api.impl.schema.TextDocumentStructure;
+import org.neo4j.kernel.api.impl.schema.trigram.TrigramTokenStream;
+import org.neo4j.kernel.api.impl.schema.vector.VectorDocumentStructure;
+import org.neo4j.values.storable.Value;
 
-/**
- * Lucene queries for text queries using Cypher text operation semantics
- * instead of fuzzy fulltext search.
- * <p>
- * These operations can be used only for Lucene
- * indexes created using {@link org.apache.lucene.analysis.core.KeywordAnalyzer}.
- * The operations are optimised to be used to query such indexes and perform better
- * than the default Lucene equivalent which are optimised for fuzzy fulltext search.
- */
-public class CypherStringQueryFactory {
-    public static Query stringPrefix(String prefix) {
+public class Lucene9QueryContext implements LuceneQueryContext {
+    private BooleanQuery.Builder booleanBuilder;
+    private Query singleQuery;
+
+    static Lucene9QueryContext wrap(Query query) {
+        Lucene9QueryContext queryContext = new Lucene9QueryContext();
+        queryContext.assignSingle(query);
+        return queryContext;
+    }
+
+    @Override
+    public Lucene9QueryContext addMustTerm(String field, String text) {
+        ensureBooleanBuilder();
+        booleanBuilder.add(new TermQuery(new Term(field, text)), BooleanClause.Occur.MUST);
+        return this;
+    }
+
+    @Override
+    public Lucene9QueryContext addMustNotHaveField(String field) {
+        ensureBooleanBuilder();
+        booleanBuilder.add(
+                new ConstantScoreQuery(new WildcardQuery(new Term(field, "*"))), BooleanClause.Occur.MUST_NOT);
+        return this;
+    }
+
+    @Override
+    public Lucene9QueryContext addShouldQueryText(String query, String[] fields, Analyzer analyzer)
+            throws QueryParseException {
+        try {
+            ensureBooleanBuilder();
+            booleanBuilder.add(parseFulltextQuery(query, fields, analyzer), BooleanClause.Occur.SHOULD);
+            return this;
+        } catch (ParseException e) {
+            throw new QueryParseException(e);
+        }
+    }
+
+    @Override
+    public Lucene9QueryContext exactTerm(String entityIdKey, long entityId) {
+        assignSingle(new TermQuery(new Term(entityIdKey, Long.toString(entityId))));
+        return this;
+    }
+
+    @Override
+    public Lucene9QueryContext addExactTrigram(String value) {
+        ensureBooleanBuilder();
+        booleanBuilder.add(trigramSearchQuery(value), BooleanClause.Occur.MUST);
+        return this;
+    }
+
+    @Override
+    public Lucene9QueryContext addConstantMustTerm(String field, String text) {
+        ensureBooleanBuilder();
+        var termQuery = new ConstantScoreQuery(new TermQuery(new Term(field, text)));
+        booleanBuilder.add(termQuery, BooleanClause.Occur.MUST);
+        return this;
+    }
+
+    @Override
+    public Lucene9QueryContext addMustSeek(Value... propertyValues) {
+        ensureBooleanBuilder();
+        Lucene9QueryContext queryContext = new Lucene9QueryContext();
+        TextDocumentStructure.seekStrings(propertyValues, queryContext);
+        booleanBuilder.add(queryContext.build(), BooleanClause.Occur.MUST);
+        return this;
+    }
+
+    @Override
+    public Lucene9QueryContext matchAll() {
+        assignSingle(new MatchAllDocsQuery());
+        return this;
+    }
+
+    @Override
+    public Lucene9QueryContext stringPrefix(String prefix) {
         Term term = new Term(LuceneStringValueEncoding.key(0), prefix);
-        return new PrefixMultiTermsQuery(term);
+        assignSingle(new PrefixMultiTermsQuery(term));
+        return this;
     }
 
-    public static Query stringContains(String substring) {
+    @Override
+    public Lucene9QueryContext stringContains(String substring) {
         Term term = new Term(LuceneStringValueEncoding.key(0), substring);
-        return new ContainsMultiTermsQuery(term);
+        assignSingle(new ContainsMultiTermsQuery(term));
+        return this;
     }
 
-    public static Query stringSuffix(String suffix) {
+    @Override
+    public Lucene9QueryContext stringSuffix(String suffix) {
         Term term = new Term(LuceneStringValueEncoding.key(0), suffix);
-        return new SuffixMultiTermsQuery(term);
+        assignSingle(new SuffixMultiTermsQuery(term));
+        return this;
+    }
+
+    @Override
+    public Lucene9QueryContext trigramSearch(String searchString) {
+        assignSingle(trigramSearchQuery(searchString));
+        return this;
+    }
+
+    @Override
+    public Lucene9QueryContext approximateNearestNeighbors(
+            VectorDocumentStructure documentStructure, float[] query, int k) {
+        assignSingle(new KnnFloatVectorQuery(documentStructure.vectorValueKeyFor(query.length), query, k));
+        return this;
+    }
+
+    public Query build() {
+        if (singleQuery != null) {
+            return singleQuery;
+        }
+        return booleanBuilder.build();
+    }
+
+    private void ensureBooleanBuilder() {
+        if (booleanBuilder == null) {
+            if (singleQuery != null) {
+                throw new IllegalStateException("Builder already assigned to an absolute query");
+            }
+            booleanBuilder = new BooleanQuery.Builder();
+        }
+    }
+
+    private void assignSingle(Query single) {
+        if (booleanBuilder != null) {
+            throw new IllegalStateException("Cannot combine boolean with absolute queries");
+        }
+        if (singleQuery != null) {
+            throw new IllegalStateException("Can only have one absolute query");
+        }
+        singleQuery = single;
+    }
+
+    private Query parseFulltextQuery(String query, String[] propertyNames, Analyzer analyzer) throws ParseException {
+        MultiFieldQueryParser multiFieldQueryParser = new MultiFieldQueryParser(propertyNames, analyzer);
+        multiFieldQueryParser.setAllowLeadingWildcard(true);
+        return multiFieldQueryParser.parse(query);
+    }
+
+    private static Query trigramSearchQuery(String searchString) {
+        if (searchString.isEmpty()) {
+            return new MatchAllDocsQuery();
+        }
+
+        var codePointBuffer = TrigramTokenStream.getCodePoints(searchString);
+
+        if (codePointBuffer.codePointCount() < 3) {
+            String searchTerm = QueryParserBase.escape(searchString);
+            Term term = new Term(TRIGRAM_VALUE_KEY, "*" + searchTerm + "*");
+            return new WildcardQuery(term);
+        }
+
+        Lucene9QueryContext builder = new Lucene9QueryContext();
+        // Don't generate more clauses than what is allowed by IndexSearcher.
+        // Default value for IndexSearcher.getMaxClauseCount() is 1024 which is assumed to be enough to not generate too
+        // many false positives. And those false positives will be filtered out later as usual.
+        for (int i = 0; i < codePointBuffer.codePointCount() - 2 && i < LuceneIndexSearcher.getMaxClauseCount(); i++) {
+            String term = getNgram(codePointBuffer, i, 3);
+
+            builder.addConstantMustTerm(TRIGRAM_VALUE_KEY, term);
+        }
+        return builder.build();
+    }
+
+    private static String getNgram(TrigramTokenStream.CodePointBuffer codePointBuffer, int ngramIndex, int n) {
+        char[] termCharBuffer = new char[2 * n];
+        int length = CharacterUtils.toChars(codePointBuffer.codePoints(), ngramIndex, n, termCharBuffer, 0);
+        return new String(termCharBuffer, 0, length);
     }
 
     /**
@@ -105,13 +270,13 @@ public class CypherStringQueryFactory {
     }
 
     /**
-     * The standard Lucene query for this is {@link org.apache.lucene.search.WildcardQuery}.
+     * The standard Lucene query for this is {@link WildcardQuery}.
      * It uses an automaton which is very expensive to construct and not so cheap to use either.
      * For wildcard queries that start with a wildcard, there is nothing smarter that can be done
      * than scanning all the terms. There is no need to construct and use a smart automaton
      * for such a brute force operation.
      * <p>
-     * This is an important extract from javadoc of {@link org.apache.lucene.search.WildcardQuery}:
+     * This is an important extract from javadoc of {@link WildcardQuery}:
      * 'Note this query can be slow, as it needs to iterate over many terms.
      * In order to prevent extremely slow WildcardQueries,
      * a Wildcard term should not start with the wildcard *'

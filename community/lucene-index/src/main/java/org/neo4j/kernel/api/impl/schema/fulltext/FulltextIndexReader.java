@@ -28,12 +28,6 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.function.LongPredicate;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
-import org.apache.lucene.queryparser.classic.ParseException;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.Query;
 import org.eclipse.collections.impl.block.factory.primitive.LongPredicates;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
@@ -48,6 +42,7 @@ import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LucenePartitionedSearch;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.LuceneScoredEntityIndexProgressor;
 import org.neo4j.kernel.api.impl.schema.reader.IndexReaderCloseException;
 import org.neo4j.kernel.api.index.IndexProgressor;
@@ -107,12 +102,26 @@ public class FulltextIndexReader implements ValueIndexReader {
             throws IndexNotApplicableKernelException {
         validateQuery(constraints, queries);
         final var predicate = queries[0];
-        final var query = toLuceneQuery(predicate);
+        ValuesIterator iterator;
+        if (searchers.isEmpty()) {
+            // We are replicating the behaviour of IndexSearcher.search(Query, Collector), which starts out by
+            // re-writing the query, then creates a weight based on the query and index reader context, and then
+            // we finally search the leaf contexts with the weight we created. The query rewrite does not really
+            // depend on any data in the index searcher (we don't produce such queries), so it's fine that we
+            // only rewrite the query once with the first searcher in our partition list.
+            iterator = ValuesIterator.EMPTY;
+        } else {
+            iterator = searchLucene(
+                    toLuceneQuery(predicate),
+                    constraints,
+                    queryContext,
+                    queryContext.cursorContext(),
+                    queryContext.memoryTracker());
+        }
+
         queryContext.monitor().queried(index);
         usageTracker.queried();
 
-        final var iterator = searchLucene(
-                query, constraints, queryContext, queryContext.cursorContext(), queryContext.memoryTracker());
         final var progressor = new LuceneScoredEntityIndexProgressor(iterator, client, constraints);
         client.initializeQuery(index, progressor, true, false, constraints, queries);
     }
@@ -141,19 +150,26 @@ public class FulltextIndexReader implements ValueIndexReader {
                 .formatted(indexType, indexType, Arrays.toString(predicates)));
     }
 
-    private Query toLuceneQuery(PropertyIndexQuery predicate) {
+    private LuceneQueryContext toLuceneQuery(PropertyIndexQuery predicate) {
+        LuceneIndexSearcher indexSearcher = searchers.getFirst().getIndexSearcher();
         return switch (predicate.type()) {
-            case ALL_ENTRIES -> new MatchAllDocsQuery();
+            case ALL_ENTRIES -> indexSearcher.newQueryContext().matchAll();
             case FULLTEXT_SEARCH -> {
                 final var fulltextSearchPredicate = (FulltextSearchPredicate) predicate;
                 try {
                     // todo: is the boolean query needed?
-                    final var query = parseFulltextQuery(
-                            fulltextSearchPredicate.query(), fulltextSearchPredicate.queryAnalyzer());
-                    yield new BooleanQuery.Builder()
-                            .add(query, BooleanClause.Occur.SHOULD)
-                            .build();
-                } catch (ParseException parseException) {
+                    LuceneQueryContext queryContext = indexSearcher.newQueryContext();
+
+                    String queryAnalyzer = fulltextSearchPredicate.queryAnalyzer();
+                    Analyzer actualQueryAnalyzer = queryAnalyzer != null
+                            ? FulltextIndexAnalyzerLoader.INSTANCE.createAnalyzerFromString(queryAnalyzer)
+                            : analyzer;
+
+                    queryContext.addShouldQueryText(
+                            fulltextSearchPredicate.query(), propertyNames, actualQueryAnalyzer);
+
+                    yield queryContext;
+                } catch (LuceneQueryContext.QueryParseException parseException) {
                     throw new RuntimeException(
                             "Could not parse the given fulltext search query: '%s'."
                                     .formatted(fulltextSearchPredicate.query()),
@@ -191,9 +207,10 @@ public class FulltextIndexReader implements ValueIndexReader {
                 for (int i = 0; i < propertyKeyIds.length; i++) {
                     propertyKeys[i] = getPropertyKeyName(propertyKeyIds[i]);
                 }
-                Query query = LuceneFulltextDocumentStructure.newCountEntityEntriesQuery(
-                        entityId, propertyKeys, propertyValues);
-                count += searcher.getIndexSearcher().count(query);
+                LuceneIndexSearcher indexSearcher = searcher.getIndexSearcher();
+                LuceneQueryContext queryContext = LuceneFulltextDocumentStructure.newCountEntityEntriesQuery(
+                        indexSearcher, entityId, propertyKeys, propertyValues);
+                count += indexSearcher.count(queryContext);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -209,36 +226,15 @@ public class FulltextIndexReader implements ValueIndexReader {
         IOUtils.close(IndexReaderCloseException::new, resources);
     }
 
-    private Query parseFulltextQuery(String query, String queryAnalyzer) throws ParseException {
-        Analyzer actualQueryAnalyzer = queryAnalyzer != null
-                ? FulltextIndexAnalyzerLoader.INSTANCE.createAnalyzerFromString(queryAnalyzer)
-                : analyzer;
-
-        MultiFieldQueryParser multiFieldQueryParser = new MultiFieldQueryParser(propertyNames, actualQueryAnalyzer);
-        multiFieldQueryParser.setAllowLeadingWildcard(true);
-        return multiFieldQueryParser.parse(query);
-    }
-
     private ValuesIterator searchLucene(
-            Query query,
+            LuceneQueryContext queryContext,
             IndexQueryConstraints constraints,
             QueryContext context,
             CursorContext cursorContext,
             MemoryTracker memoryTracker) {
         try {
-            // We are replicating the behaviour of IndexSearcher.search(Query, Collector), which starts out by
-            // re-writing the query,
-            // then creates a weight based on the query and index reader context, and then we finally search the leaf
-            // contexts with
-            // the weight we created.
-            // The query rewrite does not really depend on any data in the index searcher (we don't produce such
-            // queries), so it's fine
-            // that we only rewrite the query once with the first searcher in our partition list.
-            if (searchers.isEmpty()) {
-                return ValuesIterator.EMPTY;
-            }
             LuceneIndexSearcher firstSearcher = searchers.getFirst().getIndexSearcher();
-            query = firstSearcher.rewrite(query);
+            queryContext = firstSearcher.rewrite(queryContext);
             boolean includeTransactionState =
                     context.getTransactionStateOrNull() != null && !isEventuallyConsistent(index);
             // If we have transaction state, then we need to make our result collector filter out all results touched by
@@ -256,7 +252,7 @@ public class FulltextIndexReader implements ValueIndexReader {
                 partitionedSearch.addPartitionSearcher(reference.getIndexSearcher(), ALWAYS_FALSE);
             }
 
-            return partitionedSearch.search(query, constraints);
+            return partitionedSearch.search(queryContext, constraints);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

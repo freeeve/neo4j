@@ -21,12 +21,12 @@ package org.neo4j.kernel.api.impl.schema;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import org.apache.lucene.search.Query;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.kernel.api.impl.index.SearcherReference;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.reader.IndexReaderCloseException;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.IndexProgressor.EntityValueClient;
@@ -53,9 +53,9 @@ public abstract class AbstractTextIndexReader extends AbstractLuceneIndexReader 
             IndexQueryConstraints constraints,
             EntityValueClient client) {
         LuceneIndexSearcher searcher = getIndexSearcher();
-        Query query = queryFactory.createQuery(predicate, constraints, descriptor);
+        LuceneQueryContext queryContext = queryFactory.createQuery(searcher, predicate, constraints, descriptor);
         try {
-            return searcher.searchDocValues(query, entityIdFieldKey(), client);
+            return searcher.searchDocValues(queryContext, entityIdFieldKey(), client);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

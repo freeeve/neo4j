@@ -23,7 +23,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TopDocs;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
@@ -39,18 +38,21 @@ public interface LuceneIndexSearcher extends Closeable {
 
     LuceneDocument doc(int docId) throws IOException;
 
-    IndexProgressor searchDocValues(Query query, String field, EntityConsumer entityConsumer) throws IOException;
-
-    IndexProgressor searchDocValues(Query query, String field, IndexProgressor.EntityValueClient client)
+    IndexProgressor searchDocValues(LuceneQueryContext queryContext, String field, EntityConsumer entityConsumer)
             throws IOException;
 
-    ValuesIterator searchVectors(Query query, IndexQueryConstraints constraints) throws IOException;
+    IndexProgressor searchDocValues(
+            LuceneQueryContext queryContext, String field, IndexProgressor.EntityValueClient client) throws IOException;
 
-    TopDocs searchTopN(Query query, int n) throws IOException;
+    ValuesIterator searchVectors(LuceneQueryContext queryContext, IndexQueryConstraints constraints) throws IOException;
 
-    int count(Query query) throws IOException;
+    TopDocs searchTopN(LuceneQueryContext queryContext, int n) throws IOException;
 
-    Query rewrite(Query query) throws IOException;
+    int count(LuceneQueryContext queryContext) throws IOException;
+
+    LuceneQueryContext rewrite(LuceneQueryContext queryContext) throws IOException;
+
+    LuceneQueryContext newQueryContext();
 
     LucenePartitionedSearch newPartitionedSearcher(int size);
 

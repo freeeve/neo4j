@@ -19,15 +19,10 @@
  */
 package org.neo4j.kernel.api.impl.schema;
 
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause;
-import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.ConstantScoreQuery;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocumentsFactory;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneStringValueEncoding;
 import org.neo4j.values.storable.Value;
 
@@ -40,18 +35,17 @@ public class TextDocumentStructure {
         return LuceneDocumentsFactory.CURRENT.reusableTextDocument(nodeId, values);
     }
 
-    public static MatchAllDocsQuery newScanQuery() {
-        return new MatchAllDocsQuery();
+    public static LuceneQueryContext newSeekQuery(LuceneIndexSearcher searcher, Value... values) {
+        LuceneQueryContext queryContext = searcher.newQueryContext();
+        seekStrings(values, queryContext);
+        return queryContext;
     }
 
-    public static Query newSeekQuery(Value... values) {
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+    public static void seekStrings(Value[] values, LuceneQueryContext queryContext) {
         for (int i = 0; i < values.length; i++) {
-            ConstantScoreQuery query = new ConstantScoreQuery(new TermQuery(new Term(
-                    LuceneStringValueEncoding.key(i), values[i].asObject().toString())));
-            builder.add(query, BooleanClause.Occur.MUST);
+            queryContext.addConstantMustTerm(
+                    LuceneStringValueEncoding.key(i), values[i].asObject().toString());
         }
-        return builder.build();
     }
 
     public static long getNodeId(LuceneDocument from) {

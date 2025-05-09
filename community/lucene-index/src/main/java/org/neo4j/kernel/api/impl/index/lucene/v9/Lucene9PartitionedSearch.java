@@ -31,7 +31,6 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermStates;
 import org.apache.lucene.search.CollectionStatistics;
 import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermStatistics;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.BytesRef;
@@ -41,12 +40,13 @@ import org.neo4j.kernel.api.impl.index.collector.ScoredEntityResultCollector;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LucenePartitionedSearch;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.impl.schema.fulltext.LuceneFulltextDocumentStructure;
 
-public class Lucene9PartitionedSearch implements LucenePartitionedSearch {
+class Lucene9PartitionedSearch implements LucenePartitionedSearch {
     private final List<PreparedSearch> searches;
 
-    public Lucene9PartitionedSearch(int size) {
+    Lucene9PartitionedSearch(int size) {
         searches = new ArrayList<>(size);
     }
 
@@ -56,7 +56,8 @@ public class Lucene9PartitionedSearch implements LucenePartitionedSearch {
     }
 
     @Override
-    public ValuesIterator search(Query query, IndexQueryConstraints constraints) throws IOException {
+    public ValuesIterator search(LuceneQueryContext queryContext, IndexQueryConstraints constraints)
+            throws IOException {
         StatsCollector statsCollector = new StatsCollector(searches);
         List<ValuesIterator> results = new ArrayList<>(searches.size());
         for (PreparedSearch preparedSearch : searches) {
@@ -68,7 +69,8 @@ public class Lucene9PartitionedSearch implements LucenePartitionedSearch {
             // However, the important thing is that we re-use the statsCollector.
             StatsCachingIndexSearcher statsCachingIndexSearcher =
                     new StatsCachingIndexSearcher(preparedSearch.indexSearcher, statsCollector);
-            Weight weight = statsCachingIndexSearcher.createWeight(query, collector.scoreMode(), 1);
+            Weight weight = statsCachingIndexSearcher.createWeight(
+                    ((Lucene9QueryContext) queryContext).build(), collector.scoreMode(), 1);
 
             ((Lucene9Neo4jIndexSearcher) preparedSearch.indexSearcher).search(weight, collector);
 

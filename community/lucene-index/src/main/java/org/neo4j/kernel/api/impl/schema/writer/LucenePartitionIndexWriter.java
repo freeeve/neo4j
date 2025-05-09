@@ -20,7 +20,6 @@
 package org.neo4j.kernel.api.impl.schema.writer;
 
 import java.io.IOException;
-import org.apache.lucene.search.Query;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexWriter;
@@ -38,8 +37,6 @@ public interface LucenePartitionIndexWriter {
     void updateDocument(String idField, long id, LuceneDocument document) throws IOException;
 
     void deleteDocuments(String idField, long id) throws IOException;
-
-    void deleteDocuments(Query query) throws IOException;
 
     /**
      * Adds the contents of a whole {@link LuceneDirectory} to this index.

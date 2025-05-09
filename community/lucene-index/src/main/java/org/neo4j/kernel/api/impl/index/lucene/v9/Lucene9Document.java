@@ -28,7 +28,7 @@ import org.apache.lucene.document.TextField;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDocument;
 import org.neo4j.kernel.api.impl.schema.vector.VectorSimilarityFunctions;
 
-public class Lucene9Document implements LuceneDocument {
+class Lucene9Document implements LuceneDocument {
     final Document document;
 
     Lucene9Document() {

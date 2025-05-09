@@ -22,7 +22,6 @@ package org.neo4j.kernel.api.impl.schema.fulltext;
 import java.io.Closeable;
 import java.io.IOException;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.search.Query;
 import org.neo4j.configuration.Config;
 import org.neo4j.internal.schema.IndexConfig;
 import org.neo4j.io.IOUtils;
@@ -68,11 +67,6 @@ class TransactionStateLuceneIndexWriter implements LucenePartitionIndexWriter, C
     @Override
     public void deleteDocuments(String idField, long id) throws IOException {
         writer.deleteDocuments(idField, id);
-    }
-
-    @Override
-    public void deleteDocuments(Query query) throws IOException {
-        writer.deleteDocuments(query);
     }
 
     @Override

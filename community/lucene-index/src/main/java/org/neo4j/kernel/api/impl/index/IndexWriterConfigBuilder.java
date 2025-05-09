@@ -57,10 +57,7 @@ public final class IndexWriterConfigBuilder {
     }
 
     public LuceneIndexWriterConfig build() {
-        final var writerConfig = new LuceneIndexWriterConfig(analyzer)
-                .setUseSnapshotDeletionPolicy(true)
-                .setUseCompoundFile(true)
-                .setMaxFullFlushMergeWaitMillis(0);
+        final var writerConfig = new LuceneIndexWriterConfig(analyzer);
 
         if (codec != null) {
             writerConfig.setCodec(codec);

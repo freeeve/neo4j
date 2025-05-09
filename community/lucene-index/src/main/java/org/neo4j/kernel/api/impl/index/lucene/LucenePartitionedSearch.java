@@ -21,12 +21,11 @@ package org.neo4j.kernel.api.impl.index.lucene;
 
 import java.io.IOException;
 import java.util.function.LongPredicate;
-import org.apache.lucene.search.Query;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
 import org.neo4j.kernel.api.impl.index.collector.ValuesIterator;
 
 public interface LucenePartitionedSearch {
     void addPartitionSearcher(LuceneIndexSearcher indexSearcher, LongPredicate filter);
 
-    ValuesIterator search(Query query, IndexQueryConstraints constraints) throws IOException;
+    ValuesIterator search(LuceneQueryContext queryContext, IndexQueryConstraints constraints) throws IOException;
 }

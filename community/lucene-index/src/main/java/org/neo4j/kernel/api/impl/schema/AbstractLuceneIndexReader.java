@@ -24,7 +24,6 @@ import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.function.Function;
-import org.apache.lucene.search.Query;
 import org.neo4j.internal.helpers.collection.BoundedIterable;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
 import org.neo4j.internal.kernel.api.IndexQueryConstraints;
@@ -35,6 +34,7 @@ import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneIndexSearcher.InRangeEntityConsumer;
+import org.neo4j.kernel.api.impl.index.lucene.LuceneQueryContext;
 import org.neo4j.kernel.api.index.IndexProgressor;
 import org.neo4j.kernel.api.index.ValueIndexReader;
 import org.neo4j.kernel.impl.index.schema.IndexUsageTracking;
@@ -134,10 +134,14 @@ public abstract class AbstractLuceneIndexReader implements ValueIndexReader {
     public void close() {}
 
     protected BoundedIterable<Long> newAllEntriesValueReaderForPartition(
-            String field, LuceneIndexSearcher searcher, Query query, long fromIdInclusive, long toIdExclusive) {
+            String field,
+            LuceneIndexSearcher searcher,
+            LuceneQueryContext queryContext,
+            long fromIdInclusive,
+            long toIdExclusive) {
         try {
             InRangeEntityConsumer entityConsumer = new InRangeEntityConsumer(fromIdInclusive, toIdExclusive);
-            IndexProgressor indexProgressor = searcher.searchDocValues(query, field, entityConsumer);
+            IndexProgressor indexProgressor = searcher.searchDocValues(queryContext, field, entityConsumer);
             return new AllEntriesValueReaderForPartition(indexProgressor, entityConsumer);
         } catch (IOException e) {
             throw new UncheckedIOException(e);

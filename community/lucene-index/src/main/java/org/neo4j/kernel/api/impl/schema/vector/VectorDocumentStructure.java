@@ -19,14 +19,8 @@
  */
 package org.neo4j.kernel.api.impl.schema.vector;
 
-import org.apache.lucene.index.Term;
-
 public abstract class VectorDocumentStructure {
     public static final String ENTITY_ID_KEY = "id";
-
-    static Term newTermForChangeOrRemove(long id) {
-        return new Term(ENTITY_ID_KEY, Long.toString(id));
-    }
 
     public abstract String vectorValueKeyFor(int dimensions);
 }

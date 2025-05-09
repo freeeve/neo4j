@@ -22,7 +22,6 @@ package org.neo4j.kernel.api.impl.schema.writer;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import org.apache.lucene.search.Query;
 import org.neo4j.configuration.Config;
 import org.neo4j.kernel.api.impl.index.WritableDatabaseIndex;
 import org.neo4j.kernel.api.impl.index.lucene.LuceneDirectory;
@@ -74,14 +73,6 @@ public class PartitionedIndexWriter implements LucenePartitionIndexWriter {
         } else {
             deleteDocuments(idField, id);
             addDocument(doc);
-        }
-    }
-
-    @Override
-    public void deleteDocuments(Query query) throws IOException {
-        List<AbstractIndexPartition> partitions = index.getPartitions();
-        for (AbstractIndexPartition partition : partitions) {
-            partition.getIndexWriter().deleteDocuments(query);
         }
     }
 
