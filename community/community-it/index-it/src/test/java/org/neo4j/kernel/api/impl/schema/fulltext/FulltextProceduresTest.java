@@ -81,6 +81,8 @@ import org.neo4j.procedure.builtin.FulltextProcedures;
 import org.neo4j.test.ThreadTestUtils;
 import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.util.concurrent.BinaryLatch;
+import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Value;
 
 class FulltextProceduresTest extends FulltextProceduresTestSupport {
@@ -687,6 +689,7 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
 
     @Test
     void fulltextIndexMustIgnoreNonStringPropertiesForUpdate() {
+        var random = RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
         try (Transaction tx = db.beginTx()) {
             createSimpleNodesIndex(tx);
             createSimpleRelationshipIndex(tx);
@@ -695,7 +698,7 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
 
         awaitIndexesOnline();
 
-        List<Value> values = generateRandomNonStringValues();
+        List<Value> values = generateRandomNonStringValues(random);
 
         try (Transaction tx = db.beginTx()) {
             for (Value value : values) {
@@ -712,7 +715,8 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
 
     @Test
     void fulltextIndexMustIgnoreNonStringPropertiesForPopulation() {
-        List<Value> values = generateRandomNonStringValues();
+        var random = RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
+        List<Value> values = generateRandomNonStringValues(random);
 
         try (Transaction tx = db.beginTx()) {
             for (Value value : values) {
@@ -1336,6 +1340,7 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
     @CsvSource({"false, without DB restart", "true, with DB restart"})
     @ParameterizedTest(name = "{1}")
     void fulltextIndexMustNotBeAvailableForRegularIndexSeeks(boolean dbRestart, String name) {
+        var random = RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
         try (Transaction tx = db.beginTx()) {
             createSimpleNodesIndex(tx);
             tx.commit();
@@ -1346,7 +1351,7 @@ class FulltextProceduresTest extends FulltextProceduresTestSupport {
         String valueToQueryFor = "value to query for";
         awaitIndexesOnline();
         try (Transaction tx = db.beginTx()) {
-            List<Value> values = generateRandomSimpleValues();
+            List<Value> values = generateRandomSimpleValues(random);
             for (Value value : values) {
                 tx.createNode(LABEL).setProperty(PROP, value.asObject());
             }

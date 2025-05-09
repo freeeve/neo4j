@@ -148,6 +148,12 @@ abstract class IndexKeyStateTest<KEY extends GenericKey<KEY>> {
             public int minCodePoint() {
                 return Character.MIN_CODE_POINT;
             }
+
+            @Override
+            public boolean includeVectorTypes() {
+                // TODO: Vector index support
+                return false;
+            }
         });
         random.reset();
     }

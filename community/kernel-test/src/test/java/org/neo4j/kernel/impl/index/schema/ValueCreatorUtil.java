@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.internal.helpers.collection.PrefetchingIterator;
@@ -40,12 +41,22 @@ import org.neo4j.values.storable.Values;
 
 record ValueCreatorUtil<KEY extends NativeIndexKey<KEY>>(
         IndexDescriptor indexDescriptor, ValueType[] supportedTypes, double fractionDuplicates) {
+
     static final double FRACTION_DUPLICATE_UNIQUE = 0;
     static final double FRACTION_DUPLICATE_NON_UNIQUE = 0.1;
     private static final double FRACTION_EXTREME_VALUE = 0.25;
     private static final Comparator<ValueIndexEntryUpdate> UPDATE_COMPARATOR =
             (u1, u2) -> Values.COMPARATOR.compare(u1.values()[0], u2.values()[0]);
     private static final int N_VALUES = 10;
+
+    ValueCreatorUtil(IndexDescriptor indexDescriptor, ValueType[] supportedTypes, double fractionDuplicates) {
+        this.indexDescriptor = indexDescriptor;
+        // TODO: Vector index support
+        this.supportedTypes = Arrays.stream(supportedTypes)
+                .filter(Predicate.not(RandomValues.IS_VECTOR_TYPE))
+                .toArray(ValueType[]::new);
+        this.fractionDuplicates = fractionDuplicates;
+    }
 
     int compareIndexedPropertyValue(KEY key1, KEY key2) {
         return Values.COMPARATOR.compare(key1.asValues()[0], key2.asValues()[0]);

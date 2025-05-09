@@ -235,20 +235,19 @@ class FulltextProceduresTestSupport {
         fail(message.toString());
     }
 
-    static List<Value> generateRandomNonStringValues() {
+    static List<Value> generateRandomNonStringValues(RandomValues rng) {
         Predicate<Value> nonString = v -> v.valueGroup() != ValueGroup.TEXT && v.valueGroup() != ValueGroup.TEXT_ARRAY;
-        return generateRandomValues(nonString);
+        return generateRandomValues(nonString, rng);
     }
 
-    static List<Value> generateRandomSimpleValues() {
+    static List<Value> generateRandomSimpleValues(RandomValues rng) {
         EnumSet<ValueGroup> simpleTypes =
                 EnumSet.of(ValueGroup.BOOLEAN, ValueGroup.BOOLEAN_ARRAY, ValueGroup.NUMBER, ValueGroup.NUMBER_ARRAY);
-        return generateRandomValues(v -> simpleTypes.contains(v.valueGroup()));
+        return generateRandomValues(v -> simpleTypes.contains(v.valueGroup()), rng);
     }
 
-    static List<Value> generateRandomValues(Predicate<Value> predicate) {
+    static List<Value> generateRandomValues(Predicate<Value> predicate, RandomValues generator) {
         int valuesToGenerate = 1000;
-        RandomValues generator = RandomValues.create();
         List<Value> values = new ArrayList<>(valuesToGenerate);
         for (int i = 0; i < valuesToGenerate; i++) {
             Value value;

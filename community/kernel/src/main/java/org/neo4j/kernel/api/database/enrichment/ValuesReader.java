@@ -130,6 +130,7 @@ public enum ValuesReader {
     RELATIONSHIP((byte) 36, VirtualRelationshipValue.class, ValuesReader::readRelationship),
     LIST((byte) 37, ListValue.class, ValuesReader::readList),
     MAP((byte) 38, MapValue.class, ValuesReader::readMap);
+    // TODO: Vector cdc support
 
     public static final ImmutableByteObjectMap<ValuesReader> BY_ID =
             ByteObjectMaps.immutable.from(List.of(ValuesReader.values()), ValuesReader::id, v -> v);

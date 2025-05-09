@@ -79,6 +79,7 @@ import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
 
 @EphemeralPageCacheExtension
@@ -105,6 +106,9 @@ public class RecordPropertyCursorTest {
 
     @BeforeEach
     void setup() {
+        random.withConfiguration(
+                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */);
+        random.reset();
         var pageCacheTracer = PageCacheTracer.NULL;
         idGeneratorFactory =
                 new DefaultIdGeneratorFactory(fs, immediate(), pageCacheTracer, databaseLayout.getDatabaseName());

@@ -72,6 +72,7 @@ import org.neo4j.internal.batchimport.input.BadCollector;
 import org.neo4j.internal.batchimport.staging.ExecutionMonitor;
 import org.neo4j.internal.helpers.TimeUtil;
 import org.neo4j.internal.helpers.collection.Iterables;
+import org.neo4j.internal.recordstorage.RecordStorageEngineFactory;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
 import org.neo4j.io.layout.recordstorage.RecordDatabaseLayout;
@@ -80,8 +81,10 @@ import org.neo4j.kernel.impl.api.index.MultipleIndexPopulator;
 import org.neo4j.kernel.impl.index.schema.IndexImporterFactoryImpl;
 import org.neo4j.kernel.impl.transaction.log.EmptyLogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.files.TransactionLogInitializer;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.internal.NullLogService;
 import org.neo4j.scheduler.JobScheduler;
+import org.neo4j.storageengine.api.StorageEngineFactory;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.extension.Inject;
@@ -193,6 +196,13 @@ class MultipleIndexPopulationStressIT {
         DatabaseManagementService managementService =
                 new TestDatabaseManagementServiceBuilder(directory.homePath()).build();
         final GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+        // The database was created by the importer in record format.
+        assert ((GraphDatabaseAPI) db)
+                .getDependencyResolver()
+                .resolveOptionalDependency(StorageEngineFactory.class)
+                .map(e -> e.name())
+                .orElseThrow()
+                .equals(RecordStorageEngineFactory.NAME);
         try {
             try (var tx = db.beginTx();
                     var softly = new AutoCloseableSoftAssertions()) {
@@ -208,8 +218,13 @@ class MultipleIndexPopulationStressIT {
             executor = Executors.newCachedThreadPool();
             for (int i = 0; i < 10; i++) {
                 executor.submit(() -> {
-                    ChangeRandomEntities changeRandomEntities =
-                            new ChangeRandomEntities(db, RandomValues.create(), nodeCount, relCount);
+                    ChangeRandomEntities changeRandomEntities = new ChangeRandomEntities(
+                            db,
+                            RandomValues.create(
+                                    RandomValues
+                                            .DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */),
+                            nodeCount,
+                            relCount);
                     while (!end.get()) {
                         changeRandomEntities.node();
                         changeRandomEntities.relationship();
@@ -355,7 +370,10 @@ class MultipleIndexPopulationStressIT {
 
     private void createRandomData(long nodeCount, long relCount) throws Exception {
         Config config = Config.defaults(neo4j_home, directory.homePath());
-        try (RandomDataInput input = new RandomDataInput(nodeCount, relCount);
+        try (RandomDataInput input = new RandomDataInput(
+                        nodeCount,
+                        relCount,
+                        RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */);
                 JobScheduler jobScheduler = new ThreadPoolJobScheduler()) {
             RecordDatabaseLayout layout = RecordDatabaseLayout.of(config);
             IndexImporterFactory indexImporterFactory = new IndexImporterFactoryImpl();
@@ -381,8 +399,8 @@ class MultipleIndexPopulationStressIT {
     }
 
     private class RandomEntityGenerator extends GeneratingInputIterator<RandomValues> {
-        RandomEntityGenerator(long count, Generator<RandomValues> randomsGenerator) {
-            super(count, 1_000, new RandomsStates(random.seed()), randomsGenerator, 0);
+        RandomEntityGenerator(long count, RandomValues.Configuration config, Generator<RandomValues> randomsGenerator) {
+            super(count, 1_000, new RandomsStates(random.seed(), config), randomsGenerator, 0);
         }
     }
 
@@ -390,29 +408,31 @@ class MultipleIndexPopulationStressIT {
         private final long nodeCount;
         private final long relCount;
         private final BadCollector badCollector;
+        private final RandomValues.Configuration config;
 
-        RandomDataInput(long nodeCount, long relCount) {
+        RandomDataInput(long nodeCount, long relCount, RandomValues.Configuration config) {
             this.nodeCount = nodeCount > 0 ? nodeCount : 0;
             this.relCount = nodeCount > 0 && relCount > 0 ? relCount : 0;
             this.badCollector = createBadCollector();
+            this.config = config;
         }
 
         @Override
         public InputIterable nodes(Collector badCollector) {
-            return () -> new RandomEntityGenerator(nodeCount, (state, visitor, id) -> {
+            return () -> new RandomEntityGenerator(nodeCount, config, (state, visitor, id) -> {
                 visitor.id(id);
                 visitor.labels(random.selection(TOKENS, 1, TOKENS.length, false));
-                properties(visitor);
+                properties(state, visitor);
             });
         }
 
         @Override
         public InputIterable relationships(Collector badCollector) {
-            return () -> new RandomEntityGenerator(relCount, (state, visitor, id) -> {
-                visitor.startId(random.nextLong(nodeCount));
-                visitor.type(random.among(TOKENS));
-                visitor.endId(random.nextLong(nodeCount));
-                properties(visitor);
+            return () -> new RandomEntityGenerator(relCount, config, (state, visitor, id) -> {
+                visitor.startId(state.nextLong(nodeCount));
+                visitor.type(state.among(TOKENS));
+                visitor.endId(state.nextLong(nodeCount));
+                properties(state, visitor);
             });
         }
 
@@ -426,10 +446,10 @@ class MultipleIndexPopulationStressIT {
             return ReadableGroups.EMPTY;
         }
 
-        private void properties(InputEntityVisitor visitor) {
-            String[] keys = random.randomValues().selection(TOKENS, 1, TOKENS.length, false);
+        private void properties(RandomValues state, InputEntityVisitor visitor) {
+            String[] keys = state.selection(TOKENS, 1, TOKENS.length, false);
             for (String key : keys) {
-                visitor.property(key, random.nextValueAsObject(), false);
+                visitor.property(key, state.nextValue(), false);
             }
         }
 

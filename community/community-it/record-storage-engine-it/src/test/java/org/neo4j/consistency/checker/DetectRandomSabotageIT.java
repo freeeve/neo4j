@@ -138,6 +138,7 @@ import org.neo4j.test.extension.testdirectory.TestDirectorySupportExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.token.TokenHolders;
 import org.neo4j.token.api.TokenNotFoundException;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -174,6 +175,10 @@ public class DetectRandomSabotageIT {
     protected void setUp() {
         dbms = getDbms(directory.homePath());
         db = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
+
+        random.withConfiguration(
+                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */);
+        random.reset();
 
         // Create some nodes
         MutableLongList nodeIds = createNodes(db);

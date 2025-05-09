@@ -105,6 +105,8 @@ abstract class IndexPopulationStressTest {
     private static final int THREADS = 50;
     private static final int MAX_BATCH_SIZE = 100;
     private static final int BATCHES_PER_THREAD = 100;
+    private static final RandomValues.Configuration RAND_CFG =
+            RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR; /* TODO: Vector index support */
 
     @Inject
     private RandomSupport random;
@@ -262,7 +264,7 @@ abstract class IndexPopulationStressTest {
         return throwing(() -> {
             // Entity ids that have been removed, so that additions can reuse them
             List<Long> removed = new ArrayList<>();
-            RandomValues randomValues = RandomValues.create(new Random(random.seed() + THREADS));
+            RandomValues randomValues = RandomValues.create(new Random(random.seed() + THREADS), RAND_CFG);
             while (insertersDone.getCount() > 0) {
                 // Do updates now and then
                 Thread.sleep(10);
@@ -386,7 +388,7 @@ abstract class IndexPopulationStressTest {
         }
 
         private void reset() {
-            randomValues = RandomValues.create(new Random(seed));
+            randomValues = RandomValues.create(new Random(seed), RAND_CFG);
             nextEntityId = startEntityId;
         }
 

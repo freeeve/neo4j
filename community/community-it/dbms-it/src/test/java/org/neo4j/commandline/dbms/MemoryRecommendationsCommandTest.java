@@ -356,7 +356,8 @@ class MemoryRecommendationsCommandTest {
                 }
 
                 try (Transaction tx = db.beginTx()) {
-                    RandomValues randomValues = RandomValues.create();
+                    RandomValues randomValues = RandomValues.create(
+                            RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector index support*/);
                     for (int i = 0; i < 10_000; i++) {
                         tx.createNode(labelOne)
                                 .setProperty(key, randomValues.nextValue().asObject());

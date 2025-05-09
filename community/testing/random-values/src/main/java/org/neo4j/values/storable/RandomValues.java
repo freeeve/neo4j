@@ -80,6 +80,7 @@ import org.eclipse.collections.api.list.primitive.LongList;
  * unless method provide explicit arguments for those configurations in which case the provided argument will be used instead.
  */
 public class RandomValues {
+
     public interface Configuration {
         int stringMinLength();
 
@@ -92,6 +93,8 @@ public class RandomValues {
         int maxCodePoint();
 
         int minCodePoint();
+
+        boolean includeVectorTypes();
     }
 
     public static class Default implements Configuration {
@@ -124,10 +127,21 @@ public class RandomValues {
         public int minCodePoint() {
             return Character.MIN_CODE_POINT;
         }
+
+        @Override
+        public boolean includeVectorTypes() {
+            return true;
+        }
     }
 
     public static final int MAX_BMP_CODE_POINT = 0xFFFF;
     public static final Configuration DEFAULT_CONFIGURATION = new Default();
+    public static final Configuration DEFAULT_CONFIGURATION_NO_VECTOR = new Default() {
+        @Override
+        public boolean includeVectorTypes() {
+            return false;
+        }
+    };
     static final int MAX_ASCII_CODE_POINT = 0x7F;
 
     private static final ValueType[] ARRAY_TYPES = ValueType.arrayTypes();
@@ -135,6 +149,7 @@ public class RandomValues {
 
     private final Generator generator;
     private final Configuration configuration;
+    private final ValueType[] configuredTypes;
 
     private RandomValues(Generator generator) {
         this(generator, DEFAULT_CONFIGURATION);
@@ -143,6 +158,7 @@ public class RandomValues {
     private RandomValues(Generator generator, Configuration configuration) {
         this.generator = generator;
         this.configuration = configuration;
+        this.configuredTypes = configuredTypes(configuration);
     }
 
     /**
@@ -205,7 +221,7 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value nextValue() {
-        return nextValueOfTypes(ALL_TYPES);
+        return nextValueOfTypes(configuredTypes);
     }
 
     /**
@@ -223,7 +239,7 @@ public class RandomValues {
      * @see RandomValues
      */
     public Value[] nextValues(int size) {
-        return nextValuesOfTypes(size, ALL_TYPES);
+        return nextValuesOfTypes(size, configuredTypes);
     }
 
     /**
@@ -1610,5 +1626,15 @@ public class RandomValues {
     @FunctionalInterface
     private interface CodePointFactory {
         int generate();
+    }
+
+    public static final Predicate<ValueType> IS_VECTOR_TYPE =
+            t -> t.valueRepresentation.valueGroup().category() == ValueCategory.VECTOR;
+
+    private static ValueType[] configuredTypes(Configuration config) {
+        if (!config.includeVectorTypes()) {
+            return excluding(ALL_TYPES, IS_VECTOR_TYPE);
+        }
+        return ALL_TYPES;
     }
 }

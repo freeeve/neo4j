@@ -44,6 +44,7 @@ import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.values.storable.RandomValues;
 
 @SuppressWarnings("AbstractClassWithoutAbstractMethods")
 @ExtendWith(RandomExtension.class)
@@ -72,6 +73,9 @@ public abstract class AbstractRecordFormatTest {
 
     @BeforeEach
     public void before() {
+        random.withConfiguration(
+                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */);
+        random.reset();
         generators = new LimitedRecordGenerators(random.randomValues(), entityBits, propertyBits, 40, 16, -1, formats);
     }
 

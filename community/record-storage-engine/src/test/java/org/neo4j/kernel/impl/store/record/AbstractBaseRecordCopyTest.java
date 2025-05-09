@@ -48,6 +48,7 @@ import org.neo4j.kernel.impl.store.StandaloneDynamicRecordAllocator;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.values.storable.RandomValues;
 
 @ExtendWith(RandomExtension.class)
 class AbstractBaseRecordCopyTest {
@@ -61,6 +62,9 @@ class AbstractBaseRecordCopyTest {
 
     @BeforeEach
     void setUp() {
+        random.withConfiguration(
+                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */);
+        random.reset();
         dataProviders.put(int.class, () -> random.nextInt());
         dataProviders.put(long.class, () -> random.nextLong());
         dataProviders.put(boolean.class, () -> random.nextBoolean());

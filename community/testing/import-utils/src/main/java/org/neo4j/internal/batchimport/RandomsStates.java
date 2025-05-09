@@ -31,10 +31,6 @@ public class RandomsStates implements LongFunction<RandomValues> {
     private final long initialSeed;
     private final RandomValues.Configuration randomConfiguration;
 
-    public RandomsStates(long initialSeed) {
-        this(initialSeed, RandomValues.DEFAULT_CONFIGURATION);
-    }
-
     public RandomsStates(long initialSeed, RandomValues.Configuration randomConfiguration) {
         this.initialSeed = initialSeed;
         this.randomConfiguration = randomConfiguration;

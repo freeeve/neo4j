@@ -45,6 +45,7 @@ trait RandomValuesTestSupport extends TestSuiteMixin with TestSuite {
       override def maxCodePoint(): Int =
         10000 // Because characters outside BMP have inconsistent or non-deterministic ordering
       override def minCodePoint(): Int = Character.MIN_CODE_POINT
+      override def includeVectorTypes() = false // TODO: Vector index support
     }
   }
 

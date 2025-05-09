@@ -45,6 +45,7 @@ import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.MutableIntSet;
 import org.eclipse.collections.impl.factory.primitive.IntObjectMaps;
 import org.eclipse.collections.impl.factory.primitive.IntSets;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.exceptions.KernelException;
@@ -67,6 +68,7 @@ import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
 import org.neo4j.values.storable.Values;
@@ -79,6 +81,13 @@ public abstract class NodeWriteTestBase<G extends KernelAPIWriteTestSupport> ext
 
     @Inject
     private RandomSupport random;
+
+    @BeforeEach
+    void setup() {
+        /* Not all storage engines support vectors. */
+        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb));
+        random.reset();
+    }
 
     @Test
     void shouldCreateNode() throws Exception {

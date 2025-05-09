@@ -53,6 +53,7 @@ import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.pagecache.PageCacheSupportExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
+import org.neo4j.values.storable.RandomValues;
 
 @TestDirectoryExtension
 @ExtendWith(RandomExtension.class)
@@ -86,6 +87,8 @@ public abstract class IndexTestUtil<KEY, VALUE, LAYOUT extends Layout<KEY, VALUE
 
     @BeforeEach
     void setup() {
+        random.withConfiguration(RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector index support */);
+        random.reset();
         pageCacheTracer = new DefaultPageCacheTracer();
         contextFactory = new CursorContextFactory(pageCacheTracer, EMPTY_CONTEXT_SUPPLIER);
         indexDescriptor = indexDescriptor();

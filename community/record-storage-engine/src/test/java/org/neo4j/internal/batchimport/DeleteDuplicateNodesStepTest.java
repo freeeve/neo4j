@@ -77,6 +77,7 @@ import org.neo4j.test.extension.EphemeralNeo4jLayoutExtension;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
+import org.neo4j.values.storable.RandomValues;
 
 @EphemeralPageCacheExtension
 @EphemeralNeo4jLayoutExtension
@@ -100,6 +101,9 @@ class DeleteDuplicateNodesStepTest {
 
     @BeforeEach
     void before() {
+        random.withConfiguration(
+                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */);
+        random.reset();
         contextFactory = new CursorContextFactory(PageCacheTracer.NULL, EMPTY_CONTEXT_SUPPLIER);
         var storeFactory = new StoreFactory(
                 databaseLayout,

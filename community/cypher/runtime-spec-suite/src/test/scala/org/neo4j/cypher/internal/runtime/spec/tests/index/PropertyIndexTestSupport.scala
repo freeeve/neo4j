@@ -38,7 +38,19 @@ trait PropertyIndexTestSupport[CONTEXT <: RuntimeContext] {
   self: RuntimeTestSuite[CONTEXT] =>
 
   private val defaultSupportedTypes: Seq[ValueType] = {
-    val unsupportedTypes = Set(ValueType.CHAR, ValueType.CHAR_ARRAY, ValueType.BYTE, ValueType.BYTE_ARRAY)
+    val unsupportedTypes = Set(
+      ValueType.CHAR,
+      ValueType.CHAR_ARRAY,
+      ValueType.BYTE,
+      ValueType.BYTE_ARRAY,
+      // TODO: Vector index support
+      ValueType.INT8VECTOR,
+      ValueType.INT16VECTOR,
+      ValueType.INT32VECTOR,
+      ValueType.INT64VECTOR,
+      ValueType.FLOAT32VECTOR,
+      ValueType.FLOAT64VECTOR
+    )
     ValueType.ALL_TYPES.toSeq.filterNot(unsupportedTypes.contains)
   }
 

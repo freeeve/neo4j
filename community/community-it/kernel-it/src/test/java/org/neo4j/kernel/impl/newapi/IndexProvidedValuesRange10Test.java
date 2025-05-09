@@ -58,6 +58,16 @@ abstract class IndexProvidedValuesRange10Test extends KernelAPIReadTestBase<Read
     public static final String PRIP = "prip";
     public static final String PROP_INDEX = "propIndex";
     public static final String PROP_PRIP_INDEX = "propPripIndex";
+    private static final ValueType[] SORTABLE_TYPES = RandomValues.excluding(
+            ValueType.STRING,
+            ValueType.STRING_ARRAY,
+            // TODO: Vector index support
+            ValueType.INT8VECTOR,
+            ValueType.INT16VECTOR,
+            ValueType.INT32VECTOR,
+            ValueType.INT64VECTOR,
+            ValueType.FLOAT32VECTOR,
+            ValueType.FLOAT64VECTOR);
 
     @Inject
     private RandomSupport randomRule;
@@ -87,13 +97,11 @@ abstract class IndexProvidedValuesRange10Test extends KernelAPIReadTestBase<Read
         try (Transaction tx = graphDb.beginTx()) {
             RandomValues randomValues = randomRule.randomValues();
 
-            ValueType[] allExceptNonSortable = RandomValues.excluding(ValueType.STRING, ValueType.STRING_ARRAY);
-
             for (int i = 0; i < N_ENTITIES; i++) {
                 var node = getEntityControl().createEntity(tx, TOKEN);
-                Value propValue = randomValues.nextValueOfTypes(allExceptNonSortable);
+                Value propValue = randomValues.nextValueOfTypes(SORTABLE_TYPES);
                 node.setProperty(PROP, propValue.asObject());
-                Value pripValue = randomValues.nextValueOfTypes(allExceptNonSortable);
+                Value pripValue = randomValues.nextValueOfTypes(SORTABLE_TYPES);
                 node.setProperty(PRIP, pripValue.asObject());
 
                 singlePropValues.add(propValue);

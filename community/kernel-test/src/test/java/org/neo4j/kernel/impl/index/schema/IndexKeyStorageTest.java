@@ -43,6 +43,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
 
 @TestDirectoryExtension
@@ -61,6 +62,8 @@ class IndexKeyStorageTest {
 
     @BeforeEach
     void createLayout() {
+        random.withConfiguration(RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector index support */);
+        random.reset();
         this.numberOfSlots = random.nextInt(1, 3);
         this.layout = new RangeLayout(numberOfSlots);
     }

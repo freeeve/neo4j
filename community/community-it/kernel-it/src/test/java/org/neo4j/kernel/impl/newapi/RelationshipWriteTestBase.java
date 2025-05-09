@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.impl.factory.primitive.IntObjectMaps;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.graphdb.Node;
@@ -52,6 +53,7 @@ import org.neo4j.test.Race;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueTuple;
 
@@ -62,6 +64,13 @@ public abstract class RelationshipWriteTestBase<G extends KernelAPIWriteTestSupp
 
     @Inject
     private RandomSupport random;
+
+    @BeforeEach
+    void setup() {
+        /* Not all storage engines support vectors. */
+        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb));
+        random.reset();
+    }
 
     @Test
     void shouldCreateRelationship() throws Exception {

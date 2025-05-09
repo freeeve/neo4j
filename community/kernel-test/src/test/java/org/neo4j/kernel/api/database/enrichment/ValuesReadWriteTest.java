@@ -26,6 +26,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -36,6 +37,7 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.values.AnyValue;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.ValueType;
 import org.neo4j.values.virtual.ListValue;
 import org.neo4j.values.virtual.MapValue;
@@ -53,9 +55,16 @@ class ValuesReadWriteTest {
     @Inject
     private RandomSupport random;
 
+    @BeforeEach
+    void setup() {
+        random.withConfiguration(RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector cdc support */);
+        random.reset();
+    }
+
     @ParameterizedTest
     @EnumSource(
             value = ValueType.class,
+            // TODO: Vector cdc support
             names = {"INT8VECTOR", "INT16VECTOR", "INT32VECTOR", "INT64VECTOR", "FLOAT32VECTOR", "FLOAT64VECTOR"},
             mode = EnumSource.Mode.EXCLUDE)
     void valueRoundTrips(ValueType type) throws IOException {

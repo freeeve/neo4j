@@ -75,6 +75,7 @@ import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 
 @TestDirectoryExtension
 @ExtendWith(RandomExtension.class)
@@ -275,7 +276,10 @@ class ReuseStorageSpaceIT {
         race.addContestants(
                 CREATION_THREADS,
                 throwing(() -> {
-                    RandomValues random = RandomValues.create(new Random(nextSeed.getAndIncrement()));
+                    RandomValues random = RandomValues.create(
+                            new Random(nextSeed.getAndIncrement()),
+                            /* Not all storage engines support vectors. */
+                            RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
                     int nodeCount = 0;
                     int relationshipCount = 0;
                     for (int t = 0; t < NUMBER_OF_TRANSACTIONS_PER_THREAD; t++) {

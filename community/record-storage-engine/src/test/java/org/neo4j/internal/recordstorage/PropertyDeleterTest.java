@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -77,6 +78,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.pagecache.EphemeralPageCacheExtension;
 import org.neo4j.test.utils.TestDirectory;
+import org.neo4j.values.storable.RandomValues;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.Values;
 
@@ -145,6 +147,12 @@ class PropertyDeleterTest {
                 config,
                 NULL_CONTEXT,
                 storeCursors);
+    }
+
+    @BeforeEach
+    void setup() {
+        random.withConfiguration(RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR);
+        random.reset();
     }
 
     @AfterEach

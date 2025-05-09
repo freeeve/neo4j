@@ -45,6 +45,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 
 @TestDirectoryExtension
 class ConcurrentUpdateIT {
@@ -56,7 +57,8 @@ class ConcurrentUpdateIT {
         DatabaseManagementService managementService = new TestDatabaseManagementServiceBuilder(dir.homePath()).build();
         GraphDatabaseAPI database = (GraphDatabaseAPI) managementService.database(DEFAULT_DATABASE_NAME);
         try {
-            RandomValues randomValues = RandomValues.create();
+            RandomValues randomValues =
+                    RandomValues.create(RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector */);
             int counter = 1;
             for (int j = 0; j < 100; j++) {
                 try (Transaction transaction = database.beginTx()) {
@@ -125,7 +127,8 @@ class ConcurrentUpdateIT {
 
         @Override
         public void run() {
-            RandomValues randomValues = RandomValues.create();
+            RandomValues randomValues =
+                    RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(databaseService));
             awaitLatch(startSignal);
             while (!endSignal.get()) {
                 try (Transaction transaction = databaseService.beginTx()) {

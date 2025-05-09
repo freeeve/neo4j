@@ -41,6 +41,7 @@ import org.neo4j.kernel.impl.store.record.RelationshipTypeTokenRecord;
 import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
+import org.neo4j.values.storable.RandomValues;
 
 @ExtendWith(RandomExtension.class)
 public abstract class AbstractRecordCloningTest {
@@ -82,6 +83,9 @@ public abstract class AbstractRecordCloningTest {
 
     @BeforeEach
     void setUp() {
+        random.withConfiguration(
+                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record format does not support vectors. */);
+        random.reset();
         RecordFormats formats = formats();
         RecordGenerators generators =
                 new LimitedRecordGenerators(random.randomValues(), entityBits(), propertyBits(), 40, 16, -1, formats);

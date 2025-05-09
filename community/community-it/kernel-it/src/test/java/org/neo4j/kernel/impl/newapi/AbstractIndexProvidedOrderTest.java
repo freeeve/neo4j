@@ -74,7 +74,14 @@ public abstract class AbstractIndexProvidedOrderTest extends KernelAPIReadTestBa
             ValueType.DURATION,
             ValueType.DURATION_ARRAY,
             ValueType.PERIOD,
-            ValueType.PERIOD_ARRAY);
+            ValueType.PERIOD_ARRAY,
+            // TODO: Vector index support
+            ValueType.INT8VECTOR,
+            ValueType.INT16VECTOR,
+            ValueType.INT32VECTOR,
+            ValueType.INT64VECTOR,
+            ValueType.FLOAT32VECTOR,
+            ValueType.FLOAT64VECTOR);
 
     @Inject
     RandomSupport randomRule;

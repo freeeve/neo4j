@@ -107,6 +107,7 @@ import org.neo4j.test.extension.Neo4jLayoutExtension;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.scheduler.ThreadPoolJobScheduler;
 import org.neo4j.values.storable.RandomValues;
+import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Values;
 
 @Neo4jLayoutExtension
@@ -241,6 +242,7 @@ public class ParallelBatchImporterTest {
             DatabaseManagementService managementService =
                     getDBMSBuilder(databaseLayout).build();
             GraphDatabaseService db = managementService.database(DEFAULT_DATABASE_NAME);
+            RandomValuesUtils.selectStorageEngineDependentConfiguration(db);
             try (Transaction tx = db.beginTx()) {
                 inputIdGenerator.reset();
                 verifyData(
@@ -559,7 +561,9 @@ public class ParallelBatchImporterTest {
         return () -> new GeneratingInputIterator<>(
                 count,
                 batchSize,
-                new RandomsStates(randomSeed),
+                new RandomsStates(
+                        randomSeed,
+                        RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* Record engine does not support vectors. */),
                 (randoms, visitor, id) -> {
                     int thisPropertyCount = randomProperties(randoms, "Name " + id, visitor);
                     ExistingId startNodeExistingId = idGenerator.randomExisting(randoms);
@@ -599,7 +603,9 @@ public class ParallelBatchImporterTest {
         return () -> new GeneratingInputIterator<>(
                 count,
                 batchSize,
-                new RandomsStates(randomSeed),
+                new RandomsStates(
+                        randomSeed,
+                        RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR /* TODO: Vector PropertyBlockValueWriter */),
                 (randoms, visitor, id) -> {
                     Object nodeId = inputIdGenerator.nextNodeId(randoms, id);
                     Group group = groups.groupOf(id);

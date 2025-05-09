@@ -35,6 +35,7 @@ import org.eclipse.collections.api.map.primitive.MutableIntObjectMap;
 import org.eclipse.collections.api.map.primitive.MutableLongObjectMap;
 import org.eclipse.collections.api.set.primitive.IntSet;
 import org.eclipse.collections.api.set.primitive.MutableLongSet;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.kernel.api.EntityCursor;
@@ -43,12 +44,20 @@ import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.token.api.NonUniqueTokenException;
+import org.neo4j.values.storable.RandomValuesUtils;
 import org.neo4j.values.storable.Value;
 
 @ExtendWith(RandomExtension.class)
 class CreateWithSpecificIdKernelWriteTest extends KernelAPIWriteTestBase<WriteTestSupport> {
     @Inject
     private RandomSupport random;
+
+    @BeforeEach
+    void setup() {
+        /* Not all storage engines supports vectors. */
+        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(graphDb));
+        random.reset();
+    }
 
     // We need some coordination here since these test suites runs with PER_CLASS mode
     // Don't start from 0 since apparently record format(s) starts from 1, and it's also

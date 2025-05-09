@@ -38,6 +38,7 @@ object InputDataStreamTestSupport {
       override def arrayMaxLength = 10
       override def maxCodePoint: Int = RandomValues.MAX_BMP_CODE_POINT
       override def minCodePoint: Int = Character.MIN_CODE_POINT
+      override def includeVectorTypes(): Boolean = true
     }
 }
 

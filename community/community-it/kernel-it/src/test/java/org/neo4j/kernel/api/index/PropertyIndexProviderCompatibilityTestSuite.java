@@ -32,6 +32,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.Nested;
 import org.neo4j.internal.schema.IndexPrototype;
 import org.neo4j.storageengine.api.ValueIndexEntryUpdate;
@@ -100,7 +101,10 @@ abstract class PropertyIndexProviderCompatibilityTestSuite extends IndexProvider
                     ValueType.GEOGRAPHIC_POINT_3D,
                     ValueType.GEOGRAPHIC_POINT_3D_ARRAY);
         }
-        return ValueType.ALL_TYPES;
+        // TODO: Vector index support
+        return Arrays.stream(ValueType.ALL_TYPES)
+                .filter(Predicate.not(RandomValues.IS_VECTOR_TYPE))
+                .toArray(ValueType[]::new);
     }
 
     @Nested
@@ -195,6 +199,7 @@ abstract class PropertyIndexProviderCompatibilityTestSuite extends IndexProvider
         Compatibility(PropertyIndexProviderCompatibilityTestSuite testSuite, IndexPrototype prototype) {
             super(testSuite, prototype);
             this.testSuite = testSuite;
+            // TODO: Vector index support
             this.valueSet1 = allValues(
                     testSuite.supportsSpatial(),
                     Arrays.asList(

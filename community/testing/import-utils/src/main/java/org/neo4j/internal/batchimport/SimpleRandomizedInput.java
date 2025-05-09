@@ -84,8 +84,9 @@ public class SimpleRandomizedInput implements Input {
     private final long nodeCount;
     private final long relationshipCount;
 
-    public SimpleRandomizedInput(long seed, long nodeCount, long relationshipCount) {
-        this(seed, DataGeneratorInput.data(nodeCount, relationshipCount), 0, 0, null);
+    public SimpleRandomizedInput(
+            long seed, long nodeCount, long relationshipCount, RandomValues.Configuration randomValuesConfiguration) {
+        this(seed, DataGeneratorInput.data(nodeCount, relationshipCount), 0, 0, null, randomValuesConfiguration);
     }
 
     public SimpleRandomizedInput(
@@ -93,7 +94,8 @@ public class SimpleRandomizedInput implements Input {
             DataGeneratorInput.DataDistribution dataDistribution,
             int maxAdditionalNodeProperties,
             int maxAdditionalRelationshipProperties,
-            String labelNameForIncrementalImport) {
+            String labelNameForIncrementalImport,
+            RandomValues.Configuration randomValuesConfiguration) {
         this.nodeCount = dataDistribution.nodeCount();
         this.relationshipCount = dataDistribution.relationshipCount();
         var idType = IdType.INTEGER;
@@ -117,7 +119,7 @@ public class SimpleRandomizedInput implements Input {
                 dataDistribution,
                 idType,
                 seed,
-                RandomValues.DEFAULT_CONFIGURATION,
+                randomValuesConfiguration,
                 nodeHeader,
                 DataGeneratorInput.bareboneRelationshipHeader(
                         idType, group, extractors, additionalRelationshipEntries.toArray(new Entry[0])),

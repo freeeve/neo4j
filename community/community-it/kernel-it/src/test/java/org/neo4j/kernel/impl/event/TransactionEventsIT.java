@@ -42,6 +42,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -71,6 +72,7 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.SkipOnSpd;
 import org.neo4j.util.concurrent.BinaryLatch;
+import org.neo4j.values.storable.RandomValuesUtils;
 
 /**
  * Test for randomly creating data and verifying transaction data seen in transaction event handlers.
@@ -86,6 +88,12 @@ class TransactionEventsIT {
 
     @Inject
     private RandomSupport random;
+
+    @BeforeEach
+    void setup() {
+        random.withConfiguration(RandomValuesUtils.selectStorageEngineDependentConfiguration(db));
+        random.reset();
+    }
 
     @Test
     void createAdditionalDataInTransactionOnBeforeCommit() {

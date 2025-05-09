@@ -125,12 +125,12 @@ public enum ValueType {
     GEOGRAPHIC_POINT_ARRAY(ValueRepresentation.GEOMETRY_ARRAY, PointArray.class, true, EXTREME_GEOGRAPHIC_POINT_ARRAY),
     GEOGRAPHIC_POINT_3D_ARRAY(
             ValueRepresentation.GEOMETRY_ARRAY, PointArray.class, true, EXTREME_GEOGRAPHIC_POINT_3D_ARRAY),
-    INT8VECTOR(ValueRepresentation.INT8, Int8Vector.class, EXTREME_INT8_VECTOR),
-    INT16VECTOR(ValueRepresentation.INT16, Int16Vector.class, EXTREME_INT16_VECTOR),
-    INT32VECTOR(ValueRepresentation.INT32, Int32Vector.class, EXTREME_INT32_VECTOR),
-    INT64VECTOR(ValueRepresentation.INT64, Int64Vector.class, EXTREME_INT64_VECTOR),
-    FLOAT32VECTOR(ValueRepresentation.FLOAT32, Float32Vector.class, EXTREME_FLOAT32_VECTOR),
-    FLOAT64VECTOR(ValueRepresentation.FLOAT64, Float64Vector.class, EXTREME_FLOAT64_VECTOR);
+    INT8VECTOR(ValueRepresentation.INT8_VECTOR, Int8Vector.class, EXTREME_INT8_VECTOR),
+    INT16VECTOR(ValueRepresentation.INT16_VECTOR, Int16Vector.class, EXTREME_INT16_VECTOR),
+    INT32VECTOR(ValueRepresentation.INT32_VECTOR, Int32Vector.class, EXTREME_INT32_VECTOR),
+    INT64VECTOR(ValueRepresentation.INT64_VECTOR, Int64Vector.class, EXTREME_INT64_VECTOR),
+    FLOAT32VECTOR(ValueRepresentation.FLOAT32_VECTOR, Float32Vector.class, EXTREME_FLOAT32_VECTOR),
+    FLOAT64VECTOR(ValueRepresentation.FLOAT64_VECTOR, Float64Vector.class, EXTREME_FLOAT64_VECTOR);
 
     public final ValueRepresentation valueRepresentation;
     public final ValueGroup valueGroup;
@@ -158,12 +158,7 @@ public enum ValueType {
         return extremeValues;
     }
 
-    public static final ValueType[] ALL_TYPES = Arrays.stream(ValueType.values())
-            .filter(vt -> switch (vt) {
-                case INT8VECTOR, INT16VECTOR, INT32VECTOR, INT64VECTOR, FLOAT32VECTOR, FLOAT64VECTOR -> false;
-                default -> true;
-            })
-            .toArray(ValueType[]::new);
+    public static final ValueType[] ALL_TYPES = ValueType.values();
 
     public static ValueType[] arrayTypes() {
         return Arrays.stream(ALL_TYPES).filter(t -> t.arrayType).toArray(ValueType[]::new);
