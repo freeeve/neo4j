@@ -209,30 +209,6 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     }
   }
 
-  test("should return nothing on non-existing property - for all predicates") {
-
-    givenGraph {
-      nodePropertyGraph(sizeHint, { case i => Map("prop2" -> i) })
-    }
-
-    forEvery(nodePredicates) { (predicate: String) =>
-      withClue(s"predicate: $predicate") {
-        val query = new LogicalQueryBuilder(this)
-          .produceResults("prop1", "prop2")
-          .projection("cache[x.prop1] as prop1", "cache[x.prop2] as prop2")
-          .remoteBatchPropertiesWithFilter("cache[x.prop1]", "cache[x.prop2]")(
-            predicate
-          )
-          .allNodeScan("x")
-          .build()
-
-        val result =
-          execute(query, runtime, Map("stringParam" -> "a string", "intParam" -> 10, "listParam" -> Array(1, 2, 3)))
-        result should beColumns("prop1", "prop2").withNoRows()
-      }
-    }
-  }
-
   // ------------------------------------------------
   // return nothing on non-existing property - on tiny graph
   // ------------------------------------------------
