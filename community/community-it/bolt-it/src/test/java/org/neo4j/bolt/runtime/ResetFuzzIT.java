@@ -87,7 +87,7 @@ public class ResetFuzzIT {
         server.setGraphDatabaseFactory(getTestGraphDatabaseFactory());
         server.setConfigure(getSettingsFunction());
         server.init(testInfo);
-        address = (InetSocketAddress) server.lookupDefaultConnector().toSocketAddress();
+        address = server.lookupDefaultConnector().toSocketAddress();
     }
 
     @AfterEach

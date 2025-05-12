@@ -91,18 +91,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.neo4j.configuration.helpers.DurationRange;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.graphdb.config.Configuration;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.helpers.HostnamePort;
 import org.neo4j.io.ByteUnit;
-import org.neo4j.string.SecureString;
 
 class SettingTest {
     @Test
     void testInteger() {
-        var setting = (SettingImpl<Integer>) setting("setting", INT);
+        var setting = setting("setting", INT);
         assertEquals(5, setting.parse("5"));
         assertEquals(5, setting.parse(" 5 "));
         assertEquals(-76, setting.parse("-76"));
@@ -111,7 +109,7 @@ class SettingTest {
 
     @Test
     void testLong() {
-        var setting = (SettingImpl<Long>) setting("setting", LONG);
+        var setting = setting("setting", LONG);
         assertEquals(112233445566778899L, setting.parse("112233445566778899"));
         assertEquals(112233445566778899L, setting.parse(" 112233445566778899 "));
         assertEquals(-112233445566778899L, setting.parse("-112233445566778899"));
@@ -120,14 +118,14 @@ class SettingTest {
 
     @Test
     void testString() {
-        var setting = (SettingImpl<String>) setting("setting", STRING);
+        var setting = setting("setting", STRING);
         assertEquals("foo", setting.parse("foo"));
         assertEquals("bar", setting.parse("  bar   "));
     }
 
     @Test
     void testSecureString() {
-        var setting = (SettingImpl<SecureString>) setting("setting", SECURE_STRING);
+        var setting = setting("setting", SECURE_STRING);
         assertEquals("foo", setting.parse("foo").getString());
         assertNotEquals("foo", setting.parse("foo").toString());
         assertEquals("bar", setting.parse("  bar   ").getString());
@@ -138,7 +136,7 @@ class SettingTest {
     void testDouble() {
         BiFunction<Double, Double, Boolean> compareDoubles = (Double d1, Double d2) -> Math.abs(d1 - d2) < 0.000001;
 
-        var setting = (SettingImpl<Double>) setting("setting", DOUBLE);
+        var setting = setting("setting", DOUBLE);
         assertEquals(5.0, setting.parse("5"));
         assertEquals(5.0, setting.parse("  5 "));
         assertTrue(compareDoubles.apply(-.123, setting.parse("-0.123")));
@@ -148,7 +146,7 @@ class SettingTest {
 
     @Test
     void testList() {
-        var setting = (SettingImpl<List<Integer>>) setting("setting", listOf(INT));
+        var setting = setting("setting", listOf(INT));
         assertEquals(5, setting.parse("5").get(0));
         assertEquals(0, setting.parse("").size());
         assertEquals(4, setting.parse("5, 31, -4  ,2").size());
@@ -161,7 +159,7 @@ class SettingTest {
 
     @Test
     void testListValidation() {
-        var setting = (SettingImpl<List<Integer>>) setting("setting", listOf(POSITIVE_INT));
+        var setting = setting("setting", listOf(POSITIVE_INT));
         assertDoesNotThrow(() -> setting.validate(List.of(), EMPTY));
         assertDoesNotThrow(() -> setting.validate(List.of(5), EMPTY));
         assertDoesNotThrow(() -> setting.validate(List.of(1, 2, 3), EMPTY));
@@ -170,7 +168,7 @@ class SettingTest {
 
     @Test
     void testSet() {
-        var setting = (SettingImpl<Set<Integer>>) setting("setting", setOf(INT));
+        var setting = setting("setting", setOf(INT));
         assertThat(setting.parse("5")).containsExactly(5);
         assertThat(setting.parse("")).isEmpty();
         assertThat(setting.parse("5, 31, -4  ,2")).containsExactlyInAnyOrder(5, 31, -4, 2);
@@ -180,7 +178,7 @@ class SettingTest {
 
     @Test
     void testSetValidation() {
-        var setting = (SettingImpl<Set<Integer>>) setting("setting", setOf(POSITIVE_INT));
+        var setting = setting("setting", setOf(POSITIVE_INT));
         assertDoesNotThrow(() -> setting.validate(Set.of(), EMPTY));
         assertDoesNotThrow(() -> setting.validate(Set.of(5), EMPTY));
         assertDoesNotThrow(() -> setting.validate(Set.of(1, 2, 3), EMPTY));
@@ -189,7 +187,7 @@ class SettingTest {
 
     @Test
     void testEnum() {
-        var setting = (SettingImpl<Colors>) setting("setting", ofEnum(Colors.class));
+        var setting = setting("setting", ofEnum(Colors.class));
         assertEquals(Colors.BLUE, setting.parse("BLUE"));
         assertEquals(Colors.GREEN, setting.parse("gReEn"));
         assertEquals(Colors.RED, setting.parse("red"));
@@ -199,7 +197,7 @@ class SettingTest {
 
     @Test
     void testPartialEnum() {
-        var setting = (SettingImpl<Colors>) setting("setting", ofPartialEnum(Colors.GREEN, Colors.BLUE));
+        var setting = setting("setting", ofPartialEnum(Colors.GREEN, Colors.BLUE));
         assertEquals(Colors.BLUE, setting.parse("BLUE"));
         assertEquals(Colors.GREEN, setting.parse("gReEn"));
         assertThrows(IllegalArgumentException.class, () -> setting.parse("red"));
@@ -207,7 +205,7 @@ class SettingTest {
 
     @Test
     void testStringEnum() {
-        var setting = (SettingImpl<StringEnum>) setting("setting", ofEnum(StringEnum.class));
+        var setting = setting("setting", ofEnum(StringEnum.class));
         assertEquals(StringEnum.DEFAULT, setting.parse("default"));
         assertEquals(StringEnum.V_1, setting.parse("1.0"));
         assertEquals(StringEnum.V_1_1, setting.parse("1.1"));
@@ -216,7 +214,7 @@ class SettingTest {
 
     @Test
     void testBool() {
-        var setting = (SettingImpl<Boolean>) setting("setting", BOOL);
+        var setting = setting("setting", BOOL);
         assertTrue(setting.parse("True"));
         assertFalse(setting.parse("false"));
         assertFalse(setting.parse(FALSE));
@@ -228,7 +226,7 @@ class SettingTest {
 
     @Test
     void testDuration() {
-        var setting = (SettingImpl<Duration>) setting("setting", DURATION);
+        var setting = setting("setting", DURATION);
         assertEquals(60, setting.parse("1m").toSeconds());
         assertEquals(60, setting.parse(" 1m ").toSeconds());
         assertEquals(1000, setting.parse("1s").toMillis());
@@ -260,7 +258,7 @@ class SettingTest {
 
     @Test
     void testDurationRange() {
-        var setting = (SettingImpl<DurationRange>) setting("setting", DURATION_RANGE);
+        var setting = setting("setting", DURATION_RANGE);
         assertEquals(60, setting.parse("1m-2m").getMin().toSeconds());
         assertEquals(120, setting.parse("1m-2m").getMax().toSeconds());
         assertEquals(60, setting.parse(" 1m-2m ").getMin().toSeconds());
@@ -296,7 +294,7 @@ class SettingTest {
 
     @Test
     void testHostnamePort() {
-        var setting = (SettingImpl<HostnamePort>) setting("setting", HOSTNAME_PORT);
+        var setting = setting("setting", HOSTNAME_PORT);
         assertEquals(new HostnamePort("localhost", 7474), setting.parse("localhost:7474"));
         assertEquals(new HostnamePort("localhost", 1000, 2000), setting.parse("localhost:1000-2000"));
         assertEquals(new HostnamePort("localhost"), setting.parse("localhost"));
@@ -307,7 +305,7 @@ class SettingTest {
 
     @Test
     void testTimeZone() {
-        var setting = (SettingImpl<ZoneId>) setting("setting", TIMEZONE);
+        var setting = setting("setting", TIMEZONE);
         assertEquals(ZoneId.from(ZoneOffset.UTC), setting.parse("+00:00"));
         assertEquals(ZoneId.from(ZoneOffset.UTC), setting.parse(" +00:00 "));
         assertThrows(IllegalArgumentException.class, () -> setting.parse("foo"));
@@ -315,14 +313,14 @@ class SettingTest {
 
     @Test
     void testCidrIp() {
-        var setting = (SettingImpl<IPAddressString>) setting("setting", CIDR_IP);
+        var setting = setting("setting", CIDR_IP);
         assertEquals(new IPAddressString("1.1.1.0/8"), setting.parse("1.1.1.0/8"));
         assertThrows(IllegalArgumentException.class, () -> setting.parse("garbage"));
     }
 
     @Test
     void testSocket() {
-        var setting = (SettingImpl<SocketAddress>) setting("setting", SOCKET_ADDRESS);
+        var setting = setting("setting", SOCKET_ADDRESS);
         assertEquals(new SocketAddress("127.0.0.1", 7474), setting.parse("127.0.0.1:7474"));
         assertEquals(new SocketAddress("127.0.0.1", 7474), setting.parse(" 127.0.0.1:7474 "));
         assertEquals(new SocketAddress("127.0.0.1", -1), setting.parse("127.0.0.1"));
@@ -331,7 +329,7 @@ class SettingTest {
 
     @Test
     void testSocketSolve() {
-        var setting = (SettingImpl<SocketAddress>) setting("setting", SOCKET_ADDRESS);
+        var setting = setting("setting", SOCKET_ADDRESS);
         assertEquals(
                 new SocketAddress("localhost", 7473),
                 setting.solveDependency(setting.parse("localhost:7473"), setting.parse("127.0.0.1:7474")));
@@ -353,7 +351,7 @@ class SettingTest {
 
     @Test
     void testBytes() {
-        var setting = (SettingImpl<Long>) setting("setting", BYTES);
+        var setting = setting("setting", BYTES);
         assertEquals(2048, setting.parse("2k"));
         assertThrows(IllegalArgumentException.class, () -> setting.parse("1gig"));
         assertThrows(IllegalArgumentException.class, () -> setting.parse("-1M"));
@@ -371,20 +369,20 @@ class SettingTest {
 
     @Test
     void testURI() {
-        var setting = (SettingImpl<URI>) setting("setting", SettingValueParsers.URI);
+        var setting = setting("setting", SettingValueParsers.URI);
         assertEquals(URI.create("/path/to/../something/"), setting.parse("/path/to/../something/"));
     }
 
     @Test
     void testHttpsURI() {
-        var setting = (SettingImpl<URI>) setting("setting", SettingValueParsers.HTTPS_URI(true));
+        var setting = setting("setting", SettingValueParsers.HTTPS_URI(true));
         assertEquals(URI.create("https://www.example.com/path"), setting.parse("https://www.example.com/path"));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"http://www.example.com", "neo4js://database", "/path/to/../something/"})
     void testHttpsURIWithInvalidUris(String uri) {
-        var setting = (SettingImpl<URI>) setting("setting", SettingValueParsers.HTTPS_URI(true));
+        var setting = setting("setting", SettingValueParsers.HTTPS_URI(true));
         var exception = assertThrows(IllegalArgumentException.class, () -> setting.parse(uri));
         assertEquals(String.format("'%s' does not have required scheme 'https'", uri), exception.getMessage());
     }
@@ -398,23 +396,23 @@ class SettingTest {
                 "http://[0:0:0:0:0:0:0:1]/endpoint"
             })
     void testHttpURIExemptionForLocalhostURIs(String uri) {
-        var setting = (SettingImpl<URI>) setting("setting", SettingValueParsers.HTTPS_URI(true));
+        var setting = setting("setting", SettingValueParsers.HTTPS_URI(true));
         assertEquals(URI.create(uri), setting.parse(uri));
 
-        var invalidSetting = (SettingImpl<URI>) setting("setting", SettingValueParsers.HTTPS_URI(false));
+        var invalidSetting = setting("setting", SettingValueParsers.HTTPS_URI(false));
         var exception = assertThrows(IllegalArgumentException.class, () -> invalidSetting.parse(uri));
         assertEquals(String.format("'%s' does not have required scheme 'https'", uri), exception.getMessage());
     }
 
     @Test
     void testStringMapWithNoConstraintOnKeys() {
-        var setting = (SettingImpl<Map<String, String>>) setting("setting", SettingValueParsers.MAP_PATTERN);
+        var setting = setting("setting", SettingValueParsers.MAP_PATTERN);
         assertEquals(Map.of("k1", "v1", "k2", "v2"), setting.parse("k1=v1;k2=v2"));
     }
 
     @Test
     void testStringMapWithValuesContainingEquals() {
-        var setting = (SettingImpl<Map<String, String>>) setting("setting", SettingValueParsers.MAP_PATTERN);
+        var setting = setting("setting", SettingValueParsers.MAP_PATTERN);
         assertEquals(
                 Map.of("k1", "cn=admin,dc=example,dc=com", "k2", "v2"),
                 setting.parse("k1=cn=admin,dc=example,dc=com;k2=v2"));
@@ -422,34 +420,31 @@ class SettingTest {
 
     @Test
     void testStringMapWithRequiredKeys() {
-        var setting = (SettingImpl<Map<String, String>>)
-                setting("setting", new SettingValueParsers.MapPattern(Set.of("k1", "k2")));
+        var setting = setting("setting", new SettingValueParsers.MapPattern(Set.of("k1", "k2")));
         assertEquals(Map.of("k1", "v1", "k2", "v2", "k3", "v3"), setting.parse("k1=v1;k2=v2;k3=v3"));
         assertThrows(IllegalArgumentException.class, () -> setting.parse("k1=v1;k3=v3"));
     }
 
     @Test
     void testStringMapWithRestrictedKeys() {
-        var setting = (SettingImpl<Map<String, String>>)
-                setting("setting", new SettingValueParsers.MapPattern(Set.of("k1"), Set.of("k1", "k2")));
+        var setting = setting("setting", new SettingValueParsers.MapPattern(Set.of("k1"), Set.of("k1", "k2")));
         assertEquals(Map.of("k1", "v1", "k2", "v2"), setting.parse("k1=v1;k2=v2"));
         assertEquals(Map.of("k1", "v1"), setting.parse("k1=v1"));
         assertThrows(IllegalArgumentException.class, () -> setting.parse("k2=v2"));
         assertThrows(IllegalArgumentException.class, () -> setting.parse("k1=v1;k3=v3"));
-        var settingWithoutRequired = (SettingImpl<Map<String, String>>)
-                setting("setting", new SettingValueParsers.MapPattern(null, Set.of("k1", "k2")));
+        var settingWithoutRequired = setting("setting", new SettingValueParsers.MapPattern(null, Set.of("k1", "k2")));
         assertEquals(Map.of("k2", "v2"), settingWithoutRequired.parse("k2=v2"));
     }
 
     @Test
     void testNormalizedRelativeURI() {
-        var setting = (SettingImpl<URI>) setting("setting", NORMALIZED_RELATIVE_URI);
+        var setting = setting("setting", NORMALIZED_RELATIVE_URI);
         assertEquals(URI.create("/path/to/something"), setting.parse("/path/away/from/../../to/something/"));
     }
 
     @Test
     void testPath() {
-        var setting = (SettingImpl<Path>) setting("setting", PATH);
+        var setting = setting("setting", PATH);
         assertEquals(Path.of("/absolute/path"), setting.parse("/absolute/path"));
         assertEquals(Path.of("/absolute/path"), setting.parse("/absolute/wrong/../path"));
         assertEquals(Path.of("/test/escaped/chars/r/n/dir"), setting.parse("\test\\escaped\\chars\r\n\\\\dir"));
@@ -457,7 +452,7 @@ class SettingTest {
 
     @Test
     void testSolvePath() {
-        var setting = (SettingImpl<Path>) setting("setting", PATH);
+        var setting = setting("setting", PATH);
         assertEquals(
                 Path.of("/base/path/to/file").toAbsolutePath(),
                 setting.solveDependency(
@@ -484,7 +479,7 @@ class SettingTest {
 
     @Test
     void testJvmAdditional() {
-        var setting = (SettingImpl<String>) setting("setting", JVM_ADDITIONAL);
+        var setting = setting("setting", JVM_ADDITIONAL);
         var inputs = new String[] {
             "value1", // value1
             "value2 value3", // value2 value3
@@ -526,13 +521,13 @@ class SettingTest {
     @Test
     void testJvmAdditionalBadQuoting() {
         // A JVM setting starting with a quote should have an end quote
-        var setting = (SettingImpl<String>) setting("setting", JVM_ADDITIONAL);
+        var setting = setting("setting", JVM_ADDITIONAL);
         assertThrows(IllegalArgumentException.class, () -> setting.parse("\"missing_end_quote"));
     }
 
     @Test
     void testJvmAdditionalWithProperty() {
-        var setting = (SettingImpl<String>) setting("setting", JVM_ADDITIONAL);
+        var setting = setting("setting", JVM_ADDITIONAL);
         // A JVM setting should not split on whitespace inside quotes
         assertThat(setting.parse("-Da=\"string with space\"")).isEqualTo("-Da=\"string with space\"");
     }
@@ -556,7 +551,7 @@ class SettingTest {
             }
         };
 
-        var setting = (SettingImpl<String>) setting("setting", defaultSolver);
+        var setting = setting("setting", defaultSolver);
         assertEquals("foo", setting.solveDependency("foo", "bar"));
         assertEquals("bar", setting.solveDependency(null, "bar"));
         assertEquals("foo", setting.solveDependency("foo", null));

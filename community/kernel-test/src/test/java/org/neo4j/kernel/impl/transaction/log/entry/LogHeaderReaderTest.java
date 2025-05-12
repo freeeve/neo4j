@@ -40,7 +40,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
-import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.kernel.impl.transaction.log.InMemoryClosableChannel;
 import org.neo4j.storageengine.api.StoreId;
@@ -160,7 +159,7 @@ class LogHeaderReaderTest {
     void shouldTreatEmptyFileAsMissing() throws IOException {
         var file = testDirectory.file("ReadLogHeader");
 
-        ((StoreChannel) fileSystem.write(file)).close();
+        fileSystem.write(file).close();
 
         assertThat(readLogHeader(fileSystem, file, INSTANCE)).isNull();
     }

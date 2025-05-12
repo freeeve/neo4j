@@ -445,15 +445,11 @@ public class SingleFilePageSwapperTest extends PageSwapperTest {
     void creatingSwapperForFileMustTakeLockOnFile() throws Exception {
         PageSwapperFactory factory = createSwapperFactory(fileSystem);
         Path file = testDir.file("file");
-        ((StoreChannel) fileSystem.write(file)).close();
+        fileSystem.write(file).close();
 
-        PageSwapper pageSwapper = createSwapper(factory, file, 4, NO_CALLBACK, false);
-
-        try {
+        try (PageSwapper pageSwapper = createSwapper(factory, file, 4, NO_CALLBACK, false)) {
             StoreChannel channel = fileSystem.write(file);
             assertThrows(OverlappingFileLockException.class, channel::tryLock);
-        } finally {
-            pageSwapper.close();
         }
     }
 
@@ -477,7 +473,7 @@ public class SingleFilePageSwapperTest extends PageSwapperTest {
         PageSwapperFactory factory = createSwapperFactory(fileSystem);
         Path file = testDir.file("file");
 
-        ((StoreChannel) fileSystem.write(file)).close();
+        fileSystem.write(file).close();
 
         var process = start(
                 pb -> pb.directory(
@@ -515,7 +511,7 @@ public class SingleFilePageSwapperTest extends PageSwapperTest {
     void mustUnlockFileWhenThePageSwapperIsClosed() throws Exception {
         PageSwapperFactory factory = createSwapperFactory(fileSystem);
         Path file = testDir.file("file");
-        ((StoreChannel) fileSystem.write(file)).close();
+        fileSystem.write(file).close();
 
         createSwapper(factory, file, 4, NO_CALLBACK, false).close();
 
@@ -530,19 +526,15 @@ public class SingleFilePageSwapperTest extends PageSwapperTest {
     void fileMustRemainLockedEvenIfChannelIsClosedByStrayInterrupt() throws Exception {
         PageSwapperFactory factory = createSwapperFactory(fileSystem);
         Path file = testDir.file("file");
-        ((StoreChannel) fileSystem.write(file)).close();
+        fileSystem.write(file).close();
 
-        PageSwapper pageSwapper = createSwapper(factory, file, 4, NO_CALLBACK, false);
-
-        try {
+        try (PageSwapper pageSwapper = createSwapper(factory, file, 4, NO_CALLBACK, false)) {
             StoreChannel channel = fileSystem.write(file);
 
             Thread.currentThread().interrupt();
             pageSwapper.force();
 
             assertThrows(OverlappingFileLockException.class, channel::tryLock);
-        } finally {
-            pageSwapper.close();
         }
     }
 
@@ -640,11 +632,9 @@ public class SingleFilePageSwapperTest extends PageSwapperTest {
         Path file = getPath();
         RandomAdversary adversary = new RandomAdversary(0.5, 0.0, 0.0);
         PageSwapperFactory factory = createSwapperFactory(new AdversarialFileSystemAbstraction(adversary, getFs()));
-        PageSwapper swapper = createSwapper(factory, file, bytesTotal, NO_CALLBACK, true);
 
-        long page = createPage(bytesTotal);
-
-        try {
+        try (PageSwapper swapper = createSwapper(factory, file, bytesTotal, NO_CALLBACK, true)) {
+            long page = createPage(bytesTotal);
             for (int i = 0; i < 10_000; i++) {
                 adversary.enableAdversary(false);
                 swapper.write(0, zeroPage);
@@ -656,8 +646,6 @@ public class SingleFilePageSwapperTest extends PageSwapperTest {
                 swapper.read(0, page);
                 assertThat(array(page)).isEqualTo(data);
             }
-        } finally {
-            swapper.close();
         }
     }
 

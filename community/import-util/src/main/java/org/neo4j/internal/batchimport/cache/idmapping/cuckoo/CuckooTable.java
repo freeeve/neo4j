@@ -108,7 +108,7 @@ public class CuckooTable implements AutoCloseable {
 
     @Override
     public void close() {
-        closeAllUnchecked(keys, (AutoCloseable) () -> closeAllUnchecked(tables));
+        closeAllUnchecked(keys, () -> closeAllUnchecked(tables));
     }
 
     /**

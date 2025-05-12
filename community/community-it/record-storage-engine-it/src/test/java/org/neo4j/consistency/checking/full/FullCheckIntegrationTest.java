@@ -3603,7 +3603,7 @@ public class FullCheckIntegrationTest {
 
     @SuppressWarnings("unchecked")
     private static <T extends AbstractBaseRecord> T cloneRecord(T record) {
-        return (T) ReflectionUtil.callCopyConstructor(record);
+        return ReflectionUtil.callCopyConstructor(record);
     }
 
     private PropertyRecord newInitialisedPropertyRecord(IdGenerator next, SchemaRule rule) {

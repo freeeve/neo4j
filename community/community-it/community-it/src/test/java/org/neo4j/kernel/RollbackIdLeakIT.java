@@ -242,10 +242,7 @@ class RollbackIdLeakIT {
                 } else {
                     assertThat(ids).isEqualTo(referenceIds);
                 }
-                ((GraphDatabaseAPI) db)
-                        .getDependencyResolver()
-                        .resolveDependency(IdController.class)
-                        .maintenance();
+                db.getDependencyResolver().resolveDependency(IdController.class).maintenance();
             }
         }
     }

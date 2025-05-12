@@ -30,7 +30,6 @@ import java.nio.file.Path;
 import java.util.zip.ZipInputStream;
 import org.junit.jupiter.api.Test;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
-import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -63,8 +62,8 @@ class ZipUtilsTest {
     void archiveDirectory() throws IOException {
         Path archiveFile = testDirectory.file("directoryArchive.zip");
         Path directory = testDirectory.directory("directory");
-        ((StoreChannel) fileSystem.write(directory.resolve("a"))).close();
-        ((StoreChannel) fileSystem.write(directory.resolve("b"))).close();
+        fileSystem.write(directory.resolve("a")).close();
+        fileSystem.write(directory.resolve("b")).close();
         ZipUtils.zip(fileSystem, directory, archiveFile);
 
         assertTrue(fileSystem.fileExists(archiveFile));
@@ -79,10 +78,10 @@ class ZipUtilsTest {
         Path subdir2 = directoryArchive.resolve("subdir");
         fileSystem.mkdir(subdir1);
         fileSystem.mkdir(subdir2);
-        ((StoreChannel) fileSystem.write(directoryArchive.resolve("a"))).close();
-        ((StoreChannel) fileSystem.write(directoryArchive.resolve("b"))).close();
-        ((StoreChannel) fileSystem.write(subdir1.resolve("c"))).close();
-        ((StoreChannel) fileSystem.write(subdir2.resolve("d"))).close();
+        fileSystem.write(directoryArchive.resolve("a")).close();
+        fileSystem.write(directoryArchive.resolve("b")).close();
+        fileSystem.write(subdir1.resolve("c")).close();
+        fileSystem.write(subdir2.resolve("d")).close();
 
         ZipUtils.zip(fileSystem, directoryArchive, archiveFile);
 
@@ -94,7 +93,7 @@ class ZipUtilsTest {
     void archiveFile() throws IOException {
         Path archiveFile = testDirectory.file("fileArchive.zip");
         Path aFile = testDirectory.file("a");
-        ((StoreChannel) fileSystem.write(aFile)).close();
+        fileSystem.write(aFile).close();
         ZipUtils.zip(fileSystem, aFile, archiveFile);
 
         assertTrue(fileSystem.fileExists(archiveFile));
@@ -105,7 +104,7 @@ class ZipUtilsTest {
     public void supportSpacesInDestinationPath() throws IOException {
         Path archiveFile = testDirectory.file("file archive.zip");
         Path aFile = testDirectory.file("a");
-        ((StoreChannel) fileSystem.write(aFile)).close();
+        fileSystem.write(aFile).close();
         ZipUtils.zip(fileSystem, aFile, archiveFile);
     }
 
