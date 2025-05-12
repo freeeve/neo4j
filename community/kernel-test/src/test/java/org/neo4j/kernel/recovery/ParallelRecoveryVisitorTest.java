@@ -400,7 +400,7 @@ class ParallelRecoveryVisitorTest {
         }
 
         @Override
-        public Lifecycle schemaAndTokensLifecycle() {
+        public Lifecycle schemaAndTokensLifecycle(boolean ignoreUnreadable) {
             throw new UnsupportedOperationException();
         }
 

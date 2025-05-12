@@ -117,7 +117,7 @@ class DropBrokenUniquenessConstraintIT {
                     storeCursors);
         }
         // At this point the SchemaCache doesn't know about this change so we have to reload it
-        storageEngine.loadSchemaCache();
+        storageEngine.loadSchemaCache(false);
         try (Transaction tx = db.beginTx()) {
             single(tx.schema().getConstraints(label).iterator()).drop();
             tx.commit();
@@ -139,7 +139,7 @@ class DropBrokenUniquenessConstraintIT {
                     schemaRules, nonTransactionalAllocator(storageEngine.testAccessNeoStores()), storeCursors);
         }
         // At this point the SchemaCache doesn't know about this change so we have to reload it
-        storageEngine.loadSchemaCache();
+        storageEngine.loadSchemaCache(false);
         try (Transaction tx = db.beginTx()) {
             single(tx.schema().getConstraints(label).iterator()).drop();
             tx.commit();
@@ -166,7 +166,7 @@ class DropBrokenUniquenessConstraintIT {
         }
 
         // At this point the SchemaCache doesn't know about this change so we have to reload it
-        storageEngine.loadSchemaCache();
+        storageEngine.loadSchemaCache(false);
         try (Transaction tx = db.beginTx()) {
             // We don't use single() here, because it is okay for the schema cache reload to clean up after us.
             tx.schema().getConstraints(label).forEach(ConstraintDefinition::drop);
@@ -194,7 +194,7 @@ class DropBrokenUniquenessConstraintIT {
         }
 
         // At this point the SchemaCache doesn't know about this change so we have to reload it
-        storageEngine.loadSchemaCache();
+        storageEngine.loadSchemaCache(false);
         try (Transaction tx = db.beginTx()) {
             // We don't use single() here, because it is okay for the schema cache reload to clean up after us.
             tx.schema().getConstraints(label).forEach(ConstraintDefinition::drop);

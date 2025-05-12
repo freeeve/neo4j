@@ -75,6 +75,7 @@ import org.neo4j.internal.recordstorage.indexcommand.TransactionToIndexUpdateVis
 import org.neo4j.internal.recordstorage.validation.TransactionCommandValidatorFactory;
 import org.neo4j.internal.schema.IndexConfigCompleter;
 import org.neo4j.internal.schema.SchemaCache;
+import org.neo4j.internal.schema.SchemaRule;
 import org.neo4j.internal.schema.SchemaState;
 import org.neo4j.internal.schema.StorageEngineIndexingBehaviour;
 import org.neo4j.io.fs.FileSystemAbstraction;
@@ -141,6 +142,7 @@ import org.neo4j.storageengine.util.IdGeneratorUpdatesWorkSync;
 import org.neo4j.storageengine.util.IdUpdateListener;
 import org.neo4j.storageengine.util.IndexUpdatesWorkSync;
 import org.neo4j.token.TokenHolders;
+import org.neo4j.token.api.TokensLoader;
 import org.neo4j.util.VisibleForTesting;
 
 public class RecordStorageEngine implements StorageEngine, Lifecycle {
@@ -663,10 +665,13 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     }
 
     @VisibleForTesting
-    public void loadSchemaCache() {
+    public void loadSchemaCache(boolean ignoreUnreadable) {
         try (var cursorContext = contextFactory.create(SCHEMA_CACHE_START_TAG);
                 var storeCursors = new CachedStoreCursors(neoStores, cursorContext)) {
-            schemaCache.load(schemaRuleAccess.getAll(storeCursors, otherMemoryTracker));
+            Iterable<SchemaRule> schemaRules = ignoreUnreadable
+                    ? schemaRuleAccess.getAllIgnoreMalformed(storeCursors, otherMemoryTracker)
+                    : schemaRuleAccess.getAll(storeCursors, otherMemoryTracker);
+            schemaCache.load(schemaRules);
         }
     }
 
@@ -749,15 +754,18 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
     }
 
     @Override
-    public Lifecycle schemaAndTokensLifecycle() {
+    public Lifecycle schemaAndTokensLifecycle(boolean ignoreUnreadable) {
         return new LifecycleAdapter() {
             @Override
             public void init() {
                 try (var cursorContext = contextFactory.create(TOKENS_INIT_TAG);
                         var storeCursors = new CachedStoreCursors(neoStores, cursorContext)) {
-                    tokenHolders.setInitialTokens(StoreTokens.allTokens(neoStores), storeCursors, otherMemoryTracker);
+                    TokensLoader tokensLoader = ignoreUnreadable
+                            ? StoreTokens.allReadableTokens(neoStores)
+                            : StoreTokens.allTokens(neoStores);
+                    tokenHolders.setInitialTokens(tokensLoader, storeCursors, otherMemoryTracker);
                 }
-                loadSchemaCache();
+                loadSchemaCache(ignoreUnreadable);
             }
         };
     }

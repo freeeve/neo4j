@@ -508,7 +508,7 @@ public class Database extends AbstractDatabase {
         var logFiles = getLogFiles();
 
         life.add(storageEngine);
-        life.add(storageEngine.schemaAndTokensLifecycle());
+        life.add(storageEngine.schemaAndTokensLifecycle(false));
         life.add(logFiles);
         life.add(onStart(() -> {
             long lowestLogVersion = logFiles.getLogFile().getLowestLogVersion();

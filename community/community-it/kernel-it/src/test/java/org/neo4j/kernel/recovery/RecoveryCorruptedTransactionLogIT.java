@@ -27,9 +27,11 @@ import static org.neo4j.configuration.GraphDatabaseInternalSettings.checkpoint_l
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.fail_on_corrupted_log_files;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
+import static org.neo4j.io.pagecache.PageCache.PAGE_SIZE;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_COMMIT;
 import static org.neo4j.kernel.impl.transaction.log.entry.LogEntryTypeCodes.TX_START;
 import static org.neo4j.logging.LogAssertions.assertThat;
+import static org.neo4j.memory.EmptyMemoryTracker.INSTANCE;
 import static org.neo4j.storageengine.AppendIndexProvider.UNKNOWN_APPEND_INDEX;
 import static org.neo4j.storageengine.api.TransactionIdStore.BASE_TX_CHECKSUM;
 import static org.neo4j.storageengine.api.TransactionIdStore.UNKNOWN_CHUNK_ID;
@@ -47,8 +49,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -78,9 +82,11 @@ import org.neo4j.internal.recordstorage.LogCommandSerialization;
 import org.neo4j.internal.recordstorage.RecordStorageCommandReaderFactory;
 import org.neo4j.io.ByteUnit;
 import org.neo4j.io.fs.DefaultFileSystemAbstraction;
+import org.neo4j.io.fs.FileSystemUtils;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.fs.StoreFileChannel;
 import org.neo4j.io.fs.WritableChannel;
+import org.neo4j.io.layout.CommonDatabaseStores;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.memory.ByteBuffers;
 import org.neo4j.kernel.BinarySupportedKernelVersions;
@@ -120,7 +126,6 @@ import org.neo4j.kernel.impl.transaction.tracing.LogCheckPointEvent;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.kernel.lifecycle.Lifespan;
 import org.neo4j.logging.AssertableLogProvider;
-import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.monitoring.Monitors;
 import org.neo4j.storageengine.api.MetadataProvider;
 import org.neo4j.storageengine.api.StorageCommand;
@@ -1201,6 +1206,60 @@ class RecoveryCorruptedTransactionLogIT {
                                 + "} can not be recovered and will be truncated.");
     }
 
+    @Test
+    void shouldRecoverWithMalformedSchema() throws Exception {
+        DatabaseLayout databaseLayout;
+        // Given
+        try (DatabaseManagementService dbms = databaseFactory.build()) {
+            GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
+            databaseLayout = database.databaseLayout();
+            Label person = Label.label("Person");
+            String name = "name";
+            try (Transaction tx = database.beginTx()) {
+                Node node = tx.createNode(person);
+                node.setProperty(name, "John");
+                tx.commit();
+            }
+            try (Transaction tx = database.beginTx()) {
+                tx.schema().indexFor(person).on(name).create();
+                tx.commit();
+            }
+            try (Transaction tx = database.beginTx()) {
+                tx.schema().awaitIndexesOnline(1, TimeUnit.MINUTES);
+            }
+            logFiles = buildDefaultLogFiles(getStoreId(database));
+        }
+        // When
+        removeLastCheckpointRecordFromLastLogFile();
+        Path schemaStore = databaseLayout.pathForStore(CommonDatabaseStores.SCHEMAS);
+
+        // Fill the last page with -1 will corrupt the schema store in an engine independent way
+        byte[] data = FileSystemUtils.readAllBytes(fileSystem, schemaStore, INSTANCE);
+        int numPages = data.length / PAGE_SIZE;
+        Arrays.fill(data, (numPages - 1) * PAGE_SIZE, numPages * PAGE_SIZE, (byte) -1);
+        FileSystemUtils.writeAllBytes(fileSystem, schemaStore, data, INSTANCE);
+
+        // Then
+        try (DatabaseManagementService dbms =
+                databaseFactory.setConfig(fail_on_corrupted_log_files, true).build()) {
+            GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
+            assertThat(database.isAvailable()).isFalse();
+            assertThat(logProvider).containsMessages("Exception occurred while starting the database");
+        }
+        assertThat(Recovery.isRecoveryRequired(fileSystem, databaseLayout, CONFIG, INSTANCE))
+                .isTrue();
+
+        // And then
+        try (DatabaseManagementService dbms =
+                databaseFactory.setConfig(fail_on_corrupted_log_files, false).build()) {
+            GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
+            // Database won't start with corrupt schema, but at least the recovery/checkpoint should have finished.
+            assertThat(database.isAvailable()).isFalse();
+        }
+        assertThat(Recovery.isRecoveryRequired(fileSystem, databaseLayout, CONFIG, INSTANCE))
+                .isFalse();
+    }
+
     private static StoreId getStoreId(GraphDatabaseAPI database) {
         return database.getDependencyResolver()
                 .resolveDependency(StoreIdProvider.class)
@@ -1231,8 +1290,7 @@ class RecoveryCorruptedTransactionLogIT {
             try (StoreChannel storeChannel =
                     fileSystem.write(checkpointFile.getLogFileForVersion(logPosition.getLogVersion()))) {
                 storeChannel.position(logPosition.getByteOffset() + 15);
-                storeChannel.writeAll(ByteBuffers.allocate(
-                        CHECKPOINT_RECORD_SIZE, ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE));
+                storeChannel.writeAll(ByteBuffers.allocate(CHECKPOINT_RECORD_SIZE, ByteOrder.LITTLE_ENDIAN, INSTANCE));
             }
         }
     }
@@ -1251,8 +1309,8 @@ class RecoveryCorruptedTransactionLogIT {
                         .checkpointFilePostReadPosition()
                         .getByteOffset();
                 storeChannel.position(corruptionPoint);
-                storeChannel.writeAll(ByteBuffers.allocate(
-                        (int) (lastPoint - corruptionPoint), ByteOrder.LITTLE_ENDIAN, EmptyMemoryTracker.INSTANCE));
+                storeChannel.writeAll(
+                        ByteBuffers.allocate((int) (lastPoint - corruptionPoint), ByteOrder.LITTLE_ENDIAN, INSTANCE));
             }
         }
     }
@@ -1292,7 +1350,7 @@ class RecoveryCorruptedTransactionLogIT {
     }
 
     private boolean checkpointEntryLooksCorrupted(byte[] array) {
-        var testReader = new VersionAwareLogEntryReader(version -> null, BINARY_VERSIONS, EmptyMemoryTracker.INSTANCE);
+        var testReader = new VersionAwareLogEntryReader(version -> null, BINARY_VERSIONS, INSTANCE);
         var ch = new InMemoryVersionableReadableClosablePositionAwareChannel();
         ch.putVersion(array[0]);
         ch.putAll(ByteBuffer.wrap(array).position(1));
@@ -1367,8 +1425,8 @@ class RecoveryCorruptedTransactionLogIT {
     record Positions(LogPosition startPosition, LogPosition lastReadable) {}
 
     private Positions getLastReadablePosition(Path logFile) throws IOException {
-        VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
-                storageEngineFactory.commandReaderFactory(), BINARY_VERSIONS, EmptyMemoryTracker.INSTANCE);
+        VersionAwareLogEntryReader entryReader =
+                new VersionAwareLogEntryReader(storageEngineFactory.commandReaderFactory(), BINARY_VERSIONS, INSTANCE);
         LogFile txLogFile = logFiles.getLogFile();
         long logVersion = txLogFile.getLogVersion(logFile);
         LogPosition startPosition = txLogFile.extractHeader(logVersion).getStartPosition();
@@ -1390,14 +1448,14 @@ class RecoveryCorruptedTransactionLogIT {
     private ReadableLogChannel openTransactionFileChannel(long logVersion, LogPosition startPosition)
             throws IOException {
         final var logFile = logFiles.getLogFile();
-        final var channel = ReadAheadUtils.newChannel(logFile, logVersion, EmptyMemoryTracker.INSTANCE);
+        final var channel = ReadAheadUtils.newChannel(logFile, logVersion, INSTANCE);
         channel.position(startPosition.getByteOffset());
         return channel;
     }
 
     private LogPosition getLastReadablePosition(LogFile logFile) throws IOException {
-        VersionAwareLogEntryReader entryReader = new VersionAwareLogEntryReader(
-                storageEngineFactory.commandReaderFactory(), BINARY_VERSIONS, EmptyMemoryTracker.INSTANCE);
+        VersionAwareLogEntryReader entryReader =
+                new VersionAwareLogEntryReader(storageEngineFactory.commandReaderFactory(), BINARY_VERSIONS, INSTANCE);
         LogPosition startPosition = logFile.extractHeader(logFiles.getLogFile().getHighestLogVersion())
                 .getStartPosition();
         try (ReadableLogChannel reader = logFile.getReader(startPosition)) {

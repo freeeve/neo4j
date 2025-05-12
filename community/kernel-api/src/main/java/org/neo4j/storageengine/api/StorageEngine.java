@@ -185,7 +185,7 @@ public interface StorageEngine extends ReadableStorageEngine, Lifecycle {
     /**
      * The life cycle that is used for initialising the token holders, and filling the schema cache.
      */
-    Lifecycle schemaAndTokensLifecycle();
+    Lifecycle schemaAndTokensLifecycle(boolean ignoreUnreadable);
 
     /**
      * @return a {@link MetadataProvider}, provides access to underlying storage metadata information.

@@ -710,7 +710,7 @@ public final class Recovery {
                 memoryTracker);
 
         LifeSupport schemaLife = new LifeSupport();
-        schemaLife.add(storageEngine.schemaAndTokensLifecycle());
+        schemaLife.add(storageEngine.schemaAndTokensLifecycle(!failOnCorruptedLogFiles));
         schemaLife.add(indexingService);
 
         var doParallelRecovery = config.get(GraphDatabaseInternalSettings.do_parallel_recovery);

@@ -548,7 +548,7 @@ class NeoStoresTest {
                 StoreIdGenerator.UNIQUE_ID);
         life = new LifeSupport();
         life.add(storageEngine);
-        life.add(storageEngine.schemaAndTokensLifecycle());
+        life.add(storageEngine.schemaAndTokensLifecycle(false));
         life.start();
 
         NeoStores neoStores = storageEngine.testAccessNeoStores();
