@@ -35,11 +35,10 @@ public class InvalidSpatialArgumentException extends InvalidArgumentException {
     }
 
     public static InvalidSpatialArgumentException invalidDimension(String crs, int dimension, double... coordinate) {
-        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22000)
-                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N24)
-                        .withParam(GqlParams.StringParam.valueType, "point")
-                        .withParam(GqlParams.StringParam.coordinates, Arrays.toString(coordinate))
-                        .build())
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N20)
+                .withParam(GqlParams.NumberParam.dim1, dimension)
+                .withParam(GqlParams.NumberParam.value, coordinate.length)
+                .withParam(GqlParams.NumberParam.dim2, coordinate.length)
                 .build();
 
         return new InvalidSpatialArgumentException(

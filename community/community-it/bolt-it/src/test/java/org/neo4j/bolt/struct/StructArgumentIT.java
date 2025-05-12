@@ -155,9 +155,11 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                                 "error: data exception - invalid coordinate arguments. Cannot construct a point from [3.15, 4.012].",
                                 BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
                                 BoltConnectionAssertions.assertErrorCause(
-                                        "50N42: Unexpected error has occurred. See debug log for details.",
-                                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details."))));
+                                        "22N20: Cannot create POINT with 3D coordinate reference system (CRS) and 2 coordinates. Use the equivalent 2D coordinate reference system instead.",
+                                        GqlStatusInfoCodes.STATUS_22N20.getGqlStatus(),
+                                        "error: data exception - invalid spatial value dimensions. Cannot create POINT with 3D coordinate reference system (CRS) and 2 coordinates. Use the equivalent 2D coordinate reference system instead.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR")))));
     }
 
     @ProtocolTest
@@ -195,9 +197,11 @@ public class StructArgumentIT extends AbstractStructArgumentIT {
                                 "error: data exception - invalid coordinate arguments. Cannot construct a point from [3.15, 4.012, 5.905].",
                                 BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord("CLIENT_ERROR"),
                                 BoltConnectionAssertions.assertErrorCause(
-                                        "50N42: Unexpected error has occurred. See debug log for details.",
-                                        GqlStatusInfoCodes.STATUS_50N42.getGqlStatus(),
-                                        "error: general processing exception - unexpected error. Unexpected error has occurred. See debug log for details."))));
+                                        "22N20: Cannot create POINT with 2D coordinate reference system (CRS) and 3 coordinates. Use the equivalent 3D coordinate reference system instead.",
+                                        GqlStatusInfoCodes.STATUS_22N20.getGqlStatus(),
+                                        "error: data exception - invalid spatial value dimensions. Cannot create POINT with 2D coordinate reference system (CRS) and 3 coordinates. Use the equivalent 3D coordinate reference system instead.",
+                                        BoltConnectionAssertions.assertErrorClassificationOnDiagnosticRecord(
+                                                "CLIENT_ERROR")))));
     }
 
     @ProtocolTest
