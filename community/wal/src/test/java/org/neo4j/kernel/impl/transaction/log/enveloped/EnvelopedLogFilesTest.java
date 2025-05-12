@@ -74,6 +74,10 @@ class EnvelopedLogFilesTest {
 
     @BeforeEach
     void setUp() {
+        recreateEnvelopedLogFiles();
+    }
+
+    private void recreateEnvelopedLogFiles() {
 
         var baseFileName = "raft-log";
         var baseFolder = testDirectory.directory("logsFolder");
@@ -124,6 +128,125 @@ class EnvelopedLogFilesTest {
             assertThat(reader.getLogVersion()).isEqualTo(0);
             assertThat(reader.logHeader().getLogVersion()).isEqualTo(0);
         }
+    }
+
+    @Test
+    void shouldReInitializeCorrectlyAfterRestart() throws IOException {
+        assertThat(mirroringRepository.isEmpty()).isTrue();
+        envelopedLogFiles.initialise();
+
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data);
+        writeData(writeChannel, data);
+        writeChannel.prepareForFlush().flush();
+
+        // when
+        recreateEnvelopedLogFiles();
+        var latestLogIndex = envelopedLogFiles.initialise();
+
+        // then
+        assertThat(latestLogIndex).isEqualTo(1);
+    }
+
+    @Test
+    void shouldReInitializeCorrectlyAfterLogRotation() throws IOException {
+        assertThat(mirroringRepository.isEmpty()).isTrue();
+        envelopedLogFiles.initialise();
+
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data); // index 0
+        writeData(writeChannel, data); // index 1
+        writeChannel.prepareForFlush().flush();
+
+        envelopedLogFiles.forceRotate();
+        writeData(writeChannel, data); // index 2
+        writeData(writeChannel, data); // index 3
+        writeChannel.prepareForFlush().flush();
+
+        // when
+        recreateEnvelopedLogFiles();
+        var latestLogIndex = envelopedLogFiles.initialise();
+
+        // then
+        assertThat(latestLogIndex).isEqualTo(3);
+    }
+
+    @Test
+    void shouldReInitializeCorrectlyIfAtLogBoundary() throws IOException {
+        assertThat(mirroringRepository.isEmpty()).isTrue();
+        envelopedLogFiles.initialise();
+
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data); // index 0
+        writeData(writeChannel, data); // index 1
+        writeChannel.prepareForFlush().flush();
+
+        envelopedLogFiles.forceRotate();
+        writeChannel.prepareForFlush().flush();
+
+        // when
+        recreateEnvelopedLogFiles();
+        var latestLogIndex = envelopedLogFiles.initialise();
+
+        // then
+        assertThat(latestLogIndex).isEqualTo(1);
+    }
+
+    @Test
+    void shouldReInitializeCorrectlyWhenLastEntrySpansMultipleFiles() throws IOException {
+        var smallData = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var largeData = new byte[(int) (segmentBlockSize * ((2 * totalSegments) - 0.5))];
+
+        envelopedLogFiles.initialise();
+
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+
+        writeData(writeChannel, smallData); // index 0
+        writeData(writeChannel, largeData); // index 1
+        writeData(writeChannel, largeData); // index 2
+        writeData(writeChannel, smallData); // index 3
+        writeData(writeChannel, largeData); // index 4
+        writeChannel.prepareForFlush().flush();
+
+        // when
+        recreateEnvelopedLogFiles();
+        var latestLogIndex = envelopedLogFiles.initialise();
+
+        // then
+        assertThat(latestLogIndex).isEqualTo(4);
+    }
+
+    @Test
+    void shouldReInitializeCorrectlyWithPreallocatedFiles() throws IOException {
+        // given - preallocated files
+        for (int i = 0; i < 3; i++) {
+            try (var channel = mirroringRepository.createWriteChannel(i).channel()) {
+                var zeros = ByteBuffer.wrap(new byte[segmentBlockSize]);
+                channel.writeAll(zeros);
+                zeros.position(0);
+                channel.writeAll(zeros);
+                zeros.position(0);
+                channel.flush();
+            }
+        }
+
+        envelopedLogFiles.initialise();
+        var data = EIGHT_BYTES_MESSAGE.getBytes(StandardCharsets.UTF_8);
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, data); // index 0
+        writeData(writeChannel, data); // index 1
+        writeData(writeChannel, data); // index 2
+        writeChannel.prepareForFlush().flush();
+
+        // when
+        recreateEnvelopedLogFiles();
+        var latestLogIndex = envelopedLogFiles.initialise();
+
+        // then
+        assertThat(latestLogIndex).isEqualTo(2);
     }
 
     @Test

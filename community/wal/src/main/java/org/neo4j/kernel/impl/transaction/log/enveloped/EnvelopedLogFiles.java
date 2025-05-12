@@ -140,22 +140,27 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     public long initialise() throws IOException {
         logsRepository.initialise();
         if (!logsRepository.isEmpty()) {
-            try (var envelopeReadChannel = openReadChannel()) {
-                if (envelopeReadChannel.logHeader() != null) {
-
-                    try {
-                        while (true) {
-                            envelopeReadChannel.goToNextEntry();
+            var versions = logsRepository.logVersions(true);
+            for (var version : versions) {
+                try (var readChannel = envelopedReadChannel(logsRepository.openReadChannel(version), version)) {
+                    if (readChannel.logHeader() != null) {
+                        try {
+                            while (true) {
+                                readChannel.goToNextEntry();
+                            }
+                        } catch (ReadPastEndException ignore) {
+                            // we reached the end
                         }
-                    } catch (ReadPastEndException ignore) {
-                        // we reached the end
+                        var prevChecksum = readChannel.getChecksum();
+                        var logChannelCtx = openWriteChannel(readChannel.getLogVersion(), readChannel.position());
+
+                        var isLogBoundary = readChannel.entryIndex() == -1;
+                        var latestLogIndex =
+                                isLogBoundary ? readChannel.logHeader().getLastAppendIndex() : readChannel.entryIndex();
+
+                        updateState(logChannelCtx, prevChecksum, latestLogIndex);
+                        return latestLogIndex;
                     }
-                    var prevChecksum = envelopeReadChannel.getChecksum();
-                    var prevIndex = envelopeReadChannel.entryIndex();
-                    var logChannelCtx =
-                            openWriteChannel(envelopeReadChannel.getLogVersion(), envelopeReadChannel.position());
-                    updateState(logChannelCtx, prevChecksum, prevIndex);
-                    return prevIndex;
                 }
             }
         }
@@ -169,6 +174,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
     /**
      * Truncates the envelope log files.
+     *
      * @param fromIndex the index to truncate from (inclusive)
      * @return the current write channel after the truncate.
      * @throws IllegalArgumentException if fromIndex is negative, higher than current index or if it has been pruned
@@ -228,6 +234,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
     /**
      * Prunes the envelope files. Only entire files can be removed by prune.
+     *
      * @param index the desired index to prune up to (exclusive)
      * @return the highest index that was removed after the prune event, or -1 if there is nothing to prune
      */
