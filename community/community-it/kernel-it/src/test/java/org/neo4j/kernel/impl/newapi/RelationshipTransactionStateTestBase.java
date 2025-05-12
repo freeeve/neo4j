@@ -27,7 +27,10 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.graphdb.Direction.BOTH;
 import static org.neo4j.graphdb.Direction.INCOMING;
 import static org.neo4j.graphdb.Direction.OUTGOING;
+import static org.neo4j.internal.helpers.collection.Iterators.first;
+import static org.neo4j.internal.kernel.api.IndexQueryConstraints.unconstrained;
 import static org.neo4j.internal.kernel.api.connectioninfo.ClientConnectionInfo.EMBEDDED_CONNECTION;
+import static org.neo4j.internal.schema.SchemaDescriptors.ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR;
 import static org.neo4j.io.pagecache.context.CursorContext.NULL_CONTEXT;
 import static org.neo4j.kernel.impl.newapi.RelationshipTestSupport.assertCounts;
 import static org.neo4j.kernel.impl.newapi.RelationshipTestSupport.computeKey;
@@ -54,6 +57,7 @@ import org.neo4j.internal.kernel.api.PropertyCursor;
 import org.neo4j.internal.kernel.api.Read;
 import org.neo4j.internal.kernel.api.RelationshipScanCursor;
 import org.neo4j.internal.kernel.api.RelationshipTraversalCursor;
+import org.neo4j.internal.kernel.api.TokenPredicate;
 import org.neo4j.internal.kernel.api.Write;
 import org.neo4j.internal.kernel.api.exceptions.EntityNotFoundException;
 import org.neo4j.internal.kernel.api.security.AuthSubject;
@@ -135,6 +139,57 @@ public abstract class RelationshipTransactionStateTestBase<G extends KernelAPIWr
                 write.relationshipCreate(write.nodeCreate(), relType, write.nodeCreate());
 
                 tx.dataRead().singleRelationship(-1, relationships);
+                assertFalse(relationships.next());
+            }
+        }
+    }
+
+    @Test
+    void allRelationshipScanShouldNotSeeDeletedRelationships() throws Exception {
+        try (KernelTransaction tx = beginTransaction()) {
+            try (var relationships = tx.cursors().allocateRelationshipScanCursor(tx.cursorContext())) {
+                final var write = tx.dataWrite();
+                final var relType = tx.tokenWrite().relationshipTypeGetOrCreateForName("REL");
+                write.relationshipCreate(write.nodeCreate(), relType, write.nodeCreate());
+                write.relationshipCreate(write.nodeCreate(), relType, write.nodeCreate());
+                write.relationshipCreate(write.nodeCreate(), relType, write.nodeCreate());
+
+                tx.dataRead().allRelationshipsScan(relationships);
+                assertTrue(relationships.next());
+                write.relationshipDelete(relationships.relationshipReference());
+                assertTrue(relationships.next());
+                write.relationshipDelete(relationships.relationshipReference());
+                assertTrue(relationships.next());
+                write.relationshipDelete(relationships.relationshipReference());
+                assertFalse(relationships.next());
+            }
+        }
+    }
+
+    @Test
+    void relationshipTypeScanShouldNotSeeDeletedRelationships() throws Exception {
+        try (KernelTransaction tx = beginTransaction()) {
+            try (var relationships = tx.cursors().allocateRelationshipTypeIndexCursor(tx.cursorContext())) {
+                final var write = tx.dataWrite();
+                final var relType = tx.tokenWrite().relationshipTypeGetOrCreateForName("REL");
+                write.relationshipCreate(write.nodeCreate(), relType, write.nodeCreate());
+                write.relationshipCreate(write.nodeCreate(), relType, write.nodeCreate());
+                write.relationshipCreate(write.nodeCreate(), relType, write.nodeCreate());
+                var index = first(tx.schemaRead().index(ANY_TOKEN_RELATIONSHIP_SCHEMA_DESCRIPTOR));
+                var tokenReadSession = tx.dataRead().tokenReadSession(index);
+                tx.dataRead()
+                        .relationshipTypeScan(
+                                tokenReadSession,
+                                relationships,
+                                unconstrained(),
+                                new TokenPredicate(relType),
+                                NULL_CONTEXT);
+                assertTrue(relationships.next());
+                write.relationshipDelete(relationships.relationshipReference());
+                assertTrue(relationships.next());
+                write.relationshipDelete(relationships.relationshipReference());
+                assertTrue(relationships.next());
+                write.relationshipDelete(relationships.relationshipReference());
                 assertFalse(relationships.next());
             }
         }

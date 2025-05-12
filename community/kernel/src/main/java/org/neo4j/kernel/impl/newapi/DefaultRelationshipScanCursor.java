@@ -119,7 +119,12 @@ public class DefaultRelationshipScanCursor extends DefaultRelationshipCursor<Def
                     ? LongHashSet.newSetWith(single).longIterator()
                     : ImmutableEmptyLongIterator.INSTANCE;
         }
-        return stateHolder.txState().addedAndRemovedRelationships().getAdded().longIterator();
+        return stateHolder
+                .txState()
+                .addedAndRemovedRelationships()
+                .getAdded()
+                .freeze()
+                .longIterator();
     }
 
     @Override
