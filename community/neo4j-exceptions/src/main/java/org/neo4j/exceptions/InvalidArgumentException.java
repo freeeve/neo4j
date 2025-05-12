@@ -60,6 +60,11 @@ public class InvalidArgumentException extends Neo4jException {
         super(gqlStatusObject, message);
     }
 
+    @Override
+    public Status status() {
+        return Status.Statement.ArgumentError;
+    }
+
     public static InvalidArgumentException invalidFunctionArgument(String functionName, String message) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22N38)
                 .withParam(GqlParams.StringParam.value, functionName)
@@ -91,11 +96,6 @@ public class InvalidArgumentException extends Neo4jException {
                 .withParam(GqlParams.StringParam.edition, "community edition")
                 .build();
         return new InvalidArgumentException(gql, "%s is not supported in community edition.".formatted(feature));
-    }
-
-    @Override
-    public Status status() {
-        return Status.Statement.ArgumentError;
     }
 
     public static InvalidArgumentException cdcUnexpectedFieldException(

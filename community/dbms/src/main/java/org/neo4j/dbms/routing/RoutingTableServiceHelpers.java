@@ -27,7 +27,6 @@ import org.neo4j.configuration.connectors.ConnectorPortRegister;
 import org.neo4j.configuration.connectors.ConnectorType;
 import org.neo4j.configuration.helpers.SocketAddress;
 import org.neo4j.configuration.helpers.SocketAddressParser;
-import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.logging.InternalLog;
 import org.neo4j.values.storable.TextValue;
 import org.neo4j.values.virtual.MapValue;
@@ -51,9 +50,7 @@ public class RoutingTableServiceHelpers {
             } catch (Exception ignore) {
             }
         }
-        throw new RoutingException(
-                Status.Procedure.ProcedureCallFailed,
-                "An address key is included in the routing table request, but its value could not be parsed.");
+        throw RoutingException.invalidAddressKey();
     }
 
     public static String findClientProvidedPolicy(MapValue routingContext) throws RoutingException {
@@ -64,9 +61,7 @@ public class RoutingTableServiceHelpers {
         if (value.get() instanceof TextValue textValue) {
             return textValue.stringValue();
         }
-        throw new RoutingException(
-                Status.Procedure.ProcedureCallFailed,
-                "An policy key is included in the routing table request, but its value could not be parsed.");
+        throw RoutingException.invalidRoutingRequest("policy key");
     }
 
     public static String findClientProvidedAliasChain(MapValue routingContext) throws RoutingException {
@@ -77,9 +72,7 @@ public class RoutingTableServiceHelpers {
         if (value.get() instanceof TextValue textValue) {
             return textValue.stringValue();
         }
-        throw new RoutingException(
-                Status.Procedure.ProcedureCallFailed,
-                "An from alias key is included in the routing table request, but its value could not be parsed.");
+        throw RoutingException.invalidRoutingRequest("'from alias'");
     }
 
     static SocketAddress ensureBoltAddressIsUsable(

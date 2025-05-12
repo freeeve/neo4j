@@ -31,18 +31,13 @@ import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlException;
 import org.neo4j.gqlstatus.GqlHelper;
 import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlParams.StringParam;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.util.VisibleForTesting;
 
 public class RoutingException extends GqlException implements Status.HasStatus {
     private final Status status;
-
-    @Deprecated
-    public RoutingException(Status status, String message) {
-        super(message);
-        this.status = status;
-    }
 
     @VisibleForTesting
     public RoutingException(ErrorGqlStatusObject gqlStatusObject, Status status, String message) {
@@ -125,6 +120,16 @@ public class RoutingException extends GqlException implements Status.HasStatus {
                 "Unable to provide a routing table for the database '"
                         + databaseName + "' because the request came from another alias '"
                         + sourceAlias + "' and alias chains are not permitted.");
+    }
+
+    public static RoutingException invalidRoutingRequest(String fieldName) {
+        var gqlCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N41)
+                .withParam(StringParam.field, fieldName)
+                .build();
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N16)
+                .withCause(gqlCause)
+                .build();
+        return new RoutingException(gql, Status.Procedure.ProcedureCallFailed, gqlCause.getMessage());
     }
 
     @Override

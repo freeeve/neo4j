@@ -41,6 +41,7 @@ import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.kernel.api.procs.QualifiedName;
 import org.neo4j.kernel.api.exceptions.Status;
+import org.neo4j.kernel.api.exceptions.Status.Security;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.UserAggregationResult;
@@ -1047,5 +1048,17 @@ public class ProcedureException extends KernelException {
     public static ProcedureException internalError(String msgTitle, String message, Status status) {
         var gql = GqlHelper.get50N00(msgTitle, message);
         return new ProcedureException(gql, status, message);
+    }
+
+    public static ProcedureException permissionDenied(String message) {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NFF)
+                .build();
+        return new ProcedureException(gql, Security.Forbidden, message);
+    }
+
+    public static ProcedureException reconcilerFailed() {
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N40)
+                .build();
+        return new ProcedureException(gql, ProcedureCallFailed, gql.getMessage());
     }
 }

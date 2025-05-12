@@ -4808,6 +4808,22 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.PROCEDURE_EXCEPTION,
             "cdc scanner inactive",
             ErrorClassification.UNKNOWN),
+    STATUS_52N40(
+            new GqlStatus("52N40"),
+            "Reconciliation failed during writing the topology graph, transaction may not be committed.",
+            new GqlParams.GqlParam[] {},
+            emptyMap(),
+            Condition.PROCEDURE_EXCEPTION,
+            "reconciler execution error",
+            ErrorClassification.DATABASE_ERROR),
+    STATUS_52N41(
+            new GqlStatus("52N41"),
+            "The key value for { %s } in the query string cannot be parsed when getting a routing table.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.field},
+            emptyMap(),
+            Condition.PROCEDURE_EXCEPTION,
+            "invalid routing key",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_52U00(
             new GqlStatus("52U00"),
             "Execution of the procedure { %s } failed due to { %s }: { %s }.",
