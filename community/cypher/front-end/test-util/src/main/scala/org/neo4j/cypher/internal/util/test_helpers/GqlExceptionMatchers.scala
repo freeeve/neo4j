@@ -335,4 +335,22 @@ object GqlExceptionMatchers extends GqlExceptionMatchers {
       )
     )
   }
+
+  def invalidTypeException(
+    legacyMsg: String,
+    valueString: String,
+    expectedType: String,
+    gotType: String
+  ): BeMatcher[Exception] = {
+    gqlException(
+      legacyMsg,
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_22G03,
+        "error: data exception - invalid value type"
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_22N01,
+        s"error: data exception - invalid type. Expected the value $valueString to be of type $expectedType, but was of type $gotType."
+      )
+    )
+  }
 }
