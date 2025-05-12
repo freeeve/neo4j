@@ -19,6 +19,8 @@
  */
 package org.neo4j.kernel.impl.transaction.log.enveloped;
 
+import static org.neo4j.kernel.impl.transaction.log.enveloped.EnvelopedFilePattern.VERSION_SUFFIX;
+
 import java.io.IOException;
 import java.nio.file.OpenOption;
 import java.nio.file.Path;
@@ -33,8 +35,6 @@ import org.neo4j.io.fs.StoreChannel;
 
 class LogsRepository {
     static final long BASE_VERSION = 0;
-    private static final char VERSION_SUFFIX = '.';
-    private static final String VERSION_SUFFIX_REG = "\\.";
     private final FileSystemAbstraction fs;
     private final Path directory;
     private final String baseName;
@@ -48,7 +48,7 @@ class LogsRepository {
         this.fs = fs;
         this.directory = directory;
         this.baseName = baseName;
-        this.pattern = Pattern.compile(baseName + VERSION_SUFFIX_REG + "(?<VERSION>[0-9]*)");
+        this.pattern = EnvelopedFilePattern.envelopedFilePattern(baseName);
     }
 
     LogChannelContext<StoreChannel> openReadChannel(long version) throws IOException {

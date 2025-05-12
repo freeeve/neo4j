@@ -59,7 +59,8 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
     public EnvelopedLogFiles(
             FileSystemAbstraction fs,
-            Path fileName,
+            Path directory,
+            String baseFileName,
             LogHeaderFactory logHeaderFactory,
             int segmentBlockSize,
             int writerBufferedBlocks,
@@ -72,8 +73,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         }
         this.logFilesPreAllocator = logFilesPreAllocator;
         this.logHeaderFactory = logHeaderFactory;
-        this.logsRepository = new LogsRepository(
-                fs, fileName.getParent(), fileName.getFileName().toString());
+        this.logsRepository = new LogsRepository(fs, directory, baseFileName);
         this.segmentBlockSize = segmentBlockSize;
         this.writerBufferedBlocks = writerBufferedBlocks;
         this.memoryTracker = memoryTracker;

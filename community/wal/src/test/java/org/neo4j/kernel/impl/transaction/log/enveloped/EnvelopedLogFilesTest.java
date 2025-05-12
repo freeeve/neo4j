@@ -75,12 +75,13 @@ class EnvelopedLogFilesTest {
     @BeforeEach
     void setUp() {
 
-        var baseFile = testDirectory.directory("logsFolder").resolve("raftLog");
-        mirroringRepository = new LogsRepository(
-                fs, baseFile.getParent(), baseFile.getFileName().toString());
+        var baseFileName = "raft-log";
+        var baseFolder = testDirectory.directory("logsFolder");
+        mirroringRepository = new LogsRepository(fs, baseFolder, baseFileName);
         envelopedLogFiles = new EnvelopedLogFiles(
                 fs,
-                baseFile,
+                baseFolder,
+                baseFileName,
                 (fileVersion, preFileIndex, preFileChecksum, segmentSize) -> LogFormat.fromKernelVersion(
                                 KernelVersion.GLORIOUS_FUTURE)
                         .newHeader(
