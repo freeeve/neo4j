@@ -53,7 +53,6 @@ import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STORE_F
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_STORE_RANDOM_ID_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_UPDATE_ID_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_UUID_PROPERTY;
-import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_VIRTUAL_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DELETED_DATABASE_DUMP_DATA_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DELETED_DATABASE_KEEP_DATA_PROPERTY;
@@ -365,9 +364,8 @@ public abstract class BaseTopologyGraphDbmsModelIT {
             return this;
         }
 
-        public DatabaseNodeBuilder asVirtual() {
+        public DatabaseNodeBuilder asComposite() {
             node.addLabel(COMPOSITE_DATABASE_LABEL);
-            node.setProperty(DATABASE_VIRTUAL_PROPERTY, true);
             return this;
         }
 

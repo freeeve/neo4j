@@ -20,6 +20,7 @@
 package org.neo4j.dbms.systemgraph;
 
 import static org.neo4j.dbms.systemgraph.DriverSettings.Keys.CONNECTION_POOL_ACQUISITION_TIMEOUT;
+import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.COMPOSITE_DATABASE_LABEL;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DATABASE_NAME_PROPERTY;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.DEFAULT_NAMESPACE;
 import static org.neo4j.dbms.systemgraph.TopologyGraphDbmsModel.GRAPH_SHARD_LABEL;
@@ -65,7 +66,7 @@ public final class CommunityTopologyGraphDbmsModelUtil {
 
     static Stream<Internal> getAllPrimaryStandardDatabaseReferencesInRoot(Transaction tx) {
         return tx.findNodes(TopologyGraphDbmsModel.DATABASE_LABEL).stream()
-                .filter(node -> !node.hasProperty(TopologyGraphDbmsModel.DATABASE_VIRTUAL_PROPERTY))
+                .filter(node -> !node.hasLabel(COMPOSITE_DATABASE_LABEL))
                 .filter(node -> !node.hasLabel(SPD_LABEL))
                 .filter(node -> !node.hasLabel(GRAPH_SHARD_LABEL))
                 .filter(node -> !node.hasLabel(PROPERTY_SHARD_LABEL))

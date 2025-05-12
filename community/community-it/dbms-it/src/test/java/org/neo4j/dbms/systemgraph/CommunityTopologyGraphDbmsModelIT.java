@@ -72,13 +72,13 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         var locDb = newDatabase(b -> b.withDatabase("loc"));
         createInternalReferenceForDatabase(tx, "locAlias", false, locDb);
         createExternalReferenceForDatabase(tx, "remAlias", "rem1", remoteNeo4j, remAliasId1);
-        var compDb1 = newDatabase(b -> b.withDatabase("compDb1").asVirtual());
+        var compDb1 = newDatabase(b -> b.withDatabase("compDb1").asComposite());
         var compDb1Name = compDb1.normalizedName();
         createInternalReferenceForDatabase(tx, compDb1.name(), true, compDb1);
         createInternalReferenceForDatabase(tx, compDb1.name(), "locAlias", false, locDb);
         createExternalReferenceForDatabase(tx, compDb1.name(), "remAlias", "rem2", remoteNeo4j, remAliasId2);
         createExternalReferenceForDatabase(tx, compDb1.name(), "remAlias2", "rem3", remoteNeo4j, remAliasId3);
-        var compDb2 = newDatabase(b -> b.withDatabase("compDb2").asVirtual());
+        var compDb2 = newDatabase(b -> b.withDatabase("compDb2").asComposite());
         var compDb2Name = compDb2.normalizedName();
         createInternalReferenceForDatabase(tx, compDb2.name(), true, compDb2);
         createInternalReferenceForDatabase(tx, compDb2.name(), "locAlias", false, locDb);
@@ -255,7 +255,7 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         var real2Db = newDatabase(b -> b.withDatabase("real2"));
         var real3Db = newDatabase(b -> b.withDatabase("real3"));
 
-        var comp00Db = newDatabase(b -> b.withDatabase("golf.hotel.india").asVirtual());
+        var comp00Db = newDatabase(b -> b.withDatabase("golf.hotel.india").asComposite());
         createInternalReferenceForDatabase(tx, comp00Db.name(), true, comp00Db);
         createInternalReferenceForDatabase(tx, comp00Db.name(), "juliet", false, real0Db);
 
@@ -263,7 +263,7 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
                 .map(DatabaseReference::namedDatabaseId)
                 .hasValue(real0Db);
 
-        var comp01Db = newDatabase(b -> b.withDatabase("golf.hotel").asVirtual());
+        var comp01Db = newDatabase(b -> b.withDatabase("golf.hotel").asComposite());
         createInternalReferenceForDatabase(tx, comp01Db.name(), true, comp01Db);
         createInternalReferenceForDatabase(tx, comp01Db.name(), "india.juliet", false, real1Db);
 
@@ -271,7 +271,7 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
                 .map(DatabaseReference::namedDatabaseId)
                 .hasValue(real1Db);
 
-        var comp02Db = newDatabase(b -> b.withDatabase("golf").asVirtual());
+        var comp02Db = newDatabase(b -> b.withDatabase("golf").asComposite());
         createInternalReferenceForDatabase(tx, comp02Db.name(), true, comp02Db);
         createInternalReferenceForDatabase(tx, comp02Db.name(), "hotel.india.juliet", false, real2Db);
 
@@ -296,7 +296,7 @@ public class CommunityTopologyGraphDbmsModelIT extends BaseTopologyGraphDbmsMode
         var barId = UUID.randomUUID();
         var barId2 = UUID.randomUUID();
         createExternalReferenceForDatabase(tx, "bar", "foo", remoteNeo4j, barId);
-        var compDb1 = newDatabase(b -> b.withDatabase("compDb1").asVirtual());
+        var compDb1 = newDatabase(b -> b.withDatabase("compDb1").asComposite());
         var compDb1Name = compDb1.normalizedName();
         createInternalReferenceForDatabase(tx, compDb1.name(), true, compDb1);
         createInternalReferenceForDatabase(tx, compDb1.name(), "locAlias", false, fooDb);

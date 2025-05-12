@@ -444,7 +444,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     private Stream<DatabaseReferenceImpl.Internal> getAllInternalDatabaseReferencesInNamespace(String namespace) {
         return getAllAliasNodesInNamespace(namespace)
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
-                        .filter(node -> !node.hasProperty(DATABASE_VIRTUAL_PROPERTY))
+                        .filter(node -> !node.hasLabel(COMPOSITE_DATABASE_LABEL))
                         .filter(node -> !node.hasLabel(SPD_LABEL))
                         .filter(node -> !node.hasLabel(GRAPH_SHARD_LABEL))
                         .filter(node -> !node.hasLabel(PROPERTY_SHARD_LABEL))
@@ -457,7 +457,7 @@ public class CommunityTopologyGraphDbmsModel implements TopologyGraphDbmsModel {
     private Stream<DatabaseReferenceImpl.Internal> getAllSpdDatabaseReferencesInNamespace(String namespace) {
         return getAllAliasNodesInNamespace(namespace)
                 .flatMap(alias -> CommunityTopologyGraphDbmsModelUtil.getTargetedDatabaseNode(alias)
-                        .filter(node -> !node.hasProperty(DATABASE_VIRTUAL_PROPERTY))
+                        .filter(node -> !node.hasLabel(COMPOSITE_DATABASE_LABEL))
                         .filter(node -> node.hasLabel(SPD_LABEL))
                         .flatMap(db -> createVirtualSPDReference(alias, db))
                         .stream());

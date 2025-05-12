@@ -163,7 +163,9 @@ public interface TopologyGraphDbmsModel {
     @Deprecated
     String DATABASE_DEFAULT_PROPERTY = "default";
 
+    @Deprecated
     String DATABASE_VIRTUAL_PROPERTY = "virtual";
+
     String DATABASE_UPDATE_ID_PROPERTY = "update_id";
     String DATABASE_STORE_RANDOM_ID_PROPERTY = "store_random_id";
 
