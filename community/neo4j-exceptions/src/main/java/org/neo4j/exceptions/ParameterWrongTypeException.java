@@ -34,11 +34,6 @@ import org.neo4j.kernel.api.exceptions.Status;
 
 public class ParameterWrongTypeException extends Neo4jException {
 
-    @Deprecated
-    public ParameterWrongTypeException(String message) {
-        super(message);
-    }
-
     private ParameterWrongTypeException(ErrorGqlStatusObject gqlStatusObject, String message) {
         super(gqlStatusObject, message);
     }
