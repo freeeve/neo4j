@@ -725,6 +725,11 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("If `true`, Neo4j will ignore any corrupt schema or tokens during recovery and startup")
+    public static final Setting<Boolean> ignore_corrupt_schema =
+            newBuilder("internal.dbms.ignore_corrupt_schema", BOOL, false).build();
+
+    @Internal
     @Description("Specifies if engine should run cypher query based on a snapshot of accessed data. "
             + "Query will be restarted in case if concurrent modification of data will be detected.")
     public static final Setting<Boolean> snapshot_query =

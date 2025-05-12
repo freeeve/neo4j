@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.common.Subject.ANONYMOUS;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.checkpoint_logical_log_keep_threshold;
 import static org.neo4j.configuration.GraphDatabaseInternalSettings.fail_on_corrupted_log_files;
+import static org.neo4j.configuration.GraphDatabaseInternalSettings.ignore_corrupt_schema;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.configuration.GraphDatabaseSettings.SYSTEM_DATABASE_NAME;
 import static org.neo4j.io.pagecache.PageCache.PAGE_SIZE;
@@ -1241,7 +1242,7 @@ class RecoveryCorruptedTransactionLogIT {
 
         // Then
         try (DatabaseManagementService dbms =
-                databaseFactory.setConfig(fail_on_corrupted_log_files, true).build()) {
+                databaseFactory.setConfig(ignore_corrupt_schema, false).build()) {
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             assertThat(database.isAvailable()).isFalse();
             assertThat(logProvider).containsMessages("Exception occurred while starting the database");
@@ -1251,10 +1252,10 @@ class RecoveryCorruptedTransactionLogIT {
 
         // And then
         try (DatabaseManagementService dbms =
-                databaseFactory.setConfig(fail_on_corrupted_log_files, false).build()) {
+                databaseFactory.setConfig(ignore_corrupt_schema, true).build()) {
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
             // Database won't start with corrupt schema, but at least the recovery/checkpoint should have finished.
-            assertThat(database.isAvailable()).isFalse();
+            assertThat(database.isAvailable()).isTrue();
         }
         assertThat(Recovery.isRecoveryRequired(fileSystem, databaseLayout, CONFIG, INSTANCE))
                 .isFalse();

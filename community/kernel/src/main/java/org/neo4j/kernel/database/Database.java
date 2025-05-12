@@ -508,7 +508,8 @@ public class Database extends AbstractDatabase {
         var logFiles = getLogFiles();
 
         life.add(storageEngine);
-        life.add(storageEngine.schemaAndTokensLifecycle(false));
+        life.add(storageEngine.schemaAndTokensLifecycle(
+                databaseConfig.get(GraphDatabaseInternalSettings.ignore_corrupt_schema)));
         life.add(logFiles);
         life.add(onStart(() -> {
             long lowestLogVersion = logFiles.getLogFile().getLowestLogVersion();
