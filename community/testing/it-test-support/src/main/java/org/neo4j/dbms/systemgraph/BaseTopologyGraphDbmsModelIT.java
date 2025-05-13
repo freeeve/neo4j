@@ -369,6 +369,16 @@ public abstract class BaseTopologyGraphDbmsModelIT {
             return this;
         }
 
+        public DatabaseNodeBuilder withGraphShard(NamedDatabaseId databaseId) {
+            node.addLabel(SPD_LABEL);
+            var otherDatabase = tx.findNode(
+                    DATABASE_LABEL,
+                    DATABASE_UUID_PROPERTY,
+                    databaseId.databaseId().uuid().toString());
+            node.createRelationshipTo(otherDatabase, HAS_GRAPH_SHARD);
+            return this;
+        }
+
         public DatabaseNodeBuilder withStoreIdParts(long creationTime, long random) {
             node.setProperty(
                     DATABASE_CREATED_AT_PROPERTY,
@@ -432,7 +442,7 @@ public abstract class BaseTopologyGraphDbmsModelIT {
             return this;
         }
 
-        public DatabaseNodeBuilder withShards(NamedDatabaseId... databaseIds) {
+        public DatabaseNodeBuilder withPropertyShards(NamedDatabaseId... databaseIds) {
             int index = 0;
             for (var databaseId : databaseIds) {
                 var otherDatabase = tx.findNode(
