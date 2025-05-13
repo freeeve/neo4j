@@ -75,9 +75,10 @@ object PlanDescriptionArgumentSerializer {
       case ByteCode(_, byteCode)                  => byteCode
       case RuntimeImpl(runtimeName)               => runtimeName
       case BatchSize(size)                        => Int.box(size)
-      case PipelineInfo(pipelineId, fused) =>
+      case PipelineInfo(pipelineId, fused, markAsSerial) =>
         val fusion = if (fused) "Fused in" else "In"
-        s"$fusion Pipeline $pipelineId"
+        val serialString = if (markAsSerial) " serial" else ""
+        s"$fusion$serialString Pipeline $pipelineId"
       case StringRepresentation(rep) => rep
       case IdArg(Id(id))             => Int.box(id)
 

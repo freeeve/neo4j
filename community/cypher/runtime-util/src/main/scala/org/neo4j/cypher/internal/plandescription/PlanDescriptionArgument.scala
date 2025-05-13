@@ -97,7 +97,7 @@ object Arguments {
 
   case class EstimatedRows(effectiveCardinality: Double, cardinality: Option[Double] = None) extends Argument
 
-  case class PipelineInfo(pipelineId: Int, fused: Boolean) extends Argument
+  case class PipelineInfo(pipelineId: Int, fused: Boolean, markAsSerial: Boolean) extends Argument
 
   // This is the version of cypher
   case class Version(value: String) extends Argument {

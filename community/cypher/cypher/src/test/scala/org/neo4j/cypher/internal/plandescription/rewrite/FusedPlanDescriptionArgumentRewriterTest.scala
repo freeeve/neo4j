@@ -35,9 +35,9 @@ import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
 
   test("single fused pipeline should aggregate time and page cache hits/misses") {
-    val argsLeaf1 = Seq(PageCacheHits(1), PageCacheMisses(10), Time(1000000), PipelineInfo(1, fused = true))
-    val argsLeaf2 = Seq(PageCacheHits(2), PageCacheMisses(11), Time(2000000), PipelineInfo(1, fused = true))
-    val argsPlan = Seq(PageCacheHits(3), PageCacheMisses(12), Time(3000000), PipelineInfo(1, fused = true))
+    val argsLeaf1 = Seq(PageCacheHits(1), PageCacheMisses(10), Time(1000000), pipelineInfo(1, fused = true))
+    val argsLeaf2 = Seq(PageCacheHits(2), PageCacheMisses(11), Time(2000000), pipelineInfo(1, fused = true))
+    val argsPlan = Seq(PageCacheHits(3), PageCacheMisses(12), Time(3000000), pipelineInfo(1, fused = true))
 
     val leaf1 = planDescription(Id(0), "LEAF1", Seq.empty, argsLeaf1, Set())
     val leaf2 = planDescription(Id(1), "LEAF2", Seq.empty, argsLeaf2, Set())
@@ -47,24 +47,24 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
 
     val expectedArguments = Map(
       Id(0) -> Seq(
-        PipelineInfo(1, fused = true),
+        pipelineInfo(1, fused = true),
         Time(1000000 + 2000000 + 3000000),
         PageCacheHits(1 + 2 + 3),
         PageCacheMisses(10 + 11 + 12)
       ),
-      Id(1) -> Seq(PipelineInfo(1, fused = true)),
-      Id(2) -> Seq(PipelineInfo(1, fused = true))
+      Id(1) -> Seq(pipelineInfo(1, fused = true)),
+      Id(2) -> Seq(pipelineInfo(1, fused = true))
     )
 
     planArgumentTest(result, expectedArguments)
   }
 
   test("multiple fused pipelines should aggregate time and page cache hits/misses individually") {
-    val allNodeScanArgs = Seq(PageCacheHits(1), PageCacheMisses(10), Time(1000000), PipelineInfo(0, fused = true))
-    val filterArgs = Seq(PageCacheHits(2), PageCacheMisses(11), Time(2000000), PipelineInfo(0, fused = true))
-    val skipArgs = Seq(PageCacheHits(3), PageCacheMisses(12), Time(3000000), PipelineInfo(1, fused = true))
-    val limitArgs = Seq(PageCacheHits(4), PageCacheMisses(13), Time(4000000), PipelineInfo(1, fused = true))
-    val produceResultArgs = Seq(Time(1000000), PipelineInfo(2, fused = false))
+    val allNodeScanArgs = Seq(PageCacheHits(1), PageCacheMisses(10), Time(1000000), pipelineInfo(0, fused = true))
+    val filterArgs = Seq(PageCacheHits(2), PageCacheMisses(11), Time(2000000), pipelineInfo(0, fused = true))
+    val skipArgs = Seq(PageCacheHits(3), PageCacheMisses(12), Time(3000000), pipelineInfo(1, fused = true))
+    val limitArgs = Seq(PageCacheHits(4), PageCacheMisses(13), Time(4000000), pipelineInfo(1, fused = true))
+    val produceResultArgs = Seq(Time(1000000), pipelineInfo(2, fused = false))
 
     val allNodeScan = planDescription(Id(0), "ALLNODESCAN", Seq.empty, allNodeScanArgs, Set())
     val filter = planDescription(Id(1), "FILTER", Seq(allNodeScan), filterArgs, Set())
@@ -76,29 +76,29 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
 
     val expectedArguments = Map(
       Id(0) -> Seq(
-        PipelineInfo(0, fused = true),
+        pipelineInfo(0, fused = true),
         Time(1000000 + 2000000),
         PageCacheHits(1 + 2),
         PageCacheMisses(10 + 11)
       ),
-      Id(1) -> Seq(PipelineInfo(0, fused = true)),
+      Id(1) -> Seq(pipelineInfo(0, fused = true)),
       Id(2) -> Seq(
-        PipelineInfo(1, fused = true),
+        pipelineInfo(1, fused = true),
         Time(3000000 + 4000000),
         PageCacheHits(3 + 4),
         PageCacheMisses(12 + 13)
       ),
-      Id(3) -> Seq(PipelineInfo(1, fused = true)),
-      Id(4) -> Seq(PipelineInfo(2, fused = false), Time(1000000))
+      Id(3) -> Seq(pipelineInfo(1, fused = true)),
+      Id(4) -> Seq(pipelineInfo(2, fused = false), Time(1000000))
     )
 
     planArgumentTest(result, expectedArguments)
   }
 
   test("not fused pipelines should not aggregate") {
-    val produceResultsArgs = Seq(PageCacheHits(5), PageCacheMisses(1), Time(200000), PipelineInfo(1, fused = false))
+    val produceResultsArgs = Seq(PageCacheHits(5), PageCacheMisses(1), Time(200000), pipelineInfo(1, fused = false))
     val projectArgs = Seq()
-    val allNodesScanArgs = Seq(PageCacheHits(1), PageCacheMisses(2), Time(1000000), PipelineInfo(1, fused = true))
+    val allNodesScanArgs = Seq(PageCacheHits(1), PageCacheMisses(2), Time(1000000), pipelineInfo(1, fused = true))
 
     val allNodesScan = planDescription(Id(0), "ALLNODESSCAN", Seq.empty, allNodesScanArgs, Set.empty)
     val project = planDescription(Id(1), "PROJECT", Seq(allNodesScan), projectArgs, Set.empty)
@@ -117,9 +117,9 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
       PageCacheHits(5),
       PageCacheMisses(10),
       Time(200000),
-      PipelineInfo(1, fused = true)
+      pipelineInfo(1, fused = true)
     )
-    val filterArgs = Seq(Rows(5), DbHits(1), EstimatedRows(4), PipelineInfo(1, fused = true))
+    val filterArgs = Seq(Rows(5), DbHits(1), EstimatedRows(4), pipelineInfo(1, fused = true))
     val allNodeScanArgs = Seq(
       Rows(5),
       DbHits(1),
@@ -127,11 +127,11 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
       PageCacheHits(5),
       PageCacheMisses(10),
       Time(200000),
-      PipelineInfo(0, fused = true)
+      pipelineInfo(0, fused = true)
     )
-    val projectArgs = Seq(Rows(5), DbHits(1), EstimatedRows(4), PipelineInfo(0, fused = true))
+    val projectArgs = Seq(Rows(5), DbHits(1), EstimatedRows(4), pipelineInfo(0, fused = true))
     val applyArgs = Seq(Rows(5), DbHits(1), EstimatedRows(4))
-    val aggregationArgs = Seq(Rows(5), DbHits(1), EstimatedRows(4), Time(100000), PipelineInfo(1, fused = true))
+    val aggregationArgs = Seq(Rows(5), DbHits(1), EstimatedRows(4), Time(100000), pipelineInfo(1, fused = true))
     val produceResultArgs = Seq(
       Rows(5),
       DbHits(1),
@@ -139,7 +139,7 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
       PageCacheHits(5),
       PageCacheMisses(10),
       Time(200000),
-      PipelineInfo(2, fused = false)
+      pipelineInfo(2, fused = false)
     )
 
     val indexSeek = planDescription(Id(0), "INDEXSEEK", Seq.empty, indexSeekArgs, Set())
@@ -160,13 +160,13 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
         PageCacheHits(5),
         PageCacheMisses(10),
         Time(300000),
-        PipelineInfo(1, fused = true)
+        pipelineInfo(1, fused = true)
       ),
       Id(1) -> filterArgs,
       Id(2) -> allNodeScanArgs,
       Id(3) -> projectArgs,
       Id(4) -> applyArgs,
-      Id(5) -> Seq(Rows(5), DbHits(1), EstimatedRows(4), PipelineInfo(1, fused = true)),
+      Id(5) -> Seq(Rows(5), DbHits(1), EstimatedRows(4), pipelineInfo(1, fused = true)),
       Id(6) -> produceResultArgs
     )
 
@@ -178,53 +178,53 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
       Id(0),
       "NodeUniqueIndexSeek",
       Seq.empty,
-      Seq(PipelineInfo(0, fused = false), PageCacheHits(2), PageCacheMisses(0), Time(8850000))
+      Seq(pipelineInfo(0, fused = false), PageCacheHits(2), PageCacheMisses(0), Time(8850000))
     )
 
     val nodeUniqueIndexSeek2 = planDescription(
       Id(1),
       "NodeUniqueIndexSeek",
       Seq.empty,
-      Seq(PipelineInfo(1, fused = true), PageCacheHits(1537), PageCacheMisses(0), Time(21756000))
+      Seq(pipelineInfo(1, fused = true), PageCacheHits(1537), PageCacheMisses(0), Time(21756000))
     )
     val varLengthExpand = planDescription(
       Id(2),
       "VarLengthExpand(All)",
       Seq(nodeUniqueIndexSeek2),
-      Seq(PipelineInfo(1, fused = true))
+      Seq(pipelineInfo(1, fused = true))
     )
-    val filter1 = planDescription(Id(3), "Filter", Seq(varLengthExpand), Seq(PipelineInfo(1, fused = true)))
+    val filter1 = planDescription(Id(3), "Filter", Seq(varLengthExpand), Seq(pipelineInfo(1, fused = true)))
 
     val cartesianProduct = planDescription(
       Id(4),
       "CartesianProduct",
       Seq(nodeUniqueIndexSeek1, filter1),
-      Seq(PipelineInfo(2, fused = false), Time(5483000))
+      Seq(pipelineInfo(2, fused = false), Time(5483000))
     )
 
     val distinct = planDescription(
       Id(5),
       "Distinct",
       Seq(cartesianProduct),
-      Seq(PipelineInfo(2, fused = false), PageCacheHits(0), PageCacheMisses(0), Time(15565000))
+      Seq(pipelineInfo(2, fused = false), PageCacheHits(0), PageCacheMisses(0), Time(15565000))
     )
 
     val argument1 = planDescription(
       Id(6),
       "Argument",
       Seq.empty,
-      Seq(PipelineInfo(3, fused = true), PageCacheHits(10957), PageCacheMisses(0), Time(65466000))
+      Seq(pipelineInfo(3, fused = true), PageCacheHits(10957), PageCacheMisses(0), Time(65466000))
     )
-    val expandAll1 = planDescription(Id(7), "Expand(All)", Seq(argument1), Seq(PipelineInfo(3, fused = true)))
+    val expandAll1 = planDescription(Id(7), "Expand(All)", Seq(argument1), Seq(pipelineInfo(3, fused = true)))
 
     val argument2 = planDescription(
       Id(8),
       "Argument",
       Seq.empty,
-      Seq(PipelineInfo(4, fused = true), PageCacheHits(1211031), PageCacheMisses(0), Time(577688000))
+      Seq(pipelineInfo(4, fused = true), PageCacheHits(1211031), PageCacheMisses(0), Time(577688000))
     )
-    val expandInto = planDescription(Id(9), "Expand(Into)", Seq(argument2), Seq(PipelineInfo(4, fused = true)))
-    val limit = planDescription(Id(10), "Limit", Seq(expandInto), Seq(PipelineInfo(4, fused = true)))
+    val expandInto = planDescription(Id(9), "Expand(Into)", Seq(argument2), Seq(pipelineInfo(4, fused = true)))
+    val limit = planDescription(Id(10), "Limit", Seq(expandInto), Seq(pipelineInfo(4, fused = true)))
 
     val apply1 =
       planDescription(Id(11), "Apply", Seq(expandAll1, limit), Seq(PageCacheHits(0), PageCacheMisses(0)))
@@ -232,27 +232,27 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
     val apply2 =
       planDescription(Id(12), "Apply", Seq(distinct, apply1), Seq(PageCacheHits(0), PageCacheMisses(0)))
 
-    val expandAll2 = planDescription(Id(13), "Expand(All)", Seq(apply2), Seq(PipelineInfo(4, fused = true)))
-    val filter2 = planDescription(Id(14), "Filter", Seq(expandAll2), Seq(PipelineInfo(4, fused = true)))
+    val expandAll2 = planDescription(Id(13), "Expand(All)", Seq(apply2), Seq(pipelineInfo(4, fused = true)))
+    val filter2 = planDescription(Id(14), "Filter", Seq(expandAll2), Seq(pipelineInfo(4, fused = true)))
     val eagerAggregation =
-      planDescription(Id(15), "EagerAggregation", Seq(filter2), Seq(PipelineInfo(4, fused = true)))
+      planDescription(Id(15), "EagerAggregation", Seq(filter2), Seq(pipelineInfo(4, fused = true)))
     val projection = planDescription(
       Id(16),
       "Projection",
       Seq(eagerAggregation),
-      Seq(PipelineInfo(5, fused = false), PageCacheHits(29), PageCacheMisses(0), Time(1492000))
+      Seq(pipelineInfo(5, fused = false), PageCacheHits(29), PageCacheMisses(0), Time(1492000))
     )
     val top = planDescription(
       Id(17),
       "Top",
       Seq(projection),
-      Seq(PipelineInfo(6, fused = false), PageCacheHits(0), PageCacheMisses(0), Time(1726000))
+      Seq(pipelineInfo(6, fused = false), PageCacheHits(0), PageCacheMisses(0), Time(1726000))
     )
     val produceResult = planDescription(
       Id(18),
       "ProduceResults",
       Seq(top),
-      Seq(PipelineInfo(6, fused = false), PageCacheHits(0), PageCacheMisses(0), Time(1143000))
+      Seq(pipelineInfo(6, fused = false), PageCacheHits(0), PageCacheMisses(0), Time(1143000))
     )
 
     val result = new FusedPlanDescriptionArgumentRewriter().rewrite(produceResult)
@@ -291,4 +291,7 @@ class FusedPlanDescriptionArgumentRewriterTest extends CypherFunSuite {
     }
     plan.children.foreach(childPlan => planArgumentTest(childPlan, expectedArgumentsByPlanId))
   }
+
+  private def pipelineInfo(id: Int, fused: Boolean, markAsSerial: Boolean = false): PipelineInfo =
+    PipelineInfo(id, fused, markAsSerial)
 }
