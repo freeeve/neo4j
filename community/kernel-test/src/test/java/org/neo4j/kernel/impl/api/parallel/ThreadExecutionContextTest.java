@@ -68,7 +68,7 @@ class ThreadExecutionContextTest {
         var resourceFactory = mock(KernelTransactionResourceFactory.class);
         doReturn(mock(DefaultPooledCursors.class))
                 .when(resourceFactory)
-                .createCursors(any(), any(), any(), any(), anyBoolean());
+                .createCursors(any(), any(), any(), any(), anyBoolean(), anyBoolean());
 
         try (var executionContext = new ThreadExecutionContext(
                 engine,

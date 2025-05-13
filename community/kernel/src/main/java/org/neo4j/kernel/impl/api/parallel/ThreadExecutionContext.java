@@ -136,7 +136,7 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
         this.elementIdMapper = elementIdMapper;
         this.ktx = new ExecutionContextProcedureKernelTransaction(ktx, this);
         this.cursors = resourceFactory.createCursors(
-                storageReader, storageCursors, config, storageEngine.indexingBehaviour(), multiVersioned);
+                storageReader, storageCursors, config, storageEngine.indexingBehaviour(), multiVersioned, true);
         this.queryContext = new ThreadExecutionQueryContext(this::dataRead, cursors, context, contextTracker, monitor);
         this.entityLocks = new EntityLocks(
                 storageEngine.createStorageLocks(lockClient), singleton(lockTracer), lockClient, this.ktx);
@@ -158,7 +158,8 @@ public class ThreadExecutionContext implements ExecutionContext, AutoCloseable {
                 this.ktx,
                 indexingService,
                 this.ktx,
-                accessModeProvider);
+                accessModeProvider,
+                true);
         this.kernelRead = resourceFactory.createKernelRead(
                 storageReader,
                 this.tokenRead(),

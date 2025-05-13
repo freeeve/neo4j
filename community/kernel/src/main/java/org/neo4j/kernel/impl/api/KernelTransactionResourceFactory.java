@@ -82,14 +82,16 @@ public interface KernelTransactionResourceFactory {
             TxStateHolder txStateHolder,
             IndexingService indexingService,
             AssertOpen assertOpen,
-            AccessModeProvider accessModeProvider);
+            AccessModeProvider accessModeProvider,
+            boolean parallel);
 
     DefaultPooledCursors createCursors(
             StorageReader storageReader,
             StoreCursors transactionalCursors,
             Config config,
             StorageEngineIndexingBehaviour indexingBehaviour,
-            boolean multiVersioned);
+            boolean multiVersioned,
+            boolean parallel);
 
     KernelProcedures.ForTransactionScope createProcedures(
             KernelTransactionImplementation ktx, Dependencies databaseDependencies, AssertOpen assertOpen);

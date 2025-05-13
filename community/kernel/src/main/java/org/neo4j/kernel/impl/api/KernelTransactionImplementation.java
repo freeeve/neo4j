@@ -405,7 +405,7 @@ public class KernelTransactionImplementation
         StorageLocks storageLocks = storageEngine.createStorageLocks(lockClient);
         var kernelToken = new KernelToken(storageReader, commandCreationContext, this, tokenHolders, logProvider);
         DefaultPooledCursors cursorFactory = createCursors(
-                storageReader, transactionalCursors, config, storageEngine.indexingBehaviour(), multiVersioned);
+                storageReader, transactionalCursors, config, storageEngine.indexingBehaviour(), multiVersioned, false);
         this.securityAuthorizationHandler = new SecurityAuthorizationHandler(securityLog);
         TxStateHolder txStateHolder = this;
         this.queryContext = new TransactionQueryContext(
@@ -427,7 +427,8 @@ public class KernelTransactionImplementation
                 txStateHolder,
                 indexingService,
                 assertOpen,
-                accessModeProvider);
+                accessModeProvider,
+                false);
         this.kernelRead = createKernelRead(
                 storageReader,
                 kernelToken,
@@ -506,7 +507,8 @@ public class KernelTransactionImplementation
             StoreCursors transactionalCursors,
             Config config,
             StorageEngineIndexingBehaviour indexingBehaviour,
-            boolean multiVersioned) {
+            boolean multiVersioned,
+            boolean parallel) {
         return new DefaultPooledCursors(storageReader, transactionalCursors, config, indexingBehaviour, multiVersioned);
     }
 
@@ -519,7 +521,8 @@ public class KernelTransactionImplementation
             TxStateHolder txStateHolder,
             IndexingService indexingService,
             AssertOpen assertOpen,
-            AccessModeProvider accessModeProvider) {
+            AccessModeProvider accessModeProvider,
+            boolean parallel) {
         return new KernelSchemaRead(
                 schemaState,
                 indexStatisticsStore,
