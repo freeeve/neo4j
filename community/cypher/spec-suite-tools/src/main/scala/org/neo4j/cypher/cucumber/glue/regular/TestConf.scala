@@ -24,6 +24,7 @@ import org.neo4j.configuration.GraphDatabaseSettings
 import org.neo4j.cypher.cucumber.CypherCucumber.Tag
 import org.neo4j.cypher.cucumber.glue.regular.TestConf.Settings
 
+import java.util.Locale
 import java.util.concurrent.ThreadLocalRandom
 
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -36,7 +37,7 @@ import scala.jdk.CollectionConverters.MapHasAsJava
  * @param useEnterprise true if enterprise edition should be used
  * @param useSpd true if spd should be used
  * @param preparserOptions pre-parser options
- * @param tagContext base for fails: and ignore: tags
+ * @param tagContext base for '@fails:...' and '@ignore:...' tags. Examples: 'bolt', 'parallel-runtime', 'community', 'db-format-multiversion'.
  */
 case class TestConf(
   neo4jConf: Settings,
@@ -64,7 +65,7 @@ object TestConf {
     useEnterprise: Boolean = true,
     useSpd: Boolean = false,
     preparserOptions: Map[String, String] = Map.empty,
-    tagContext: Set[String] = Set.empty
+    additionalTagContext: Set[String] = Set.empty
   ): TestConf = {
     val fullNeo4jConf = Seq(
       Some("server.memory.query_cache.per_db_cache_num_entries" -> "64"),
@@ -72,15 +73,22 @@ object TestConf {
       Option.when(useBolt)("server.bolt.enabled" -> "true")
     ).flatten.toMap ++ neo4jConf
 
-    // Allow for example @fails:db-format-multiversion and @ignore:db-format-multiversion
-    // Note, NEO4J_OVERRIDE_STORE_FORMAT overrides this value in some testing (through FormatOverrideMigrator)
-    val dbFormat = Config.newBuilder()
-      .setRaw(fullNeo4jConf.view.filterKeys(_ == GraphDatabaseSettings.db_format.name()).toMap.asJava)
+    // Make these tests work with FormatOverrideMigrator.
+    val configWithOverrides = Config.newBuilder()
+      .setRaw((fullNeo4jConf + ("server.config.strict_validation.enabled" -> "false")).asJava)
       .build()
-      .get(GraphDatabaseSettings.db_format)
-    val dbFormatTagContext = s"db-format-$dbFormat"
+    val cypherVersionTag = configWithOverrides.get(GraphDatabaseSettings.default_language).name()
+      .toLowerCase(Locale.ROOT)
+      .replace("_", "-")
+    val tagContext = additionalTagContext +
+      (if (useEnterprise) "enterprise" else "community") +
+      cypherVersionTag ++
+      Option.when(useSpd)("spd") ++
+      Option.when(useBolt)("bolt") ++
+      preparserOptions.get("runtime").map(runtime => s"$runtime-runtime") +
+      s"db-format-${configWithOverrides.get(GraphDatabaseSettings.db_format)}"
 
-    new TestConf(fullNeo4jConf, useBolt, useEnterprise, useSpd, preparserOptions, tagContext + dbFormatTagContext)
+    new TestConf(fullNeo4jConf, useBolt, useEnterprise, useSpd, preparserOptions, tagContext)
   }
 
   private def withCypher5(base: TestConf): TestConf = base.copy(
@@ -115,8 +123,7 @@ object TestConf {
 
     private def baseConf: TestConf = TestConf(
       neo4jConf = Map("server.bolt.enabled" -> "true"),
-      useBolt = true,
-      tagContext = Set("bolt")
+      useBolt = true
     )
 
     object Cypher25 extends InjectedTestConf {
@@ -135,8 +142,7 @@ object TestConf {
   object Pipelined {
 
     private def baseConf: TestConf = TestConf(
-      preparserOptions = Map("runtime" -> "pipelined"),
-      tagContext = Set("pipelined-runtime")
+      preparserOptions = Map("runtime" -> "pipelined")
     )
 
     object Cypher25 extends InjectedTestConf {
@@ -155,8 +161,7 @@ object TestConf {
   object PipelinedNonFused {
 
     private def baseConf: TestConf = TestConf(
-      preparserOptions = Map("runtime" -> "pipelined", "operatorEngine" -> "interpreted"),
-      tagContext = Set("pipelined-runtime")
+      preparserOptions = Map("runtime" -> "pipelined", "operatorEngine" -> "interpreted")
     )
 
     object Cypher25 extends InjectedTestConf {
@@ -181,8 +186,7 @@ object TestConf {
           "internal.cypher.pipelined.batch_size_small" -> morselSize.toString,
           "internal.cypher.pipelined.batch_size_big" -> morselSize.toString
         ),
-        preparserOptions = Map("runtime" -> "pipelined", "operatorEngine" -> "interpreted"),
-        tagContext = Set("pipelined-runtime")
+        preparserOptions = Map("runtime" -> "pipelined", "operatorEngine" -> "interpreted")
       )
     }
 
@@ -210,7 +214,7 @@ object TestConf {
         "runtime" -> "pipelined",
         "interpretedPipesFallback" -> "all"
       ),
-      tagContext = Set("pipelined-runtime", "pipelined-fallback")
+      additionalTagContext = Set("pipelined-fallback")
     )
 
     object Cypher25 extends InjectedTestConf {
@@ -298,8 +302,7 @@ object TestConf {
   object Parallel {
 
     private def baseConf: TestConf = TestConf(
-      preparserOptions = Map("runtime" -> "parallel"),
-      tagContext = Set("parallel-runtime")
+      preparserOptions = Map("runtime" -> "parallel")
     )
 
     object Cypher25 extends InjectedTestConf {
@@ -318,8 +321,7 @@ object TestConf {
   object ParallelNonFused {
 
     private def baseConf: TestConf = TestConf(
-      preparserOptions = Map("runtime" -> "parallel", "operatorEngine" -> "interpreted"),
-      tagContext = Set("parallel-runtime")
+      preparserOptions = Map("runtime" -> "parallel", "operatorEngine" -> "interpreted")
     )
 
     object Cypher25 extends InjectedTestConf {
@@ -340,8 +342,7 @@ object TestConf {
     private def baseConf: TestConf = TestConf(
       neo4jConf = Map("server.bolt.enabled" -> "true"),
       useBolt = true,
-      preparserOptions = Map("runtime" -> "parallel"),
-      tagContext = Set("parallel-runtime", "bolt")
+      preparserOptions = Map("runtime" -> "parallel")
     )
 
     object Cypher25 extends InjectedTestConf {
@@ -381,38 +382,61 @@ object TestConf {
   object SpdBolt extends InjectedTestConf {
     final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdBolt$ObjectFactory"
 
-    final override val conf: TestConf = TestConf(
+    final override val conf: TestConf = TestConf.withCypher25(TestConf(
       neo4jConf = spdConf,
       useBolt = true,
-      useSpd = true,
-      tagContext = Set("spd", "cypher-25", "bolt")
-    )
+      useSpd = true
+    ))
     final class ObjectFactory extends SingletonInjector(injector)
   }
 
   object SpdParallel extends InjectedTestConf {
     final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdParallel$ObjectFactory"
 
-    final override val conf: TestConf = TestConf(
+    final override val conf: TestConf = TestConf.withCypher25(TestConf(
       neo4jConf = spdConf,
       preparserOptions = Map("runtime" -> "parallel"),
       useSpd = true,
-      useBolt = true,
-      tagContext = Set("spd", "cypher-25", "parallel-runtime", "bolt")
-    )
+      useBolt = true
+    ))
     final class ObjectFactory extends SingletonInjector(injector)
+  }
+
+  object CommunityDefaultBolt {
+
+    private def baseConf: TestConf = TestConf(
+      // Avoid multiversion store format override (NEO4J_OVERRIDE_STORE_FORMAT) in community
+      neo4jConf = Map("db.format" -> "aligned"),
+      useEnterprise = false,
+      useBolt = true
+    )
+
+    object Cypher25 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$CommunityDefaultBolt$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$CommunityDefaultBolt$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
   }
 
   object Legacy extends InjectedTestConf {
     final val FactoryName = "org.neo4j.cypher.cucumber.glue.regular.TestConf$Legacy$ObjectFactory"
 
-    final override val conf: TestConf = TestConf(
+    final override val conf: TestConf = TestConf.withCypher5(TestConf(
       // Avoid multiversion store format override (NEO4J_OVERRIDE_STORE_FORMAT) in community
       neo4jConf = Map("db.format" -> "aligned"),
       useEnterprise = false,
-      preparserOptions = Map("runtime" -> "legacy"),
-      tagContext = Set("cypher-5", "legacy-runtime")
-    )
+      preparserOptions = Map("runtime" -> "legacy")
+    ))
     final class ObjectFactory extends SingletonInjector(injector)
   }
 

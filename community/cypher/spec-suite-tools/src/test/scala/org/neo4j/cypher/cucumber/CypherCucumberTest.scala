@@ -296,6 +296,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       TestConf.SlottedBolt.Cypher25.FactoryName -> TestConf.SlottedBolt.Cypher25.conf,
       TestConf.SpdBolt.FactoryName -> TestConf.SpdBolt.conf,
       TestConf.SpdParallel.FactoryName -> TestConf.SpdParallel.conf,
+      TestConf.CommunityDefaultBolt.Cypher25.FactoryName -> TestConf.CommunityDefaultBolt.Cypher25.conf,
+      TestConf.CommunityDefaultBolt.Cypher5.FactoryName -> TestConf.CommunityDefaultBolt.Cypher5.conf,
       TestConf.Legacy.FactoryName -> TestConf.Legacy.conf
     )
 
@@ -330,6 +332,8 @@ class CypherCucumberTest extends CypherFunSuite with LoneElement {
       TestConf.SlottedBolt.Cypher25.FactoryName -> "CYPHER runtime=slotted",
       TestConf.SpdBolt.FactoryName -> "",
       TestConf.SpdParallel.FactoryName -> "CYPHER runtime=parallel",
+      TestConf.CommunityDefaultBolt.Cypher25.FactoryName -> "",
+      TestConf.CommunityDefaultBolt.Cypher5.FactoryName -> "",
       TestConf.Legacy.FactoryName -> "CYPHER runtime=legacy"
     )
     expectedPrefix.foreach { case (className, prefix) =>
@@ -491,7 +495,6 @@ object CypherCucumberTest {
         "dbms.security.procedures.unrestricted" -> "make.sure.im.there.*"
       ),
       useEnterprise = false,
-      tagContext = Set("cypher-5"),
       preparserOptions = Map("runtime" -> "legacy")
     )
     final class ObjectFactory extends SingletonInjector(injector)
