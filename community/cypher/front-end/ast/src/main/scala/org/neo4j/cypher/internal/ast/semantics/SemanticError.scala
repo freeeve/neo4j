@@ -1818,7 +1818,8 @@ object SemanticError {
     name: String,
     signature: String,
     argumentMsg: String,
-    position: InputPosition
+    position: InputPosition,
+    legacyMsg: Option[String] = None
   ): SemanticError = {
     val gql = GqlHelper.getGql42001_42I13(
       expectedNumArgs,
@@ -1829,12 +1830,17 @@ object SemanticError {
       position.line,
       position.column
     )
+    val msg = legacyMsg match {
+      case Some(m) => m
+      case None =>
+        s"""Function call does not provide the required number of arguments: expected $expectedNumArgs got $actualNumArgs.
+           |
+           |Function $name has signature: $signature
+           |meaning that it expects $expectedNumArgs $argumentMsg""".stripMargin
+    }
     SemanticError(
       gql,
-      s"""Function call does not provide the required number of arguments: expected $expectedNumArgs got $actualNumArgs.
-         |
-         |Function $name has signature: $signature
-         |meaning that it expects $expectedNumArgs $argumentMsg""".stripMargin,
+      msg,
       position
     )
   }

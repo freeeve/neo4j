@@ -273,7 +273,13 @@ object SemanticFunctionCheck extends SemanticAnalysisTooling {
           if invocation.functionName.namespace.parts.isEmpty && invocation.functionName.name.toLowerCase(
             Locale.ROOT
           ) == "distance" =>
-          SemanticError(s"'distance' has been replaced by 'point.distance'", invocation.position)
+          val pos = invocation.position
+          val gql = GqlHelper.getGql42001_42N48("distance", pos.offset, pos.line, pos.column)
+          SemanticError(
+            gql,
+            s"'distance' has been replaced by 'point.distance'",
+            pos
+          )
 
         case Distance =>
           checkArgs(invocation, 2, Distance.signatures) ifOkChain

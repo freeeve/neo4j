@@ -98,15 +98,6 @@ public class SyntaxException extends Neo4jException {
                         start));
     }
 
-    public static SyntaxException wrongNumberOfArguments(
-            int expectedCount, int actualCount, String name, String signature) {
-        var msg = String.format(
-                "The procedure or function call does not provide the required number of arguments; expected %s but got %s. "
-                        + "The procedure or function `%s` has the signature: `%s`.",
-                expectedCount, actualCount, name, signature);
-        return wrongNumberOfArguments(expectedCount, actualCount, name, signature, msg);
-    }
-
     public static SyntaxException invalidInput(
             String input, List<String> expected, String legacyMessage, Integer offset) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)

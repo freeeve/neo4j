@@ -137,7 +137,6 @@ import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CTString
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.cypher.internal.util.symbols.TypeSpec
-import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
 import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
@@ -561,15 +560,20 @@ final case class UseGraph(graphReference: GraphReference)(val position: InputPos
             if (graphFunction.functionInvocation.arguments.size == 1) {
               checkSingleTargetGraph(graphFunction)
             } else {
+              val signature = GraphByElementId.signatures.head.getSignatureAsString
+              val givenArgs = graphFunction.functionInvocation.arguments.size
+              val name = graphFunction.functionInvocation.name
               SemanticCheck.error(
-                SemanticError(
-                  SyntaxException.wrongNumberOfArguments(
-                    1,
-                    graphFunction.functionInvocation.arguments.size,
-                    graphFunction.functionInvocation.name,
-                    GraphByElementId.signatures.head.getSignatureAsString
-                  ).getMessage,
-                  position
+                SemanticError.functionCallWrongNumberOfArguments(
+                  1,
+                  givenArgs,
+                  name,
+                  signature,
+                  s"argument of type ${GraphByElementId.signatures.head.argumentTypes.head.normalizedCypherTypeString()}",
+                  position,
+                  Some(
+                    s"The procedure or function call does not provide the required number of arguments; expected 1 but got $givenArgs. The procedure or function `$name` has the signature: `$signature`."
+                  )
                 )
               )
             }
