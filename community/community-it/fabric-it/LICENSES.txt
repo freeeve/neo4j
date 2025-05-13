@@ -6,7 +6,7 @@ libraries. For an overview of the licenses see the NOTICE.txt file.
 Apache Software License, Version 2.0
   Neo4j Java Driver
   Netty/Buffer
-  Netty/Codec
+  Netty/Codec/Base
   Netty/Common
   Netty/Handler
   Netty/Resolver

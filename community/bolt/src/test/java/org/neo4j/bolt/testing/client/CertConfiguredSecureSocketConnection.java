@@ -65,6 +65,7 @@ public final class CertConfiguredSecureSocketConnection extends SecureSocketConn
             // TODO: This does not support retrieval of seen certificates at the moment
             return SslContextBuilder.forClient()
                     .keyManager(kmf)
+                    .endpointIdentificationAlgorithm(null)
                     .trustManager(tmf)
                     .build();
         } catch (KeyStoreException

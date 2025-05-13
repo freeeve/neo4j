@@ -19,8 +19,9 @@
  */
 package org.neo4j.bolt.protocol.common.connector.transport;
 
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.epoll.Epoll;
-import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.epoll.EpollServerDomainSocketChannel;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import java.util.concurrent.ThreadFactory;
@@ -48,8 +49,8 @@ public final class EpollConnectorTransport implements ConnectorTransport {
     }
 
     @Override
-    public EpollEventLoopGroup createEventLoopGroup(int threadCount, ThreadFactory threadFactory) {
-        return new EpollEventLoopGroup(threadCount, threadFactory);
+    public MultiThreadIoEventLoopGroup createEventLoopGroup(int threadCount, ThreadFactory threadFactory) {
+        return new MultiThreadIoEventLoopGroup(threadCount, threadFactory, EpollIoHandler.newFactory());
     }
 
     @Override

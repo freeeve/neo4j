@@ -20,9 +20,12 @@
 package org.neo4j.server.queryapi.driver;
 
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.local.LocalAddress;
+import io.netty.channel.local.LocalIoHandler;
 import java.net.URI;
 import java.time.Clock;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.neo4j.bolt.connection.BoltAgent;
@@ -34,6 +37,8 @@ import org.neo4j.bolt.connection.RoutingContext;
 import org.neo4j.bolt.connection.netty.NettyBoltConnectionProvider;
 import org.neo4j.bolt.connection.pooled.PooledBoltConnectionProvider;
 import org.neo4j.bolt.connection.routed.Rediscovery;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
+import org.neo4j.configuration.connectors.BoltConnectorInternalSettings;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Config;
 import org.neo4j.driver.Driver;
@@ -49,15 +54,20 @@ import org.neo4j.logging.InternalLogProvider;
  * A custom {@link DriverFactory} that uses netty's {@link io.netty.channel.local.LocalChannel} to connect to the
  * bolt server.
  */
-public final class LocalChannelDriverFactory extends DriverFactory {
+public final class LocalChannelDriverFactory extends DriverFactory implements AutoCloseable {
 
     public static final URI IGNORED_HTTP_DRIVER_URI = URI.create("bolt://http-driver.com:0");
     private final LocalAddress localAddress;
     private final InternalLogProvider internalLogProvider;
+    private final org.neo4j.configuration.Config config;
+    private final MultiThreadIoEventLoopGroup localGroup;
 
-    public LocalChannelDriverFactory(LocalAddress localAddress, InternalLogProvider internalLogProvider) {
+    public LocalChannelDriverFactory(
+            LocalAddress localAddress, InternalLogProvider internalLogProvider, org.neo4j.configuration.Config config) {
         this.localAddress = localAddress;
         this.internalLogProvider = internalLogProvider;
+        this.config = config;
+        this.localGroup = new MultiThreadIoEventLoopGroup(LocalIoHandler.newFactory());
     }
 
     @Override
@@ -73,7 +83,10 @@ public final class LocalChannelDriverFactory extends DriverFactory {
                 Config.builder()
                         .withLogging(new DriverToInternalLogProvider(internalLogProvider))
                         .withUserAgent("neo4j-query-api/v2")
-                        .build());
+                        .build(),
+                null,
+                localGroup,
+                null);
     }
 
     @Override
@@ -148,5 +161,29 @@ public final class LocalChannelDriverFactory extends DriverFactory {
                 loggingProvider,
                 BoltValueFactory.getInstance(),
                 null);
+    }
+
+    @Override
+    public void close() throws Exception {
+        var workerTerminationFuture = localGroup.shutdownGracefully(
+                config.get(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period),
+                config.get(GraphDatabaseInternalSettings.netty_server_shutdown_timeout)
+                        .toSeconds(),
+                TimeUnit.SECONDS);
+
+        var workerTerminationCompleted = workerTerminationFuture.awaitUninterruptibly(
+                config.get(BoltConnectorInternalSettings.thread_pool_shutdown_wait_time)
+                        .toSeconds(),
+                TimeUnit.SECONDS);
+        if (!workerTerminationCompleted) {
+            var log = internalLogProvider.getLog(LocalChannelDriverFactory.class);
+            log.warn(
+                    "Termination of local driver factory worker event loop group has exceeded maximum permitted duration - Remaining jobs will be forcefully terminated");
+        } else if (!workerTerminationFuture.isSuccess()) {
+            var log = internalLogProvider.getLog(LocalChannelDriverFactory.class);
+            log.warn(
+                    "Termination of local driver factory worker event loop group has failed",
+                    workerTerminationFuture.cause());
+        }
     }
 }

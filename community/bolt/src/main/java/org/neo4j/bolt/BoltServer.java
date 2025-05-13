@@ -26,8 +26,11 @@ import static org.neo4j.function.Suppliers.lazySingleton;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.local.LocalAddress;
+import io.netty.channel.local.LocalIoHandler;
 import io.netty.handler.ssl.SslProvider;
+import io.netty.util.concurrent.Future;
 import io.netty.util.internal.PlatformDependent;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -146,6 +149,8 @@ public class BoltServer extends LifecycleAdapter {
     private BoltMemoryPool memoryPool;
     private EventLoopGroup bossEventLoopGroup;
     private EventLoopGroup workerEventLoopGroup;
+    private EventLoopGroup localBossEventLoopGroup;
+    private EventLoopGroup localWorkerEventLoopGroup;
     private ExecutorService executorService;
     private BoltConnectionMetricsMonitor connectionMetricsMonitor;
     private BoltDriverMetricsMonitor driverMetricsMonitor;
@@ -352,6 +357,10 @@ public class BoltServer extends LifecycleAdapter {
         }
 
         if (config.get(BoltConnectorInternalSettings.enable_local_connector)) {
+            localBossEventLoopGroup = new MultiThreadIoEventLoopGroup(
+                    jobScheduler.threadFactory(Group.BOLT_NETWORK_IO), LocalIoHandler.newFactory());
+            localWorkerEventLoopGroup = new MultiThreadIoEventLoopGroup(
+                    jobScheduler.threadFactory(Group.BOLT_NETWORK_IO), LocalIoHandler.newFactory());
             registerConnector(createLocalConnector(
                     connectionFactory,
                     transport,
@@ -392,22 +401,7 @@ public class BoltServer extends LifecycleAdapter {
 
             // shutdown all accept threads prior to connection termination in order to prevent new
             // connections from being established to the server
-            var bossTerminationFuture = bossEventLoopGroup.shutdownGracefully(
-                    config.get(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period),
-                    config.get(GraphDatabaseInternalSettings.netty_server_shutdown_timeout)
-                            .toSeconds(),
-                    TimeUnit.SECONDS);
-
-            var bossTerminationCompleted = bossTerminationFuture.awaitUninterruptibly(
-                    config.get(BoltConnectorInternalSettings.thread_pool_shutdown_wait_time)
-                            .toSeconds(),
-                    TimeUnit.SECONDS);
-            if (!bossTerminationCompleted) {
-                log.warn(
-                        "Termination of boss event loop group has exceeded maximum permitted duration - Remaining jobs will be forcefully terminated");
-            } else if (!bossTerminationFuture.isSuccess()) {
-                log.warn("Termination of boss event loop group has failed", bossTerminationFuture.cause());
-            }
+            terminateBossGroup(bossEventLoopGroup, localBossEventLoopGroup);
 
             // send shutdown notifications to all of our connectors in order to perform the necessary shutdown
             // procedures for the remaining connections
@@ -415,22 +409,7 @@ public class BoltServer extends LifecycleAdapter {
 
             // once the remaining connections have been shut down, we'll request a graceful shutdown from the network
             // thread pool
-            var workerTerminationFuture = workerEventLoopGroup.shutdownGracefully(
-                    config.get(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period),
-                    config.get(GraphDatabaseInternalSettings.netty_server_shutdown_timeout)
-                            .toSeconds(),
-                    TimeUnit.SECONDS);
-
-            var workerTerminationCompleted = workerTerminationFuture.awaitUninterruptibly(
-                    config.get(BoltConnectorInternalSettings.thread_pool_shutdown_wait_time)
-                            .toSeconds(),
-                    TimeUnit.SECONDS);
-            if (!workerTerminationCompleted) {
-                log.warn(
-                        "Termination of worker event loop group has exceeded maximum permitted duration - Remaining jobs will be forcefully terminated");
-            } else if (!workerTerminationFuture.isSuccess()) {
-                log.warn("Termination of worker event loop group has failed", workerTerminationFuture.cause());
-            }
+            terminateWorkGroup(workerEventLoopGroup, localWorkerEventLoopGroup);
 
             // also make sure that our executor service is cleanly shut down - there should be no remaining jobs present
             // as connectors will kill any remaining jobs forcefully as part of their shutdown procedures
@@ -444,6 +423,55 @@ public class BoltServer extends LifecycleAdapter {
 
         if (memoryPool != null) {
             memoryPool.close();
+        }
+    }
+
+    private void terminateWorkGroup(EventLoopGroup... workGroups) {
+        terminateEventLoopGroups(
+                "Termination of worker event loop group has exceeded maximum permitted duration - Remaining jobs will be forcefully terminated",
+                "Termination of worker event loop group has failed",
+                workGroups);
+    }
+
+    private void terminateBossGroup(EventLoopGroup... bossGroups) {
+        terminateEventLoopGroups(
+                "Termination of boss event loop group has exceeded maximum permitted duration - Remaining jobs will be forcefully terminated",
+                "Termination of boss event loop group has failed",
+                bossGroups);
+    }
+
+    private void terminateEventLoopGroups(
+            String unsuccessfulTerminationMessage, String failedTerminationMessage, EventLoopGroup... eventLoopGroups) {
+        if (eventLoopGroups == null || eventLoopGroups.length == 0) {
+            return;
+        }
+
+        var shutdownFutures = new Future<?>[eventLoopGroups.length];
+        for (int i = 0; i < eventLoopGroups.length; i++) {
+            var bossGroup = eventLoopGroups[i];
+            if (bossGroup != null) {
+                shutdownFutures[i] = bossGroup.shutdownGracefully(
+                        config.get(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period),
+                        config.get(GraphDatabaseInternalSettings.netty_server_shutdown_timeout)
+                                .toSeconds(),
+                        TimeUnit.SECONDS);
+            }
+        }
+
+        long startTime = clock.nanos();
+        long timeOut = config.get(BoltConnectorInternalSettings.thread_pool_shutdown_wait_time)
+                .toNanos();
+        for (Future<?> future : shutdownFutures) {
+            if (future != null) {
+                boolean eventLoopTermination =
+                        timeOut > 0 ? future.awaitUninterruptibly(timeOut, TimeUnit.NANOSECONDS) : future.isDone();
+                timeOut -= clock.nanos() - startTime;
+                if (!eventLoopTermination) {
+                    log.warn(unsuccessfulTerminationMessage);
+                } else if (!future.isSuccess()) {
+                    log.warn(failedTerminationMessage, future.cause());
+                }
+            }
         }
     }
 
@@ -734,8 +762,8 @@ public class BoltServer extends LifecycleAdapter {
                 memoryPool,
                 clock,
                 allocator,
-                bossEventLoopGroup,
-                workerEventLoopGroup,
+                localBossEventLoopGroup,
+                localWorkerEventLoopGroup,
                 connectionFactory,
                 connectionTracker,
                 protocolRegistry,

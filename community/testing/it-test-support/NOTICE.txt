@@ -116,7 +116,8 @@ Apache Software License, Version 2.0
   magnolia
   Neo4j Java Driver
   Netty/Buffer
-  Netty/Codec
+  Netty/Codec/Base
+  Netty/Codec/Compression
   Netty/Codec/HTTP
   Netty/Codec/HTTP2
   Netty/Common

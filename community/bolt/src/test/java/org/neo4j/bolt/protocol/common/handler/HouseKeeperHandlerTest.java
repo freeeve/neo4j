@@ -35,7 +35,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandler;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.ReadTimeoutException;
@@ -239,7 +240,7 @@ public class HouseKeeperHandlerTest {
 
     private static Bootstrap newBootstrap(Connection connection, HouseKeeperHandler houseKeeperHandler) {
         return new Bootstrap()
-                .group(new NioEventLoopGroup(1))
+                .group(new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory()))
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override

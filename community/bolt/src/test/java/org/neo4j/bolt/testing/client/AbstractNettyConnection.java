@@ -28,7 +28,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import io.netty.handler.ssl.SslContext;
@@ -89,7 +90,7 @@ public abstract sealed class AbstractNettyConnection implements BoltTestConnecti
     }
 
     public AbstractNettyConnection() {
-        this(new NioEventLoopGroup(1));
+        this(new MultiThreadIoEventLoopGroup(1, NioIoHandler.newFactory()));
     }
 
     protected abstract SocketAddress address();

@@ -131,6 +131,7 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
 
     protected ConnectorPortRegister connectorPortRegister;
     private RotatingRequestLog requestLog;
+    private LocalChannelDriverFactory driverFactory;
 
     protected abstract Iterable<ServerModule> createServerModules();
 
@@ -201,9 +202,10 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
             synchronized (this) {
                 availableController = this.queryController;
                 if (availableController == null) {
-                    var driverFactory = new LocalChannelDriverFactory(
+                    driverFactory = new LocalChannelDriverFactory(
                             new LocalAddress(config.get(BoltConnectorInternalSettings.local_channel_address)),
-                            internalLogProvider);
+                            internalLogProvider,
+                            config);
                     var queryApiTxTimeout = config.get(ServerSettings.queryapi_transaction_timeout);
                     var driver = driverFactory.createLocalDriver();
                     this.queryController = new QueryController(
@@ -433,6 +435,9 @@ public abstract class AbstractNeoWebServer extends LifecycleAdapter implements N
         if (queryController != null) {
             queryController.closeDriver();
             queryController = null;
+        }
+        if (driverFactory != null) {
+            driverFactory.close();
         }
     }
 

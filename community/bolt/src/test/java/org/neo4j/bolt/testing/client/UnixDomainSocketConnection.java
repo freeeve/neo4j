@@ -21,12 +21,13 @@ package org.neo4j.bolt.testing.client;
 
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollDomainSocketChannel;
-import io.netty.channel.epoll.EpollEventLoopGroup;
+import io.netty.channel.epoll.EpollIoHandler;
 import io.netty.channel.kqueue.KQueue;
 import io.netty.channel.kqueue.KQueueDomainSocketChannel;
-import io.netty.channel.kqueue.KQueueEventLoopGroup;
+import io.netty.channel.kqueue.KQueueIoHandler;
 import io.netty.channel.unix.DomainSocketAddress;
 import java.net.SocketAddress;
 
@@ -47,10 +48,10 @@ public final class UnixDomainSocketConnection extends AbstractNettyConnection {
 
     private static EventLoopGroup selectEventLoopGroup() {
         if (Epoll.isAvailable()) {
-            return new EpollEventLoopGroup(1);
+            return new MultiThreadIoEventLoopGroup(1, EpollIoHandler.newFactory());
         }
         if (KQueue.isAvailable()) {
-            return new KQueueEventLoopGroup(1);
+            return new MultiThreadIoEventLoopGroup(1, KQueueIoHandler.newFactory());
         }
 
         throw new IllegalStateException(

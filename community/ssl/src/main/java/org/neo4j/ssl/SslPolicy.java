@@ -89,26 +89,24 @@ public class SslPolicy {
     }
 
     public SslContext nettyClientContext() throws SSLException {
-        return SslContextBuilder.forClient()
+        var builder = SslContextBuilder.forClient()
                 .sslProvider(sslProvider)
                 .keyManager(privateKey, keyCertChain)
                 .protocols(tlsVersions)
                 .ciphers(ciphers)
-                .trustManager(trustManagerFactory)
-                .build();
+                .trustManager(trustManagerFactory);
+        if (!verifyHostname) {
+            builder.endpointIdentificationAlgorithm(null);
+        }
+        return builder.build();
     }
 
     private static io.netty.handler.ssl.ClientAuth forNetty(ClientAuth clientAuth) {
-        switch (clientAuth) {
-            case NONE:
-                return io.netty.handler.ssl.ClientAuth.NONE;
-            case OPTIONAL:
-                return io.netty.handler.ssl.ClientAuth.OPTIONAL;
-            case REQUIRE:
-                return io.netty.handler.ssl.ClientAuth.REQUIRE;
-            default:
-                throw new IllegalArgumentException("Cannot translate to netty equivalent: " + clientAuth);
-        }
+        return switch (clientAuth) {
+            case NONE -> io.netty.handler.ssl.ClientAuth.NONE;
+            case OPTIONAL -> io.netty.handler.ssl.ClientAuth.OPTIONAL;
+            case REQUIRE -> io.netty.handler.ssl.ClientAuth.REQUIRE;
+        };
     }
 
     public ChannelHandler nettyServerHandler(Channel channel) throws SSLException {

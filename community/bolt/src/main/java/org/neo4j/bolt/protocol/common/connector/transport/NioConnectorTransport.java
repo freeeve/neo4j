@@ -19,7 +19,9 @@
  */
 package org.neo4j.bolt.protocol.common.connector.transport;
 
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.unix.ServerDomainSocketChannel;
 import java.util.concurrent.ThreadFactory;
@@ -45,8 +47,8 @@ public final class NioConnectorTransport implements ConnectorTransport {
     }
 
     @Override
-    public NioEventLoopGroup createEventLoopGroup(int threadCount, ThreadFactory threadFactory) {
-        return new NioEventLoopGroup(threadCount, threadFactory);
+    public EventLoopGroup createEventLoopGroup(int threadCount, ThreadFactory threadFactory) {
+        return new MultiThreadIoEventLoopGroup(threadCount, threadFactory, NioIoHandler.newFactory());
     }
 
     @Override

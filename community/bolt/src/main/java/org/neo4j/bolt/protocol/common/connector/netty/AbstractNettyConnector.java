@@ -262,7 +262,7 @@ public abstract class AbstractNettyConnector<CFG extends NettyConfiguration> ext
         private final boolean requireEncryption;
         private final boolean enableMergeCumulator;
         private final ScopedSslPolicyProvider sslPolicyProvider;
-        private AtomicReference<SslContext> sslContext = new AtomicReference<>();
+        private final AtomicReference<SslContext> sslContext = new AtomicReference<>();
 
         public NettyConfiguration(
                 boolean enableProtocolCapture,

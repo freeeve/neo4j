@@ -66,7 +66,8 @@ Apache Software License, Version 2.0
   jProcesses
   magnolia
   Netty/Buffer
-  Netty/Codec
+  Netty/Codec/Base
+  Netty/Codec/Compression
   Netty/Codec/HTTP
   Netty/Common
   Netty/Handler

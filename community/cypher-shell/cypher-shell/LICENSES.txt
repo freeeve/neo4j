@@ -14,7 +14,7 @@ Apache Software License, Version 2.0
   Java Native Access
   Neo4j Java Driver
   Netty/Buffer
-  Netty/Codec
+  Netty/Codec/Base
   Netty/Common
   Netty/Handler
   Netty/Resolver

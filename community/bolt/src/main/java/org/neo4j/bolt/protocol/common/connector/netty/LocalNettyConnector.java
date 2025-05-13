@@ -53,8 +53,6 @@ public class LocalNettyConnector extends AbstractNettyConnector<LocalConfigurati
 
     private final ConnectorTransport transport;
 
-    private final InternalLogProvider internalLogProvider;
-
     public LocalNettyConnector(
             String id,
             SocketAddress bindAddress,
@@ -102,7 +100,6 @@ public class LocalNettyConnector extends AbstractNettyConnector<LocalConfigurati
                 userLogProvider,
                 internalLogProvider);
         this.transport = connectorTransport;
-        this.internalLogProvider = internalLogProvider;
     }
 
     @Override

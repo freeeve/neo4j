@@ -20,8 +20,9 @@
 package org.neo4j.bolt.protocol.common.connector.transport;
 
 import io.netty.channel.EventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.kqueue.KQueue;
-import io.netty.channel.kqueue.KQueueEventLoopGroup;
+import io.netty.channel.kqueue.KQueueIoHandler;
 import io.netty.channel.kqueue.KQueueServerDomainSocketChannel;
 import io.netty.channel.kqueue.KQueueServerSocketChannel;
 import io.netty.channel.socket.ServerSocketChannel;
@@ -52,7 +53,7 @@ public final class KqueueConnectorTransport implements ConnectorTransport {
 
     @Override
     public EventLoopGroup createEventLoopGroup(int threadCount, ThreadFactory threadFactory) {
-        return new KQueueEventLoopGroup(threadCount, threadFactory);
+        return new MultiThreadIoEventLoopGroup(threadCount, threadFactory, KQueueIoHandler.newFactory());
     }
 
     @Override
