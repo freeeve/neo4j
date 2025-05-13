@@ -168,6 +168,9 @@ object RememberToUpdateAstGeneratorTest {
     "org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType",
     "org.neo4j.cypher.internal.util.symbols.ZonedTimeType",
     "org.neo4j.cypher.internal.expressions.RepeatPathStep",
-    "org.neo4j.cypher.internal.ast.semantics.MapExtendedType"
+    "org.neo4j.cypher.internal.ast.semantics.MapExtendedType",
+    "org.neo4j.cypher.internal.expressions.RepeatPathStep",
+    "org.neo4j.cypher.internal.expressions.AnonymousScopeExpression.Scope",
+    "org.neo4j.cypher.internal.expressions.CaseExpression.Operand"
   )
 }

@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.InvalidNotEquals
 import org.neo4j.cypher.internal.expressions.NFCNormalForm
+import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.symbols.CTInteger
 import org.neo4j.cypher.internal.util.symbols.IntegerType
 
@@ -61,12 +62,12 @@ class CaseExpressionParserTest extends AstParsingTestBase {
 
   test("CASE a WHEN b THEN c WHEN d THEN e WHEN f THEN g ELSE h END") {
     parsesTo[Expression] {
-      CaseExpression(
-        Some(varFor("a")),
-        Array(
-          equals(varFor("a"), varFor("b")) -> varFor("c"),
-          equals(varFor("a"), varFor("d")) -> varFor("e"),
-          equals(varFor("a"), varFor("f")) -> varFor("g")
+      extendedCase(
+        varFor("a"),
+        Seq(
+          equals(_, varFor("b")) -> varFor("c"),
+          equals(_, varFor("d")) -> varFor("e"),
+          equals(_, varFor("f")) -> varFor("g")
         ),
         Some(varFor("h"))
       )(pos)
@@ -75,9 +76,9 @@ class CaseExpressionParserTest extends AstParsingTestBase {
 
   test("CASE when(e) WHEN (e) THEN e ELSE null END") {
     parsesTo[Expression] {
-      CaseExpression(
-        Some(function("when", varFor("e"))),
-        List(equals(function("when", varFor("e")), varFor("e")) -> varFor("e")),
+      extendedCase(
+        function("when", varFor("e")),
+        Seq(equals(_, varFor("e")) -> varFor("e")),
         Some(nullLiteral)
       )(pos)
     }
@@ -86,30 +87,33 @@ class CaseExpressionParserTest extends AstParsingTestBase {
   // Copied from legacy test
   test("some more case expressions") {
     "CASE 1 WHEN 1 THEN 'ONE' END" should parseTo[Expression](
-      caseExpression(Some(literal(1)), None, (equals(literal(1), literal(1)), literal("ONE")))
+      extendedCase(literal(1), Seq(equals(_, literal(1)) -> literal("ONE")))()
     )
     """CASE 1
          WHEN 1 THEN 'ONE'
          WHEN 2 THEN 'TWO'
        END""" should parseTo[Expression](
-      caseExpression(
-        Some(literal(1)),
-        None,
-        (equals(literal(1), literal(1)), literal("ONE")),
-        (equals(literal(1), literal(2)), literal("TWO"))
-      )
+      extendedCase(
+        literal(1),
+        Seq(
+          equals(_, literal(1)) -> literal("ONE"),
+          equals(_, literal(2)) -> literal("TWO")
+        )
+      )()
     )
     """CASE 1
            WHEN 1 THEN 'ONE'
            WHEN 2 THEN 'TWO'
            ELSE 'DEFAULT'
        END""" should parseTo[Expression](
-      caseExpression(
-        Some(literal(1)),
-        Some(literal("DEFAULT")),
-        (equals(literal(1), literal(1)), literal("ONE")),
-        (equals(literal(1), literal(2)), literal("TWO"))
-      )
+      extendedCase(
+        literal(1),
+        Seq(
+          equals(_, literal(1)) -> literal("ONE"),
+          equals(_, literal(2)) -> literal("TWO")
+        ),
+        Some(literal("DEFAULT"))
+      )()
     )
     "CASE WHEN true THEN 'ONE' END" should parseTo[Expression](
       caseExpression(None, None, literal(true) -> literal("ONE"))
@@ -139,11 +143,11 @@ class CaseExpressionParserTest extends AstParsingTestBase {
 
   test("CASE n.eyes WHEN \"blue\" THEN 1 WHEN \"brown\" THEN 2 ELSE 3 END") {
     parsesTo[Expression] {
-      CaseExpression(
-        Some(prop("n", "eyes")),
-        List(
-          equals(prop("n", "eyes"), literalString("blue")) -> literalInt(1),
-          equals(prop("n", "eyes"), literalString("brown")) -> literalInt(2)
+      extendedCase(
+        prop("n", "eyes"),
+        Seq(
+          equals(_, literalString("blue")) -> literalInt(1),
+          equals(_, literalString("brown")) -> literalInt(2)
         ),
         Some(literalInt(3))
       )(pos)
@@ -152,28 +156,26 @@ class CaseExpressionParserTest extends AstParsingTestBase {
 
   test("CASE n.eyes WHEN \"blue\" THEN 1 WHEN \"brown\" THEN 2 END") {
     parsesTo[Expression] {
-      CaseExpression(
-        Some(prop("n", "eyes")),
-        List(
-          equals(prop("n", "eyes"), literalString("blue")) -> literalInt(1),
-          equals(prop("n", "eyes"), literalString("brown")) -> literalInt(2)
-        ),
-        None
+      extendedCase(
+        prop("n", "eyes"),
+        Seq(
+          equals(_, literalString("blue")) -> literalInt(1),
+          equals(_, literalString("brown")) -> literalInt(2)
+        )
       )(pos)
     }
   }
 
   test("CASE n.eyes WHEN \"blue\", \"green\", \"brown\" THEN 1 WHEN \"red\" THEN 2 END") {
     parsesTo[Expression] {
-      CaseExpression(
-        Some(prop("n", "eyes")),
-        List(
-          equals(prop("n", "eyes"), literalString("blue")) -> literalInt(1),
-          equals(prop("n", "eyes"), literalString("green")) -> literalInt(1),
-          equals(prop("n", "eyes"), literalString("brown")) -> literalInt(1),
-          equals(prop("n", "eyes"), literalString("red")) -> literalInt(2)
-        ),
-        None
+      extendedCase(
+        prop("n", "eyes"),
+        Seq(
+          equals(_, literalString("blue")) -> literalInt(1),
+          equals(_, literalString("green")) -> literalInt(1),
+          equals(_, literalString("brown")) -> literalInt(1),
+          equals(_, literalString("red")) -> literalInt(2)
+        )
       )(pos)
     }
   }
@@ -188,12 +190,12 @@ class CaseExpressionParserTest extends AstParsingTestBase {
       |END""".stripMargin
   ) {
     parsesTo[Expression] {
-      CaseExpression(
-        Some(prop("n", "eyes")),
-        List(
-          isNull(prop("n", "eyes")) -> literalInt(1),
-          isTyped(prop("n", "eyes"), IntegerType(isNullable = true)(pos)) -> literalInt(2),
-          isNormalized(prop("n", "eyes"), NFCNormalForm) -> literalInt(3)
+      extendedCase(
+        prop("n", "eyes"),
+        Seq(
+          isNull(_) -> literalInt(1),
+          isTyped(_, IntegerType(isNullable = true)(pos)) -> literalInt(2),
+          isNormalized(_, NFCNormalForm) -> literalInt(3)
         ),
         Some(literalInt(4))
       )(pos)
@@ -209,14 +211,14 @@ class CaseExpressionParserTest extends AstParsingTestBase {
       |END""".stripMargin
   ) {
     parsesTo[Expression] {
-      CaseExpression(
-        Some(prop("n", "eyes")),
-        List(
-          greaterThan(prop("n", "eyes"), literalInt(2)) -> literalInt(1),
-          equals(prop("n", "eyes"), literalInt(1)) -> literalInt(1),
-          equals(prop("n", "eyes"), literalInt(5)) -> literalInt(1),
-          startsWith(prop("n", "eyes"), literalString("gre")) -> literalInt(3),
-          endsWith(prop("n", "eyes"), literalString("en")) -> literalInt(3)
+      extendedCase(
+        prop("n", "eyes"),
+        Seq(
+          greaterThan(_, literalInt(2)) -> literalInt(1),
+          equals(_, literalInt(1)) -> literalInt(1),
+          equals(_, literalInt(5)) -> literalInt(1),
+          startsWith(_, literalString("gre")) -> literalInt(3),
+          endsWith(_, literalString("en")) -> literalInt(3)
         ),
         Some(literalInt(4))
       )(pos)
@@ -231,11 +233,9 @@ class CaseExpressionParserTest extends AstParsingTestBase {
       |END""".stripMargin
   ) {
     parsesTo[Expression] {
-      CaseExpression(
-        Some(prop("n", "eyes")),
-        List(
-          equals(prop("n", "eyes"), greaterThan(prop("n", "eyes"), literalInt(2))) -> literalInt(1)
-        ),
+      extendedCase(
+        prop("n", "eyes"),
+        Seq(equals(_, greaterThan(prop("n", "eyes"), literalInt(2))) -> literalInt(1)),
         Some(literalInt(4))
       )(pos)
     }
@@ -247,26 +247,17 @@ class CaseExpressionParserTest extends AstParsingTestBase {
       | ELSE 4
       |END""".stripMargin
   ) {
-    parsesIn[Expression] {
-      case Cypher5 => _.toAst(
-          CaseExpression(
-            Some(prop("n", "eyes")),
-            List(
-              equals(prop("n", "eyes"), containerIndex(varFor("in"), literalInt(0))) -> literalInt(1)
-            ),
-            Some(literalInt(4))
-          )(pos)
-        )
-      // ≥ Cypher25
-      case _ => _.toAst(
-          CaseExpression(
-            Some(prop("n", "eyes")),
-            List(
-              in(prop("n", "eyes"), listOfInt(0)) -> literalInt(1)
-            ),
-            Some(literalInt(4))
-          )(pos)
-        )
+    parsesIn[Expression] { parser =>
+      _.toAst(
+        extendedCase(
+          prop("n", "eyes"),
+          Seq(parser match {
+            case Cypher5 => equals(_, containerIndex(varFor("in"), literalInt(0))) -> literalInt(1)
+            case _       => in(_, listOfInt(0)) -> literalInt(1)
+          }),
+          Some(literalInt(4))
+        )(pos)
+      )
     }
   }
 
@@ -276,26 +267,17 @@ class CaseExpressionParserTest extends AstParsingTestBase {
       |  ELSE 'else'
       |END""".stripMargin
   ) {
-    parsesIn[Expression] {
-      case Cypher5 => _.toAst(
-          CaseExpression(
-            Some(literalInt(2)),
-            List(
-              equals(literalInt(2), add(varFor("contains"), literalInt(1))) -> literalString("contains")
-            ),
-            Some(literalString("else"))
-          )(pos)
-        )
-      // ≥ Cypher25
-      case _ => _.toAst(
-          CaseExpression(
-            Some(literalInt(2)),
-            List(
-              contains(literalInt(2), unaryAdd(literalInt(1))) -> literalString("contains")
-            ),
-            Some(literalString("else"))
-          )(pos)
-        )
+    parsesIn[Expression] { parser =>
+      _.toAst(
+        extendedCase(
+          literalInt(2),
+          Seq(parser match {
+            case Cypher5 => equals(_, add(varFor("contains"), literalInt(1))) -> literalString("contains")
+            case _       => contains(_, unaryAdd(literalInt(1))) -> literalString("contains")
+          }),
+          Some(literalString("else"))
+        )(pos)
+      )
     }
   }
 
@@ -309,30 +291,23 @@ class CaseExpressionParserTest extends AstParsingTestBase {
       |  ELSE 'else'
       |END""".stripMargin
   ) {
-    def expected(keywordPriority: Boolean) =
-      CaseExpression(
-        Some(literalInt(1)),
-        List(
-          isTyped(literalInt(1), IntegerType(isNullable = true)(pos)) -> literalInt(1),
-          isNotTyped(literalInt(1), IntegerType(isNullable = true)(pos)) -> literalInt(2),
-          (if (keywordPriority)
-             isTyped(
-               literalInt(1),
-               IntegerType(isNullable = true)(pos),
-               withDoubleColonOnly = false
-             )
-           else
-             equals(
-               literalInt(1),
-               isTyped(varFor("IS"), IntegerType(isNullable = true)(pos), withDoubleColonOnly = true)
-             )) -> literalInt(3),
-          isTyped(literalInt(1), IntegerType(isNullable = true)(pos), withDoubleColonOnly = true) -> literalInt(4)
+    def expected(isNotTypedExp: Expression => Expression) =
+      extendedCase(
+        literalInt(1),
+        Seq(
+          isTyped(_, IntegerType(isNullable = true)(pos)) -> literalInt(1),
+          isNotTyped(_, IntegerType(isNullable = true)(pos)) -> literalInt(2),
+          isNotTypedExp(_) -> literalInt(3),
+          isTyped(_, IntegerType(isNullable = true)(pos), withDoubleColonOnly = true) -> literalInt(4)
         ),
         Some(literalString("else"))
       )(pos)
     parsesIn[Expression] {
-      case Cypher5 => _.toAst(expected(keywordPriority = false))
-      case _       => _.toAst(expected(keywordPriority = true))
+      case Cypher5 => _.toAst(expected(equals(
+          _,
+          isTyped(varFor("IS"), IntegerType(isNullable = true)(pos), withDoubleColonOnly = true)
+        )))
+      case _ => _.toAst(expected(isTyped(_, IntegerType(isNullable = true)(pos), withDoubleColonOnly = false)))
     }
   }
 
@@ -431,7 +406,7 @@ class CaseExpressionParserTest extends AstParsingTestBase {
     altsExpression.foreach {
       case (cypherWhen, expF) =>
         s"case ${in.name} when $cypherWhen then true end" should parseIn[Expression](parserInTest =>
-          _.toAst(caseExpression(Some(in), None, expF(parserInTest, in) -> trueLiteral))
+          _.toAst(extendedCase(in, Seq(expF(parserInTest, _) -> trueLiteral))())
         )
     }
 
@@ -453,12 +428,14 @@ class CaseExpressionParserTest extends AstParsingTestBase {
          |end
          |""".stripMargin should parseIn[Expression](parserInTest =>
         _.toAst(
-          caseExpression(
-            Some(in),
-            Some(literal("c")),
-            aExpF(parserInTest, in) -> literal("a"),
-            bExpF(parserInTest, in) -> literal("b")
-          )
+          extendedCase(
+            in,
+            Seq(
+              aExpF(parserInTest, _) -> literal("a"),
+              bExpF(parserInTest, _) -> literal("b")
+            ),
+            Some(literal("c"))
+          )()
         )
       )
       s"""case ${in.name}
@@ -466,12 +443,10 @@ class CaseExpressionParserTest extends AstParsingTestBase {
          |end
          |""".stripMargin should parseIn[Expression](parserInTest =>
         _.toAst(
-          caseExpression(
-            Some(in),
-            None,
-            aExpF(parserInTest, in) -> literal("yes"),
-            bExpF(parserInTest, in) -> literal("yes")
-          )
+          extendedCase(
+            in,
+            Seq(aExpF(parserInTest, _) -> literal("yes"), bExpF(parserInTest, _) -> literal("yes"))
+          )()
         )
       )
     }
@@ -484,8 +459,19 @@ class CaseExpressionParserTest extends AstParsingTestBase {
        |end
        |""".stripMargin should parseIn[Expression](parserInTest =>
       _.toAst(
-        caseExpression(Some(in), None, altsExpression.map(a => a._2(parserInTest, in) -> trueLiteral): _*)
+        extendedCase(in, altsExpression.map { case (_, f) => f(parserInTest, _) -> trueLiteral })()
       )
     )
   }
+
+  private def extendedCase(
+    candidate: Expression,
+    alts: Seq[Expression => (Expression, Expression)],
+    default: Option[Expression] = None
+  )(p: InputPosition = pos) =
+    CaseExpression(
+      Some(candidate),
+      alts.map(_.apply(CaseExpression.Operand())).toIndexedSeq,
+      default
+    )(p)
 }

@@ -88,6 +88,13 @@ object SemanticFeature {
     override def name: String = "Allow mixing old and new label expression syntax in clauses"
   }
 
+  /**
+   * Disables the ScopeCaseExpressions rewriter (workaround in case it has bugs).
+   */
+  case object UnscopedCaseExpressions extends SemanticFeature with FeatureToString {
+    override def name: String = "Disables scoping of case expressions"
+  }
+
   private val allSemanticFeatures = Set(
     MultipleDatabases,
     MultipleGraphs,
@@ -100,7 +107,8 @@ object SemanticFeature {
     ExperimentalCypherVersions,
     RelationshipPropertyValueAccessRules,
     VectorType,
-    AllowClauseWithMixedLabelSyntax
+    AllowClauseWithMixedLabelSyntax,
+    UnscopedCaseExpressions
   )
 
   def fromString(str: String): SemanticFeature =

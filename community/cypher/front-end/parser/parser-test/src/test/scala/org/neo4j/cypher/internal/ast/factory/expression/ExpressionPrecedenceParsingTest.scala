@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.Statements
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
 import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
+import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.ListSlice
 import org.neo4j.cypher.internal.expressions.MapProjection
@@ -441,7 +442,11 @@ class ExpressionPrecedenceParsingTest extends AstParsingTestBase {
           relationshipChain(nodePat(Some("a")), relPat(), nodePat(Some("b"))),
           single = true
         )(pos)),
-        caseExpression(Some(varFor("x")), Some(literalInt(2)), (equals(varFor("x"), trueLiteral), literalInt(1)))
+        caseExpression(
+          Some(varFor("x")),
+          Some(literalInt(2)),
+          equals(CaseExpression.Operand(), trueLiteral) -> literalInt(1)
+        )
       )
     }
 

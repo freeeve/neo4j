@@ -25,6 +25,7 @@ import scala.collection.IterableFactory
 import scala.collection.immutable.ArraySeq
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
+import scala.reflect.ClassTag
 
 object Rewriter {
 
@@ -234,6 +235,11 @@ trait RewriterStopper {
 
 object RewriterStopper {
   val neverStop: RewriterStopper = _ => false
+
+  def stopOn[T <: AnyRef](implicit ct: ClassTag[T]): RewriterStopper = {
+    val stopOnClass = ct.runtimeClass
+    value => stopOnClass.isAssignableFrom(value.getClass)
+  }
 }
 
 object topDown {

@@ -43,6 +43,8 @@ import org.neo4j.cypher.cucumber.glue.regular.RegularCypherCucumberSteps.unexpec
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedError
 import org.neo4j.cypher.cucumber.steps.CypherCucumberSteps.ExpectedGqlError
+import org.neo4j.cypher.cucumber.user.function.SeededRandFunction
+import org.neo4j.cypher.cucumber.user.function.TestFailNTimesFunction
 import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser
 import org.neo4j.cypher.cucumber.value.CypherCucumberValueParser.parse
 import org.neo4j.cypher.cucumber.value.ResultValueMapper
@@ -123,6 +125,10 @@ final class RegularCypherCucumberSteps @Inject() (
         )
         db.unregisterProcedures(Seq(TestFailNTimesFunction.name))
         db.registerFunction(classOf[TestFailNTimesFunction])
+      case "test.seededRand" =>
+        registeredProcedures =
+          registeredProcedures ++ Seq(new QualifiedName("test", "seededRand"), new QualifiedName("test", "setSeed"))
+        db.registerFunction(classOf[SeededRandFunction])
       case _ =>
         throw new IllegalArgumentException(s"$name is not a recognised UDF name")
     }

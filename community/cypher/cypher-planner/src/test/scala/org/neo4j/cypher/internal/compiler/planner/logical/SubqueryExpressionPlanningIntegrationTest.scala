@@ -2857,16 +2857,16 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
     plan.folder.findAllByClass[NestedPlanGetByNameExpression].toSet shouldBe Set(
       nestedGetColumnExpr(
         planner.subPlanBuilder()
-          .relationshipCountFromCountStore("anon_0", None, Seq("REL"), None)
+          .relationshipCountFromCountStore("anon_1", None, Seq("REL"), None)
           .build(),
-        "anon_0",
+        "anon_1",
         "COUNT { MATCH (a)-[r:REL]->(b) }"
       ),
       nestedGetColumnExpr(
         planner.subPlanBuilder()
-          .relationshipCountFromCountStore("anon_1", Some("Person"), Seq("KNOWS"), None)
+          .relationshipCountFromCountStore("anon_2", Some("Person"), Seq("KNOWS"), None)
           .build(),
-        "anon_1",
+        "anon_2",
         """COUNT { MATCH (c)-[k:KNOWS]->(d)
           |  WHERE c:Person }""".stripMargin
       )
@@ -3625,10 +3625,11 @@ class SubqueryExpressionPlanningIntegrationTest extends CypherFunSuite with Logi
         """EXISTS { MATCH (a)-[r:X]->(b)
           |  WHERE b:Foo }""".stripMargin
       )
-    val caseExp = caseExpression(
-      Some(prop("a", "prop")),
-      Some(falseLiteral),
-      equals(prop("a", "prop"), literalInt(1)) -> npeExpression
+    val caseExp = scopedCaseExpression(
+      anonVariable = varFor("anon_0"),
+      expression = prop("a", "prop"),
+      default = Some(falseLiteral),
+      equals(_, literalInt(1)) -> npeExpression
     )
 
     logicalPlan should equal(

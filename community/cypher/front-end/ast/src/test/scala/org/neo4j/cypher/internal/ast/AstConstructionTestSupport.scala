@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.AndsReorderable
+import org.neo4j.cypher.internal.expressions.AnonymousScopeExpression
 import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
 import org.neo4j.cypher.internal.expressions.AssertIsNode
 import org.neo4j.cypher.internal.expressions.AutoExtractedParameter
@@ -1348,6 +1349,17 @@ trait AstConstructionTestSupport {
   def caseExpression(
     alternatives: (Expression, Expression)*
   ): CaseExpression = CaseExpression(None, alternatives.toIndexedSeq, None)(pos)
+
+  def scopedCaseExpression(
+    anonVariable: LogicalVariable,
+    expression: Expression,
+    default: Option[Expression],
+    alternatives: (Expression => (Expression, Expression))*
+  ): Expression = AnonymousScopeExpression(
+    anonVariable = anonVariable,
+    scopeVariableExpression = expression,
+    innerExpression = caseExpression(Some(anonVariable), default, alternatives.map(_.apply(anonVariable)): _*)
+  )
 
   def simpleExistsExpression(
     pattern: Pattern.ForMatch,

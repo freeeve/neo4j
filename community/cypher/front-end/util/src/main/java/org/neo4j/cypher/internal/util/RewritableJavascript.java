@@ -113,9 +113,8 @@ public class RewritableJavascript {
         }
         ReflectMethod method = getCopyConstructor(cls);
         if (method != null) {
-            ReflectClass<?>[] paramTypes = method.getParameterTypes();
-            ReflectClass<?> lastParam = paramTypes[paramTypes.length - 1];
-            boolean result = lastParam.isAssignableFrom(InputPosition.class);
+            final var types = method.getParameterTypes();
+            final var result = types.length > 0 && types[types.length - 1].isAssignableFrom(InputPosition.class);
             exit(() -> result);
         } else {
             unsupportedCase();

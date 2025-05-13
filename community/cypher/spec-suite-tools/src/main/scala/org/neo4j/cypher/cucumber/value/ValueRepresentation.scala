@@ -32,7 +32,7 @@ object ValueRepresentation {
 
     override def toString: String = {
       val labelsString = if (labels.isEmpty) "" else ":" + String.join(":", labels)
-      s"($labelsString$properties)"
+      s"($labelsString $properties)"
     }
   }
 

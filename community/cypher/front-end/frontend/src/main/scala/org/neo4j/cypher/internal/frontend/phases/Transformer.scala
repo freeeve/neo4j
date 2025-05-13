@@ -21,8 +21,8 @@ import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogChangedFields
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatements
 import org.neo4j.cypher.internal.frontend.phases.Transformer.Debug.LogStatementsAsQueries
-import org.neo4j.cypher.internal.macros.AssertMacros.checkOnlyWhenAssertionsAreEnabled
 import org.neo4j.cypher.internal.rewriting.ValidatingCondition
+import org.neo4j.cypher.internal.util.AssertionRunner
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.StepSequencer
 
@@ -48,7 +48,7 @@ trait Transformer[-C <: BaseContext, -FROM, +TO] {
   final protected[Transformer] def checkConditions(
     state: Any,
     conditions: Set[StepSequencer.Condition]
-  )(cancellationChecker: CancellationChecker): Boolean =
+  )(cancellationChecker: CancellationChecker): Unit =
     Transformer.checkConditions(state, conditions, name)(cancellationChecker)
 
   final protected[Transformer] def printDebugInfo(
@@ -62,6 +62,7 @@ object Transformer {
 
   object Debug {
     // Debug flags, requires that assertions are enabled to have effect (jvm option -ea)
+    // Intellij Idea: You might need you to: Build -> Recompile 'Transformer.scala'
     final val LogStatementsAsQueries = false
     final val LogStatements = false
     final val LogChangedFields = false
@@ -90,7 +91,7 @@ object Transformer {
     state: Any,
     conditions: Set[StepSequencer.Condition],
     name: String
-  )(cancellationChecker: CancellationChecker): Boolean = {
+  )(cancellationChecker: CancellationChecker): Unit = {
     val messages: Seq[String] = conditions.toSeq.collect {
       case v: ValidatingCondition => v(state)(cancellationChecker)
     }.flatten
@@ -98,7 +99,6 @@ object Transformer {
       val prefix = s"Conditions started failing after running these phases: $name\n"
       throw new IllegalStateException(prefix + messages.mkString(", "))
     }
-    true
   }
 
   def printDebugInfo(
@@ -155,7 +155,9 @@ class PipeLine[-C <: BaseContext, FROM, MID, TO](first: Transformer[C, FROM, MID
     val conditionsToCheck = first.postConditions -- after.invalidatedConditions
 
     // Checking conditions inside assert so they are not run in production
-    checkOnlyWhenAssertionsAreEnabled(checkConditions(step2, conditionsToCheck)(context.cancellationChecker))
+    if (AssertionRunner.ASSERTIONS_ENABLED) {
+      checkConditions(step2, conditionsToCheck)(context.cancellationChecker)
+    }
 
     step2
   }

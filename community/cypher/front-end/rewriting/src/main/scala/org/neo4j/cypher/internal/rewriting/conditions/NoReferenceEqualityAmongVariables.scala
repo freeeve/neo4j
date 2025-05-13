@@ -21,6 +21,7 @@ import org.neo4j.cypher.internal.rewriting.ValidatingCondition
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.Ref
 
+// We have this check because SymbolUse, Namespacer and maybe others relies on variable reference equality.
 case object NoReferenceEqualityAmongVariables extends ValidatingCondition {
 
   override def apply(that: Any)(cancellationChecker: CancellationChecker): Seq[String] = {

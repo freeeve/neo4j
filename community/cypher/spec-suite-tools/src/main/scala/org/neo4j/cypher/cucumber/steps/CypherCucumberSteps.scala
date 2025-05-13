@@ -60,7 +60,7 @@ trait CypherCucumberSteps extends InOpenTxCypherCucumberSteps {
     givenCsvFile(param, content)
   }
 
-  Given("^the (\\w+) function is registered$") { (func: String) =>
+  Given("the {word} function is registered") { (func: String) =>
     registerUserFunction(func)
   }
 

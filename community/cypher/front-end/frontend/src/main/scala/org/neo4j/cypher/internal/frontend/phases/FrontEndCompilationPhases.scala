@@ -32,6 +32,7 @@ import org.neo4j.cypher.internal.frontend.phases.parserTransformers.PreparatoryR
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.RemoveDuplicateUseClauses
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ReplacePatternComprehensionWithCollectSubqueryRewriter
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ResolveSimpleDynamicExpressions
+import org.neo4j.cypher.internal.frontend.phases.parserTransformers.ScopeCaseExpressions
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticAnalysis
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SemanticTypeCheck
 import org.neo4j.cypher.internal.frontend.phases.parserTransformers.SyntaxDeprecationWarningsAndReplacements
@@ -74,6 +75,7 @@ trait FrontEndCompilationPhases {
     StepSequencer[StepSequencer.Step with ParsePipelineTransformerFactory]().orderSteps(
       Set(
         CollectSyntaxUsageMetrics,
+        ScopeCaseExpressions(),
         ExpandWhen,
         ExtractSensitiveLiterals,
         IsolateSubqueriesInMutatingPatterns,

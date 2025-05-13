@@ -39,6 +39,7 @@ import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Ands
+import org.neo4j.cypher.internal.expressions.AnonymousScopeExpression
 import org.neo4j.cypher.internal.expressions.BooleanLiteral
 import org.neo4j.cypher.internal.expressions.CachedHasProperty
 import org.neo4j.cypher.internal.expressions.CachedProperty
@@ -931,7 +932,16 @@ object SemanticExpressionCheck extends SemanticAnalysisTooling {
           SemanticState.recordCurrentScope(x) chain
           specifyType(CTList(CTAny).covariant, x)
 
-      case x: Expression => semanticCheckFallback(ctx, x)
+      case e @ AnonymousScopeExpression(AnonymousScopeExpression.Scope(scopeVar, innerExpression), scopeVarExp) =>
+        check(ctx, scopeVarExp) chain
+          withScopedState {
+            declareVariable(scopeVar, types(scopeVarExp)) chain
+              check(ctx, innerExpression)
+          } chain
+          specifyType(types(innerExpression), e)
+
+      case CaseExpression.Operand() => SemanticCheck.success
+      case x: Expression            => semanticCheckFallback(ctx, x)
     }
   }
 

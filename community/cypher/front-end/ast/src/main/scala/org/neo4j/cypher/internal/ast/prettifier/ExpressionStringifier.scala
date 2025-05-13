@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.AndedPropertyInequalities
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.AndsReorderable
+import org.neo4j.cypher.internal.expressions.AnonymousScopeExpression
 import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
 import org.neo4j.cypher.internal.expressions.AssertIsNode
 import org.neo4j.cypher.internal.expressions.BinaryOperatorExpression
@@ -557,6 +558,9 @@ private class DefaultExpressionStringifier(
 
       case IsRepeatTrailUnique(argument) =>
         s"isRepeatTrailUnique(${apply(argument)})"
+
+      case CaseExpression.Operand()    => ""
+      case e: AnonymousScopeExpression => apply(e.deAnonymisedInnerExpression)
 
       case _ =>
         extensionStringifier(this)(ast)

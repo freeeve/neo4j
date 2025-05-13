@@ -371,6 +371,7 @@ import org.neo4j.cypher.internal.expressions.AllPropertiesSelector
 import org.neo4j.cypher.internal.expressions.And
 import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.AnonymousPatternPart
+import org.neo4j.cypher.internal.expressions.AnonymousScopeExpression
 import org.neo4j.cypher.internal.expressions.AnyIterablePredicate
 import org.neo4j.cypher.internal.expressions.BooleanLiteral
 import org.neo4j.cypher.internal.expressions.CaseExpression
@@ -555,6 +556,7 @@ import org.scalacheck.Gen.some
 import org.scalacheck.util.Buildable
 
 import java.nio.charset.StandardCharsets
+import java.util.concurrent.atomic.AtomicLong
 
 import scala.jdk.CollectionConverters.SetHasAsScala
 import scala.util.Random
@@ -661,6 +663,8 @@ class AstGenerator(
   // HELPERS
   // ==========================================================================
 
+  private val anonVarNameCount = new AtomicLong()
+
   protected val pos: InputPosition = InputPosition.NONE
 
   private val usesCypher5 = whenAstDifferUseCypherVersion.equals(CypherVersion.Cypher5)
@@ -668,6 +672,9 @@ class AstGenerator(
   def string: Gen[String] =
     if (simpleStrings) alphaLowerChar.map(_.toString)
     else validString
+
+  def anonVariable(): Variable =
+    Variable("anonVariableWithReallyUniqueName" + anonVarNameCount.getAndIncrement())(pos, false)
 
   // IDENTIFIERS
   // ==========================================================================
@@ -963,14 +970,28 @@ class AstGenerator(
     )
   } yield exp
 
-  def _case: Gen[CaseExpression] = oneOf(_simpleCase, _generalCase)
+  def _case: Gen[Expression] = oneOf(_simpleCase, _generalCase, _scopedCase)
 
   def _simpleCase: Gen[CaseExpression] = for {
     expression <- _expression
     caseOperand <- option(expression)
-    alternatives <- oneOrMore(tuple(Equals(expression, expression)(pos), _expression))
+    operand = if (caseOperand.isDefined) CaseExpression.Operand() else expression
+    alternatives <- oneOrMore(tuple(Equals(operand, expression)(pos), _expression))
     default <- option(_expression)
   } yield CaseExpression(caseOperand, alternatives, default)(pos)
+
+  def _scopedCase: Gen[AnonymousScopeExpression] = for {
+    expression <- _expression
+    anonVar = anonVariable()
+    alternatives <- oneOrMore(tuple(Equals(CaseExpression.Operand(), expression)(pos), _expression))
+    default <- option(_expression)
+  } yield {
+    AnonymousScopeExpression(
+      anonVariable = anonVar,
+      scopeVariableExpression = expression,
+      innerExpression = CaseExpression(Some(anonVar), alternatives, default)(pos)
+    )
+  }
 
   def _generalCase: Gen[CaseExpression] = for {
     alternatives <- oneOrMore(tuple(_expression, _expression))

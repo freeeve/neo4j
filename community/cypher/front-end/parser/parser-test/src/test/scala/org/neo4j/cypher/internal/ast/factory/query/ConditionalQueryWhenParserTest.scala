@@ -20,6 +20,7 @@ import org.neo4j.cypher.internal.ast.ExistsExpression
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.test.util.AstParsing.Cypher5
 import org.neo4j.cypher.internal.ast.test.util.AstParsingTestBase
+import org.neo4j.cypher.internal.expressions.CaseExpression
 import org.neo4j.cypher.internal.expressions.RelationshipChain
 import org.neo4j.cypher.internal.expressions.RelationshipPattern
 import org.neo4j.cypher.internal.expressions.SemanticDirection.OUTGOING
@@ -283,8 +284,8 @@ class ConditionalQueryWhenParserTest extends AstParsingTestBase {
               caseExpression(
                 Some(falseLiteral),
                 Some(falseLiteral),
-                equals(falseLiteral, trueLiteral) -> falseLiteral,
-                equals(falseLiteral, falseLiteral) -> trueLiteral
+                equals(CaseExpression.Operand(), trueLiteral) -> falseLiteral,
+                equals(CaseExpression.Operand(), falseLiteral) -> trueLiteral
               ),
               singleQuery(return_(literalInt(1).as("x")))
             )

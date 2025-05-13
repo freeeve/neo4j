@@ -18,16 +18,18 @@ package org.neo4j.cypher.internal.expressions
 
 import org.neo4j.cypher.internal.util.ASTNode
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.Rewriter
+import org.neo4j.cypher.internal.util.bottomUp
 
-// Scope expressions bundle together variables of a new scope
-// together with any child expressions that get evaluated in a context where
-// these variables are bound
-//
-// This is a hard contract: There must be no child expressions of a scope expressions
-// that are not
-// - either introduced variables
-// - or child expressions in a scope where those variables are bound
-//
+/**
+ * Scope expressions bundle together variables of a new scope
+ * together with any child expressions that get evaluated in a context where
+ * these variables are bound
+ *
+ * This is a hard contract(!): All child expressions of a scope expression must be:
+ * - either an introduced variable
+ * - or child expressions in a scope where those variables are bound
+ */
 trait ScopeExpression extends Expression {
   def introducedVariables: Set[LogicalVariable]
   def scopeDependencies: Set[LogicalVariable]
@@ -37,6 +39,51 @@ trait ScopeExpression extends Expression {
   final override def dependencies: Set[LogicalVariable] = scopeDependencies
 
   override def isConstantForQuery: Boolean = false
+}
+
+/**
+ * A generic expression for scoped anonymous variables.
+ *
+ * Binds an anonymous variable (scope.scopeVariable) to the result of `scopeVariableExpression`.
+ * Then evaluates the inner expression (scope.innerExpression) with the anonymous variable in scope.
+ *
+ * Note! Do you have a new use case for this class or plan to make changes?
+ * Then, make sure the implementation of isolateAggregation still holds.
+ */
+case class AnonymousScopeExpression(
+  scope: AnonymousScopeExpression.Scope,
+  scopeVariableExpression: Expression // The expression to bind the anon expression variable to.
+) extends Expression {
+  override def position: InputPosition = scope.innerExpression.position
+  override def isConstantForQuery: Boolean = scope.isConstantForQuery && scopeVariableExpression.isConstantForQuery
+
+  /**
+   * Returns a representation of the inner expression that do not include the anonymous scope variable.
+   * This is needed since this expression is not possible to express in Cypher.
+   */
+  def deAnonymisedInnerExpression: Expression = scope.innerExpression.endoRewrite(bottomUp(Rewriter.lift {
+    case variable: LogicalVariable if variable.name == scope.scopeVariable.name => scopeVariableExpression
+  }))
+}
+
+object AnonymousScopeExpression {
+
+  def apply(
+    anonVariable: LogicalVariable,
+    scopeVariableExpression: Expression,
+    innerExpression: Expression
+  ): AnonymousScopeExpression =
+    AnonymousScopeExpression(Scope(anonVariable, innerExpression), scopeVariableExpression)
+
+  /** The scope of an AnonymousScopeExpression, needs to be defined separately to adhere to the contract. */
+  case class Scope(
+    scopeVariable: LogicalVariable, // Anonymous expression variable.
+    innerExpression: Expression // Expression that reads the scoped variable and produces the result of this expression.
+  ) extends ScopeExpression {
+    override def position: InputPosition = innerExpression.position
+    override def introducedVariables: Set[LogicalVariable] = Set(scopeVariable)
+    override def scopeDependencies: Set[LogicalVariable] = innerExpression.dependencies -- introducedVariables
+  }
 }
 
 case class FilterScope(variable: LogicalVariable, innerPredicate: Option[Expression])(val position: InputPosition)
