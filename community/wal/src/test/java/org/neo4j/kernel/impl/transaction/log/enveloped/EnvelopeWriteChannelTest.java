@@ -1507,7 +1507,24 @@ class EnvelopeWriteChannelTest {
             assertEnvelopeContents(
                     data,
                     startOffset(startOffsetPayloadLength),
-                    envelope(EnvelopeType.FULL, FIRST_INDEX + 1, expected, mainPayloadEnvelopeChecksum));
+                    envelope(EnvelopeType.FULL, FIRST_INDEX, expected, mainPayloadEnvelopeChecksum));
+        }
+    }
+
+    @Test
+    void shouldNotIncrementIndexWhenWritingOffset() throws IOException {
+        final var buffer = buffer(SEGMENT_SIZE);
+        final var fileChannel = storeChannel();
+        try (var channel = writeChannel(fileChannel, SEGMENT_SIZE, buffer)) {
+            assertThat(channel.currentIndex()).isEqualTo(FIRST_INDEX - 1);
+
+            var offset = HEADER_SIZE + 8;
+            channel.insertStartOffset(offset);
+            channel.prepareForFlush().flush();
+            var byteBuffer = channelData(fileChannel, SEGMENT_SIZE);
+            assertEnvelopeContents(byteBuffer, startOffset(offset - HEADER_SIZE));
+
+            assertThat(channel.currentIndex()).isEqualTo(FIRST_INDEX - 1);
         }
     }
 

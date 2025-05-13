@@ -518,7 +518,7 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
     private void writeHeader(EnvelopeType type, int payloadLength) {
         final int payloadEndOffset = buffer.position();
 
-        if (begin) {
+        if (begin && type != EnvelopeType.START_OFFSET) {
             currentIndex++;
         }
 
