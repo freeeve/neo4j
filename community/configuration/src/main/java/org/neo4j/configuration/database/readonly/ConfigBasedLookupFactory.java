@@ -23,51 +23,44 @@ import static org.neo4j.configuration.GraphDatabaseSettings.read_only_database_d
 import static org.neo4j.configuration.GraphDatabaseSettings.read_only_databases;
 import static org.neo4j.configuration.GraphDatabaseSettings.writable_databases;
 
+import java.util.Optional;
 import java.util.Set;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.database.readonly.DefaultReadOnlyDatabases;
 import org.neo4j.dbms.database.readonly.ReadOnlyDatabases;
 import org.neo4j.kernel.database.DatabaseId;
-import org.neo4j.kernel.database.DatabaseIdRepository;
-import org.neo4j.kernel.database.NamedDatabaseId;
 
 /**
  * Default implementation of {@link DefaultReadOnlyDatabases.LookupFactory} which resolves read only database names from  config.
  */
 public final class ConfigBasedLookupFactory implements ReadOnlyDatabases.LookupFactory {
-    private final Config config;
-    private final DatabaseIdRepository databaseIdRepository;
+    public interface DatabaseIdResolver {
+        Optional<DatabaseId> resolve(String name);
+    }
 
-    public ConfigBasedLookupFactory(Config config, DatabaseIdRepository databaseIdRepository) {
+    private final Config config;
+    private final DatabaseIdResolver databaseIdResolver;
+
+    public ConfigBasedLookupFactory(Config config, DatabaseIdResolver databaseIdResolver) {
         this.config = config;
-        this.databaseIdRepository = databaseIdRepository;
+        this.databaseIdResolver = databaseIdResolver;
     }
 
     @Override
     public ReadOnlyDatabases.Lookup lookupReadOnlyDatabases() {
         return new ConfigLookup(
-                databaseIdRepository,
+                databaseIdResolver,
                 config.get(read_only_database_default),
                 config.get(read_only_databases),
                 config.get(writable_databases));
     }
 
-    private static class ConfigLookup implements ReadOnlyDatabases.Lookup {
-        private final DatabaseIdRepository databaseIdRepository;
-        private final boolean readOnlyDefault;
-        private final Set<String> readOnlyDatabaseNames;
-        private final Set<String> writableDatabaseNames;
-
-        ConfigLookup(
-                DatabaseIdRepository databaseIdRepository,
-                boolean readOnlyDefault,
-                Set<String> readOnlyDatabaseNames,
-                Set<String> writableDatabaseNames) {
-            this.databaseIdRepository = databaseIdRepository;
-            this.readOnlyDefault = readOnlyDefault;
-            this.readOnlyDatabaseNames = readOnlyDatabaseNames;
-            this.writableDatabaseNames = writableDatabaseNames;
-        }
+    private record ConfigLookup(
+            DatabaseIdResolver databaseIdResolver,
+            boolean readOnlyDefault,
+            Set<String> readOnlyDatabaseNames,
+            Set<String> writableDatabaseNames)
+            implements ReadOnlyDatabases.Lookup {
 
         @Override
         public boolean databaseIsReadOnly(DatabaseId databaseId) {
@@ -89,8 +82,7 @@ public final class ConfigBasedLookupFactory implements ReadOnlyDatabases.LookupF
 
         private boolean containsDatabaseId(Set<String> names, DatabaseId databaseId) {
             return names.stream()
-                    .flatMap(name ->
-                            databaseIdRepository.getByName(name).stream().map(NamedDatabaseId::databaseId))
+                    .flatMap(name -> databaseIdResolver.resolve(name).stream())
                     .anyMatch(databaseId::equals);
         }
     }

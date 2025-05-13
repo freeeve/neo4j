@@ -75,7 +75,6 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.TransactionTimeout;
 import org.neo4j.kernel.api.procedure.ProcedureView;
 import org.neo4j.kernel.availability.AvailabilityGuard;
-import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.database.PrivilegeDatabaseReferenceImpl;
@@ -252,9 +251,9 @@ class KernelTransactionTestBase {
         var dependencies = dependenciesOf(mock(GraphDatabaseFacade.class), mock(URIAccessRules.class));
         var memoryPool = new MemoryPools().pool(MemoryGroup.TRANSACTION, ByteUnit.mebiBytes(4), null);
 
-        DatabaseIdRepository databaseIdRepository = mock(DatabaseIdRepository.class);
-        Mockito.when(databaseIdRepository.getByName(databaseId.name())).thenReturn(Optional.of(databaseId));
-        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdRepository);
+        var databaseIdResolver = mock(ConfigBasedLookupFactory.DatabaseIdResolver.class);
+        Mockito.when(databaseIdResolver.resolve(databaseId.name())).thenReturn(Optional.of(databaseId.databaseId()));
+        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdResolver);
         var readOnlyChecker = new DefaultReadOnlyDatabases(readOnlyLookup);
         DefaultPageCacheTracer pageCacheTracer = new DefaultPageCacheTracer();
         DefaultVersionStorageTracer versionStorageTracer = new DefaultVersionStorageTracer(pageCacheTracer);

@@ -40,7 +40,6 @@ import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.pagecache.PageCache;
 import org.neo4j.io.pagecache.context.CursorContextFactory;
 import org.neo4j.kernel.database.DatabaseIdFactory;
-import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.impl.index.schema.PointIndexProviderFactory;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.monitoring.Monitors;
@@ -64,10 +63,11 @@ class PointIndexProviderCompatibilitySuiteTest extends SpecialisedIndexProviderC
         RecoveryCleanupWorkCollector recoveryCleanupWorkCollector = RecoveryCleanupWorkCollector.immediate();
         var defaultDatabaseId = DatabaseIdFactory.from(
                 DEFAULT_DATABASE_NAME, UUID.randomUUID()); // UUID required, but ignored by config lookup
-        DatabaseIdRepository databaseIdRepository = mock(DatabaseIdRepository.class);
-        Mockito.when(databaseIdRepository.getByName(DEFAULT_DATABASE_NAME)).thenReturn(Optional.of(defaultDatabaseId));
-        var readOnlyDatabases =
-                new DefaultReadOnlyDatabases(new ConfigBasedLookupFactory(config, databaseIdRepository));
+        var databaseIdResolver = mock(ConfigBasedLookupFactory.DatabaseIdResolver.class);
+        Mockito.when(databaseIdResolver.resolve(DEFAULT_DATABASE_NAME))
+                .thenReturn(Optional.of(defaultDatabaseId.databaseId()));
+        var configBasedLookup = new ConfigBasedLookupFactory(config, databaseIdResolver);
+        var readOnlyDatabases = new DefaultReadOnlyDatabases(configBasedLookup);
         var readOnlyChecker = readOnlyDatabases.forDatabase(defaultDatabaseId);
         var cacheTracer = NULL;
         return PointIndexProviderFactory.create(

@@ -148,14 +148,14 @@ public abstract class AbstractEditionModule {
     protected static ReadOnlyDatabases createGlobalReadOnlyChecker(
             Set<SystemGraphReadOnlyDatabaseLookupFactory.ReadonlyDatabasesProvider> readOnlyDatabaseProviders,
             SystemDatabaseProvider systemDatabaseProvider,
-            DatabaseIdRepository databaseIdRepository,
+            ConfigBasedLookupFactory.DatabaseIdResolver databaseIdResolver,
             ReadOnlyChangeListener listener,
             GlobalModule globalModule) {
         var globalConfig = globalModule.getGlobalConfig();
         var logProvider = globalModule.getLogService().getInternalLogProvider();
         var systemGraphReadOnlyLookup = new SystemGraphReadOnlyDatabaseLookupFactory(
                 systemDatabaseProvider, logProvider, readOnlyDatabaseProviders);
-        var configReadOnlyLookup = new ConfigBasedLookupFactory(globalConfig, databaseIdRepository);
+        var configReadOnlyLookup = new ConfigBasedLookupFactory(globalConfig, databaseIdResolver);
         var globalReadOnlyChecker =
                 new DefaultReadOnlyDatabases(listener, systemGraphReadOnlyLookup, configReadOnlyLookup);
         var configListener = new ConfigReadOnlyDatabaseListener(globalReadOnlyChecker, globalConfig);

@@ -85,6 +85,7 @@ import org.neo4j.kernel.database.MapCachingDatabaseIdRepository;
 import org.neo4j.kernel.database.MapCachingDatabaseReferenceRepository;
 import org.neo4j.kernel.database.ModelBasedDatabaseIdRepository;
 import org.neo4j.kernel.database.ModelBasedDatabaseReferenceRepository;
+import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.impl.api.TransactionalProcessFactory;
 import org.neo4j.kernel.impl.factory.DbmsInfo;
 import org.neo4j.kernel.impl.factory.DefaultTransactionalProcessFactory;
@@ -377,7 +378,7 @@ public class CommunityEditionModule extends AbstractEditionModule implements Def
         globalReadOnlyChecker = createGlobalReadOnlyChecker(
                 Set.of(SystemGraphReadOnlyDatabaseLookupFactory.DEFAULT_PROVIDER),
                 systemDatabaseProvider,
-                databaseIdRepository,
+                name -> databaseIdRepository.getByName(name).map(NamedDatabaseId::databaseId),
                 ReadOnlyChangeListener.NO_OP,
                 globalModule);
         globalModule

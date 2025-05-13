@@ -45,8 +45,6 @@ import org.neo4j.configuration.database.readonly.ConfigReadOnlyDatabaseListener;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.kernel.database.DatabaseId;
 import org.neo4j.kernel.database.DatabaseIdFactory;
-import org.neo4j.kernel.database.DatabaseIdRepository;
-import org.neo4j.kernel.database.NamedDatabaseId;
 import org.neo4j.kernel.lifecycle.LifeSupport;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.LifeExtension;
@@ -63,9 +61,9 @@ class DefaultReadOnlyDatabasesTest {
         var fooDb = DatabaseIdFactory.from("foo1234", UUID.randomUUID());
         var configValues = Map.of(read_only_database_default, true, read_only_databases, Set.of());
         var config = Config.defaults(configValues);
-        DatabaseIdRepository databaseIdRepository = mock(DatabaseIdRepository.class);
-        Mockito.when(databaseIdRepository.getByName("foo12345")).thenReturn(Optional.of(fooDb));
-        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdRepository);
+        var databaseIdResolver = mock(ConfigBasedLookupFactory.DatabaseIdResolver.class);
+        Mockito.when(databaseIdResolver.resolve("foo12345")).thenReturn(Optional.of(fooDb.databaseId()));
+        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdResolver);
         var checker = new DefaultReadOnlyDatabases(readOnlyLookup);
         var listener = new ConfigReadOnlyDatabaseListener(checker, config);
         life.add(listener);
@@ -81,9 +79,9 @@ class DefaultReadOnlyDatabasesTest {
         var configValues = Map.of(read_only_database_default, false, read_only_databases, Set.of(fooDb.name()));
         var config = Config.defaults(configValues);
 
-        DatabaseIdRepository databaseIdRepository = mock(DatabaseIdRepository.class);
-        Mockito.when(databaseIdRepository.getByName("foo")).thenReturn(Optional.of(fooDb));
-        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdRepository);
+        var databaseIdResolver = mock(ConfigBasedLookupFactory.DatabaseIdResolver.class);
+        Mockito.when(databaseIdResolver.resolve("foo")).thenReturn(Optional.of(fooDb.databaseId()));
+        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdResolver);
         var checker = new DefaultReadOnlyDatabases(readOnlyLookup);
         var listener = new ConfigReadOnlyDatabaseListener(checker, config);
         life.add(listener);
@@ -111,11 +109,13 @@ class DefaultReadOnlyDatabasesTest {
                 Map.of(read_only_database_default, false, read_only_databases, Set.of(DEFAULT_DATABASE_NAME));
 
         var config = Config.defaults(configValues);
-        DatabaseIdRepository databaseIdRepository = mock(DatabaseIdRepository.class);
-        Mockito.when(databaseIdRepository.getByName(DEFAULT_DATABASE_NAME)).thenReturn(Optional.of(defaultDatabase));
-        Mockito.when(databaseIdRepository.getByName(SYSTEM_DATABASE_NAME))
-                .thenReturn(Optional.of(NamedDatabaseId.NAMED_SYSTEM_DATABASE_ID));
-        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdRepository);
+        var databaseIdResolver = mock(ConfigBasedLookupFactory.DatabaseIdResolver.class);
+        Mockito.when(databaseIdResolver.resolve(DEFAULT_DATABASE_NAME))
+                .thenReturn(Optional.of(defaultDatabase.databaseId()));
+        Mockito.when(databaseIdResolver.resolve(SYSTEM_DATABASE_NAME))
+                .thenReturn(Optional.of(DatabaseId.SYSTEM_DATABASE_ID));
+        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdResolver);
+
         var checker = new DefaultReadOnlyDatabases(readOnlyLookup);
 
         // when/then
@@ -161,10 +161,10 @@ class DefaultReadOnlyDatabasesTest {
         var bar = DatabaseIdFactory.from("bar", UUID.randomUUID());
         var configValues = Map.of(read_only_database_default, true, writable_databases, Set.of(foo.name()));
         var config = Config.defaults(configValues);
-        DatabaseIdRepository databaseIdRepository = mock(DatabaseIdRepository.class);
-        Mockito.when(databaseIdRepository.getByName("foo")).thenReturn(Optional.of(foo));
-        Mockito.when(databaseIdRepository.getByName("bar")).thenReturn(Optional.of(bar));
-        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdRepository);
+        var databaseIdResolver = mock(ConfigBasedLookupFactory.DatabaseIdResolver.class);
+        Mockito.when(databaseIdResolver.resolve("foo")).thenReturn(Optional.of(foo.databaseId()));
+        Mockito.when(databaseIdResolver.resolve("bar")).thenReturn(Optional.of(bar.databaseId()));
+        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdResolver);
         var checker = new DefaultReadOnlyDatabases(readOnlyLookup);
         var listener = new ConfigReadOnlyDatabaseListener(checker, config);
         life.add(listener);
@@ -185,11 +185,11 @@ class DefaultReadOnlyDatabasesTest {
                 writable_databases, Set.of(bar.name(), baz.name()));
 
         var config = Config.defaults(configValues);
-        DatabaseIdRepository databaseIdRepository = mock(DatabaseIdRepository.class);
-        Mockito.when(databaseIdRepository.getByName("foo")).thenReturn(Optional.of(foo));
-        Mockito.when(databaseIdRepository.getByName("bar")).thenReturn(Optional.of(bar));
-        Mockito.when(databaseIdRepository.getByName("baz")).thenReturn(Optional.of(baz));
-        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdRepository);
+        var databaseIdResolver = mock(ConfigBasedLookupFactory.DatabaseIdResolver.class);
+        Mockito.when(databaseIdResolver.resolve("foo")).thenReturn(Optional.of(foo.databaseId()));
+        Mockito.when(databaseIdResolver.resolve("bar")).thenReturn(Optional.of(bar.databaseId()));
+        Mockito.when(databaseIdResolver.resolve("baz")).thenReturn(Optional.of(baz.databaseId()));
+        var readOnlyLookup = new ConfigBasedLookupFactory(config, databaseIdResolver);
         var checker = new DefaultReadOnlyDatabases(readOnlyLookup);
         var listener = new ConfigReadOnlyDatabaseListener(checker, config);
         life.add(listener);

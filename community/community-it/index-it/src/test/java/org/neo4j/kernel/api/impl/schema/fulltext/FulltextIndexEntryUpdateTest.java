@@ -69,7 +69,6 @@ import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.IndexProvider;
 import org.neo4j.kernel.api.index.IndexUpdater;
 import org.neo4j.kernel.database.DatabaseIdFactory;
-import org.neo4j.kernel.database.DatabaseIdRepository;
 import org.neo4j.kernel.impl.api.index.IndexSamplingConfig;
 import org.neo4j.kernel.impl.api.index.IndexUpdateMode;
 import org.neo4j.kernel.impl.api.index.PhaseTracker;
@@ -140,9 +139,10 @@ class FulltextIndexEntryUpdateTest {
         CursorContextFactory contextFactory = new CursorContextFactory(cacheTracer, EMPTY_CONTEXT_SUPPLIER);
         var defaultDatabaseId = DatabaseIdFactory.from(
                 DEFAULT_DATABASE_NAME, UUID.randomUUID()); // UUID required, but ignored by config lookup
-        DatabaseIdRepository databaseIdRepository = mock(DatabaseIdRepository.class);
-        Mockito.when(databaseIdRepository.getByName(DEFAULT_DATABASE_NAME)).thenReturn(Optional.of(defaultDatabaseId));
-        var configBasedLookup = new ConfigBasedLookupFactory(CONFIG, databaseIdRepository);
+        var databaseIdResolver = mock(ConfigBasedLookupFactory.DatabaseIdResolver.class);
+        Mockito.when(databaseIdResolver.resolve(DEFAULT_DATABASE_NAME))
+                .thenReturn(Optional.of(defaultDatabaseId.databaseId()));
+        var configBasedLookup = new ConfigBasedLookupFactory(CONFIG, databaseIdResolver);
         var readOnlyDatabases = new DefaultReadOnlyDatabases(configBasedLookup);
         final var readOnlyChecker = readOnlyDatabases.forDatabase(defaultDatabaseId);
         jobScheduler = JobSchedulerFactory.createInitialisedScheduler();
