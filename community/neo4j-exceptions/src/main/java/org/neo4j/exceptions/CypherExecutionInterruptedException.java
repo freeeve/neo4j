@@ -20,7 +20,9 @@
 package org.neo4j.exceptions;
 
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
-import org.neo4j.gqlstatus.GqlHelper;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
+import org.neo4j.gqlstatus.GqlParams;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class CypherExecutionInterruptedException extends Neo4jException {
@@ -34,9 +36,9 @@ public class CypherExecutionInterruptedException extends Neo4jException {
 
     public static CypherExecutionInterruptedException concurrentBatchTransactionInterrupted(Class<?> source) {
         String message = "The batch was interrupted and the transaction was rolled back because another batch failed";
-        // TODO: should we have a proper GQL code for this?
-        var gql = GqlHelper.get50N00(source.getSimpleName(), message);
-
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N16)
+                .withParam(GqlParams.StringParam.msg, message)
+                .build();
         return new CypherExecutionInterruptedException(
                 gql, message, Status.Transaction.QueryExecutionFailedOnTransaction);
     }
