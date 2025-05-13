@@ -127,6 +127,26 @@ public class InvalidArgumentsException extends GqlException implements Status.Ha
         return new InvalidArgumentsException(gql, msg);
     }
 
+    public static InvalidArgumentsException cannotAlterServer(String name, InvalidArgumentsException cause) {
+        var msg = String.format("Server '%s' can't be altered: %s", name, cause.getMessage());
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N46)
+                        .withParam(GqlParams.StringParam.server, name)
+                        .build())
+                .build();
+        return new InvalidArgumentsException(gql, msg, cause);
+    }
+
+    public static InvalidArgumentsException cannotEnableServer(String name, InvalidArgumentsException cause) {
+        var msg = String.format("Server '%s' can't be enabled: %s", name, cause.getMessage());
+        var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N41)
+                .withCause(ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N48)
+                        .withParam(GqlParams.StringParam.server, name)
+                        .build())
+                .build();
+        return new InvalidArgumentsException(gql, msg, cause);
+    }
+
     public static InvalidArgumentsException providedFieldEmpty(String field) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_22NB6)
                 .withParam(GqlParams.StringParam.item, field)

@@ -40,11 +40,6 @@ public class AuthProviderFailedException extends GqlRuntimeException implements 
         super(gqlStatusObject, message);
     }
 
-    @Deprecated
-    public AuthProviderFailedException(String message, Throwable cause) {
-        super(message, cause);
-    }
-
     private AuthProviderFailedException(ErrorGqlStatusObject gqlStatusObject, String message, Throwable cause) {
         super(gqlStatusObject, message, cause);
     }

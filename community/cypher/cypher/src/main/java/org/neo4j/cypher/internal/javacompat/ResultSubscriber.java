@@ -31,6 +31,7 @@ import org.neo4j.cypher.internal.NonFatalCypherError;
 import org.neo4j.cypher.internal.result.string.ResultStringBuilder;
 import org.neo4j.exceptions.CypherExecutionException;
 import org.neo4j.exceptions.Neo4jException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.graphdb.ExecutionPlanDescription;
 import org.neo4j.graphdb.GqlStatusObject;
 import org.neo4j.graphdb.Notification;
@@ -40,7 +41,6 @@ import org.neo4j.graphdb.QueryStatistics;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Result;
 import org.neo4j.internal.helpers.collection.PrefetchingResourceIterator;
-import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.kernel.impl.query.QueryExecution;
 import org.neo4j.kernel.impl.query.QueryExecutionKernelException;
 import org.neo4j.kernel.impl.query.QuerySubscriber;
@@ -373,8 +373,8 @@ public class ResultSubscriber extends PrefetchingResourceIterator<Map<String, Ob
             neo4jException = (Neo4jException) e;
         } else if (e instanceof RuntimeException) {
             throw (RuntimeException) e;
-        } else if (e instanceof ProcedureException ex) {
-            neo4jException = CypherExecutionException.wrapError(ex);
+        } else if (e instanceof ErrorGqlStatusObject) {
+            neo4jException = CypherExecutionException.wrapError((Throwable & ErrorGqlStatusObject) e);
         } else {
             neo4jException = CypherExecutionException.unexpectedError(e);
         }
