@@ -268,7 +268,7 @@ public class SchemaMigrator {
     }
 
     // Should we skip this index in migration due to it being filtered in some way
-    private static boolean shouldSkipSinceFiltered(
+    public static boolean shouldSkipSinceFiltered(
             ReadBehaviour readBehaviour, TokenHolders tokenHolders, SchemaDescriptor schemaDescriptor) {
         String[] entityTokenNames =
                 tokenHolders.entityTokensGetNames(schemaDescriptor.entityType(), schemaDescriptor.getEntityTokenIds());
@@ -337,7 +337,7 @@ public class SchemaMigrator {
         return false;
     }
 
-    private static List<SchemaRule> getSrcSchemaRules(
+    public static List<SchemaRule> getSrcSchemaRules(
             StorageEngineFactory fromStorage,
             FileSystemAbstraction fs,
             PageCache pageCache,
