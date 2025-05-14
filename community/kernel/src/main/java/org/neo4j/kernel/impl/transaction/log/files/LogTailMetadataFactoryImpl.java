@@ -23,9 +23,11 @@ import java.io.IOException;
 import org.neo4j.configuration.Config;
 import org.neo4j.io.fs.FileSystemAbstraction;
 import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.kernel.KernelVersion;
+import org.neo4j.kernel.database.DatabaseTracers;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadata;
 import org.neo4j.kernel.impl.transaction.log.LogTailMetadataFactory;
+import org.neo4j.kernel.recovery.LogTailExtractor;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StorageEngineFactory;
 
 public class LogTailMetadataFactoryImpl implements LogTailMetadataFactory {
@@ -39,11 +41,7 @@ public class LogTailMetadataFactoryImpl implements LogTailMetadataFactory {
     public LogTailMetadata getLogTailMetadata(
             Config config, DatabaseLayout databaseLayout, StorageEngineFactory storageEngineFactory)
             throws IOException {
-        return LogFilesBuilder.logFilesBasedOnlyBuilder(databaseLayout.getTransactionLogsDirectory(), fileSystem)
-                .withStorageEngineFactory(storageEngineFactory)
-                .withConfig(config)
-                .withKernelVersionProvider(() -> KernelVersion.getLatestVersion(config))
-                .build()
-                .getTailMetadata();
+        return new LogTailExtractor(fileSystem, config, storageEngineFactory, DatabaseTracers.EMPTY)
+                .getTailMetadata(databaseLayout, EmptyMemoryTracker.INSTANCE);
     }
 }
