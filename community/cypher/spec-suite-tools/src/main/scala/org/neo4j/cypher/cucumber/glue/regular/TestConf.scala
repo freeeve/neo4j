@@ -337,6 +337,53 @@ object TestConf {
     }
   }
 
+  object ParallelLeverageOrder {
+
+    private def baseConf: TestConf = TestConf(
+      preparserOptions = Map("runtime" -> "parallel", "parallelRuntimeConfig" -> "leverageOrder")
+    )
+
+    object Cypher25 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelLeverageOrder$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelLeverageOrder$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+  }
+
+  object ParallelLeverageOrderNonFused {
+
+    private def baseConf: TestConf = TestConf(
+      preparserOptions =
+        Map("runtime" -> "parallel", "parallelRuntimeConfig" -> "leverageOrder", "operatorEngine" -> "interpreted")
+    )
+
+    object Cypher25 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelLeverageOrderNonFused$Cypher25$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher25(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+
+    object Cypher5 extends InjectedTestConf {
+
+      final val FactoryName =
+        "org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelLeverageOrderNonFused$Cypher5$ObjectFactory"
+      final override val conf: TestConf = TestConf.withCypher5(baseConf)
+      final class ObjectFactory extends SingletonInjector(injector)
+    }
+  }
+
   object ParallelBolt {
 
     private def baseConf: TestConf = TestConf(

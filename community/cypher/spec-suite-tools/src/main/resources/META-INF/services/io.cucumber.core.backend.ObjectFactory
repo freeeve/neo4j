@@ -22,6 +22,10 @@ org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelBolt$Cypher25$ObjectFact
 org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelBolt$Cypher5$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelNonFused$Cypher25$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelNonFused$Cypher5$ObjectFactory
+org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelLeverageOrder$Cypher25$ObjectFactory
+org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelLeverageOrder$Cypher5$ObjectFactory
+org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelLeverageOrderNonFused$Cypher25$ObjectFactory
+org.neo4j.cypher.cucumber.glue.regular.TestConf$ParallelLeverageOrderNonFused$Cypher5$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdBolt$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$SpdParallel$ObjectFactory
 org.neo4j.cypher.cucumber.glue.regular.TestConf$Legacy$ObjectFactory
