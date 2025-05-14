@@ -517,6 +517,7 @@ public abstract class DatabaseReferenceImpl implements DatabaseReference {
 
     public static final class PropertyShard extends DatabaseReferenceImpl.Internal {
 
+        public static int MAX_NUMBER_OF_SHARDS = 1000;
         private final String spdName;
 
         public PropertyShard(NormalizedDatabaseName alias, NamedDatabaseId namedDatabaseId, String spdName) {
