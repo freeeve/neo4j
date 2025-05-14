@@ -25,7 +25,7 @@ import org.neo4j.kernel.impl.transaction.log.entry.v520.DetachedCheckpointLogEnt
 import org.neo4j.kernel.impl.transaction.log.entry.v520.RollbackLogEntrySerializerV5_20;
 import org.neo4j.kernel.impl.transaction.log.entry.v520.StartLogEntrySerializerV5_20;
 
-class LogEntrySerializationSetV5_20 extends LogEntrySerializationSetV5_19 {
+class LogEntrySerializationSetV5_20 extends LogEntrySerializationSetV5_7 {
     LogEntrySerializationSetV5_20() {
         this(KernelVersion.V5_20);
     }

@@ -22,7 +22,7 @@ package org.neo4j.kernel.impl.transaction.log.entry;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.entry.v202505.StartLogEntrySerializerV2025_05;
 
-class LogEntrySerializationSetV2025_05 extends LogEntrySerializationSetV2025_04 {
+class LogEntrySerializationSetV2025_05 extends LogEntrySerializationSetV5_22 {
     LogEntrySerializationSetV2025_05() {
         this(KernelVersion.V2025_05);
     }
