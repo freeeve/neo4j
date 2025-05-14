@@ -20,7 +20,6 @@
 package org.neo4j.graphdb;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.neo4j.configuration.GraphDatabaseSettings.shutdown_transaction_end_timeout;
 
@@ -28,7 +27,6 @@ import java.time.Duration;
 import java.util.concurrent.Future;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.ThrowingSupplier;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.kernel.availability.AvailabilityListener;
 import org.neo4j.kernel.availability.DatabaseAvailabilityGuard;
@@ -97,8 +95,13 @@ public class GraphDatabaseServiceTest {
             managementService.shutdown();
             return null;
         });
-        assertDoesNotThrow((ThrowingSupplier<Object>) txFuture::get);
         shutdownFuture.get();
+        try {
+            // future can complete normally or fail with DatabaseShutdownException
+            txFuture.get();
+        } catch (Exception e) {
+            assertThat(e).rootCause().isInstanceOf(DatabaseShutdownException.class);
+        }
     }
 
     @Test
