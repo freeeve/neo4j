@@ -119,6 +119,27 @@ trait CypherExceptionFactory {
 
   }
 
+  def invalidGraphReferenceFormat(
+    wrongInput: String,
+    pos: InputPosition
+  ): RuntimeException = {
+    val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42001)
+      .atPosition(pos.offset, pos.line, pos.column)
+      .withCause(
+        ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_42NAA)
+          .withParam(GqlParams.StringParam.input, wrongInput)
+          .atPosition(pos.offset, pos.line, pos.column)
+          .build()
+      )
+      .build()
+    syntaxException(
+      gql,
+      "Incorrectly formatted graph reference '%s'. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually."
+        .formatted(wrongInput),
+      pos
+    )
+  }
+
   def invalidUseOfAggregationInOrderBy(
     clause: String,
     position: InputPosition

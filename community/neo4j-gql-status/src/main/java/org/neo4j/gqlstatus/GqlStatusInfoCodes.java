@@ -3678,6 +3678,15 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
             "system database procedure rules",
             ErrorClassification.CLIENT_ERROR),
+    STATUS_42NAA(
+            new GqlStatus("42NAA"),
+            """
+                    Incorrectly formatted graph reference { %s }. Expected a single quoted or unquoted identifier. Separate name parts should not be quoted individually.""",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.input},
+            emptyMap(),
+            Condition.SYNTAX_ERROR_OR_ACCESS_RULE_VIOLATION,
+            "incorrectly formatted graph reference",
+            ErrorClassification.CLIENT_ERROR),
     STATUS_42NFC(
             new GqlStatus("42NFC"),
             "Authentication and/or authorization could not be validated. See security logs for details.",
