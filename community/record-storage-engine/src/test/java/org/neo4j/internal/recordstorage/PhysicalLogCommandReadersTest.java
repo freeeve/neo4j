@@ -26,7 +26,6 @@ import static org.mockito.Mockito.when;
 import static org.neo4j.internal.recordstorage.Command.RelationshipGroupCommand;
 
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -51,9 +50,9 @@ class PhysicalLogCommandReadersTest {
     @ParameterizedTest
     @ValueSource(classes = {LogCommandSerializationV4_2.class, LogCommandSerializationV4_3_D3.class})
     void readRelGroupWithHugeTypeBefore5_0(Class<CommandReader> readerClass)
-            throws IOException, IllegalAccessException, InstantiationException, NoSuchMethodException,
-                    InvocationTargetException {
-        CommandReader reader = readerClass.getDeclaredConstructor().newInstance();
+            throws IOException, IllegalAccessException, NoSuchFieldException {
+        CommandReader reader =
+                (CommandReader) readerClass.getDeclaredField("INSTANCE").get(readerClass);
         StorageCommand command = reader.read(channelWithExtendedRelGroupRecordBefore5_0(), EmptyMemoryTracker.INSTANCE);
         assertValidRelGroupCommand(command);
     }

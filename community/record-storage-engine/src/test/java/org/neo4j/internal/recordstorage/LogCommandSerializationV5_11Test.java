@@ -62,7 +62,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void readCreateNodeCommand() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             NodeRecord randomCreated = createRandomNodeRecord(7);
             randomCreated.setCreated();
             randomCreated.setInUse(true);
@@ -81,7 +81,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void readDeleteNodeCommand() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             NodeRecord randomRemovedNode = createRandomNodeRecord(7);
             NodeRecord nodeBefore = new NodeRecord(randomRemovedNode);
 
@@ -105,7 +105,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void createNodesAreTheSameInNewAndOldCommands() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             NodeRecord recordBeforeToDelete = createRandomNodeRecord(42);
             NodeRecord recordAfterDelete = new NodeRecord(recordBeforeToDelete);
 
@@ -133,7 +133,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void deleteNodesAreTheSameInNewAndOldCommands() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             NodeRecord recordBeforeToDelete = createRandomUsedNodeRecord(42);
             NodeRecord recordAfterDelete = new NodeRecord(42);
 
@@ -166,7 +166,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void readCreateRelationshipCommand() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             var randomCreated = createRandomRelationshipRecord(7);
             randomCreated.setCreated();
             randomCreated.setInUse(true);
@@ -185,7 +185,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void readDeleteRelationshipCommand() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             var randomDeletedRelationship = createRandomRelationshipRecord(7);
             var relationshipBefore = new RelationshipRecord(randomDeletedRelationship);
 
@@ -210,7 +210,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void createdRelationshipsAreTheSameInNewAndOldCommands() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             var recordBeforeToCreate = new RelationshipRecord(42);
             var recordAfterCreate = createRandomUsedRelationshipRecord(42);
 
@@ -234,7 +234,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void deleteRelationshipsAreTheSameInNewAndOldCommands() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             var recordBeforeToDelete = createRandomUsedRelationshipRecord(42);
             var recordAfterDelete = new RelationshipRecord(42);
 
@@ -256,7 +256,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void readCreatePropertyCommand() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             PropertyRecord randomCreated = createRandomUsedPropertyRecord(7);
             randomCreated.setCreated();
 
@@ -274,7 +274,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void readDeletePropertyCommand() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             var propertyBefore = createRandomUsedPropertyRecord(7);
             var randomRemovedProperty = new PropertyRecord(propertyBefore);
 
@@ -299,7 +299,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void createdPropertiesAreTheSameInNewAndOldCommands() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             var recordAfterCreate = createRandomUsedPropertyRecord(42);
             var recordBeforeToCreate = new PropertyRecord(recordAfterCreate);
 
@@ -327,7 +327,7 @@ public class LogCommandSerializationV5_11Test extends LogCommandSerializationV5_
     @RepeatedTest(100)
     void deletePropertiesAreTheSameInNewAndOldCommands() throws IOException {
         try (var channel = new InMemoryClosableChannel()) {
-            var commandSerialization = new LogCommandSerializationV5_11();
+            var commandSerialization = LogCommandSerializationV5_11.INSTANCE;
             var recordBeforeToDelete = createRandomUsedPropertyRecord(42);
             var recordAfterDelete = new PropertyRecord(recordBeforeToDelete);
 

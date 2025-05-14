@@ -57,12 +57,12 @@ import org.neo4j.values.storable.CoordinateReferenceSystem;
 import org.neo4j.values.storable.Value;
 import org.neo4j.values.storable.ValueWriter;
 
-class LogCommandSerializationV5_0 extends LogCommandSerializationV4_4 {
-    static final LogCommandSerializationV5_0 INSTANCE = new LogCommandSerializationV5_0();
+class LogCommandSerializationV5_0 extends LogCommandSerializationV4_3_D3 {
+    static final LogCommandSerializationV5_0 INSTANCE = new LogCommandSerializationV5_0(KernelVersion.V5_0);
+    static final LogCommandSerializationV5_0 V5_7_INSTANCE = new LogCommandSerializationV5_0(KernelVersion.V5_7);
 
-    @Override
-    public KernelVersion kernelVersion() {
-        return KernelVersion.V5_0;
+    LogCommandSerializationV5_0(KernelVersion kernelVersion) {
+        super(kernelVersion);
     }
 
     @Override

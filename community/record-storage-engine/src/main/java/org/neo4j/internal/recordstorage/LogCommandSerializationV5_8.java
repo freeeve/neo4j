@@ -27,12 +27,13 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.enrichment.Enrichment;
 
-class LogCommandSerializationV5_8 extends LogCommandSerializationV5_7 {
-    static final LogCommandSerializationV5_8 INSTANCE = new LogCommandSerializationV5_8();
+class LogCommandSerializationV5_8 extends LogCommandSerializationV5_0 {
+    static final LogCommandSerializationV5_8 INSTANCE = new LogCommandSerializationV5_8(KernelVersion.V5_8);
+    static final LogCommandSerializationV5_8 V5_9_INSTANCE = new LogCommandSerializationV5_8(KernelVersion.V5_9);
+    static final LogCommandSerializationV5_8 V5_10_INSTANCE = new LogCommandSerializationV5_8(KernelVersion.V5_10);
 
-    @Override
-    public KernelVersion kernelVersion() {
-        return KernelVersion.V5_8;
+    LogCommandSerializationV5_8(KernelVersion kernelVersion) {
+        super(kernelVersion);
     }
 
     @Override

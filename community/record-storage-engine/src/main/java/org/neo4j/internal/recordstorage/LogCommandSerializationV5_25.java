@@ -34,8 +34,16 @@ import org.neo4j.kernel.KernelVersion;
 import org.neo4j.storageengine.api.UpdateMode;
 import org.neo4j.values.storable.Value;
 
-class LogCommandSerializationV5_25 extends LogCommandSerializationV5_23 {
-    static final LogCommandSerializationV5_25 INSTANCE = new LogCommandSerializationV5_25();
+class LogCommandSerializationV5_25 extends LogCommandSerializationV5_11 {
+    static final LogCommandSerializationV5_25 INSTANCE = new LogCommandSerializationV5_25(KernelVersion.V5_25);
+    static final LogCommandSerializationV5_25 V2025_04_INSTANCE =
+            new LogCommandSerializationV5_25(KernelVersion.V2025_04);
+    static final LogCommandSerializationV5_25 V2025_05_INSTANCE =
+            new LogCommandSerializationV5_25(KernelVersion.V2025_05);
+
+    LogCommandSerializationV5_25(KernelVersion kernelVersion) {
+        super(kernelVersion);
+    }
 
     @Override
     protected Command readIndexUpdateCommand(ReadableChannel channel) throws IOException {
@@ -46,11 +54,6 @@ class LogCommandSerializationV5_25 extends LogCommandSerializationV5_23 {
     public void writeIndexUpdateCommand(WritableChannel channel, IndexUpdateCommand command) throws IOException {
         channel.put(NeoCommandType.INDEX_UPDATE_COMMAND);
         write(channel, command);
-    }
-
-    @Override
-    public KernelVersion kernelVersion() {
-        return KernelVersion.V5_25;
     }
 
     static void write(WritableChannel out, IndexUpdateCommand command) throws IOException {

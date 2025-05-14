@@ -55,11 +55,10 @@ import org.neo4j.values.storable.ValueWriter;
 import org.neo4j.values.storable.Values;
 
 class LogCommandSerializationV4_2 extends LogCommandSerialization {
-    static final LogCommandSerializationV4_2 INSTANCE = new LogCommandSerializationV4_2();
+    static final LogCommandSerializationV4_2 INSTANCE = new LogCommandSerializationV4_2(KernelVersion.V4_2);
 
-    @Override
-    public KernelVersion kernelVersion() {
-        return KernelVersion.V4_2;
+    LogCommandSerializationV4_2(KernelVersion kernelVersion) {
+        super(kernelVersion);
     }
 
     @Override

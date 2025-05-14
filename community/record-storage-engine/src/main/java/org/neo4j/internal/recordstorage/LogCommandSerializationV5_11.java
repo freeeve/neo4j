@@ -32,8 +32,21 @@ import org.neo4j.kernel.impl.store.record.PropertyBlock;
 import org.neo4j.kernel.impl.store.record.PropertyRecord;
 import org.neo4j.kernel.impl.store.record.RelationshipRecord;
 
-class LogCommandSerializationV5_11 extends LogCommandSerializationV5_10 {
-    static final LogCommandSerializationV5_11 INSTANCE = new LogCommandSerializationV5_11();
+class LogCommandSerializationV5_11 extends LogCommandSerializationV5_8 {
+    static final LogCommandSerializationV5_11 INSTANCE = new LogCommandSerializationV5_11(KernelVersion.V5_11);
+    static final LogCommandSerializationV5_11 V5_12_INSTANCE = new LogCommandSerializationV5_11(KernelVersion.V5_12);
+    static final LogCommandSerializationV5_11 V5_13_INSTANCE = new LogCommandSerializationV5_11(KernelVersion.V5_13);
+    static final LogCommandSerializationV5_11 V5_14_INSTANCE = new LogCommandSerializationV5_11(KernelVersion.V5_14);
+    static final LogCommandSerializationV5_11 V5_15_INSTANCE = new LogCommandSerializationV5_11(KernelVersion.V5_15);
+    static final LogCommandSerializationV5_11 V5_18_INSTANCE = new LogCommandSerializationV5_11(KernelVersion.V5_18);
+    static final LogCommandSerializationV5_11 V5_19_INSTANCE = new LogCommandSerializationV5_11(KernelVersion.V5_19);
+    static final LogCommandSerializationV5_11 V5_20_INSTANCE = new LogCommandSerializationV5_11(KernelVersion.V5_20);
+    static final LogCommandSerializationV5_11 V5_22_INSTANCE = new LogCommandSerializationV5_11(KernelVersion.V5_22);
+    static final LogCommandSerializationV5_11 V5_23_INSTANCE = new LogCommandSerializationV5_11(KernelVersion.V5_23);
+
+    LogCommandSerializationV5_11(KernelVersion kernelVersion) {
+        super(kernelVersion);
+    }
 
     @Override
     public void writeCreatedNodeCommand(WritableChannel channel, Command.NodeCommand command) throws IOException {
@@ -163,10 +176,5 @@ class LogCommandSerializationV5_11 extends LogCommandSerializationV5_10 {
         after.clear();
 
         return new Command.RelationshipCommand(this, before, after);
-    }
-
-    @Override
-    public KernelVersion kernelVersion() {
-        return KernelVersion.V5_11;
     }
 }

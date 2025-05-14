@@ -33,11 +33,11 @@ import org.neo4j.kernel.impl.store.record.Record;
 import org.neo4j.kernel.impl.store.record.RelationshipGroupRecord;
 
 class LogCommandSerializationV4_3_D3 extends LogCommandSerializationV4_2 {
-    static final LogCommandSerializationV4_3_D3 INSTANCE = new LogCommandSerializationV4_3_D3();
+    static final LogCommandSerializationV4_3_D3 INSTANCE = new LogCommandSerializationV4_3_D3(KernelVersion.V4_3_D4);
+    static final LogCommandSerializationV4_3_D3 V4_4_INSTANCE = new LogCommandSerializationV4_3_D3(KernelVersion.V4_4);
 
-    @Override
-    public KernelVersion kernelVersion() {
-        return KernelVersion.V4_3_D4;
+    LogCommandSerializationV4_3_D3(KernelVersion kernelVersion) {
+        super(kernelVersion);
     }
 
     @Override
