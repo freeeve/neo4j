@@ -69,7 +69,6 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
-import org.neo4j.values.storable.RandomValuesUtils;
 
 @TestDirectoryExtension
 class IndexPopulationIT {
@@ -291,8 +290,10 @@ class IndexPopulationIT {
     }
 
     private static void prePopulateDatabase(GraphDatabaseService database, Label testLabel, String propertyName) {
-        final RandomValues randomValues =
-                RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(database));
+        final RandomValues randomValues = RandomValues.create(
+                RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR
+                /* TODO: Vectors are missing `RANGE` index support. When supported use code below. */
+                /*RandomValuesUtils.selectStorageEngineDependentConfiguration(database)*/ );
 
         try (Transaction transaction = database.beginTx()) {
             for (int j = 0; j < 10_000; j++) {

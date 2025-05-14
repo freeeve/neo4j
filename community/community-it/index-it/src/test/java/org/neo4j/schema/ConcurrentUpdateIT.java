@@ -45,7 +45,6 @@ import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 import org.neo4j.values.storable.RandomValues;
-import org.neo4j.values.storable.RandomValuesUtils;
 
 @TestDirectoryExtension
 class ConcurrentUpdateIT {
@@ -127,8 +126,11 @@ class ConcurrentUpdateIT {
 
         @Override
         public void run() {
-            RandomValues randomValues =
-                    RandomValues.create(RandomValuesUtils.selectStorageEngineDependentConfiguration(databaseService));
+            RandomValues randomValues = RandomValues.create(
+                    RandomValues.DEFAULT_CONFIGURATION_NO_VECTOR
+                    /* TODO: Vectors is index missing. When we support that, use code below. */
+                    /*RandomValuesUtils.selectStorageEngineDependentConfiguration(databaseService)*/
+                    );
             awaitLatch(startSignal);
             while (!endSignal.get()) {
                 try (Transaction transaction = databaseService.beginTx()) {
