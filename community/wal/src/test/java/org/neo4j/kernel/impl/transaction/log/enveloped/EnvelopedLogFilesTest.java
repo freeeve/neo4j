@@ -38,6 +38,7 @@ import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
+import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
 import org.neo4j.test.extension.Inject;
@@ -102,7 +103,7 @@ class EnvelopedLogFilesTest {
                 EmptyMemoryTracker.INSTANCE,
                 (currentEntry, currentOffset, currentLogFile) ->
                         pruneStrategy.newConstraint(currentEntry, currentOffset, currentLogFile),
-                new LogFilesPreAllocator());
+                new LogFilesPreAllocator(NullLogProvider.getInstance()));
     }
 
     @AfterEach

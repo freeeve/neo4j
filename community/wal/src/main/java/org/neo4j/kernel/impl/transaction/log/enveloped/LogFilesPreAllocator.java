@@ -24,16 +24,20 @@ import org.neo4j.internal.nativeimpl.NativeAccess;
 import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.pagecache.OutOfDiskSpaceException;
+import org.neo4j.logging.Log;
+import org.neo4j.logging.LogProvider;
 
 public class LogFilesPreAllocator {
     private final NativeAccess nativeAccess;
+    private final Log log;
 
-    public LogFilesPreAllocator(NativeAccess nativeAccess) {
+    public LogFilesPreAllocator(NativeAccess nativeAccess, LogProvider logProvider) {
         this.nativeAccess = nativeAccess;
+        this.log = logProvider.getLog(getClass());
     }
 
-    public LogFilesPreAllocator() {
-        this(NativeAccessProvider.getNativeAccess());
+    public LogFilesPreAllocator(LogProvider logProvider) {
+        this(NativeAccessProvider.getNativeAccess(), logProvider);
     }
 
     void preAllocateLogFile(LogChannelContext<StoreChannel> logChannelCtx, long fileSize) throws IOException {
@@ -52,7 +56,7 @@ public class LogFilesPreAllocator {
                                 + "Requested file size: " + fileSize + ". Call error: "
                                 + result);
             }
-            throw new IOException("Fail to preallocate additional space for log file at: " + logChannelCtx.path() + ". "
+            log.error("Fail to preallocate additional space for log file at: " + logChannelCtx.path() + ". "
                     + "Requested file size: " + fileSize + ". Call error: " + result);
         }
     }

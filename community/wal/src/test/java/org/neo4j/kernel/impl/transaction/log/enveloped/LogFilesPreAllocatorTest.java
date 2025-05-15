@@ -33,6 +33,8 @@ import org.neo4j.internal.nativeimpl.NativeAccessProvider;
 import org.neo4j.internal.nativeimpl.NativeCallResult;
 import org.neo4j.io.fs.StoreChannel;
 import org.neo4j.io.pagecache.OutOfDiskSpaceException;
+import org.neo4j.logging.AssertableLogProvider;
+import org.neo4j.logging.LogAssertions;
 import org.neo4j.test.extension.Inject;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
@@ -63,33 +65,37 @@ class LogFilesPreAllocatorTest {
     @Test
     void shouldThrowOOD() throws IOException {
         var nativeAccess = new StubbedNativeAccess(new NativeCallResult(28, "OOD"));
+        var logProvider = new AssertableLogProvider();
 
-        var logFilesPreAllocator = new LogFilesPreAllocator(nativeAccess);
+        var logFilesPreAllocator = new LogFilesPreAllocator(nativeAccess, logProvider);
 
         writeChannel = logsRepository.createWriteChannel(0);
         assertThatThrownBy(() -> logFilesPreAllocator.preAllocateLogFile(writeChannel, fileSize))
                 .isInstanceOf(OutOfDiskSpaceException.class)
                 .hasMessageContaining("System is out of disk space for log file at: " + writeChannel.path());
+        LogAssertions.assertThat(logProvider).doesNotHaveAnyLogs();
     }
 
     @Test
     void shouldTrowIOExceptionForOtherError() throws IOException {
         var nativeAccess = new StubbedNativeAccess(new NativeCallResult(1, "OOD"));
+        var logProvider = new AssertableLogProvider();
 
-        var logFilesPreAllocator = new LogFilesPreAllocator(nativeAccess);
+        var logFilesPreAllocator = new LogFilesPreAllocator(nativeAccess, logProvider);
 
         writeChannel = logsRepository.createWriteChannel(0);
-        assertThatThrownBy(() -> logFilesPreAllocator.preAllocateLogFile(writeChannel, fileSize))
-                .isInstanceOf(IOException.class)
-                .hasMessageContaining("Fail to preallocate additional space for log file at:");
+        logFilesPreAllocator.preAllocateLogFile(writeChannel, fileSize);
+        LogAssertions.assertThat(logProvider)
+                .containsMessageWithAll("Fail to preallocate additional space for log file at:");
     }
 
     @Test
     void shouldPreAllocate() throws IOException {
         var nativeAccess = NativeAccessProvider.getNativeAccess();
         assumeTrue(nativeAccess.isAvailable());
+        var logProvider = new AssertableLogProvider();
 
-        var logFilesPreAllocator = new LogFilesPreAllocator(nativeAccess);
+        var logFilesPreAllocator = new LogFilesPreAllocator(nativeAccess, logProvider);
 
         writeChannel = logsRepository.createWriteChannel(0);
         assertThat(testDirectory.getFileSystem().getFileSize(writeChannel.path()))
@@ -99,13 +105,15 @@ class LogFilesPreAllocatorTest {
 
         assertThat(testDirectory.getFileSystem().getFileSize(writeChannel.path()))
                 .isEqualTo(fileSize);
+        LogAssertions.assertThat(logProvider).doesNotHaveAnyLogs();
     }
 
     @Test
     void shouldIgnoreIfFileAlreadyHasSize() throws IOException {
         var nativeAccess = new StubbedNativeAccess(null);
+        var logProvider = new AssertableLogProvider();
 
-        var logFilesPreAllocator = new LogFilesPreAllocator(nativeAccess);
+        var logFilesPreAllocator = new LogFilesPreAllocator(nativeAccess, logProvider);
 
         writeChannel = logsRepository.createWriteChannel(0);
 
@@ -116,6 +124,7 @@ class LogFilesPreAllocatorTest {
         logFilesPreAllocator.preAllocateLogFile(writeChannel, fileSize);
 
         assertThat(nativeAccess.preAllocatedWasCalled).isFalse();
+        LogAssertions.assertThat(logProvider).doesNotHaveAnyLogs();
     }
 
     private static class StubbedNativeAccess extends LinuxNativeAccess {
