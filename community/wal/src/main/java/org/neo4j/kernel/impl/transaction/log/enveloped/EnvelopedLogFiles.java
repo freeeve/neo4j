@@ -44,6 +44,7 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
 
     public static final int INITIAL_CHECKSUM = 0; // TODO: change later
     public static final long BASE_INDEX = 0;
+    public static final int MINIMUM_SEGMENTS = 2;
     private final int segmentBlockSize;
     private final int writerBufferedBlocks;
     private final MemoryTracker memoryTracker;
@@ -68,8 +69,9 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             MemoryTracker memoryTracker,
             PruneStrategy pruneStrategy,
             LogFilesPreAllocator logFilesPreAllocator) {
-        if (totalSegments < 2) {
-            throw new IllegalArgumentException("Must have at least 2 segments. Got " + totalSegments);
+        if (totalSegments < MINIMUM_SEGMENTS) {
+            throw new IllegalArgumentException(
+                    String.format("Must have at least %d segments. Got %d", MINIMUM_SEGMENTS, totalSegments));
         }
         this.logFilesPreAllocator = logFilesPreAllocator;
         this.logHeaderFactory = logHeaderFactory;
