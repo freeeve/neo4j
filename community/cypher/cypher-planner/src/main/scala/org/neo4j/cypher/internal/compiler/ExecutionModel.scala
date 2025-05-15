@@ -118,6 +118,9 @@ object ExecutionModel {
   }
 
   case class BatchedSingleThreaded(smallBatchSize: Int, bigBatchSize: Int) extends Batched {
+
+    def asParallel: BatchedParallel = BatchedParallel(smallBatchSize, bigBatchSize, providedOrderPreserving = true)
+
     override def providedOrderPreserving: Boolean = true
 
     /**
@@ -146,6 +149,8 @@ object ExecutionModel {
 
   case class BatchedParallel(smallBatchSize: Int, bigBatchSize: Int, providedOrderPreserving: Boolean = false)
       extends Batched {
+
+    def asSingleThreaded: BatchedSingleThreaded = BatchedSingleThreaded(smallBatchSize, bigBatchSize)
 
     /**
      * We do not include the ExecutionModel itself, since we also have a compiler for each runtime (see CompilerLibrary).
