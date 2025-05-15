@@ -18,13 +18,13 @@ package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NameAllPatternElements
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.helpers.NameDeduplicator.removeGeneratedNamesAndParamsOnTree
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class nameAllPatternElementsTest extends CypherFunSuite with AstRewritingTestSupport {
 
-  private val exceptionFactory = OpenCypherExceptionFactory(None)
+  private val exceptionFactory = Neo4jCypherExceptionFactory(null, None)
 
   private def assertRewrite(originalQuery: String, expectedQuery: String): Unit = {
     val nameGenerator = new AnonymousVariableNameGenerator()

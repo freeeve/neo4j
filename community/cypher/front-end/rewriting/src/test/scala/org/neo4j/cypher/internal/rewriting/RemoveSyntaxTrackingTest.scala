@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RemoveSyntaxTracking
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -85,7 +85,7 @@ class RemoveSyntaxTrackingTest extends CypherFunSuite with AstRewritingTestSuppo
   }
 
   def assertRewriteForEachVersion(originalQuery: String, expectedQuery: String): Unit = {
-    val exceptionFactory: CypherExceptionFactory = OpenCypherExceptionFactory(None)
+    val exceptionFactory: CypherExceptionFactory = Neo4jCypherExceptionFactory(originalQuery, None)
 
     CypherVersion.values().foreach { version =>
       val original = parse(version, originalQuery, exceptionFactory)

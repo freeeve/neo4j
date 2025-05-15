@@ -237,13 +237,6 @@ class CypherPreParserTest extends CypherFunSuite with TableDrivenPropertyChecks 
   )
 
   private def parse(queryText: String, version: CypherVersion): PreParsedQuery = {
-    // JavaCc Preparser
-    preParserWith(
-      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE,
-      GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
-    )
-      .preParse(queryText, version)
-    // Antlr Preparser
     preParserWith(
       GraphDatabaseInternalSettings.enable_experimental_cypher_versions -> java.lang.Boolean.TRUE
     ).preParse(queryText, version)

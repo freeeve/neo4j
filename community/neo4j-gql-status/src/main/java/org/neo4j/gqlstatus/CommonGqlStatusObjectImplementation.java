@@ -125,6 +125,13 @@ public class CommonGqlStatusObjectImplementation implements CommonGqlStatusObjec
         }
     }
 
+    public Map<String, Integer> getDiagnosticPosition() {
+        if (this.diagnosticRecord.hasPosition()) {
+            return this.diagnosticRecord.getPositionMap();
+        }
+        return Map.of("offset", -1, "line", -1, "column", -1);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

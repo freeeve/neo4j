@@ -208,9 +208,6 @@ class CypherConfiguration private (val config: Config) {
   val parallel_runtime_config: CypherParallelRuntimeConfigOption =
     CypherParallelRuntimeConfigOption.fromConfig(config)
 
-  val antlrPreparserEnabled: Boolean =
-    config.get(GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled)
-
   val histogramData: java.util.Set[java.util.Map[String, String]] =
     config.get(GraphDatabaseInternalSettings.histogram_data)
 

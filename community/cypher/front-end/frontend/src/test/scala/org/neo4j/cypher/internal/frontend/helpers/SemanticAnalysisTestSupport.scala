@@ -38,14 +38,15 @@ import java.util.UUID
 class ErrorCollectingContext(
   override val cypherVersion: CypherVersion,
   val isComposite: Boolean = false,
-  databaseName: String = "mock"
+  databaseName: String = "mock",
+  query: String = "mock"
 ) extends BaseContext {
 
   var errors: Seq[SemanticErrorDef] = Seq.empty
 
   override def tracer: CompilationPhaseTracer = CompilationPhaseTracer.NO_TRACING
   override def notificationLogger: devNullLogger.type = devNullLogger
-  override def cypherExceptionFactory: CypherExceptionFactory = OpenCypherExceptionFactory(None)
+  override def cypherExceptionFactory: CypherExceptionFactory = Neo4jCypherExceptionFactory(query, None)
   override def monitors: Monitors = ???
 
   override def errorHandler: Seq[SemanticErrorDef] => Unit = (errs: Seq[SemanticErrorDef]) => {

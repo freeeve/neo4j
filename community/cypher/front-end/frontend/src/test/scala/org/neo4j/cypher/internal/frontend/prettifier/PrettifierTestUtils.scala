@@ -25,7 +25,7 @@ import org.neo4j.cypher.internal.parser.ast.AstParser
 import org.neo4j.cypher.internal.parser.v25.Cypher25ParserUtil
 import org.neo4j.cypher.internal.parser.v5.Cypher5ParserUtil
 import org.neo4j.cypher.internal.util.ASTNode
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.scalatest.matchers.should.Matchers
@@ -150,7 +150,7 @@ trait PrettifierTestUtils extends Matchers {
   }
 
   private def parseAndClearCache(cypherVersion: CypherVersion, query: String): Statement = {
-    val parser: AstParser = AstParserFactory(cypherVersion)(query, OpenCypherExceptionFactory(None), None)
+    val parser: AstParser = AstParserFactory(cypherVersion)(query, Neo4jCypherExceptionFactory(query, None), None)
     val statement = parser.singleStatement()
 
     // Clear the parser DFA cache occasionally to not go OOM but not too often as it makes the test slower

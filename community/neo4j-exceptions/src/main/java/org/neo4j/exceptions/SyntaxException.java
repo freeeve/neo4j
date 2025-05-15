@@ -54,11 +54,6 @@ public class SyntaxException extends Neo4jException {
         this.query = query;
     }
 
-    @Deprecated
-    public SyntaxException(String message, String query, int offset) {
-        this(message, query, offset, null);
-    }
-
     public SyntaxException(ErrorGqlStatusObject gqlStatusObject, String message, String query, int offset) {
         this(gqlStatusObject, message, query, offset, null);
     }

@@ -17,14 +17,14 @@
 package org.neo4j.cypher.internal.rewriting
 
 import org.neo4j.cypher.internal.rewriting.rewriters.inliningContextCreator
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
 class InliningContextCreatorTest extends CypherFunSuite with AstRewritingTestSupport {
 
   private val identA = varFor("a")
   private val identB = varFor("b")
-  private val exceptionFactory = OpenCypherExceptionFactory(None)
+  private val exceptionFactory = Neo4jCypherExceptionFactory(null, None)
 
   test("should not spoil aliased node variables") {
     val ast = parse("match (a) with a as b match (b) return b", exceptionFactory)

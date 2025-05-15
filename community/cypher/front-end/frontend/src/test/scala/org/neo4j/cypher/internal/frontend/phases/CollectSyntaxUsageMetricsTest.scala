@@ -131,7 +131,7 @@ class CollectSyntaxUsageMetricsTest extends CypherFunSuite with CypherVersionTes
 
   private def runPipeline(version: CypherVersion, query: String): InternalUsageStats = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
-    val context = new ErrorCollectingContext(version) {
+    val context = new ErrorCollectingContext(version, query = query) {
       override val internalUsageStats: InternalUsageStats = InternalUsageStats.newImpl()
     }
     pipeline.transform(startState, context)

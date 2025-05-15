@@ -40,9 +40,6 @@ import org.neo4j.cypher.internal.preparser.PreparserCypherLexer
 import org.neo4j.cypher.internal.preparser.PreparserUtil
 import org.neo4j.cypher.internal.preparser.QueryOptions
 import org.neo4j.cypher.internal.preparser.StatefulPreparserListener
-import org.neo4j.cypher.internal.preparser.javacc.CypherPreParser
-import org.neo4j.cypher.internal.preparser.javacc.PreParserCharStream
-import org.neo4j.cypher.internal.preparser.javacc.PreParserResult
 import org.neo4j.cypher.internal.util.DeprecatedConnectComponentsPlannerPreParserOption
 import org.neo4j.cypher.internal.util.DeprecatedEagerAnalyzerPreParserOption
 import org.neo4j.cypher.internal.util.InputPosition
@@ -54,8 +51,6 @@ import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlHelper
 
 import java.util.Locale
-
-import scala.jdk.CollectionConverters.ListHasAsScala
 
 /**
  * Preparses Cypher queries.
@@ -161,9 +156,7 @@ class PreParser(
    * @return
    */
   def preParse(query: String, defaultLanguage: CypherVersion): PreParsedQuery = {
-    val preParsedStatement =
-      if (configuration.antlrPreparserEnabled) preParseQuery(query)
-      else preParseJavaCc(query)
+    val preParsedStatement = preParseQuery(query)
     val notifications = preParserOptionsNotifications(preParsedStatement)
     val options = queryOptions(preParsedStatement, configuration, defaultLanguage)
     val preparsed = PreParsedQuery(preParsedStatement.statement, query, options, notifications)
@@ -175,26 +168,6 @@ class PreParser(
       )
     }
     preparsed
-  }
-
-  private def preParseJavaCc(queryText: String): PreParsedStatement = {
-    val exceptionFactory = new Neo4jASTExceptionFactory(Neo4jCypherExceptionFactory(queryText, None))
-    if (queryText.isEmpty) {
-      val gql = GqlHelper.getGql42001_42N45(0, 1, 1)
-      throw exceptionFactory.syntaxException(
-        gql,
-        new IllegalStateException(PreParserResult.getEmptyQueryExceptionMsg),
-        0,
-        1,
-        1
-      )
-    }
-    val preParserResult = new CypherPreParser(exceptionFactory, new PreParserCharStream(queryText)).parse()
-    PreParsedStatement(
-      queryText.substring(preParserResult.position.offset),
-      preParserResult.options.asScala.toList,
-      preParserResult.position
-    )
   }
 
   private def preParseQuery(queryText: String): PreParsedStatement = {

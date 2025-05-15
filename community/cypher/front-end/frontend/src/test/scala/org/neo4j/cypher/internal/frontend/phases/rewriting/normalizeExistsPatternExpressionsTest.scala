@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeExistsPatternExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
 import org.neo4j.cypher.internal.util.CancellationChecker
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -150,8 +150,8 @@ class normalizeExistsPatternExpressionsTest extends CypherFunSuite with AstRewri
   }
 
   private def assertRewrite(originalQuery: String, expectedQuery: String): Unit = {
-    val original = parse(originalQuery, OpenCypherExceptionFactory(None))
-    val expected = parse(expectedQuery, OpenCypherExceptionFactory(None))
+    val original = parse(originalQuery, Neo4jCypherExceptionFactory(originalQuery, None))
+    val expected = parse(expectedQuery, Neo4jCypherExceptionFactory(expectedQuery, None))
 
     val checkResult = original.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
     val rewriter =

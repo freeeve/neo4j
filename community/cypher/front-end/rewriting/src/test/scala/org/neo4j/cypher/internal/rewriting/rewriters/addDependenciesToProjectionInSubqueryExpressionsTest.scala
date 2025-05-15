@@ -24,7 +24,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.AddDependenciesToProjectionsInSubqueryExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.inSequence
@@ -548,7 +548,7 @@ class addDependenciesToProjectionInSubqueryExpressionsTest
     expectedQuery: String,
     additionalExpectedAstUpdates: Statement => Statement = statement => statement
   ): Unit = {
-    val cypherExceptionFactory = OpenCypherExceptionFactory(None)
+    val cypherExceptionFactory = Neo4jCypherExceptionFactory(originalQuery, None)
     val original = parse(originalQuery, cypherExceptionFactory)
     val initialExpected = parse(expectedQuery, cypherExceptionFactory)
     val expected = additionalExpectedAstUpdates(initialExpected)

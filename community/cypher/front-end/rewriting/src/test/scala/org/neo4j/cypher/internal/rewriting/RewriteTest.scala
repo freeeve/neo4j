@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.ast.prettifier.Prettifier
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
 import org.neo4j.cypher.internal.ast.semantics.SemanticFeature
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -31,6 +31,7 @@ trait RewriteTest extends AstRewritingTestSupport {
   self: CypherFunSuite =>
 
   def rewriterUnderTest: Rewriter
+  def rewriterUnderTest(query: String): Rewriter = rewriterUnderTest
 
   val prettifier = Prettifier(ExpressionStringifier(_.asCanonicalStringVal))
 
@@ -93,7 +94,7 @@ trait RewriteTest extends AstRewritingTestSupport {
     val original = parseForRewriting(version, originalQuery)
     val expected = parseForRewriting(version, expectedQuery)
     SemanticChecker.check(original)
-    val result = rewrite(original)
+    val result = rewrite(original, originalQuery)
     (expected, result)
   }
 
@@ -101,7 +102,7 @@ trait RewriteTest extends AstRewritingTestSupport {
     val original = parseForRewriting(originalQuery)
     val expected = parseForRewriting(expectedQuery)
     SemanticChecker.check(original)
-    val result = rewrite(original)
+    val result = rewrite(original, originalQuery)
     (expected, result)
   }
 
@@ -112,7 +113,7 @@ trait RewriteTest extends AstRewritingTestSupport {
       original,
       SemanticState.clean.withFeatures(SemanticFeature.MultipleGraphs, SemanticFeature.UseAsSingleGraphSelector)
     )
-    val result = rewrite(original)
+    val result = rewrite(original, originalQuery)
     (expected, result)
   }
 
@@ -127,28 +128,34 @@ trait RewriteTest extends AstRewritingTestSupport {
       original,
       SemanticState.clean.withFeatures(SemanticFeature.MultipleGraphs, SemanticFeature.UseAsSingleGraphSelector)
     )
-    val result = rewrite(original)
+    val result = rewrite(original, originalQuery)
     (expected, result)
   }
 
   protected def parseForRewriting(version: CypherVersion, queryText: String): Statement = {
     val preparedQuery = queryText.replace("\r\n", "\n")
-    parse(version, preparedQuery, OpenCypherExceptionFactory(None))
+    parse(version, preparedQuery, Neo4jCypherExceptionFactory(queryText, None))
   }
 
   protected def parseForRewriting(queryText: String): Statement = {
     val preparedQuery = queryText.replace("\r\n", "\n")
-    parse(preparedQuery, OpenCypherExceptionFactory(None))
+    parse(preparedQuery, Neo4jCypherExceptionFactory(queryText, None))
   }
 
   protected def rewrite(original: Statement): AnyRef =
-    original.rewrite(rewriterUnderTest)
+    original.rewrite(rewriterUnderTest(""))
+
+  protected def rewrite(original: Statement, queryString: String): AnyRef =
+    original.rewrite(rewriterUnderTest(queryString))
 
   protected def endoRewrite(original: Statement): Statement =
-    original.endoRewrite(rewriterUnderTest)
+    original.endoRewrite(rewriterUnderTest(""))
+
+  protected def endoRewrite(original: Statement, queryString: String): Statement =
+    original.endoRewrite(rewriterUnderTest(queryString))
 
   protected def assertIsNotRewritten(query: String): Unit = {
-    val original = parse(query, OpenCypherExceptionFactory(None))
+    val original = parse(query, Neo4jCypherExceptionFactory(query, None))
     val result = original.rewrite(rewriterUnderTest)
     assert(
       result === original,

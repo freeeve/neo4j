@@ -102,8 +102,6 @@ public class Cypher5AstLexerTest {
         assertReasonableOffsets(in, " ".codePoints().toArray());
     }
 
-    // Tests copied from javacc CypherCharStreamTest
-
     @Test
     void basicHappyPath() throws IOException {
         final var in = "abc d  \nö\r\n\t";

@@ -1646,14 +1646,6 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
                     "internal.db.transaction.shutdown_terminated_transaction_wait_timeout", DURATION, ofMinutes(1))
             .build();
 
-    @Internal
-    @Description("Feature flag to enable/disable the ANTLR preparser as opposed to Javacc. "
-            + "If changed dynamically, preparser cache need to be cleared for it to take effect.")
-    public static final Setting<Boolean> cypher_antlr_preparser_enabled = newBuilder(
-                    "internal.cypher.preparser.antlr_enabled", BOOL, true)
-            .dynamic()
-            .build();
-
     public enum ProcedureClassPreloading {
         // All classes are preloaded from the plugins before filtering
         ALL,

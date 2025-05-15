@@ -379,7 +379,7 @@ class SemanticTypeCheckTest extends CypherFunSuite with LoneElement with CypherV
     query: String
   ): Seq[SemanticErrorDef] = {
     val startState = InitialState(query, NoPlannerName, new AnonymousVariableNameGenerator)
-    val context = new ErrorCollectingContext(version) {
+    val context = new ErrorCollectingContext(version, query = query) {
       override def errorMessageProvider: ErrorMessageProvider = MessageUtilProvider
     }
     pipeline.transform(startState, context)

@@ -73,11 +73,12 @@ object SemanticAnalysisTestSuite {
     createInitialState: () => BaseState,
     isComposite: Boolean,
     sessionDatabase: String,
-    messageProvider: ErrorMessageProvider
+    messageProvider: ErrorMessageProvider,
+    query: String
   ): SemanticAnalysisResult = {
     require(!pipeline.name.contains("Parse"))
 
-    val context = new ErrorCollectingContext(version, isComposite, sessionDatabase) {
+    val context = new ErrorCollectingContext(version, isComposite, sessionDatabase, query) {
       override def errorMessageProvider: ErrorMessageProvider = messageProvider
     }
     val state = (Parse andThen pipeline).transform(createInitialState(), context)
@@ -144,7 +145,8 @@ trait SemanticAnalysisTestSuite extends CypherFunSuite with CypherVersionTestSup
             () => stateTransform(initialStateWithQuery(query)),
             isComposite,
             sessionDatabase,
-            messageProvider
+            messageProvider,
+            query
           ))
         )
         .toMap

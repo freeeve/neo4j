@@ -37,7 +37,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.Expand
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.RewriteShowQuery
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
@@ -405,7 +405,7 @@ class ExpandStarTest extends CypherFunSuite with AstRewritingTestSupport {
   }
 
   private def prepRewrite(q: String, rewriteShowCommand: Boolean = false) = {
-    val exceptionFactory = OpenCypherExceptionFactory(None)
+    val exceptionFactory = Neo4jCypherExceptionFactory(q, None)
     val rewriter =
       if (rewriteShowCommand)
         inSequence(

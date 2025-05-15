@@ -23,7 +23,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.IfNoParameter
 import org.neo4j.cypher.internal.rewriting.rewriters.LiteralExtractionStrategy
 import org.neo4j.cypher.internal.rewriting.rewriters.Never
 import org.neo4j.cypher.internal.rewriting.rewriters.literalReplacement
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.symbols.CTAny
@@ -291,7 +291,7 @@ class LiteralReplacementTest extends CypherFunSuite with AstRewritingTestSupport
     replacements: Map[AutoExtractedParameter, Any],
     extractLiterals: LiteralExtractionStrategy = Forced
   ): Unit = {
-    val exceptionFactory = OpenCypherExceptionFactory(None)
+    val exceptionFactory = Neo4jCypherExceptionFactory(originalQuery, None)
     val original = parse(originalQuery, exceptionFactory)
     val expected = parse(expectedQuery, exceptionFactory)
 

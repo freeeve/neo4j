@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizeHasLa
 import org.neo4j.cypher.internal.rewriting.rewriters.astRewriters.NormalizePredicates
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.inSequence
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -65,7 +65,7 @@ class normalizePredicatesTest extends CypherFunSuite with TestName with AstRewri
 
   def parseForRewriting(queryText: String): Statement = parse(
     queryText.replace("\r\n", "\n"),
-    OpenCypherExceptionFactory(None)
+    Neo4jCypherExceptionFactory(queryText, None)
   )
 
   private def assertRewrite(expectedQuery: String): Unit = {

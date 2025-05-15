@@ -36,7 +36,7 @@ import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpre
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.CancellationChecker
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.StepSequencer
 import org.neo4j.cypher.internal.util.bottomUp
@@ -233,7 +233,7 @@ trait RewritePhaseTest extends CypherVersionTestSupport {
   }
 
   private def parseAndRewrite(version: CypherVersion, queryText: String, features: SemanticFeature*): Statement = {
-    val exceptionFactory = OpenCypherExceptionFactory(None)
+    val exceptionFactory = Neo4jCypherExceptionFactory(queryText, None)
     val nameGenerator = new AnonymousVariableNameGenerator
     val parsedAst = AstParserFactory(version)(queryText, exceptionFactory, None).singleStatement()
     val cleanedAst = parsedAst.endoRewrite(NormalizeWithAndReturnClauses(exceptionFactory))

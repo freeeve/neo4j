@@ -28,7 +28,7 @@ import org.neo4j.cypher.internal.ast.semantics.ScopeTestHelper.scope
 import org.neo4j.cypher.internal.ast.semantics.ScopeTestHelper.typedSymbol
 import org.neo4j.cypher.internal.frontend.phases.Namespacer
 import org.neo4j.cypher.internal.parser.AstParserFactory
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Ref
 import org.neo4j.cypher.internal.util.symbols.StorableType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
@@ -432,7 +432,7 @@ class ScopeTreeTest extends CypherFunSuite {
   }
 
   def parse(version: CypherVersion, query: String): Statement = {
-    AstParserFactory(version)(query, OpenCypherExceptionFactory(None), None)
+    AstParserFactory(version)(query, Neo4jCypherExceptionFactory(query, None), None)
       .singleStatement()
       // We have to project unions to materialize the UnionMappings so that we can find the Variables in them.
       .endoRewrite(Namespacer.projectUnions)

@@ -27,7 +27,7 @@ import org.neo4j.cypher.internal.frontend.phases.rewriting.cnf.TestContext
 import org.neo4j.cypher.internal.rewriting.RewriteTest
 import org.neo4j.cypher.internal.rewriting.rewriters.computeDependenciesForExpressions
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.bottomUp
 import org.neo4j.cypher.internal.util.inSequence
@@ -596,7 +596,7 @@ class IsolateAggregationTest extends CypherFunSuite with RewriteTest with AstCon
   }
 
   override protected def parseForRewriting(queryText: String): Statement = {
-    val exceptionFactory = OpenCypherExceptionFactory(Some(pos))
+    val exceptionFactory = Neo4jCypherExceptionFactory(queryText, Some(pos))
     super.parseForRewriting(queryText).endoRewrite(inSequence(NormalizeWithAndReturnClauses(
       exceptionFactory
     )))

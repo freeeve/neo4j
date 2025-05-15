@@ -24,15 +24,17 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticFeature.MultipleDatabases
 import org.neo4j.cypher.internal.ast.semantics.SemanticState
 import org.neo4j.cypher.internal.rewriting.rewriters.preparatoryRewriters.NormalizeWithAndReturnClauses
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory.SyntaxException
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.Rewriter
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
+import org.neo4j.exceptions.SyntaxException
 import org.neo4j.gqlstatus.GqlHelper
 
 class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest {
-  private val exceptionFactory = OpenCypherExceptionFactory(None)
-  val rewriterUnderTest: Rewriter = NormalizeWithAndReturnClauses(exceptionFactory)
+  def rewriterUnderTest: Rewriter = NormalizeWithAndReturnClauses(Neo4jCypherExceptionFactory("test", None))
+
+  override def rewriterUnderTest(query: String): Rewriter =
+    NormalizeWithAndReturnClauses(Neo4jCypherExceptionFactory(query, None))
 
   test("ensure variables are aliased") {
     assertRewrite(
@@ -1016,19 +1018,21 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
   test("rejects use of aggregation in ORDER BY if aggregation is not used in associated WITH") {
     // Note: aggregations in ORDER BY that don't also appear in WITH are invalid
     try {
-      rewrite(parseForRewriting(
+      val q =
         """MATCH (n)
           |WITH n.prop AS prop ORDER BY max(n.foo)
           |RETURN prop
         """.stripMargin
-      ))
+      rewrite(parseForRewriting(q), q)
       fail("We shouldn't get here")
     } catch {
       case e: SyntaxException =>
         e.getMessage should equal(
-          "Cannot use aggregation in ORDER BY if there are no aggregate expressions in the preceding WITH (line 2, column 1 (offset: 10))"
+          """Cannot use aggregation in ORDER BY if there are no aggregate expressions in the preceding WITH (line 2, column 1 (offset: 10))
+            |"WITH n.prop AS prop ORDER BY max(n.foo)"
+            | ^""".stripMargin
         )
-        e.getStatusObject should equal(
+        e.gqlStatusObject() should equal(
           GqlHelper.getGql42001_42N23("WITH", 10, 2, 1)
         )
     }
@@ -1037,18 +1041,20 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
   test("rejects use of aggregation in ORDER BY if aggregation is not used in associated RETURN") {
     // Note: aggregations in ORDER BY that don't also appear in RETURN are invalid
     try {
-      rewrite(parseForRewriting(
+      val q =
         """MATCH (n)
           |RETURN n.prop AS prop ORDER BY max(n.foo)
         """.stripMargin
-      ))
+      rewrite(parseForRewriting(q), q)
       fail("We shouldn't get here")
     } catch {
       case e: SyntaxException =>
         e.getMessage should equal(
-          "Cannot use aggregation in ORDER BY if there are no aggregate expressions in the preceding RETURN (line 2, column 1 (offset: 10))"
+          """Cannot use aggregation in ORDER BY if there are no aggregate expressions in the preceding RETURN (line 2, column 1 (offset: 10))
+            |"RETURN n.prop AS prop ORDER BY max(n.foo)"
+            | ^""".stripMargin
         )
-        e.getStatusObject should equal(
+        e.gqlStatusObject() should equal(
           GqlHelper.getGql42001_42N23("RETURN", 10, 2, 1)
         )
     }
@@ -1452,7 +1458,7 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
   private def rewrite(originalQuery: String, expectedQuery: String): SemanticCheckResult = {
     val original = parseForRewriting(originalQuery.replace("\r\n", "\n"))
     val expected = parseForRewriting(expectedQuery.replace("\r\n", "\n"))
-    val result = endoRewrite(original)
+    val result = endoRewrite(original, originalQuery)
     assert(
       result === expected,
       s"""
@@ -1470,7 +1476,7 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
   private def rewrite(version: CypherVersion, originalQuery: String, expectedQuery: String): SemanticCheckResult = {
     val original = parseForRewriting(version, originalQuery.replace("\r\n", "\n"))
     val expected = parseForRewriting(version, expectedQuery.replace("\r\n", "\n"))
-    val result = endoRewrite(original)
+    val result = endoRewrite(original, originalQuery)
     assert(
       result === expected,
       s"""
@@ -1539,6 +1545,6 @@ class NormalizeWithAndReturnClausesTest extends CypherFunSuite with RewriteTest 
   }
 
   protected def rewriting(queryText: String): Unit = {
-    endoRewrite(parseForRewriting(queryText))
+    endoRewrite(parseForRewriting(queryText), queryText)
   }
 }

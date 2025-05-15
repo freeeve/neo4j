@@ -23,8 +23,8 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.cypher.internal.util.devNullLogger
 import org.neo4j.kernel.database.DatabaseReference
 import org.scalatestplus.mockito.MockitoSugar
@@ -39,7 +39,7 @@ object ContextHelper extends MockitoSugar {
 
       override def notificationLogger: InternalNotificationLogger = devNullLogger
 
-      override def cypherExceptionFactory: CypherExceptionFactory = OpenCypherExceptionFactory(None)
+      override def cypherExceptionFactory: CypherExceptionFactory = Neo4jCypherExceptionFactory(null, None)
 
       override def monitors: Monitors = mock[Monitors]
 

@@ -43,7 +43,7 @@ import org.neo4j.cypher.internal.rewriting.AstRewritingTestSupport
 import org.neo4j.cypher.internal.rewriting.conditions.NoReferenceEqualityAmongVariables
 import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.InputPosition
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.symbols.BooleanType
 import org.neo4j.cypher.internal.util.symbols.CTAny
 import org.neo4j.cypher.internal.util.symbols.CTInteger
@@ -268,9 +268,8 @@ class SimplifyPredicatesTest extends CypherFunSuite with AstRewritingTestSupport
     }
   }
 
-  private val exceptionFactory = new OpenCypherExceptionFactory(None)
-
   private def assertRewrittenMatches(originalQuery: String, matcher: PartialFunction[Any, Unit]): Unit = {
+    val exceptionFactory = Neo4jCypherExceptionFactory(originalQuery, None)
     val original = parse("RETURN " + originalQuery, exceptionFactory)
     val checkResult = original.semanticCheck.run(SemanticState.clean, SemanticCheckContext.default)
     val rewriter =

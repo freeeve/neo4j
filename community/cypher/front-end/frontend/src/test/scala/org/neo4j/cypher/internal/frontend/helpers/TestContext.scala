@@ -26,8 +26,8 @@ import org.neo4j.cypher.internal.util.CancellationChecker
 import org.neo4j.cypher.internal.util.CypherExceptionFactory
 import org.neo4j.cypher.internal.util.ErrorMessageProvider
 import org.neo4j.cypher.internal.util.InternalNotificationLogger
+import org.neo4j.cypher.internal.util.Neo4jCypherExceptionFactory
 import org.neo4j.cypher.internal.util.NotImplementedErrorMessageProvider
-import org.neo4j.cypher.internal.util.OpenCypherExceptionFactory
 import org.neo4j.kernel.database.DatabaseReference
 import org.scalatestplus.mockito.MockitoSugar.mock
 
@@ -39,7 +39,7 @@ case class TestContext(
 ) extends BaseContext {
 
   override def tracer = CompilationPhaseTracer.NO_TRACING
-  override def cypherExceptionFactory: CypherExceptionFactory = OpenCypherExceptionFactory(None)
+  override def cypherExceptionFactory: CypherExceptionFactory = Neo4jCypherExceptionFactory(null, None)
   override def monitors = mock[Monitors]
   override def errorHandler = _ => ()
   override def errorMessageProvider: ErrorMessageProvider = NotImplementedErrorMessageProvider

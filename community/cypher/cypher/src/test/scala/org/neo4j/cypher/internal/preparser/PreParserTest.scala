@@ -52,13 +52,8 @@ class PreParserTest extends CypherFunSuite {
 
   private val preParser = preParserWith()
 
-  private val preParserJavaCc =
-    preParserWith(GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE)
-
-  def preParse(queryText: String): PreParsedQuery = {
-    preParserJavaCc.preParseQuery(queryText, devNullLogger, CypherVersion.Default)
+  def preParse(queryText: String): PreParsedQuery =
     preParser.preParseQuery(queryText, devNullLogger, CypherVersion.Default)
-  }
 
   test("should not allow inconsistent runtime options") {
     intercept[InvalidArgumentException](preParse("CYPHER runtime=slotted runtime=interpreted RETURN 42"))
@@ -380,42 +375,6 @@ class PreParserTest extends CypherFunSuite {
 
     preParserWith(
       GraphDatabaseInternalSettings.cypher_pipelined_interpreted_pipes_fallback -> GraphDatabaseInternalSettings.CypherPipelinedInterpretedPipesFallback.ALL
-    )
-      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default)
-      .options.queryOptions.interpretedPipesFallback shouldEqual CypherInterpretedPipesFallbackOption.allPossiblePlans
-
-    // JavaCc preparser
-    preParserWith(
-      GraphDatabaseSettings.cypher_planner -> GraphDatabaseSettings.CypherPlanner.COST,
-      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
-    )
-      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.planner shouldEqual
-      CypherPlannerOption.cost
-
-    preParserWith(
-      GraphDatabaseInternalSettings.cypher_runtime -> GraphDatabaseInternalSettings.CypherRuntime.PIPELINED,
-      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
-    )
-      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default)
-      .options.queryOptions.runtime shouldEqual CypherRuntimeOption.pipelined
-
-    preParserWith(
-      GraphDatabaseInternalSettings.cypher_expression_engine -> GraphDatabaseInternalSettings.CypherExpressionEngine.COMPILED,
-      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
-    )
-      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.expressionEngine shouldEqual
-      CypherExpressionEngineOption.compiled
-
-    preParserWith(
-      GraphDatabaseInternalSettings.cypher_operator_engine -> GraphDatabaseInternalSettings.CypherOperatorEngine.COMPILED,
-      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
-    )
-      .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default).options.queryOptions.operatorEngine shouldEqual
-      CypherOperatorEngineOption.compiled
-
-    preParserWith(
-      GraphDatabaseInternalSettings.cypher_pipelined_interpreted_pipes_fallback -> GraphDatabaseInternalSettings.CypherPipelinedInterpretedPipesFallback.ALL,
-      GraphDatabaseInternalSettings.cypher_antlr_preparser_enabled -> java.lang.Boolean.FALSE
     )
       .preParseQuery("RETURN 1", devNullLogger, CypherVersion.Default)
       .options.queryOptions.interpretedPipesFallback shouldEqual CypherInterpretedPipesFallbackOption.allPossiblePlans
