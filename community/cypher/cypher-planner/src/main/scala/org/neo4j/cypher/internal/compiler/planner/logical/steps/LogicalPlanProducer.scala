@@ -49,6 +49,7 @@ import org.neo4j.cypher.internal.compiler.planner.ProcedureCallProjection
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.Metrics.CardinalityModel
 import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingResult
+import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingSubQueryResult
 import org.neo4j.cypher.internal.compiler.planner.logical.irExpressionRewriter
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.steps.LogicalPlanProducer.solvedForTailApply
@@ -223,7 +224,8 @@ import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
-import org.neo4j.cypher.internal.logical.plans.RewrittenExpressions
+import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates
+import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates.RewrittenSubQueryPredicatesMap
 import org.neo4j.cypher.internal.logical.plans.RightOuterHashJoin
 import org.neo4j.cypher.internal.logical.plans.RollUpApply
 import org.neo4j.cypher.internal.logical.plans.RunQueryAt
@@ -1976,27 +1978,31 @@ case class LogicalPlanProducer(
   }
 
   def planSelection(source: LogicalPlan, predicates: Seq[Expression], context: LogicalPlanningContext): LogicalPlan = {
-    val solved =
-      solveds.get(source.id).asSinglePlannerQuery.updateTailOrSelf(_.amendQueryGraph(_.addPredicates(predicates: _*)))
+    val solved = solveds.get(source.id).asSinglePlannerQuery
     val (rewrittenPredicates, rewrittenSource) =
       SubqueryExpressionSolver.ForMulti.solve(source, predicates, context)
 
-    val RemoteBatchingResult(
+    val RemoteBatchingSubQueryResult(
       rewrittenExpressionsWithCachedProperties,
       planWithProperties
     ) =
       context.settings.remoteBatchPropertiesStrategy.planBatchPropertiesForSelections(
-        solved.asSinglePlannerQuery.queryGraph,
+        solved.queryGraph,
         rewrittenSource,
         context,
-        rewrittenPredicates.toSet
+        rewrittenPredicates
       )
 
-    coercePredicatesWithAnds(rewrittenExpressionsWithCachedProperties.allRewrittenExpressions).fold(source) {
+    val expressionsToReport = rewrittenExpressionsWithCachedProperties.originalExpressions.toSeq
+    val updatedSourcePlan = solved.updateTailOrSelf(_.amendQueryGraph(_.addPredicates(expressionsToReport: _*)))
+
+    coercePredicatesWithAnds(
+      rewrittenExpressionsWithCachedProperties.allRewrittenExpressions
+    ).fold(planWithProperties) {
       coercedRewrittenPredicates =>
         annotateSelection(
           Selection(coercedRewrittenPredicates, planWithProperties),
-          solved,
+          updatedSourcePlan,
           ProvidedOrder.Left,
           cachedPropertiesPerPlan.get(planWithProperties.id),
           context
@@ -2006,7 +2012,7 @@ case class LogicalPlanProducer(
 
   def planSelectionWithSolvedPredicates(
     source: LogicalPlan,
-    previouslyRewrittenPredicates: RewrittenExpressions,
+    previouslyRewrittenPredicates: RewrittenSubQueryPredicatesMap,
     context: LogicalPlanningContext
   ): LogicalPlan = {
     val solved =
@@ -2021,7 +2027,7 @@ case class LogicalPlanProducer(
       )
     val cachedProperties = cachedPropertiesPerPlan.get(source.id)
 
-    coercePredicatesWithAnds(rewrittenPredicates).fold(source) { coercedRewrittenPredicates =>
+    coercePredicatesWithAnds(rewrittenPredicates.allRewrittenExpressions).fold(source) { coercedRewrittenPredicates =>
       annotateSelection(
         Selection(coercedRewrittenPredicates, rewrittenSource),
         solved,
@@ -2034,7 +2040,7 @@ case class LogicalPlanProducer(
 
   def planHorizonSelection(
     source: LogicalPlan,
-    previouslyRewrittenPredicates: RewrittenExpressions,
+    previouslyRewrittenPredicates: RewrittenSubQueryPredicatesMap,
     interestingOrderConfig: InterestingOrderConfig,
     context: LogicalPlanningContext
   ): LogicalPlan = {
@@ -2056,12 +2062,14 @@ case class LogicalPlanProducer(
             context
           )
         val unsolvedPredicates =
-          previouslyRewrittenPredicates.originalExpressions.toSeq.filterNot(
-            solvedPredicates.contains(_)
-          ).map(previouslyRewrittenPredicates.rewrittenExpressionOrSelf)
+          previouslyRewrittenPredicates.backingStore.filterNot {
+            case (rewritten, original) => solvedPredicates.contains(rewritten) || solvedPredicates.contains(original)
+          }.keys.toSeq
 
         // solve remaining predicates
-        SubqueryExpressionSolver.ForMulti.solve(existsPlan, unsolvedPredicates, context)
+        val (solvedExpressions, solvedPlan) =
+          SubqueryExpressionSolver.ForMulti.solve(existsPlan, unsolvedPredicates, context)
+        (solvedExpressions.allRewrittenExpressions, solvedPlan)
       } else {
         // If the execution model does not preserve order and there is an ORDER BY, we are not allowed to use
         // NestedPlanExpressions here.
@@ -2091,7 +2099,7 @@ case class LogicalPlanProducer(
     solved: PlannerQuery,
     context: LogicalPlanningContext
   ): LogicalPlan = {
-    val RemoteBatchingResult(
+    val RemoteBatchingSubQueryResult(
       rewrittenExpressionsWithCachedProperties,
       planWithProperties
     ) =
@@ -2099,7 +2107,7 @@ case class LogicalPlanProducer(
         solved.asSinglePlannerQuery.queryGraph,
         source,
         context,
-        predicates.toSet
+        RewrittenSubQueryPredicates.withNoRewrittenExprs(predicates)
       )
     coercePredicatesWithAnds(rewrittenExpressionsWithCachedProperties.allRewrittenExpressions).fold(source) {
       coercedPredicates =>
@@ -3900,13 +3908,14 @@ case class LogicalPlanProducer(
     inner: LogicalPlan,
     properties: Set[CachedProperty],
     context: LogicalPlanningContext,
-    inlinablePredicates: Iterable[Expression]
+    inlinablePredicatesToExecute: Seq[Expression],
+    inlinablePredicatesToReport: Seq[Expression]
   ): LogicalPlan = {
     val cachedProperties = cachedPropertiesPerPlan.get(inner.id).addAll(properties)
     val solved = solveds.get(inner.id).asSinglePlannerQuery.updateTailOrSelf(
-      _.amendQueryGraph(_.addPredicates(inlinablePredicates))
+      _.amendQueryGraph(_.addPredicates(inlinablePredicatesToReport: _*))
     )
-    val plan = mergeAndPlanRemoteBatchPropertiesWithFilter(properties, inlinablePredicates, inner)
+    val plan = mergeAndPlanRemoteBatchPropertiesWithFilter(properties, inlinablePredicatesToExecute, inner)
     annotate(plan, solved, ProvidedOrder.Left, cachedProperties, context)
   }
 

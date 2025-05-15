@@ -46,6 +46,8 @@ import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.ir.ast.ListIRExpression
 import org.neo4j.cypher.internal.logical.plans.Argument
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
+import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates
+import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates.RewrittenSubQueryPredicatesMap
 import org.neo4j.cypher.internal.macros.AssertMacros
 import org.neo4j.cypher.internal.util.Foldable.FoldableAny
 import org.neo4j.cypher.internal.util.InputPosition
@@ -477,12 +479,12 @@ object SubqueryExpressionSolver {
       inner: LogicalPlan,
       expressions: Seq[Expression],
       context: LogicalPlanningContext
-    ): (Seq[Expression], LogicalPlan) = {
+    ): (RewrittenSubQueryPredicatesMap, LogicalPlan) = {
       if (expressions.isEmpty) {
-        (expressions, inner)
+        (RewrittenSubQueryPredicates.empty, inner)
       } else {
         val solver = SubqueryExpressionSolver.solverFor(inner, context)
-        val rewrittenExpressions: Seq[Expression] = expressions.map(solver.solve(_))
+        val rewrittenExpressions = RewrittenSubQueryPredicates.forMap(expressions.map(e => solver.solve(e) -> e).toMap)
         val rewrittenInner = solver.rewrittenPlan()
         (rewrittenExpressions, rewrittenInner)
       }
