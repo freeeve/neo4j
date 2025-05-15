@@ -32,6 +32,7 @@ import org.neo4j.internal.kernel.api.connectioninfo.RoutingInfo;
 import org.neo4j.kernel.GraphDatabaseQueryService;
 import org.neo4j.kernel.api.exceptions.Status;
 import org.neo4j.kernel.availability.UnavailableException;
+import org.neo4j.kernel.database.DatabaseReference;
 import org.neo4j.kernel.database.DatabaseReferenceImpl;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.impl.factory.KernelTransactionFactory;
@@ -64,8 +65,16 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
             TransactionBookmarkManager bookmarkManager,
             Consumer<Status> terminationCallback,
             ConstituentTransactionFactory constituentTransactionFactory) {
+
+        var resolvedReference = location.databaseReference();
+        // If we are in the local DB and we see a VirtualSPD reference, we need to resolve it to the graph shard and
+        // that will always exist here because VirtualSPDs are only created on the same servers as graph shards.
+        if (location.databaseReference() instanceof DatabaseReferenceImpl.VirtualSPD) {
+            resolvedReference = ((DatabaseReferenceImpl.VirtualSPD) location.databaseReference()).graphShard();
+        }
+
         var databaseContext = databaseContextProvider
-                .getDatabaseContext(location.databaseReference().databaseId())
+                .getDatabaseContext(resolvedReference.databaseId())
                 .orElseThrow(databaseUnavailable(location.getDatabaseName()));
 
         var databaseApi = databaseContext.databaseFacade();
@@ -79,7 +88,7 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
 
         var queryExecutionEngine = resolver.resolveDependency(QueryExecutionEngine.class);
         TransactionalContextFactory transactionalContextFactory =
-                getTransactionalContextFactory(location, resolver, dbMode(location));
+                getTransactionalContextFactory(location, resolver, dbMode(resolvedReference));
 
         bookmarkManager
                 .getBookmarkForLocal(location)
@@ -165,8 +174,8 @@ public class LocalDatabaseTransactionFactory implements DatabaseTransactionFacto
         };
     }
 
-    private TransactionalContext.DatabaseMode dbMode(Location.Local location) {
-        if (location.databaseReference() instanceof DatabaseReferenceImpl.GraphShard) {
+    private TransactionalContext.DatabaseMode dbMode(DatabaseReference reference) {
+        if (reference instanceof DatabaseReferenceImpl.GraphShard) {
             return TransactionalContext.DatabaseMode.SHARDED;
         } else {
             return TransactionalContext.DatabaseMode.SINGLE;

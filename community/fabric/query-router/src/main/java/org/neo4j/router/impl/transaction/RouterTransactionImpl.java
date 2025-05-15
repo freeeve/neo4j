@@ -126,6 +126,9 @@ public class RouterTransactionImpl implements CompoundTransaction<DatabaseTransa
 
     @Override
     public DatabaseTransaction transactionFor(Location location, TransactionMode mode) {
+        // If we are in the local DB and we see a VirtualSPD reference, we need to resolve it to the graph shard and
+        // that will always exist here because VirtualSPDs are only created on the same servers as graph shards.
+        // but we dont have to do it here because the ids are the same and we only use the id here.
         var tx = databaseTransactions.computeIfAbsent(
                 location.databaseReference().id(),
                 ref -> registerNewChildTransaction(location, mode, () -> createTransactionFor(location)));
