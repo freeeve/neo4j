@@ -44,7 +44,7 @@ public class UnsupportedLogVersionException extends RuntimeException {
         if (binarySupportedKernelVersions.latestSupportedIsLessThan(versionByte)) {
             msg = String.format(
                     "Log file contains entries with prefix %d, and the highest supported Kernel Version is %s. This "
-                            + "indicates that the log files originates from an newer version of neo4j, which we don't support "
+                            + "indicates that the log files originates from a newer version of neo4j, which we don't support "
                             + "downgrading from.",
                     versionByte, binarySupportedKernelVersions);
         } else {
