@@ -224,19 +224,21 @@ object ShardPredicatePushdownPartition {
     ): Either[PredicatesPushdownSupport, AccumulatedPropertyAccesses] = expressionQueue match {
       case Nil => Right(knownUncachedPropertyAccesses)
       case firstExpression :: nextExpressions => firstExpression match {
-          case _: LogicalVariable =>
-            findAllSupportedPropertyAccesses(
-              nextExpressions,
-              knownUncachedPropertyAccesses
-            )
+          case variable: LogicalVariable =>
+            if (knownUncachedPropertyAccesses.variable.exists(_ != variable)) {
+              // multiple variables found in the expression, cannot push to shard.
+              Left(PredicatePushdownUnsupported)
+            } else if (semanticTable.typeFor(variable).isAnyOf(CTNode, CTRelationship)) {
+              findAllSupportedPropertyAccesses(
+                nextExpressions,
+                AccumulatedPropertyAccesses(Some(variable), knownUncachedPropertyAccesses.nonCachedProperties)
+              )
+            } else {
+              Left(PredicatePushdownUnsupported)
+            }
 
           case Property(variable: LogicalVariable, propertyKeyName) =>
-            if (
-              knownUncachedPropertyAccesses.variable.exists(_ != variable) && !alreadyCachedProperties.contains(
-                variable,
-                propertyKeyName
-              )
-            ) {
+            if (knownUncachedPropertyAccesses.variable.exists(_ != variable)) {
               // multiple variables found in the expression, cannot push to shard.
               Left(PredicatePushdownUnsupported)
             } else if (semanticTable.typeFor(variable).isAnyOf(CTNode, CTRelationship)) {
@@ -244,7 +246,7 @@ object ShardPredicatePushdownPartition {
                 // property is already cached, no need to push to shard, we'll just pass to the next iteration to check for duplicate variables
                 findAllSupportedPropertyAccesses(
                   nextExpressions,
-                  knownUncachedPropertyAccesses
+                  AccumulatedPropertyAccesses(Some(variable), knownUncachedPropertyAccesses.nonCachedProperties)
                 )
               } else {
                 // property not cached lets add to the set of properties

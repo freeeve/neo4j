@@ -23,7 +23,6 @@ import org.neo4j.cypher.internal
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.ast.semantics.TokenTable
 import org.neo4j.cypher.internal.expressions
-import org.neo4j.cypher.internal.expressions.Ands
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
@@ -154,7 +153,6 @@ import org.neo4j.cypher.internal.logical.plans.Projection
 import org.neo4j.cypher.internal.logical.plans.PruningVarExpand
 import org.neo4j.cypher.internal.logical.plans.RelationshipCountFromCountStore
 import org.neo4j.cypher.internal.logical.plans.RemoteBatchProperties
-import org.neo4j.cypher.internal.logical.plans.RemoteBatchPropertiesWithFilter
 import org.neo4j.cypher.internal.logical.plans.RemoveLabels
 import org.neo4j.cypher.internal.logical.plans.RepeatTrail
 import org.neo4j.cypher.internal.logical.plans.RepeatWalk
@@ -374,7 +372,6 @@ import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.OrderedGr
 import org.neo4j.cypher.internal.runtime.interpreted.pipes.aggregation.OrderedNonGroupingAggTable
 import org.neo4j.cypher.internal.util.AnonymousVariableNameGenerator
 import org.neo4j.cypher.internal.util.Eagerly
-import org.neo4j.cypher.internal.util.InputPosition
 import org.neo4j.cypher.internal.util.attribution.Id
 import org.neo4j.exceptions.InternalException
 import org.neo4j.internal.kernel.api.helpers.traversal.SlotOrName
@@ -1266,12 +1263,6 @@ case class InterpretedPipeMapper(
 
       case RemoteBatchProperties(_, _) =>
         source // TODO: implement
-
-      case RemoteBatchPropertiesWithFilter(_, predicates, _) => // TODO: implement
-        val ands = Ands(predicates)(InputPosition.NONE)
-        val predicateExpression =
-          if (ands.exprs.size == 1) buildExpression(ands.exprs.head) else buildExpression(ands)
-        FilterPipe(source, predicateExpression)(id = id)
 
       case Expand(
           _,

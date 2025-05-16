@@ -20,13 +20,12 @@
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
-import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingSubQueryResult
+import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingResult
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.ir.ast.IRExpression
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
-import org.neo4j.cypher.internal.logical.plans.RewrittenSubQueryPredicates
 
 case object selectCovered extends SelectionCandidateGenerator {
 
@@ -44,7 +43,7 @@ case object selectCovered extends SelectionCandidateGenerator {
     if (unsolvedScalarPredicates.isEmpty) {
       Iterator.empty
     } else {
-      val RemoteBatchingSubQueryResult(
+      val RemoteBatchingResult(
         rewrittenExpressionsWithCachedProperties,
         planWithProperties
       ) =
@@ -52,7 +51,7 @@ case object selectCovered extends SelectionCandidateGenerator {
           queryGraph,
           input,
           context,
-          RewrittenSubQueryPredicates.withNoRewrittenExprs(unsolvedScalarPredicates)
+          unsolvedScalarPredicates
         )
 
       val plan = context.staticComponents.logicalPlanProducer.planSelectionWithSolvedPredicates(

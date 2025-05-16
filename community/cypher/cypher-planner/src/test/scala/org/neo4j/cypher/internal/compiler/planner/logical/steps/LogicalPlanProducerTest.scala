@@ -1142,7 +1142,6 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         planCreationContext.lhs,
         Set(innerCachedProperty),
         planCreationContext.context,
-        innerPredicates,
         innerPredicates
       )
       val outerCachedProperty = cachedNodeProp("x", "foo")
@@ -1176,7 +1175,6 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         planCreationContext.lhs,
         Set(innerCachedProperty),
         planCreationContext.context,
-        innerPredicates,
         innerPredicates
       )
       val outerCachedProperty = cachedNodeProp("y", "foo")
@@ -1211,7 +1209,6 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         planCreationContext.lhs,
         Set(innerCachedProperty),
         planCreationContext.context,
-        innerPredicates,
         innerPredicates
       )
       val outerCachedProperty = cachedNodeProp("x", "foo")
@@ -1220,7 +1217,6 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         innerRBP,
         Set(outerCachedProperty),
         planCreationContext.context,
-        outerPredicates,
         outerPredicates
       )
       outer shouldEqual RemoteBatchPropertiesWithFilter(
@@ -1250,7 +1246,6 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         planCreationContext.lhs,
         Set(innerCachedProperty),
         planCreationContext.context,
-        innerPredicates,
         innerPredicates
       )
       val outerCachedProperty = cachedNodeProp("y", "foo")
@@ -1259,7 +1254,6 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         innerRBP,
         Set(outerCachedProperty),
         planCreationContext.context,
-        outerPredicates,
         outerPredicates
       )
       outer shouldEqual RemoteBatchPropertiesWithFilter(
@@ -1295,7 +1289,6 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         innerRBP,
         Set(outerCachedProperty),
         planCreationContext.context,
-        outerPredicates,
         outerPredicates
       )
       outer shouldEqual RemoteBatchPropertiesWithFilter(
@@ -1333,7 +1326,6 @@ class LogicalPlanProducerTest extends CypherFunSuite with LogicalPlanningTestSup
         innerRBP,
         Set(outerCachedProperty),
         planCreationContext.context,
-        outerPredicates,
         outerPredicates
       )
       outer shouldEqual RemoteBatchPropertiesWithFilter(

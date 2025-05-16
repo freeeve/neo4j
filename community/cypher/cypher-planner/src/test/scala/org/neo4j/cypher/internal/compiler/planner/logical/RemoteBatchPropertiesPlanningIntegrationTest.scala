@@ -210,7 +210,8 @@ class RemoteBatchPropertiesPlanningIntegrationTest
         .produceResults("name")
         .projection("cacheN[person.firstName] AS name")
         .semiApply()
-        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[dog.name]")("cacheNFromStore[person.firstName] = dog.name")
+        .|.filter("cacheN[person.firstName] = cacheN[dog.name]")
+        .|.remoteBatchProperties("cacheNFromStore[dog.name]")
         .|.filter("dog:Dog")
         .|.expandAll("(person)-[:HAS_DOG]->(dog)")
         .|.argument("person")
@@ -504,7 +505,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .build()
   }
 
-  test("should also batch properties used in filters, even if just once") { // TODO: This should have two RBPWF
+  test("should also batch properties used in filters, even if just once") {
     val query =
       """MATCH (person:Person)-[knows:KNOWS]->(friend:Person)
         |  WHERE person.lastName = friend.lastName AND knows.creationDate < $max_creation_date
@@ -522,14 +523,12 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "cacheN[friend.firstName] AS friendFirstName",
         "cacheR[knows.creationDate] AS knowsSince"
       )
-      .filter("cacheR[knows.creationDate] < $max_creation_date")
-      .remoteBatchProperties("cacheRFromStore[knows.creationDate]")
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[person.firstName]")(
-        "person.lastName = cacheNFromStore[friend.lastName]"
-      )
+      .filter("cacheN[person.lastName] = cacheN[friend.lastName]")
+      .remoteBatchProperties("cacheNFromStore[person.lastName]", "cacheNFromStore[person.firstName]")
+      .remoteBatchPropertiesWithFilter("cacheRFromStore[knows.creationDate]")("knows.creationDate < $max_creation_date")
       .filter("person:Person")
       .expandAll("(friend)<-[knows:KNOWS]-(person)")
-      .remoteBatchProperties("cacheNFromStore[friend.firstName]", "cacheNFromStore[friend.lastName]")
+      .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
       .nodeByLabelScan("friend", "Person")
       .build()
   }
@@ -624,15 +623,13 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         )
         .apply()
         .|.optional("friend")
-        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[message.id]", "cacheNFromStore[message.creationDate]")(
+        .|.remoteBatchPropertiesWithFilter("cacheNFromStore[message.creationDate]", "cacheNFromStore[message.id]")(
           "message.creationDate IS NOT NULL"
         )
         .|.expandAll("(friend)<-[:POST_HAS_CREATOR|COMMENT_HAS_CREATOR]-(message)")
         .|.argument("friend")
-        .remoteBatchPropertiesWithFilter(
-          "cacheNFromStore[friend.firstName]",
-          "cacheNFromStore[friend.lastName]"
-        )("cacheNFromStore[person.firstName] = friend.firstName")
+        .filter("cacheN[person.firstName] = cacheN[friend.firstName]")
+        .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
         .expand("(person)-[knows:KNOWS*1..2]-(friend)", expandMode = ExpandAll, projectedDir = OUTGOING)
         .remoteBatchProperties("cacheNFromStore[person.firstName]")
         .nodeIndexOperator(
@@ -798,11 +795,12 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         "cacheN[friend.firstName] AS personFirstName",
         "cacheN[friend.lastName] AS personLastName"
       )
-      .remoteBatchPropertiesWithFilter(
+      .filter("NOT cacheN[person.id] = cacheN[friend.id]")
+      .remoteBatchProperties(
         "cacheNFromStore[friend.id]",
         "cacheNFromStore[friend.firstName]",
         "cacheNFromStore[friend.lastName]"
-      )("NOT cacheNFromStore[person.id] = friend.id")
+      )
       .expand("(person)-[anon_0:KNOWS*1..2]-(friend)")
       .nodeIndexOperator(
         "person:Person(id = ???)",
@@ -1014,10 +1012,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .planBuilder()
       .produceResults("`person.name`")
       .projection("cacheN[person.name] AS `person.name`")
-      .remoteBatchPropertiesWithFilter(
-        "cacheNFromStore[person.age]",
-        "cacheNFromStore[person.name]"
-      )("person.age = maxAge")
+      .filter("cacheN[person.age] = maxAge")
+      .remoteBatchProperties("cacheNFromStore[person.age]", "cacheNFromStore[person.name]")
       .aggregation(Seq("person AS person"), Seq("MAX(cacheN[person.age]) AS maxAge"))
       .remoteBatchProperties("cacheNFromStore[person.age]")
       .allNodeScan("person")
@@ -1094,7 +1090,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[n.firstName] AS `n.firstName`", "cacheN[friend.firstName] AS `friend.firstName`")
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[friend.firstName]")("friend.lastName = foo")
+      .filter("cacheN[friend.lastName] = foo")
+      .remoteBatchProperties("cacheNFromStore[friend.lastName]", "cacheNFromStore[friend.firstName]")
       .filter("friend:Person")
       .expandAll("(n)-[:KNOWS]-(friend)")
       .unwind("[cacheN[n.firstName]] AS foo")
@@ -1211,9 +1208,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
       .apply()
       .|.optional("p")
-      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[s.firstName]")(
-        "NOT s.firstName = cacheNFromStore[p.firstName]"
-      )
+      .|.filter("NOT cacheN[s.firstName] = cacheN[p.firstName]")
+      .|.remoteBatchProperties("cacheNFromStore[s.firstName]")
       .|.filter("s:Person")
       .|.expandAll("(p)-[:KNOWS]-(s)")
       .|.argument("p")
@@ -1232,7 +1228,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
 
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[p.firstName]")("NOT cacheNFromStore[s.firstName] = p.firstName")
+      .filter("NOT cacheN[s.firstName] = cacheN[p.firstName]")
+      .remoteBatchProperties("cacheNFromStore[p.firstName]")
       .expandAll("(s)-[:KNOWS]-(p)")
       .nodeIndexOperator("s:Person(firstName)", getValue = Map("firstName" -> GetValue))
       .build())
@@ -1390,7 +1387,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       .apply()
       .|.top(1, "`b.name` ASC")
       .|.projection("cacheN[b.name] AS `b.name`")
-      .|.remoteBatchPropertiesWithFilter("cacheNFromStore[b.name]")("b.name = cacheNFromStore[a.firstName]")
+      .|.filter("cacheN[b.name] = cacheN[a.firstName]")
+      .|.remoteBatchProperties("cacheNFromStore[b.name]")
       .|.expandAll("(a)-[:KNOWS]->(b)")
       .|.remoteBatchProperties("cacheNFromStore[a.firstName]")
       .|.argument("a")
@@ -1607,7 +1605,8 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     val plan = planner.plan(query).stripProduceResults
     plan should equal(planner.subPlanBuilder()
       .projection("cacheN[p.firstName] AS `p.firstName`", "cacheN[s.firstName] AS `s.firstName`")
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[p.firstName]")("NOT cacheNFromStore[s.lastName] = p.lastName")
+      .filter("NOT cacheN[s.lastName] = cacheN[p.lastName]")
+      .remoteBatchProperties("cacheNFromStore[p.lastName]", "cacheNFromStore[p.firstName]")
       .expandAll("(s)-[:KNOWS]-(p)")
       .remoteBatchProperties("cacheNFromStore[s.lastName]", "cacheNFromStore[s.firstName]")
       .nodeByLabelScan("s", "Person")
@@ -1922,65 +1921,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     plan shouldEqual planner.subPlanBuilder()
       .remoteBatchPropertiesWithFilter("cacheNFromStore[p.age]")("p.age IS NOT NULL", "50 > p.age - 10", "p.age < 20")
       .nodeByLabelScan("p", "Person", IndexOrderNone)
-      .build()
-  }
-
-  test("should inline predicates referencing a variable") {
-    val query =
-      """
-        |WITH 'Patrick' AS friends_name
-        |MATCH (person:Person {id:"ID"})-[knows:KNOWS]->(friend)
-        |  WHERE friend.firstName = friends_name
-        |RETURN
-        |  friend.lastName""".stripMargin
-    planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
-      .projection("cacheN[friend.lastName] AS `friend.lastName`")
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[friend.lastName]")("friend.firstName = friends_name")
-      .expandAll("(person)-[:KNOWS]->(friend)")
-      .projection("'Patrick' AS friends_name")
-      .nodeIndexOperator("person:Person(id = 'ID')", unique = true)
-      .build()
-  }
-
-  test("should inline predicates referencing an already cached variable") {
-    val query =
-      """
-        |MATCH (person:Person {id:"ID"})-[knows:KNOWS]->(friend:Person)-[friend_knows:KNOWS]->(fof)
-        |  WHERE friend_knows.creationDate < knows.creationDate
-        |RETURN
-        |  friend_knows.creationDate""".stripMargin
-    planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
-      .projection("cacheR[friend_knows.creationDate] AS `friend_knows.creationDate`")
-      .remoteBatchPropertiesWithFilter("cacheRFromStore[friend_knows.creationDate]")(
-        "friend_knows.creationDate < cacheRFromStore[knows.creationDate]"
-      )
-      .filter("NOT friend_knows = knows")
-      .expandAll("(friend)-[friend_knows:KNOWS]->()")
-      .remoteBatchProperties("cacheRFromStore[knows.creationDate]")
-      .filter("friend:Person")
-      .expandAll("(person)-[knows:KNOWS]->(friend)")
-      .nodeIndexOperator("person:Person(id = 'ID')", unique = true)
-      .build()
-  }
-
-  test("Should inline predicate referencing argument from a nested exists query") {
-    val query =
-      """
-        |MATCH (dog)<--({canAffordDog:
-        |  EXISTS {
-        |    WITH toBoolean(sum(0)) AS n1, dog AS dog RETURN 0
-        |  }
-        | }) RETURN dog.name AS name""".stripMargin
-    planner.plan(query).stripProduceResults shouldEqual planner.subPlanBuilder()
-      .projection("cacheN[dog.name] AS name")
-      .remoteBatchProperties("cacheNFromStore[dog.name]")
-      .remoteBatchPropertiesWithFilter("cacheNFromStore[anon_0.canAffordDog]")("anon_0.canAffordDog = anon_2")
-      .letSemiApply("anon_2")
-      .|.projection("0 AS 0")
-      .|.projection("toBoolean(anon_1) AS n1")
-      .|.aggregation(Seq("dog AS dog"), Seq("sum(0) AS anon_1"))
-      .|.argument("dog")
-      .allRelationshipsScan("(anon_0)-[]->(dog)")
       .build()
   }
 
