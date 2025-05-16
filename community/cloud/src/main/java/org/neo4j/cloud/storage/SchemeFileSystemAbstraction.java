@@ -61,6 +61,10 @@ import org.neo4j.memory.MemoryTracker;
  * {@link StoragePath} objects.
  */
 public class SchemeFileSystemAbstraction implements FileSystemAbstraction, StorageSchemeResolver {
+    public interface Factory {
+        SchemeFileSystemAbstraction create();
+    }
+
     private final MutableMap<String, StorageSystemProvider> schemesToProvider = Maps.mutable.empty();
 
     private final FileSystemAbstraction fs;

@@ -24,7 +24,6 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Locale;
-import java.util.function.Supplier;
 import org.neo4j.cloud.storage.SchemeFileSystemAbstraction;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -41,15 +40,15 @@ import org.neo4j.io.fs.DefaultFileSystemAbstraction;
  */
 public class FileURIAccessRule implements AccessRule<URI> {
 
-    private final Supplier<SchemeFileSystemAbstraction> schemeSystemSupplier;
+    private final SchemeFileSystemAbstraction.Factory sfsFactory;
     private final Config config;
 
     public FileURIAccessRule(Config config) {
         this(() -> new SchemeFileSystemAbstraction(new DefaultFileSystemAbstraction(), config), config);
     }
 
-    public FileURIAccessRule(Supplier<SchemeFileSystemAbstraction> schemeSystemSupplier, Config config) {
-        this.schemeSystemSupplier = schemeSystemSupplier;
+    public FileURIAccessRule(SchemeFileSystemAbstraction.Factory sfsFactory, Config config) {
+        this.sfsFactory = sfsFactory;
         this.config = config;
     }
 
@@ -81,7 +80,7 @@ public class FileURIAccessRule implements AccessRule<URI> {
             URI uri, SecurityAuthorizationHandler securityAuthorizationHandler, SecurityContext securityContext)
             throws URLAccessValidationError, IOException {
         final var scheme = uri.getScheme().toLowerCase(Locale.ROOT);
-        try (var fs = schemeSystemSupplier.get()) {
+        try (var fs = sfsFactory.create()) {
             if (!fs.resolvableSchemes().contains(scheme)) {
                 throw new URLAccessValidationError("Invalid URL '" + uri + "': unknown protocol: " + scheme);
             }
