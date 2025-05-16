@@ -110,7 +110,7 @@ object ShardPredicatePushdownPartition {
           (acc, expr) =>
             acc match {
               case (noUncachedPropAccesses, supportedUncachedPropAccesses, unsupportedUncachedPropAccesses) =>
-                supportsPredicatesPushdown(context.semanticTable, expr, alreadyCachedProperties) match {
+                supportsPredicatesPushdown(context.semanticTable, expr, alreadyCachedProperties, context) match {
                   case PredicatePushdownSupported(logicalVariable) =>
                     (
                       noUncachedPropAccesses,
@@ -215,7 +215,8 @@ object ShardPredicatePushdownPartition {
   private def supportsPredicatesPushdown(
     semanticTable: SemanticTable,
     expression: Expression,
-    alreadyCachedProperties: CachedProperties
+    alreadyCachedProperties: CachedProperties,
+    context: LogicalPlanningContext
   ): PredicatesPushdownSupport = {
     @tailrec
     def findAllSupportedPropertyAccesses(
@@ -224,18 +225,34 @@ object ShardPredicatePushdownPartition {
     ): Either[PredicatesPushdownSupport, AccumulatedPropertyAccesses] = expressionQueue match {
       case Nil => Right(knownUncachedPropertyAccesses)
       case firstExpression :: nextExpressions => firstExpression match {
-          case _: LogicalVariable =>
+          case _: LogicalVariable if context.settings.pushDownArgumentsRBPWFEnabled =>
             findAllSupportedPropertyAccesses(
               nextExpressions,
               knownUncachedPropertyAccesses
             )
 
+          case variable: LogicalVariable if !context.settings.pushDownArgumentsRBPWFEnabled => // Remove case together with feature flag
+            if (knownUncachedPropertyAccesses.variable.exists(_ != variable)) {
+              // multiple variables found in the expression, cannot push to shard.
+              Left(PredicatePushdownUnsupported)
+            } else if (semanticTable.typeFor(variable).isAnyOf(CTNode, CTRelationship)) {
+              findAllSupportedPropertyAccesses(
+                nextExpressions,
+                AccumulatedPropertyAccesses(Some(variable), knownUncachedPropertyAccesses.nonCachedProperties)
+              )
+            } else {
+              Left(PredicatePushdownUnsupported)
+            }
+
           case Property(variable: LogicalVariable, propertyKeyName) =>
             if (
-              knownUncachedPropertyAccesses.variable.exists(_ != variable) && !alreadyCachedProperties.contains(
-                variable,
-                propertyKeyName
-              )
+              (
+                knownUncachedPropertyAccesses.variable.exists(_ != variable) &&
+                  !alreadyCachedProperties.contains(variable, propertyKeyName) &&
+                  context.settings.pushDownArgumentsRBPWFEnabled
+              ) ||
+              (knownUncachedPropertyAccesses.variable.exists(_ != variable) &&
+                !context.settings.pushDownArgumentsRBPWFEnabled) // Remove RHS of OR together with feature flag
             ) {
               // multiple variables found in the expression, cannot push to shard.
               Left(PredicatePushdownUnsupported)
@@ -244,7 +261,10 @@ object ShardPredicatePushdownPartition {
                 // property is already cached, no need to push to shard, we'll just pass to the next iteration to check for duplicate variables
                 findAllSupportedPropertyAccesses(
                   nextExpressions,
-                  knownUncachedPropertyAccesses
+                  if (context.settings.pushDownArgumentsRBPWFEnabled)
+                    knownUncachedPropertyAccesses
+                  else
+                    AccumulatedPropertyAccesses(Some(variable), knownUncachedPropertyAccesses.nonCachedProperties)
                 )
               } else {
                 // property not cached lets add to the set of properties

@@ -69,6 +69,8 @@ import org.neo4j.cypher.internal.util.symbols.ZonedDateTimeType
 import org.neo4j.cypher.internal.util.symbols.ZonedTimeType
 import org.neo4j.cypher.internal.util.test_helpers.CypherFunSuite
 
+import java.lang.Boolean.TRUE
+
 import scala.collection.immutable.ArraySeq
 
 class RemoteBatchPropertiesPlanningIntegrationTest
@@ -264,6 +266,10 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
     .withSetting(
       GraphDatabaseInternalSettings.cypher_remote_batch_properties_implementation,
       RemoteBatchPropertiesImplementation.PLANNER
+    )
+    .withSetting(
+      GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled,
+      TRUE
     )
 
   // Graph counts based on a subset of LDBC SF 1
