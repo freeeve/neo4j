@@ -19,6 +19,7 @@
  */
 package org.neo4j.graphdb;
 
+import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlException;
 import org.neo4j.gqlstatus.GqlHelper;
@@ -66,6 +67,10 @@ public class TransactionFailureHelper {
     public static TransactionFailureException genericFailure(Throwable cause) {
         var gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_25N02)
                 .build();
+        return genericFailure(gql, cause);
+    }
+
+    public static TransactionFailureException genericFailure(ErrorGqlStatusObject gql, Throwable cause) {
         return new TransactionFailureException(gql, UNABLE_TO_COMPLETE_TRANSACTION, cause);
     }
 }
