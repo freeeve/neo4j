@@ -1483,7 +1483,11 @@ public final class CypherFunctions {
     }
 
     public sealed interface GetSingleDynamicTypeResult {
-        record SingleDynamicType(String value) implements GetSingleDynamicTypeResult {}
+        record SingleDynamicType(String value) implements GetSingleDynamicTypeResult {
+            public String getValue() {
+                return value;
+            }
+        }
 
         record ConflictingDynamicTypes() implements GetSingleDynamicTypeResult {}
 
@@ -1493,7 +1497,6 @@ public final class CypherFunctions {
     @CalledFromGeneratedCode
     public static GetSingleDynamicTypeResult getSingleDynamicType(AnyValue typeName, RuntimeNotifier notifier)
             throws IllegalTokenNameException {
-        assert typeName != NO_VALUE : "NO_VALUE checks need to happen outside this call";
         if (typeName instanceof TextValue textType) {
             return new SingleDynamicType(checkValidTokenName(textType.stringValue(), TokenType.RELATIONSHIP_TYPE));
         } else if (typeName instanceof SequenceValue typeSequence) {
@@ -1537,7 +1540,6 @@ public final class CypherFunctions {
 
     @CalledFromGeneratedCode
     public static String[] getDynamicTypes(AnyValue labelName) throws IllegalTokenNameException {
-        assert labelName != NO_VALUE : "NO_VALUE checks need to happen outside this call";
         if (labelName instanceof TextValue textType) {
             return new String[] {checkValidTokenName(textType.stringValue(), TokenType.RELATIONSHIP_TYPE)};
         } else if (labelName instanceof SequenceValue labelSequence) {

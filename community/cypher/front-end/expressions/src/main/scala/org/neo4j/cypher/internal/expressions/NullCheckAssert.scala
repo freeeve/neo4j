@@ -29,6 +29,8 @@ object NullCheckAssert {
   val isNull = true
 
   def fail(): AnyValue = {
-    throw new RuntimeException("Null check failed, not supposed to come here")
+    throw new NullCheckAssertException
   }
+
+  class NullCheckAssertException extends RuntimeException("Null check failed, not supposed to come here")
 }

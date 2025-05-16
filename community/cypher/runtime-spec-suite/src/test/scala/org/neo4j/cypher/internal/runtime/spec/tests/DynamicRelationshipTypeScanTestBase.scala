@@ -22,6 +22,10 @@ package org.neo4j.cypher.internal.runtime.spec.tests
 import org.neo4j.common.EntityType
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
+import org.neo4j.cypher.internal.expressions.NullCheckAssert
+import org.neo4j.cypher.internal.expressions.NullCheckAssert.NullCheckAssertException
+import org.neo4j.cypher.internal.expressions.SemanticDirection
+import org.neo4j.cypher.internal.logical.plans.DynamicElement
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderDescending
 import org.neo4j.cypher.internal.logical.plans.IndexOrderNone
@@ -457,7 +461,7 @@ abstract class DynamicRelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
     runtimeResult should beColumns("r").withRows(singleColumn(rels))
   }
 
-  test("should fail with a helpful error message when the input is not a string (all)") {
+  test("should fail with a helpful error message when the input is not a single string (all)") {
     // given
     givenGraph {
       val a = tx.createNode()
@@ -499,7 +503,36 @@ abstract class DynamicRelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
     an[IllegalTokenNameException] shouldBe thrownBy(theDynamicType(Array("", "C")))
   }
 
-  test("should fail with a helpful error message when the input is not a string (any)") {
+  test("when conflicting types are encountered the next row should be processed") {
+    // given
+    val rel = givenGraph {
+      val a = tx.createNode()
+      tx.createNode().createRelationshipTo(a, RelationshipType.withName("R"))
+    }
+
+    // when
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("r")
+      .apply()
+      .|.dynamicRelationshipTypeScan("(x)-[r]->(y)", "$all(relType)", "relType")
+      .input(variables = Seq("relType"))
+      .build()
+
+    val res = execute(
+      logicalQuery,
+      runtime,
+      inputValues(
+        Array(Array[String]("A", "B")),
+        Array("R")
+      )
+    )
+
+    res should beColumns("r")
+      .withRows(singleColumn(Seq(rel)))
+      .withNotifications(RuntimeUnsatisfiableRelationshipTypeExpression(List("A", "B")))
+  }
+
+  test("should fail with a helpful error message when the input is not a string or list of strings (any)") {
     // given
     givenGraph {
       val a = tx.createNode()
@@ -935,6 +968,30 @@ abstract class DynamicRelationshipTypeScanTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("r").withNoRows()
+  }
+
+  test("should check for null input in dynamic type expression") {
+    givenGraph {
+      val n = tx.createNode()
+      n.createRelationshipTo(tx.createNode(), RelationshipType.withName("R"))
+    }
+
+    Seq(SemanticDirection.BOTH, SemanticDirection.OUTGOING).foreach { dir =>
+      val logicalQuery = new LogicalQueryBuilder(this)
+        .produceResults("r")
+        .dynamicRelationshipTypeScan(
+          Some("x"),
+          Some("r"),
+          NullCheckAssert(),
+          Some("y"),
+          dir,
+          DynamicElement.Any,
+          IndexOrderNone
+        )
+        .build()
+
+      the[Exception] thrownBy consume(execute(logicalQuery, runtime)) should not be a[NullCheckAssertException]
+    }
   }
 
   private def relationshipTypeIndexIsOrdered: Boolean = {

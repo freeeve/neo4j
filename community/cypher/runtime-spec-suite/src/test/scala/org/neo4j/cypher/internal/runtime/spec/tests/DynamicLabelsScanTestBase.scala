@@ -21,6 +21,8 @@ package org.neo4j.cypher.internal.runtime.spec.tests
 
 import org.neo4j.cypher.internal.CypherRuntime
 import org.neo4j.cypher.internal.RuntimeContext
+import org.neo4j.cypher.internal.expressions.NullCheckAssert
+import org.neo4j.cypher.internal.expressions.NullCheckAssert.NullCheckAssertException
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.All
 import org.neo4j.cypher.internal.logical.plans.DynamicElement.Any
 import org.neo4j.cypher.internal.logical.plans.IndexOrderAscending
@@ -127,8 +129,10 @@ abstract class DynamicLabelsScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("y", "z", "x")
       .apply()
+      .|.filter("true")
       .|.dynamicNodeByLabelsScan("x", "'Honey'", All, IndexOrderNone)
       .apply()
+      .|.filter("true")
       .|.dynamicNodeByLabelsScan("y", "'Honey'", All, IndexOrderNone)
       .dynamicNodeByLabelsScan("z", "'Honey'", All, IndexOrderNone)
       .build()
@@ -239,6 +243,7 @@ abstract class DynamicLabelsScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
       .union()
+      .|.filter("true")
       .|.dynamicNodeByLabelsScan("x", "['C', 'D']", All, IndexOrderNone, "x")
       .unwind("[1, 2] as x")
       .argument()
@@ -263,6 +268,7 @@ abstract class DynamicLabelsScanTestBase[CONTEXT <: RuntimeContext](
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x", "y")
       .cartesianProduct()
+      .|.filter("true")
       .|.dynamicNodeByLabelsScan("y", "['C', 'D']", All, IndexOrderNone)
       .unwind("[1, 2] as x")
       .argument()
@@ -336,7 +342,7 @@ abstract class DynamicLabelsScanTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicNodeByLabelsScan("x", "['NONEXISTENT_LABEL_1', 'NONEXISTENT_LABEL_2']", Any, IndexOrderNone)
+      .dynamicNodeByLabelsScan("x", "['NONEXISTENT_LABEL_1', 'NONEXISTENT_LABEL_2']", Any)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -352,7 +358,39 @@ abstract class DynamicLabelsScanTestBase[CONTEXT <: RuntimeContext](
 
     val logicalQuery = new LogicalQueryBuilder(this)
       .produceResults("x")
-      .dynamicNodeByLabelsScan("x", "['NONEXISTENT_LABEL_1', 'NONEXISTENT_LABEL_2']", All, IndexOrderNone)
+      .dynamicNodeByLabelsScan("x", "['NONEXISTENT_LABEL_1', 'NONEXISTENT_LABEL_2']", All)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withNoRows()
+  }
+
+  test("should handle single nonexistent label array with Any") {
+    givenGraph {
+      nodeGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "['NONEXISTENT_LABEL_1']", Any)
+      .build()
+
+    val runtimeResult = execute(logicalQuery, runtime)
+
+    // then
+    runtimeResult should beColumns("x").withNoRows()
+  }
+
+  test("should handle single nonexistent label array with All") {
+    givenGraph {
+      nodeGraph(sizeHint)
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", "['NONEXISTENT_LABEL_1']", All)
       .build()
 
     val runtimeResult = execute(logicalQuery, runtime)
@@ -391,6 +429,19 @@ abstract class DynamicLabelsScanTestBase[CONTEXT <: RuntimeContext](
 
     // then
     runtimeResult should beColumns("x").withNoRows()
+  }
+
+  test("should check for null input in dynamic label expression") {
+    givenGraph {
+      tx.createNode()
+    }
+
+    val logicalQuery = new LogicalQueryBuilder(this)
+      .produceResults("x")
+      .dynamicNodeByLabelsScan("x", NullCheckAssert(), Any, IndexOrderNone)
+      .build()
+
+    the[Exception] thrownBy consume(execute(logicalQuery, runtime)) should not be a[NullCheckAssertException]
   }
 
 }

@@ -1344,6 +1344,25 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     node: String,
     labelExpr: String,
     operator: SetOperator,
+    args: String*
+  ): IMPL = {
+    dynamicNodeByLabelsScan(node, parseExpression(labelExpr), operator, IndexOrderNone, args: _*)
+  }
+
+  def dynamicNodeByLabelsScan(
+    node: String,
+    labelExpr: String,
+    operator: SetOperator,
+    indexOrder: IndexOrder,
+    args: String*
+  ): IMPL = {
+    dynamicNodeByLabelsScan(node, parseExpression(labelExpr), operator, indexOrder, args: _*)
+  }
+
+  def dynamicNodeByLabelsScan(
+    node: String,
+    labelExpr: Expression,
+    operator: SetOperator,
     indexOrder: IndexOrder,
     args: String*
   ): IMPL = {
@@ -1351,7 +1370,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
     newNode(varFor(n))
     appendAtCurrentIndent(LeafOperator(DynamicNodeByLabelsScan(
       varFor(n),
-      DynamicElement.Simple(parseExpression(labelExpr), operator),
+      DynamicElement.Simple(labelExpr, operator),
       args.map(a => varFor(VariableParser.unescaped(a))).toSet,
       indexOrder
     )(_)))
@@ -1881,7 +1900,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         dynamicRelationshipTypeScan(
           p.maybeFrom,
           p.maybeRelName,
-          expression,
+          parseExpression(expression),
           p.maybeTo,
           p.dir,
           op,
@@ -1894,10 +1913,10 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
   }
 
   // use supplied indexOrder, Option nodes
-  private def dynamicRelationshipTypeScan(
+  def dynamicRelationshipTypeScan(
     leftNode: Option[String],
     relName: Option[String],
-    relTypeExpr: String,
+    relTypeExpr: Expression,
     rightNode: Option[String],
     direction: SemanticDirection,
     operator: SetOperator,
@@ -1913,7 +1932,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         appendAtCurrentIndent(LeafOperator(DynamicDirectedRelationshipTypeScan(
           varFor(relName),
           varFor(leftNode),
-          DynamicElement.Simple(parseExpression(relTypeExpr), operator),
+          DynamicElement.Simple(relTypeExpr, operator),
           varFor(rightNode),
           args.map(varFor).toSet,
           indexOrder
@@ -1922,7 +1941,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         appendAtCurrentIndent(LeafOperator(DynamicDirectedRelationshipTypeScan(
           varFor(relName),
           varFor(rightNode),
-          DynamicElement.Simple(parseExpression(relTypeExpr), operator),
+          DynamicElement.Simple(relTypeExpr, operator),
           varFor(leftNode),
           args.map(varFor).toSet,
           indexOrder
@@ -1931,7 +1950,7 @@ abstract class AbstractLogicalPlanBuilder[T, IMPL <: AbstractLogicalPlanBuilder[
         appendAtCurrentIndent(LeafOperator(DynamicUndirectedRelationshipTypeScan(
           varFor(relName),
           varFor(leftNode),
-          DynamicElement.Simple(parseExpression(relTypeExpr), operator),
+          DynamicElement.Simple(relTypeExpr, operator),
           varFor(rightNode),
           args.map(varFor).toSet,
           indexOrder
