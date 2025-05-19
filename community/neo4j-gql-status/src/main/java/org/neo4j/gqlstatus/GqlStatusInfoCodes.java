@@ -4499,6 +4499,14 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "maximum number of transactions reached",
             ErrorClassification.TRANSIENT_ERROR),
+    STATUS_51N75(
+            new GqlStatus("51N75"),
+            "Unable to find entity with id { %s } since it is not up to date. Retrying your request at a later time may succeed.",
+            new GqlParams.GqlParam[] {GqlParams.StringParam.entityId},
+            emptyMap(),
+            Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
+            "shard execution error",
+            ErrorClassification.TRANSIENT_ERROR),
     STATUS_52N01(
             new GqlStatus("52N01"),
             "Execution of the procedure { %s } timed out after { %s } { %s }.",

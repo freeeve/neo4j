@@ -61,6 +61,7 @@ org.neo4j.kernel.api.exceptions.Status.Fabric::valueOf(java.lang.String) org.neo
 org.neo4j.kernel.api.exceptions.Status.Fabric::values() org.neo4j.kernel.api.exceptions.Status.Fabric[] public static
 org.neo4j.kernel.api.exceptions.Status.General public static final enum extends java.lang.Enum<org.neo4j.kernel.api.exceptions.Status.General> implements org.neo4j.kernel.api.exceptions.Status
 org.neo4j.kernel.api.exceptions.Status.General::DatabaseUnavailable org.neo4j.kernel.api.exceptions.Status.General public static final
+org.neo4j.kernel.api.exceptions.Status.General::EntityIdNotFound org.neo4j.kernel.api.exceptions.Status.General public static final
 org.neo4j.kernel.api.exceptions.Status.General::ForbiddenOnReadOnlyDatabase org.neo4j.kernel.api.exceptions.Status.General public static final
 org.neo4j.kernel.api.exceptions.Status.General::IndexCorruptionDetected org.neo4j.kernel.api.exceptions.Status.General public static final
 org.neo4j.kernel.api.exceptions.Status.General::InvalidArguments org.neo4j.kernel.api.exceptions.Status.General public static final
