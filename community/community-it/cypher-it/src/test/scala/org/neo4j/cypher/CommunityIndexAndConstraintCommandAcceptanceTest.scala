@@ -22,9 +22,12 @@ package org.neo4j.cypher
 import org.neo4j.configuration.GraphDatabaseInternalSettings
 import org.neo4j.cypher.internal.CypherVersion
 import org.neo4j.cypher.internal.runtime.QueryStatistics
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlException
+import org.neo4j.cypher.internal.util.test_helpers.GqlExceptionMatchers.gqlStatus
 import org.neo4j.cypher.internal.util.test_helpers.WindowsStringSafe
 import org.neo4j.exceptions.CypherExecutionException
 import org.neo4j.exceptions.SyntaxException
+import org.neo4j.gqlstatus.GqlStatusInfoCodes
 import org.neo4j.graphdb.config.Setting
 import org.neo4j.graphdb.schema.ConstraintType
 import org.neo4j.graphdb.schema.IndexSettingImpl.VECTOR_DIMENSIONS
@@ -331,10 +334,17 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
 
     // THEN
-    exception.getMessage should equal(
+    exception should be(gqlException(
       s"""Unable to create Constraint( type='NODE KEY', schema=(:$label {$prop}) ):
-         |Node Key constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin
-    )
+         |Node Key constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin,
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_50N11,
+        s"error: general processing exception - constraint creation failed. Unable to create 'Constraint( type='NODE KEY', schema=(:$label {$prop}) )'."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_51N27,
+        "error: system configuration or operation exception - not supported in this edition. Key constraint is not supported in community edition."
+      )
+    ))
     graph.constraintExists(constraintName) should be(false)
   }
 
@@ -345,10 +355,17 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
 
     // THEN
-    exception.getMessage should equal(
+    exception should be(gqlException(
       s"""Unable to create Constraint( type='RELATIONSHIP KEY', schema=()-[:$relType {$prop}]-() ):
-         |Relationship Key constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin
-    )
+         |Relationship Key constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin,
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_50N11,
+        s"error: general processing exception - constraint creation failed. Unable to create 'Constraint( type='RELATIONSHIP KEY', schema=()-[:$relType {$prop}]-() )'."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_51N27,
+        "error: system configuration or operation exception - not supported in this edition. Key constraint is not supported in community edition."
+      )
+    ))
     graph.constraintExists(constraintName) should be(false)
   }
 
@@ -359,10 +376,17 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
 
     // THEN
-    exception.getMessage should equal(
+    exception should be(gqlException(
       s"""Unable to create Constraint( type='NODE PROPERTY EXISTENCE', schema=(:$label {$prop}) ):
-         |Property existence constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin
-    )
+         |Property existence constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin,
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_50N11,
+        s"error: general processing exception - constraint creation failed. Unable to create 'Constraint( type='NODE PROPERTY EXISTENCE', schema=(:$label {$prop}) )'."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_51N27,
+        "error: system configuration or operation exception - not supported in this edition. Property existence constraint is not supported in community edition."
+      )
+    ))
     graph.constraintExists(constraintName) should be(false)
   }
 
@@ -373,10 +397,17 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
 
     // THEN
-    exception.getMessage should equal(
+    exception should be(gqlException(
       s"""Unable to create Constraint( type='RELATIONSHIP PROPERTY EXISTENCE', schema=()-[:$relType {$prop}]-() ):
-         |Property existence constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin
-    )
+         |Property existence constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin,
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_50N11,
+        s"error: general processing exception - constraint creation failed. Unable to create 'Constraint( type='RELATIONSHIP PROPERTY EXISTENCE', schema=()-[:$relType {$prop}]-() )'."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_51N27,
+        "error: system configuration or operation exception - not supported in this edition. Property existence constraint is not supported in community edition."
+      )
+    ))
     graph.constraintExists(constraintName) should be(false)
   }
 
@@ -387,10 +418,17 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
 
     // THEN
-    exception.getMessage should equal(
+    exception should be(gqlException(
       s"""Unable to create Constraint( name='$constraintName', type='NODE PROPERTY TYPE', schema=(:$label {$prop}), propertyType=INTEGER ):
-         |Property type constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin
-    )
+         |Property type constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin,
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_50N11,
+        s"error: general processing exception - constraint creation failed. Unable to create '$constraintName'."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_51N27,
+        "error: system configuration or operation exception - not supported in this edition. Property type constraint is not supported in community edition."
+      )
+    ))
     graph.constraintExists(constraintName) should be(false)
   }
 
@@ -401,10 +439,17 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
     }
 
     // THEN
-    exception.getMessage should equal(
+    exception should be(gqlException(
       s"""Unable to create Constraint( name='$constraintName', type='RELATIONSHIP PROPERTY TYPE', schema=()-[:$relType {$prop}]-(), propertyType=INTEGER ):
-         |Property type constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin
-    )
+         |Property type constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown.""".stripMargin,
+      gqlStatus(
+        GqlStatusInfoCodes.STATUS_50N11,
+        s"error: general processing exception - constraint creation failed. Unable to create '$constraintName'."
+      ).withCause(
+        GqlStatusInfoCodes.STATUS_51N27,
+        "error: system configuration or operation exception - not supported in this edition. Property type constraint is not supported in community edition."
+      )
+    ))
     graph.constraintExists(constraintName) should be(false)
   }
 
@@ -461,13 +506,33 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
         "RELATIONSHIP_UNIQUENESS"
       )
     )
-    val failingCreateCommands = Seq(
-      s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS NODE KEY",
-      s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS REL KEY",
-      s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS NOT NULL",
-      s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS NOT NULL",
-      s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS :: INT",
-      s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS :: INT"
+    val failingCreateCommands: Seq[(String, String, String)] = Seq(
+      (
+        s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS NODE KEY",
+        s"Constraint( type='NODE KEY', schema=(:$label {$prop}) )",
+        "Key"
+      ),
+      (
+        s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS REL KEY",
+        s"Constraint( type='RELATIONSHIP KEY', schema=()-[:$relType {$prop}]-() )",
+        "Key"
+      ),
+      (
+        s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS NOT NULL",
+        s"Constraint( type='NODE PROPERTY EXISTENCE', schema=(:$label {$prop}) )",
+        "Property existence"
+      ),
+      (
+        s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS NOT NULL",
+        s"Constraint( type='RELATIONSHIP PROPERTY EXISTENCE', schema=()-[:$relType {$prop}]-() )",
+        "Property existence"
+      ),
+      (s"CREATE CONSTRAINT $constraintName FOR (n:$label) REQUIRE n.$prop IS :: INT", constraintName, "Property type"),
+      (
+        s"CREATE CONSTRAINT $constraintName FOR ()-[r:$relType]-() REQUIRE r.$prop IS :: INT",
+        constraintName,
+        "Property type"
+      )
     )
     val dropCommand = s"DROP CONSTRAINT $constraintName"
     val showCommand = "SHOW CONSTRAINTS YIELD name, type"
@@ -493,18 +558,28 @@ class CommunityIndexAndConstraintCommandAcceptanceTest extends ExecutionEngineFu
         }
       }
 
-      failingCreateCommands.foreach(createCommand =>
-        withClue(cypherVersionString + createCommand) {
-          val exceptionMessage = (the[CypherExecutionException] thrownBy {
-            execute(cypherVersionString + createCommand)
-          }).getMessage
-          exceptionMessage should startWith("Unable to create Constraint(")
-          exceptionMessage should endWith(
-            "constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown."
-          )
-          graph.constraintExists(constraintName) should be(false)
-        }
-      )
+      failingCreateCommands.foreach {
+
+        case (createCommand, constraintNameOrDescr, constraintType) =>
+          withClue(cypherVersionString + createCommand) {
+            val exception = the[CypherExecutionException] thrownBy {
+              execute(cypherVersionString + createCommand)
+            }
+            val exceptionMessage = exception.getMessage
+            exceptionMessage should startWith("Unable to create Constraint(")
+            exceptionMessage should endWith(
+              "constraint requires Neo4j Enterprise Edition. Note that only the first found violation is shown."
+            )
+            exception.gqlStatusObject() should be(gqlStatus(
+              GqlStatusInfoCodes.STATUS_50N11,
+              s"error: general processing exception - constraint creation failed. Unable to create '$constraintNameOrDescr'."
+            ).withCause(
+              GqlStatusInfoCodes.STATUS_51N27,
+              s"error: system configuration or operation exception - not supported in this edition. $constraintType constraint is not supported in community edition."
+            ))
+            graph.constraintExists(constraintName) should be(false)
+          }
+      }
 
       // Columns added in Cypher 25 (and behind the graph type feature flag)
       Seq("enforcedLabel", "classification").foreach(column =>

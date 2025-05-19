@@ -70,8 +70,9 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
     }
 
     @Override
-    public void assertKeyConstraintAllowed(SchemaDescriptor descriptor) throws CreateConstraintFailureException {
-        throw keyConstraintsNotAllowed(descriptor);
+    public void assertKeyConstraintAllowed(SchemaDescriptor descriptor, TokenNameLookup tokenNameLookup)
+            throws CreateConstraintFailureException {
+        throw keyConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -82,7 +83,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             LabelSchemaDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw keyConstraintsNotAllowed(descriptor);
+        throw keyConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -93,7 +94,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             RelationTypeSchemaDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw keyConstraintsNotAllowed(descriptor);
+        throw keyConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -105,7 +106,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             TokenNameLookup tokenNameLookup,
             boolean isDependent)
             throws CreateConstraintFailureException {
-        throw propertyExistenceConstraintsNotAllowed(descriptor, isDependent);
+        throw propertyExistenceConstraintsNotAllowed(descriptor, tokenNameLookup, isDependent);
     }
 
     @Override
@@ -116,7 +117,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             TokenNameLookup tokenNameLookup,
             boolean isDependent)
             throws CreateConstraintFailureException {
-        throw propertyExistenceConstraintsNotAllowed(descriptor, isDependent);
+        throw propertyExistenceConstraintsNotAllowed(descriptor, tokenNameLookup, isDependent);
     }
 
     @Override
@@ -127,7 +128,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             TokenNameLookup tokenNameLookup,
             boolean isDependent)
             throws CreateConstraintFailureException {
-        throw propertyExistenceConstraintsNotAllowed(descriptor, isDependent);
+        throw propertyExistenceConstraintsNotAllowed(descriptor, tokenNameLookup, isDependent);
     }
 
     @Override
@@ -145,38 +146,44 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
     }
 
     private static CreateConstraintFailureException propertyExistenceConstraintsNotAllowed(
-            SchemaDescriptor descriptor, boolean isDependent) {
+            SchemaDescriptor descriptor, TokenNameLookup tokenNameLookup, boolean isDependent) {
         // When creating a Property Existence Constraint in Community Edition
-        return CreateConstraintFailureException.constraintCreationFailed(
-                ConstraintDescriptorFactory.existsForSchema(descriptor, isDependent), ERROR_MESSAGE_EXISTS);
+        return CreateConstraintFailureException.constraintCreationFailedOnCommunity(
+                ConstraintDescriptorFactory.existsForSchema(descriptor, isDependent),
+                tokenNameLookup,
+                ERROR_MESSAGE_EXISTS);
     }
 
     private static CreateConstraintFailureException propertyTypeConstraintsNotAllowed(
-            TypeConstraintDescriptor descriptor) {
+            TypeConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup) {
         // When creating a Property Type Constraint in Community Edition
-        return CreateConstraintFailureException.constraintCreationFailed(descriptor, ERROR_MESSAGE_TYPE);
+        return CreateConstraintFailureException.constraintCreationFailedOnCommunity(
+                descriptor, tokenNameLookup, ERROR_MESSAGE_TYPE);
     }
 
     private static CreateConstraintFailureException relationshipEndpointLabelConstraintsNotAllowed(
-            RelationshipEndpointLabelConstraintDescriptor descriptor) {
-        return CreateConstraintFailureException.constraintCreationFailed(
-                descriptor, ERROR_MESSAGE_RELATIONSHIP_ENDPOINT_LABEL);
+            RelationshipEndpointLabelConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup) {
+        return CreateConstraintFailureException.constraintCreationFailedOnCommunity(
+                descriptor, tokenNameLookup, ERROR_MESSAGE_RELATIONSHIP_ENDPOINT_LABEL);
     }
 
     private static CreateConstraintFailureException nodeLabelExistenceConstraintsNotAllowed(
-            NodeLabelExistenceConstraintDescriptor descriptor) {
-        return CreateConstraintFailureException.constraintCreationFailed(
-                descriptor, ERROR_MESSAGE_NODE_LABEL_EXISTENCE);
+            NodeLabelExistenceConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup) {
+        return CreateConstraintFailureException.constraintCreationFailedOnCommunity(
+                descriptor, tokenNameLookup, ERROR_MESSAGE_NODE_LABEL_EXISTENCE);
     }
 
     private static String keyConstraintErrorMessage(SchemaDescriptor descriptor) {
         return (descriptor.entityType() == NODE ? "Node " : "Relationship ") + ERROR_MESSAGE_KEY_SUFFIX;
     }
 
-    private static CreateConstraintFailureException keyConstraintsNotAllowed(SchemaDescriptor descriptor) {
+    private static CreateConstraintFailureException keyConstraintsNotAllowed(
+            SchemaDescriptor descriptor, TokenNameLookup tokenNameLookup) {
         // When creating a Key Constraint in Community Edition
-        return CreateConstraintFailureException.constraintCreationFailed(
-                ConstraintDescriptorFactory.keyForSchema(descriptor), keyConstraintErrorMessage(descriptor));
+        return CreateConstraintFailureException.constraintCreationFailedOnCommunity(
+                ConstraintDescriptorFactory.keyForSchema(descriptor),
+                tokenNameLookup,
+                keyConstraintErrorMessage(descriptor));
     }
 
     @Override
@@ -186,35 +193,39 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
     }
 
     @Override
-    public ConstraintDescriptor createKeyConstraintRule(long ruleId, KeyConstraintDescriptor descriptor, long indexId)
+    public ConstraintDescriptor createKeyConstraintRule(
+            long ruleId, KeyConstraintDescriptor descriptor, long indexId, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw keyConstraintsNotAllowed(descriptor.schema());
+        throw keyConstraintsNotAllowed(descriptor.schema(), tokenNameLookup);
     }
 
     @Override
-    public ConstraintDescriptor createExistenceConstraint(long ruleId, ConstraintDescriptor descriptor)
+    public ConstraintDescriptor createExistenceConstraint(
+            long ruleId, ConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
         throw propertyExistenceConstraintsNotAllowed(
-                descriptor.schema(), descriptor.graphTypeDependence() == DEPENDENT);
+                descriptor.schema(), tokenNameLookup, descriptor.graphTypeDependence() == DEPENDENT);
     }
 
     @Override
-    public ConstraintDescriptor createPropertyTypeConstraint(long ruleId, TypeConstraintDescriptor descriptor)
+    public ConstraintDescriptor createPropertyTypeConstraint(
+            long ruleId, TypeConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw propertyTypeConstraintsNotAllowed(descriptor);
+        throw propertyTypeConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
     public ConstraintDescriptor createRelationshipEndpointLabelConstraint(
-            long ruleId, RelationshipEndpointLabelConstraintDescriptor descriptor)
+            long ruleId, RelationshipEndpointLabelConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw relationshipEndpointLabelConstraintsNotAllowed(descriptor);
+        throw relationshipEndpointLabelConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
     public ConstraintDescriptor createNodeLabelExistenceConstraint(
-            long ruleId, NodeLabelExistenceConstraintDescriptor descriptor) throws CreateConstraintFailureException {
-        throw nodeLabelExistenceConstraintsNotAllowed(descriptor);
+            long ruleId, NodeLabelExistenceConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
+            throws CreateConstraintFailureException {
+        throw nodeLabelExistenceConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -237,7 +248,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             TokenNameLookup tokenNameLookup,
             boolean isDependent)
             throws CreateConstraintFailureException {
-        throw propertyExistenceConstraintsNotAllowed(descriptor, isDependent);
+        throw propertyExistenceConstraintsNotAllowed(descriptor, tokenNameLookup, isDependent);
     }
 
     @Override
@@ -247,7 +258,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             LabelSchemaDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw keyConstraintsNotAllowed(descriptor);
+        throw keyConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -257,7 +268,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             RelationTypeSchemaDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw keyConstraintsNotAllowed(descriptor);
+        throw keyConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -267,7 +278,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             TypeConstraintDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw propertyTypeConstraintsNotAllowed(descriptor);
+        throw propertyTypeConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -278,7 +289,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             TypeConstraintDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw propertyTypeConstraintsNotAllowed(descriptor);
+        throw propertyTypeConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -288,7 +299,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             TypeConstraintDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw propertyTypeConstraintsNotAllowed(descriptor);
+        throw propertyTypeConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -298,7 +309,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             TypeConstraintDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw propertyTypeConstraintsNotAllowed(descriptor);
+        throw propertyTypeConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -308,7 +319,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             RelationshipEndpointLabelConstraintDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw relationshipEndpointLabelConstraintsNotAllowed(descriptor);
+        throw relationshipEndpointLabelConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -318,7 +329,7 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             RelationshipEndpointLabelConstraintDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw relationshipEndpointLabelConstraintsNotAllowed(descriptor);
+        throw relationshipEndpointLabelConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
@@ -328,13 +339,13 @@ public class StandardConstraintSemantics extends ConstraintSemantics {
             NodeLabelExistenceConstraintDescriptor descriptor,
             TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw nodeLabelExistenceConstraintsNotAllowed(descriptor);
+        throw nodeLabelExistenceConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 
     @Override
     public void validateNodeLabelExistenceConstraint(
             NodeCursor nodeCursor, NodeLabelExistenceConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException {
-        throw nodeLabelExistenceConstraintsNotAllowed(descriptor);
+        throw nodeLabelExistenceConstraintsNotAllowed(descriptor, tokenNameLookup);
     }
 }

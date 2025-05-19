@@ -19,6 +19,7 @@
  */
 package org.neo4j.storageengine.api;
 
+import org.neo4j.common.TokenNameLookup;
 import org.neo4j.internal.kernel.api.exceptions.schema.CreateConstraintFailureException;
 import org.neo4j.internal.schema.ConstraintDescriptor;
 import org.neo4j.internal.schema.constraints.KeyConstraintDescriptor;
@@ -33,19 +34,23 @@ public interface ConstraintRuleAccessor {
     ConstraintDescriptor createUniquenessConstraintRule(
             long ruleId, UniquenessConstraintDescriptor descriptor, long indexId);
 
-    ConstraintDescriptor createKeyConstraintRule(long ruleId, KeyConstraintDescriptor descriptor, long indexId)
+    ConstraintDescriptor createKeyConstraintRule(
+            long ruleId, KeyConstraintDescriptor descriptor, long indexId, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException;
 
-    ConstraintDescriptor createExistenceConstraint(long ruleId, ConstraintDescriptor descriptor)
+    ConstraintDescriptor createExistenceConstraint(
+            long ruleId, ConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException;
 
-    ConstraintDescriptor createPropertyTypeConstraint(long ruleId, TypeConstraintDescriptor descriptor)
+    ConstraintDescriptor createPropertyTypeConstraint(
+            long ruleId, TypeConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException;
 
     ConstraintDescriptor createRelationshipEndpointLabelConstraint(
-            long ruleId, RelationshipEndpointLabelConstraintDescriptor descriptor)
+            long ruleId, RelationshipEndpointLabelConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
             throws CreateConstraintFailureException;
 
     ConstraintDescriptor createNodeLabelExistenceConstraint(
-            long ruleId, NodeLabelExistenceConstraintDescriptor descriptor) throws CreateConstraintFailureException;
+            long ruleId, NodeLabelExistenceConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
+            throws CreateConstraintFailureException;
 }

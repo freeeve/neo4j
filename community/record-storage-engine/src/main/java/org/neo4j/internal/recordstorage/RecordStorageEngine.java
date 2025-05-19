@@ -517,7 +517,8 @@ public class RecordStorageEngine implements StorageEngine, Lifecycle {
                 cursorContext,
                 storeCursors,
                 multiVersion,
-                memoryTracker);
+                memoryTracker,
+                tokenHolders.lookupWithIds());
         CountsRecordState countsRecordState = new CountsRecordState(serialization);
         txStateVisitor = additionalTxStateVisitor.apply(txStateVisitor);
         RecordState indexRecordState = RecordState.EMPTY_RECORD_STATE;

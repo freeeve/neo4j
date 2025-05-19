@@ -20,12 +20,14 @@
 package org.neo4j.internal.kernel.api.exceptions.schema;
 
 import org.neo4j.common.TokenNameLookup;
+import org.neo4j.exceptions.InvalidArgumentException;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gqlstatus.ErrorGqlStatusObject;
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation;
 import org.neo4j.gqlstatus.GqlParams;
 import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.schema.ConstraintDescriptor;
+import org.neo4j.internal.schema.EndpointType;
 import org.neo4j.kernel.api.exceptions.Status;
 
 public class CreateConstraintFailureException extends SchemaKernelException {
@@ -53,24 +55,63 @@ public class CreateConstraintFailureException extends SchemaKernelException {
     // KNL-028
     public static CreateConstraintFailureException constraintCreationFailed(
             ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup, Throwable cause) {
-        var constraintString = constraint.userDescription(tokenNameLookup);
-        return constraintCreationFailed(constraint, constraintString, cause, cause.getMessage());
+        return constraintCreationFailed(constraint, tokenNameLookup, cause, cause.getMessage(), null);
     }
 
     // KNL-028
     public static CreateConstraintFailureException constraintCreationFailed(
-            ConstraintDescriptor constraint, String cause) {
-        return constraintCreationFailed(constraint, null, null, cause);
+            ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup, String causeMessage) {
+        return constraintCreationFailed(constraint, tokenNameLookup, null, causeMessage, null);
+    }
+
+    public static CreateConstraintFailureException constraintCreationFailedOnCommunity(
+            ConstraintDescriptor constraint, TokenNameLookup tokenNameLookup, String causeMessage) {
+        String constraintType;
+        switch (constraint.type()) {
+            case EXISTS -> constraintType = "Property existence";
+            case PROPERTY_TYPE -> constraintType = "Property type";
+            case NODE_LABEL_EXISTENCE -> constraintType = "Node Label existence";
+            case RELATIONSHIP_ENDPOINT_LABEL -> {
+                EndpointType type =
+                        constraint.asRelationshipEndpointLabelConstraint().endpointType();
+                switch (type) {
+                    case START -> constraintType = "Relationship source label";
+                    case END -> constraintType = "Relationship target label";
+                    default ->
+                        throw InvalidArgumentException.internalError(
+                                CreateConstraintFailureException.class.getSimpleName(),
+                                String.format("Unexpected endpoint type: %s", type));
+                }
+            }
+            case UNIQUE_EXISTS -> constraintType = "Key";
+            default ->
+                throw InvalidArgumentException.internalError(
+                        CreateConstraintFailureException.class.getSimpleName(),
+                        String.format("Unexpected constraint type: %s", constraint.type()));
+        }
+
+        var gqlStatusCause = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N27)
+                .withParam(GqlParams.StringParam.feat, String.format("%s constraint", constraintType))
+                .withParam(GqlParams.StringParam.edition, "community edition")
+                .build();
+        return constraintCreationFailed(constraint, tokenNameLookup, null, causeMessage, gqlStatusCause);
     }
 
     private static CreateConstraintFailureException constraintCreationFailed(
-            ConstraintDescriptor constraint, String constraintString, Throwable cause, String causeString) {
-        var errorGqlStatusObject = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
+            ConstraintDescriptor constraint,
+            TokenNameLookup tokenNameLookup,
+            Throwable cause,
+            String causeString,
+            ErrorGqlStatusObject gqlStatusCause) {
+        String constraintString = constraint.userDescription(tokenNameLookup);
+        var gqlStatusBuilder = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_50N11)
                 .withParam(
                         GqlParams.StringParam.constrDescrOrName,
-                        constraint.getName() != null ? constraint.getName() : constraintString)
-                .build();
-        return new CreateConstraintFailureException(errorGqlStatusObject, constraint, cause, causeString);
+                        constraint.getName() != null ? constraint.getName() : constraintString);
+        if (gqlStatusCause != null) {
+            gqlStatusBuilder.withCause(gqlStatusCause);
+        }
+        return new CreateConstraintFailureException(gqlStatusBuilder.build(), constraint, cause, causeString);
     }
 
     public ConstraintDescriptor constraint() {

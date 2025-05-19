@@ -24,6 +24,7 @@ import static org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector.imme
 import static org.neo4j.io.pagecache.context.FixedVersionContextSupplier.EMPTY_CONTEXT_SUPPLIER;
 
 import java.util.function.Function;
+import org.neo4j.common.TokenNameLookup;
 import org.neo4j.configuration.Config;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.index.internal.gbptree.RecoveryCleanupWorkCollector;
@@ -152,30 +153,34 @@ public class RecordStorageEngineSupport {
 
             @Override
             public ConstraintDescriptor createKeyConstraintRule(
-                    long ruleId, KeyConstraintDescriptor descriptor, long indexId) {
+                    long ruleId, KeyConstraintDescriptor descriptor, long indexId, TokenNameLookup tokenNameLookup) {
                 throw new UnsupportedOperationException("Not needed a.t.m.");
             }
 
             @Override
-            public ConstraintDescriptor createExistenceConstraint(long ruleId, ConstraintDescriptor descriptor) {
+            public ConstraintDescriptor createExistenceConstraint(
+                    long ruleId, ConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup) {
                 throw new UnsupportedOperationException("Not needed a.t.m.");
             }
 
             @Override
-            public ConstraintDescriptor createPropertyTypeConstraint(long ruleId, TypeConstraintDescriptor descriptor) {
+            public ConstraintDescriptor createPropertyTypeConstraint(
+                    long ruleId, TypeConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup) {
                 throw new UnsupportedOperationException("Not needed a.t.m.");
             }
 
             @Override
             public ConstraintDescriptor createRelationshipEndpointLabelConstraint(
-                    long ruleId, RelationshipEndpointLabelConstraintDescriptor descriptor)
+                    long ruleId,
+                    RelationshipEndpointLabelConstraintDescriptor descriptor,
+                    TokenNameLookup tokenNameLookup)
                     throws CreateConstraintFailureException {
                 throw new UnsupportedOperationException("Not needed a.t.m.");
             }
 
             @Override
             public ConstraintDescriptor createNodeLabelExistenceConstraint(
-                    long ruleId, NodeLabelExistenceConstraintDescriptor descriptor)
+                    long ruleId, NodeLabelExistenceConstraintDescriptor descriptor, TokenNameLookup tokenNameLookup)
                     throws CreateConstraintFailureException {
                 throw new UnsupportedOperationException("Not needed a.t.m.");
             }

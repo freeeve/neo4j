@@ -62,6 +62,8 @@ import org.mockito.stubbing.Answer;
 import org.neo4j.configuration.Config;
 import org.neo4j.dbms.DbmsRuntimeVersionProvider;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.gqlstatus.ErrorGqlStatusObjectAssertions;
+import org.neo4j.gqlstatus.GqlStatusInfoCodes;
 import org.neo4j.internal.helpers.collection.Iterables;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.PropertyCursor;
@@ -1148,10 +1150,16 @@ public class PlainOperationsTest extends OperationsTest {
         when(indexingService.getIndexProxy(constraintIndex)).thenReturn(indexProxy);
         when(storageReader.constraintsGetForSchema(schema)).thenReturn(Collections.emptyIterator());
         when(storageReader.indexGetForSchema(schema)).thenReturn(Collections.emptyIterator());
+        when(tokenHolders.labelTokens().getTokenById(123)).thenReturn(new NamedToken("LabelA", 1));
+        when(tokenHolders.propertyKeyTokens().getTokenById(456)).thenReturn(new NamedToken("PropA", 1));
 
         // when
         var e = assertThrows(KernelException.class, () -> operations.uniquePropertyConstraintCreate(prototype));
         assertThat(e.getUserMessage(new InMemoryTokens())).contains("FULLTEXT");
+        ErrorGqlStatusObjectAssertions.assertThat(e)
+                .hasGqlStatus(GqlStatusInfoCodes.STATUS_50N11)
+                .hasStatusDescription(
+                        "error: general processing exception - constraint creation failed. Unable to create 'constraint name'.");
     }
 
     @Test

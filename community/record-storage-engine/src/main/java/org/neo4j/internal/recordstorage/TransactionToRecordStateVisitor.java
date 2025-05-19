@@ -22,6 +22,7 @@ package org.neo4j.internal.recordstorage;
 import java.util.OptionalLong;
 import org.eclipse.collections.api.IntIterable;
 import org.eclipse.collections.api.set.primitive.IntSet;
+import org.neo4j.common.TokenNameLookup;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.internal.kernel.api.Upgrade;
 import org.neo4j.internal.kernel.api.exceptions.schema.DuplicateSchemaRuleException;
@@ -51,6 +52,7 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
     private final StoreCursors storeCursors;
     private final boolean transientMissingSchema;
     private final MemoryTracker memoryTracker;
+    private final TokenNameLookup tokenNameLookup;
 
     TransactionToRecordStateVisitor(
             TransactionRecordState recordState,
@@ -60,7 +62,8 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
             CursorContext cursorContext,
             StoreCursors storeCursors,
             boolean transientMissingSchema,
-            MemoryTracker memoryTracker) {
+            MemoryTracker memoryTracker,
+            TokenNameLookup tokenNameLookup) {
         this.recordState = recordState;
         this.schemaState = schemaState;
         this.schemaStorage = schemaRuleAccess;
@@ -70,6 +73,7 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
         this.storeCursors = storeCursors;
         this.transientMissingSchema = transientMissingSchema;
         this.memoryTracker = memoryTracker;
+        this.tokenNameLookup = tokenNameLookup;
     }
 
     @Override
@@ -150,22 +154,23 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
             case UNIQUE -> visitAddedUniquenessConstraint(constraint.asUniquenessConstraint(), constraintId);
             case UNIQUE_EXISTS -> visitAddedKeyConstraint(constraint.asKeyConstraint(), constraintId);
             case EXISTS -> {
-                ConstraintDescriptor rule = constraintSemantics.createExistenceConstraint(constraintId, constraint);
+                ConstraintDescriptor rule =
+                        constraintSemantics.createExistenceConstraint(constraintId, constraint, tokenNameLookup);
                 schemaStateChanger.createSchemaRule(recordState, rule);
             }
             case PROPERTY_TYPE -> {
                 ConstraintDescriptor rule = constraintSemantics.createPropertyTypeConstraint(
-                        constraintId, constraint.asPropertyTypeConstraint());
+                        constraintId, constraint.asPropertyTypeConstraint(), tokenNameLookup);
                 schemaStateChanger.createSchemaRule(recordState, rule);
             }
             case RELATIONSHIP_ENDPOINT_LABEL -> {
                 ConstraintDescriptor rule = constraintSemantics.createRelationshipEndpointLabelConstraint(
-                        constraintId, constraint.asRelationshipEndpointLabelConstraint());
+                        constraintId, constraint.asRelationshipEndpointLabelConstraint(), tokenNameLookup);
                 schemaStateChanger.createSchemaRule(recordState, rule);
             }
             case NODE_LABEL_EXISTENCE -> {
                 ConstraintDescriptor rule = constraintSemantics.createNodeLabelExistenceConstraint(
-                        constraintId, constraint.asNodeLabelExistenceConstraint());
+                        constraintId, constraint.asNodeLabelExistenceConstraint(), tokenNameLookup);
                 schemaStateChanger.createSchemaRule(recordState, rule);
             }
             default -> throw new IllegalStateException(constraint.type().toString());
@@ -191,8 +196,8 @@ class TransactionToRecordStateVisitor extends TxStateVisitor.Adapter {
             throws KernelException {
         IndexDescriptor indexRule = (IndexDescriptor)
                 schemaStorage.loadSingleSchemaRule(uniqueConstraint.ownedIndexId(), storeCursors, memoryTracker);
-        ConstraintDescriptor constraint =
-                constraintSemantics.createKeyConstraintRule(constraintId, uniqueConstraint, indexRule.getId());
+        ConstraintDescriptor constraint = constraintSemantics.createKeyConstraintRule(
+                constraintId, uniqueConstraint, indexRule.getId(), tokenNameLookup);
         schemaStateChanger.createSchemaRule(recordState, constraint);
         schemaStateChanger.setConstraintIndexOwner(recordState, indexRule, constraintId);
     }

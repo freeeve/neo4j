@@ -2148,7 +2148,7 @@ public class Operations implements Write, SchemaWrite, Upgrade {
         }
 
         // Check that key constraints are supported before we start doing any work
-        constraintSemantics.assertKeyConstraintAllowed(constraint.schema());
+        constraintSemantics.assertKeyConstraintAllowed(constraint.schema(), token);
 
         // create constraint and enforce it after index population when we have the lock again
         indexBackedConstraintCreate(constraint, prototype, this::enforceKeyConstraint);
@@ -2767,23 +2767,26 @@ public class Operations implements Write, SchemaWrite, Upgrade {
             IndexType indexType = prototype.getIndexType();
             if (indexType != IndexType.RANGE) {
                 throw CreateConstraintFailureException.constraintCreationFailed(
-                        constraint, "Cannot create backing constraint index with index type " + indexType + ".");
+                        constraint, token, "Cannot create backing constraint index with index type " + indexType + ".");
             }
             if (prototype.schema().isFulltextSchemaDescriptor()) {
                 throw CreateConstraintFailureException.constraintCreationFailed(
                         constraint,
+                        token,
                         "Cannot create backing constraint index using a full-text schema: "
                                 + prototype.schema().userDescription(token));
             }
             if (prototype.schema().isAnyTokenSchemaDescriptor()) {
                 throw CreateConstraintFailureException.constraintCreationFailed(
                         constraint,
+                        token,
                         "Cannot create backing constraint index using an any token schema: "
                                 + prototype.schema().userDescription(token));
             }
             if (!prototype.isUnique()) {
                 throw CreateConstraintFailureException.constraintCreationFailed(
                         constraint,
+                        token,
                         "Cannot create index backed constraint using an index prototype that is not unique: "
                                 + prototype.userDescription(token));
             }
