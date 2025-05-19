@@ -67,10 +67,10 @@ object GraphTypeStringifier {
     val sortLabel: PartialFunction[GraphTypeElementReference, (Int, String)] = {
       case NodeTypeReferenceByIdentifyingLabel(l, _) => (1, l.name)
       case EdgeTypeReferenceByIdentifyingLabel(l, _) => (1, l.name)
-      case NodeTypeReferenceByVariable(v)            => (1, v.name) // Non-canonical, but identifying, so use 1
-      case EdgeTypeReferenceByVariable(v)            => (1, v.name) // Non-canonical, but identifying, so use 1
-      case NodeTypeReferenceByLabel(l, _)            => (2, l.name)
-      case EdgeTypeReferenceByLabel(l, _)            => (2, l.name)
+      case NodeTypeReferenceByVariable(v)            => (2, v.name) // Non-canonical, but identifying, so use 2
+      case EdgeTypeReferenceByVariable(v)            => (2, v.name) // Non-canonical, but identifying, so use 2
+      case NodeTypeReferenceByLabel(l, _)            => (3, l.name)
+      case EdgeTypeReferenceByLabel(l, _)            => (3, l.name)
     }
 
     val sortKey: PartialFunction[GraphTypeConstraint, SortKey] = {

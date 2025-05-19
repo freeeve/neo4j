@@ -97,6 +97,46 @@ class GraphTypeStringifierTest extends CypherFunSuite with AstGraphTypeConstruct
     )
   }
 
+  test("sort order for refs should be identifying label, variable, label") {
+    graphType(
+      Seq(),
+      Seq(
+        keyConstraint(nodeTypeRefByVar("Person"), ArraySeq(prop(varFor("Person"), "name"))),
+        keyConstraint(nodeTypeRefByLabel("Person", "Person"), ArraySeq(prop(varFor("Person"), "name"))),
+        keyConstraint(identifyingNodeTypeRef("Person", "Person"), ArraySeq(prop(varFor("Person"), "name")))
+      )
+    ) shouldStringifyTo (
+      """{
+        | CONSTRAINT FOR (`Person`:`Person` =>) REQUIRE (`Person`.`name`) IS KEY,
+        | CONSTRAINT FOR (`Person`) REQUIRE (`Person`.`name`) IS KEY,
+        | CONSTRAINT FOR (`Person`:`Person`) REQUIRE (`Person`.`name`) IS KEY
+        |}""".stripMargin
+    )
+  }
+
+  test("sort order for properties lists of differing lengths") {
+    graphType(
+      Seq(),
+      Seq(
+        keyConstraint(
+          identifyingNodeTypeRef("L4", "n"),
+          ArraySeq(prop(varFor("n"), "p1"), prop(varFor("n"), "p2"), prop(varFor("n"), "p3"))
+        ),
+        uniquenessConstraint(
+          identifyingNodeTypeRef("L4", "n"),
+          ArraySeq(prop(varFor("n"), "p1"), prop(varFor("n"), "p2"))
+        ),
+        keyConstraint(identifyingNodeTypeRef("L4", "n"), ArraySeq(prop(varFor("n"), "p2"), prop(varFor("n"), "p1")))
+      )
+    ) shouldStringifyTo (
+      """{
+        | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p1`, `n`.`p2`) IS UNIQUE,
+        | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p1`, `n`.`p2`, `n`.`p3`) IS KEY,
+        | CONSTRAINT FOR (`n`:`L4` =>) REQUIRE (`n`.`p2`, `n`.`p1`) IS KEY
+        |}""".stripMargin
+    )
+  }
+
   GraphTypeTestCase.testcases.collect { case GraphTypeTestCase(name, _, ast, Some(prettifiedCypher)) =>
     test(name) {
       ast shouldStringifyTo prettifiedCypher
