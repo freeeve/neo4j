@@ -108,6 +108,7 @@ import org.neo4j.kernel.impl.transaction.log.ReadAheadUtils;
 import org.neo4j.kernel.impl.transaction.log.ReadableLogChannel;
 import org.neo4j.kernel.impl.transaction.log.TransactionLogWriter;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointer;
+import org.neo4j.kernel.impl.transaction.log.checkpoint.CheckPointerImpl;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.DetachedCheckpointAppender;
 import org.neo4j.kernel.impl.transaction.log.checkpoint.SimpleTriggerInfo;
 import org.neo4j.kernel.impl.transaction.log.entry.IncompleteLogHeaderException;
@@ -1228,16 +1229,33 @@ class RecoveryCorruptedTransactionLogIT {
             try (Transaction tx = database.beginTx()) {
                 tx.schema().awaitIndexesOnline(1, TimeUnit.MINUTES);
             }
+            database.getDependencyResolver()
+                    .resolveDependency(CheckPointerImpl.class)
+                    .forceCheckPoint(new SimpleTriggerInfo("test"));
+            try (Transaction tx = database.beginTx()) {
+                Node node = tx.createNode(person);
+                node.setProperty(name, "Lisa");
+                tx.commit();
+            }
             logFiles = buildDefaultLogFiles(getStoreId(database));
         }
         // When
         removeLastCheckpointRecordFromLastLogFile();
         Path schemaStore = databaseLayout.pathForStore(CommonDatabaseStores.SCHEMAS);
 
-        // Fill the last page with -1 will corrupt the schema store in an engine independent way
         byte[] data = FileSystemUtils.readAllBytes(fileSystem, schemaStore, INSTANCE);
         int numPages = data.length / PAGE_SIZE;
-        Arrays.fill(data, (numPages - 1) * PAGE_SIZE, numPages * PAGE_SIZE, (byte) -1);
+        if (numPages > 1) {
+            // A GBPTree (block store). Let's find the string and break it
+            for (int i = 0; i < data.length - 5; i++) {
+                if ("INDEX".equals(new String(data, i, 5))) {
+                    data[i] = 'i';
+                }
+            }
+        } else {
+            // A Record store, lets fill it with -1
+            Arrays.fill(data, (numPages - 1) * PAGE_SIZE, numPages * PAGE_SIZE, (byte) -1);
+        }
         FileSystemUtils.writeAllBytes(fileSystem, schemaStore, data, INSTANCE);
 
         // Then
@@ -1254,8 +1272,7 @@ class RecoveryCorruptedTransactionLogIT {
         try (DatabaseManagementService dbms =
                 databaseFactory.setConfig(ignore_corrupt_schema, true).build()) {
             GraphDatabaseAPI database = (GraphDatabaseAPI) dbms.database(DEFAULT_DATABASE_NAME);
-            // Database won't start with corrupt schema, but at least the recovery/checkpoint should have finished.
-            assertThat(database.isAvailable()).isTrue();
+            assertThat(database.isAvailable()).as(logProvider::serialize).isTrue();
         }
         assertThat(Recovery.isRecoveryRequired(fileSystem, databaseLayout, CONFIG, INSTANCE))
                 .isFalse();
