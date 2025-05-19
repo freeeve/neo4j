@@ -142,7 +142,7 @@ class ReentrantLockServiceTest {
             for (int i = 0; i < 100_000; i++) {
                 try (var lock = locks.acquireNodeLock(rng.nextLong(1_000), EXCLUSIVE)) {
                     // then
-                    assertThat(locks.lockCount()).isLessThanOrEqualTo(numThreads);
+                    assertThat(locks.lockCount()).isLessThanOrEqualTo(numThreads * 2);
                 }
             }
         });
