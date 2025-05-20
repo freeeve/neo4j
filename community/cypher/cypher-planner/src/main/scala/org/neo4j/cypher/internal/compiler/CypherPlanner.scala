@@ -348,4 +348,11 @@ class CypherPlannerConfiguration(
     )
     () => config.planningGraphSchemaOptimizationsEnabled
   }
+
+  val optionalMatchRemoverEnabled: () => Boolean = {
+    AssertMacros.checkOnlyWhenAssertionsAreEnabled(
+      !GraphDatabaseInternalSettings.optional_match_remover_enabled.dynamic()
+    )
+    () => config.optionalMatchRemoverEnabled
+  }
 }

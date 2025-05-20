@@ -220,6 +220,9 @@ class CypherConfiguration private (val config: Config) {
   val planningGraphSchemaOptimizationsEnabled: Boolean =
     config.get(GraphDatabaseInternalSettings.planning_graph_schema_optimizations_enabled)
 
+  val optionalMatchRemoverEnabled: Boolean =
+    config.get(GraphDatabaseInternalSettings.optional_match_remover_enabled)
+
   // dynamic configurations
   private var _obfuscateLiterals: Boolean = config.get(GraphDatabaseSettings.log_queries_obfuscate_literals)
   private var _renderPlanDescription: Boolean = config.get(GraphDatabaseSettings.cypher_render_plan_descriptions)

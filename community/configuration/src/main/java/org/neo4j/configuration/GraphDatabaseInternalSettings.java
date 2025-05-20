@@ -1161,6 +1161,12 @@ public class GraphDatabaseInternalSettings implements SettingsDeclaration {
             .build();
 
     @Internal
+    @Description("Feature flag to enable/disable use of optional match remover during planning.")
+    public static final Setting<Boolean> optional_match_remover_enabled = newBuilder(
+                    "internal.cypher.planning_optional_match_remover_enabled", BOOL, true)
+            .build();
+
+    @Internal
     @Description(
             "Limits the maximum amount of off-heap memory the consistency checker will allocate. The value is given as a factor between 0.1 .. 1 "
                     + "and will be multiplied with actual available memory to get the effectively available amount of memory taken into consideration")

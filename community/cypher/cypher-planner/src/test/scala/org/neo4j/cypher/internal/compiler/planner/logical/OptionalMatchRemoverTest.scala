@@ -24,6 +24,7 @@ import org.neo4j.cypher.internal.ast.AstConstructionTestSupport
 import org.neo4j.cypher.internal.ast.AstConstructionTestSupport.VariableStringInterpolator
 import org.neo4j.cypher.internal.ast.Statement
 import org.neo4j.cypher.internal.ast.semantics.SemanticChecker
+import org.neo4j.cypher.internal.compiler.CypherPlannerConfiguration
 import org.neo4j.cypher.internal.compiler.phases.LogicalPlanState
 import org.neo4j.cypher.internal.compiler.phases.PlannerContext
 import org.neo4j.cypher.internal.compiler.planner.logical.OptionalMatchRemover.checkLabelExpression
@@ -57,6 +58,9 @@ class OptionalMatchRemoverTest extends CypherFunSuite with PlannerQueryRewriterT
     when(state.anonymousVariableNameGenerator).thenReturn(anonymousVariableNameGenerator)
     val plannerContext = mock[PlannerContext]
     when(plannerContext.cancellationChecker).thenReturn(CancellationChecker.NeverCancelled)
+    val config = mock[CypherPlannerConfiguration]
+    when(config.optionalMatchRemoverEnabled).thenReturn(() => true)
+    when(plannerContext.config).thenReturn(config)
     OptionalMatchRemover.instance(state, plannerContext)
   }
 
