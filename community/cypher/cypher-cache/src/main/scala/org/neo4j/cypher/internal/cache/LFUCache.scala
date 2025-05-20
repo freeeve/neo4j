@@ -73,6 +73,7 @@ class LFUCache[K <: AnyRef, V <: AnyRef](
 
   def put(key: K, value: V): Unit = inner.put(key, value)
 
+  // Warning! When shared cache is enabled this implementation is slow (see SharedCacheContainer).
   def estimatedSize(): Long = inner.estimatedSize()
 
   def asMap(): ConcurrentMap[K, V] = inner.asMap()

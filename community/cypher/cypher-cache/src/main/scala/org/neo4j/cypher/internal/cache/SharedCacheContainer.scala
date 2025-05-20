@@ -90,6 +90,14 @@ case class SharedCacheContainer[K, V](
   override def put(key: K, value: V): Unit = inner.put((id, key), value)
   override def invalidate(key: K): Unit = inner.invalidate((id, key))
 
+  /**
+   * Returns the estimated size of the cache.
+   *
+   * Warning!! The current implementation is slow, O(n) where n is the total number of shared(!) entries.
+   *           Compared to O(1) typically.
+   *           If you optimise the implementation, please update comments similar to this where this is called and
+   *           update the documentation of `server.memory.query_cache.sharing_enabled`.
+   */
   override def estimatedSize(): Long = {
     var count = 0
     forEachKey(_ => count += 1)
@@ -141,6 +149,7 @@ case class SharedCacheContainer[K, V](
 
     override def keySet(): util.Set[K] = throw new UnsupportedOperationException()
 
+    // TODO, this implementation is incorrect. It does not filter on the id.
     override def values(): util.Collection[V] = unmodifiableCollection(innerMap.values())
 
     override def entrySet(): util.Set[java.util.Map.Entry[K, V]] = throw new UnsupportedOperationException()

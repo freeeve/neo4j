@@ -164,7 +164,9 @@ class QueryCache[QUERY_KEY <: AnyRef, EXECUTABLE_QUERY <: CacheabilityInfo](
     innerFactory.createCache[QUERY_KEY, CacheEntry](size, listener)
   }
 
+  // Warning! When shared cache is enabled this implementation is slow (see SharedCacheContainer).
   def estimatedSize(): Long = inner.estimatedSize()
+
   def values: Iterator[CachedValue] = inner.asMap().values().iterator().asScala.collect { case v: CachedValue => v }
 
   /**
