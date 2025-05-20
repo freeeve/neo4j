@@ -204,6 +204,7 @@
     <testcontainers.version>1.21.0</testcontainers.version>
     <build-resources.version>2024-12.1</build-resources.version>
     <s3mock.version>4.1.1</s3mock.version>
+    <shiro.version>2.0.4</shiro.version>
     <cypherdsl.version>2024.6.0</cypherdsl.version>
   </properties>
 
@@ -1225,7 +1226,7 @@
       <dependency>
         <groupId>org.apache.shiro</groupId>
         <artifactId>shiro-core</artifactId>
-        <version>2.0.4</version>
+        <version>${shiro.version}</version>
         <exclusions>
           <exclusion>
             <groupId>org.bouncycastle</groupId>
@@ -1236,6 +1237,27 @@
             <artifactId>shiro-config-ogdl</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.shiro</groupId>
+        <artifactId>shiro-cache</artifactId>
+        <version>${shiro.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.shiro</groupId>
+        <artifactId>shiro-crypto-hash</artifactId>
+        <version>${shiro.version}</version>
+        <exclusions>
+          <exclusion>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>*</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.shiro</groupId>
+        <artifactId>shiro-lang</artifactId>
+        <version>${shiro.version}</version>
       </dependency>
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
@@ -1255,6 +1277,11 @@
             <artifactId>jspecify</artifactId>
           </exclusion>
         </exclusions>
+      </dependency>
+      <dependency>
+        <groupId>com.github.seancfoley</groupId>
+        <artifactId>ipaddress</artifactId>
+        <version>5.5.1</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
