@@ -4138,7 +4138,7 @@ public enum GqlStatusInfoCodes implements GqlStatusInfo {
     STATUS_51N31(
             new GqlStatus("51N31"),
             "{ %s } is not supported in { %s }.",
-            new GqlParams.GqlParam[] {GqlParams.StringParam.item, GqlParams.StringParam.context},
+            new GqlParams.GqlParam[] {GqlParams.StringParam.feat, GqlParams.StringParam.context},
             emptyMap(),
             Condition.SYSTEM_CONFIGURATION_OR_OPERATION_EXCEPTION,
             "not supported",

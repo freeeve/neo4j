@@ -1168,11 +1168,8 @@ sealed abstract class PrivilegeCommand(
       case _: LoadPrivilege =>
         qualifier match {
           case LoadUrlQualifier(_) :: _ =>
-            val gql = ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N31)
-              .atPosition(position.offset, position.line, position.column)
-              .withParam(GqlParams.StringParam.item, "URL pattern")
-              .withParam(GqlParams.StringParam.context, "LOAD privileges")
-              .build()
+            val gql =
+              GqlHelper.get51N31("URL pattern", "LOAD privileges", position.offset, position.line, position.column)
             error(gql, "LOAD privileges with a URL pattern are not currently supported", position)
           case _ => super.semanticCheck chain SemanticState.recordCurrentScope(this)
         }

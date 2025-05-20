@@ -1178,6 +1178,14 @@ public class GqlHelper {
                 .build();
     }
 
+    public static ErrorGqlStatusObject get51N31(String notSupported, String context, int offset, int line, int column) {
+        return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_51N31)
+                .atPosition(offset, line, column)
+                .withParam(GqlParams.StringParam.feat, notSupported)
+                .withParam(GqlParams.StringParam.context, context)
+                .build();
+    }
+
     public static ErrorGqlStatusObject getGql52N02_52N11(String procedure) {
         return ErrorGqlStatusObjectImplementation.from(GqlStatusInfoCodes.STATUS_52N02)
                 .withParam(GqlParams.StringParam.proc, procedure)

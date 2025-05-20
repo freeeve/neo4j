@@ -42,6 +42,7 @@ import org.neo4j.cypher.internal.util.symbols.CTNode
 import org.neo4j.cypher.internal.util.symbols.CTRelationship
 import org.neo4j.cypher.internal.util.symbols.CypherType
 import org.neo4j.gqlstatus.ErrorGqlStatusObjectImplementation
+import org.neo4j.gqlstatus.GqlHelper
 import org.neo4j.gqlstatus.GqlParams
 import org.neo4j.gqlstatus.GqlStatusInfoCodes
 
@@ -794,20 +795,34 @@ case class DropConstraintOnName(
   override def semanticCheck: SemanticCheck = Seq()
 }
 
+// Graph types
+
 case class AlterCurrentGraphType(
   graphType: GraphType,
   operation: AlterOperation,
   useGraph: Option[GraphSelection] = None
-)(
-  val position: InputPosition
-) extends SchemaCommand {
+)(val position: InputPosition) extends SchemaCommand {
+
+  private def checkForAllowedAlterCommand: SemanticCheck = operation match {
+    case AlterCurrentGraphType.Add =>
+      val gql = GqlHelper.get51N31("ADD", "ALTER CURRENT GRAPH TYPE", position.offset, position.line, position.column)
+      error(gql, GqlHelper.getCompleteMessage(gql), position)
+    case AlterCurrentGraphType.Drop =>
+      val gql = GqlHelper.get51N31("DROP", "ALTER CURRENT GRAPH TYPE", position.offset, position.line, position.column)
+      error(gql, GqlHelper.getCompleteMessage(gql), position)
+    case AlterCurrentGraphType.Alter =>
+      val gql =
+        GqlHelper.get51N31("ALTER", "ALTER CURRENT GRAPH TYPE", position.offset, position.line, position.column)
+      error(gql, GqlHelper.getCompleteMessage(gql), position)
+    case _ => SemanticCheck.success
+  }
 
   override def semanticCheck: SemanticCheck =
     requireFeatureSupport(
       "`ALTER CURRENT GRAPH TYPE`",
       SemanticFeature.GraphTypes,
       position
-    ) chain graphType.semanticCheck
+    ) chain checkForAllowedAlterCommand chain graphType.semanticCheck
   override def withGraph(useGraph: Option[UseGraph]): SchemaCommand = copy(useGraph = useGraph)(position)
 }
 
