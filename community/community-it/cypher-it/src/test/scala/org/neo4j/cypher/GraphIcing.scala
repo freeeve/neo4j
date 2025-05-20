@@ -46,9 +46,11 @@ import org.neo4j.kernel.impl.coreapi.InternalTransaction
 import org.neo4j.kernel.impl.coreapi.schema.IndexDefinitionImpl
 import org.neo4j.kernel.impl.coreapi.schema.NodePropertyTypeConstraintDefinition
 import org.neo4j.kernel.impl.coreapi.schema.RelationshipPropertyTypeConstraintDefinition
+import org.neo4j.kernel.impl.factory.KernelTransactionFactory
 import org.neo4j.kernel.impl.query.Neo4jTransactionalContextFactory
 import org.neo4j.kernel.impl.query.QueryExecutionConfiguration
 import org.neo4j.kernel.impl.query.TransactionalContext
+import org.neo4j.kernel.impl.query.TransactionalContext.DatabaseMode
 import org.neo4j.kernel.impl.transaction.stats.DatabaseTransactionStats
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.values.storable.Values
@@ -750,9 +752,12 @@ trait GraphIcing {
       tx: InternalTransaction,
       queryText: String,
       params: Map[String, Any],
-      queryExecutionConfiguration: QueryExecutionConfiguration
+      queryExecutionConfiguration: QueryExecutionConfiguration,
+      dbMode: TransactionalContext.DatabaseMode
     ): TransactionalContext = {
-      val contextFactory = Neo4jTransactionalContextFactory.create(graphService)
+      val kernelTransactionFactory =
+        graphService.getDependencyResolver.resolveDependency(classOf[KernelTransactionFactory])
+      val contextFactory = Neo4jTransactionalContextFactory.create(() => graphService, kernelTransactionFactory, dbMode)
       contextFactory.newContext(
         tx,
         queryText,
@@ -764,10 +769,11 @@ trait GraphIcing {
     def transactionalContext(
       tx: InternalTransaction,
       query: (String, Map[String, Any]),
-      queryExecutionConfiguration: QueryExecutionConfiguration = QueryExecutionConfiguration.DEFAULT_CONFIG
+      queryExecutionConfiguration: QueryExecutionConfiguration = QueryExecutionConfiguration.DEFAULT_CONFIG,
+      dbMode: TransactionalContext.DatabaseMode = DatabaseMode.SINGLE
     ): TransactionalContext = {
       val (queryText, params) = query
-      createTransactionalContext(tx, queryText, params, queryExecutionConfiguration)
+      createTransactionalContext(tx, queryText, params, queryExecutionConfiguration, dbMode)
     }
 
     // Runs code inside of a transaction. Will mark the transaction as successful if no exception is thrown

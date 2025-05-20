@@ -82,6 +82,7 @@ import org.neo4j.monitoring.Monitors
 import org.neo4j.storageengine.api.TransactionIdStore
 import org.neo4j.values.AnyValue
 import org.neo4j.values.storable.Values
+import org.neo4j.values.virtual.MapValue
 import org.neo4j.values.virtual.VirtualValues
 
 import java.util.Collections
@@ -1003,7 +1004,12 @@ class RuntimeTestSupport[CONTEXT <: RuntimeContext](
 
     val executionMode = if (profile) ProfileMode else NormalMode
     val (keys, values) =
-      parameters.mapValues(Values.of).unzip match { case (a, b) => (a.toArray, b.toArray[AnyValue]) }
+      parameters.mapValues {
+        case m: MapValue         => m
+        case m: Map[String, Any] => VirtualValues.map(m.keys.toArray, m.values.map(Values.of).toArray)
+        case v                   => Values.of(v)
+      }.unzip match { case (a, b) => (a.toArray, b.toArray[AnyValue]) }
+
     val paramsMap = VirtualValues.map(keys, values)
     val result =
       executableQuery.run(queryContext, executionMode, paramsMap, prePopulateResults, input, subscriber)

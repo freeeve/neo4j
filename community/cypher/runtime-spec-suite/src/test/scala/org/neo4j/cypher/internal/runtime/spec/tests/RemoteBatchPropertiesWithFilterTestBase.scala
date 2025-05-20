@@ -1681,4 +1681,37 @@ abstract class RemoteBatchPropertiesWithFilterTestBase[CONTEXT <: RuntimeContext
     result should beColumns("p3").withSingleRow(30)
   }
 
+  test("should handle property access on parameters") {
+    givenGraph {
+      Seq("zero", "one", "two", "three").zipWithIndex.foreach {
+        case (value1, i) =>
+          val n = tx.createNode()
+          n.setProperty("prop1", value1)
+          n.setProperty("prop2", i)
+          n.setProperty("name", s"node$i")
+      }
+    }
+
+    val query = new LogicalQueryBuilder(this)
+      .produceResults("name", "prop1", "prop2")
+      .projection(
+        "cache[n.name] as name",
+        "cache[n.prop1] as prop1",
+        "cache[n.prop2] as prop2"
+      )
+      .remoteBatchPropertiesWithFilter(
+        "cache[n.name]",
+        "cache[n.prop1]",
+        "cache[n.prop2]"
+      )(
+        "n.prop1 = $paramMap.value1",
+        "n.prop2 = $paramMap.value2"
+      )
+      .allNodeScan("n")
+      .build()
+
+    val result = execute(query, runtime, Map("paramMap" -> Map("value1" -> "one", "value2" -> 1)))
+    result should beColumns("name", "prop1", "prop2").withSingleRow("node1", "one", 1)
+  }
+
 }

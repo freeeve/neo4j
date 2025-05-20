@@ -46,6 +46,7 @@ import org.neo4j.kernel.impl.query.QueryExecutionEngine
 import org.neo4j.kernel.impl.query.QueryExecutionMonitor
 import org.neo4j.kernel.impl.query.QuerySubscriberProbe
 import org.neo4j.kernel.impl.query.RecordingQuerySubscriber
+import org.neo4j.kernel.impl.query.TransactionalContext
 import org.neo4j.kernel.impl.util.ValueUtils
 import org.neo4j.logging.InternalLogProvider
 import org.neo4j.logging.NullLogProvider
@@ -167,7 +168,8 @@ trait ExecutionEngineHelper {
     deadlockRetry: Boolean,
     input: InputDataStream,
     monitor: Option[QueryExecutionMonitor],
-    maximumResultRows: Option[Long]
+    maximumResultRows: Option[Long],
+    runOnSpd: Boolean
   ) {
 
     def withParams(params: Map[String, Any]): ExecutableQuery =
@@ -192,6 +194,9 @@ trait ExecutionEngineHelper {
     def withMaximumResultRows(rows: Option[Long]): ExecutableQuery =
       copy(maximumResultRows = rows)
 
+    def withSpd(runOnSpd: Boolean): ExecutableQuery =
+      copy(runOnSpd = runOnSpd)
+
     private def execute(tx: InternalTransaction) = {
       val subscriber = maximumResultRows match {
         case Some(limit) => new RecordingQuerySubscriber(new QuerySubscriberProbe {
@@ -206,9 +211,10 @@ trait ExecutionEngineHelper {
         case None => new RecordingQuerySubscriber
       }
 
+      val mode = if (runOnSpd) TransactionalContext.DatabaseMode.SHARDED else TransactionalContext.DatabaseMode.SINGLE
       query match {
         case ExecutionEngineHelper.TextQuery(text) =>
-          val context = graph.transactionalContext(tx, query = text -> params.toMap, queryExecutionConfiguration)
+          val context = graph.transactionalContext(tx, query = text -> params.toMap, queryExecutionConfiguration, mode)
           val tbqc = new TransactionBoundQueryContext(TransactionalContextWrapper(context), new ResourceManager)
           RewindableExecutionResult(
             eengine.execute(
@@ -226,7 +232,7 @@ trait ExecutionEngineHelper {
           )
 
         case ExecutionEngineHelper.ParsedQuery(fpq) =>
-          val context = graph.transactionalContext(tx, query = fpq.description -> params.toMap)
+          val context = graph.transactionalContext(tx, query = fpq.description -> params.toMap, dbMode = mode)
           val tbqc = new TransactionBoundQueryContext(TransactionalContextWrapper(context), new ResourceManager)
           RewindableExecutionResult(
             eengine.execute(
@@ -289,7 +295,8 @@ trait ExecutionEngineHelper {
         input = NoInput,
         deadlockRetry = false,
         monitor = None,
-        maximumResultRows = None
+        maximumResultRows = None,
+        runOnSpd = false
       )
 
     def apply(query: String): ExecutableQuery = apply(TextQuery(query))
