@@ -27,26 +27,37 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.neo4j.internal.helpers.collection.LongRange;
 import org.neo4j.internal.helpers.collection.Pair;
 import org.neo4j.io.fs.FileSystemAbstraction;
+import org.neo4j.io.fs.ReadPastEndException;
 import org.neo4j.kernel.KernelVersion;
 import org.neo4j.kernel.impl.transaction.log.LogPositionMarker;
 import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader;
+import org.neo4j.kernel.impl.transaction.log.entry.LogEnvelopeHeader.EnvelopeType;
 import org.neo4j.kernel.impl.transaction.log.entry.LogFormat;
 import org.neo4j.kernel.impl.transaction.log.entry.LogHeader;
 import org.neo4j.logging.NullLogProvider;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.neo4j.storageengine.api.StoreId;
+import org.neo4j.test.RandomSupport;
 import org.neo4j.test.extension.Inject;
+import org.neo4j.test.extension.RandomExtension;
 import org.neo4j.test.extension.testdirectory.TestDirectoryExtension;
 import org.neo4j.test.utils.TestDirectory;
 
 @TestDirectoryExtension
+@ExtendWith(RandomExtension.class)
 class EnvelopedLogFilesTest {
+
+    @Inject
+    RandomSupport randomSupport;
 
     private static final String EIGHT_BYTES_MESSAGE = "message!";
     public static final int writeBufferedBlocks = 2;
@@ -66,7 +77,14 @@ class EnvelopedLogFilesTest {
     private LogsRepository mirroringRepository;
 
     private static void writeData(EnvelopeWriteChannel writeChannel, byte[] data) throws IOException {
+        writeData(writeChannel, data, -1);
+    }
+
+    private static void writeData(EnvelopeWriteChannel writeChannel, byte[] data, long term) throws IOException {
         writeChannel.beginChecksumForWriting();
+        if (term >= 0) {
+            writeChannel.putTerm(term);
+        }
         writeChannel.putVersion(KernelVersion.GLORIOUS_FUTURE.version());
         writeChannel.putContentType(LogEnvelopeHeader.KERNEL_CONTENT_TYPE);
         writeChannel.put(data, data.length);
@@ -804,9 +822,9 @@ class EnvelopedLogFilesTest {
         var messagesBefore = new String[] {"beforeTruncate1", "beforeTruncate2", "beforeTruncate3"};
         var messagesAfter = new String[] {"afterTruncate1", "afterTruncate2"};
         var writeChannel = envelopedLogFiles.currentWriteChannel();
-        writeData(writeChannel, messagesBefore[0].getBytes());
-        writeData(writeChannel, messagesBefore[1].getBytes());
-        writeData(writeChannel, messagesBefore[2].getBytes());
+        writeData(writeChannel, messagesBefore[0].getBytes(), 0);
+        writeData(writeChannel, messagesBefore[1].getBytes(), 1);
+        writeData(writeChannel, messagesBefore[2].getBytes(), 2);
         writeChannel.prepareForFlush().flush();
 
         try (var reader = envelopedLogFiles.openReadChannel()) {
@@ -821,8 +839,8 @@ class EnvelopedLogFilesTest {
 
         envelopedLogFiles.truncate(2);
 
-        writeData(writeChannel, messagesAfter[0].getBytes());
-        writeData(writeChannel, messagesAfter[1].getBytes());
+        writeData(writeChannel, messagesAfter[0].getBytes(), writeChannel.currentTerm() + 1);
+        writeData(writeChannel, messagesAfter[1].getBytes(), writeChannel.currentTerm() + 1);
         writeChannel.prepareForFlush().flush();
 
         try (var reader = envelopedLogFiles.openReadChannel()) {
@@ -832,6 +850,7 @@ class EnvelopedLogFilesTest {
                 reader.read(ByteBuffer.wrap(readData));
                 assertThat(new String(readData)).isEqualTo(currentMessage);
                 assertThat(reader.entryIndex()).isEqualTo(i);
+                assertThat(reader.currentTerm()).isEqualTo(i);
             }
             for (int i = 0; i < 2; i++) {
                 var currentMessage = messagesAfter[i];
@@ -839,6 +858,7 @@ class EnvelopedLogFilesTest {
                 reader.read(ByteBuffer.wrap(readData));
                 assertThat(new String(readData)).isEqualTo(currentMessage);
                 assertThat(reader.entryIndex()).isEqualTo(i + 2);
+                assertThat(reader.currentTerm()).isEqualTo(i + 2);
             }
         }
     }
@@ -1033,6 +1053,125 @@ class EnvelopedLogFilesTest {
         envelopedLogFiles.remove();
 
         assertThat(mirroringRepository.isEmpty()).isTrue();
+    }
+
+    @Test
+    void shouldSetCorrectChecksumOnSkip() throws Exception {
+        envelopedLogFiles.initialise();
+        var messageOne = new byte[randomSupport.nextInt(1, segmentBlockSize)];
+        var messageTwo = new byte[randomSupport.nextInt(1, segmentBlockSize)];
+        var messageThree = new byte[randomSupport.nextInt(1, segmentBlockSize)];
+
+        // create the log
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, messageOne);
+        writeData(writeChannel, messageTwo);
+        writeData(writeChannel, messageThree);
+        writeChannel.prepareForFlush().flush();
+
+        var entryChecksums = new int[3];
+        int offset;
+        // read checksums and get the offset
+        try (var envelopeReadChannel = envelopedLogFiles.openReadChannel()) {
+            gotToEndOfNextEntry(envelopeReadChannel);
+            entryChecksums[0] = envelopeReadChannel.getChecksum();
+
+            gotToEndOfNextEntry(envelopeReadChannel);
+            entryChecksums[1] = envelopeReadChannel.getChecksum();
+            long position = envelopeReadChannel.goToNextEnvelope();
+            offset = envelopeReadChannel.getSegmentOffset(position);
+
+            if (!(envelopeReadChannel.payloadType == EnvelopeType.FULL
+                    || envelopeReadChannel.payloadType == EnvelopeType.END)) {
+                gotToEndOfNextEntry(envelopeReadChannel);
+            }
+            entryChecksums[2] = envelopeReadChannel.getChecksum();
+        }
+
+        // recreate the log
+        envelopedLogFiles.close();
+        mirroringRepository.deleteLogFilesTo(Long.MAX_VALUE);
+        setUp();
+        envelopedLogFiles.initialise();
+
+        // simulated a joining member by skipping and writing the same entry
+        envelopedLogFiles.skip(1, entryChecksums[1], offset);
+        writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, messageThree);
+        writeChannel.prepareForFlush().flush();
+
+        // validate log tails are the same
+        try (var envelopeReadChannel = envelopedLogFiles.openReadChannel()) {
+            var logHeader = envelopeReadChannel.logHeader();
+            var logHeaderChecksum = logHeader.getPreviousLogFileChecksum();
+            assertThat(logHeaderChecksum).isEqualTo(entryChecksums[1]);
+            gotToEndOfNextEntry(envelopeReadChannel);
+            assertThat(envelopeReadChannel.getChecksum()).isEqualTo(entryChecksums[2]);
+        }
+    }
+
+    @Test
+    void shouldSetCorrectChecksumOnTruncate() throws Exception {
+        envelopedLogFiles.initialise();
+        var messageOne = new byte[randomSupport.nextInt(1, segmentBlockSize)];
+        var messageTwo = new byte[randomSupport.nextInt(1, segmentBlockSize)];
+        var messageThree = new byte[randomSupport.nextInt(1, segmentBlockSize)];
+        var messageFour = new byte[randomSupport.nextInt(segmentBlockSize, segmentBlockSize * 3)];
+
+        var messages = shuffledMessages(messageOne, messageTwo, messageThree, messageFour);
+
+        // create the log
+        var writeChannel = envelopedLogFiles.currentWriteChannel();
+        writeData(writeChannel, messages[0], 0);
+        writeData(writeChannel, messages[1]);
+        writeData(writeChannel, messages[2]);
+        writeChannel.prepareForFlush().flush();
+
+        var entryChecksums = new ArrayList<Integer>();
+        // read checksums
+        try (var envelopeReadChannel = envelopedLogFiles.openReadChannel()) {
+            while (true) {
+                try {
+                    envelopeReadChannel.goToNextEnvelope();
+                    entryChecksums.add(envelopeReadChannel.getChecksum());
+                } catch (ReadPastEndException ignore) {
+                    break;
+                }
+            }
+        }
+
+        // truncate log - should not impact the checksum chain
+        var truncateAt = randomSupport.nextInt(0, 3);
+        envelopedLogFiles.truncate(truncateAt);
+        writeChannel = envelopedLogFiles.currentWriteChannel();
+        for (var i = truncateAt; i < messages.length; i++) {
+            writeData(writeChannel, messages[i], 0);
+        }
+        writeChannel.prepareForFlush().flush();
+
+        // validate logs are the same
+        try (var envelopeReadChannel = envelopedLogFiles.openReadChannel()) {
+            for (Integer entryChecksum : entryChecksums) {
+                envelopeReadChannel.goToNextEnvelope();
+                assertThat(envelopeReadChannel.getChecksum()).isEqualTo(entryChecksum);
+            }
+        }
+    }
+
+    private byte[][] shuffledMessages(byte[] messageOne, byte[] messageTwo, byte[] messageThree, byte[] messageFour) {
+        var list = new ArrayList<>(List.of(messageOne, messageTwo, messageThree, messageFour));
+        Collections.shuffle(list, randomSupport.random());
+
+        return list.toArray(new byte[0][]);
+    }
+
+    private static long gotToEndOfNextEntry(EnvelopeReadChannel envelopeReadChannel) throws IOException {
+        long position;
+        do {
+            position = envelopeReadChannel.goToNextEnvelope();
+        } while (envelopeReadChannel.payloadType != EnvelopeType.FULL
+                && envelopeReadChannel.payloadType != EnvelopeType.END);
+        return position;
     }
 
     private void verifyReadingAtPositions(ArrayList<Pair<Long, Long>> positions) throws IOException {

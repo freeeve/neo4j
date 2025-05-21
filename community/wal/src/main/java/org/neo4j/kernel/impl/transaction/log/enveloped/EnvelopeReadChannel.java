@@ -274,7 +274,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
         long byteOffset = positionMarker.getByteOffset();
         long newSegment = byteOffset >> segmentShift;
-        int newBufferOffset = (int) (byteOffset & segmentMask);
+        int newBufferOffset = getSegmentOffset(byteOffset);
 
         if (newSegment == 0) {
             throw new IOException("Invalid position " + positionMarker);
@@ -309,7 +309,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
      */
     public int temporaryFindPreviousChecksumBeforePosition(long byteOffset) throws IOException {
         long newSegment = byteOffset >> segmentShift;
-        int newBufferOffset = (int) (byteOffset & segmentMask);
+        int newBufferOffset = getSegmentOffset(byteOffset);
 
         if (newSegment == 0) {
             throw new IOException("Invalid position " + byteOffset);
@@ -337,7 +337,7 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
 
     public void setPositionUnsafe(long byteOffset) throws IOException {
         long newSegment = byteOffset >> segmentShift;
-        int newBufferOffset = (int) (byteOffset & segmentMask);
+        int newBufferOffset = getSegmentOffset(byteOffset);
         if (newSegment != currentSegment) {
             loadSegmentIntoBuffer(newSegment);
         }
@@ -963,5 +963,26 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         var currentLogPosition = getCurrentLogPosition(logPositionMarker);
         currentSegment = -1;
         setLogPosition(currentLogPosition);
+    }
+
+    public int getSegmentOffset(long position) {
+        return (int) position & segmentMask;
+    }
+
+    @Override
+    public String toString() {
+        return "EnvelopeReadChannel{" + ", previousChecksum="
+                + previousChecksum + ", checksumView="
+                + checksumView + ", currentSegment="
+                + currentSegment + ", payloadType="
+                + payloadType + ", currentIndex="
+                + currentIndex + ", currentTerm="
+                + currentTerm + ", currentContentType="
+                + currentContentType + ", payloadVersion="
+                + payloadVersion + ", payloadStartOffset="
+                + payloadStartOffset + ", payloadEndOffset="
+                + payloadEndOffset + ", logHeader="
+                + logHeader + ", closed="
+                + closed + '}';
     }
 }

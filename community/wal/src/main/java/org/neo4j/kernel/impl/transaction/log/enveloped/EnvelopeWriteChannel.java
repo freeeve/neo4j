@@ -444,14 +444,14 @@ public class EnvelopeWriteChannel implements PhysicalLogChannel {
         return !closed;
     }
 
-    public void truncateToPosition(long position, int previousChecksum, long previousIndex, long termTruncatedTo)
+    public void truncateToPosition(long position, int previousChecksum, long previousIndex, long previousTerm)
             throws IOException {
         requireNonNegative(position);
         checkArgument(position <= channel.position(), "Can only truncate written data.");
         checkArgument(position >= segmentBlockSize, "Truncating the first segment is not possible");
         this.previousChecksum = previousChecksum;
         this.currentIndex = previousIndex;
-        this.currentTerm = termTruncatedTo;
+        this.currentTerm = previousTerm;
         channel.truncate(position);
         rotateLogFile();
     }

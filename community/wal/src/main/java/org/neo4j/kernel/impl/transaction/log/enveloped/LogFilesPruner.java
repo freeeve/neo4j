@@ -30,6 +30,16 @@ class LogFilesPruner {
         this.pruneStrategy = pruneStrategy;
     }
 
+    /**
+     * Pruned files if they are below or equal to the desired index and it is allowed by the prune strategy. The first file
+     * that fulfills the strategy is never pruned otherwise the contract with the strategy is broken.
+     * @param desiredVersionToPrune will prune all files up to this version if strategy allows it
+     * @param currentIndex last append index in the log currently
+     * @param currentOffset current tail position in the last log file.
+     * @param version log version for the log tail file (due to pre-allocation we cannot assume that the last existing
+     *               file is the tail)
+     * @return the actual highest pruned version
+     */
     long pruneUpTo(long desiredVersionToPrune, long currentIndex, long currentOffset, long version) throws IOException {
         long allowedVersion = -1;
 

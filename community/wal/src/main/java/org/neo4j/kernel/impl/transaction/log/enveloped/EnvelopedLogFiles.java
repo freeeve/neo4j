@@ -194,20 +194,23 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
         long position;
         long version;
         int prevChecksum;
-        long currentTerm;
+        long prevTerm;
+        int offset;
         try (var readChannel = openReadChannel(fromIndex)) {
             if (readChannel == null) {
                 throw new IllegalArgumentException(fromIndex + " has been pruned");
             }
-            currentTerm = readChannel.currentTerm();
+            version = readChannel.getLogVersion();
+            prevTerm = readChannel.currentTerm();
             position = readChannel.position();
             prevChecksum = readChannel.logHeader().getPreviousLogFileChecksum();
             while (readChannel.entryIndex() < fromIndex) {
                 prevChecksum = readChannel.getChecksum();
+                prevTerm = readChannel.currentTerm();
+                version = readChannel.getLogVersion();
                 position = readChannel.goToNextEnvelope();
-                currentTerm = readChannel.currentTerm();
             }
-            version = readChannel.getLogVersion();
+            offset = readChannel.getSegmentOffset(position);
         }
         if (currentWriteChannel.version() != version) {
             appendingChannel = null;
@@ -217,7 +220,11 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
             currentWriteChannel = openWriteChannel(version, position);
             appendingChannel = envelopedWriteChannel(currentWriteChannel, -1, Integer.MAX_VALUE);
         }
-        appendingChannel.truncateToPosition(position, prevChecksum, fromIndex - 1, currentTerm);
+        appendingChannel.truncateToPosition(position, prevChecksum, fromIndex - 1, prevTerm);
+        if (offset > 0) {
+            appendingChannel.insertStartOffset(offset);
+        }
+        appendingChannel.prepareForFlush().flush();
         return appendingChannel;
     }
 
@@ -235,56 +242,63 @@ public class EnvelopedLogFiles implements EnvelopeReadChannelProvider, AutoClose
     }
 
     /**
+     * Skip in the log to the desired index. This will delete all log files and create a new empty file with a header
+     * pointing to the provided index and checksum.
+     * <p>
+     * This method only makes sense if the log is distributed as it is effectively creating a new log starting at
+     * some higher entry. Henece only the "other log" can provide the correct context for the initial state of
+     * the new log.
+     *
+     * @param index    the index to skip to. This will be the log header index and the next written entry will be index+1
+     * @param checksum the checksum for the provided index.
+     * @param offset   the offset for the provided index.
+     */
+    public void skip(long index, int checksum, int offset) throws IOException {
+        if (index > appendingChannel.currentIndex()) {
+            var prunedVersion = logsRepository.logVersionsRange().to();
+            logsRepository.deleteLogFilesTo(prunedVersion);
+            long nextVersion = prunedVersion + 1;
+            var newStoreChannel = createNewStoreChannel(
+                    nextVersion, logHeaderFactory.createLogHeader(nextVersion, index, checksum, segmentBlockSize));
+            updateState(newStoreChannel, checksum, index);
+            if (offset > 0) {
+                currentWriteChannel().insertStartOffset(offset);
+                currentWriteChannel().prepareForFlush().flush();
+            }
+        }
+    }
+
+    /**
      * Prunes the envelope files. Only entire files can be removed by prune.
      *
      * @param index the desired index to prune up to (exclusive)
      * @return the highest index that was removed after the prune event, or -1 if there is nothing to prune
      */
     public long prune(long index) throws IOException {
-        long prunedVersion;
-        if (index > appendingChannel.currentIndex()) {
-            // ignoring pruning strategy since this index will create a gap in the log and there is therefor no
-            // reason to store old log files.
-            prunedVersion = logsRepository.logVersionsRange().to();
-            logsRepository.deleteLogFilesTo(prunedVersion);
-        } else {
-            long versionToPrune;
-            try (var reader = openReadChannel(index)) {
-                if (reader == null) {
-                    return -1; // index already pruned
-                }
-                var logVersion = reader.getLogVersion();
-                versionToPrune = logVersion - 1;
-                if (!logsRepository.logVersionsRange().isWithinRange(versionToPrune)) {
-                    return -1;
-                }
+        long versionToPrune;
+        try (var reader = openReadChannel(index)) {
+            if (reader == null) {
+                return -1; // index already pruned
             }
-            var envelopeWriteChannel = currentWriteChannel();
-            prunedVersion = logFilesPruner.pruneUpTo(
-                    versionToPrune,
-                    envelopeWriteChannel.currentIndex(),
-                    envelopeWriteChannel.position(),
-                    currentWriteChannel.version());
+            var logVersion = reader.getLogVersion();
+            versionToPrune = logVersion - 1;
+            if (!logsRepository.logVersionsRange().isWithinRange(versionToPrune)) {
+                return -1;
+            }
         }
+        var envelopeWriteChannel = currentWriteChannel();
+        var prunedVersion = logFilesPruner.pruneUpTo(
+                versionToPrune,
+                envelopeWriteChannel.currentIndex(),
+                envelopeWriteChannel.position(),
+                currentWriteChannel.version());
         if (prunedVersion == -1) {
             return -1;
         }
-        if (logsRepository.isEmpty()) {
-            long nextVersion = prunedVersion + 1;
-            var newStoreChannel = createNewStoreChannel(
-                    nextVersion,
-                    logHeaderFactory.createLogHeader(nextVersion, index, INITIAL_CHECKSUM, segmentBlockSize));
-            updateState(
-                    newStoreChannel,
-                    INITIAL_CHECKSUM,
-                    index); // TODO: this will reset the checksum which will not work. If we prune the log past current
-            // index we must provide a checksum. In Raft, this can be provided by the snapshot
-            return index;
-        } else {
-            try (var reader = openReadChannel()) {
-                return reader.logHeader().getLastAppendIndex();
-            }
-        }
+        assert !logsRepository.isEmpty();
+        var logFilesMetadata = logFilesMetadata();
+        logFilesMetadata.next();
+        return logFilesMetadata.get().logHeader().getLastAppendIndex();
     }
 
     private void rotateCurrentFile() throws IOException {
