@@ -397,8 +397,7 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
     rewriter.apply(gt) shouldBe gt
   }
 
-  // Negative
-  test("Rewrite invalid inline constraint should throw exception") {
+  test("Rewrite invalid inline constraint should generate invalid constraint") {
     // Given
     when(mockExceptionFactory.syntaxException(any(), any(), any())).thenReturn(new RuntimeException())
     val gt = graphType(nodeTypeWithConstraints(
@@ -407,22 +406,31 @@ class RewriteGraphTypeReferencesTest extends CypherFunSuite with AstGraphTypeCon
       Set(UniquenessConstraint(ArraySeq(prop(varFor("s"), "name")))(defaultPos)),
       propertyType(
         "name",
-        StringType(isNullable = true),
-        PropertyInlineKeyConstraint()(defaultPos)
+        StringType(isNullable = true)
       )
     ))
 
     // When
-    intercept[RuntimeException](rewriter.apply(gt))
-
-    // Then
-    verify(mockExceptionFactory).syntaxException(
-      any(),
-      ArgumentMatchers.startsWith("Graph type element referenced by `s` not found."),
-      any()
+    rewriter.apply(gt) shouldBe (
+      graphType(
+        Seq(
+          nodeType(
+            "Person",
+            "p",
+            propertyType(
+              "name",
+              StringType(isNullable = true)
+            )
+          )
+        ),
+        Seq(
+          uniquenessConstraint(identifyingNodeTypeRef("Person", "p"), ArraySeq(prop(varFor("s"), "name")))
+        )
+      )
     )
   }
 
+  // Negative
   test("Rewrite invalid edge type should throw exception") {
     // Given
     when(mockExceptionFactory.syntaxException(any(), any(), any())).thenReturn(new RuntimeException())

@@ -194,33 +194,16 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
     name: E,
     bodies: Set[(GraphTypeConstraintBody, Options)]
   )(implicit refBuilder: ReferenceBuilder[E]): Set[GraphTypeConstraint] = {
-    val v = elementVariable.getOrElse(refBuilder.variableNameGenerator())
     bodies.map {
       case (body, options) =>
-        assertConstraintPropertyIsInScope(v, body)
         GraphTypeConstraintDefinition(
           None,
-          refBuilder(name, v),
+          refBuilder(name, elementVariable),
           body,
           options
         )(body.position)
     }
   }
-
-  /**
-   * Assert that the properties in a constraint body are actually in scope. Need to do this here, since this is prepartory rewriter
-   * it happens before semantic checking
-   */
-  private def assertConstraintPropertyIsInScope(scope: Variable, body: GraphTypeConstraintBody): Unit =
-    body.properties.foreach {
-      case Property(v: Variable, _) if v.name != scope.name =>
-        throw cypherExceptionFactory.syntaxException(
-          GqlHelper.getDefaultObject,
-          s"Graph type element referenced by `${v.name}` not found.",
-          v.position
-        )
-      case _ => ()
-    }
 
   /**
    * Split a property type into it's property and it's constraint
@@ -232,20 +215,20 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
   }
 
   private trait ReferenceBuilder[T <: ElementTypeName] {
-    def apply(e: T, v: Variable): GraphTypeElementReference
+    def apply(e: T, v: Option[Variable]): GraphTypeElementReference
     def variableNameGenerator(): Variable
   }
 
   implicit private val n: ReferenceBuilder[LabelName] = new ReferenceBuilder[LabelName] {
-    def apply(n: LabelName, v: Variable): GraphTypeElementReference =
-      NodeTypeReferenceByIdentifyingLabel(n, Some(v.copyId))(n.position)
-    def variableNameGenerator(): Variable = Variable("n")(InputPosition.NONE, Variable.isIsolatedDefault)
+    override def apply(n: LabelName, v: Option[Variable]): GraphTypeElementReference =
+      NodeTypeReferenceByIdentifyingLabel(n, v.map(_.copyId))(n.position)
+    override def variableNameGenerator(): Variable = Variable("n")(InputPosition.NONE, Variable.isIsolatedDefault)
   }
 
   implicit private val e: ReferenceBuilder[RelTypeName] = new ReferenceBuilder[RelTypeName] {
-    def apply(e: RelTypeName, v: Variable): GraphTypeElementReference =
-      EdgeTypeReferenceByIdentifyingLabel(e, Some(v.copyId))(e.position)
-    def variableNameGenerator(): Variable = Variable("r")(InputPosition.NONE, Variable.isIsolatedDefault)
+    override def apply(e: RelTypeName, v: Option[Variable]): GraphTypeElementReference =
+      EdgeTypeReferenceByIdentifyingLabel(e, v.map(_.copyId))(e.position)
+    override def variableNameGenerator(): Variable = Variable("r")(InputPosition.NONE, Variable.isIsolatedDefault)
   }
 
   /**
@@ -261,13 +244,13 @@ case class RewriteGraphTypeReferences(cypherExceptionFactory: CypherExceptionFac
     body match {
       case c: PropertyInlineKeyConstraint => GraphTypeConstraintDefinition(
           None,
-          refBuilder(name, v),
+          refBuilder(name, Some(v)),
           KeyConstraint(ArraySeq(Property(v, propertyKeyName)(propertyKeyName.position)))(c.position),
           NoOptions
         )(body.position)
       case c: PropertyInlineUniquenessConstraint => GraphTypeConstraintDefinition(
           None,
-          refBuilder(name, v),
+          refBuilder(name, Some(v)),
           UniquenessConstraint(ArraySeq(Property(v, propertyKeyName)(propertyKeyName.position)))(c.position),
           NoOptions
         )(body.position)
