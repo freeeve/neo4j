@@ -44,6 +44,9 @@ case class QueryStatistics(
   relPropTypeConstraintsAdded: Int = 0,
   nodekeyConstraintsAdded: Int = 0,
   relkeyConstraintsAdded: Int = 0,
+  nodeLabelExistenceConstraintsAdded: Int = 0,
+  relSourceLabelConstraintsAdded: Int = 0,
+  relTargetLabelConstraintsAdded: Int = 0,
   @BeanProperty constraintsRemoved: Int = 0,
   @BeanProperty transactionsStarted: Int = 0,
   @BeanProperty transactionsCommitted: Int = 0,
@@ -55,7 +58,9 @@ case class QueryStatistics(
   val constraintsAdded: Int = nodePropUniquenessConstraintsAdded + relPropUniquenessConstraintsAdded +
     nodePropExistenceConstraintsAdded + relPropExistenceConstraintsAdded +
     nodekeyConstraintsAdded + relkeyConstraintsAdded +
-    nodePropTypeConstraintsAdded + relPropTypeConstraintsAdded
+    nodePropTypeConstraintsAdded + relPropTypeConstraintsAdded +
+    nodeLabelExistenceConstraintsAdded +
+    relSourceLabelConstraintsAdded + relTargetLabelConstraintsAdded
 
   override def containsUpdates: Boolean =
     nodesCreated > 0 ||
@@ -99,6 +104,9 @@ case class QueryStatistics(
       includeIfNonZero(builder, "Relationship property type constraints added: ", relPropTypeConstraintsAdded)
       includeIfNonZero(builder, "Node key constraints added: ", nodekeyConstraintsAdded)
       includeIfNonZero(builder, "Relationship key constraints added: ", relkeyConstraintsAdded)
+      includeIfNonZero(builder, "Node label existence constraints added: ", nodeLabelExistenceConstraintsAdded)
+      includeIfNonZero(builder, "Relationship source label constraints added: ", relSourceLabelConstraintsAdded)
+      includeIfNonZero(builder, "Relationship target label constraints added: ", relTargetLabelConstraintsAdded)
       includeIfNonZero(builder, "Constraints removed: ", constraintsRemoved)
       includeIfNonZero(builder, "Transactions started: ", transactionsStarted)
       includeIfNonZero(builder, "Transactions committed: ", transactionsCommitted)
@@ -135,6 +143,10 @@ case class QueryStatistics(
       relPropTypeConstraintsAdded = this.relPropTypeConstraintsAdded + other.relPropTypeConstraintsAdded,
       nodekeyConstraintsAdded = this.nodekeyConstraintsAdded + other.nodekeyConstraintsAdded,
       relkeyConstraintsAdded = this.relkeyConstraintsAdded + other.relkeyConstraintsAdded,
+      nodeLabelExistenceConstraintsAdded =
+        this.nodeLabelExistenceConstraintsAdded + other.nodeLabelExistenceConstraintsAdded,
+      relSourceLabelConstraintsAdded = this.relSourceLabelConstraintsAdded + other.relSourceLabelConstraintsAdded,
+      relTargetLabelConstraintsAdded = this.relTargetLabelConstraintsAdded + other.relTargetLabelConstraintsAdded,
       constraintsRemoved = this.constraintsRemoved + other.constraintsRemoved,
       transactionsCommitted = this.transactionsCommitted + other.transactionsCommitted,
       transactionsStarted = this.transactionsStarted + other.transactionsStarted,
@@ -165,6 +177,10 @@ case class QueryStatistics(
       relPropTypeConstraintsAdded = this.relPropTypeConstraintsAdded - other.relPropTypeConstraintsAdded,
       nodekeyConstraintsAdded = this.nodekeyConstraintsAdded - other.nodekeyConstraintsAdded,
       relkeyConstraintsAdded = this.relkeyConstraintsAdded - other.relkeyConstraintsAdded,
+      nodeLabelExistenceConstraintsAdded =
+        this.nodeLabelExistenceConstraintsAdded - other.nodeLabelExistenceConstraintsAdded,
+      relSourceLabelConstraintsAdded = this.relSourceLabelConstraintsAdded - other.relSourceLabelConstraintsAdded,
+      relTargetLabelConstraintsAdded = this.relTargetLabelConstraintsAdded - other.relTargetLabelConstraintsAdded,
       constraintsRemoved = this.constraintsRemoved - other.constraintsRemoved,
       transactionsCommitted = this.transactionsCommitted - other.transactionsCommitted,
       transactionsStarted = this.transactionsStarted - other.transactionsStarted,

@@ -100,6 +100,7 @@ import org.neo4j.internal.kernel.api.helpers.RelationshipSelections.outgoingCurs
 import org.neo4j.internal.kernel.api.procs.ProcedureCallContext
 import org.neo4j.internal.kernel.api.procs.UserAggregationReducer
 import org.neo4j.internal.schema.ConstraintDescriptor
+import org.neo4j.internal.schema.EndpointType
 import org.neo4j.internal.schema.IndexConfig
 import org.neo4j.internal.schema.IndexDescriptor
 import org.neo4j.internal.schema.IndexPrototype
@@ -433,52 +434,83 @@ sealed class TransactionBoundQueryContext(
     provider.map(provider => IndexPrototype.uniqueForSchema(descriptor, provider))
       .getOrElse(IndexPrototype.uniqueForSchema(descriptor)).withName(name.orNull)
 
-  override def createNodePropertyExistenceConstraint(labelId: Int, propertyKeyId: Int, name: Option[String]): Unit =
+  override def createNodePropertyExistenceConstraint(
+    labelId: Int,
+    propertyKeyId: Int,
+    name: Option[String],
+    dependent: Boolean
+  ): Unit =
     transactionalContext.schemaWrite.nodePropertyExistenceConstraintCreate(
       SchemaDescriptors.forLabel(labelId, propertyKeyId),
       name.orNull,
-      false
+      dependent
     )
 
   override def createRelationshipPropertyExistenceConstraint(
     relTypeId: Int,
     propertyKeyId: Int,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit =
     transactionalContext.schemaWrite.relationshipPropertyExistenceConstraintCreate(
       SchemaDescriptors.forRelType(relTypeId, propertyKeyId),
       name.orNull,
-      false
+      dependent
     )
 
   override def createNodePropertyTypeConstraint(
     labelId: Int,
     propertyKeyId: Int,
     propertyTypes: PropertyTypeSet,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit =
     transactionalContext.schemaWrite.propertyTypeConstraintCreate(
       SchemaDescriptors.forLabel(labelId, propertyKeyId),
       name.orNull,
       propertyTypes,
-      false
+      dependent
     )
 
   override def createRelationshipPropertyTypeConstraint(
     relTypeId: Int,
     propertyKeyId: Int,
     propertyTypes: PropertyTypeSet,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit =
     transactionalContext.schemaWrite.propertyTypeConstraintCreate(
       SchemaDescriptors.forRelType(relTypeId, propertyKeyId),
       name.orNull,
       propertyTypes,
-      false
+      dependent
     )
 
-  override def dropNamedConstraint(name: String): Unit =
-    transactionalContext.schemaWrite.constraintDrop(name, false)
+  override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit =
+    transactionalContext.schemaWrite.nodeLabelExistenceConstraintCreate(
+      SchemaDescriptors.forNodeLabelExistence(labelId),
+      null,
+      impliedLabelId
+    )
+
+  override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit =
+    transactionalContext.schemaWrite.relationshipEndpointLabelConstraintCreate(
+      SchemaDescriptors.forRelationshipEndpointLabel(relTypeId),
+      null,
+      labelId,
+      EndpointType.START
+    )
+
+  override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit =
+    transactionalContext.schemaWrite.relationshipEndpointLabelConstraintCreate(
+      SchemaDescriptors.forRelationshipEndpointLabel(relTypeId),
+      null,
+      labelId,
+      EndpointType.END
+    )
+
+  override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit =
+    transactionalContext.schemaWrite.constraintDrop(name, allowDependent)
 
   override def detachDeleteNode(node: Long): Int = transactionalContext.dataWrite.nodeDetachDelete(node)
 

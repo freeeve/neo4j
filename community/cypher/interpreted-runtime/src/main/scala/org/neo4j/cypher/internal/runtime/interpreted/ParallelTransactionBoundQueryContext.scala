@@ -175,30 +175,44 @@ object ParallelTransactionBoundQueryContext {
       provider: Option[IndexProviderDescriptor]
     ): Unit = unsupported()
 
-    override def createNodePropertyExistenceConstraint(labelId: Int, propertyKeyId: Int, name: Option[String]): Unit =
+    override def createNodePropertyExistenceConstraint(
+      labelId: Int,
+      propertyKeyId: Int,
+      name: Option[String],
+      dependent: Boolean
+    ): Unit =
       unsupported()
 
     override def createRelationshipPropertyExistenceConstraint(
       relTypeId: Int,
       propertyKeyId: Int,
-      name: Option[String]
+      name: Option[String],
+      dependent: Boolean
     ): Unit = unsupported()
 
     override def createNodePropertyTypeConstraint(
       labelId: Int,
       propertyKeyId: Int,
       propertyTypes: PropertyTypeSet,
-      name: Option[String]
+      name: Option[String],
+      dependent: Boolean
     ): Unit = unsupported()
 
     override def createRelationshipPropertyTypeConstraint(
       relTypeId: Int,
       propertyKeyId: Int,
       propertyTypes: PropertyTypeSet,
-      name: Option[String]
+      name: Option[String],
+      dependent: Boolean
     ): Unit = unsupported()
 
-    override def dropNamedConstraint(name: String): Unit = unsupported()
+    override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit = unsupported()
+
+    override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit = unsupported()
+
+    override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit = unsupported()
+
+    override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit = unsupported()
     override def detachDeleteNode(id: Long): Int = unsupported()
     override def assertSchemaWritesAllowed(): Unit = unsupported()
     override def getDatabaseContextProvider: DatabaseContextProvider[DatabaseContext] = unsupported()

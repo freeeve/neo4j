@@ -634,17 +634,28 @@ trait WriteQueryContext extends IndexProviderContext {
   ): Unit
 
   /* throws if failed or pre-existing */
-  def createNodePropertyExistenceConstraint(labelId: Int, propertyKeyId: Int, name: Option[String]): Unit
+  def createNodePropertyExistenceConstraint(
+    labelId: Int,
+    propertyKeyId: Int,
+    name: Option[String],
+    dependent: Boolean
+  ): Unit
 
   /* throws if failed or pre-existing */
-  def createRelationshipPropertyExistenceConstraint(relTypeId: Int, propertyKeyId: Int, name: Option[String]): Unit
+  def createRelationshipPropertyExistenceConstraint(
+    relTypeId: Int,
+    propertyKeyId: Int,
+    name: Option[String],
+    dependent: Boolean
+  ): Unit
 
   /* throws if failed or pre-existing */
   def createNodePropertyTypeConstraint(
     labelId: Int,
     propertyKeyId: Int,
     propertyTypes: PropertyTypeSet,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit
 
   /* throws if failed or pre-existing */
@@ -652,10 +663,20 @@ trait WriteQueryContext extends IndexProviderContext {
     relTypeId: Int,
     propertyKeyId: Int,
     propertyTypes: PropertyTypeSet,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit
 
-  def dropNamedConstraint(name: String): Unit
+  /* always dependent (without name), throws if failed or pre-existing */
+  def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit
+
+  /* always dependent (without name), throws if failed or pre-existing */
+  def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit
+
+  /* always dependent (without name), throws if failed or pre-existing */
+  def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit
+
+  def dropNamedConstraint(name: String, allowDependent: Boolean): Unit
 
   /**
    * Delete the node with the specified id and all of its relationships and return the number of deleted relationships.

@@ -466,34 +466,57 @@ abstract class DelegatingQueryContext(val inner: QueryContext) extends QueryCont
   ): Unit =
     singleDbHit(inner.createRelationshipUniqueConstraint(relTypeId, propertyKeyIds, name, provider))
 
-  override def createNodePropertyExistenceConstraint(labelId: Int, propertyKeyId: Int, name: Option[String]): Unit =
-    singleDbHit(inner.createNodePropertyExistenceConstraint(labelId, propertyKeyId, name))
+  override def createNodePropertyExistenceConstraint(
+    labelId: Int,
+    propertyKeyId: Int,
+    name: Option[String],
+    dependent: Boolean
+  ): Unit =
+    singleDbHit(inner.createNodePropertyExistenceConstraint(labelId, propertyKeyId, name, dependent))
 
   override def createRelationshipPropertyExistenceConstraint(
     relTypeId: Int,
     propertyKeyId: Int,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit =
-    singleDbHit(inner.createRelationshipPropertyExistenceConstraint(relTypeId, propertyKeyId, name))
+    singleDbHit(inner.createRelationshipPropertyExistenceConstraint(relTypeId, propertyKeyId, name, dependent))
 
   override def createNodePropertyTypeConstraint(
     labelId: Int,
     propertyKeyId: Int,
     propertyTypes: PropertyTypeSet,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit =
-    singleDbHit(inner.createNodePropertyTypeConstraint(labelId, propertyKeyId, propertyTypes, name))
+    singleDbHit(inner.createNodePropertyTypeConstraint(labelId, propertyKeyId, propertyTypes, name, dependent))
 
   override def createRelationshipPropertyTypeConstraint(
     relTypeId: Int,
     propertyKeyId: Int,
     propertyTypes: PropertyTypeSet,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit =
-    singleDbHit(inner.createRelationshipPropertyTypeConstraint(relTypeId, propertyKeyId, propertyTypes, name))
+    singleDbHit(inner.createRelationshipPropertyTypeConstraint(
+      relTypeId,
+      propertyKeyId,
+      propertyTypes,
+      name,
+      dependent
+    ))
 
-  override def dropNamedConstraint(name: String): Unit =
-    singleDbHit(inner.dropNamedConstraint(name))
+  override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit =
+    singleDbHit(inner.createLabelExistenceConstraint(labelId, impliedLabelId))
+
+  override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit =
+    singleDbHit(inner.createRelationshipSourceLabelConstraint(relTypeId, labelId))
+
+  override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit =
+    singleDbHit(inner.createRelationshipTargetLabelConstraint(relTypeId, labelId))
+
+  override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit =
+    singleDbHit(inner.dropNamedConstraint(name, allowDependent))
 
   override def getConstraintInformation(name: String): ConstraintInformation =
     singleDbHit(inner.getConstraintInformation(name))

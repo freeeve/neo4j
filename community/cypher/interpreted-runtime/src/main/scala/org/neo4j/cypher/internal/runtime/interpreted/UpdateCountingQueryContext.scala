@@ -60,8 +60,11 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
   private val relPropertyExistenceConstraintsAdded = new Counter
   private val nodePropertyTypeConstraintsAdded = new Counter
   private val relPropertyTypeConstraintsAdded = new Counter
-  private val nodekeyConstraintsAdded = new Counter
-  private val relkeyConstraintsAdded = new Counter
+  private val nodeKeyConstraintsAdded = new Counter
+  private val relKeyConstraintsAdded = new Counter
+  private val nodeLabelExistenceConstraintsAdded = new Counter
+  private val relSourceLabelConstraintsAdded = new Counter
+  private val relTargetLabelConstraintsAdded = new Counter
   private val constraintsRemoved = new Counter
 
   def getTrackedStatistics: QueryStatistics = QueryStatistics(
@@ -80,8 +83,11 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     relPropExistenceConstraintsAdded = relPropertyExistenceConstraintsAdded.count,
     nodePropTypeConstraintsAdded = nodePropertyTypeConstraintsAdded.count,
     relPropTypeConstraintsAdded = relPropertyTypeConstraintsAdded.count,
-    nodekeyConstraintsAdded = nodekeyConstraintsAdded.count,
-    relkeyConstraintsAdded = relkeyConstraintsAdded.count,
+    nodekeyConstraintsAdded = nodeKeyConstraintsAdded.count,
+    relkeyConstraintsAdded = relKeyConstraintsAdded.count,
+    nodeLabelExistenceConstraintsAdded = nodeLabelExistenceConstraintsAdded.count,
+    relSourceLabelConstraintsAdded = relSourceLabelConstraintsAdded.count,
+    relTargetLabelConstraintsAdded = relTargetLabelConstraintsAdded.count,
     constraintsRemoved = constraintsRemoved.count
   )
 
@@ -101,8 +107,11 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     relPropertyExistenceConstraintsAdded.increase(statistics.relPropExistenceConstraintsAdded)
     nodePropertyTypeConstraintsAdded.increase(statistics.nodePropTypeConstraintsAdded)
     relPropertyTypeConstraintsAdded.increase(statistics.relPropTypeConstraintsAdded)
-    nodekeyConstraintsAdded.increase(statistics.nodekeyConstraintsAdded)
-    relkeyConstraintsAdded.increase(statistics.relkeyConstraintsAdded)
+    nodeKeyConstraintsAdded.increase(statistics.nodekeyConstraintsAdded)
+    relKeyConstraintsAdded.increase(statistics.relkeyConstraintsAdded)
+    nodeLabelExistenceConstraintsAdded.increase(statistics.nodeLabelExistenceConstraintsAdded)
+    relSourceLabelConstraintsAdded.increase(statistics.relSourceLabelConstraintsAdded)
+    relTargetLabelConstraintsAdded.increase(statistics.relTargetLabelConstraintsAdded)
     constraintsRemoved.increase(statistics.constraintsRemoved)
     inner.addStatistics(statistics)
   }
@@ -244,7 +253,7 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     provider: Option[IndexProviderDescriptor]
   ): Unit = {
     inner.createNodeKeyConstraint(labelId, propertyKeyIds, name, provider)
-    nodekeyConstraintsAdded.increase()
+    nodeKeyConstraintsAdded.increase()
   }
 
   override def createRelationshipKeyConstraint(
@@ -254,7 +263,7 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     provider: Option[IndexProviderDescriptor]
   ): Unit = {
     inner.createRelationshipKeyConstraint(relTypeId, propertyKeyIds, name, provider)
-    relkeyConstraintsAdded.increase()
+    relKeyConstraintsAdded.increase()
   }
 
   override def createNodeUniqueConstraint(
@@ -277,17 +286,23 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     relPropUniquenessConstraintsAdded.increase()
   }
 
-  override def createNodePropertyExistenceConstraint(labelId: Int, propertyKeyId: Int, name: Option[String]): Unit = {
-    inner.createNodePropertyExistenceConstraint(labelId, propertyKeyId, name)
+  override def createNodePropertyExistenceConstraint(
+    labelId: Int,
+    propertyKeyId: Int,
+    name: Option[String],
+    dependent: Boolean
+  ): Unit = {
+    inner.createNodePropertyExistenceConstraint(labelId, propertyKeyId, name, dependent)
     nodePropertyExistenceConstraintsAdded.increase()
   }
 
   override def createRelationshipPropertyExistenceConstraint(
     relTypeId: Int,
     propertyKeyId: Int,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit = {
-    inner.createRelationshipPropertyExistenceConstraint(relTypeId, propertyKeyId, name)
+    inner.createRelationshipPropertyExistenceConstraint(relTypeId, propertyKeyId, name, dependent)
     relPropertyExistenceConstraintsAdded.increase()
   }
 
@@ -295,9 +310,10 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     labelId: Int,
     propertyKeyId: Int,
     propertyTypes: PropertyTypeSet,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit = {
-    inner.createNodePropertyTypeConstraint(labelId, propertyKeyId, propertyTypes, name)
+    inner.createNodePropertyTypeConstraint(labelId, propertyKeyId, propertyTypes, name, dependent)
     nodePropertyTypeConstraintsAdded.increase()
   }
 
@@ -305,14 +321,30 @@ class UpdateCountingQueryContext(inner: QueryContext) extends DelegatingQueryCon
     relTypeId: Int,
     propertyKeyId: Int,
     propertyTypes: PropertyTypeSet,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit = {
-    inner.createRelationshipPropertyTypeConstraint(relTypeId, propertyKeyId, propertyTypes, name)
+    inner.createRelationshipPropertyTypeConstraint(relTypeId, propertyKeyId, propertyTypes, name, dependent)
     relPropertyTypeConstraintsAdded.increase()
   }
 
-  override def dropNamedConstraint(name: String): Unit = {
-    inner.dropNamedConstraint(name)
+  override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit = {
+    inner.createLabelExistenceConstraint(labelId, impliedLabelId)
+    nodeLabelExistenceConstraintsAdded.increase()
+  }
+
+  override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit = {
+    inner.createRelationshipSourceLabelConstraint(relTypeId, labelId)
+    relSourceLabelConstraintsAdded.increase()
+  }
+
+  override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit = {
+    inner.createRelationshipTargetLabelConstraint(relTypeId, labelId)
+    relTargetLabelConstraintsAdded.increase()
+  }
+
+  override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit = {
+    inner.dropNamedConstraint(name, allowDependent)
     constraintsRemoved.increase()
   }
 

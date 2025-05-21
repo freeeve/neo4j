@@ -238,13 +238,13 @@ class UpdateCountingQueryContextTest extends CypherFunSuite {
   }
 
   test("create node property existence constraint") {
-    context.createNodePropertyExistenceConstraint(0, 1, None)
+    context.createNodePropertyExistenceConstraint(0, 1, None, dependent = false)
 
     context.getStatistics should equal(QueryStatistics(nodePropExistenceConstraintsAdded = 1))
   }
 
   test("create node property existence constraint with name") {
-    context.createNodePropertyExistenceConstraint(0, 1, Some("name"))
+    context.createNodePropertyExistenceConstraint(0, 1, Some("name"), dependent = true)
 
     context.getStatistics should equal(QueryStatistics(nodePropExistenceConstraintsAdded = 1))
   }
@@ -262,25 +262,31 @@ class UpdateCountingQueryContextTest extends CypherFunSuite {
   }
 
   test("create node property type constraint") {
-    context.createNodePropertyTypeConstraint(0, 0, PropertyTypeSet.of(SchemaValueType.INTEGER), None)
+    context.createNodePropertyTypeConstraint(0, 0, PropertyTypeSet.of(SchemaValueType.INTEGER), None, dependent = true)
 
     context.getStatistics should equal(QueryStatistics(nodePropTypeConstraintsAdded = 1))
   }
 
   test("create node property type constraint with name") {
-    context.createNodePropertyTypeConstraint(0, 0, PropertyTypeSet.of(SchemaValueType.INTEGER), Some("name"))
+    context.createNodePropertyTypeConstraint(
+      0,
+      0,
+      PropertyTypeSet.of(SchemaValueType.INTEGER),
+      Some("name"),
+      dependent = false
+    )
 
     context.getStatistics should equal(QueryStatistics(nodePropTypeConstraintsAdded = 1))
   }
 
   test("create rel property existence constraint") {
-    context.createRelationshipPropertyExistenceConstraint(0, 42, None)
+    context.createRelationshipPropertyExistenceConstraint(0, 42, None, dependent = false)
 
     context.getStatistics should equal(QueryStatistics(relPropExistenceConstraintsAdded = 1))
   }
 
   test("create rel property existence constraint with name") {
-    context.createRelationshipPropertyExistenceConstraint(0, 42, Some("name"))
+    context.createRelationshipPropertyExistenceConstraint(0, 42, Some("name"), dependent = true)
 
     context.getStatistics should equal(QueryStatistics(relPropExistenceConstraintsAdded = 1))
   }
@@ -310,19 +316,55 @@ class UpdateCountingQueryContextTest extends CypherFunSuite {
   }
 
   test("create rel property type constraint") {
-    context.createRelationshipPropertyTypeConstraint(0, 0, PropertyTypeSet.of(SchemaValueType.INTEGER), None)
+    context.createRelationshipPropertyTypeConstraint(
+      0,
+      0,
+      PropertyTypeSet.of(SchemaValueType.INTEGER),
+      None,
+      dependent = true
+    )
 
     context.getStatistics should equal(QueryStatistics(relPropTypeConstraintsAdded = 1))
   }
 
   test("create rel property type constraint with name") {
-    context.createRelationshipPropertyTypeConstraint(0, 0, PropertyTypeSet.of(SchemaValueType.INTEGER), Some("name"))
+    context.createRelationshipPropertyTypeConstraint(
+      0,
+      0,
+      PropertyTypeSet.of(SchemaValueType.INTEGER),
+      Some("name"),
+      dependent = false
+    )
 
     context.getStatistics should equal(QueryStatistics(relPropTypeConstraintsAdded = 1))
   }
 
+  test("create node label existence constraint") {
+    context.createLabelExistenceConstraint(0, 0)
+
+    context.getStatistics should equal(QueryStatistics(nodeLabelExistenceConstraintsAdded = 1))
+  }
+
+  test("create rel source label constraint") {
+    context.createRelationshipSourceLabelConstraint(0, 0)
+
+    context.getStatistics should equal(QueryStatistics(relSourceLabelConstraintsAdded = 1))
+  }
+
+  test("create rel target label constraint") {
+    context.createRelationshipTargetLabelConstraint(0, 0)
+
+    context.getStatistics should equal(QueryStatistics(relTargetLabelConstraintsAdded = 1))
+  }
+
   test("drop named constraint") {
-    context.dropNamedConstraint("name")
+    context.dropNamedConstraint("name", allowDependent = false)
+
+    context.getStatistics should equal(QueryStatistics(constraintsRemoved = 1))
+  }
+
+  test("drop named dependent constraint") {
+    context.dropNamedConstraint("name", allowDependent = true)
 
     context.getStatistics should equal(QueryStatistics(constraintsRemoved = 1))
   }

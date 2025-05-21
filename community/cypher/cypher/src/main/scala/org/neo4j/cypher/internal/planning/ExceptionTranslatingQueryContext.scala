@@ -777,41 +777,61 @@ class ExceptionTranslatingQueryContext(override val inner: QueryContext)
       inner.createRelationshipUniqueConstraint(relTypeId, propertyKeyIds, name, provider)
     )
 
-  override def createNodePropertyExistenceConstraint(labelId: Int, propertyKeyId: Int, name: Option[String]): Unit =
-    translateException(tokenNameLookup, inner.createNodePropertyExistenceConstraint(labelId, propertyKeyId, name))
+  override def createNodePropertyExistenceConstraint(
+    labelId: Int,
+    propertyKeyId: Int,
+    name: Option[String],
+    dependent: Boolean
+  ): Unit =
+    translateException(
+      tokenNameLookup,
+      inner.createNodePropertyExistenceConstraint(labelId, propertyKeyId, name, dependent)
+    )
 
   override def createRelationshipPropertyExistenceConstraint(
     relTypeId: Int,
     propertyKeyId: Int,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit =
     translateException(
       tokenNameLookup,
-      inner.createRelationshipPropertyExistenceConstraint(relTypeId, propertyKeyId, name)
+      inner.createRelationshipPropertyExistenceConstraint(relTypeId, propertyKeyId, name, dependent)
     )
 
   override def createNodePropertyTypeConstraint(
     labelId: Int,
     propertyKeyId: Int,
     propertyTypes: PropertyTypeSet,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit = translateException(
     tokenNameLookup,
-    inner.createNodePropertyTypeConstraint(labelId, propertyKeyId, propertyTypes, name)
+    inner.createNodePropertyTypeConstraint(labelId, propertyKeyId, propertyTypes, name, dependent)
   )
 
   override def createRelationshipPropertyTypeConstraint(
     relTypeId: Int,
     propertyKeyId: Int,
     propertyTypes: PropertyTypeSet,
-    name: Option[String]
+    name: Option[String],
+    dependent: Boolean
   ): Unit = translateException(
     tokenNameLookup,
-    inner.createRelationshipPropertyTypeConstraint(relTypeId, propertyKeyId, propertyTypes, name)
+    inner.createRelationshipPropertyTypeConstraint(relTypeId, propertyKeyId, propertyTypes, name, dependent)
   )
 
-  override def dropNamedConstraint(name: String): Unit =
-    translateException(tokenNameLookup, inner.dropNamedConstraint(name))
+  override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit =
+    translateException(tokenNameLookup, inner.createLabelExistenceConstraint(labelId, impliedLabelId))
+
+  override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit =
+    translateException(tokenNameLookup, inner.createRelationshipSourceLabelConstraint(relTypeId, labelId))
+
+  override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit =
+    translateException(tokenNameLookup, inner.createRelationshipTargetLabelConstraint(relTypeId, labelId))
+
+  override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit =
+    translateException(tokenNameLookup, inner.dropNamedConstraint(name, allowDependent))
 
   override def createRelationshipId(start: Long, end: Long, relType: Int): Long =
     translateException(tokenNameLookup, inner.createRelationshipId(start, end, relType))

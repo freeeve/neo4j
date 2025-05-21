@@ -236,11 +236,8 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
             // Assert empty options
             PropertyExistenceOrTypeConstraintOptionsConverter("node", "existence", indexContext(ctx))
               .convert(context.cypherVersion, options, params)
-            (ctx.createNodePropertyExistenceConstraint _).tupled(labelPropWithName(ctx)(
-              label,
-              prop.head.propertyKey,
-              constraintName
-            ))
+            (ctx.createNodePropertyExistenceConstraint(_, _, _, dependent = false))
+              .tupled(labelPropWithName(ctx)(label, prop.head.propertyKey, constraintName))
             SuccessResult()
           },
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
@@ -256,11 +253,8 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
             // Assert empty options
             PropertyExistenceOrTypeConstraintOptionsConverter("relationship", "existence", indexContext(ctx))
               .convert(context.cypherVersion, options, params)
-            (ctx.createRelationshipPropertyExistenceConstraint _).tupled(typePropWithName(ctx)(
-              relType,
-              prop.head.propertyKey,
-              constraintName
-            ))
+            (ctx.createRelationshipPropertyExistenceConstraint(_, _, _, dependent = false))
+              .tupled(typePropWithName(ctx)(relType, prop.head.propertyKey, constraintName))
             SuccessResult()
           },
           source.map(logicalToExecutable.applyOrElse(_, throwCantCompile).apply(context))
@@ -280,7 +274,8 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
               labelId,
               propId,
               PropertyTypeMapper.asPropertyTypeSet(propertyType),
-              constraintName
+              constraintName,
+              dependent = false
             )
             SuccessResult()
           },
@@ -302,7 +297,8 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
               relTypeId,
               propId,
               PropertyTypeMapper.asPropertyTypeSet(propertyType),
-              constraintName
+              constraintName,
+              dependent = false
             )
             SuccessResult()
           },
@@ -316,7 +312,7 @@ object SchemaCommandRuntime extends CypherRuntime[RuntimeContext] {
           (ctx, params) => {
             val constraintName = getName(name, params)
             val notifications: Set[InternalNotification] = if (!ifExists || ctx.constraintExists(constraintName)) {
-              ctx.dropNamedConstraint(constraintName)
+              ctx.dropNamedConstraint(constraintName, allowDependent = false)
               Set.empty
             } else {
               // Notify on non-existing constraint, replace potential parameter names with their actual value

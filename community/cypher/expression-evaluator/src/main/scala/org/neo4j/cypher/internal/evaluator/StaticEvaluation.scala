@@ -436,30 +436,44 @@ object StaticEvaluation {
       provider: Option[IndexProviderDescriptor]
     ): Unit = notAvailable()
 
-    override def createNodePropertyExistenceConstraint(labelId: Int, propertyKeyId: Int, name: Option[String]): Unit =
+    override def createNodePropertyExistenceConstraint(
+      labelId: Int,
+      propertyKeyId: Int,
+      name: Option[String],
+      dependent: Boolean
+    ): Unit =
       notAvailable()
 
     override def createRelationshipPropertyExistenceConstraint(
       relTypeId: Int,
       propertyKeyId: Int,
-      name: Option[String]
+      name: Option[String],
+      dependent: Boolean
     ): Unit = notAvailable()
 
     override def createNodePropertyTypeConstraint(
       labelId: Int,
       propertyKeyId: Int,
       propertyTypes: PropertyTypeSet,
-      name: Option[String]
+      name: Option[String],
+      dependent: Boolean
     ): Unit = notAvailable()
 
     override def createRelationshipPropertyTypeConstraint(
       relTypeId: Int,
       propertyKeyId: Int,
       propertyTypes: PropertyTypeSet,
-      name: Option[String]
+      name: Option[String],
+      dependent: Boolean
     ): Unit = notAvailable()
 
-    override def dropNamedConstraint(name: String): Unit = notAvailable()
+    override def createLabelExistenceConstraint(labelId: Int, impliedLabelId: Int): Unit = notAvailable()
+
+    override def createRelationshipSourceLabelConstraint(relTypeId: Int, labelId: Int): Unit = notAvailable()
+
+    override def createRelationshipTargetLabelConstraint(relTypeId: Int, labelId: Int): Unit = notAvailable()
+
+    override def dropNamedConstraint(name: String, allowDependent: Boolean): Unit = notAvailable()
 
     override def getConstraintInformation(name: String): ConstraintInformation = notAvailable()
 
