@@ -205,7 +205,8 @@ public class EnvelopeReadChannel implements ReadableLogChannel {
         long currentPosition = position();
         try {
             position(logHeader().getStartPosition().getByteOffset());
-            return new LogPosition(getLogVersion(), alignWithStartEntry());
+            var pos = alignWithStartEntry();
+            return new LogPosition(getLogVersion(), pos);
         } finally {
             position(currentPosition);
         }
