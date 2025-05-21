@@ -73,6 +73,11 @@ class GraphSchemaOptimizationsTest extends CypherFunSuite with AstConstructionTe
     gso.pruneImpliedLabels(labelInfo("x" -> Set("A", "B", "Other"))) shouldEqual labelInfo("x" -> Set("A", "Other"))
   }
 
+  test("should prune implying labels") {
+    val gso = givenImpliedLabels("A" -> Set("B"), "C" -> Set("B", "D"))
+    gso.pruneImplyingLabels(labelNameSeq("A", "B", "C", "Other")) shouldEqual labelNameSeq("B", "Other")
+  }
+
   private def givenImpliedLabels(impliedLabels: (String, Set[String])*): GraphSchemaOptimizations.Enabled = {
     new GraphSchemaOptimizations.Enabled(mockPlanContext(impliedLabels.toMap))
   }
@@ -85,6 +90,8 @@ class GraphSchemaOptimizationsTest extends CypherFunSuite with AstConstructionTe
   }
 
   private def labelNames(labels: String*): Set[LabelName] = labels.map(labelName(_)).toSet
+
+  private def labelNameSeq(labels: String*): Seq[LabelName] = labels.map(labelName(_))
 
   private def labelInfo(labelsForVariable: (String, Set[String])*): LabelInfo = {
     labelsForVariable.map {

@@ -19,14 +19,14 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
-import org.neo4j.cypher.internal.ast.UsingScanHint
+import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.HintsAndPrunedLabels
+import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.getHintsAndPrunedLabels
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrdering
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
-import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.Variable
@@ -35,11 +35,12 @@ import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability.BOTH
 import org.neo4j.cypher.internal.planner.spi.TokenIndexDescriptor
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
 
 case class subtractionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlanner {
 
-  case class Labels(positives: Set[LabelName], negatives: Set[LabelName])
-  case class VariableAndLabels(variable: Variable, labels: Labels)
+  private case class Labels(positives: Set[LabelName], negatives: Set[LabelName])
+  private case class VariableAndLabels(variable: Variable, labels: Labels)
 
   private def collectPositiveAndNegativeLabelPredicatesPerVariable(qg: QueryGraph): Iterable[VariableAndLabels] = {
     val variableToLabelsMap = qg.selections.flatPredicatesSet.foldLeft(Map.empty[Variable, Labels]) {
@@ -81,19 +82,31 @@ case class subtractionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extend
       nodeTokenIndex.orderCapability,
       context.providedOrderFactory
     )
-    val hints = qg.hints.collect {
-      case hint @ UsingScanHint(`variable`, LabelOrRelTypeName(name))
-        if positiveLabels.exists(_.name == name) => hint
-    }
+    val HintsAndPrunedLabels(hints, positivePrunedLabels) =
+      getHintsAndPrunedLabels(
+        qg.hints,
+        variable,
+        context.staticComponents.graphSchemaOptimizations,
+        positiveLabels
+      )
+    val HintsAndPrunedLabels(_, negativePrunedLabels) =
+      getHintsAndPrunedLabels(
+        ListSet.empty,
+        variable,
+        context.staticComponents.graphSchemaOptimizations,
+        negativeLabels
+      )
+
+    // We use the unpruned labels for the solved predicates, as we solve all the labels but some of them implicitly.
     val negativeLabelPredicates =
       negativeLabels.map(label => Not(HasLabels(variable, Seq(label))(InputPosition.NONE))(InputPosition.NONE))
-    val labelPredicates =
+    val solvedPredicates =
       negativeLabelPredicates.toSeq :+ HasLabels(variable, positiveLabels.toSeq)(InputPosition.NONE)
     context.staticComponents.logicalPlanProducer.planSubtractionNodeByLabelsScan(
       variable,
-      positiveLabels.toSeq,
-      negativeLabels.toSeq,
-      labelPredicates,
+      positivePrunedLabels.toSeq,
+      negativePrunedLabels.toSeq,
+      solvedPredicates,
       hints.toSeq,
       qg.argumentIds,
       providedOrder,

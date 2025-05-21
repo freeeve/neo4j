@@ -39,10 +39,9 @@ case class labelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends LeafPlann
     context: LogicalPlanningContext
   ): Set[LogicalPlan] = {
     qg.selections.flatPredicatesSet.flatMap {
-      case labelPredicate @ HasLabels(variable: Variable, labels)
+      case labelPredicate @ HasLabels(variable: Variable, Seq(labelName))
         if !skipIDs.contains(variable) && qg.patternNodes(variable) && !qg.argumentIds(variable) =>
         context.staticComponents.planContext.nodeTokenIndex.map { nodeTokenIndex =>
-          val labelName = labels.head
           val hint = qg.hints.collectFirst {
             case hint @ UsingScanHint(`variable`, LabelOrRelTypeName(labelName.name)) => hint
           }

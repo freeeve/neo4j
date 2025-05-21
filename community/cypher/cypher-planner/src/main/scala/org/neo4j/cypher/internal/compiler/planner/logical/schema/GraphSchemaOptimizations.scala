@@ -34,6 +34,11 @@ sealed trait GraphSchemaOptimizations {
   def pruneImpliedLabels(labels: Set[LabelName]): Set[LabelName]
 
   /**
+   * Removes labels that are implying other labels, ensuring that only non-redundant labels remain.
+   */
+  def pruneImplyingLabels(labels: Seq[LabelName]): Seq[LabelName]
+
+  /**
    * Removes labels from the given LabelInfo that are implied by other labels, ensuring that
    * only non-redundant labels remain.
    */
@@ -72,6 +77,8 @@ object GraphSchemaOptimizations {
 
     override def pruneImpliedLabels(labelInfo: LabelInfo): LabelInfo = labelInfo
 
+    override def pruneImplyingLabels(labels: Seq[LabelName]): Seq[LabelName] = labels
+
     override def isLabelImplied(labelToCheck: LabelName, knownLabels: Set[LabelName]): Boolean = false
 
     override def isLabelImplied(
@@ -98,6 +105,12 @@ object GraphSchemaOptimizations {
 
     override def pruneImpliedLabels(labelInfo: LabelInfo): LabelInfo = {
       labelInfo.view.mapValues(pruneImpliedLabels).toMap
+    }
+
+    override def pruneImplyingLabels(labels: Seq[LabelName]): Seq[LabelName] = {
+      labels.filterNot { label =>
+        impliedLabels(label).exists(labels.contains)
+      }
     }
 
     override def isLabelImplied(labelToCheck: LabelName, knownLabels: Set[LabelName]): Boolean = {

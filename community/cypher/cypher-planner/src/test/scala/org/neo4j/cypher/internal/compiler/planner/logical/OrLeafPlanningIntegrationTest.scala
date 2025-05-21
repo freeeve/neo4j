@@ -817,7 +817,7 @@ class OrLeafPlanningIntegrationTest
         .|.intersectionNodeByLabelsScan("anon_0", Seq("x", "n10"), IndexOrderNone)
         .intersectionNodeByLabelsScan(
           "anon_0",
-          Seq("n8", "n9", "n6", "n4", "n5", "n3", "n1", "n2", "n7", "x"),
+          Seq("n8", "n4", "n5", "n9", "n6", "x", "n2", "n7", "n1", "n3"),
           IndexOrderNone
         )
         .build()
@@ -852,7 +852,7 @@ class OrLeafPlanningIntegrationTest
     plan should equal(
       planner.planBuilder()
         .produceResults("n")
-        .intersectionNodeByLabelsScan("n", Seq("A", "I", "H", "C", "D", "G", "E", "B", "F", "X"), IndexOrderNone)
+        .intersectionNodeByLabelsScan("n", Seq("B", "A", "I", "D", "X", "H", "F", "E", "G", "C"), IndexOrderNone)
         .build()
     )
   }

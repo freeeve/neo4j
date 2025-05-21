@@ -77,10 +77,17 @@ case class unionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends Leaf
             context.staticComponents.planContext.nodeTokenIndex.flatMap { nodeTokenIndex =>
               // UnionNodeByLabelScan relies on ordering, so we can only use this plan if the nodeTokenIndex is ordered.
               if (nodeTokenIndex.orderCapability == IndexOrderCapability.BOTH) {
-                val hints = qg.hints.toSeq.collect {
-                  case hint @ UsingScanHint(`variable`, LabelOrRelTypeName(labelName))
-                    if labels.map(_.name).contains(labelName) => hint
-                }
+                // The following code is similar to the one in LabelScanLeafPlanner,
+                // but we use pruneImplyingLabels instead of pruneImpliedLabels to cater for the labels being "ORed" together.
+                val (fulfilledHints, hintedLabels) =
+                  qg.hints.collect {
+                    case hint @ UsingScanHint(`variable`, LabelOrRelTypeName(name))
+                      if labels.exists(_.name == name) =>
+                      (hint, labels.filter(_.name == name))
+                  }.unzip
+                val prunedLabels =
+                  context.staticComponents.graphSchemaOptimizations.pruneImplyingLabels(labels) ++
+                    hintedLabels.flatten
 
                 val providedOrder = ResultOrdering.providedOrderForLabelScan(
                   interestingOrderConfig.orderToSolve,
@@ -89,15 +96,31 @@ case class unionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) extends Leaf
                   context.providedOrderFactory
                 )
 
-                val plan = context.staticComponents.logicalPlanProducer.planUnionNodeByLabelsScan(
-                  variable,
-                  labels,
-                  Seq(ors),
-                  hints,
-                  qg.argumentIds,
-                  providedOrder,
-                  context
-                )
+                // Only plan an intersection scan if we have more than one label left after pruning.
+                // Otherwise, plan a node label scan instead.
+                val plan =
+                  prunedLabels.distinct match {
+                    case Seq(labelName) =>
+                      context.staticComponents.logicalPlanProducer.planNodeByLabelScan(
+                        variable,
+                        labelName,
+                        solvedPredicates = Seq(ors),
+                        fulfilledHints.headOption,
+                        qg.argumentIds,
+                        providedOrder,
+                        context
+                      )
+                    case prunedLabels =>
+                      context.staticComponents.logicalPlanProducer.planUnionNodeByLabelsScan(
+                        variable,
+                        prunedLabels,
+                        solvedPredicates = Seq(ors),
+                        fulfilledHints.toSeq,
+                        qg.argumentIds,
+                        providedOrder,
+                        context
+                      )
+                  }
                 Some(plan)
               } else {
                 None

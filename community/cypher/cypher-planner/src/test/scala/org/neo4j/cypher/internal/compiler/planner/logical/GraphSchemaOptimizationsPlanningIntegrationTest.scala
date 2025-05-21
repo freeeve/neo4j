@@ -80,7 +80,132 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     val query = "MATCH (n:Actor:Person:Entity:Other) RETURN n"
     val plan = planner.plan(query).stripProduceResults
     plan shouldEqual planner.subPlanBuilder()
-      .intersectionNodeByLabelsScan("n", Seq("Actor", "Person", "Entity", "Other"))
+      .intersectionNodeByLabelsScan("n", Seq("Actor", "Other"))
+      .build()
+  }
+
+  test("should plan intersection scan on implying label if that is hinted on") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Entity", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .setLabelCardinality("Other", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Entity")
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query =
+      """MATCH (n:Actor:Person:Entity:Other)
+        |USING SCAN n:Entity
+        |RETURN n""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      // Entity is the last label in the scan because it was added due to the hint and would have been eliminated otherwise
+      .intersectionNodeByLabelsScan("n", Seq("Actor", "Other", "Entity"))
+      .build()
+  }
+
+  test("should plan union scan on implied label as well as hinted labels") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Director", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .setLabelCardinality("Other", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeLabelConstraint(constrainedLabel = "Director", impliedLabel = "Person")
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query =
+      """MATCH (n:Actor|Person|Director|Other)
+        |USING SCAN n:Director
+        |RETURN n""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      // Director is the last label in the scan because it was added due to the hint and would have been eliminated otherwise
+      .unionNodeByLabelsScan("n", Seq("Person", "Other", "Director"))
+      .build()
+  }
+
+  test("should plan union scan on implied label, ignoring implying labels") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Director", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .setLabelCardinality("Other", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeLabelConstraint(constrainedLabel = "Director", impliedLabel = "Person")
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query =
+      """MATCH (n:Actor|Person|Director|Other)
+        |USING SCAN n:Person
+        |RETURN n""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .unionNodeByLabelsScan("n", Seq("Person", "Other"))
+      .build()
+  }
+
+  test("should plan subtraction scan on implied label") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("SciFiFan", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .setLabelCardinality("StarTrekFan", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeLabelConstraint(constrainedLabel = "StarTrekFan", impliedLabel = "SciFiFan")
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query =
+      """MATCH (n:Actor&Person&!StarTrekFan&!SciFiFan)
+        |RETURN n""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .subtractionNodeByLabelsScan("n", Seq("Actor"), Seq("StarTrekFan"))
+      .build()
+  }
+
+  test("should plan normal label scan if all but one label of intersection are implied") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Director", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .setLabelCardinality("Other", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeLabelConstraint(constrainedLabel = "Director", impliedLabel = "Person")
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query =
+      """MATCH (n:Actor:Person)
+        |RETURN n""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .nodeByLabelScan("n", "Actor")
+      .build()
+  }
+
+  test("should plan normal label scan if all but one label of union are implied") {
+    val planner = plannerBuilder()
+      .setLabelCardinality("Director", 1500)
+      .setLabelCardinality("Person", 1000)
+      .setLabelCardinality("Actor", 500)
+      .setLabelCardinality("Other", 800)
+      .addNodeLabelConstraint(constrainedLabel = "Actor", impliedLabel = "Person")
+      .addNodeLabelConstraint(constrainedLabel = "Director", impliedLabel = "Person")
+      .setAllNodesCardinality(3000)
+      .build()
+
+    val query =
+      """MATCH (n:Actor|Person)
+        |RETURN n""".stripMargin
+    val plan = planner.plan(query).stripProduceResults
+    plan shouldEqual planner.subPlanBuilder()
+      .nodeByLabelScan("n", "Person")
       .build()
   }
 
@@ -150,7 +275,7 @@ class GraphSchemaOptimizationsPlanningIntegrationTest extends CypherFunSuite
     val actual = planner.planState(query)
     val expected = planner.planBuilder()
       .produceResults("n").withCardinality(cardinality)
-      .intersectionNodeByLabelsScan("n", Seq("Actor", "Person", "Entity", "Other")).withCardinality(cardinality)
+      .intersectionNodeByLabelsScan("n", Seq("Actor", "Other")).withCardinality(cardinality)
 
     actual should haveSamePlanAndCardinalitiesAsBuilder(expected)
   }

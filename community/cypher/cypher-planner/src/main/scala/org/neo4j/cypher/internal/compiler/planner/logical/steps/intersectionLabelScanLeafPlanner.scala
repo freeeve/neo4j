@@ -19,20 +19,22 @@
  */
 package org.neo4j.cypher.internal.compiler.planner.logical.steps
 
-import org.neo4j.cypher.internal.ast.UsingScanHint
+import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.HintsAndPrunedLabels
+import org.neo4j.cypher.internal.compiler.planner.logical.LabelScanLeafPlanner.getHintsAndPrunedLabels
 import org.neo4j.cypher.internal.compiler.planner.logical.LeafPlanner
 import org.neo4j.cypher.internal.compiler.planner.logical.LogicalPlanningContext
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.ResultOrdering
 import org.neo4j.cypher.internal.expressions.HasLabels
 import org.neo4j.cypher.internal.expressions.LabelName
-import org.neo4j.cypher.internal.expressions.LabelOrRelTypeName
 import org.neo4j.cypher.internal.expressions.LogicalVariable
 import org.neo4j.cypher.internal.expressions.Variable
 import org.neo4j.cypher.internal.ir.QueryGraph
 import org.neo4j.cypher.internal.logical.plans.LogicalPlan
 import org.neo4j.cypher.internal.planner.spi.IndexOrderCapability.BOTH
 import org.neo4j.cypher.internal.util.InputPosition
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet
+import org.neo4j.cypher.internal.util.collection.immutable.ListSet.IterableOnceToListSet
 
 import scala.collection.mutable
 
@@ -49,12 +51,12 @@ case class intersectionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) exten
       context.staticComponents.planContext.nodeTokenIndex match {
         case Some(nodeTokenIndex) if nodeTokenIndex.orderCapability == BOTH =>
           // Combine for example HasLabels(n, Seq(A)), HasLabels(n, Seq(B)) to n -> Set(A, B)
-          val combined: Map[Variable, Set[LabelName]] = {
-            qg.selections.flatPredicatesSet.foldLeft(Map.empty[Variable, Set[LabelName]]) {
+          val combined: Map[Variable, ListSet[LabelName]] = {
+            qg.selections.flatPredicatesSet.foldLeft(Map.empty[Variable, ListSet[LabelName]]) {
               case (acc, current) => current match {
                   case HasLabels(variable: Variable, labels)
                     if !skipIDs.contains(variable) && (qg.patternNodes(variable) && !qg.argumentIds(variable)) =>
-                    val newValue = acc.get(variable).map(current => (current ++ labels)).getOrElse(labels.toSet)
+                    val newValue = acc.get(variable).map(current => (current ++ labels)).getOrElse(labels.toListSet)
                     acc + (variable -> newValue)
                   case _ => acc
                 }
@@ -82,18 +84,23 @@ case class intersectionLabelScanLeafPlanner(skipIDs: Set[LogicalVariable]) exten
                 nodeTokenIndex.orderCapability,
                 context.providedOrderFactory
               )
-              val hints = qg.hints.collect {
-                case hint @ UsingScanHint(`variable`, LabelOrRelTypeName(name)) if labels.exists(_.name == name) => hint
+              val HintsAndPrunedLabels(hints, prunedLabels) =
+                getHintsAndPrunedLabels(qg.hints, variable, context.staticComponents.graphSchemaOptimizations, labels)
+
+              // Only plan an intersection scan if we have more than one label left after pruning.
+              // Otherwise, the node label scan provider will take over.
+              if (prunedLabels.size > 1) {
+                // We have more than one label left after pruning, so we can create an intersection node
+                results += context.staticComponents.logicalPlanProducer.planIntersectNodeByLabelsScan(
+                  variable,
+                  prunedLabels.toSeq,
+                  Seq(HasLabels(variable, prunedLabels.toSeq)(InputPosition.NONE)),
+                  hints.toSeq,
+                  qg.argumentIds,
+                  providedOrder,
+                  context
+                )
               }
-              results += context.staticComponents.logicalPlanProducer.planIntersectNodeByLabelsScan(
-                variable,
-                labels.toSeq,
-                Seq(HasLabels(variable, labels.toSeq)(InputPosition.NONE)),
-                hints.toSeq,
-                qg.argumentIds,
-                providedOrder,
-                context
-              )
             case _ => // do nothing
           }
           results.toSet
