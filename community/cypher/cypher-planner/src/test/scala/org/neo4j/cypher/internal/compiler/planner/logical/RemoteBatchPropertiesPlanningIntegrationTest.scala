@@ -38,7 +38,6 @@ import org.neo4j.cypher.internal.frontend.phases.ResolvedFunctionInvocation
 import org.neo4j.cypher.internal.frontend.phases.UserFunctionSignature
 import org.neo4j.cypher.internal.ir.SelectivePathPattern.CountInteger
 import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.Predicate
-import org.neo4j.cypher.internal.logical.builder.AbstractLogicalPlanBuilder.createNode
 import org.neo4j.cypher.internal.logical.builder.TestNFABuilder
 import org.neo4j.cypher.internal.logical.plans.DoNotGetValue
 import org.neo4j.cypher.internal.logical.plans.Expand.ExpandAll
@@ -271,6 +270,7 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       GraphDatabaseInternalSettings.push_down_arguments_rbpwf_enabled,
       TRUE
     )
+    .setExecutionModel(executionModel)
 
   // Graph counts based on a subset of LDBC SF 1
   final protected val planner = spdPlanner
@@ -357,7 +357,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
       uniqueSelectivity = 1.0 / 2052169,
       isUnique = true
     )
-    .setExecutionModel(executionModel)
     .setLabelCardinality("Dog", 10)
     .setRelationshipCardinality("()-[:HAS_DOG]->()", 10)
     .setRelationshipCardinality("(:Person)-[:HAS_DOG]->()", 10)
@@ -413,25 +412,6 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         getValue = Map("id" -> DoNotGetValue),
         unique = true
       )
-      .build()
-  }
-
-  test("should not batch node properties for write queries") {
-    val query =
-      """MATCH (person:Person)
-        |CREATE ()
-        |RETURN person.firstName AS personFirstName,
-        |       person.lastName AS personLastName""".stripMargin
-
-    val plan = planner.plan(query)
-
-    plan shouldEqual planner
-      .planBuilder()
-      .produceResults("personFirstName", "personLastName")
-      .projection("cacheN[person.firstName] AS personFirstName", "cacheN[person.lastName] AS personLastName")
-      .cacheProperties("cacheNFromStore[person.firstName]", "cacheNFromStore[person.lastName]")
-      .create(createNode("anon_0"))
-      .nodeByLabelScan("person", "Person")
       .build()
   }
 
@@ -2280,6 +2260,78 @@ abstract class AbstractRemoteBatchPropertiesPlanningIntegrationTest(executionMod
         duration("PT1M")
       ))
       .allNodeScan("n")
+      .build()
+  }
+
+  test("should not pushdown predicates if transaction state is not empty") {
+    // remotebatchpropertieswithfilter will require at least one property to be fetched from shards
+    val query =
+      """
+        |MATCH (p: Person {name: "Smith"})
+        |RETURN p.name
+        |""".stripMargin
+
+    val plannerWithNonEmptyTransactionState =
+      spdPlanner.setTxStateHasChanges().setAllNodesCardinality(10000).setLabelCardinality("Person", 10000)
+        .build()
+
+    plannerWithNonEmptyTransactionState.plan(
+      query
+    ).stripProduceResults shouldEqual plannerWithNonEmptyTransactionState.subPlanBuilder()
+      .projection("cacheN[p.name] AS `p.name`")
+      .filter("cacheN[p.name] = 'Smith'")
+      .remoteBatchProperties("cacheNFromStore[p.name]")
+      .nodeByLabelScan("p", "Person")
+      .build()
+  }
+
+  test("should not push down predicates on the horizon when tx state is non-empty") {
+    val query =
+      """
+        |MATCH (p: Person {id:$id})<-[:POST_HAS_CREATOR]-()<-[:REPLY_OF]-(reply:Message)-[:POST_HAS_CREATOR]->(friend: Person)
+        |WITH p,  friend, max(reply.creationDate) AS latestReply
+        |WHERE friend.year=2000
+        |RETURN p.name,latestReply,friend.name
+        |""".stripMargin
+
+    val plannerWithNonEmptyTransactionState =
+      spdPlanner
+        .setTxStateHasChanges()
+        .setAllNodesCardinality(3181725)
+        .setLabelCardinality("Person", 9892)
+        .setLabelCardinality("Message", 3055774)
+        .setRelationshipCardinality("()-[:POST_HAS_CREATOR]->()", 1003605)
+        .setRelationshipCardinality("(:Message)-[:POST_HAS_CREATOR]->()", 1003605)
+        .setRelationshipCardinality("()-[:POST_HAS_CREATOR]->(:Person)", 1003605)
+        .setRelationshipCardinality("(:Message)-[:POST_HAS_CREATOR]->(:Person)", 1003605)
+        .setRelationshipCardinality("()-[:REPLY_OF]->()", 2052169)
+        .setRelationshipCardinality("()-[:REPLY_OF]->(:Message)", 2052169)
+        .setRelationshipCardinality("(:Message)-[:REPLY_OF]->()", 0)
+        .setRelationshipCardinality("(:Message)-[:REPLY_OF]->(:Message)", 0)
+        .setRelationshipCardinality("()-[]->()", 2052169 + 1003605 + 180623)
+        .addNodeIndex("Person", List("id"), existsSelectivity = 1.0, uniqueSelectivity = 1.0 / 9892.0, isUnique = true)
+        .build()
+
+    plannerWithNonEmptyTransactionState.plan(
+      query
+    ).stripProduceResults shouldEqual plannerWithNonEmptyTransactionState.subPlanBuilder()
+      .projection("cacheN[p.name] AS `p.name`", "cacheN[friend.name] AS `friend.name`")
+      .remoteBatchProperties("cacheNFromStore[p.name]")
+      .filter("cacheN[friend.year] = 2000")
+      .remoteBatchProperties("cacheNFromStore[friend.year]", "cacheNFromStore[friend.name]")
+      .aggregation(Seq("p AS p", "friend AS friend"), Seq("max(cacheN[reply.creationDate]) AS latestReply"))
+      .remoteBatchProperties("cacheNFromStore[reply.creationDate]")
+      .filter("NOT anon_2 = anon_0", "friend:Person")
+      .expandAll("(reply)-[anon_2:POST_HAS_CREATOR]->(friend)")
+      .filter("reply:Message")
+      .expandAll("(anon_1)<-[:REPLY_OF]-(reply)")
+      .expandAll("(p)<-[anon_0:POST_HAS_CREATOR]-(anon_1)")
+      .nodeIndexOperator(
+        "p:Person(id = ???)",
+        paramExpr = Some(parameter("id", CTAny)),
+        getValue = Map("id" -> DoNotGetValue),
+        unique = true
+      )
       .build()
   }
 

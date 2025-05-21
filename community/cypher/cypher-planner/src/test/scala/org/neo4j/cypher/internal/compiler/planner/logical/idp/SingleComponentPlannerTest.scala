@@ -32,7 +32,7 @@ import org.neo4j.cypher.internal.compiler.helpers.LogicalPlanBuilder
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.ContextualPropertyAccess
 import org.neo4j.cypher.internal.compiler.helpers.PropertyAccessHelper.PropertyAccess
 import org.neo4j.cypher.internal.compiler.planner.LogicalPlanningTestSupport
-import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingStrategy.InPlannerRemoteBatching
+import org.neo4j.cypher.internal.compiler.planner.logical.RemoteBatchingStrategy.InPlannerRemoteBatchingWithoutPushdown
 import org.neo4j.cypher.internal.compiler.planner.logical.ordering.InterestingOrderConfig
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.LabelName
@@ -233,7 +233,7 @@ class SingleComponentPlannerTest extends CypherFunSuite with LogicalPlanningTest
     val qg = QueryGraph(patternRelationships = Set(pattern), patternNodes = Set(v"a", v"b"))
     val context = mockContext()
     val contextWithSPD = context.copy(
-      settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatching),
+      settings = context.settings.copy(remoteBatchPropertiesStrategy = InPlannerRemoteBatchingWithoutPushdown),
       plannerState = context.plannerState.copy(contextualPropertyAccess =
         ContextualPropertyAccess(
           horizon = Set(PropertyAccess(v"a", "prop1")),

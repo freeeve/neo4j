@@ -23,6 +23,7 @@ import org.neo4j.cypher.internal.ast.semantics.SemanticTable
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.EagerWhereNeededRewriter.ChildrenIds
 import org.neo4j.cypher.internal.compiler.planner.logical.plans.rewriter.eager.ReadsAndWritesFinder.collectReadsAndWrites
 import org.neo4j.cypher.internal.expressions.Ands
+import org.neo4j.cypher.internal.expressions.CachedProperty
 import org.neo4j.cypher.internal.expressions.ContainerIndex
 import org.neo4j.cypher.internal.expressions.Expression
 import org.neo4j.cypher.internal.expressions.FunctionInvocation
@@ -42,11 +43,13 @@ import org.neo4j.cypher.internal.expressions.IsNotNull
 import org.neo4j.cypher.internal.expressions.LabelName
 import org.neo4j.cypher.internal.expressions.LabelToken
 import org.neo4j.cypher.internal.expressions.LogicalVariable
+import org.neo4j.cypher.internal.expressions.NODE_TYPE
 import org.neo4j.cypher.internal.expressions.Not
 import org.neo4j.cypher.internal.expressions.Ors
 import org.neo4j.cypher.internal.expressions.Property
 import org.neo4j.cypher.internal.expressions.PropertyKeyName
 import org.neo4j.cypher.internal.expressions.PropertyKeyToken
+import org.neo4j.cypher.internal.expressions.RELATIONSHIP_TYPE
 import org.neo4j.cypher.internal.expressions.RelTypeName
 import org.neo4j.cypher.internal.expressions.RelationshipTypeToken
 import org.neo4j.cypher.internal.expressions.Variable
@@ -904,8 +907,8 @@ object ReadFinder {
         OrderedAggregation(_, _, _, _) |
         OrderedDistinct(_, _, _) |
         ProcedureCall(_, _) |
-        RemoteBatchProperties(_, _) |
-        RemoteBatchPropertiesWithFilter(_, _, _) |
+        RemoteBatchProperties(_, _) | // the actual usage of these properties should happen eventually.
+        RemoteBatchPropertiesWithFilter(_, _, _) | // should only be used in readOnly queries
         SelectOrAntiSemiApply(_, _, _) |
         SelectOrSemiApply(_, _, _) |
         SemiApply(_, _) |
@@ -1002,6 +1005,13 @@ object ReadFinder {
             result = result.withNodePropertyRead(AccessedProperty(propertyName, asMaybeVar(expr)))
           }
           TraverseChildren(result)
+
+      case CachedProperty(_, currentEntityVariable, propertyName, NODE_TYPE, _, _) =>
+        acc =>
+          TraverseChildren(acc.withNodePropertyRead(AccessedProperty(propertyName, Some(currentEntityVariable))))
+
+      case CachedProperty(_, currentEntityVariable, propertyName, RELATIONSHIP_TYPE, _, _) =>
+        acc => TraverseChildren(acc.withRelPropertyRead(AccessedProperty(propertyName, Some(currentEntityVariable))))
 
       case GetDegree(_, relType, _) => acc =>
           TraverseChildren(processDegreeRead(relType, acc, anonymousVariableNameGenerator))
